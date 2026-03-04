@@ -90,7 +90,13 @@ export function deriveGridFromEvents(
     for (let s = 0; s < maxSlotExclusive; s++) {
       if (!work_time[s] && !breaks[s]) non_work[s] = true;
     }
-    return reclassifyShortGapsAsBreak(work_time, breaks, non_work, maxSlotExclusive);
+    const withShortGapsAsBreak = reclassifyShortGapsAsBreak(work_time, breaks, non_work, maxSlotExclusive);
+    return reclassifyLongBreaksAsNonWork(
+      withShortGapsAsBreak.work_time,
+      withShortGapsAsBreak.breaks,
+      withShortGapsAsBreak.non_work,
+      maxSlotExclusive
+    );
   }
 
   for (let i = 0; i < events.length; i++) {
@@ -115,7 +121,13 @@ export function deriveGridFromEvents(
   for (let s = 0; s < maxSlotExclusive; s++) {
     if (!work_time[s] && !breaks[s]) non_work[s] = true;
   }
-  return reclassifyShortGapsAsBreak(work_time, breaks, non_work, maxSlotExclusive);
+  const withShortGapsAsBreak = reclassifyShortGapsAsBreak(work_time, breaks, non_work, maxSlotExclusive);
+  return reclassifyLongBreaksAsNonWork(
+    withShortGapsAsBreak.work_time,
+    withShortGapsAsBreak.breaks,
+    withShortGapsAsBreak.non_work,
+    maxSlotExclusive
+  );
 }
 
 /**
@@ -145,6 +157,37 @@ function reclassifyShortGapsAsBreak(
       for (let k = s; k < runEnd; k++) {
         breaks[k] = true;
         non_work[k] = false;
+      }
+    }
+    s = runEnd;
+  }
+  return { work_time, breaks, non_work };
+}
+
+/**
+ * Reclassify long break runs (> MAX_GAP_AS_BREAK_MINUTES) as non-work so that
+ * any break longer than 30 minutes is counted as non-work time, regardless of
+ * whether it came from logged Break events or inferred gaps.
+ */
+function reclassifyLongBreaksAsNonWork(
+  work_time: boolean[],
+  breaks: boolean[],
+  non_work: boolean[],
+  maxSlotExclusive: number
+): { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] } {
+  const minSlotsAsNonWork = Math.floor(MAX_GAP_AS_BREAK_MINUTES / MINUTES_PER_SLOT) + 1; // >30min => >=2 slots
+  for (let s = 0; s < maxSlotExclusive; ) {
+    if (!breaks[s]) {
+      s++;
+      continue;
+    }
+    let runEnd = s;
+    while (runEnd < maxSlotExclusive && breaks[runEnd]) runEnd++;
+    const runSlots = runEnd - s;
+    if (runSlots >= minSlotsAsNonWork) {
+      for (let k = s; k < runEnd; k++) {
+        non_work[k] = true;
+        breaks[k] = false;
       }
     }
     s = runEnd;
