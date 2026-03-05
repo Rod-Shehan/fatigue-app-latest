@@ -92,13 +92,14 @@ export default function CompliancePanel({
             <p className="text-[10px] text-blue-400 font-mono">14d: {totalWork + prevWeekWork}h</p>
           )}
         </div>
-        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.break.statsCard}`}>
+        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.break.statsCard}`} title="Short gaps (≤30 min) between work count as break. Breaks longer than 30 min count as non-work.">
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.break.statsLabel}`}>Breaks</p>
+          <p className="text-[9px] text-slate-400 mt-0.5">≤30 min between work</p>
           <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.break.statsValue}`}>{totalBreaks}h</p>
         </div>
-        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.non_work.statsCard}`}>
+        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.non_work.statsCard}`} title="Recovery time; includes breaks &gt;30 min and time between shifts.">
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.non_work.statsLabel}`}>Non-Work Time</p>
-          <p className="text-[9px] text-slate-400 mt-0.5">all time not work or break</p>
+          <p className="text-[9px] text-slate-400 mt-0.5">recovery; breaks &gt;30 min</p>
           <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.non_work.statsValue}`}>{totalNonWork}h</p>
         </div>
       </div>
@@ -154,8 +155,8 @@ export default function CompliancePanel({
       </AnimatePresence>
       <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
         <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
-          <strong className="text-slate-600 dark:text-slate-300">Non-work time</strong> = recovery between shifts.{" "}
-          <strong className="text-slate-600 dark:text-slate-300">Break</strong> = short break during work (e.g. 20 min).
+          <strong className="text-slate-600 dark:text-slate-300">Break</strong> = short gap (≤30 min) between work; counts toward the 20 min / 5h rule.{" "}
+          <strong className="text-slate-600 dark:text-slate-300">Non-work time</strong> = recovery between shifts; any break longer than 30 min is counted here, not as break.
         </p>
         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
           WA OSH Reg 3.132 — {isTwoUp ? "Two-Up" : "Solo"} Rules

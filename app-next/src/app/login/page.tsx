@@ -6,12 +6,20 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, LayoutDashboard } from "lucide-react";
+import { LogIn, LayoutDashboard, UserCircle2, Truck } from "lucide-react";
+import Link from "next/link";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/sheets";
+  const rawCallback = searchParams.get("callbackUrl") ?? "/sheets";
+  // Prevent open redirect: only allow same-origin paths (start with /, not // or protocol)
+  const callbackUrl =
+    typeof rawCallback === "string" &&
+    rawCallback.startsWith("/") &&
+    !rawCallback.startsWith("//")
+      ? rawCallback
+      : "/sheets";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -21,6 +29,12 @@ function LoginForm() {
     e.preventDefault();
     setError("");
     setLoading(true);
+    const safeRedirect =
+      typeof redirectTo === "string" &&
+      redirectTo.startsWith("/") &&
+      !redirectTo.startsWith("//")
+        ? redirectTo
+        : "/sheets";
     try {
       const res = await signIn("credentials", {
         email,
@@ -32,7 +46,7 @@ function LoginForm() {
         setLoading(false);
         return;
       }
-      router.push(redirectTo);
+      router.push(safeRedirect);
       router.refresh();
     } catch {
       setError("Something went wrong.");
@@ -52,6 +66,9 @@ function LoginForm() {
           </h1>
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">
             WA Commercial Vehicle Fatigue Management
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+            Drivers log shifts. Managers review compliance and event maps.
           </p>
         </div>
         <form
@@ -96,7 +113,7 @@ function LoginForm() {
               {error}
             </p>
           )}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Button
               type="submit"
               className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
@@ -113,6 +130,34 @@ function LoginForm() {
             >
               <LayoutDashboard className="w-4 h-4" /> Sign in as Manager
             </Button>
+            <div className="flex flex-col gap-1 pt-1">
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
+                After signing in:
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Link
+                  href="/sheets"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <UserCircle2 className="w-3.5 h-3.5" />
+                  Driver sheets
+                </Link>
+                <Link
+                  href="/manager"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  Manager dashboard
+                </Link>
+                <Link
+                  href="/admin/regos"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  Manage regos
+                </Link>
+              </div>
+            </div>
           </div>
         </form>
         <p className="text-xs text-center text-slate-400 dark:text-slate-500">

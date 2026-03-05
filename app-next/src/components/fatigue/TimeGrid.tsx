@@ -167,8 +167,18 @@ export default function TimeGrid({ dayData }: { dayData: DayDataGrid }) {
         {TIME_GRID_ROWS.map((row) => {
           const segs = segments[row.key as keyof typeof segments];
           const totalMins = getTotalMinutes(segs);
+          const rowTooltip =
+            row.key === "work_time"
+              ? "Logged work time"
+              : row.key === "breaks"
+                ? "Counted as break: short gaps (≤30 min) between work; used for 20 min / 5h rule. Any break longer than 30 min is counted as non-work."
+                : "Counted as non-work (recovery): time between shifts and breaks longer than 30 min.";
           return (
-            <div key={row.key} className="flex items-start gap-1.5 sm:gap-2">
+            <div
+              key={row.key}
+              className="flex items-start gap-1.5 sm:gap-2"
+              title={rowTooltip}
+            >
               <span className="w-[68px] shrink-0 pt-0.5 text-[9px] sm:text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide text-right">
                 {row.label}
               </span>

@@ -354,7 +354,11 @@ export async function GET(
 
     const pdfBytes = doc.output("arraybuffer");
     const timeStamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(/:/g, "");
-    const filename = `fatigue-sheet-${(sheet.driver_name || "unknown").replace(/\s+/g, "-")}-${timeStamp}.pdf`;
+    // Sanitize filename to prevent header injection (quotes, newlines, control chars)
+    const safeName = (sheet.driver_name || "unknown")
+      .replace(/[\s"\r\n\\]+/g, "-")
+      .replace(/[^\w\-.]/g, "") || "sheet";
+    const filename = `fatigue-sheet-${safeName}-${timeStamp}.pdf`;
     return new NextResponse(pdfBytes, {
       status: 200,
       headers: {

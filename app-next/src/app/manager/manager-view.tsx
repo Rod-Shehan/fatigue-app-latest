@@ -174,9 +174,9 @@ export function ManagerView() {
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
           backHref={selectedSheetId ? `/sheets/${selectedSheetId}` : lastSheetId ? `/sheets/${lastSheetId}` : "/sheets"}
-          backLabel={selectedSheetId || lastSheetId ? "Fatigue Record" : "Your Sheets"}
-          title="Manager"
-          subtitle="View sheets and compliance across drivers"
+          backLabel={selectedSheetId || lastSheetId ? "Fatigue Record" : "Driver sheets"}
+          title="Manager dashboard"
+          subtitle="View sheets, map events, and compliance across drivers"
           icon={<LayoutDashboard className="w-5 h-5" />}
         />
 
@@ -222,14 +222,15 @@ export function ManagerView() {
                   Sheet
                 </Label>
                 <Select
-                  value={selectedSheetId}
-                  onValueChange={(id) => setSelectedSheetId(id)}
+                  value={selectedSheetId || "__none__"}
+                  onValueChange={(id) => setSelectedSheetId(id === "__none__" ? "" : id)}
                   disabled={sheetsLoading}
                 >
                   <SelectTrigger className="w-full max-w-md">
-                    <SelectValue placeholder="Select a sheet…" />
+                    <SelectValue placeholder={sheets.length === 0 ? "No sheets yet" : "Select a sheet…"} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__none__">— Select a sheet —</SelectItem>
                     {sheets.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {formatSheetLabel(s)}
@@ -237,14 +238,31 @@ export function ManagerView() {
                     ))}
                   </SelectContent>
                 </Select>
+                {!selectedSheetId && (
+                  <p className="text-xs text-slate-400 dark:text-slate-500">
+                    Select a sheet above to edit driver details, last 24h break, and compliance-related fields.
+                  </p>
+                )}
+                {sheets.length === 0 && !sheetsLoading && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    No sheets yet. Ask drivers to create a sheet from the driver app first.
+                  </p>
+                )}
               </div>
 
               {selectedSheetId && (
                 <>
                   {sheetLoading ? (
-                    <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Loading sheet…
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-4">
+                      <div className="flex items-center gap-2 text-slate-500 text-sm">
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                        Loading sheet…
+                      </div>
+                      <div className="space-y-3 animate-pulse">
+                        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full max-w-xs" />
+                        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-32" />
+                        <div className="h-9 bg-slate-200 dark:bg-slate-700 rounded w-full max-w-xs" />
+                      </div>
                     </div>
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-slate-100 dark:border-slate-700">
@@ -440,13 +458,25 @@ export function ManagerView() {
                 <span className="text-sm text-slate-600 dark:text-slate-300">Loading compliance…</span>
               </div>
             ) : itemsWithIssues.length === 0 ? (
-              <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-200">
-                  {oversightItems.length === 0
-                    ? "No sheets yet."
-                    : "All drivers compliant — no violations or warnings."}
-                </span>
+              <div className="rounded-lg p-4 space-y-2">
+                {oversightItems.length === 0 ? (
+                  <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                    <AlertTriangle className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No sheets yet</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Ask drivers to create a sheet from the driver app: Your Sheets → Start New Week. Compliance will appear here once sheets exist.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-200">
+                      All drivers compliant — no violations or warnings.
+                    </span>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

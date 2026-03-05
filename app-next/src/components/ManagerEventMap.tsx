@@ -74,7 +74,12 @@ export function ManagerEventMap({
         className={`flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-500 ${className}`}
         style={{ minHeight: 320 }}
       >
-        <span className="text-sm">No events with location to show</span>
+        <div className="text-center space-y-1">
+          <p className="text-sm font-medium">No events with location to show</p>
+          <p className="text-xs text-slate-400">
+            Try selecting <span className="font-semibold">All weeks</span> or <span className="font-semibold">All drivers</span>, or check that GPS is enabled on drivers&apos; devices.
+          </p>
+        </div>
       </div>
     );
   }

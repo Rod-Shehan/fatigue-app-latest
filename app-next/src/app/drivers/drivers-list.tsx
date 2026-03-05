@@ -85,7 +85,12 @@ export function DriversList() {
             </div>
           )}
           {!isLoading && drivers.length === 0 && (
-            <p className="text-center text-slate-400 text-sm py-10">No drivers added yet.</p>
+            <div className="text-center py-10 px-4">
+              <p className="font-semibold text-slate-600 dark:text-slate-300 mb-1">No drivers added yet</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Add drivers above so they can be selected on fatigue sheets. Drivers must be in the roster before they can log shifts.
+              </p>
+            </div>
           )}
           {drivers.map((driver) => (
             <div

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import { getManagerSession } from "@/lib/auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -7,8 +8,11 @@ export async function PATCH(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const manager = await getManagerSession();
+  if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
-    await getServerSession(authOptions);
     const { id } = await params;
     const body = await _req.json();
     const { is_active } = body;
@@ -31,8 +35,11 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const manager = await getManagerSession();
+  if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
-    await getServerSession(authOptions);
     const { id } = await params;
     await prisma.driver.delete({ where: { id } });
     return new NextResponse(null, { status: 204 });

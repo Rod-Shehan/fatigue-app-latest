@@ -1,6 +1,6 @@
 # Driver Fatigue Log (Next.js – no Base44)
 
-This is the same app converted to **Next.js 14 + TypeScript + Prisma + NextAuth**, with no Base44 dependency.
+This is the same app converted to **Next.js + TypeScript + Prisma + NextAuth**, with no Base44 dependency.
 
 ## Quick start
 
@@ -10,7 +10,9 @@ This is the same app converted to **Next.js 14 + TypeScript + Prisma + NextAuth*
    npm install
    cp .env.example .env.local
    ```
-   Edit `.env.local`: set `NEXTAUTH_SECRET` (e.g. `openssl rand -base64 32`) and optionally `NEXTAUTH_CREDENTIALS_PASSWORD` for password sign-in.
+   Edit `.env.local`:
+   - **NEXTAUTH_SECRET** (required): e.g. `openssl rand -base64 32`. Required in production; without it, auth may be insecure.
+   - **NEXTAUTH_CREDENTIALS_PASSWORD** (required for sign-in): set a shared test password; sign in with any email + this password.
 
 2. **Database**
    ```bash
@@ -18,15 +20,21 @@ This is the same app converted to **Next.js 14 + TypeScript + Prisma + NextAuth*
    npx prisma db push
    ```
 
-3. **Run**
+3. **Optional: seed sample data for user testing**
+   ```bash
+   npm run db:seed
+   ```
+   Creates sample drivers, regos, test users (manager@test.local, driver@test.local), and one draft fatigue sheet. Sign in with those emails and your `NEXTAUTH_CREDENTIALS_PASSWORD`.
+
+4. **Run**
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000). Sign in with any email and the password you set in `NEXTAUTH_CREDENTIALS_PASSWORD`.
+   Open [http://localhost:3000](http://localhost:3000). Sign in with any email and the password you set in `NEXTAUTH_CREDENTIALS_PASSWORD` (or, in dev only, leave both fields blank to sign in as dev@localhost).
 
 ## Stack
 
-- **Next.js 14** (App Router), **TypeScript**, **Tailwind**
+- **Next.js** (App Router), **TypeScript**, **Tailwind**
 - **Prisma** + **SQLite** (dev) or **PostgreSQL** (prod via `DATABASE_URL`)
 - **NextAuth.js** (Credentials provider; add Google etc. in `src/lib/auth.ts`)
 - **TanStack Query** for client data
@@ -36,6 +44,10 @@ This is the same app converted to **Next.js 14 + TypeScript + Prisma + NextAuth*
 The sheet **list** and **drivers** pages are fully wired. The single-sheet **editor** (time grid, compliance panel, signature) lives in `src/components/fatigue/`. Use `api.sheets.get(id)`, `api.sheets.update(id, data)`, and `api.sheets.exportPdfUrl(id)` from `@/lib/api.ts`.
 
 See **MIGRATION.md** in the repo root for the full conversion guide.
+
+## User testing
+
+See **USER_TESTING.md** for a short tester brief: how to sign in, get manager access, and what to try. Run `npm run db:seed` first so testers see sample drivers, regos, and a sheet.
 
 ## Firebase (optional)
 

@@ -68,12 +68,20 @@ export function SheetsList() {
           </div>
         )}
         {!isLoading && sheets.length === 0 && (
-          <div className="text-center py-20">
+          <div className="text-center py-16 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6">
             <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mx-auto mb-4">
               <FileText className="w-7 h-7 text-slate-300 dark:text-slate-500" />
             </div>
-            <p className="text-slate-400 dark:text-slate-500 mb-1">No fatigue sheets yet</p>
-            <p className="text-sm text-slate-300 dark:text-slate-600">Create your first weekly record</p>
+            <p className="font-semibold text-slate-700 dark:text-slate-200 mb-1">No fatigue sheets yet</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-sm mx-auto">
+              Start a new week to log work, breaks, and compliance. Create your first sheet to get started.
+            </p>
+            <Link href="/sheets/new">
+              <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-2">
+                <Plus className="w-4 h-4" />
+                Create your first sheet
+              </Button>
+            </Link>
           </div>
         )}
         <div className="space-y-3">

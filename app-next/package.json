@@ -16,10 +16,14 @@
     "test:compliance": "vitest run src/lib/compliance.test.ts",
     "postinstall": "prisma generate || exit 0",
     "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
     "firebase:login": "firebase login",
     "firebase:use": "firebase use --add",
     "firebase:deploy": "firebase deploy"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",

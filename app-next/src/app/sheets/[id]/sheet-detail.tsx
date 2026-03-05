@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, FileText, Loader2, CheckCircle2, ScrollText, ChevronDown, XCircle, Download, LayoutDashboard, Square, AlertCircle } from "lucide-react";
+import { Save, FileText, Loader2, CheckCircle2, ScrollText, XCircle, Download, LayoutDashboard, Square, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import SheetHeader from "@/components/fatigue/SheetHeader";
@@ -157,14 +157,13 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
   const [isDirty, setIsDirty] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
-  const [showSaveMenu, setShowSaveMenu] = useState(false);
+  const [showMarkCompleteConfirm, setShowMarkCompleteConfirm] = useState(false);
   const [endShiftDialog, setEndShiftDialog] = useState<{ dayIndex: number } | null>(null);
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
   const sheetDataRef = useRef(sheetData);
   sheetDataRef.current = sheetData;
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const saveMenuRef = useRef<HTMLDivElement>(null);
   const dayCardsRef = useRef<HTMLDivElement>(null);
   const currentDayCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -503,7 +502,6 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
   }, [endShiftDialog, endShiftEndKms]);
 
   const handleSave = () => {
-    setShowSaveMenu(false);
     const kmError = validateSheetKms(sheetData.days);
     if (kmError) {
       window.alert(kmError);
@@ -523,24 +521,19 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
     });
   };
 
-  const handleSaveAndComplete = () => {
-    setShowSaveMenu(false);
+  const handleMarkCompleteClick = () => {
     const kmError = validateSheetKms(sheetData.days);
     if (kmError) {
       window.alert(kmError);
       return;
     }
-    setShowSignatureDialog(true);
+    setShowMarkCompleteConfirm(true);
   };
 
-  useEffect(() => {
-    if (!showSaveMenu) return;
-    const close = (e: MouseEvent) => {
-      if (saveMenuRef.current && !saveMenuRef.current.contains(e.target as Node)) setShowSaveMenu(false);
-    };
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [showSaveMenu]);
+  const handleMarkCompleteConfirm = () => {
+    setShowMarkCompleteConfirm(false);
+    setShowSignatureDialog(true);
+  };
 
   const handleSignatureConfirm = (signatureDataUrl: string) => {
     const signedAt = new Date().toISOString();
@@ -561,14 +554,24 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
   };
 
   const handleExportPdf = useCallback(() => {
-    setShowSaveMenu(false);
     window.open(api.sheets.exportPdfUrl(sheetId), "_blank");
   }, [sheetId]);
 
   if (isLoading || !sheet) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-950">
-        <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
+        <div className="max-w-[1400px] mx-auto px-4 py-6">
+          <PageHeader
+            backHref="/sheets"
+            backLabel="Your Sheets"
+            title="Fatigue Record"
+            subtitle="WA Commercial Driver Fatigue Management"
+          />
+          <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+            <Loader2 className="w-8 h-8 animate-spin text-slate-400 dark:text-slate-500 mb-3" />
+            <p className="text-sm text-slate-500 dark:text-slate-400">Loading sheet…</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -595,10 +598,36 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
           {forgottenActionReminder && (
             <div
               role="alert"
-              className="mx-4 mt-2 flex items-center gap-2 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100"
+              className="mx-4 mt-2 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100"
             >
-              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <p className="flex-1 font-medium">{forgottenActionReminder.message}</p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="flex-1 font-medium min-w-0">{forgottenActionReminder.message}</p>
+              </div>
+              {forgottenActionReminder.variant === "end-shift" && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="text-xs font-semibold text-amber-800 dark:text-amber-200 w-full">Choose:</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-800/50"
+                    onClick={() => handleEndShiftRequest(currentDayIndex)}
+                  >
+                    <Square className="w-3.5 h-3.5" />
+                    End shift at {new Date().toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs border-slate-400 dark:border-slate-500 text-slate-700 dark:text-slate-200 hover:bg-amber-100/50 dark:hover:bg-amber-800/30"
+                    onClick={handleAssumeIdle}
+                  >
+                    Mark non-work from {new Date().toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -639,82 +668,38 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
                 <CheckCircle2 className="w-3 h-3" /> Completed
               </Badge>
             )}
-            <div className="relative inline-flex shrink-0" ref={saveMenuRef}>
-              {sheetData.status !== "completed" ? (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    disabled={saveMutation.isPending}
-                    size="sm"
-                    className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 text-xs rounded-r-none border-r border-slate-700"
-                  >
-                    {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Save
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setShowSaveMenu((v) => !v)}
-                    className="bg-slate-900 hover:bg-slate-800 text-white h-8 w-8 p-0 rounded-l-none border-slate-700"
-                    aria-label="Save options"
-                  >
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showSaveMenu ? "rotate-180" : ""}`} />
-                  </Button>
-                  {showSaveMenu && (
-                    <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 py-1 shadow-lg">
-                      <button
-                        type="button"
-                        onClick={handleSave}
-                        disabled={saveMutation.isPending}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700"
-                      >
-                        <Save className="w-3.5 h-3.5" /> Save draft
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleSaveAndComplete}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/50"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Save & mark complete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleExportPdf();
-                        }}
-                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 border-t border-slate-200 dark:border-slate-600"
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                        Export PDF
-                      </button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <Button
-                    onClick={handleSave}
-                    disabled={saveMutation.isPending}
-                    size="sm"
-                    className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 text-xs"
-                  >
-                    {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    Save
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={handleExportPdf}
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5 text-xs border-slate-300 dark:border-slate-600"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Export PDF
-                  </Button>
-                </>
+            <div className="inline-flex flex-wrap items-center gap-2 shrink-0">
+              <Button
+                onClick={handleSave}
+                disabled={saveMutation.isPending}
+                size="sm"
+                className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 text-xs"
+              >
+                {saveMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                Save
+              </Button>
+              {sheetData.status !== "completed" && (
+                <Button
+                  type="button"
+                  onClick={handleMarkCompleteClick}
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/50"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Mark complete
+                </Button>
               )}
+              <Button
+                type="button"
+                onClick={handleExportPdf}
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs border-slate-300 dark:border-slate-600"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Export PDF
+              </Button>
             </div>
             <div className="w-full basis-full h-0" aria-hidden />
             <button
@@ -827,6 +812,28 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
         onCancel={() => setShowSignatureDialog(false)}
         driverName={sheetData.driver_name}
       />
+      <Dialog open={showMarkCompleteConfirm} onOpenChange={(open) => !open && setShowMarkCompleteConfirm(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              Mark sheet complete
+            </DialogTitle>
+            <DialogDescription>
+              You will sign to confirm. The sheet will be locked as complete. Make sure all entries are correct before continuing.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowMarkCompleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleMarkCompleteConfirm} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              Continue to sign
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!endShiftDialog} onOpenChange={(open) => !open && setEndShiftDialog(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>

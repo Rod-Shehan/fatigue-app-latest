@@ -74,7 +74,7 @@ export function ManagerMapView() {
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
           backHref="/manager"
-          backLabel="Manager"
+          backLabel="Manager dashboard"
           title="Event map"
           subtitle="Driver time inputs with location"
           icon={<Map className="w-5 h-5 sm:w-6 sm:h-6" />}
@@ -85,6 +85,18 @@ export function ManagerMapView() {
           </p>
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4 items-end">
+              {(mapWeekStarting || mapDriverName) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMapWeekStarting("");
+                    setMapDriverName("");
+                  }}
+                  className="text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 underline"
+                >
+                  Reset filters
+                </button>
+              )}
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                   Week

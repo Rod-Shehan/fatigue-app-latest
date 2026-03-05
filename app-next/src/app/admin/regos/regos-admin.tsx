@@ -41,8 +41,8 @@ export function RegosAdmin() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
-          backHref="/sheets"
-          backLabel="Your Sheets"
+          backHref="/manager"
+          backLabel="Manager dashboard"
           title="Truck Rego List"
           subtitle="Manage regos for the sheet dropdown (admin)"
           icon={<Truck className="w-5 h-5" />}
@@ -79,7 +79,13 @@ export function RegosAdmin() {
             </div>
           )}
           {!isLoading && regos.length === 0 && (
-            <p className="text-center text-slate-400 py-8 text-sm">No regos yet. Add one above.</p>
+            <div className="text-center py-8 px-4">
+              <p className="font-semibold text-slate-600 dark:text-slate-300 mb-1">No regos yet</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
+                Regos appear in the truck dropdown on each day card. Add vehicle regos above so drivers can select them when logging.
+              </p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Use the &quot;Add rego&quot; form above to add your first rego.</p>
+            </div>
           )}
           <ul className="divide-y divide-slate-100 dark:divide-slate-700">
             {regos.map((rego) => (
