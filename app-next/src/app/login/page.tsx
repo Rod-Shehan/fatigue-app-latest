@@ -89,7 +89,7 @@ function LoginForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-9"
-              required={process.env.NODE_ENV === "production"}
+              required={true}
             />
           </div>
           <div className="space-y-2">
@@ -105,7 +105,7 @@ function LoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-9"
-              required={process.env.NODE_ENV === "production"}
+              required={false}
             />
           </div>
           {error && (
@@ -163,7 +163,7 @@ function LoginForm() {
         <p className="text-xs text-center text-slate-400 dark:text-slate-500">
           {process.env.NODE_ENV === "development"
             ? "Dev: leave email and password blank to sign in."
-            : "Set NEXTAUTH_CREDENTIALS_PASSWORD in .env to use password sign-in."}
+            : "Testing mode: enter any email and leave password blank."}
         </p>
       </div>
     </div>

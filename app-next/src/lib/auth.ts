@@ -28,6 +28,17 @@ export const authOptions = {
           }
           return { id: user.id, email: user.email, name: user.name };
         }
+        // Temporary: allow any non-empty email to sign in without a password.
+        // This is intended for testing only; reinstate password requirement later.
+        if (email && password === "") {
+          let user = await prisma.user.findUnique({ where: { email } });
+          if (!user) {
+            user = await prisma.user.create({
+              data: { email, name: email.split("@")[0] },
+            });
+          }
+          return { id: user.id, email: user.email, name: user.name };
+        }
         if (!email || !password) return null;
         // Allow signing in with a shared password (NEXTAUTH_CREDENTIALS_PASSWORD)
         // in all environments. User records are created on first sign-in.
