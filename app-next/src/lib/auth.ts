@@ -29,12 +29,10 @@ export const authOptions = {
           return { id: user.id, email: user.email, name: user.name };
         }
         if (!email || !password) return null;
-        // Only allow dev backdoor in development; never set NEXTAUTH_CREDENTIALS_PASSWORD in production
-        const devPass =
-          process.env.NODE_ENV === "development"
-            ? process.env.NEXTAUTH_CREDENTIALS_PASSWORD
-            : undefined;
-        if (devPass && password === devPass) {
+        // Allow signing in with a shared password (NEXTAUTH_CREDENTIALS_PASSWORD)
+        // in all environments. User records are created on first sign-in.
+        const sharedPass = process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
+        if (sharedPass && password === sharedPass) {
           let user = await prisma.user.findUnique({ where: { email } });
           if (!user) {
             user = await prisma.user.create({
