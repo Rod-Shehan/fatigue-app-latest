@@ -15,8 +15,8 @@ const STORE_REGOS = "regos";
 const STORE_PENDING = "pending";
 
 export type PendingWrite =
-  | { id?: number; type: "update"; sheetId: string; data: Partial<FatigueSheet>; at: number }
-  | { id?: number; type: "create"; tempId: string; data: Omit<FatigueSheet, "id">; at: number };
+  | { id: number; type: "update"; sheetId: string; data: Partial<FatigueSheet>; at: number }
+  | { id: number; type: "create"; tempId: string; data: Omit<FatigueSheet, "id">; at: number };
 
 /** Argument for offlineEnqueue (same shape as PendingWrite but without `at`). */
 export type PendingWriteEnqueue =
@@ -112,15 +112,41 @@ export async function offlineSetRegos(regos: Rego[]): Promise<void> {
 export async function offlineGetPending(): Promise<PendingWrite[]> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const req = getStore(db, STORE_PENDING).getAll();
-    req.onsuccess = () => resolve((req.result as PendingWrite[]) ?? []);
-    req.onerror = () => reject(req.error);
+    const store = getStore(db, STORE_PENDING);
+    const valuesReq = store.getAll();
+    const keysReq = store.getAllKeys();
+    valuesReq.onerror = () => reject(valuesReq.error);
+    keysReq.onerror = () => reject(keysReq.error);
+    valuesReq.onsuccess = () => {
+      if (keysReq.readyState !== "done") return;
+      const values = (valuesReq.result as Omit<PendingWrite, "id">[]) ?? [];
+      const keys = (keysReq.result as IDBValidKey[]) ?? [];
+      const combined = values
+        .map((v, idx) => {
+          const key = keys[idx];
+          return typeof key === "number" ? ({ ...v, id: key } as PendingWrite) : null;
+        })
+        .filter(Boolean) as PendingWrite[];
+      resolve(combined);
+    };
+    keysReq.onsuccess = () => {
+      if (valuesReq.readyState !== "done") return;
+      const values = (valuesReq.result as Omit<PendingWrite, "id">[]) ?? [];
+      const keys = (keysReq.result as IDBValidKey[]) ?? [];
+      const combined = values
+        .map((v, idx) => {
+          const key = keys[idx];
+          return typeof key === "number" ? ({ ...v, id: key } as PendingWrite) : null;
+        })
+        .filter(Boolean) as PendingWrite[];
+      resolve(combined);
+    };
   });
 }
 
 export async function offlineEnqueue(write: PendingWriteEnqueue): Promise<void> {
   const db = await openDB();
-  const withAt = { ...write, at: Date.now() } as PendingWrite;
+  const withAt = { ...write, at: Date.now() } as Omit<PendingWrite, "id">;
   return new Promise((resolve, reject) => {
     const req = getStore(db, STORE_PENDING, "readwrite").add(withAt);
     req.onsuccess = () => resolve();

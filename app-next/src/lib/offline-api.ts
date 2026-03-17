@@ -30,8 +30,7 @@ export async function runSync(): Promise<{ synced: number; error?: string; repla
   let synced = 0;
   let replacedTempId: { tempId: string; realId: string } | undefined;
   for (const item of pending) {
-    const id = (item as PendingWrite & { id?: number }).id;
-    if (id == null) continue;
+    const id = item.id;
     try {
       if (item.type === "update") {
         await api.sheets.update(item.sheetId, item.data);
