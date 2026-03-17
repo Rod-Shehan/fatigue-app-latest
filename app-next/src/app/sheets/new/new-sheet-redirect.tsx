@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createSheetOfflineFirst } from "@/lib/offline-api";
+import { createSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { Button } from "@/components/ui/button";
 
 const EMPTY_DAY = () => ({
@@ -50,10 +50,22 @@ export function NewSheetRedirect() {
   });
 
   useEffect(() => {
-    createMutation.mutate();
+    // If a draft sheet already exists, open it instead of creating another.
+    listSheetsOfflineFirst()
+      .then((sheets) => {
+        const draft = sheets.find((s) => s.status !== "completed");
+        if (draft?.id) {
+          router.replace(`/sheets/${draft.id}`);
+          return;
+        }
+        createMutation.mutate();
+      })
+      .catch(() => createMutation.mutate());
   }, []);
 
-  const errBody = createMutation.error && (createMutation.error as Error & { body?: { sheet_id?: string } }).body;
+  const errBody =
+    createMutation.error &&
+    (createMutation.error as Error & { body?: { sheet_id?: string } }).body;
   const sheetId = errBody?.sheet_id;
 
   return (

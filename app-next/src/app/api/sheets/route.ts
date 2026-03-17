@@ -67,6 +67,28 @@ export async function POST(req: Request) {
   const access = await getSessionForSheetAccess();
   if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
+    // Limit: only one unfinished (draft) sheet per driver at a time.
+    // Prevent multiple live sheets that can be edited concurrently.
+    const existingDraft = await prisma.fatigueSheet.findFirst({
+      where: {
+        createdById: access.userId,
+        status: { not: "completed" },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, weekStarting: true, status: true },
+    });
+    if (existingDraft) {
+      return NextResponse.json(
+        {
+          error: "You already have an unfinished sheet. Complete and sign it before starting a new one.",
+          code: "UNFINISHED_SHEET_EXISTS",
+          sheet_id: existingDraft.id,
+          week_starting: existingDraft.weekStarting,
+        },
+        { status: 409 }
+      );
+    }
+
     const body = await req.json();
     const {
       driver_name,
