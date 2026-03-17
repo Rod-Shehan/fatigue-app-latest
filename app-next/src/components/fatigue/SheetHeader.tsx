@@ -245,7 +245,7 @@ export default function SheetHeader({
                         setLast24hPickerValue("");
                         setLast24hPickerResetKey((k) => k + 1);
                       }}
-                      className="bg-slate-900 hover:bg-slate-800"
+                      className="min-w-24 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
                     >
                       Confirm
                     </Button>
