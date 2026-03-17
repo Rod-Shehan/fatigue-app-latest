@@ -243,19 +243,20 @@ export default function LogBar({
   const lastEvent = events[events.length - 1];
   const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
 
-  const elapsedMinutes = currentType && lastEvent ? Math.floor((Date.now() - new Date(lastEvent.time).getTime()) / 60000) : 0;
+  const elapsedMs = currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
+  const elapsedMinutes = Math.max(0, elapsedMs / 60000);
   const contextualBar = (() => {
     if (!currentType || currentType === "stop") return null;
     if (currentType === "work") {
       const target = WORK_TARGET_MINUTES;
       const pct = Math.min(100, (elapsedMinutes / target) * 100);
-      const remaining = Math.max(0, target - elapsedMinutes);
+      const remaining = Math.max(0, target - Math.floor(elapsedMinutes));
       return { type: "work" as const, elapsed: elapsedMinutes, target, pct, remaining, color: ACTIVITY_THEME.work.hex, label: "5h" };
     }
     if (currentType === "break") {
       const target = BREAK_TARGET_MINUTES;
       const pct = Math.min(100, (elapsedMinutes / target) * 100);
-      const remaining = Math.max(0, target - elapsedMinutes);
+      const remaining = Math.max(0, target - Math.floor(elapsedMinutes));
       return { type: "break" as const, elapsed: elapsedMinutes, target, pct, remaining, color: ACTIVITY_THEME.break.hex, label: "20m" };
     }
     return null;
@@ -550,7 +551,7 @@ export default function LogBar({
                 />
               ))}
             </div>
-            {contextualBar.pct > 0 && contextualBar.pct < 100 && (
+            {contextualBar.pct < 100 && (
               <div
                 className="absolute top-1/2 w-2.5 h-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full bg-black dark:bg-white border-2 border-slate-400 dark:border-slate-300 shadow-md pointer-events-none z-10"
                 style={{ left: `${contextualBar.pct}%` }}
