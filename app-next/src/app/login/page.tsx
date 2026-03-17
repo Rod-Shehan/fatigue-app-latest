@@ -36,9 +36,12 @@ function LoginForm() {
         ? redirectTo
         : "/sheets";
     try {
+      // Let NextAuth perform the redirect after setting cookies to avoid race conditions
+      // where a client-side push happens before the session is available.
       const res = await signIn("credentials", {
         email,
         password,
+        callbackUrl: safeRedirect,
         redirect: false,
       });
       if (res?.error) {
@@ -46,8 +49,8 @@ function LoginForm() {
         setLoading(false);
         return;
       }
-      router.push(safeRedirect);
-      router.refresh();
+      // Navigate via full reload so middleware/server sees the new session immediately.
+      window.location.assign(res?.url || safeRedirect);
     } catch {
       setError("Something went wrong.");
     }
