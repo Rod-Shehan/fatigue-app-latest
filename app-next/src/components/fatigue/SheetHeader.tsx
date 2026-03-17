@@ -37,6 +37,8 @@ export default function SheetHeader({
   const [confirmLast24hOpen, setConfirmLast24hOpen] = useState(false);
   const [pendingLast24hDate, setPendingLast24hDate] = useState<string>("");
   const [confirmLast24hChecked, setConfirmLast24hChecked] = useState(false);
+  const [last24hPickerValue, setLast24hPickerValue] = useState("");
+  const [last24hPickerResetKey, setLast24hPickerResetKey] = useState(0);
 
   const handleChange = (field: string, value: unknown) => {
     onChange({ ...sheetData, [field]: value });
@@ -163,32 +165,35 @@ export default function SheetHeader({
             </Button>
           ) : (
             <div className="relative">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={readOnly}
+                className="h-9 w-full justify-start gap-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50 hover:border-amber-400 dark:hover:border-amber-600 font-medium"
+              >
+                <Calendar className="w-4 h-4 text-amber-600" />
+                Set last 24h break
+              </Button>
+              {/* Mobile-safe: the date input is what you actually tap (overlays the button). */}
               <input
+                key={last24hPickerResetKey}
                 ref={last24hDateInputRef}
                 type="date"
-                className="absolute opacity-0 w-0 h-0 pointer-events-none"
-                aria-hidden
-                defaultValue={sheetData.week_starting || ""}
+                value={last24hPickerValue}
+                disabled={readOnly}
                 onChange={(e) => {
                   const v = e.target.value;
+                  setLast24hPickerValue(v);
                   if (v) {
                     setPendingLast24hDate(v);
                     setConfirmLast24hChecked(false);
                     setConfirmLast24hOpen(true);
                   }
                 }}
+                className="absolute inset-0 h-9 w-full opacity-0 cursor-pointer"
+                aria-label="Set last 24 hour break date"
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={readOnly}
-                onClick={() => last24hDateInputRef.current?.showPicker?.() ?? last24hDateInputRef.current?.click()}
-                className="h-9 w-full justify-start gap-2 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50 hover:border-amber-400 dark:hover:border-amber-600 font-medium"
-              >
-                <Calendar className="w-4 h-4 text-amber-600" />
-                Set last 24h break
-              </Button>
               <Dialog
                 open={confirmLast24hOpen}
                 onOpenChange={(open) => {
@@ -196,6 +201,8 @@ export default function SheetHeader({
                   if (!open) {
                     setPendingLast24hDate("");
                     setConfirmLast24hChecked(false);
+                    setLast24hPickerValue("");
+                    setLast24hPickerResetKey((k) => k + 1);
                   }
                 }}
               >
@@ -229,6 +236,8 @@ export default function SheetHeader({
                         setConfirmLast24hOpen(false);
                         setPendingLast24hDate("");
                         setConfirmLast24hChecked(false);
+                        setLast24hPickerValue("");
+                        setLast24hPickerResetKey((k) => k + 1);
                       }}
                     >
                       Cancel
@@ -242,6 +251,8 @@ export default function SheetHeader({
                         setConfirmLast24hOpen(false);
                         setPendingLast24hDate("");
                         setConfirmLast24hChecked(false);
+                        setLast24hPickerValue("");
+                        setLast24hPickerResetKey((k) => k + 1);
                       }}
                       className="bg-slate-900 hover:bg-slate-800"
                     >
