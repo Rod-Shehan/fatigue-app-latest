@@ -762,7 +762,7 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
 
         <div className="flex flex-col lg:flex-row gap-6">
           <div ref={dayCardsRef} className="flex-1 space-y-4">
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5">
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5">
               <SheetHeader sheetData={sheetData} onChange={handleHeaderChange} />
             </motion.div>
             {sheetData.days.map((day, idx) => (
