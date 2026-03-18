@@ -61,18 +61,27 @@ export const authOptions = {
       token,
       user,
     }: {
-      token: Record<string, unknown> & { id?: string; email?: string | null };
+      token: Record<string, unknown> & { id?: string; email?: string | null; name?: string | null };
       user?: { id: string; email?: string | null; name?: string | null };
     }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
-    async session({ session, token }: { session: import("next-auth").Session; token: Record<string, unknown> & { id?: string } }) {
+    async session({
+      session,
+      token,
+    }: {
+      session: import("next-auth").Session;
+      token: Record<string, unknown> & { id?: string; name?: string | null; email?: string | null };
+    }) {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
+        if ("name" in token) session.user.name = (token.name as string | null) ?? session.user.name ?? null;
+        if ("email" in token) session.user.email = (token.email as string | null) ?? session.user.email ?? null;
       }
       return session;
     },
