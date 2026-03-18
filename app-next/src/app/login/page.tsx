@@ -12,14 +12,15 @@ import Link from "next/link";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const rawCallback = searchParams.get("callbackUrl") ?? "/sheets";
+  // Default to "/" so the app can route drivers vs managers automatically.
+  const rawCallback = searchParams.get("callbackUrl") ?? "/";
   // Prevent open redirect: only allow same-origin paths (start with /, not // or protocol)
   const callbackUrl =
     typeof rawCallback === "string" &&
     rawCallback.startsWith("/") &&
     !rawCallback.startsWith("//")
       ? rawCallback
-      : "/sheets";
+      : "/";
   const managerLoginHint = searchParams.get("managerLogin") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,7 +36,7 @@ function LoginForm() {
       redirectTo.startsWith("/") &&
       !redirectTo.startsWith("//")
         ? redirectTo
-        : "/sheets";
+        : "/";
     try {
       // Let NextAuth perform the redirect after setting cookies to avoid race conditions
       // where a client-side push happens before the session is available.
