@@ -53,8 +53,30 @@ function slotsToRanges(
 function getEffectiveDayEndMinutes(dateStr: string, todayStr: string): number {
   if (dateStr > todayStr) return 0;
   if (dateStr < todayStr) return TOTAL_MIN;
-  const dayStart = new Date(dateStr + "T00:00:00").getTime();
-  return Math.min(TOTAL_MIN, Math.ceil((Date.now() - dayStart) / 60000));
+  // For "today", cap at the current local time in Australia/Perth so the PDF
+  // matches what drivers see in-app.
+  const { hour, minute } = getPerthNowParts();
+  return Math.min(TOTAL_MIN, hour * 60 + minute);
+}
+
+function getPerthNowParts(): { ymd: string; hour: number; minute: number } {
+  const dtf = new Intl.DateTimeFormat("en-AU", {
+    timeZone: "Australia/Perth",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const parts = dtf.formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const y = get("year");
+  const m = get("month");
+  const d = get("day");
+  const hour = Number(get("hour") || "0");
+  const minute = Number(get("minute") || "0");
+  return { ymd: `${y}-${m}-${d}`, hour, minute };
 }
 
 function rangesToGaps(
@@ -283,7 +305,7 @@ export async function GET(
     const pageW = 210;
     const margin = 14;
     const colW = pageW - margin * 2;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getPerthNowParts().ymd;
     let y = 30;
     const labelW = 22;
     const subtotalW = 16;
