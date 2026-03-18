@@ -17,7 +17,7 @@ const GREY_NON_WORK = [180, 180, 180] as [number, number, number];
 
 type SegmentType = "work" | "break" | "non_work";
 type TimelineSegment = { startMin: number; endMin: number; type: SegmentType };
-const ROW_LABELS = ["Work", "Breaks", "Non-Work Time"] as const;
+const ROW_LABELS = ["Work", "Breaks", "Non-Work"] as const;
 
 function getDateStr(weekStarting: string | null, dayIndex: number): string {
   if (!weekStarting) return "—";
@@ -236,7 +236,7 @@ function segmentsToTimeline(segments: {
 function segmentLabel(type: SegmentType): string {
   if (type === "work") return "Work";
   if (type === "break") return "Break";
-  return "Rest";
+  return "Non-Work";
 }
 
 function segmentFill(type: SegmentType): [number, number, number] {
@@ -283,7 +283,7 @@ function renderPdfHtml(opts: {
   const rows = [
     { key: "work_time" as const, label: "Work", fill: cssRgb(GREY_WORK), hatch: false },
     { key: "breaks" as const, label: "Breaks", fill: cssRgb(GREY_BREAK), hatch: true },
-    { key: "non_work" as const, label: "Non-Work Time", fill: cssRgb(GREY_NON_WORK), hatch: false },
+    { key: "non_work" as const, label: "Non-Work", fill: cssRgb(GREY_NON_WORK), hatch: false },
   ];
 
   const dayBlocks = dayList
@@ -298,7 +298,7 @@ function renderPdfHtml(opts: {
       const totals = {
         work: formatHours(getTotalMinutes(segments.work_time)),
         break: formatHours(getTotalMinutes(segments.breaks)),
-        rest: formatHours(getTotalMinutes(segments.non_work)),
+        nonWork: formatHours(getTotalMinutes(segments.non_work)),
       };
 
       const barsHtml = rows
@@ -361,7 +361,7 @@ function renderPdfHtml(opts: {
             <div class="hoursTotal"></div>
           </div>
           ${barsHtml}
-          <div class="totals">Work: ${escapeHtml(totals.work)} &nbsp;&nbsp; Break: ${escapeHtml(totals.break)} &nbsp;&nbsp; Rest: ${escapeHtml(totals.rest)}</div>
+          <div class="totals">Work: ${escapeHtml(totals.work)} &nbsp;&nbsp; Break: ${escapeHtml(totals.break)} &nbsp;&nbsp; Non-Work: ${escapeHtml(totals.nonWork)}</div>
           <table class="segTable">
             <thead><tr><th>Start</th><th>End</th><th>Dur</th><th>Type</th><th>Notes</th></tr></thead>
             <tbody>${tableRows || `<tr><td colspan="5" class="empty">No segments</td></tr>`}</tbody>
