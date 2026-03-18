@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { signOut } from "next-auth/react";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Coffee, Moon, Clock, TrendingUp, ExternalLink, MapPin, Map } from "lucide-react";
+import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Coffee, Moon, Clock, TrendingUp, ExternalLink, MapPin, Map, LogOut } from "lucide-react";
 
 const COMPLIANCE_ICON_MAP = {
   Coffee,
@@ -195,6 +196,16 @@ export function ManagerView() {
           title="Manager dashboard"
           subtitle="View sheets, map events, and compliance across drivers"
           icon={<LayoutDashboard className="w-5 h-5" />}
+          actions={
+            <Button
+              variant="outline"
+              className="gap-2 text-slate-600 dark:text-slate-300"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+            >
+              <LogOut className="w-4 h-4" />
+              Log out
+            </Button>
+          }
         />
 
         <div className="flex gap-2 flex-wrap mb-6">

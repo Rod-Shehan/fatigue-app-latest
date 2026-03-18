@@ -9,7 +9,8 @@ import { parseLocalDate } from "@/lib/weeks";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { format } from "date-fns";
-import { Plus, FileText, Loader2, Clock, ChevronRight, Truck } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { Plus, FileText, Loader2, Clock, ChevronRight, Truck, LogOut } from "lucide-react";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
 
@@ -51,11 +52,21 @@ export function SheetsList() {
             subtitle="WA Commercial Vehicle Fatigue Management"
             icon={<Truck className="w-5 h-5" />}
             actions={
-              <Link href="/sheets/new">
-                <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-2">
-                  <Plus className="w-4 h-4" /> Start New Week
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  className="gap-2 text-slate-600 dark:text-slate-300"
+                  onClick={() => signOut({ callbackUrl: "/login" })}
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log out
                 </Button>
-              </Link>
+                <Link href="/sheets/new">
+                  <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-2">
+                    <Plus className="w-4 h-4" /> Start New Week
+                  </Button>
+                </Link>
+              </div>
             }
           />
         </div>
