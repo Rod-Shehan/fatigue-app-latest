@@ -2,15 +2,13 @@
 
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, LayoutDashboard, UserCircle2, Truck } from "lucide-react";
-import Link from "next/link";
+import { LogIn, LayoutDashboard } from "lucide-react";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   // Default to "/" so the app can route drivers vs managers automatically.
   const rawCallback = searchParams.get("callbackUrl") ?? "/";
@@ -144,34 +142,6 @@ function LoginForm() {
             >
               <LayoutDashboard className="w-4 h-4" /> Sign in as Manager
             </Button>
-            <div className="flex flex-col gap-1 pt-1">
-              <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center">
-                After signing in:
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                <Link
-                  href="/sheets"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <UserCircle2 className="w-3.5 h-3.5" />
-                  Driver sheets
-                </Link>
-                <Link
-                  href="/manager"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  Manager dashboard
-                </Link>
-                <Link
-                  href="/admin/regos"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-2.5 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
-                  <Truck className="w-3.5 h-3.5" />
-                  Manage regos
-                </Link>
-              </div>
-            </div>
           </div>
         </form>
         <p className="text-xs text-center text-slate-400 dark:text-slate-500">
