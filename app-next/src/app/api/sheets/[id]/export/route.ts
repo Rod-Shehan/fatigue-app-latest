@@ -10,7 +10,9 @@ const GREY_LIGHT = [240, 240, 240] as [number, number, number];
 const GREY_WORK = [55, 55, 55] as [number, number, number];
 const GREY_BREAK = [115, 115, 115] as [number, number, number];
 const GREY_NON_WORK = [200, 200, 200] as [number, number, number];
-const ROW_LABELS = ["Work", "Breaks", "Non-Work Time"] as const;
+
+type SegmentType = "work" | "break" | "non_work";
+type TimelineSegment = { startMin: number; endMin: number; type: SegmentType };
 
 function getDateStr(weekStarting: string | null, dayIndex: number): string {
   if (!weekStarting) return "—";
@@ -151,6 +153,65 @@ function formatHours(minutes: number): string {
   return `${h}h ${m}m`;
 }
 
+function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function minToHHMM(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${pad2(h)}:${pad2(m)}`;
+}
+
+function formatDuration(mins: number): string {
+  if (mins <= 0) return "—";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
+function segmentsToTimeline(segments: {
+  work_time: { startMin: number; endMin: number }[];
+  breaks: { startMin: number; endMin: number }[];
+  non_work: { startMin: number; endMin: number }[];
+}): TimelineSegment[] {
+  const all: TimelineSegment[] = [
+    ...segments.work_time.map((s) => ({ ...s, type: "work" as const })),
+    ...segments.breaks.map((s) => ({ ...s, type: "break" as const })),
+    ...segments.non_work.map((s) => ({ ...s, type: "non_work" as const })),
+  ]
+    .filter((s) => s.endMin > s.startMin)
+    .sort((a, b) => a.startMin - b.startMin || a.endMin - b.endMin);
+
+  // Merge touching segments of the same type to keep the table concise.
+  const merged: TimelineSegment[] = [];
+  for (const s of all) {
+    const last = merged[merged.length - 1];
+    if (last && last.type === s.type && s.startMin <= last.endMin) {
+      last.endMin = Math.max(last.endMin, s.endMin);
+    } else if (last && last.type === s.type && s.startMin === last.endMin) {
+      last.endMin = s.endMin;
+    } else {
+      merged.push({ ...s });
+    }
+  }
+  return merged;
+}
+
+function segmentLabel(type: SegmentType): string {
+  if (type === "work") return "Work";
+  if (type === "break") return "Break";
+  return "Rest";
+}
+
+function segmentFill(type: SegmentType): [number, number, number] {
+  if (type === "work") return GREY_WORK;
+  if (type === "break") return GREY_BREAK;
+  return GREY_NON_WORK;
+}
+
 function getIsoDate(weekStarting: string | null, dayIndex: number): string {
   if (!weekStarting) return new Date().toISOString().slice(0, 10);
   const [y, m, d] = weekStarting.split("-").map(Number);
@@ -222,13 +283,11 @@ export async function GET(
     const colW = pageW - margin * 2;
     const todayStr = new Date().toISOString().slice(0, 10);
     let y = 30;
-    const labelW = 22;
-    const subtotalW = 14;
-    const barW = colW - labelW - subtotalW - 4;
-    const barLeft = margin + labelW;
-    const rowH = 4;
+    const barW = colW;
+    const barLeft = margin;
     const tilePadding = 3;
     const tickH = 4;
+    const stripH = 8;
 
     doc.setFillColor(15, 23, 42);
     doc.rect(0, 0, pageW, 24, "F");
@@ -258,8 +317,14 @@ export async function GET(
       const dateStr = getDateStr(sheet.week_starting, idx);
       const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
       const segments = getDaySegments(day, isoDate, todayStr);
+      const timeline = segmentsToTimeline(segments);
 
-      const tileContentH = 10 + 6 + tickH + 3 * rowH + 3 * 1.5 + 4;
+      // Header (day + meta) + hour labels + strip + table header + up to N rows.
+      const maxRows = 8;
+      const rowCount = Math.min(maxRows, timeline.length);
+      const tableRowH = 4.2;
+      const tableH = 5.5 + rowCount * tableRowH + 2;
+      const tileContentH = 10 + 6 + tickH + stripH + 2 + tableH + 4;
       const tileH = tileContentH + tilePadding * 2;
       doc.setDrawColor(200, 200, 200);
       doc.setFillColor(...GREY_LIGHT);
@@ -305,31 +370,123 @@ export async function GET(
       }
       y += tickH + 1;
 
-      ROW_LABELS.forEach((label, ri) => {
-        const key = ["work_time", "breaks", "non_work"][ri] as keyof typeof segments;
-        const segs = segments[key];
-        const totalMins = getTotalMinutes(segs);
-        const fill = [GREY_WORK, GREY_BREAK, GREY_NON_WORK][ri];
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(...GREY_LABEL);
-        doc.text(label, margin + labelW - 1, y + rowH * 0.7, { align: "right" });
-        doc.setFillColor(230, 230, 230);
-        doc.rect(barLeft, y, barW, rowH, "F");
-        segs.forEach((seg) => {
-          const left = (seg.startMin / TOTAL_MIN) * barW;
-          const w = Math.max(0.5, ((seg.endMin - seg.startMin) / TOTAL_MIN) * barW);
-          doc.setFillColor(...fill);
-          doc.rect(barLeft + left, y, w, rowH, "F");
-        });
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(barLeft, y, barW, rowH, "S");
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(...(totalMins > 0 ? GREY_TEXT : GREY_LABEL));
-        doc.text(formatHours(totalMins), barLeft + barW + 2, y + rowH * 0.7);
-        y += rowH + 1.5;
+      // Timeline strip (visual-first record)
+      // Background hour banding for easier reading when printed.
+      for (let h = 0; h < 24; h++) {
+        const x = barLeft + (h / 24) * barW;
+        const w = barW / 24;
+        const isAlt = h % 2 === 0;
+        doc.setFillColor(isAlt ? 246 : 238, 246, 246);
+        doc.rect(x, y, w, stripH, "F");
+      }
+      // Hour grid lines (stronger on 2-hour marks)
+      for (let h = 0; h <= 24; h++) {
+        const x = barLeft + (h / 24) * barW;
+        const strong = h % 2 === 0;
+        doc.setDrawColor(strong ? 190 : 215, strong ? 190 : 215, strong ? 190 : 215);
+        doc.setLineWidth(strong ? 0.25 : 0.1);
+        doc.line(x, y, x, y + stripH);
+      }
+      // Segments
+      doc.setLineWidth(0.25);
+      timeline.forEach((seg) => {
+        const left = (seg.startMin / TOTAL_MIN) * barW;
+        const w = Math.max(0.6, ((seg.endMin - seg.startMin) / TOTAL_MIN) * barW);
+        const fill = segmentFill(seg.type);
+        doc.setFillColor(...fill);
+        doc.rect(barLeft + left, y, w, stripH, "F");
+        // Add a simple hatch for breaks for better grayscale readability.
+        if (seg.type === "break") {
+          doc.setDrawColor(85, 85, 85);
+          doc.setLineWidth(0.1);
+          const x0 = barLeft + left;
+          const x1 = x0 + w;
+          for (let lx = x0 - stripH; lx < x1 + stripH; lx += 2.2) {
+            doc.line(lx, y + stripH, lx + stripH, y);
+          }
+        }
       });
+      doc.setDrawColor(170, 170, 170);
+      doc.setLineWidth(0.35);
+      doc.rect(barLeft, y, barW, stripH, "S");
+      y += stripH + 2;
+
+      // Totals (small but clear)
+      const totalWork = getTotalMinutes(segments.work_time);
+      const totalBreak = getTotalMinutes(segments.breaks);
+      const totalRest = getTotalMinutes(segments.non_work);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...GREY_TEXT);
+      doc.text(
+        `Work: ${formatHours(totalWork)}   Break: ${formatHours(totalBreak)}   Rest: ${formatHours(totalRest)}`,
+        margin + 2,
+        y + 3.5
+      );
+      y += 6;
+
+      // Segment list table (audit-proof detail)
+      const tableLeft = margin + 2;
+      const tableW = colW - 4;
+      const colStartW = 18;
+      const colEndW = 18;
+      const colDurW = 18;
+      const colTypeW = 22;
+      const colNotesW = tableW - (colStartW + colEndW + colDurW + colTypeW);
+
+      doc.setDrawColor(210, 210, 210);
+      doc.setFillColor(250, 250, 250);
+      doc.rect(tableLeft, y, tableW, 5.5, "FD");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GREY_LABEL);
+      const thY = y + 3.8;
+      doc.text("Start", tableLeft + 1.5, thY);
+      doc.text("End", tableLeft + colStartW + 1.5, thY);
+      doc.text("Dur", tableLeft + colStartW + colEndW + 1.5, thY);
+      doc.text("Type", tableLeft + colStartW + colEndW + colDurW + 1.5, thY);
+      doc.text("Notes", tableLeft + colStartW + colEndW + colDurW + colTypeW + 1.5, thY);
+      y += 5.5;
+
+      const rows = timeline.slice(0, maxRows);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7.5);
+      rows.forEach((seg, i) => {
+        const rowY = y + i * tableRowH;
+        const isAlt = i % 2 === 0;
+        doc.setFillColor(isAlt ? 255 : 252, isAlt ? 255 : 252, isAlt ? 255 : 252);
+        doc.rect(tableLeft, rowY, tableW, tableRowH, "F");
+        doc.setDrawColor(230, 230, 230);
+        doc.line(tableLeft, rowY + tableRowH, tableLeft + tableW, rowY + tableRowH);
+
+        doc.setTextColor(...GREY_TEXT);
+        doc.text(minToHHMM(seg.startMin), tableLeft + 1.5, rowY + 3);
+        doc.text(minToHHMM(seg.endMin), tableLeft + colStartW + 1.5, rowY + 3);
+        doc.text(formatDuration(seg.endMin - seg.startMin), tableLeft + colStartW + colEndW + 1.5, rowY + 3);
+        doc.text(segmentLabel(seg.type), tableLeft + colStartW + colEndW + colDurW + 1.5, rowY + 3);
+
+        // Notes: kept for future (e.g., GPS, rego, destination, or compliance markers).
+        const note =
+          seg.type === "break"
+            ? "Break recorded"
+            : seg.type === "work"
+              ? "Work recorded"
+              : "";
+        const clipped = doc.splitTextToSize(note, colNotesW - 3);
+        if (clipped?.[0]) {
+          doc.setTextColor(...GREY_LABEL);
+          doc.text(String(clipped[0]), tableLeft + colStartW + colEndW + colDurW + colTypeW + 1.5, rowY + 3);
+        }
+      });
+      y += rows.length * tableRowH + 2;
+
+      if (timeline.length > maxRows) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(...GREY_LABEL);
+        doc.text(`(+${timeline.length - maxRows} more segments)`, margin + 2, y + 2.5);
+        y += 4;
+      }
 
       y += tilePadding + 4;
     });
