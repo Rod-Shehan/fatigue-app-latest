@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { format } from "date-fns";
 import { signOut } from "next-auth/react";
-import { Plus, FileText, Loader2, Clock, ChevronRight, Truck, LogOut } from "lucide-react";
+import { Plus, FileText, Loader2, Clock, ChevronRight, Truck, LogOut, MessageSquare } from "lucide-react";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
 
@@ -61,6 +61,12 @@ export function SheetsList() {
                   <LogOut className="w-4 h-4" />
                   Log out
                 </Button>
+                <Link href="/messages">
+                  <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+                    <MessageSquare className="w-4 h-4" />
+                    Messages
+                  </Button>
+                </Link>
                 <Link href="/sheets/new">
                   <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-2">
                     <Plus className="w-4 h-4" /> Start New Week

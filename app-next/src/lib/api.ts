@@ -108,6 +108,24 @@ export type MapEvent = {
   accuracy?: number;
 };
 
+export type MessageThreadSummary = {
+  id: string;
+  subject: string;
+  status: "open" | "closed" | string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: { id: string; name: string | null; email: string | null };
+  sheet?: { id: string; week_starting: string; driver_name: string } | null;
+  lastMessage?: { body: string; createdAt: string; senderName: string | null } | null;
+};
+
+export type MessageItem = {
+  id: string;
+  body: string;
+  createdAt: string;
+  sender: { id: string; name: string | null; email: string | null; role?: string | null };
+};
+
 export const api = {
   compliance: {
     check: (payload: {
@@ -181,5 +199,13 @@ export const api = {
         `/api/manager/map-events${q ? `?${q}` : ""}`
       );
     },
+  },
+  messages: {
+    threads: () => fetchApi<{ threads: MessageThreadSummary[] }>("/api/messages/threads"),
+    createThread: (data: { subject: string; body: string; sheetId?: string | null }) =>
+      fetchApi<{ thread: MessageThreadSummary }>("/api/messages/threads", { method: "POST", body: data }),
+    thread: (id: string) => fetchApi<{ thread: MessageThreadSummary; messages: MessageItem[] }>(`/api/messages/threads/${id}`),
+    postMessage: (threadId: string, data: { body: string }) =>
+      fetchApi<{ message: MessageItem }>(`/api/messages/threads/${threadId}/messages`, { method: "POST", body: data }),
   },
 };

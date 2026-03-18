@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Coffee, Moon, Clock, TrendingUp, ExternalLink, MapPin, Map as MapIcon, LogOut } from "lucide-react";
+import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Coffee, Moon, Clock, TrendingUp, ExternalLink, MapPin, Map as MapIcon, LogOut, MessageSquare } from "lucide-react";
 
 const COMPLIANCE_ICON_MAP = {
   Coffee,
@@ -433,6 +433,11 @@ export function ManagerView() {
           <Link href="/manager/map">
             <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
               <MapIcon className="w-4 h-4" /> Event map
+            </Button>
+          </Link>
+          <Link href="/manager/messages">
+            <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+              <MessageSquare className="w-4 h-4" /> Messages
             </Button>
           </Link>
         </div>
