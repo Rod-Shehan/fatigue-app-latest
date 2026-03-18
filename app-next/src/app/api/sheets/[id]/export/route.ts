@@ -63,9 +63,8 @@ function getPerthNowParts(): { ymd: string; hour: number; minute: number } {
   // Avoid relying on runtime timezone databases (some server environments fall back to UTC).
   // Perth is always UTC+8 (no daylight saving), so compute it explicitly from UTC.
   const PERTH_OFFSET_MIN = 8 * 60;
-  const now = new Date();
-  const utcMs = now.getTime() + now.getTimezoneOffset() * 60_000;
-  const perth = new Date(utcMs + PERTH_OFFSET_MIN * 60_000);
+  // Date.now()/getTime() are already milliseconds since epoch (UTC).
+  const perth = new Date(Date.now() + PERTH_OFFSET_MIN * 60_000);
   const y = perth.getUTCFullYear();
   const m = perth.getUTCMonth() + 1;
   const d = perth.getUTCDate();
