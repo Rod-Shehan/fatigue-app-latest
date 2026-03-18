@@ -82,6 +82,7 @@ export function ManagerView() {
   const [activeWeekStarting, setActiveWeekStarting] = useState<string>("");
   const [activeDayIndex, setActiveDayIndex] = useState<number>(new Date().getDay());
   const [driverSearch, setDriverSearch] = useState("");
+  const [regoSearch, setRegoSearch] = useState("");
   const [filterOnlyViolations, setFilterOnlyViolations] = useState(false);
   const [filterOnlyWarnings, setFilterOnlyWarnings] = useState(false);
   const [filterOnlyIncomplete, setFilterOnlyIncomplete] = useState(false);
@@ -90,6 +91,7 @@ export function ManagerView() {
   const [editWeekStarting, setEditWeekStarting] = useState<string>("");
   const [editDayIndex, setEditDayIndex] = useState<number>(new Date().getDay());
   const [editDriverSearch, setEditDriverSearch] = useState("");
+  const [editRegoSearch, setEditRegoSearch] = useState("");
   const [expandedEditDrivers, setExpandedEditDrivers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -170,6 +172,7 @@ export function ManagerView() {
   const editPicker = useMemo(() => {
     const dayLabel = DAY_LABELS[editDayIndex] ?? "Sun";
     const normalizedSearch = editDriverSearch.trim().toLowerCase();
+    const normalizedRego = editRegoSearch.trim().toLowerCase();
 
     const rows = sheetsForEditWeek
       .map((s) => {
@@ -179,10 +182,12 @@ export function ManagerView() {
         const dayResults = (oversight?.results ?? []).filter((r) => r.day === dayLabel);
         const hasDaySignals = dayResults.length > 0;
         const isIncomplete = (s.status ?? "").toLowerCase() !== "completed";
-        return { sheet: s, oversight, hasDaySignals, isIncomplete };
+        const dayRego = (s.days?.[editDayIndex]?.truck_rego ?? "").toString().trim();
+        return { sheet: s, oversight, hasDaySignals, isIncomplete, dayRego };
       })
       .filter((r) => {
         if (normalizedSearch && !(r.sheet.driver_name || "").toLowerCase().includes(normalizedSearch)) return false;
+        if (normalizedRego && !r.dayRego.toLowerCase().includes(normalizedRego)) return false;
         // If there are compliance signals for the day, surface those first; otherwise show all.
         return true;
       })
@@ -221,7 +226,7 @@ export function ManagerView() {
     );
 
     return { dayLabel, driverGroups, summary };
-  }, [sheetsForEditWeek, oversightBySheetId, editDayIndex, editDriverSearch]);
+  }, [sheetsForEditWeek, oversightBySheetId, editDayIndex, editDriverSearch, editRegoSearch]);
 
   useEffect(() => {
     const next: Record<string, boolean> = {};
@@ -234,6 +239,7 @@ export function ManagerView() {
   const dayBucket = useMemo(() => {
     const dayLabel = DAY_LABELS[activeDayIndex] ?? "Sun";
     const normalizedSearch = driverSearch.trim().toLowerCase();
+    const normalizedRego = regoSearch.trim().toLowerCase();
 
     const rows = sheetsForActiveWeek
       .map((s) => {
@@ -242,10 +248,12 @@ export function ManagerView() {
         const violations = dayResults.filter((r) => r.type === "violation").length;
         const warnings = dayResults.filter((r) => r.type === "warning").length;
         const isIncomplete = (s.status ?? "").toLowerCase() !== "completed";
-        return { sheet: s, oversight, dayResults, violations, warnings, isIncomplete };
+        const dayRego = (s.days?.[activeDayIndex]?.truck_rego ?? "").toString().trim();
+        return { sheet: s, oversight, dayResults, violations, warnings, isIncomplete, dayRego };
       })
       .filter((r) => {
         if (normalizedSearch && !(r.sheet.driver_name || "").toLowerCase().includes(normalizedSearch)) return false;
+        if (normalizedRego && !r.dayRego.toLowerCase().includes(normalizedRego)) return false;
         if (filterOnlyIncomplete && !r.isIncomplete) return false;
         if (filterOnlyViolations && r.violations === 0) return false;
         if (filterOnlyWarnings && r.warnings === 0) return false;
@@ -300,6 +308,7 @@ export function ManagerView() {
     oversightBySheetId,
     activeDayIndex,
     driverSearch,
+    regoSearch,
     filterOnlyIncomplete,
     filterOnlyViolations,
     filterOnlyWarnings,
@@ -466,16 +475,29 @@ export function ManagerView() {
                   </Select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                    Driver
-                  </Label>
-                  <Input
-                    value={editDriverSearch}
-                    onChange={(e) => setEditDriverSearch(e.target.value)}
-                    placeholder="Search driver…"
-                    className="w-[220px]"
-                  />
+                <div className="flex flex-wrap gap-2 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                      Driver
+                    </Label>
+                    <Input
+                      value={editDriverSearch}
+                      onChange={(e) => setEditDriverSearch(e.target.value)}
+                      placeholder="Search driver…"
+                      className="w-[220px]"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                      Rego
+                    </Label>
+                    <Input
+                      value={editRegoSearch}
+                      onChange={(e) => setEditRegoSearch(e.target.value)}
+                      placeholder="Search rego…"
+                      className="w-[220px]"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -906,34 +928,48 @@ export function ManagerView() {
                         className="w-[220px]"
                       />
                     </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={filterOnlyViolations ? "default" : "outline"}
-                      onClick={() => setFilterOnlyViolations((v) => !v)}
-                      className="rounded-full"
-                    >
-                      Violations only
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={filterOnlyWarnings ? "default" : "outline"}
-                      onClick={() => setFilterOnlyWarnings((v) => !v)}
-                      className="rounded-full"
-                    >
-                      Warnings only
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={filterOnlyIncomplete ? "default" : "outline"}
-                      onClick={() => setFilterOnlyIncomplete((v) => !v)}
-                      className="rounded-full"
-                    >
-                      Incomplete only
-                    </Button>
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                        Rego
+                      </Label>
+                      <Input
+                        value={regoSearch}
+                        onChange={(e) => setRegoSearch(e.target.value)}
+                        placeholder="Search rego…"
+                        className="w-[220px]"
+                      />
+                    </div>
                   </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={filterOnlyViolations ? "default" : "outline"}
+                    onClick={() => setFilterOnlyViolations((v) => !v)}
+                    className="rounded-full"
+                  >
+                    Violations only
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={filterOnlyWarnings ? "default" : "outline"}
+                    onClick={() => setFilterOnlyWarnings((v) => !v)}
+                    className="rounded-full"
+                  >
+                    Warnings only
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={filterOnlyIncomplete ? "default" : "outline"}
+                    onClick={() => setFilterOnlyIncomplete((v) => !v)}
+                    className="rounded-full"
+                  >
+                    Incomplete only
+                  </Button>
                 </div>
 
                 <div className="flex flex-wrap gap-2">
