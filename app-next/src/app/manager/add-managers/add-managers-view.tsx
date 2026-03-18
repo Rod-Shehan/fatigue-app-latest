@@ -13,34 +13,40 @@ import { UserPlus, Loader2, CheckCircle2 } from "lucide-react";
 export function AddManagersView() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
 
   const createMutation = useMutation({
-    mutationFn: (data: { email: string; name?: string }) => api.users.create(data),
+    mutationFn: (data: { email: string; name?: string; password?: string }) => api.users.create(data),
     onSuccess: () => {
       setEmail("");
       setName("");
+      setPassword("");
     },
   });
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim()) return;
-    createMutation.mutate({ email: email.trim(), name: name.trim() || undefined });
+    createMutation.mutate({
+      email: email.trim(),
+      name: name.trim() || undefined,
+      password: password.trim() ? password : undefined,
+    });
   }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-md mx-auto px-4 py-8 md:py-12">
         <PageHeader
-          backHref="/sheets"
-          backLabel="Your Sheets"
+          backHref="/manager"
+          backLabel="Manager dashboard"
           title="Add Managers"
           subtitle="Create manager accounts for sign-in"
           icon={<UserPlus className="w-5 h-5" />}
         />
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
-          Create a user account. They can sign in on the login page with this email and the app
-          password, then use &quot;Sign in as Manager&quot; to open the Manager page.
+          Create a manager account. They can sign in on the login page with this email and password,
+          then will be taken to the Manager dashboard automatically.
         </p>
         <form
           onSubmit={handleSubmit}
@@ -78,6 +84,23 @@ export function AddManagersView() {
               onChange={(e) => setName(e.target.value)}
               className="h-9"
             />
+          </div>
+          <div className="space-y-2">
+            <Label
+              htmlFor="password"
+              className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+            >
+              Password (optional)
+            </Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Set a password (min 6 chars)"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="h-9"
+            />
+            <p className="text-[11px] text-slate-400">If set, they must use this password to sign in.</p>
           </div>
           {createMutation.isError && (
             <p className="text-sm text-red-600 font-medium" role="alert">
