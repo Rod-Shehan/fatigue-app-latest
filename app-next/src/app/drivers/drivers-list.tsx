@@ -16,6 +16,7 @@ export function DriversList() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newLicence, setNewLicence] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [activeDriverId, setActiveDriverId] = useState<string | null>(null);
@@ -23,6 +24,7 @@ export function DriversList() {
   const [editEmail, setEditEmail] = useState("");
   const [editLicence, setEditLicence] = useState("");
   const [editActive, setEditActive] = useState(true);
+  const [editPassword, setEditPassword] = useState("");
 
   const { data: drivers = [], isLoading } = useQuery({
     queryKey: ["drivers"],
@@ -35,13 +37,14 @@ export function DriversList() {
   );
 
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; email?: string; licence_number?: string }) =>
+    mutationFn: (data: { name: string; email?: string; licence_number?: string; password?: string }) =>
       api.drivers.create({ ...data, is_active: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       setNewName("");
       setNewEmail("");
       setNewLicence("");
+      setNewPassword("");
     },
   });
   const toggleMutation = useMutation({
@@ -50,17 +53,19 @@ export function DriversList() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["drivers"] }),
   });
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: string; name: string; email: string; licence_number: string; is_active: boolean }) =>
+    mutationFn: (payload: { id: string; name: string; email: string; licence_number: string; is_active: boolean; password?: string }) =>
       api.drivers.update(payload.id, {
         name: payload.name,
         email: payload.email,
         licence_number: payload.licence_number || null,
         is_active: payload.is_active,
+        ...(payload.password && payload.password.trim().length > 0 ? { password: payload.password } : null),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       setEditOpen(false);
       setActiveDriverId(null);
+      setEditPassword("");
     },
   });
   const deleteMutation = useMutation({
@@ -79,6 +84,7 @@ export function DriversList() {
       name: newName.trim(),
       email: newEmail.trim() ? newEmail.trim() : undefined,
       licence_number: newLicence.trim(),
+      password: newPassword.trim() ? newPassword : undefined,
     });
   }
 
@@ -90,6 +96,7 @@ export function DriversList() {
     setEditEmail(d.email ?? "");
     setEditLicence(d.licence_number ?? "");
     setEditActive(!!d.is_active);
+    setEditPassword("");
     setEditOpen(true);
   }
 
@@ -132,6 +139,13 @@ export function DriversList() {
             value={newLicence}
             onChange={(e) => setNewLicence(e.target.value)}
             className="flex-1"
+          />
+          <Input
+            placeholder="Password (optional)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="flex-1"
+            type="password"
           />
           <Button
             type="submit"
@@ -232,6 +246,7 @@ export function DriversList() {
                   email: editEmail.trim(),
                   licence_number: editLicence.trim(),
                   is_active: editActive,
+                  password: editPassword.trim() ? editPassword : undefined,
                 });
               }}
             >
@@ -246,6 +261,16 @@ export function DriversList() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Licence no. (optional)</Label>
                 <Input value={editLicence} onChange={(e) => setEditLicence(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Set/reset password</Label>
+                <Input
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  type="password"
+                  placeholder="Leave blank to keep unchanged"
+                />
+                <p className="text-[11px] text-slate-400">Minimum 6 characters.</p>
               </div>
               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                 <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />

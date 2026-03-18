@@ -12,6 +12,7 @@ model User {
   id            String    @id @default(cuid())
   email         String?   @unique
   name          String?
+  passwordHash  String?
   role          String?   // "manager" = can access manager area (must be added by a manager first)
   emailVerified DateTime?
   image         String?

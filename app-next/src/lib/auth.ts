@@ -2,6 +2,7 @@ import NextAuth, { getServerSession } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
+import bcrypt from "bcryptjs";
 
 export const authOptions = {
   adapter: PrismaAdapter(prisma),
@@ -28,23 +29,38 @@ export const authOptions = {
           }
           return { id: user.id, email: user.email, name: user.name };
         }
-        // Temporary: allow any non-empty email to sign in without a password.
-        // This is intended for testing only; reinstate password requirement later.
-        if (email && password === "") {
-          let user = await prisma.user.findUnique({ where: { email } });
+        if (!email) return null;
+
+        // If the user has a manager-set password, require it (no passwordless/shared bypass).
+        const existing = await prisma.user.findUnique({
+          where: { email },
+          select: { id: true, email: true, name: true, passwordHash: true },
+        });
+        if (existing?.passwordHash) {
+          if (!password) return null;
+          const ok = await bcrypt.compare(password, existing.passwordHash);
+          if (!ok) return null;
+          return { id: existing.id, email: existing.email, name: existing.name };
+        }
+
+        // Temporary/testing: allow any non-empty email to sign in without a password
+        // only for users without a manager-set password.
+        if (password === "") {
+          let user = existing;
           if (!user) {
             user = await prisma.user.create({
               data: { email, name: email.split("@")[0] },
+              select: { id: true, email: true, name: true, passwordHash: true },
             });
           }
           return { id: user.id, email: user.email, name: user.name };
         }
-        if (!email || !password) return null;
+
         // Allow signing in with a shared password (NEXTAUTH_CREDENTIALS_PASSWORD)
         // in all environments. User records are created on first sign-in.
         const sharedPass = process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
         if (sharedPass && password === sharedPass) {
-          let user = await prisma.user.findUnique({ where: { email } });
+          let user = existing;
           if (!user) {
             user = await prisma.user.create({
               data: { email, name: email.split("@")[0] },

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { getManagerSession } from "@/lib/auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function PATCH(
   _req: Request,
@@ -15,7 +16,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await _req.json();
-    const { is_active, email, name, licence_number } = body;
+    const { is_active, email, name, licence_number, password } = body;
 
     const normalizedEmail =
       email === undefined
@@ -44,6 +45,10 @@ export async function PATCH(
     if (licence_number !== undefined && normalizedLicence === null) {
       return NextResponse.json({ error: "Valid licence number required" }, { status: 400 });
     }
+    const passwordStr = typeof password === "string" ? password : "";
+    if (password !== undefined && passwordStr.trim().length > 0 && passwordStr.trim().length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+    }
 
     const data: Parameters<typeof prisma.driver.update>[0]["data"] = {
       ...(is_active !== undefined ? { isActive: is_active } : null),
@@ -59,10 +64,12 @@ export async function PATCH(
 
     // Keep the login user record in sync when the roster email/name changes.
     if (driver.email) {
+      const passwordHash =
+        passwordStr.trim().length > 0 ? await bcrypt.hash(passwordStr.trim(), 10) : undefined;
       await prisma.user.upsert({
         where: { email: driver.email },
-        create: { email: driver.email, name: driver.name },
-        update: { name: driver.name },
+        create: { email: driver.email, name: driver.name, ...(passwordHash ? { passwordHash } : null) },
+        update: { name: driver.name, ...(passwordHash ? { passwordHash } : null) },
       });
     }
 

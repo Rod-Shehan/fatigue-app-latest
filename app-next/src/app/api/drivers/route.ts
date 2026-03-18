@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { getManagerSession } from "@/lib/auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -39,13 +40,17 @@ export async function POST(req: Request) {
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const body = await req.json();
-    const { name, email, licence_number, is_active } = body;
+    const { name, email, licence_number, is_active, password } = body;
     if (!name || typeof name !== "string") {
       return NextResponse.json({ error: "name required" }, { status: 400 });
     }
     const normalizedEmail = normalizeEmail(email);
     if (email != null && normalizedEmail == null) {
       return NextResponse.json({ error: "Valid email required" }, { status: 400 });
+    }
+    const passwordStr = typeof password === "string" ? password : "";
+    if (password !== undefined && passwordStr.trim().length > 0 && passwordStr.trim().length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
     const driver = await prisma.driver.create({
       data: {
@@ -58,10 +63,12 @@ export async function POST(req: Request) {
 
     // If an email was supplied, create/update the login user record so the driver can sign in immediately.
     if (normalizedEmail) {
+      const passwordHash =
+        passwordStr.trim().length > 0 ? await bcrypt.hash(passwordStr.trim(), 10) : undefined;
       await prisma.user.upsert({
         where: { email: normalizedEmail },
-        create: { email: normalizedEmail, name: driver.name },
-        update: { name: driver.name },
+        create: { email: normalizedEmail, name: driver.name, ...(passwordHash ? { passwordHash } : null) },
+        update: { name: driver.name, ...(passwordHash ? { passwordHash } : null) },
       });
     }
 
