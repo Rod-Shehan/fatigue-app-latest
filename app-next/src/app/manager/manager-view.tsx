@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Coffee, Moon, Clock, TrendingUp, ExternalLink, MapPin, Map, LogOut } from "lucide-react";
+import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Coffee, Moon, Clock, TrendingUp, ExternalLink, MapPin, Map as MapIcon, LogOut } from "lucide-react";
 
 const COMPLIANCE_ICON_MAP = {
   Coffee,
@@ -64,12 +64,28 @@ function formatSheetLabel(sheet: FatigueSheet): string {
   return `${driver} — week of ${week}`;
 }
 
+function formatDayDateLabel(weekStarting: string, dayIndex: number): string {
+  if (!weekStarting) return DAY_LABELS[dayIndex] ?? `D${dayIndex + 1}`;
+  const d = new Date(weekStarting + "T12:00:00");
+  d.setDate(d.getDate() + dayIndex);
+  const day = DAY_LABELS[dayIndex] ?? `D${dayIndex + 1}`;
+  const date = d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  return `${day} ${date}`;
+}
+
 export function ManagerView() {
   const queryClient = useQueryClient();
   const [selectedSheetId, setSelectedSheetId] = useState<string>("");
   const [lastSheetId, setLastSheetId] = useState<string | null>(null);
   const [showAmendDialog, setShowAmendDialog] = useState(false);
   const [amendmentReason, setAmendmentReason] = useState("");
+  const [activeWeekStarting, setActiveWeekStarting] = useState<string>("");
+  const [activeDayIndex, setActiveDayIndex] = useState<number>(new Date().getDay());
+  const [driverSearch, setDriverSearch] = useState("");
+  const [filterOnlyViolations, setFilterOnlyViolations] = useState(false);
+  const [filterOnlyWarnings, setFilterOnlyWarnings] = useState(false);
+  const [filterOnlyIncomplete, setFilterOnlyIncomplete] = useState(false);
+  const [expandedDrivers, setExpandedDrivers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
@@ -101,6 +117,16 @@ export function ManagerView() {
     queryFn: () => api.sheets.list(),
   });
 
+  const weekOptions = useMemo(() => {
+    const weeks = [...new Set(sheets.map((s) => s.week_starting).filter(Boolean))];
+    return weeks.sort().reverse();
+  }, [sheets]);
+
+  useEffect(() => {
+    if (activeWeekStarting) return;
+    if (weekOptions.length > 0) setActiveWeekStarting(weekOptions[0]!);
+  }, [activeWeekStarting, weekOptions]);
+
   const { data: selectedSheet, isLoading: sheetLoading } = useQuery({
     queryKey: ["sheet", selectedSheetId],
     queryFn: () => api.sheets.get(selectedSheetId),
@@ -114,6 +140,100 @@ export function ManagerView() {
   });
   const oversightItems: ManagerComplianceItem[] = complianceOversight?.items ?? [];
   const itemsWithIssues = oversightItems.filter((i) => i.results.length > 0);
+
+  const oversightBySheetId = useMemo(() => {
+    const map = new Map<string, ManagerComplianceItem>();
+    for (const item of oversightItems) map.set(item.sheetId, item);
+    return map;
+  }, [oversightItems]);
+
+  const sheetsForActiveWeek = useMemo(() => {
+    const base = activeWeekStarting ? sheets.filter((s) => s.week_starting === activeWeekStarting) : sheets;
+    return [...base].sort((a, b) => (a.driver_name || "").localeCompare(b.driver_name || "") || a.id.localeCompare(b.id));
+  }, [sheets, activeWeekStarting]);
+
+  const dayBucket = useMemo(() => {
+    const dayLabel = DAY_LABELS[activeDayIndex] ?? "Sun";
+    const normalizedSearch = driverSearch.trim().toLowerCase();
+
+    const rows = sheetsForActiveWeek
+      .map((s) => {
+        const oversight = oversightBySheetId.get(s.id);
+        const dayResults = (oversight?.results ?? []).filter((r) => r.day === dayLabel);
+        const violations = dayResults.filter((r) => r.type === "violation").length;
+        const warnings = dayResults.filter((r) => r.type === "warning").length;
+        const isIncomplete = (s.status ?? "").toLowerCase() !== "completed";
+        return { sheet: s, oversight, dayResults, violations, warnings, isIncomplete };
+      })
+      .filter((r) => {
+        if (normalizedSearch && !(r.sheet.driver_name || "").toLowerCase().includes(normalizedSearch)) return false;
+        if (filterOnlyIncomplete && !r.isIncomplete) return false;
+        if (filterOnlyViolations && r.violations === 0) return false;
+        if (filterOnlyWarnings && r.warnings === 0) return false;
+        return true;
+      });
+
+    const drivers = new Map<
+      string,
+      {
+        driver: string;
+        rows: typeof rows;
+        totals: { violations: number; warnings: number; sheets: number; incomplete: number };
+      }
+    >();
+    for (const r of rows) {
+      const driver = r.sheet.driver_name || "Unnamed driver";
+      const entry = drivers.get(driver) ?? {
+        driver,
+        rows: [],
+        totals: { violations: 0, warnings: 0, sheets: 0, incomplete: 0 },
+      };
+      entry.rows.push(r);
+      entry.totals.sheets += 1;
+      entry.totals.violations += r.violations;
+      entry.totals.warnings += r.warnings;
+      if (r.isIncomplete) entry.totals.incomplete += 1;
+      drivers.set(driver, entry);
+    }
+
+    const driverGroups = [...drivers.values()].sort((a, b) => {
+      const aIssue = a.totals.violations + a.totals.warnings;
+      const bIssue = b.totals.violations + b.totals.warnings;
+      if (aIssue !== bIssue) return bIssue - aIssue;
+      return a.driver.localeCompare(b.driver);
+    });
+
+    const summary = driverGroups.reduce(
+      (acc, g) => {
+        acc.drivers += 1;
+        acc.sheets += g.totals.sheets;
+        acc.violations += g.totals.violations;
+        acc.warnings += g.totals.warnings;
+        acc.incomplete += g.totals.incomplete;
+        return acc;
+      },
+      { drivers: 0, sheets: 0, violations: 0, warnings: 0, incomplete: 0 }
+    );
+
+    return { dayLabel, driverGroups, summary };
+  }, [
+    sheetsForActiveWeek,
+    oversightBySheetId,
+    activeDayIndex,
+    driverSearch,
+    filterOnlyIncomplete,
+    filterOnlyViolations,
+    filterOnlyWarnings,
+  ]);
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    for (const g of dayBucket.driverGroups) {
+      const hasIssues = g.totals.violations + g.totals.warnings > 0;
+      next[g.driver] = hasIssues;
+    }
+    setExpandedDrivers(next);
+  }, [dayBucket.dayLabel, activeWeekStarting, filterOnlyIncomplete, filterOnlyViolations, filterOnlyWarnings]);
 
   useEffect(() => {
     if (!selectedSheet || selectedSheet.id !== selectedSheetId) return;
@@ -224,7 +344,7 @@ export function ManagerView() {
           </Link>
           <Link href="/manager/map">
             <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-              <Map className="w-4 h-4" /> Event map
+              <MapIcon className="w-4 h-4" /> Event map
             </Button>
           </Link>
         </div>
@@ -528,112 +648,266 @@ export function ManagerView() {
               </h2>
             </div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-              Violations and warnings from all drivers’ fatigue sheets. Click a sheet to open and edit.
+              Review a work week by day. Use filters to focus on non-compliant or incomplete sheets, then open a sheet to edit.
             </p>
             {oversightLoading ? (
               <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                 <Loader2 className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0 animate-spin" />
                 <span className="text-sm text-slate-600 dark:text-slate-300">Loading compliance…</span>
               </div>
-            ) : itemsWithIssues.length === 0 ? (
-              <div className="rounded-lg p-4 space-y-2">
-                {oversightItems.length === 0 ? (
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-3 items-end justify-between">
+                  <div className="space-y-1.5">
+                    <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                      Work week
+                    </Label>
+                    <Select
+                      value={activeWeekStarting || "all"}
+                      onValueChange={(v) => setActiveWeekStarting(v === "all" ? "" : v)}
+                      disabled={sheetsLoading}
+                    >
+                      <SelectTrigger className="w-[240px]">
+                        <SelectValue placeholder="Select week…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All weeks</SelectItem>
+                        {weekOptions.map((w) => (
+                          <SelectItem key={w} value={w}>
+                            Week of {formatWeekLabel(w)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 items-end">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                        Driver
+                      </Label>
+                      <Input
+                        value={driverSearch}
+                        onChange={(e) => setDriverSearch(e.target.value)}
+                        placeholder="Search driver…"
+                        className="w-[220px]"
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
+                      <input
+                        type="checkbox"
+                        checked={filterOnlyViolations}
+                        onChange={(e) => setFilterOnlyViolations(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-slate-600"
+                      />
+                      Violations only
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
+                      <input
+                        type="checkbox"
+                        checked={filterOnlyWarnings}
+                        onChange={(e) => setFilterOnlyWarnings(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-slate-600"
+                      />
+                      Warnings only
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
+                      <input
+                        type="checkbox"
+                        checked={filterOnlyIncomplete}
+                        onChange={(e) => setFilterOnlyIncomplete(e.target.checked)}
+                        className="rounded border-slate-300 dark:border-slate-600"
+                      />
+                      Incomplete only
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {DAY_LABELS.map((d, idx) => {
+                    const active = idx === activeDayIndex;
+                    const weekForLabel = activeWeekStarting || weekOptions[0] || "";
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setActiveDayIndex(idx)}
+                        className={[
+                          "px-3 py-1.5 rounded-full text-sm border transition",
+                          active
+                            ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
+                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800",
+                        ].join(" ")}
+                      >
+                        {formatDayDateLabel(weekForLabel, idx)}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {sheets.length === 0 ? (
                   <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                     <AlertTriangle className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No sheets yet</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Ask drivers to create a sheet from the driver app: Your Sheets → Start New Week. Compliance will appear here once sheets exist.
+                        Ask drivers to create a sheet from the driver app: Your Sheets → Start New Week.
+                      </p>
+                    </div>
+                  </div>
+                ) : dayBucket.driverGroups.length === 0 ? (
+                  <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                    <CheckCircle2 className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-200">No matches</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Try clearing filters or searching a different driver.
                       </p>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                    <span className="text-sm font-medium text-emerald-700 dark:text-emerald-200">
-                      All drivers compliant — no violations or warnings.
-                    </span>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {itemsWithIssues.map((item) => {
-                  const violations = item.results.filter((r) => r.type === "violation");
-                  const warnings = item.results.filter((r) => r.type === "warning");
-                  return (
-                    <div
-                      key={item.sheetId}
-                      className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-slate-900 dark:text-slate-100">
-                            {item.driver_name || "Unnamed driver"}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            Week of {formatWeekLabel(item.week_starting)}
-                          </p>
-                          {item.totalEvents != null && item.totalEvents > 0 && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3 shrink-0" aria-hidden />
-                              Location: {item.eventsWithLocation ?? 0}/{item.totalEvents} events
-                            </p>
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                      <span>
+                        {dayBucket.dayLabel} summary: {dayBucket.summary.sheets} sheets across {dayBucket.summary.drivers} drivers
+                      </span>
+                      <span className="flex gap-3">
+                        <span className="text-red-600 dark:text-red-300 font-semibold">
+                          {dayBucket.summary.violations} violations
+                        </span>
+                        <span className="text-amber-600 dark:text-amber-300 font-semibold">
+                          {dayBucket.summary.warnings} warnings
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-300 font-semibold">
+                          {dayBucket.summary.incomplete} incomplete
+                        </span>
+                      </span>
+                    </div>
+
+                    {dayBucket.driverGroups.map((g) => {
+                      const isOpen = expandedDrivers[g.driver] ?? false;
+                      const issues = g.totals.violations + g.totals.warnings;
+                      return (
+                        <div
+                          key={g.driver}
+                          className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden"
+                        >
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setExpandedDrivers((s) => ({ ...s, [g.driver]: !(s[g.driver] ?? false) }))
+                            }
+                            className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                          >
+                            <div className="text-left">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{g.driver}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {g.totals.sheets} sheet{g.totals.sheets === 1 ? "" : "s"}
+                                {g.totals.incomplete ? ` • ${g.totals.incomplete} incomplete` : ""}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs">
+                              {g.totals.violations > 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 font-semibold">
+                                  {g.totals.violations} V
+                                </span>
+                              )}
+                              {g.totals.warnings > 0 && (
+                                <span className="px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-200 font-semibold">
+                                  {g.totals.warnings} W
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold">
+                                {issues === 0 ? "OK" : "Issues"}
+                              </span>
+                              <span className="text-slate-400">{isOpen ? "Hide" : "Show"}</span>
+                            </div>
+                          </button>
+
+                          {isOpen && (
+                            <div className="p-4 space-y-3 bg-white dark:bg-slate-900">
+                              {g.rows.map((r) => {
+                                const status = (r.sheet.status ?? "").toLowerCase();
+                                const statusLabel =
+                                  status === "completed"
+                                    ? "Completed"
+                                    : status
+                                      ? status[0].toUpperCase() + status.slice(1)
+                                      : "Draft";
+                                return (
+                                  <div key={r.sheet.id} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div>
+                                        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                                          <span>{statusLabel}</span>
+                                          {(r.violations > 0 || r.warnings > 0) && (
+                                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                                              {r.violations > 0 ? `${r.violations} violations` : ""}
+                                              {r.violations > 0 && r.warnings > 0 ? " • " : ""}
+                                              {r.warnings > 0 ? `${r.warnings} warnings` : ""}
+                                            </span>
+                                          )}
+                                        </p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                                          Week of {formatWeekLabel(r.sheet.week_starting)}
+                                          {r.oversight?.totalEvents != null && r.oversight.totalEvents > 0 ? (
+                                            <>
+                                              {" "}
+                                              • <MapPin className="inline w-3 h-3 -mt-0.5" aria-hidden />{" "}
+                                              {r.oversight.eventsWithLocation ?? 0}/{r.oversight.totalEvents} events with location
+                                            </>
+                                          ) : null}
+                                        </p>
+                                      </div>
+                                      <div className="flex gap-2">
+                                        <Link href={`/sheets/${r.sheet.id}`}>
+                                          <Button variant="outline" size="sm" className="gap-1.5">
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                            Open sheet
+                                          </Button>
+                                        </Link>
+                                        <a href={api.sheets.exportPdfUrl(r.sheet.id)} target="_blank" rel="noreferrer">
+                                          <Button variant="outline" size="sm" className="gap-1.5">
+                                            <FileEdit className="w-3.5 h-3.5" />
+                                            PDF
+                                          </Button>
+                                        </a>
+                                      </div>
+                                    </div>
+
+                                    {(r.dayResults?.length ?? 0) > 0 && (
+                                      <div className="mt-3 space-y-1.5">
+                                        {r.dayResults.map((res, idx) => {
+                                          const Icon = COMPLIANCE_ICON_MAP[res.iconKey as keyof typeof COMPLIANCE_ICON_MAP];
+                                          const isViolation = res.type === "violation";
+                                          const bg = isViolation
+                                            ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
+                                            : "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800";
+                                          const fg = isViolation
+                                            ? "text-red-700 dark:text-red-200"
+                                            : "text-amber-700 dark:text-amber-200";
+                                          const iconFg = isViolation
+                                            ? "text-red-500 dark:text-red-400"
+                                            : "text-amber-500 dark:text-amber-400";
+                                          return (
+                                            <div key={idx} className={`flex items-start gap-2 border rounded-lg p-2.5 ${bg}`}>
+                                              {Icon && <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${iconFg}`} />}
+                                              <p className={`text-xs ${fg}`}>{res.message}</p>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           )}
                         </div>
-                        <Link href={`/sheets/${item.sheetId}`}>
-                          <Button variant="outline" size="sm" className="gap-1.5">
-                            <ExternalLink className="w-3.5 h-3.5" />
-                            Open sheet
-                          </Button>
-                        </Link>
-                      </div>
-                      {violations.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] uppercase tracking-wider text-red-500 dark:text-red-400 font-bold">
-                            Violations ({violations.length})
-                          </p>
-                          {violations.map((v, i) => {
-                            const Icon = COMPLIANCE_ICON_MAP[v.iconKey as keyof typeof COMPLIANCE_ICON_MAP];
-                            return (
-                              <div
-                                key={`v-${i}`}
-                                className="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-2.5"
-                              >
-                                {Icon && <Icon className="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />}
-                                <p className="text-xs text-red-700 dark:text-red-200">
-                                  {v.message} — {formatResultDay(v.day, item.week_starting)}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      {warnings.length > 0 && (
-                        <div className="space-y-1.5">
-                          <p className="text-[10px] uppercase tracking-wider text-amber-500 dark:text-amber-400 font-bold">
-                            Warnings ({warnings.length})
-                          </p>
-                          {warnings.map((w, i) => {
-                            const Icon = COMPLIANCE_ICON_MAP[w.iconKey as keyof typeof COMPLIANCE_ICON_MAP];
-                            return (
-                              <div
-                                key={`w-${i}`}
-                                className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5"
-                              >
-                                {Icon && <Icon className="w-4 h-4 text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />}
-                                <p className="text-xs text-amber-700 dark:text-amber-200">
-                                  {w.message}
-                                  {w.message.includes("72h window ending") ? "" : ` — ${formatResultDay(w.day, item.week_starting)}`}
-                                </p>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
