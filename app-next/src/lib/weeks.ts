@@ -38,9 +38,22 @@ export function getTodayLocalDateString(): string {
   return formatDateLocal(new Date());
 }
 
+/** Strip time / timezone suffix so "2026-03-15T00:00:00.000Z" → "2026-03-15". */
+export function normalizeWeekDateString(weekStarting: string): string {
+  const s = weekStarting.trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const [y, mo, d] = s.split("-").map(Number);
+  if (Number.isFinite(y) && Number.isFinite(mo) && Number.isFinite(d)) {
+    return formatDateLocal(new Date(y, mo - 1, d));
+  }
+  return s;
+}
+
 /** Sheet day date as YYYY-MM-DD (local): week_starting + dayIndex. */
 export function getSheetDayDateString(weekStarting: string, dayIndex: number): string {
-  const [y, m, d] = weekStarting.split("-").map(Number);
+  const norm = normalizeWeekDateString(weekStarting);
+  const [y, m, d] = norm.split("-").map(Number);
   const date = new Date(y, m - 1, d);
   date.setDate(date.getDate() + dayIndex);
   return formatDateLocal(date);

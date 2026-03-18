@@ -6,6 +6,7 @@ import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import DayEntry from "./DayEntry";
 import SheetHeader from "./SheetHeader";
 import type { DayData, Rego } from "@/lib/api";
+import { getTodayLocalDateString } from "@/lib/weeks";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -140,6 +141,7 @@ export default function PdfExportView({ sheetData, regos = [], onHeaderChange }:
                   weekStart={weekStarting}
                   regos={regos}
                   readOnly
+                  todayYmd={getTodayLocalDateString()}
                 />
               </div>
               <div className="w-52 min-w-[208px] shrink-0 flex-shrink-0">

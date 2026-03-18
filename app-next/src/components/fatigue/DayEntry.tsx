@@ -14,7 +14,7 @@ import { Truck, MapPin } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
-import { getSheetDayDateString, getTodayLocalDateString, parseLocalDate } from "@/lib/weeks";
+import { getSheetDayDateString, normalizeWeekDateString, parseLocalDate } from "@/lib/weeks";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -37,6 +37,8 @@ export default function DayEntry({
   weekStart,
   regos = [],
   readOnly = false,
+  /** YYYY-MM-DD for "today" from parent (recomputed when clock ticks) so highlight is always correct on load. */
+  todayYmd,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -44,6 +46,7 @@ export default function DayEntry({
   weekStart: string;
   regos?: Rego[];
   readOnly?: boolean;
+  todayYmd: string;
 }) {
   const handleFieldChange = (field: string, value: unknown) => {
     onUpdate(dayIndex, { ...dayData, [field]: value });
@@ -51,29 +54,50 @@ export default function DayEntry({
 
   const getDateStr = () => {
     if (!weekStart) return "";
-    const d = parseLocalDate(weekStart);
+    const d = parseLocalDate(normalizeWeekDateString(weekStart));
     d.setDate(d.getDate() + dayIndex);
     return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
-  const getISODate = () => (weekStart ? getSheetDayDateString(weekStart, dayIndex) : getTodayLocalDateString());
+  const getISODate = () => (weekStart ? getSheetDayDateString(weekStart, dayIndex) : todayYmd);
 
   const kmsTotal =
     dayData.end_kms != null && dayData.start_kms != null ? Math.max(0, dayData.end_kms - dayData.start_kms) : 0;
+
+  const sheetDayYmd = weekStart ? getSheetDayDateString(weekStart, dayIndex) : todayYmd;
+  const isToday = sheetDayYmd === todayYmd;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: dayIndex * 0.04 }}
-      className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-5"
+      className={`rounded-xl border-2 shadow-sm p-3 md:p-5 transition-colors ${
+        isToday
+          ? "bg-amber-50 dark:bg-slate-800/95 border-amber-400 dark:border-amber-500 ring-2 ring-amber-200/80 dark:ring-amber-500/40"
+          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+      }`}
     >
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200 flex items-center justify-center text-xs font-bold">
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+              isToday
+                ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
+                : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
+            }`}
+          >
             {DAY_NAMES[dayIndex]?.charAt(0)}
           </div>
           <div>
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100">{DAY_NAMES[dayIndex]}</p>
+            <p
+              className={`text-sm font-bold ${
+                isToday
+                  ? "text-amber-800 dark:text-amber-300"
+                  : "text-slate-800 dark:text-slate-100"
+              }`}
+            >
+              {DAY_NAMES[dayIndex]}
+            </p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">{getDateStr()}</p>
           </div>
         </div>

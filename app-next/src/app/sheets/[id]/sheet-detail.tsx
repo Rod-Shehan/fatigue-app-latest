@@ -193,6 +193,8 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
     [sheetData.week_starting, now]
   );
 
+  const todayYmd = useMemo(() => getTodayLocalDateString(), [now]);
+
   const forgottenActionReminder = useMemo(
     () => getForgottenActionReminder(sheetData.days, currentDayIndex),
     [sheetData.days, currentDayIndex, now]
@@ -762,6 +764,7 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}
                     regos={regos}
+                    todayYmd={todayYmd}
                   />
                 </div>
               ))}
