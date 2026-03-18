@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 /**
  * Consistent page header across the app.
@@ -29,6 +30,10 @@ export function PageHeader({
   /** Optional content on the right (buttons, badges, etc.). */
   actions?: React.ReactNode;
 }) {
+  const { data: session } = useSession();
+  const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
+  const roleLabel = session?.user ? (role === "manager" ? "Manager" : "Driver") : null;
+
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap mb-6">
       <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
@@ -53,9 +58,23 @@ export function PageHeader({
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
-              {title}
-            </h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
+                {title}
+              </h1>
+              {roleLabel && (
+                <span
+                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                    roleLabel === "Manager"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
+                      : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                  }`}
+                  title={`${roleLabel} view`}
+                >
+                  {roleLabel}
+                </span>
+              )}
+            </div>
             {subtitle != null && (
               <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
                 {subtitle}

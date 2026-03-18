@@ -77,13 +77,25 @@ export const authOptions = {
       token,
       user,
     }: {
-      token: Record<string, unknown> & { id?: string; email?: string | null; name?: string | null };
+      token: Record<string, unknown> & { id?: string; email?: string | null; name?: string | null; role?: string | null };
       user?: { id: string; email?: string | null; name?: string | null };
     }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true },
+        });
+        token.role = dbUser?.role ?? null;
+      }
+      if (token.role === undefined && token.id) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id },
+          select: { role: true },
+        });
+        token.role = dbUser?.role ?? null;
       }
       return token;
     },
@@ -92,12 +104,13 @@ export const authOptions = {
       token,
     }: {
       session: import("next-auth").Session;
-      token: Record<string, unknown> & { id?: string; name?: string | null; email?: string | null };
+      token: Record<string, unknown> & { id?: string; name?: string | null; email?: string | null; role?: string | null };
     }) {
       if (session.user) {
-        (session.user as { id?: string }).id = token.id as string;
+        (session.user as { id?: string; role?: string | null }).id = token.id as string;
         if ("name" in token) session.user.name = (token.name as string | null) ?? session.user.name ?? null;
         if ("email" in token) session.user.email = (token.email as string | null) ?? session.user.email ?? null;
+        (session.user as { role?: string | null }).role = (token.role as string | null) ?? null;
       }
       return session;
     },
