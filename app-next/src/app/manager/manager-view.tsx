@@ -87,6 +87,11 @@ export function ManagerView() {
   const [filterOnlyIncomplete, setFilterOnlyIncomplete] = useState(false);
   const [expandedDrivers, setExpandedDrivers] = useState<Record<string, boolean>>({});
 
+  const [editWeekStarting, setEditWeekStarting] = useState<string>("");
+  const [editDayIndex, setEditDayIndex] = useState<number>(new Date().getDay());
+  const [editDriverSearch, setEditDriverSearch] = useState("");
+  const [expandedEditDrivers, setExpandedEditDrivers] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     try {
       const id = sessionStorage.getItem(LAST_SHEET_KEY);
@@ -127,6 +132,11 @@ export function ManagerView() {
     if (weekOptions.length > 0) setActiveWeekStarting(weekOptions[0]!);
   }, [activeWeekStarting, weekOptions]);
 
+  useEffect(() => {
+    if (editWeekStarting) return;
+    if (weekOptions.length > 0) setEditWeekStarting(weekOptions[0]!);
+  }, [editWeekStarting, weekOptions]);
+
   const { data: selectedSheet, isLoading: sheetLoading } = useQuery({
     queryKey: ["sheet", selectedSheetId],
     queryFn: () => api.sheets.get(selectedSheetId),
@@ -151,6 +161,75 @@ export function ManagerView() {
     const base = activeWeekStarting ? sheets.filter((s) => s.week_starting === activeWeekStarting) : sheets;
     return [...base].sort((a, b) => (a.driver_name || "").localeCompare(b.driver_name || "") || a.id.localeCompare(b.id));
   }, [sheets, activeWeekStarting]);
+
+  const sheetsForEditWeek = useMemo(() => {
+    const base = editWeekStarting ? sheets.filter((s) => s.week_starting === editWeekStarting) : sheets;
+    return [...base].sort((a, b) => (a.driver_name || "").localeCompare(b.driver_name || "") || a.id.localeCompare(b.id));
+  }, [sheets, editWeekStarting]);
+
+  const editPicker = useMemo(() => {
+    const dayLabel = DAY_LABELS[editDayIndex] ?? "Sun";
+    const normalizedSearch = editDriverSearch.trim().toLowerCase();
+
+    const rows = sheetsForEditWeek
+      .map((s) => {
+        const oversight = oversightBySheetId.get(s.id);
+        // Use day selection to narrow to sheets with compliance activity on that day,
+        // but still allow editing any sheet via the dropdown below.
+        const dayResults = (oversight?.results ?? []).filter((r) => r.day === dayLabel);
+        const hasDaySignals = dayResults.length > 0;
+        const isIncomplete = (s.status ?? "").toLowerCase() !== "completed";
+        return { sheet: s, oversight, hasDaySignals, isIncomplete };
+      })
+      .filter((r) => {
+        if (normalizedSearch && !(r.sheet.driver_name || "").toLowerCase().includes(normalizedSearch)) return false;
+        // If there are compliance signals for the day, surface those first; otherwise show all.
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.hasDaySignals !== b.hasDaySignals) return a.hasDaySignals ? -1 : 1;
+        if (a.isIncomplete !== b.isIncomplete) return a.isIncomplete ? -1 : 1;
+        return (a.sheet.driver_name || "").localeCompare(b.sheet.driver_name || "") || a.sheet.id.localeCompare(b.sheet.id);
+      });
+
+    const drivers = new Map<string, { driver: string; rows: typeof rows; totals: { sheets: number; incomplete: number; withSignals: number } }>();
+    for (const r of rows) {
+      const driver = r.sheet.driver_name || "Unnamed driver";
+      const entry = drivers.get(driver) ?? { driver, rows: [], totals: { sheets: 0, incomplete: 0, withSignals: 0 } };
+      entry.rows.push(r);
+      entry.totals.sheets += 1;
+      if (r.isIncomplete) entry.totals.incomplete += 1;
+      if (r.hasDaySignals) entry.totals.withSignals += 1;
+      drivers.set(driver, entry);
+    }
+
+    const driverGroups = [...drivers.values()].sort((a, b) => {
+      if (a.totals.withSignals !== b.totals.withSignals) return b.totals.withSignals - a.totals.withSignals;
+      if (a.totals.incomplete !== b.totals.incomplete) return b.totals.incomplete - a.totals.incomplete;
+      return a.driver.localeCompare(b.driver);
+    });
+
+    const summary = driverGroups.reduce(
+      (acc, g) => {
+        acc.drivers += 1;
+        acc.sheets += g.totals.sheets;
+        acc.incomplete += g.totals.incomplete;
+        acc.withSignals += g.totals.withSignals;
+        return acc;
+      },
+      { drivers: 0, sheets: 0, incomplete: 0, withSignals: 0 }
+    );
+
+    return { dayLabel, driverGroups, summary };
+  }, [sheetsForEditWeek, oversightBySheetId, editDayIndex, editDriverSearch]);
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    for (const g of editPicker.driverGroups) {
+      next[g.driver] = g.totals.withSignals > 0;
+    }
+    setExpandedEditDrivers(next);
+  }, [editPicker.dayLabel, editWeekStarting]);
 
   const dayBucket = useMemo(() => {
     const dayLabel = DAY_LABELS[activeDayIndex] ?? "Sun";
@@ -363,6 +442,151 @@ export function ManagerView() {
             </p>
 
             <div className="space-y-4">
+              <div className="flex flex-wrap gap-3 items-end justify-between">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                    Work week
+                  </Label>
+                  <Select
+                    value={editWeekStarting || "all"}
+                    onValueChange={(v) => setEditWeekStarting(v === "all" ? "" : v)}
+                    disabled={sheetsLoading}
+                  >
+                    <SelectTrigger className="w-[240px]">
+                      <SelectValue placeholder="Select week…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All weeks</SelectItem>
+                      {weekOptions.map((w) => (
+                        <SelectItem key={w} value={w}>
+                          Week of {formatWeekLabel(w)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                    Driver
+                  </Label>
+                  <Input
+                    value={editDriverSearch}
+                    onChange={(e) => setEditDriverSearch(e.target.value)}
+                    placeholder="Search driver…"
+                    className="w-[220px]"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {DAY_LABELS.map((d, idx) => {
+                  const active = idx === editDayIndex;
+                  const weekForLabel = editWeekStarting || weekOptions[0] || "";
+                  return (
+                    <Button
+                      key={d}
+                      type="button"
+                      size="sm"
+                      variant={active ? "default" : "outline"}
+                      onClick={() => setEditDayIndex(idx)}
+                      className="rounded-full"
+                    >
+                      {formatDayDateLabel(weekForLabel, idx)}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/30 p-4 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <span>
+                    {editPicker.dayLabel}: {editPicker.summary.sheets} sheets across {editPicker.summary.drivers} drivers
+                  </span>
+                  <span className="flex gap-3">
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">
+                      {editPicker.summary.incomplete} incomplete
+                    </span>
+                    <span className="font-semibold text-slate-600 dark:text-slate-300">
+                      {editPicker.summary.withSignals} with day flags
+                    </span>
+                  </span>
+                </div>
+
+                {editPicker.driverGroups.length === 0 ? (
+                  <p className="text-sm text-slate-600 dark:text-slate-300">
+                    No matching drivers for this week/day. Try clearing the driver search.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {editPicker.driverGroups.map((g) => {
+                      const isOpen = expandedEditDrivers[g.driver] ?? false;
+                      return (
+                        <div key={g.driver} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedEditDrivers((s) => ({ ...s, [g.driver]: !(s[g.driver] ?? false) }))}
+                            className="w-full flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
+                          >
+                            <div className="text-left">
+                              <p className="font-semibold text-slate-900 dark:text-slate-100">{g.driver}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {g.totals.sheets} sheet{g.totals.sheets === 1 ? "" : "s"}
+                                {g.totals.incomplete ? ` • ${g.totals.incomplete} incomplete` : ""}
+                              </p>
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              {isOpen ? "Hide" : "Show"}
+                            </div>
+                          </button>
+                          {isOpen && (
+                            <div className="px-4 pb-4 space-y-2">
+                              {g.rows.map((r) => {
+                                const isSelected = r.sheet.id === selectedSheetId;
+                                const status = (r.sheet.status ?? "").toLowerCase();
+                                const statusLabel =
+                                  status === "completed"
+                                    ? "Completed"
+                                    : status
+                                      ? status[0].toUpperCase() + status.slice(1)
+                                      : "Draft";
+                                return (
+                                  <button
+                                    key={r.sheet.id}
+                                    type="button"
+                                    onClick={() => setSelectedSheetId(r.sheet.id)}
+                                    className={[
+                                      "w-full text-left rounded-lg border px-3 py-2 transition",
+                                      isSelected
+                                        ? "border-slate-900 dark:border-slate-100 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40 text-slate-800 dark:text-slate-200",
+                                    ].join(" ")}
+                                  >
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm font-semibold">
+                                        {statusLabel}
+                                      </span>
+                                      {r.hasDaySignals ? (
+                                        <span className={isSelected ? "text-xs opacity-90" : "text-xs text-amber-600 dark:text-amber-300 font-semibold"}>
+                                          Has day items
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <div className={isSelected ? "text-xs opacity-90" : "text-xs text-slate-500 dark:text-slate-400"}>
+                                      Week of {formatWeekLabel(r.sheet.week_starting)}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                   Sheet
@@ -436,37 +660,26 @@ export function ManagerView() {
                         <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                           Driver type
                         </Label>
-                        <div className="flex rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden w-fit">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm((f) => ({ ...f, driver_type: "solo" }))
-                            }
-                            className={`px-4 py-1.5 text-xs font-bold transition-colors ${
-                              form.driver_type === "solo"
-                                ? "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-100"
-                                : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
-                            }`}
-                          >
-                            Solo
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setForm((f) => ({
-                                ...f,
-                                driver_type: "two_up",
-                              }))
-                            }
-                            className={`px-4 py-1.5 text-xs font-bold transition-colors border-l border-slate-200 dark:border-slate-600 ${
-                              form.driver_type === "two_up"
-                                ? "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-100"
-                                : "bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700"
-                            }`}
-                          >
-                            Two-Up
-                          </button>
-                        </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={form.driver_type === "solo" ? "default" : "outline"}
+                          onClick={() => setForm((f) => ({ ...f, driver_type: "solo" }))}
+                          className="rounded-full"
+                        >
+                          Solo
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={form.driver_type === "two_up" ? "default" : "outline"}
+                          onClick={() => setForm((f) => ({ ...f, driver_type: "two_up" }))}
+                          className="rounded-full"
+                        >
+                          Two-Up
+                        </Button>
+                      </div>
                       </div>
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
@@ -693,33 +906,33 @@ export function ManagerView() {
                         className="w-[220px]"
                       />
                     </div>
-                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
-                      <input
-                        type="checkbox"
-                        checked={filterOnlyViolations}
-                        onChange={(e) => setFilterOnlyViolations(e.target.checked)}
-                        className="rounded border-slate-300 dark:border-slate-600"
-                      />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={filterOnlyViolations ? "default" : "outline"}
+                      onClick={() => setFilterOnlyViolations((v) => !v)}
+                      className="rounded-full"
+                    >
                       Violations only
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
-                      <input
-                        type="checkbox"
-                        checked={filterOnlyWarnings}
-                        onChange={(e) => setFilterOnlyWarnings(e.target.checked)}
-                        className="rounded border-slate-300 dark:border-slate-600"
-                      />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={filterOnlyWarnings ? "default" : "outline"}
+                      onClick={() => setFilterOnlyWarnings((v) => !v)}
+                      className="rounded-full"
+                    >
                       Warnings only
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 select-none">
-                      <input
-                        type="checkbox"
-                        checked={filterOnlyIncomplete}
-                        onChange={(e) => setFilterOnlyIncomplete(e.target.checked)}
-                        className="rounded border-slate-300 dark:border-slate-600"
-                      />
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={filterOnlyIncomplete ? "default" : "outline"}
+                      onClick={() => setFilterOnlyIncomplete((v) => !v)}
+                      className="rounded-full"
+                    >
                       Incomplete only
-                    </label>
+                    </Button>
                   </div>
                 </div>
 
@@ -728,19 +941,16 @@ export function ManagerView() {
                     const active = idx === activeDayIndex;
                     const weekForLabel = activeWeekStarting || weekOptions[0] || "";
                     return (
-                      <button
+                      <Button
                         key={d}
                         type="button"
+                        size="sm"
+                        variant={active ? "default" : "outline"}
                         onClick={() => setActiveDayIndex(idx)}
-                        className={[
-                          "px-3 py-1.5 rounded-full text-sm border transition",
-                          active
-                            ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
-                            : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800",
-                        ].join(" ")}
+                        className="rounded-full"
                       >
                         {formatDayDateLabel(weekForLabel, idx)}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
