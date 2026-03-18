@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { getSessionForSheetAccess, canAccessSheet } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
 const GREY_TEXT = [30, 30, 30] as [number, number, number];
@@ -242,6 +245,190 @@ function segmentFill(type: SegmentType): [number, number, number] {
   return GREY_NON_WORK;
 }
 
+function cssRgb([r, g, b]: [number, number, number]) {
+  return `rgb(${r},${g},${b})`;
+}
+
+function escapeHtml(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function renderPdfHtml(opts: {
+  sheet: {
+    driver_name: string;
+    second_driver: string | null;
+    driver_type: string;
+    destination: string | null;
+    week_starting: string;
+    days: Array<{
+      work_time?: boolean[];
+      breaks?: boolean[];
+      non_work?: boolean[];
+      date?: string;
+      truck_rego?: string;
+      destination?: string;
+      start_kms?: number;
+      end_kms?: number;
+      events?: Array<{ time: string; type: string }>;
+    }>;
+  };
+  todayStr: string;
+  generatedAtLabel: string;
+}) {
+  const { sheet, todayStr, generatedAtLabel } = opts;
+  const dayList = (sheet.days || []).slice(0, 7);
+  while (dayList.length < 7) dayList.push({});
+
+  const hourLabels = Array.from({ length: 13 }, (_, i) => i * 2);
+  const rows = [
+    { key: "work_time" as const, label: "Work", fill: cssRgb(GREY_WORK), hatch: false },
+    { key: "breaks" as const, label: "Breaks", fill: cssRgb(GREY_BREAK), hatch: true },
+    { key: "non_work" as const, label: "Non-Work Time", fill: cssRgb(GREY_NON_WORK), hatch: false },
+  ];
+
+  const dayBlocks = dayList
+    .map((day, idx) => {
+      const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
+      const dateLabel = getDateStr(sheet.week_starting, idx);
+      const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
+      const segments = getDaySegments(day, isoDate, todayStr);
+      const timeline = segmentsToTimeline(segments);
+      const maxRows = 8;
+
+      const totals = {
+        work: formatHours(getTotalMinutes(segments.work_time)),
+        break: formatHours(getTotalMinutes(segments.breaks)),
+        rest: formatHours(getTotalMinutes(segments.non_work)),
+      };
+
+      const barsHtml = rows
+        .map((r) => {
+          const segs = segments[r.key];
+          const segDivs = segs
+            .filter((s) => s.endMin > s.startMin)
+            .map((s) => {
+              const left = (s.startMin / TOTAL_MIN) * 100;
+              const width = ((s.endMin - s.startMin) / TOTAL_MIN) * 100;
+              const style = `left:${left}%;width:${Math.max(0.2, width)}%;background:${r.fill};`;
+              return `<div class="seg${r.hatch ? " hatch" : ""}" style="${style}"></div>`;
+            })
+            .join("");
+
+          return `
+            <div class="barRow">
+              <div class="rowLabel">${escapeHtml(r.label)}</div>
+              <div class="bar">
+                ${segDivs}
+                <div class="grid">
+                  ${Array.from({ length: 25 }, (_, h) => {
+                    const strong = h % 2 === 0;
+                    return `<div class="gridLine ${strong ? "strong" : ""}" style="left:${(h / 24) * 100}%"></div>`;
+                  }).join("")}
+                </div>
+              </div>
+              <div class="rowTotal">${escapeHtml(formatHours(getTotalMinutes(segs)))}</div>
+            </div>
+          `;
+        })
+        .join("");
+
+      const tableRows = timeline.slice(0, maxRows).map((seg) => {
+        return `<tr>
+          <td class="mono">${escapeHtml(minToHHMM(seg.startMin))}</td>
+          <td class="mono">${escapeHtml(minToHHMM(seg.endMin))}</td>
+          <td class="mono">${escapeHtml(formatDuration(seg.endMin - seg.startMin))}</td>
+          <td>${escapeHtml(segmentLabel(seg.type))}</td>
+          <td class="notes"></td>
+        </tr>`;
+      }).join("");
+
+      const more = timeline.length > maxRows ? `<div class="more">(+${timeline.length - maxRows} more segments)</div>` : "";
+
+      return `
+        <section class="dayCard">
+          <div class="dayHead">
+            <div class="dayBadge">${escapeHtml(dayName.charAt(0))}</div>
+            <div class="dayTitles">
+              <div class="dayName">${escapeHtml(dayName)}</div>
+              <div class="dayDate">${escapeHtml(dateLabel)}</div>
+            </div>
+          </div>
+          <div class="hours">
+            <div class="hoursSpacer"></div>
+            <div class="hoursBar">
+              ${hourLabels.map((h) => `<div class="hourLabel" style="left:${(h / 24) * 100}%">${pad2(h)}</div>`).join("")}
+            </div>
+            <div class="hoursTotal"></div>
+          </div>
+          ${barsHtml}
+          <div class="totals">Work: ${escapeHtml(totals.work)} &nbsp;&nbsp; Break: ${escapeHtml(totals.break)} &nbsp;&nbsp; Rest: ${escapeHtml(totals.rest)}</div>
+          <table class="segTable">
+            <thead><tr><th>Start</th><th>End</th><th>Dur</th><th>Type</th><th>Notes</th></tr></thead>
+            <tbody>${tableRows || `<tr><td colspan="5" class="empty">No segments</td></tr>`}</tbody>
+          </table>
+          ${more}
+        </section>
+      `;
+    })
+    .join("");
+
+  return `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <style>
+        @page { size: A4; margin: 12mm; }
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; }
+        .header { background: #0f172a; color: white; padding: 12px 14px; border-radius: 10px; }
+        .headerRow { display:flex; justify-content:space-between; align-items:flex-end; gap: 10px; }
+        .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
+        .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
+        .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
+        .dayCard { border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 10px 8px; margin: 10px 0; break-inside: avoid; }
+        .dayHead { display:flex; align-items:flex-start; gap: 10px; }
+        .dayBadge { width: 18px; height: 18px; background:#1f2937; color:white; font-weight:800; font-size: 11px; display:flex; align-items:center; justify-content:center; border-radius: 4px; margin-top: 1px; }
+        .dayName { font-weight: 800; font-size: 14px; }
+        .dayDate { font-size: 11px; color: #6b7280; margin-top: 1px; }
+        .hours { display:flex; align-items:flex-end; gap: 8px; margin-top: 6px; }
+        .hoursSpacer { width: 92px; }
+        .hoursBar { position: relative; height: 16px; flex: 1; }
+        .hourLabel { position:absolute; transform: translateX(-50%); top: 0; font-size: 9px; color:#6b7280; }
+        .hoursTotal { width: 46px; }
+        .barRow { display:flex; align-items:center; gap: 8px; margin-top: 4px; }
+        .rowLabel { width: 92px; font-size: 11px; color: #374151; text-align:right; }
+        .rowTotal { width: 46px; font-size: 11px; font-weight: 700; color: #111827; }
+        .bar { position: relative; height: 12px; flex: 1; border: 1px solid #9ca3af; border-radius: 2px; overflow: hidden;
+               background: repeating-linear-gradient(90deg, #ffffff 0, #ffffff 8.333%, #f3f4f6 8.333%, #f3f4f6 16.666%); }
+        .seg { position:absolute; top:0; bottom:0; }
+        .seg.hatch { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.15) 0 1px, rgba(0,0,0,0) 1px 4px); }
+        .grid { position:absolute; inset:0; pointer-events:none; }
+        .gridLine { position:absolute; top:0; bottom:0; width: 0; border-left: 1px solid rgba(156,163,175,0.35); }
+        .gridLine.strong { border-left-color: rgba(75,85,99,0.6); }
+        .totals { margin: 6px 0 6px 100px; font-size: 11px; font-weight: 700; color:#111827; }
+        .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
+        .segTable thead th { text-align:left; padding: 4px 6px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; color:#6b7280; font-weight: 800; }
+        .segTable tbody td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
+        .segTable tbody tr:nth-child(even) td { background: #fafafa; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .empty { color:#9ca3af; font-style: italic; }
+        .more { font-size: 10px; color:#6b7280; margin-left: 100px; margin-top: 2px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div class="headerRow">
+          <div>
+            <div class="title">FATIGUE RECORD SHEET</div>
+            <div class="subtitle">WA Commercial Driver Fatigue Management</div>
+          </div>
+          <div class="generated">Generated: ${escapeHtml(generatedAtLabel)}</div>
+        </div>
+      </div>
+      ${dayBlocks}
+    </body>
+  </html>`;
+}
+
 function getIsoDate(weekStarting: string | null, dayIndex: number): string {
   if (!weekStarting) return new Date().toISOString().slice(0, 10);
   const [y, m, d] = weekStarting.split("-").map(Number);
@@ -304,6 +491,74 @@ export async function GET(
         actor: { select: { email: true, name: true } },
       },
     });
+
+    // Prefer server-side Chromium PDF (WYSIWYG). Fallback to jsPDF if Chromium isn't available.
+    try {
+      const [{ default: chromium }, puppeteer] = await Promise.all([
+        import("@sparticuz/chromium"),
+        import("puppeteer-core"),
+      ]);
+
+      const executablePath = await chromium.executablePath();
+      if (!executablePath) throw new Error("Chromium executablePath not available");
+
+      const todayStr = getPerthNowParts().ymd;
+      const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
+      const html = renderPdfHtml({
+        sheet: {
+          driver_name: row.driverName,
+          second_driver: row.secondDriver,
+          driver_type: row.driverType,
+          destination: row.destination,
+          week_starting: row.weekStarting,
+          days,
+        },
+        todayStr,
+        generatedAtLabel,
+      });
+
+      const browser = await puppeteer.launch({
+        args: chromium.args,
+        executablePath,
+        headless: true,
+      });
+
+      try {
+        const page = await browser.newPage();
+        // Force the browser engine timezone to Perth (helps any incidental Date formatting in HTML).
+        try {
+          const maybe = page as unknown as { emulateTimezone?: (tz: string) => Promise<void> };
+          if (typeof maybe.emulateTimezone === "function") {
+            await maybe.emulateTimezone("Australia/Perth");
+          }
+        } catch {
+          /* ignore */
+        }
+        await page.setContent(html, { waitUntil: "load" });
+        const pdfBytes = await page.pdf({
+          format: "A4",
+          printBackground: true,
+          preferCSSPageSize: true,
+        });
+
+        const timeStamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(/:/g, "");
+        const safeName = (row.driverName || "unknown").replace(/[\s"\r\n\\]+/g, "-").replace(/[^\w\-.]/g, "") || "sheet";
+        const filename = `fatigue-sheet-${safeName}-${timeStamp}.pdf`;
+        return new NextResponse(Buffer.from(pdfBytes), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": `attachment; filename="${filename}"`,
+            "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+            Pragma: "no-cache",
+          },
+        });
+      } finally {
+        await browser.close();
+      }
+    } catch (e) {
+      // Fall back to jsPDF path below.
+    }
 
     const { jsPDF } = await import("jspdf");
 
