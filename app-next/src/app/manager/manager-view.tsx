@@ -191,8 +191,6 @@ export function ManagerView() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
-          backHref={selectedSheetId ? `/sheets/${selectedSheetId}` : lastSheetId ? `/sheets/${lastSheetId}` : "/sheets"}
-          backLabel={selectedSheetId || lastSheetId ? "Fatigue Record" : "Driver sheets"}
           title="Manager dashboard"
           subtitle="View sheets, map events, and compliance across drivers"
           icon={<LayoutDashboard className="w-5 h-5" />}
