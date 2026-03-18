@@ -54,6 +54,7 @@ model VerificationToken {
 model Driver {
   id             String   @id @default(cuid())
   name           String
+  email          String?  @unique
   licenceNumber  String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())

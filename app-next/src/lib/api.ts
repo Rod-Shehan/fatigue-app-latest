@@ -32,7 +32,7 @@ async function fetchApi<T>(path: string, options?: FetchApiOptions): Promise<T> 
   return res.json() as Promise<T>;
 }
 
-export type Driver = { id: string; name: string; licence_number?: string; is_active: boolean };
+export type Driver = { id: string; name: string; email?: string | null; licence_number?: string; is_active: boolean };
 export type Rego = { id: string; label: string; sort_order: number };
 export type DayData = {
   day_label?: string;
@@ -140,9 +140,9 @@ export const api = {
   },
   drivers: {
     list: () => fetchApi<Driver[]>("/api/drivers"),
-    create: (data: { name: string; licence_number?: string; is_active?: boolean }) =>
+    create: (data: { name: string; email?: string; licence_number?: string; is_active?: boolean }) =>
       fetchApi<Driver>("/api/drivers", { method: "POST", body: data }),
-    update: (id: string, data: { is_active?: boolean }) =>
+    update: (id: string, data: { is_active?: boolean; name?: string; email?: string | null }) =>
       fetchApi<Driver>(`/api/drivers/${id}`, { method: "PATCH", body: data }),
     delete: (id: string) =>
       fetchApi<void>(`/api/drivers/${id}`, { method: "DELETE" }),

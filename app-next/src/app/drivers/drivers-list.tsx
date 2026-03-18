@@ -12,17 +12,19 @@ import { Plus, Trash2, UserCheck, UserX, Loader2, Users } from "lucide-react";
 export function DriversList() {
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const [newLicence, setNewLicence] = useState("");
   const { data: drivers = [], isLoading } = useQuery({
     queryKey: ["drivers"],
     queryFn: () => api.drivers.list(),
   });
   const createMutation = useMutation({
-    mutationFn: (data: { name: string; licence_number?: string }) =>
+    mutationFn: (data: { name: string; email?: string; licence_number?: string }) =>
       api.drivers.create({ ...data, is_active: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       setNewName("");
+      setNewEmail("");
       setNewLicence("");
     },
   });
@@ -39,7 +41,11 @@ export function DriversList() {
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    createMutation.mutate({ name: newName.trim(), licence_number: newLicence.trim() });
+    createMutation.mutate({
+      name: newName.trim(),
+      email: newEmail.trim() ? newEmail.trim() : undefined,
+      licence_number: newLicence.trim(),
+    });
   }
 
   return (
@@ -64,6 +70,14 @@ export function DriversList() {
             required
           />
           <Input
+            placeholder="Email * (for driver login)"
+            value={newEmail}
+            onChange={(e) => setNewEmail(e.target.value)}
+            className="flex-1"
+            type="email"
+            required
+          />
+          <Input
             placeholder="Licence no. (optional)"
             value={newLicence}
             onChange={(e) => setNewLicence(e.target.value)}
@@ -71,7 +85,7 @@ export function DriversList() {
           />
           <Button
             type="submit"
-            disabled={createMutation.isPending || !newName.trim()}
+            disabled={createMutation.isPending || !newName.trim() || !newEmail.trim()}
             className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-1.5 shrink-0"
           >
             {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -99,6 +113,9 @@ export function DriversList() {
             >
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-200 truncate">{driver.name}</p>
+                {driver.email && (
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{driver.email}</p>
+                )}
                 {driver.licence_number && (
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">{driver.licence_number}</p>
                 )}

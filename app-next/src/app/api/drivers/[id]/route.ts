@@ -15,14 +15,51 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await _req.json();
-    const { is_active } = body;
+    const { is_active, email, name } = body;
+
+    const normalizedEmail =
+      email === undefined
+        ? undefined
+        : typeof email === "string"
+          ? email.trim().toLowerCase() || null
+          : null;
+    if (email !== undefined) {
+      if (normalizedEmail === null) {
+        return NextResponse.json({ error: "Valid email required" }, { status: 400 });
+      }
+      if (normalizedEmail !== null && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        return NextResponse.json({ error: "Valid email required" }, { status: 400 });
+      }
+    }
+    const trimmedName = typeof name === "string" ? name.trim() : undefined;
+    if (name !== undefined && (!trimmedName || trimmedName.length < 2)) {
+      return NextResponse.json({ error: "Valid name required" }, { status: 400 });
+    }
+
+    const data: Parameters<typeof prisma.driver.update>[0]["data"] = {
+      ...(is_active !== undefined ? { isActive: is_active } : null),
+      ...(normalizedEmail !== undefined ? { email: normalizedEmail } : null),
+      ...(trimmedName !== undefined ? { name: trimmedName } : null),
+    } as Parameters<typeof prisma.driver.update>[0]["data"];
+
     const driver = await prisma.driver.update({
       where: { id },
-      data: { isActive: is_active },
+      data,
     });
+
+    // Keep the login user record in sync when the roster email/name changes.
+    if (driver.email) {
+      await prisma.user.upsert({
+        where: { email: driver.email },
+        create: { email: driver.email, name: driver.name },
+        update: { name: driver.name },
+      });
+    }
+
     return NextResponse.json({
       id: driver.id,
       name: driver.name,
+      email: driver.email,
       licence_number: driver.licenceNumber,
       is_active: driver.isActive,
     });
