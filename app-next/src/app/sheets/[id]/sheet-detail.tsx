@@ -634,6 +634,11 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
             primaryDriverName={sheetData.driver_name}
             secondDriverName={sheetData.second_driver}
             forgottenActionReminder={forgottenActionReminder}
+            complianceButton={{
+              onClick: scrollToCompliance,
+              hasViolations: hasComplianceViolations,
+              loading: complianceLoading,
+            }}
           />
         </>
       )}
@@ -706,28 +711,32 @@ export function SheetDetail({ sheetId }: { sheetId: string }) {
                 Export PDF
               </Button>
             </div>
-            <div className="w-full basis-full h-0" aria-hidden />
-            <button
-              type="button"
-              onClick={scrollToCompliance}
-              className={`inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-9 rounded-md border px-2.5 sm:px-3 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
-                hasComplianceViolations
-                  ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50"
-                  : "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-800/50"
-              }`}
-              title={hasComplianceViolations ? "View compliance — issues found" : "View compliance — OK"}
-              aria-label={hasComplianceViolations ? "Compliance: issues found — jump to details" : "Compliance: OK — jump to details"}
-            >
-              {hasComplianceViolations ? (
-                <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              ) : (
-                <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-              )}
-              <span>Compliance</span>
-              <span className="font-medium">
-                {hasComplianceViolations ? "Issues" : "OK"}
-              </span>
-            </button>
+            {sheetData.status === "completed" && (
+              <>
+                <div className="w-full basis-full h-0" aria-hidden />
+                <button
+                  type="button"
+                  onClick={scrollToCompliance}
+                  className={`inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-9 rounded-md border px-2.5 sm:px-3 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
+                    hasComplianceViolations
+                      ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50"
+                      : "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-800/50"
+                  }`}
+                  title={hasComplianceViolations ? "View compliance — issues found" : "View compliance — OK"}
+                  aria-label={
+                    hasComplianceViolations ? "Compliance: issues found — jump to details" : "Compliance: OK — jump to details"
+                  }
+                >
+                  {hasComplianceViolations ? (
+                    <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  )}
+                  <span>Compliance</span>
+                  <span className="font-medium">{hasComplianceViolations ? "Issues" : "OK"}</span>
+                </button>
+              </>
+            )}
           </>
           }
         />

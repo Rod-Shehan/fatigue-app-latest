@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Briefcase, Coffee, Moon, Square } from "lucide-react";
+import { Briefcase, Coffee, Moon, Square, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getEventsInTimeOrder, getInsufficientNonWorkMessage } from "@/lib/rolling-events";
@@ -203,6 +203,8 @@ export default function LogBar({
   primaryDriverName,
   secondDriverName,
   forgottenActionReminder,
+  /** Shown to the right of End shift — jump to compliance panel. */
+  complianceButton,
 }: {
   days: DayData[];
   currentDayIndex: number;
@@ -229,6 +231,11 @@ export default function LogBar({
   secondDriverName?: string;
   /** Reminder banner content (e.g. forgot end shift). Rendered prominently inside fixed header. */
   forgottenActionReminder?: { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null;
+  complianceButton?: {
+    onClick: () => void;
+    hasViolations: boolean;
+    loading?: boolean;
+  };
 }) {
   const [pendingType, setPendingType] = useState<string | null>(null);
   const [activeDriver, setActiveDriver] = useState<"primary" | "second">("primary");
@@ -507,6 +514,38 @@ export default function LogBar({
               </button>
             );
           })()}
+          {complianceButton && (
+            <button
+              type="button"
+              onClick={complianceButton.onClick}
+              disabled={complianceButton.loading}
+              className={`inline-flex items-center gap-1.5 shrink-0 h-9 rounded-lg border px-2.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 dark:focus:ring-offset-slate-900 disabled:opacity-60 ${
+                complianceButton.hasViolations
+                  ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50"
+                  : "border-emerald-400 dark:border-emerald-500 bg-slate-900 dark:bg-slate-950 text-emerald-200 dark:text-emerald-300 hover:bg-slate-800 dark:hover:bg-slate-900"
+              }`}
+              title={
+                complianceButton.loading
+                  ? "Checking compliance…"
+                  : complianceButton.hasViolations
+                    ? "View compliance — issues found"
+                    : "View compliance — OK"
+              }
+              aria-label={
+                complianceButton.hasViolations ? "Compliance: issues — jump to details" : "Compliance: OK — jump to details"
+              }
+            >
+              {complianceButton.loading ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+              ) : complianceButton.hasViolations ? (
+                <XCircle className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-400" />
+              )}
+              <span>Compliance</span>
+              <span className="font-medium">{complianceButton.loading ? "…" : complianceButton.hasViolations ? "Issues" : "OK"}</span>
+            </button>
+          )}
         </div>
       </div>
 
