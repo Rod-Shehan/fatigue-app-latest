@@ -158,7 +158,9 @@ export function MessagesView() {
                         onClick={() => setActiveThreadId(t.id)}
                         className={[
                           "w-full text-left p-3 transition",
-                          active ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900" : "hover:bg-slate-50 dark:hover:bg-slate-800/40",
+                          active
+                            ? "bg-slate-900 text-white dark:bg-slate-800/90 dark:text-slate-100 dark:ring-1 dark:ring-inset dark:ring-cyan-700/35"
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40",
                         ].join(" ")}
                       >
                         <div className="flex items-start justify-between gap-2">
