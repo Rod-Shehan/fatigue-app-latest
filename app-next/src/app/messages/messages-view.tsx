@@ -2,9 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { api, type MessageThreadSummary, type FatigueSheet } from "@/lib/api";
+import { api, type FatigueSheet } from "@/lib/api";
+import { resolveDriverBubbleName } from "@/lib/messaging-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +24,7 @@ function weekLabel(weekStarting: string) {
 }
 
 export function MessagesView() {
+  const { data: session } = useSession();
   const queryClient = useQueryClient();
   const [activeThreadId, setActiveThreadId] = useState<string>("");
   const [compose, setCompose] = useState("");
@@ -43,6 +46,21 @@ export function MessagesView() {
     queryKey: ["sheets"],
     queryFn: () => api.sheets.list(),
   });
+
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: () => api.drivers.list(),
+  });
+
+  const headerDriverName = useMemo(() => {
+    const u = session?.user;
+    if (!u?.email) return null;
+    return resolveDriverBubbleName(
+      drivers,
+      { name: u.name ?? null, email: u.email ?? null },
+      { name: u.name, email: u.email }
+    );
+  }, [drivers, session?.user]);
 
   const activeThread = useMemo(() => threads.find((t) => t.id === activeThreadId) ?? null, [threads, activeThreadId]);
 
@@ -106,6 +124,7 @@ export function MessagesView() {
           backLabel="Your sheets"
           title="Messages"
           subtitle="Ask training questions or request sheet edits"
+          roleDisplayLabel={headerDriverName ?? undefined}
           icon={<MessageSquare className="w-5 h-5" />}
           actions={
             <Button className="gap-2" onClick={() => { setNewKind("training"); setNewSubject(""); setNewBody(""); setNewSheetId(""); setNewOpen(true); }}>
@@ -207,16 +226,26 @@ export function MessagesView() {
               ) : messages.length === 0 ? (
                 <div className="text-sm text-slate-600 dark:text-slate-300">No messages yet.</div>
               ) : (
-                messages.map((m) => (
-                  <MessageBubbleRow
-                    key={m.id}
-                    body={m.body}
-                    createdAt={formatWhen(m.createdAt)}
-                    senderLabel={m.sender.name || m.sender.email || "User"}
-                    fromManager={m.sender.role === "manager"}
-                    viewerIsManager={false}
-                  />
-                ))
+                messages.map((m) => {
+                  const fromManager = m.sender.role === "manager";
+                  const bubbleTitle = fromManager
+                    ? "Manager"
+                    : resolveDriverBubbleName(drivers, m.sender, session?.user ?? null);
+                  const bubbleFooter = fromManager
+                    ? m.sender.name?.trim() || m.sender.email || ""
+                    : m.sender.email || "";
+                  return (
+                    <MessageBubbleRow
+                      key={m.id}
+                      body={m.body}
+                      createdAt={formatWhen(m.createdAt)}
+                      bubbleTitle={bubbleTitle}
+                      bubbleFooter={bubbleFooter}
+                      fromManager={fromManager}
+                      viewerIsManager={false}
+                    />
+                  );
+                })
               )}
             </div>
 

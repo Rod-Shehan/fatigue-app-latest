@@ -18,6 +18,8 @@ export function PageHeader({
   subtitle,
   icon,
   actions,
+  /** When logged in as driver, shown in the role badge instead of "Driver" (e.g. roster name). */
+  roleDisplayLabel,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
   backHref?: string;
@@ -29,10 +31,16 @@ export function PageHeader({
   icon?: React.ReactNode;
   /** Optional content on the right (buttons, badges, etc.). */
   actions?: React.ReactNode;
+  roleDisplayLabel?: string | null;
 }) {
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
-  const roleLabel = session?.user ? (role === "manager" ? "Manager" : "Driver") : null;
+  const roleLabel = session?.user
+    ? role === "manager"
+      ? "Manager"
+      : (roleDisplayLabel?.trim() || "Driver")
+    : null;
+  const isManagerBadge = role === "manager";
 
   return (
     <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap mb-6">
@@ -64,12 +72,12 @@ export function PageHeader({
               </h1>
               {roleLabel && (
                 <span
-                  className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
-                    roleLabel === "Manager"
-                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
-                      : "bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+                  className={`shrink-0 rounded-full px-2 py-0.5 max-w-[min(200px,45vw)] truncate ${
+                    isManagerBadge
+                      ? "text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
+                      : "text-[11px] font-semibold tracking-tight bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                   }`}
-                  title={`${roleLabel} view`}
+                  title={isManagerBadge ? "Manager view" : `${roleLabel} (driver)`}
                 >
                   {roleLabel}
                 </span>

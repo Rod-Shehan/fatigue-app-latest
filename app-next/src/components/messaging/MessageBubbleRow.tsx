@@ -4,21 +4,23 @@ import { cn } from "@/lib/utils";
 
 /**
  * Chat row: driver vs manager styled like a threaded chat (not FB clone).
- * Driver = cyan (ties to operational / on-road context); manager = violet (matches manager badge).
+ * Driver = cyan; manager = violet (matches manager badge).
  */
 export function MessageBubbleRow({
   body,
   createdAt,
-  senderLabel,
+  bubbleTitle,
+  bubbleFooter,
   fromManager,
   viewerIsManager,
 }: {
   body: string;
   createdAt: string;
-  senderLabel: string;
-  /** True when sender.user.role === "manager" */
+  /** Shown top-left: driver display name or "Manager" */
+  bubbleTitle: string;
+  /** Shown below body (e.g. email) */
+  bubbleFooter: string;
   fromManager: boolean;
-  /** True on manager messages page */
   viewerIsManager: boolean;
 }) {
   const isOnRight = viewerIsManager ? fromManager : !fromManager;
@@ -37,11 +39,11 @@ export function MessageBubbleRow({
         <div className="flex items-baseline justify-between gap-3">
           <span
             className={cn(
-              "text-[10px] font-bold uppercase tracking-wider",
-              fromManager ? "text-violet-200 dark:text-violet-200" : "text-cyan-200 dark:text-cyan-200"
+              "text-xs font-semibold tracking-tight truncate min-w-0",
+              fromManager ? "text-violet-100" : "text-cyan-100"
             )}
           >
-            {fromManager ? "Manager" : "Driver"}
+            {bubbleTitle}
           </span>
           <span
             className={cn(
@@ -53,14 +55,16 @@ export function MessageBubbleRow({
           </span>
         </div>
         <p className="text-sm whitespace-pre-wrap mt-1.5 leading-relaxed opacity-95">{body}</p>
-        <p
-          className={cn(
-            "text-[10px] mt-1.5 opacity-75 truncate",
-            fromManager ? "text-violet-200/80" : "text-cyan-200/80"
-          )}
-        >
-          {senderLabel}
-        </p>
+        {bubbleFooter ? (
+          <p
+            className={cn(
+              "text-[10px] mt-1.5 opacity-75 truncate",
+              fromManager ? "text-violet-200/80" : "text-cyan-200/80"
+            )}
+          >
+            {bubbleFooter}
+          </p>
+        ) : null}
       </div>
     </div>
   );

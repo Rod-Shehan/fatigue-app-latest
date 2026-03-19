@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
-import type { MessageThreadSummary } from "@/lib/api";
+import { resolveDriverBubbleName } from "@/lib/messaging-display";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,16 +34,29 @@ export function ManagerMessagesView() {
   });
   const threads = threadsData?.threads ?? [];
 
+  const { data: drivers = [] } = useQuery({
+    queryKey: ["drivers"],
+    queryFn: () => api.drivers.list(),
+  });
+
+  const threadDriverLabel = (t: (typeof threads)[0]) =>
+    resolveDriverBubbleName(
+      drivers,
+      { name: t.createdBy.name ?? null, email: t.createdBy.email ?? null },
+      null
+    );
+
   const filteredThreads = useMemo(() => {
     const d = driverSearch.trim().toLowerCase();
     return threads.filter((t) => {
       if (d) {
-        const name = (t.createdBy.name || t.createdBy.email || "").toLowerCase();
-        if (!name.includes(d)) return false;
+        const label = threadDriverLabel(t).toLowerCase();
+        const raw = (t.createdBy.name || t.createdBy.email || "").toLowerCase();
+        if (!label.includes(d) && !raw.includes(d)) return false;
       }
       return true;
     });
-  }, [threads, driverSearch]);
+  }, [threads, driverSearch, drivers]);
 
   const activeThread = useMemo(
     () => filteredThreads.find((t) => t.id === activeThreadId) ?? threads.find((t) => t.id === activeThreadId) ?? null,
@@ -112,7 +125,7 @@ export function ManagerMessagesView() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <p className={["text-sm font-semibold", active ? "" : "text-slate-900 dark:text-slate-100"].join(" ")}>
-                              {t.createdBy.name || t.createdBy.email || "Driver"}: {t.subject}
+                              {threadDriverLabel(t)}: {t.subject}
                             </p>
                             {t.sheet ? (
                               <p className={["text-xs mt-0.5", active ? "opacity-90" : "text-slate-500 dark:text-slate-400"].join(" ")}>
@@ -148,7 +161,7 @@ export function ManagerMessagesView() {
                   {activeThread ? activeThread.subject : "Select a thread"}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {activeThread ? (activeThread.createdBy.name || activeThread.createdBy.email || "Driver") : ""}
+                  {activeThread ? threadDriverLabel(activeThread) : ""}
                   {activeThread?.sheet ? ` • Sheet week of ${weekLabel(activeThread.sheet.week_starting)}` : ""}
                 </p>
                 {activeThread?.sheet ? (
@@ -172,16 +185,26 @@ export function ManagerMessagesView() {
               ) : messages.length === 0 ? (
                 <div className="text-sm text-slate-600 dark:text-slate-300">No messages yet.</div>
               ) : (
-                messages.map((m) => (
-                  <MessageBubbleRow
-                    key={m.id}
-                    body={m.body}
-                    createdAt={formatWhen(m.createdAt)}
-                    senderLabel={m.sender.name || m.sender.email || "User"}
-                    fromManager={m.sender.role === "manager"}
-                    viewerIsManager
-                  />
-                ))
+                messages.map((m) => {
+                  const fromManager = m.sender.role === "manager";
+                  const bubbleTitle = fromManager
+                    ? "Manager"
+                    : resolveDriverBubbleName(drivers, m.sender, null);
+                  const bubbleFooter = fromManager
+                    ? m.sender.name?.trim() || m.sender.email || ""
+                    : m.sender.email || "";
+                  return (
+                    <MessageBubbleRow
+                      key={m.id}
+                      body={m.body}
+                      createdAt={formatWhen(m.createdAt)}
+                      bubbleTitle={bubbleTitle}
+                      bubbleFooter={bubbleFooter}
+                      fromManager={fromManager}
+                      viewerIsManager
+                    />
+                  );
+                })
               )}
             </div>
 
