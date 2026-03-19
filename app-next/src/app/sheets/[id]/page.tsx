@@ -8,6 +8,5 @@ export default async function SheetPage({ params }: { params: Promise<{ id: stri
   if (!session) redirect("/login");
   const { id } = await params;
   const managerSession = await getManagerSession();
-  if (managerSession) redirect("/manager");
-  return <SheetDetail sheetId={id} canAccessManager={false} />;
+  return <SheetDetail sheetId={id} canAccessManager={!!managerSession} />;
 }

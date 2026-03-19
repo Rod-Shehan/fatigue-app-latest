@@ -6,8 +6,7 @@ import ShiftLogPage from "./shift-log-page";
 export default async function ShiftLogRoute({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
-  const manager = await getManagerSession();
-  if (manager) redirect("/manager");
+  await getManagerSession();
   const { id } = await params;
   return <ShiftLogPage sheetId={id} />;
 }
