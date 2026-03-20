@@ -755,32 +755,6 @@ export function SheetDetail({
             aria-hidden
           />
 
-          <div className="flex flex-wrap items-center gap-2 min-h-8">
-            {lastSaved && !isDirty && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                <span className="hidden sm:inline">
-                  Saved{" "}
-                  {lastSaved.toLocaleTimeString("en-AU", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
-                </span>
-              </span>
-            )}
-            {isDirty && !saveMutation.isPending && (
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
-                Unsaved changes
-              </span>
-            )}
-            {sheetData.status === "completed" && (
-              <Badge variant="outline" className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7">
-                <CheckCircle2 className="w-3 h-3" /> Completed
-              </Badge>
-            )}
-          </div>
-
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -789,9 +763,9 @@ export function SheetDetail({
                   variant="outline"
                   size="sm"
                   className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
-                  aria-label="Record actions: save or mark complete"
+                  aria-label="File: save, mark complete, or export PDF"
                 >
-                  Record actions
+                  File
                   <ChevronDown className="w-3.5 h-3.5 opacity-70" aria-hidden />
                 </Button>
               </DropdownMenuTrigger>
@@ -822,24 +796,43 @@ export function SheetDetail({
                     Mark complete
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem
+                  onSelect={() => {
+                    handleExportPdf();
+                  }}
+                  className="text-xs"
+                >
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  Export PDF
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+          </div>
 
-            <div
-              className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
-              aria-hidden
-            />
-
-            <Button
-              type="button"
-              onClick={handleExportPdf}
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export PDF
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 min-h-8">
+            {lastSaved && !isDirty && (
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
+                <span className="hidden sm:inline">
+                  Saved{" "}
+                  {lastSaved.toLocaleTimeString("en-AU", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </span>
+              </span>
+            )}
+            {isDirty && !saveMutation.isPending && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                Unsaved changes
+              </span>
+            )}
+            {sheetData.status === "completed" && (
+              <Badge variant="outline" className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7">
+                <CheckCircle2 className="w-3 h-3" /> Completed
+              </Badge>
+            )}
           </div>
         </nav>
 
