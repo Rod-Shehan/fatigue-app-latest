@@ -296,11 +296,11 @@ export default function LogBar({
 
   const headerShellClass =
     complianceTone === "violation"
-      ? "bg-red-100 dark:bg-red-950/80 border-b border-red-300 dark:border-red-800 shadow-md"
+      ? "bg-red-200 dark:bg-red-950 border-b-[3px] border-b-red-600 dark:border-b-red-500 shadow-md"
       : complianceTone === "warning"
-        ? "bg-amber-100 dark:bg-amber-950/70 border-b border-amber-300 dark:border-amber-800 shadow-md"
+        ? "bg-amber-200 dark:bg-amber-950 border-b-[3px] border-b-amber-600 dark:border-b-amber-400 shadow-md"
         : complianceTone === "ok"
-          ? "bg-emerald-50 dark:bg-emerald-950/55 border-b border-emerald-300 dark:border-emerald-800 shadow-md"
+          ? "bg-emerald-200 dark:bg-emerald-950 border-b-[3px] border-b-emerald-600 dark:border-b-emerald-400 shadow-md"
           : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-md";
 
   const clearPending = useCallback(() => {
@@ -598,7 +598,7 @@ export default function LogBar({
       {/* In-flow spacer so title/save row sit below the fixed bar; same structure = same height */}
       <div className="max-w-[1400px] mx-auto px-4 py-3 invisible pointer-events-none select-none flex items-start gap-3" aria-hidden>
         <div className="flex-1 min-w-0">{barContent}</div>
-        <div className="w-9 h-9 shrink-0" />
+        <div className="w-12 h-12 shrink-0" />
         <div className="w-9 h-9 shrink-0" />
       </div>
       <div
@@ -611,7 +611,7 @@ export default function LogBar({
               type="button"
               onClick={complianceButton.onClick}
               disabled={complianceButton.loading}
-              className="shrink-0 flex items-center justify-center h-9 w-9 rounded-md hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors"
+              className="shrink-0 self-center flex items-center justify-center h-12 w-12 min-h-[48px] min-w-[48px] rounded-lg hover:bg-black/10 dark:hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors"
               title={
                 complianceButton.loading
                   ? "Checking compliance…"
@@ -632,17 +632,17 @@ export default function LogBar({
               }
             >
               {complianceButton.loading ? (
-                <Loader2 className="w-5 h-5 animate-spin shrink-0 text-slate-600 dark:text-slate-300" aria-hidden />
+                <Loader2 className="w-9 h-9 animate-spin shrink-0 text-slate-700 dark:text-slate-200" aria-hidden />
               ) : complianceButton.hasViolations ? (
-                <X className="w-5 h-5 shrink-0 text-red-600 dark:text-red-400" strokeWidth={2.5} aria-hidden />
+                <X className="w-9 h-9 shrink-0 text-red-700 dark:text-red-300" strokeWidth={3} aria-hidden />
               ) : complianceButton.hasWarnings ? (
-                <AlertTriangle className="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-300" aria-hidden />
+                <AlertTriangle className="w-9 h-9 shrink-0 text-amber-800 dark:text-amber-300" strokeWidth={2.5} aria-hidden />
               ) : (
-                <Check className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} aria-hidden />
+                <Check className="w-9 h-9 shrink-0 text-emerald-800 dark:text-emerald-300" strokeWidth={3} aria-hidden />
               )}
             </button>
           )}
-          <div className="shrink-0 pt-0.5">
+          <div className="shrink-0 self-center">
             <ThemeToggle />
           </div>
         </div>
