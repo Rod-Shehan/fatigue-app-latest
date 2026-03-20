@@ -17,7 +17,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LayoutDashboard, Save, Loader2, CheckCircle2, FileEdit, Truck, Users, Trash2, UserPlus, AlertTriangle, Map as MapIcon, LogOut, MessageSquare } from "lucide-react";
+import {
+  LayoutDashboard,
+  Save,
+  Loader2,
+  CheckCircle2,
+  FileEdit,
+  Truck,
+  Users,
+  Trash2,
+  UserPlus,
+  AlertTriangle,
+  Map as MapIcon,
+  LogOut,
+  MessageSquare,
+  XCircle,
+} from "lucide-react";
 import {
   ManagerMonthCalendar,
   parseYMD,
@@ -217,6 +232,33 @@ export function ManagerView() {
     );
   }, [activeWeekStarting, firstWeekOption]);
 
+  /** Week used for the violations snapshot (selected work week, or calendar anchor). */
+  const weekForSnapshot = activeWeekStarting || calendarWeekAnchor;
+
+  const { data: managerCompliance, isLoading: complianceLoading } = useQuery({
+    queryKey: ["manager", "compliance"],
+    queryFn: () => api.manager.compliance(),
+  });
+
+  const weekViolationLines = useMemo(() => {
+    if (!managerCompliance?.items?.length || !weekForSnapshot) return [];
+    const items = managerCompliance.items.filter((i) => i.week_starting === weekForSnapshot);
+    const lines: { sheetId: string; driver: string; day: string; message: string }[] = [];
+    for (const item of items) {
+      for (const r of item.results) {
+        if (r.type === "violation") {
+          lines.push({
+            sheetId: item.sheetId,
+            driver: item.driver_name,
+            day: r.day,
+            message: r.message,
+          });
+        }
+      }
+    }
+    return lines;
+  }, [managerCompliance, weekForSnapshot]);
+
   const { data: selectedSheet, isLoading: sheetLoading } = useQuery({
     queryKey: ["sheet", selectedSheetId],
     queryFn: () => api.sheets.get(selectedSheetId),
@@ -262,6 +304,7 @@ export function ManagerView() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sheets"] });
       queryClient.invalidateQueries({ queryKey: ["sheet", selectedSheetId] });
+      queryClient.invalidateQueries({ queryKey: ["manager", "compliance"] });
       setSelectedSheetId("");
     },
   });
@@ -378,6 +421,59 @@ export function ManagerView() {
             </div>
           </div>
         </nav>
+
+        <section
+          className="mb-5 rounded-2xl border-2 border-violet-300/70 bg-gradient-to-br from-violet-50 via-white to-sky-50 p-4 shadow-sm shadow-violet-200/50 dark:border-violet-500/45 dark:from-violet-950/50 dark:via-slate-900 dark:to-sky-950/40 dark:shadow-violet-900/20 sm:p-5"
+          aria-label="Violations this work week"
+        >
+          <div className="mb-3 flex flex-wrap items-center gap-2 gap-y-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <XCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />
+              <h2 className="text-sm font-bold tracking-tight text-violet-900 dark:text-violet-200">
+                This week — violations
+              </h2>
+            </div>
+            <span className="text-xs font-medium text-violet-800/90 dark:text-violet-300/90">
+              {formatWeekLabel(weekForSnapshot)}
+            </span>
+          </div>
+
+          {complianceLoading ? (
+            <div className="flex items-center gap-2 text-sm text-violet-800/90 dark:text-violet-200/90">
+              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+              Loading compliance…
+            </div>
+          ) : weekViolationLines.length === 0 ? (
+            <div className="flex items-start gap-2 rounded-lg border border-violet-200/80 bg-white/70 px-3 py-2.5 text-sm text-slate-600 dark:border-violet-800/40 dark:bg-slate-900/50 dark:text-slate-300">
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+              <span>No violations recorded for this week across visible sheets.</span>
+            </div>
+          ) : (
+            <ul className="divide-y divide-violet-200/70 dark:divide-violet-800/50">
+              {weekViolationLines.map((line, idx) => (
+                <li
+                  key={`${line.sheetId}-${idx}-${line.day}`}
+                  className="flex flex-col gap-1 py-3 first:pt-0 sm:flex-row sm:items-start sm:gap-4"
+                >
+                  <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:w-[min(100%,14rem)] sm:shrink-0">
+                    <Link
+                      href={`/sheets/${line.sheetId}`}
+                      className="text-sm font-semibold text-violet-950 underline-offset-2 hover:underline dark:text-violet-100"
+                    >
+                      {line.driver || "—"}
+                    </Link>
+                    <span className="text-[11px] font-medium uppercase tracking-wide text-violet-700/85 dark:text-violet-400/90">
+                      {line.day}
+                    </span>
+                  </div>
+                  <p className="min-w-0 flex-1 text-sm leading-snug text-slate-700 dark:text-slate-200">
+                    {line.message}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <div
           role="tablist"
