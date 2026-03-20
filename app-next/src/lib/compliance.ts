@@ -1,6 +1,9 @@
 /**
  * WA OSH Reg 3.132 compliance logic (pure, testable).
  * Used by CompliancePanel for display.
+ *
+ * Multi-jurisdiction / Australia-wide direction: see docs/adr/0001-multi-jurisdiction-fatigue-architecture.md
+ * and src/lib/jurisdiction/. Do not claim NHVR EWD approval from this module alone.
  */
 
 import { getSheetDayDateString } from "@/lib/weeks";
