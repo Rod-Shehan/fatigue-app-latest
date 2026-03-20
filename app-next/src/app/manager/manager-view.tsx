@@ -205,33 +205,59 @@ export function ManagerView() {
           }
         />
 
-        <div className="flex gap-2 flex-wrap mb-6">
-          <Link href="/manager/add-managers">
-            <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-              <UserPlus className="w-4 h-4" /> Add Managers
-            </Button>
-          </Link>
-          <Link href="/admin/regos">
-            <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-              <Truck className="w-4 h-4" /> Manage Regos
-            </Button>
-          </Link>
-          <Link href="/drivers">
-            <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-              <Users className="w-4 h-4" /> Manage Drivers
-            </Button>
-          </Link>
-          <Link href="/manager/map">
-            <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-              <MapIcon className="w-4 h-4" /> Event map
-            </Button>
-          </Link>
-          <Link href="/manager/messages">
-            <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-              <MessageSquare className="w-4 h-4" /> Messages
-            </Button>
-          </Link>
-        </div>
+        <nav
+          className="mb-6 flex flex-col gap-5 md:flex-row md:flex-wrap md:items-stretch md:gap-0"
+          aria-label="Manager shortcuts"
+        >
+          <div className="space-y-2 md:pr-6 md:border-r md:border-slate-200 md:dark:border-slate-700">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
+              Team &amp; fleet
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/drivers">
+                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+                  <Users className="w-4 h-4" /> Manage Drivers
+                </Button>
+              </Link>
+              <Link href="/manager/add-managers">
+                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+                  <UserPlus className="w-4 h-4" /> Add Managers
+                </Button>
+              </Link>
+              <Link href="/admin/regos">
+                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+                  <Truck className="w-4 h-4" /> Manage Regos
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700 md:border-t-0 md:pt-0 md:px-6 md:border-r md:border-slate-200 md:dark:border-slate-700">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
+              Map
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/manager/map">
+                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+                  <MapIcon className="w-4 h-4" /> Event map
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700 md:border-t-0 md:pt-0 md:pl-6">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
+              Messages
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Link href="/manager/messages">
+                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
+                  <MessageSquare className="w-4 h-4" /> Messages
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </nav>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
           <div
