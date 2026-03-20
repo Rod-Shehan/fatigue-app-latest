@@ -67,3 +67,10 @@ export function parseLocalDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split("-").map(Number);
   return new Date(y, m - 1, d);
 }
+
+/** Human-readable date for sheet UI (en-AU). Pass YYYY-MM-DD. */
+export function formatSheetDisplayDate(ymd: string): string {
+  if (!ymd?.trim()) return "";
+  const d = parseLocalDate(normalizeWeekDateString(ymd));
+  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}

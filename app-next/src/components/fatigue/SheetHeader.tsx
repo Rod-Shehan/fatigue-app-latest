@@ -9,12 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { User, Users, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-
-function formatLast24hBreakDate(dateStr: string): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr + "T12:00:00");
-  return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
-}
+import { formatSheetDisplayDate } from "@/lib/weeks";
 
 type SheetData = {
   driver_name?: string;
@@ -57,13 +52,15 @@ export default function SheetHeader({
       {/* Row 1: Driver type (left) + Driver name (right); Two-Up adds second driver on the same row when space allows */}
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
         <div className="space-y-1.5 shrink-0">
-          <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Driver Type</Label>
+          <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 block">
+            Driver Type
+          </Label>
           <div className="flex rounded-lg border border-slate-200 dark:border-slate-600 overflow-hidden">
             <button
               type="button"
               disabled={readOnly}
               onClick={() => handleChange("driver_type", "solo")}
-              className={`px-4 py-1.5 text-xs font-bold transition-colors ${
+              className={`px-4 py-1.5 text-xs font-semibold transition-colors ${
                 driverType === "solo"
                   ? "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-100"
                   : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-600"
@@ -75,7 +72,7 @@ export default function SheetHeader({
               type="button"
               disabled={readOnly}
               onClick={() => handleChange("driver_type", "two_up")}
-              className={`px-4 py-1.5 text-xs font-bold transition-colors border-l border-slate-200 dark:border-slate-600 ${
+              className={`px-4 py-1.5 text-xs font-semibold transition-colors border-l border-slate-200 dark:border-slate-600 ${
                 driverType === "two_up"
                   ? "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-100"
                   : "bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-600"
@@ -86,7 +83,7 @@ export default function SheetHeader({
           </div>
         </div>
         <div className="space-y-1.5 flex-1 min-w-0 sm:min-w-[12rem]">
-          <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
+          <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
             <User className="w-3 h-3" /> Driver Name
           </Label>
           {activeDrivers.length > 0 ? (
@@ -111,14 +108,14 @@ export default function SheetHeader({
               value={sheetData.driver_name || ""}
               onChange={(e) => handleChange("driver_name", e.target.value)}
               placeholder="Full name (no drivers added yet)"
-              className="h-9 font-medium"
+              className="h-9 text-sm font-medium"
               disabled={readOnly}
             />
           )}
         </div>
         {driverType === "two_up" && (
           <div className="space-y-1.5 flex-1 min-w-0 sm:min-w-[12rem] w-full sm:w-auto">
-            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
+            <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
               <Users className="w-3 h-3" /> Second Driver *
             </Label>
             {activeDrivers.length > 0 ? (
@@ -144,7 +141,7 @@ export default function SheetHeader({
                 value={sheetData.second_driver || ""}
                 onChange={(e) => handleChange("second_driver", e.target.value)}
                 placeholder="Required for Two-Up"
-                className="h-9 border-amber-300 focus:border-amber-400"
+                className="h-9 border-amber-300 text-sm font-medium focus:border-amber-400"
                 disabled={readOnly}
               />
             )}
@@ -155,28 +152,34 @@ export default function SheetHeader({
       {/* Row 2: Week starting (left) + Last 24 hour break (right) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Week Starting</Label>
+          <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
+            Week Starting
+          </Label>
           <Input
             type="date"
             value={sheetData.week_starting || ""}
             onChange={(e) => handleChange("week_starting", e.target.value)}
-            className="h-9 font-mono"
+            className="h-9 text-sm font-medium tabular-nums"
             disabled={readOnly}
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Last 24 Hour Break</Label>
+          <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
+            Last 24 Hour Break
+          </Label>
           {last24hSet ? (
             <Button
               type="button"
               variant="outline"
               size="sm"
               disabled
-              className="h-9 w-full justify-start gap-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
+              className="h-9 w-full justify-start gap-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
             >
-              <Calendar className="w-4 h-4 text-slate-500" />
-              <span className="font-mono">{formatLast24hBreakDate(sheetData.last_24h_break!)}</span>
-              <span className="ml-auto text-[10px] text-slate-400 dark:text-slate-500">Locked</span>
+              <Calendar className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+              <span className="tabular-nums">{formatSheetDisplayDate(sheetData.last_24h_break!)}</span>
+              <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                Locked
+              </span>
             </Button>
           ) : (
             <div className="relative">
@@ -197,7 +200,7 @@ export default function SheetHeader({
                     setConfirmLast24hOpen(true);
                   }
                 }}
-                className="h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 pl-10 pr-3 font-medium text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                className="h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 pl-10 pr-3 text-sm font-medium tabular-nums text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
                 aria-label="Set last 24 hour break date"
               />
               <Dialog
@@ -220,8 +223,8 @@ export default function SheetHeader({
                     </DialogDescription>
                   </DialogHeader>
                   {pendingLast24hDate && (
-                    <p className="text-sm font-medium text-slate-800 font-mono">
-                      {formatLast24hBreakDate(pendingLast24hDate)}
+                    <p className="text-sm font-medium tabular-nums text-slate-800 dark:text-slate-100">
+                      {formatSheetDisplayDate(pendingLast24hDate)}
                     </p>
                   )}
                   <label className="flex items-start gap-2 pt-1 text-sm text-slate-700 dark:text-slate-200">

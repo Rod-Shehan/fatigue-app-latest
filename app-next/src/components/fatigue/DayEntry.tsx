@@ -16,7 +16,7 @@ import { Truck, MapPin, Clock, Trash2 } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
-import { getSheetDayDateString, normalizeWeekDateString, parseLocalDate } from "@/lib/weeks";
+import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -70,9 +70,7 @@ export default function DayEntry({
 
   const getDateStr = () => {
     if (!weekStart) return "";
-    const d = parseLocalDate(normalizeWeekDateString(weekStart));
-    d.setDate(d.getDate() + dayIndex);
-    return d.toLocaleDateString("en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
+    return formatSheetDisplayDate(getSheetDayDateString(weekStart, dayIndex));
   };
   const getISODate = () => (weekStart ? getSheetDayDateString(weekStart, dayIndex) : todayYmd);
 
@@ -106,7 +104,7 @@ export default function DayEntry({
       <div className="flex flex-wrap items-center gap-3 mb-3">
         <div className="flex items-center gap-2">
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${
+            className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
               isToday
                 ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
                 : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
@@ -116,7 +114,7 @@ export default function DayEntry({
           </div>
           <div>
             <p
-              className={`text-sm font-bold ${
+              className={`text-sm font-semibold ${
                 isToday
                   ? "text-amber-800 dark:text-amber-300"
                   : "text-slate-800 dark:text-slate-100"
@@ -124,7 +122,7 @@ export default function DayEntry({
             >
               {DAY_NAMES[dayIndex]}
             </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">{getDateStr()}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 ml-auto">
@@ -160,7 +158,7 @@ export default function DayEntry({
                 <SelectValue placeholder="Rego" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__" className="text-slate-400 font-mono">
+                <SelectItem value="__none__" className="text-slate-500 dark:text-slate-400">
                   Rego
                 </SelectItem>
                 {(() => {
@@ -182,12 +180,12 @@ export default function DayEntry({
               placeholder="Destination"
               value={dayData.destination || ""}
               onChange={(e) => handleFieldChange("destination", e.target.value)}
-              className="w-32 min-w-[8rem] h-7 text-xs"
+              className="h-7 w-32 min-w-[8rem] text-xs font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400"
               disabled={readOnly}
             />
           </div>
           <div className="flex items-center gap-1">
-            <Label className="text-[10px] text-slate-400 dark:text-slate-500 uppercase">
+            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
               Start km{dayData.truck_rego?.trim() ? " *" : ""}
             </Label>
             <Input
@@ -195,12 +193,14 @@ export default function DayEntry({
               placeholder="0"
               value={dayData.start_kms ?? ""}
               onChange={(e) => handleFieldChange("start_kms", e.target.value ? Number(e.target.value) : null)}
-              className="w-20 h-7 text-xs font-mono"
+              className="h-7 w-20 text-xs font-medium tabular-nums"
               disabled={readOnly}
             />
           </div>
           {kmsTotal > 0 && (
-            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-2 py-0.5 rounded">{kmsTotal} km</span>
+            <span className="rounded bg-slate-50 px-2 py-0.5 text-[10px] font-medium tabular-nums text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+              {kmsTotal} km
+            </span>
           )}
         </div>
       </div>
