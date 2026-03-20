@@ -35,15 +35,7 @@ import {
   getSheetDayDateString,
   getTodayLocalDateString,
   getPreviousWeekSunday,
-  parseLocalDate,
 } from "@/lib/weeks";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { getProspectiveWorkWarnings } from "@/lib/compliance";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import { validateDayKms, getMinAllowedStartKms, validateSheetKms } from "@/lib/rego-kms-validation";
@@ -146,15 +138,6 @@ function getForgottenActionReminder(
 
 const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
 
-const SHEET_DAY_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-
-function formatJumpDayLabel(weekStarting: string, dayIndex: number): string {
-  const ymd = getSheetDayDateString(weekStarting, dayIndex);
-  const d = parseLocalDate(ymd);
-  const date = d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
-  return `${SHEET_DAY_SHORT[dayIndex] ?? `D${dayIndex + 1}`} ${date}`;
-}
-
 export function SheetDetail({
   sheetId,
   canAccessManager,
@@ -199,9 +182,8 @@ export function SheetDetail({
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dayCardsRef = useRef<HTMLDivElement>(null);
   const currentDayCardRef = useRef<HTMLDivElement | null>(null);
-  /** One ref per day card for toolbar “Go to day” scrolling */
+  /** One ref per day card (e.g. scroll to current day from LogBar) */
   const dayCardElsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const [toolbarDay, setToolbarDay] = useState(0);
   const isDirtyRef = useRef(isDirty);
   useEffect(() => {
     isDirtyRef.current = isDirty;
@@ -230,10 +212,6 @@ export function SheetDetail({
   useEffect(() => {
     currentDayCardRef.current = dayCardElsRef.current[currentDayIndex] ?? null;
   }, [currentDayIndex, sheetData.days.length, sheetData.week_starting]);
-
-  useEffect(() => {
-    setToolbarDay(currentDayIndex);
-  }, [currentDayIndex]);
 
   const todayYmd = useMemo(() => getTodayLocalDateString(), [now]);
 
@@ -758,33 +736,6 @@ export function SheetDetail({
             className="hidden md:block w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
             aria-hidden
           />
-
-          <Select
-            value={String(toolbarDay)}
-            onValueChange={(v) => {
-              const i = Number.parseInt(v, 10);
-              if (Number.isNaN(i) || i < 0 || i > 6) return;
-              setToolbarDay(i);
-              requestAnimationFrame(() => {
-                dayCardElsRef.current[i]?.scrollIntoView({ behavior: "smooth", block: "center" });
-              });
-            }}
-          >
-            <SelectTrigger
-              className="w-[min(100vw-2rem,200px)] sm:w-[200px] h-8 text-xs shrink-0"
-              aria-label="Jump to a day in this week"
-              title="Jump to a day in this week"
-            >
-              <SelectValue placeholder="Day" />
-            </SelectTrigger>
-            <SelectContent>
-              {SHEET_DAY_SHORT.map((_, idx) => (
-                <SelectItem key={idx} value={String(idx)}>
-                  {formatJumpDayLabel(sheetData.week_starting, idx)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
 
           <div className="flex flex-wrap items-center gap-2 min-h-8">
             {lastSaved && !isDirty && (
