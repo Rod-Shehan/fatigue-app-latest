@@ -11,6 +11,12 @@ import {
   listRegosOfflineFirst,
 } from "@/lib/offline-api";
 import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,7 +28,19 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Save, FileText, Loader2, CheckCircle2, ScrollText, XCircle, Download, LayoutDashboard, Square, AlertCircle } from "lucide-react";
+import {
+  Save,
+  FileText,
+  Loader2,
+  CheckCircle2,
+  ScrollText,
+  XCircle,
+  Download,
+  LayoutDashboard,
+  Square,
+  AlertCircle,
+  ChevronDown,
+} from "lucide-react";
 import { motion } from "framer-motion";
 import { PageHeader } from "@/components/PageHeader";
 import SheetHeader from "@/components/fatigue/SheetHeader";
@@ -764,32 +782,54 @@ export function SheetDetail({
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Button
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-              size="sm"
-              className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 text-xs h-8"
-            >
-              {saveMutation.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5" />
-              )}
-              Save
-            </Button>
-            {sheetData.status !== "completed" && (
-              <Button
-                type="button"
-                onClick={handleMarkCompleteClick}
-                size="sm"
-                variant="outline"
-                title="Sign off this record when the week is finished"
-                className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Mark complete
-              </Button>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
+                  aria-label="Record actions: save or mark complete"
+                >
+                  Record actions
+                  <ChevronDown className="w-3.5 h-3.5 opacity-70" aria-hidden />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[11rem]">
+                <DropdownMenuItem
+                  onSelect={() => {
+                    handleSave();
+                  }}
+                  disabled={saveMutation.isPending}
+                  className="text-xs"
+                >
+                  {saveMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5 shrink-0" />
+                  )}
+                  Save
+                </DropdownMenuItem>
+                {sheetData.status !== "completed" && (
+                  <DropdownMenuItem
+                    onSelect={() => {
+                      handleMarkCompleteClick();
+                    }}
+                    className="text-xs"
+                    title="Sign off this record when the week is finished"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                    Mark complete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div
+              className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
+              aria-hidden
+            />
+
             <Button
               type="button"
               onClick={handleExportPdf}
