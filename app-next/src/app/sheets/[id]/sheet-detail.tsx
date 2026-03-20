@@ -723,140 +723,132 @@ export function SheetDetail({
         />
 
         <nav
-          className="mb-6 flex flex-col gap-5 md:flex-row md:flex-wrap md:items-stretch md:gap-0"
+          className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3"
           aria-label="Fatigue record toolbar"
         >
-          <div className="space-y-2 md:pr-6">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
-              Navigate
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                href={canAccessManager ? "/manager" : MANAGER_LOGIN_HREF}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "gap-1.5 text-xs text-slate-600 dark:text-slate-300"
-                )}
-                title={
-                  canAccessManager
-                    ? "Manager dashboard"
-                    : "Sign in with a manager account to open the manager dashboard"
-                }
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                Manager
-              </Link>
-              <Link
-                href={`/sheets/${sheetId}/shift-log`}
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "gap-1.5 text-xs text-slate-600 dark:text-slate-300"
-                )}
-              >
-                <ScrollText className="w-3.5 h-3.5" />
-                Shift Log
-              </Link>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href={canAccessManager ? "/manager" : MANAGER_LOGIN_HREF}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "gap-1.5 text-xs text-slate-600 dark:text-slate-300 h-8"
+              )}
+              title={
+                canAccessManager
+                  ? "Manager dashboard"
+                  : "Sign in with a manager account to open the manager dashboard"
+              }
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Manager
+            </Link>
+            <Link
+              href={`/sheets/${sheetId}/shift-log`}
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "gap-1.5 text-xs text-slate-600 dark:text-slate-300 h-8"
+              )}
+            >
+              <ScrollText className="w-3.5 h-3.5" />
+              Shift Log
+            </Link>
           </div>
 
           <div
-            className="hidden md:block w-px shrink-0 self-stretch min-h-[2.75rem] bg-slate-400/90 dark:bg-slate-600"
+            className="hidden md:block w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
             aria-hidden
           />
 
-          <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700 md:border-t-0 md:pt-0 md:pl-6 md:flex-1 md:min-w-0">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
-              This record
-            </p>
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Go to day</Label>
-                <Select
-                  value={String(toolbarDay)}
-                  onValueChange={(v) => {
-                    const i = Number.parseInt(v, 10);
-                    if (Number.isNaN(i) || i < 0 || i > 6) return;
-                    setToolbarDay(i);
-                    requestAnimationFrame(() => {
-                      dayCardElsRef.current[i]?.scrollIntoView({ behavior: "smooth", block: "center" });
-                    });
-                  }}
-                >
-                  <SelectTrigger className="w-[200px] h-8 text-xs">
-                    <SelectValue placeholder="Day" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SHEET_DAY_SHORT.map((_, idx) => (
-                      <SelectItem key={idx} value={String(idx)}>
-                        {formatJumpDayLabel(sheetData.week_starting, idx)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          <Select
+            value={String(toolbarDay)}
+            onValueChange={(v) => {
+              const i = Number.parseInt(v, 10);
+              if (Number.isNaN(i) || i < 0 || i > 6) return;
+              setToolbarDay(i);
+              requestAnimationFrame(() => {
+                dayCardElsRef.current[i]?.scrollIntoView({ behavior: "smooth", block: "center" });
+              });
+            }}
+          >
+            <SelectTrigger
+              className="w-[min(100vw-2rem,200px)] sm:w-[200px] h-8 text-xs shrink-0"
+              aria-label="Jump to a day in this week"
+              title="Jump to a day in this week"
+            >
+              <SelectValue placeholder="Day" />
+            </SelectTrigger>
+            <SelectContent>
+              {SHEET_DAY_SHORT.map((_, idx) => (
+                <SelectItem key={idx} value={String(idx)}>
+                  {formatJumpDayLabel(sheetData.week_starting, idx)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-              <div className="flex flex-wrap items-center gap-2 min-h-8">
-                {lastSaved && !isDirty && (
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1 shrink-0">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                    <span className="hidden sm:inline">
-                      Saved{" "}
-                      {lastSaved.toLocaleTimeString("en-AU", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}
-                    </span>
-                  </span>
-                )}
-                {isDirty && !saveMutation.isPending && (
-                  <span className="text-[10px] text-amber-500 font-medium shrink-0">Unsaved changes</span>
-                )}
-                {sheetData.status === "completed" && (
-                  <Badge variant="outline" className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0">
-                    <CheckCircle2 className="w-3 h-3" /> Completed
-                  </Badge>
-                )}
-              </div>
+          <div className="flex flex-wrap items-center gap-2 min-h-8">
+            {lastSaved && !isDirty && (
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
+                <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
+                <span className="hidden sm:inline">
+                  Saved{" "}
+                  {lastSaved.toLocaleTimeString("en-AU", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </span>
+              </span>
+            )}
+            {isDirty && !saveMutation.isPending && (
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                Unsaved changes
+              </span>
+            )}
+            {sheetData.status === "completed" && (
+              <Badge variant="outline" className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7">
+                <CheckCircle2 className="w-3 h-3" /> Completed
+              </Badge>
+            )}
+          </div>
 
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <Button
-                  onClick={handleSave}
-                  disabled={saveMutation.isPending}
-                  size="sm"
-                  className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 text-xs"
-                >
-                  {saveMutation.isPending ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Save className="w-3.5 h-3.5" />
-                  )}
-                  Save
-                </Button>
-                {sheetData.status !== "completed" && (
-                  <Button
-                    type="button"
-                    onClick={handleMarkCompleteClick}
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5 text-xs border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/50"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Mark complete
-                  </Button>
-                )}
-                <Button
-                  type="button"
-                  onClick={handleExportPdf}
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5 text-xs border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Export PDF
-                </Button>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Button
+              onClick={handleSave}
+              disabled={saveMutation.isPending}
+              size="sm"
+              className="bg-slate-900 hover:bg-slate-800 text-white gap-1.5 text-xs h-8"
+            >
+              {saveMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              Save
+            </Button>
+            {sheetData.status !== "completed" && (
+              <Button
+                type="button"
+                onClick={handleMarkCompleteClick}
+                size="sm"
+                variant="outline"
+                title="Sign off this record when the week is finished"
+                className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Mark complete
+              </Button>
+            )}
+            <Button
+              type="button"
+              onClick={handleExportPdf}
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export PDF
+            </Button>
           </div>
         </nav>
 
