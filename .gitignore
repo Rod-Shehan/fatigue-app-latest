@@ -37,3 +37,6 @@ app-next/.next
 app-next/out
 app-next/prisma/*.db
 app-next/prisma/*.db-journal
+
+# TypeScript incremental build cache (do not commit)
+*.tsbuildinfo
