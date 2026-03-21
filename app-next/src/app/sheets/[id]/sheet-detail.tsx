@@ -37,6 +37,7 @@ import {
   XCircle,
   Download,
   LayoutDashboard,
+  MessageSquare,
   Square,
   AlertCircle,
   ChevronDown,
@@ -855,6 +856,24 @@ export function SheetDetail({
           >
             <LayoutDashboard className="w-3.5 h-3.5" />
             Manager
+          </Link>
+
+          <div
+            className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
+            aria-hidden
+          />
+
+          <Link
+            href="/messages"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "sm" }),
+              "gap-1.5 text-xs text-slate-600 dark:text-slate-300 h-8 shrink-0"
+            )}
+            title="Messages with your manager"
+            aria-label="Messages"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            Message
           </Link>
 
           <div
