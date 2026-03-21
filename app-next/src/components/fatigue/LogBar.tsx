@@ -4,6 +4,8 @@ import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Briefcase, Coffee, Moon, Square, Check, X, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
+import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
 import { getEventsInTimeOrder, getInsufficientNonWorkMessage } from "@/lib/rolling-events";
 import { parseLocalDate } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
@@ -243,7 +245,17 @@ export default function LogBar({
   const [activeDriver, setActiveDriver] = useState<"primary" | "second">("primary");
   const [workWarning, setWorkWarning] = useState<{ message: string; confirmLabel: string; onConfirm: () => void; onCancel?: () => void; subtext?: string } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [, setTick] = useState(0);
+  const [tick, setTick] = useState(0);
+  const [voiceAlertsEnabled, setVoiceAlertsEnabled] = useState(false);
+  /** Tracks break bar % to announce once when 20 min minimum is reached. */
+  const prevBreakPctRef = useRef<number | null>(null);
+  const lastSpokenShiftBlockMsgRef = useRef<string | null>(null);
+  /** Dedupe 5h insufficient-break modal speech (Strict Mode / reopen). */
+  const lastSpokenFiveHourBreakRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    setVoiceAlertsEnabled(getVoiceAlertsEnabled());
+  }, []);
 
   const day = days[currentDayIndex];
   const dayForCardFields = currentDayDisplay ?? day;
@@ -342,6 +354,55 @@ export default function LogBar({
     clearPending();
     setWorkWarning(null);
   }, [currentDayIndex, clearPending]);
+
+  /** Phase 1 voice: work-warning modals (card incomplete, 5h break rule). */
+  useEffect(() => {
+    if (!workWarning) {
+      lastSpokenShiftBlockMsgRef.current = null;
+      lastSpokenFiveHourBreakRef.current = null;
+      return;
+    }
+    if (!voiceAlertsEnabled) return;
+
+    if (workWarning.confirmLabel === "Go to today's card") {
+      const key = workWarning.message;
+      if (lastSpokenShiftBlockMsgRef.current === key) return;
+      lastSpokenShiftBlockMsgRef.current = key;
+      speakVoiceAlert(
+        "Complete today's card before starting shift. You need rego, destination, and start kilometres."
+      );
+      return;
+    }
+
+    /** 5h rule: only this modal uses confirm "Log work anyway" + this subtext (compliance uses different copy). */
+    if (
+      workWarning.confirmLabel === "Log work anyway" &&
+      workWarning.subtext === "This will log work now."
+    ) {
+      const key = workWarning.message;
+      if (lastSpokenFiveHourBreakRef.current === key) return;
+      lastSpokenFiveHourBreakRef.current = key;
+      speakVoiceAlert(
+        "Critical five hour rule. Twenty minute break required."
+      );
+      return;
+    }
+  }, [workWarning, voiceAlertsEnabled]);
+
+  /** Phase 1 voice: minimum 20 minute break bar just reached 100%. */
+  useEffect(() => {
+    if (!voiceAlertsEnabled) return;
+    if (currentType !== "break" || !contextualBar || contextualBar.type !== "break") {
+      prevBreakPctRef.current = null;
+      return;
+    }
+    const pct = contextualBar.pct;
+    const prev = prevBreakPctRef.current;
+    prevBreakPctRef.current = pct;
+    if (prev !== null && prev < 100 && pct >= 100) {
+      speakVoiceAlert("Minimum break complete. You can resume work when ready.");
+    }
+  }, [currentType, contextualBar, voiceAlertsEnabled, tick]);
 
   /** Warning when finishing a break (switching to work): short breaks count as work time. */
   const getShortBreakWarning = (newType: string) => {
@@ -633,7 +694,10 @@ export default function LogBar({
       <div className="max-w-[1400px] mx-auto px-4 py-3 invisible pointer-events-none select-none flex items-start gap-3" aria-hidden>
         <div className="flex-1 min-w-0">{barContent}</div>
         <div className="w-12 h-12 shrink-0" />
-        <div className="w-9 h-9 shrink-0" />
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="w-11 h-11 shrink-0" />
+          <span className="w-11 h-11 shrink-0" />
+        </div>
       </div>
       <div
         className={`fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-colors duration-300 ${headerShellClass}`}
@@ -707,7 +771,8 @@ export default function LogBar({
               )}
             </button>
           )}
-          <div className="shrink-0 self-center">
+          <div className="shrink-0 self-center flex items-center gap-1">
+            <VoiceAlertsToggle enabled={voiceAlertsEnabled} onChange={setVoiceAlertsEnabled} />
             <ThemeToggle />
           </div>
         </div>
