@@ -6,6 +6,7 @@ import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getEventsInTimeOrder, getInsufficientNonWorkMessage } from "@/lib/rolling-events";
 import { parseLocalDate } from "@/lib/weeks";
+import { cn } from "@/lib/utils";
 
 const WORK_TARGET_MINUTES = 5 * 60;
 const BREAK_TARGET_MINUTES = 20;
@@ -294,14 +295,25 @@ export default function LogBar({
     return "ok" as const;
   })();
 
+  /** Saturated bands + thick border for single-glance compliance (outdoor / cab visibility). */
   const headerShellClass =
     complianceTone === "violation"
-      ? "bg-red-200 dark:bg-red-950 border-b-[3px] border-b-red-600 dark:border-b-red-500 shadow-md"
+      ? "bg-red-400 dark:bg-red-600 border-b-4 border-red-900 dark:border-red-100 shadow-lg"
       : complianceTone === "warning"
-        ? "bg-amber-200 dark:bg-amber-950 border-b-[3px] border-b-amber-600 dark:border-b-amber-400 shadow-md"
+        ? "bg-amber-400 dark:bg-amber-500 border-b-4 border-amber-900 dark:border-amber-100 shadow-lg"
         : complianceTone === "ok"
-          ? "bg-emerald-200 dark:bg-emerald-950 border-b-[3px] border-b-emerald-600 dark:border-b-emerald-400 shadow-md"
+          ? "bg-emerald-400 dark:bg-emerald-600 border-b-4 border-emerald-900 dark:border-emerald-100 shadow-lg"
           : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-md";
+
+  /** Keep labels readable on solid compliance backgrounds. */
+  const complianceBarTextClass =
+    complianceTone === "violation"
+      ? "text-red-950 dark:text-white [&_.text-slate-400]:!text-red-900/80 [&_.text-slate-400]:dark:!text-red-50 [&_.text-slate-500]:dark:!text-red-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
+      : complianceTone === "warning"
+        ? "text-amber-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-amber-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
+        : complianceTone === "ok"
+          ? "text-emerald-950 dark:text-white [&_.text-slate-400]:!text-emerald-900/75 [&_.text-slate-400]:dark:!text-emerald-50 [&_.text-slate-500]:dark:!text-emerald-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
+          : "";
 
   const clearPending = useCallback(() => {
     if (resetTimerRef.current) {
@@ -446,7 +458,7 @@ export default function LogBar({
   };
 
   const barContent = (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", complianceBarTextClass)}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-base min-w-0">
         {leadingIcon != null && (
           <span className="flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0" aria-hidden>
@@ -556,7 +568,14 @@ export default function LogBar({
               {null}
             </span>
           </div>
-          <div className="relative h-8 bg-slate-100 dark:bg-slate-700 rounded-lg overflow-hidden">
+          <div
+            className={cn(
+              "relative h-8 rounded-lg overflow-hidden",
+              complianceTone === "default"
+                ? "bg-slate-100 dark:bg-slate-700"
+                : "bg-black/15 dark:bg-black/25 ring-1 ring-black/10 dark:ring-white/20"
+            )}
+          >
             <div className="absolute inset-0 rounded-lg">
               <div
                 className="absolute inset-y-0 left-0 rounded-lg transition-all duration-300"
@@ -611,7 +630,16 @@ export default function LogBar({
               type="button"
               onClick={complianceButton.onClick}
               disabled={complianceButton.loading}
-              className="shrink-0 self-center flex items-center justify-center h-12 w-12 min-h-[48px] min-w-[48px] rounded-lg hover:bg-black/10 dark:hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors"
+              className={cn(
+                "shrink-0 self-center flex items-center justify-center h-12 w-12 min-h-[48px] min-w-[48px] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
+                complianceTone === "ok" &&
+                  "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-emerald-900 dark:focus-visible:ring-white focus-visible:ring-offset-emerald-400 dark:focus-visible:ring-offset-emerald-600",
+                complianceTone === "warning" &&
+                  "bg-black/15 dark:bg-black/20 hover:bg-black/25 dark:hover:bg-black/30 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-400 dark:focus-visible:ring-offset-amber-500",
+                complianceTone === "violation" &&
+                  "bg-black/15 dark:bg-black/20 hover:bg-black/25 dark:hover:bg-black/30 focus-visible:ring-red-900 dark:focus-visible:ring-red-100 focus-visible:ring-offset-red-400 dark:focus-visible:ring-offset-red-600",
+                complianceTone === "default" && "rounded-lg hover:bg-black/10 dark:hover:bg-white/15 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+              )}
               title={
                 complianceButton.loading
                   ? "Checking compliance…"
@@ -632,13 +660,23 @@ export default function LogBar({
               }
             >
               {complianceButton.loading ? (
-                <Loader2 className="w-9 h-9 animate-spin shrink-0 text-slate-700 dark:text-slate-200" aria-hidden />
+                <Loader2
+                  className={cn(
+                    "w-9 h-9 animate-spin shrink-0",
+                    complianceTone === "default" ? "text-slate-700 dark:text-slate-200" : "text-slate-900 dark:text-white"
+                  )}
+                  aria-hidden
+                />
               ) : complianceButton.hasViolations ? (
-                <X className="w-9 h-9 shrink-0 text-red-700 dark:text-red-300" strokeWidth={3} aria-hidden />
+                <X className="w-9 h-9 shrink-0 text-red-950 dark:text-white drop-shadow-sm" strokeWidth={3} aria-hidden />
               ) : complianceButton.hasWarnings ? (
-                <AlertTriangle className="w-9 h-9 shrink-0 text-amber-800 dark:text-amber-300" strokeWidth={2.5} aria-hidden />
+                <AlertTriangle className="w-9 h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm" strokeWidth={2.5} aria-hidden />
               ) : (
-                <Check className="w-9 h-9 shrink-0 text-emerald-800 dark:text-emerald-300" strokeWidth={3} aria-hidden />
+                <Check
+                  className="w-9 h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                  strokeWidth={3}
+                  aria-hidden
+                />
               )}
             </button>
           )}
