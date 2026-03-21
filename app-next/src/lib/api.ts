@@ -205,6 +205,8 @@ export const api = {
     exportPdfUrl: (id: string) => `${base}/api/sheets/${id}/export`,
   },
   users: {
+    listManagers: () =>
+      fetchApi<{ managers: { id: string; email: string | null; name: string | null }[] }>("/api/users"),
     create: (data: { email: string; name?: string; password?: string }) =>
       fetchApi<{ id: string; email: string | null; name: string | null }>("/api/users", {
         method: "POST",

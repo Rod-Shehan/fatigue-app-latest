@@ -3,6 +3,18 @@ import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+/** List manager accounts (manager-only). */
+export async function GET() {
+  const manager = await getManagerSession();
+  if (!manager) return NextResponse.json({ error: "Manager access required" }, { status: 403 });
+  const managers = await prisma.user.findMany({
+    where: { role: "manager" },
+    orderBy: [{ email: "asc" }],
+    select: { id: true, email: true, name: true },
+  });
+  return NextResponse.json({ managers });
+}
+
 export async function POST(req: Request) {
   const manager = await getManagerSession();
   if (!manager) return NextResponse.json({ error: "Manager access required" }, { status: 403 });
