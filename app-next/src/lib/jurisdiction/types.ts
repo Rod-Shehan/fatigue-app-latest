@@ -4,7 +4,7 @@
  */
 
 /** Implemented or planned regulatory scopes (narrow union grows over time). */
-export type JurisdictionCode = "WA_OSH_3132";
+export type JurisdictionCode = "WA_OSH_3132" | "NHVR_PROVISIONAL";
 
 /** Default regime for the current production build (WA OSH Reg 3.132). */
 export const DEFAULT_JURISDICTION_CODE: JurisdictionCode = "WA_OSH_3132";

@@ -14,8 +14,8 @@ This document supports **ADR 0001** (`docs/adr/0001-multi-jurisdiction-fatigue-a
 |-------|--------|-----------|
 | **A (current)** | ADR + `src/lib/jurisdiction/` types; comment cross-links in `compliance.ts` | None |
 | **B** | `getComplianceEngine()` / `waOsh3132Engine` — WA delegates to `runComplianceChecks`; **API routes** use the engine (**S8** complete, `docs/roadmap/approval-gates.md`) | None unless agreed |
-| **C (partial)** | **Sheet-level** jurisdiction (`jurisdictionCode` + header **Fatigue rules** selector) — WA only in UI for now | Org/driver defaults deferred |
-| **D** | Second rule pack (e.g. NHVR-oriented prototype) behind feature flag / internal only | TBD |
+| **C (partial)** | **Sheet-level** jurisdiction (`jurisdictionCode` + header **Fatigue rules** selector) | Org/driver defaults deferred |
+| **D (S5)** | **NHVR provisional** (`NHVR_PROVISIONAL`) behind env flags — WA math + non-EWD warning; see `docs/architecture/nhvr-provisional-pack.md` | Extra dropdown row when enabled |
 | **E** | Officer/export enhancements (PDF, read-only summary) | Copy/layout **requires approval** if “fundamental” |
 
 ## Explicit approval required before
@@ -34,6 +34,7 @@ This document supports **ADR 0001** (`docs/adr/0001-multi-jurisdiction-fatigue-a
 
 - `docs/adr/0001-multi-jurisdiction-fatigue-architecture.md`  
 - `docs/roadmap/approval-gates.md` — **step-by-step approvals** for major work  
-- `docs/product/positioning.md` — draft positioning (approve **S1** before public/marketing use)  
+- `docs/product/positioning.md` — approved positioning (**S1**)  
 - `docs/architecture/event-model.md` — events vs aggregated displays (**S3**)  
+- `docs/architecture/nhvr-provisional-pack.md` — NHVR provisional pack (**S5**)  
 - `src/lib/jurisdiction/compliance-engine.ts` — Phase B entry point

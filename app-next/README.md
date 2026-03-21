@@ -49,8 +49,9 @@ See **MIGRATION.md** in the repo root for the full conversion guide.
 
 - **ADR:** `docs/adr/0001-multi-jurisdiction-fatigue-architecture.md`  
 - **Step-by-step roadmap & approval gates:** `docs/roadmap/approval-gates.md` (major changes need explicit **Approve: S#** before implementation)  
-- **Draft product positioning (not final until approved):** `docs/product/positioning.md`  
-- **Transition checklist:** `docs/architecture/australia-wide-transition.md`
+- **Product positioning:** `docs/product/positioning.md`  
+- **Transition checklist:** `docs/architecture/australia-wide-transition.md`  
+- **NHVR provisional pack (optional):** `docs/architecture/nhvr-provisional-pack.md` — set `NEXT_PUBLIC_NHVR_PROVISIONAL_RULES_ENABLED=true` and/or `NHVR_PROVISIONAL_RULES_ENABLED=true` to expose the second **Fatigue rules** option and accept `NHVR_PROVISIONAL` on the API (not a certified EWD).
 
 ## User testing
 

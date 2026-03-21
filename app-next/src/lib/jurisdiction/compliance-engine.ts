@@ -8,6 +8,7 @@ import type { ComplianceDayData, ComplianceCheckResult } from "@/lib/compliance"
 import { runComplianceChecks } from "@/lib/compliance";
 import type { JurisdictionCode } from "./types";
 import { DEFAULT_JURISDICTION_CODE } from "./types";
+import { nhvrProvisionalEngine } from "./nhvr-provisional-engine";
 
 /** Options accepted by the WA engine (matches runComplianceChecks). */
 export type ComplianceEngineRunOptions = Parameters<typeof runComplianceChecks>[1];
@@ -29,6 +30,9 @@ export const waOsh3132Engine: ComplianceEngine = {
 export function getComplianceEngine(jurisdiction: JurisdictionCode): ComplianceEngine {
   if (jurisdiction === DEFAULT_JURISDICTION_CODE) {
     return waOsh3132Engine;
+  }
+  if (jurisdiction === "NHVR_PROVISIONAL") {
+    return nhvrProvisionalEngine;
   }
   throw new Error(`No compliance engine registered for jurisdiction: ${jurisdiction}`);
 }

@@ -9,4 +9,5 @@ export { DEFAULT_JURISDICTION_CODE } from "./types";
 export type { ComplianceEngine, ComplianceEngineRunOptions } from "./compliance-engine";
 export { waOsh3132Engine, getComplianceEngine } from "./compliance-engine";
 export { parseJurisdictionCode } from "./parse";
-export { JURISDICTION_OPTIONS } from "./options";
+export { JURISDICTION_OPTIONS, getJurisdictionOptions } from "./options";
+export { isNhvrProvisionalEnabled } from "./flags";

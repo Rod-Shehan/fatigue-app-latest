@@ -10,7 +10,7 @@ import { User, Users, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
-import { DEFAULT_JURISDICTION_CODE, JURISDICTION_OPTIONS } from "@/lib/jurisdiction";
+import { DEFAULT_JURISDICTION_CODE, getJurisdictionOptions } from "@/lib/jurisdiction";
 
 type SheetData = {
   driver_name?: string;
@@ -165,7 +165,7 @@ export default function SheetHeader({
             <SelectValue placeholder="Select rule set…" />
           </SelectTrigger>
           <SelectContent>
-            {JURISDICTION_OPTIONS.map((opt) => (
+            {getJurisdictionOptions().map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
