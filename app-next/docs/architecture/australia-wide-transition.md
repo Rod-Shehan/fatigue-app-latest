@@ -13,8 +13,8 @@ This document supports **ADR 0001** (`docs/adr/0001-multi-jurisdiction-fatigue-a
 | Phase | Scope | UI impact |
 |-------|--------|-----------|
 | **A (current)** | ADR + `src/lib/jurisdiction/` types; comment cross-links in `compliance.ts` | None |
-| **B** | Extract **WA** rules behind a stable function interface (same public behaviour); tests must pass | None unless agreed |
-| **C** | Add **jurisdiction selection** (org/driver setting) wired only to WA initially | **Requires approval** for any visible control/copy |
+| **B** | `getComplianceEngine()` / `waOsh3132Engine` — WA delegates to `runComplianceChecks`; **API routes** use the engine (**S8** complete, `docs/roadmap/approval-gates.md`) | None unless agreed |
+| **C (partial)** | **Sheet-level** jurisdiction (`jurisdictionCode` + header **Fatigue rules** selector) — WA only in UI for now | Org/driver defaults deferred |
 | **D** | Second rule pack (e.g. NHVR-oriented prototype) behind feature flag / internal only | TBD |
 | **E** | Officer/export enhancements (PDF, read-only summary) | Copy/layout **requires approval** if “fundamental” |
 
@@ -27,5 +27,13 @@ This document supports **ADR 0001** (`docs/adr/0001-multi-jurisdiction-fatigue-a
 ## Files to watch
 
 - `src/lib/compliance.ts` — WA engine (to be wrapped / split per phase B+).  
-- `src/lib/jurisdiction/` — identifiers and future registry.  
+- `src/lib/jurisdiction/` — identifiers, `getComplianceEngine()` (WA only until more packs land).  
 - `src/components/fatigue/*` — **approval-gated** for structural changes.
+
+## References
+
+- `docs/adr/0001-multi-jurisdiction-fatigue-architecture.md`  
+- `docs/roadmap/approval-gates.md` — **step-by-step approvals** for major work  
+- `docs/product/positioning.md` — draft positioning (approve **S1** before public/marketing use)  
+- `docs/architecture/event-model.md` — events vs aggregated displays (**S3**)  
+- `src/lib/jurisdiction/compliance-engine.ts` — Phase B entry point

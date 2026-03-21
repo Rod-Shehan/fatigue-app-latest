@@ -40,6 +40,7 @@ export async function runSync(): Promise<{ synced: number; error?: string; repla
         const latest = await offlineGetSheet(item.tempId);
         const payload = latest
           ? {
+              jurisdiction_code: latest.jurisdiction_code,
               driver_name: latest.driver_name,
               second_driver: latest.second_driver,
               driver_type: latest.driver_type,

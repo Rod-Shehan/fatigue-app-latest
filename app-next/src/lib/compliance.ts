@@ -280,7 +280,8 @@ function checkSoloRules(
     const is24hBreakDay = soloOptions?.last24hBreak && dayDate === soloOptions.last24hBreak;
     if (is24hBreakDay) return;
 
-    if (totalRecorded >= 12 && longestNonWork > 0 && longestNonWork < 7) {
+    /** ≥12h recorded in 24h requires ≥7h continuous non-work in the non_work grid (explicit). */
+    if (totalRecorded >= 12 && longestNonWork < 7) {
       results.push({
         type: "violation",
         iconKey: "Moon",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionForSheetAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getThisWeekSunday, isNextWeekOrLater } from "@/lib/weeks";
+import { parseJurisdictionCode } from "@/lib/jurisdiction";
 
 function parseDays(daysJson: string): unknown[] {
   try {
@@ -14,6 +15,7 @@ function parseDays(daysJson: string): unknown[] {
 
 function sheetToJson(row: {
   id: string;
+  jurisdictionCode: string;
   driverName: string;
   secondDriver: string | null;
   driverType: string;
@@ -29,6 +31,7 @@ function sheetToJson(row: {
 }) {
   return {
     id: row.id,
+    jurisdiction_code: parseJurisdictionCode(row.jurisdictionCode),
     driver_name: row.driverName,
     second_driver: row.secondDriver,
     driver_type: row.driverType,
@@ -100,6 +103,8 @@ export async function POST(req: Request) {
       status,
       signature,
       signed_at,
+      jurisdiction_code,
+      jurisdictionCode,
     } = body;
     if (!week_starting || !Array.isArray(days)) {
       return NextResponse.json(
@@ -148,6 +153,7 @@ export async function POST(req: Request) {
 
     const sheet = await prisma.fatigueSheet.create({
       data: {
+        jurisdictionCode: parseJurisdictionCode(jurisdictionCode ?? jurisdiction_code),
         driverName,
         secondDriver: second_driver ?? null,
         driverType: driver_type ?? "solo",

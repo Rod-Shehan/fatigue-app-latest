@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionForSheetAccess } from "@/lib/auth";
-import { runComplianceChecks } from "@/lib/compliance";
 import type { ComplianceDayData } from "@/lib/compliance";
+import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
 
 export type ComplianceCheckPayload = {
   days: ComplianceDayData[];
@@ -12,6 +12,9 @@ export type ComplianceCheckPayload = {
   prevWeekStarting?: string;
   currentDayIndex?: number;
   slotOffsetWithinToday?: number;
+  /** Sheet-level rule set (snake_case or camelCase). */
+  jurisdiction_code?: string;
+  jurisdictionCode?: string;
 };
 
 export async function POST(req: Request) {
@@ -28,11 +31,16 @@ export async function POST(req: Request) {
       prevWeekStarting,
       currentDayIndex,
       slotOffsetWithinToday,
+      jurisdiction_code,
+      jurisdictionCode,
     } = body;
     if (!Array.isArray(days)) {
       return NextResponse.json({ error: "days must be an array" }, { status: 400 });
     }
-    const results = runComplianceChecks(days, {
+    const engine = getComplianceEngine(
+      parseJurisdictionCode(jurisdictionCode ?? jurisdiction_code)
+    );
+    const results = engine.run(days, {
       driverType,
       prevWeekDays: prevWeekDays ?? null,
       last24hBreak,

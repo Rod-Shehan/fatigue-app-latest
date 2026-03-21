@@ -10,11 +10,13 @@ import { User, Users, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
+import { DEFAULT_JURISDICTION_CODE, JURISDICTION_OPTIONS } from "@/lib/jurisdiction";
 
 type SheetData = {
   driver_name?: string;
   second_driver?: string;
   driver_type?: string;
+  jurisdiction_code?: string;
   last_24h_break?: string;
   week_starting?: string;
 };
@@ -147,6 +149,32 @@ export default function SheetHeader({
             )}
           </div>
         )}
+      </div>
+
+      {/* Sheet-level rule set (Australia-wide roadmap); WA only for now */}
+      <div className="space-y-1.5 max-w-md">
+        <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 block">
+          Fatigue rules
+        </Label>
+        <Select
+          value={sheetData.jurisdiction_code || DEFAULT_JURISDICTION_CODE}
+          onValueChange={(val) => handleChange("jurisdiction_code", val)}
+          disabled={readOnly}
+        >
+          <SelectTrigger className="h-9 font-medium w-full">
+            <SelectValue placeholder="Select rule set…" />
+          </SelectTrigger>
+          <SelectContent>
+            {JURISDICTION_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-slate-400 dark:text-slate-500">
+          Additional states / NHVR-oriented packs will appear here as they are implemented.
+        </p>
       </div>
 
       {/* Row 2: Week starting (left) + Last 24 hour break (right) */}

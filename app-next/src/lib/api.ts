@@ -58,6 +58,8 @@ export type DayData = {
 };
 export type FatigueSheet = {
   id: string;
+  /** WA OSH Reg 3.132 today; more codes when engines ship (ADR 0001). */
+  jurisdiction_code?: string;
   driver_name: string;
   second_driver?: string;
   driver_type: string;
@@ -142,6 +144,7 @@ export const api = {
       prevWeekStarting?: string;
       currentDayIndex?: number;
       slotOffsetWithinToday?: number;
+      jurisdiction_code?: string;
     }) =>
       fetchApi<{ results: ComplianceCheckResult[] }>("/api/compliance/check", {
         method: "POST",

@@ -6,3 +6,7 @@
  */
 export type { JurisdictionCode } from "./types";
 export { DEFAULT_JURISDICTION_CODE } from "./types";
+export type { ComplianceEngine, ComplianceEngineRunOptions } from "./compliance-engine";
+export { waOsh3132Engine, getComplianceEngine } from "./compliance-engine";
+export { parseJurisdictionCode } from "./parse";
+export { JURISDICTION_OPTIONS } from "./options";

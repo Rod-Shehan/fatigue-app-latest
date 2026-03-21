@@ -7,6 +7,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
+import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 
 const EMPTY_DAY = () => ({
   day_label: "",
@@ -46,6 +47,7 @@ export function NewSheetRedirect() {
   const createMutation = useMutation({
     mutationFn: () =>
       createSheetOfflineFirst({
+        jurisdiction_code: DEFAULT_JURISDICTION_CODE,
         driver_name: defaultDriverName,
         second_driver: "",
         driver_type: "solo",

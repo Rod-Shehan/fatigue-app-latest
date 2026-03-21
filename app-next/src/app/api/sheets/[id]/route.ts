@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSessionForSheetAccess, canAccessSheet, getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getPreviousWeekSunday, isNextWeekOrLater } from "@/lib/weeks";
+import { parseJurisdictionCode } from "@/lib/jurisdiction";
 
 function parseDays(daysJson: string): unknown[] {
   try {
@@ -14,6 +15,7 @@ function parseDays(daysJson: string): unknown[] {
 
 function sheetToJson(row: {
   id: string;
+  jurisdictionCode: string;
   driverName: string;
   secondDriver: string | null;
   driverType: string;
@@ -29,6 +31,7 @@ function sheetToJson(row: {
 }) {
   return {
     id: row.id,
+    jurisdiction_code: parseJurisdictionCode(row.jurisdictionCode),
     driver_name: row.driverName,
     second_driver: row.secondDriver,
     driver_type: row.driverType,
@@ -89,6 +92,8 @@ export async function PATCH(
       signature,
       signed_at,
       amendment_reason,
+      jurisdiction_code,
+      jurisdictionCode,
     } = body;
 
     // Lock after completion/signature:
@@ -142,6 +147,9 @@ export async function PATCH(
     }
 
     const data: Record<string, unknown> = {};
+    if (jurisdiction_code !== undefined || jurisdictionCode !== undefined) {
+      data.jurisdictionCode = parseJurisdictionCode(jurisdictionCode ?? jurisdiction_code);
+    }
     if (driver_name !== undefined) data.driverName = driver_name;
     if (second_driver !== undefined) data.secondDriver = second_driver;
     if (driver_type !== undefined) data.driverType = driver_type;

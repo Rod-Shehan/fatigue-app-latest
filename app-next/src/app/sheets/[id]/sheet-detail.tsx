@@ -57,6 +57,7 @@ import {
 import { getProspectiveWorkWarnings } from "@/lib/compliance";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import { validateDayKms, getMinAllowedStartKms, validateSheetKms } from "@/lib/rego-kms-validation";
+import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 
 const EMPTY_DAY = (): DayData => ({
   day_label: "",
@@ -169,6 +170,7 @@ export function SheetDetail({
     driver_name: string;
     second_driver: string;
     driver_type: string;
+    jurisdiction_code: string;
     destination: string;
     last_24h_break: string;
     week_starting: string;
@@ -180,6 +182,7 @@ export function SheetDetail({
     driver_name: "",
     second_driver: "",
     driver_type: "solo",
+    jurisdiction_code: DEFAULT_JURISDICTION_CODE,
     destination: "",
     last_24h_break: "",
     week_starting: getThisWeekSunday(),
@@ -268,6 +271,7 @@ export function SheetDetail({
         driver_name: sheet.driver_name || "",
         second_driver: sheet.second_driver || "",
         driver_type: sheet.driver_type || "solo",
+        jurisdiction_code: sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
         destination: sheet.destination || "",
         last_24h_break: sheet.last_24h_break || "",
         week_starting: weekStart,
@@ -315,10 +319,12 @@ export function SheetDetail({
       prevWeekStarting: prevWeekSheet?.week_starting ?? undefined,
       currentDayIndex,
       slotOffsetWithinToday,
+      jurisdiction_code: sheetData.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
     };
   }, [
     sheetData.days,
     sheetData.driver_type,
+    sheetData.jurisdiction_code,
     sheetData.last_24h_break,
     sheetData.week_starting,
     prevWeekSheet,
@@ -377,6 +383,7 @@ export function SheetDetail({
   const buildSavePayload = useCallback((): Partial<FatigueSheet> => {
     const d = sheetDataRef.current;
     return {
+      jurisdiction_code: d.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
       driver_name: d.driver_name,
       second_driver: d.second_driver,
       driver_type: d.driver_type,

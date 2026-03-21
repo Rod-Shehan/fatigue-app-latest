@@ -72,6 +72,8 @@ model TruckRego {
 
 model FatigueSheet {
   id              String    @id @default(cuid())
+  /** Regulatory scope for this sheet (ADR 0001); only WA implemented today. */
+  jurisdictionCode String   @default("WA_OSH_3132")
   driverName      String
   secondDriver    String?
   driverType      String    @default("solo") // "solo" | "two_up"

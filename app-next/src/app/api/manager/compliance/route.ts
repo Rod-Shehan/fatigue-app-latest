@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { runComplianceChecks } from "@/lib/compliance";
 import type { ComplianceDayData } from "@/lib/compliance";
+import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
 import type { ComplianceCheckResult } from "@/lib/api";
 import { getPreviousWeekSunday } from "@/lib/weeks";
 
@@ -56,6 +56,7 @@ export async function GET() {
 
     const items: ManagerComplianceItem[] = [];
     for (const sheet of sheets) {
+      const engine = getComplianceEngine(parseJurisdictionCode(sheet.jurisdictionCode));
       const prevWeekStarting = getPreviousWeekSunday(sheet.weekStarting);
       const prevSheet = byDriverWeek.get(`${sheet.driverName}|${prevWeekStarting}`) ?? null;
       const days = parseDays(sheet.days);
@@ -72,7 +73,7 @@ export async function GET() {
         }
       }
 
-      const results = runComplianceChecks(days, {
+      const results = engine.run(days, {
         driverType: sheet.driverType ?? "solo",
         prevWeekDays,
         last24hBreak: sheet.last24hBreak ?? undefined,

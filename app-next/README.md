@@ -45,6 +45,13 @@ The sheet **list** and **drivers** pages are fully wired. The single-sheet **edi
 
 See **MIGRATION.md** in the repo root for the full conversion guide.
 
+## Australia-wide architecture & approvals
+
+- **ADR:** `docs/adr/0001-multi-jurisdiction-fatigue-architecture.md`  
+- **Step-by-step roadmap & approval gates:** `docs/roadmap/approval-gates.md` (major changes need explicit **Approve: S#** before implementation)  
+- **Draft product positioning (not final until approved):** `docs/product/positioning.md`  
+- **Transition checklist:** `docs/architecture/australia-wide-transition.md`
+
 ## User testing
 
 See **USER_TESTING.md** for a short tester brief: how to sign in, get manager access, and what to try. Run `npm run db:seed` first so testers see sample drivers, regos, and a sheet.
