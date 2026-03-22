@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
@@ -32,19 +32,22 @@ export function ManagerMessagesView() {
     queryFn: () => api.messages.threads(),
     refetchInterval: 7000,
   });
-  const threads = threadsData?.threads ?? [];
+  const threads = useMemo(() => threadsData?.threads ?? [], [threadsData?.threads]);
 
   const { data: drivers = [] } = useQuery({
     queryKey: ["drivers"],
     queryFn: () => api.drivers.list(),
   });
 
-  const threadDriverLabel = (t: (typeof threads)[0]) =>
-    resolveDriverBubbleName(
-      drivers,
-      { name: t.createdBy.name ?? null, email: t.createdBy.email ?? null },
-      null
-    );
+  const threadDriverLabel = useCallback(
+    (t: (typeof threads)[number]) =>
+      resolveDriverBubbleName(
+        drivers,
+        { name: t.createdBy.name ?? null, email: t.createdBy.email ?? null },
+        null
+      ),
+    [drivers]
+  );
 
   const filteredThreads = useMemo(() => {
     const d = driverSearch.trim().toLowerCase();
@@ -56,7 +59,7 @@ export function ManagerMessagesView() {
       }
       return true;
     });
-  }, [threads, driverSearch, drivers]);
+  }, [threads, driverSearch, threadDriverLabel]);
 
   const activeThread = useMemo(
     () => filteredThreads.find((t) => t.id === activeThreadId) ?? threads.find((t) => t.id === activeThreadId) ?? null,

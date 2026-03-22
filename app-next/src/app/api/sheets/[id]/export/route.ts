@@ -139,8 +139,8 @@ function buildSegmentsFromEvents(
     const start = new Date(ev.time).getTime();
     const clampedStart = Math.max(start, dayStart);
     if (clampedStart >= clampedEnd) continue;
-    let startMin = Math.floor((clampedStart - dayStart) / 60000);
-    let endMin = Math.min(effectiveEndMin, Math.ceil((clampedEnd - dayStart) / 60000));
+    const startMin = Math.floor((clampedStart - dayStart) / 60000);
+    const endMin = Math.min(effectiveEndMin, Math.ceil((clampedEnd - dayStart) / 60000));
     if (startMin >= endMin) continue;
     const durationMinutes = endMin - startMin;
     const treatBreakAsWork = ev.type === "break" && durationMinutes < MIN_BREAK_BLOCK_MINUTES;
@@ -240,12 +240,6 @@ function segmentLabel(type: SegmentType): string {
   if (type === "work") return "Work";
   if (type === "break") return "Break";
   return "Non-Work";
-}
-
-function segmentFill(type: SegmentType): [number, number, number] {
-  if (type === "work") return GREY_WORK;
-  if (type === "break") return GREY_BREAK;
-  return GREY_NON_WORK;
 }
 
 function cssRgb([r, g, b]: [number, number, number]) {
@@ -719,7 +713,7 @@ export async function GET(
       } finally {
         await browser.close();
       }
-    } catch (e) {
+    } catch {
       // Fall back to jsPDF path below.
     }
 
@@ -982,10 +976,10 @@ export async function GET(
         const who = e.actor?.name || e.actor?.email || "unknown";
         const when = new Date(e.createdAt).toLocaleString("en-AU", { timeZone: "Australia/Perth" });
         const action = e.action;
-        const changed =
-          e.payload && typeof e.payload === "object" && "changed_fields" in (e.payload as any)
-            ? (e.payload as any).changed_fields
-            : undefined;
+        const payloadObj =
+          e.payload && typeof e.payload === "object" ? (e.payload as Record<string, unknown>) : null;
+        const rawChanged = payloadObj && "changed_fields" in payloadObj ? payloadObj.changed_fields : undefined;
+        const changed = Array.isArray(rawChanged) ? rawChanged : undefined;
         const line = `${when} — ${action}${who ? ` — ${who}` : ""}${Array.isArray(changed) ? ` — ${changed.join(", ")}` : ""}`;
         const wrapped = doc.splitTextToSize(line, colW);
         if (ay + wrapped.length * 4 > 280) {
@@ -1044,7 +1038,7 @@ export async function GET(
         Pragma: "no-cache",
       },
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Export failed" }, { status: 500 });
   }
 }

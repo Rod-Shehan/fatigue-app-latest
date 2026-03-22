@@ -39,7 +39,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Square,
-  AlertCircle,
   ChevronDown,
 } from "lucide-react";
 import { motion } from "framer-motion";

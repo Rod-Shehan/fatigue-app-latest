@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin } from "lucide-react";
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
@@ -140,7 +139,6 @@ function reclassifyShortGapsAsBreak(
   non_work: boolean[],
   maxSlotExclusive: number
 ): { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] } {
-  const maxSlotsAsBreak = Math.ceil(MAX_GAP_AS_BREAK_MINUTES / MINUTES_PER_SLOT);
   for (let s = 0; s < maxSlotExclusive; ) {
     if (!non_work[s]) {
       s++;
@@ -312,7 +310,6 @@ export default function EventLogger({
     const blocksOf10 = segments.filter((m) => m >= MIN_BREAK_BLOCK_MINUTES).length;
     return { total, blocksOf10 };
   })();
-  const breakValid = breakRun.total >= MIN_BREAK_TOTAL_MINUTES && breakRun.blocksOf10 >= BREAK_BLOCKS_REQUIRED;
 
   const deleteEvent = (idx: number) => {
     const newEvents = events.filter((_, i) => i !== idx);

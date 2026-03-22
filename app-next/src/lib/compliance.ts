@@ -154,9 +154,7 @@ const SLOTS_24H = 48;
 const SLOTS_48H = 96;
 const SLOTS_72H = 72 * 2;
 const MIN_NON_WORK_HRS_24H = 7;
-const MIN_NON_WORK_SLOTS_24H = MIN_NON_WORK_HRS_24H * 2;
 const MIN_RECORDED_HRS_24H = 16;
-const MIN_7H_BLOCK_SLOTS = 7 * 2;
 
 /** Flat slot arrays across days for rolling window checks. */
 function flatSlots(days: ComplianceDayData[], key: "non_work" | "work_time" | "breaks"): boolean[] {
@@ -353,8 +351,6 @@ function checkSoloRules(
    * We only evaluate the single 72h window ending at "now" for the segment that contains today.
    * Past segments are skipped so we never warn on historical windows.
    */
-  const weekStarting = soloOptions?.weekStarting ?? "";
-  const prevWeekStarting = soloOptions?.prevWeekStarting ?? "";
   const currentDayIndex = soloOptions?.currentDayIndex;
   const slotOffsetWithinToday = soloOptions?.slotOffsetWithinToday;
   const todayExtended =
@@ -508,7 +504,7 @@ function checkRestBreakMovingVehicle(
   results: ComplianceCheckResult[],
   options: { weekStarting?: string; prevWeekStarting?: string; prevCount: number }
 ) {
-  const { prevCount, weekStarting = "", prevWeekStarting = "" } = options;
+  const { prevCount } = options;
   const getLabel = (dayIdx: number) => {
     const ci = dayIdx - prevCount;
     return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
@@ -543,7 +539,7 @@ function checkOdometerVsGpsPlausibility(
   results: ComplianceCheckResult[],
   options: { weekStarting?: string; prevWeekStarting?: string; prevCount: number }
 ) {
-  const { prevCount, weekStarting = "", prevWeekStarting = "" } = options;
+  const { prevCount } = options;
   const getLabel = (dayIdx: number) => {
     const ci = dayIdx - prevCount;
     return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
@@ -660,7 +656,6 @@ export function runComplianceChecks(
   checkLocationEvidenceWarning(extendedDays, results);
 
   const thisWeekWork = days.reduce((s, d) => s + getHours(d.work_time), 0);
-  const prevWeekWork = prevDays.reduce((s, d) => s + getHours(d.work_time), 0);
   const has14dayData = prevDays.length > 0;
 
   if (has14dayData) {

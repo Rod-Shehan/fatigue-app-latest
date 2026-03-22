@@ -12,11 +12,6 @@ import { cn } from "@/lib/utils";
 const WORK_TARGET_MINUTES = 5 * 60;
 const BREAK_TARGET_MINUTES = 20;
 
-function formatCountdown(mins: number): string {
-  if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-  return `${mins}m`;
-}
-
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
   const m = Math.floor(Math.max(0, totalMinutes));
@@ -43,17 +38,12 @@ function getNextWorkBreakType(currentType: string | null): "work" | "break" {
   return currentType === "work" ? "break" : "work";
 }
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MIN_BREAK_TOTAL_MINUTES = 20;
 const MIN_BREAK_BLOCK_MINUTES = 10;
 const BREAK_BLOCKS_REQUIRED = 1;
 /** Minimum non-work time (hours) between shifts. */
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const CONFIRM_RESET_MS = 2500;
-
-function getDurationMinutes(start: string, end: string) {
-  return Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 60000);
-}
 
 function breakBlockIsValid(segments: number[]): boolean {
   const totalMins = segments.reduce((a, b) => a + b, 0);
@@ -152,7 +142,7 @@ function getBreakDueByTime(events: { time: string; type: string }[], nowMs: numb
  * Break complete by time: start of current break + 10 min if a 10+ min break was already taken
  * in the preceding 5h work window, otherwise + 20 min.
  */
-function getBreakCompleteByTime(events: { time: string; type: string }[], nowMs: number): number | null {
+function getBreakCompleteByTime(events: { time: string; type: string }[]): number | null {
   if (events.length === 0) return null;
   const last = events[events.length - 1];
   if (last.type !== "break") return null;
@@ -630,7 +620,7 @@ export default function LogBar({
                   : "CURRENT ACTIVITY WORK - BREAK DUE";
               })()}
               {contextualBar.type === "break" && (() => {
-                const completeByMs = getBreakCompleteByTime(events, Date.now());
+                const completeByMs = getBreakCompleteByTime(events);
                 const timeStr =
                   completeByMs != null
                     ? new Date(completeByMs).toLocaleTimeString("en-AU", {

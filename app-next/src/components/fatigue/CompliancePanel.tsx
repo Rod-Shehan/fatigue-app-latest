@@ -104,7 +104,7 @@ export default function CompliancePanel({
         </div>
       </div>
       {prevWeekDays && prevWeekDays.length > 0 && (
-        <p className="text-[10px] text-slate-400 italic">↑ Previous week's sheet linked for 14-day checks</p>
+        <p className="text-[10px] text-slate-400 italic">↑ Previous week&apos;s sheet linked for 14-day checks</p>
       )}
       {(!prevWeekDays || prevWeekDays.length === 0) && (
         <p className="text-[10px] text-slate-300 italic">No previous week sheet found — 14-day check is partial</p>

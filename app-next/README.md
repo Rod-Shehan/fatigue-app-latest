@@ -32,6 +32,11 @@ This is the same app converted to **Next.js + TypeScript + Prisma + NextAuth**, 
    ```
    Open [http://localhost:3000](http://localhost:3000). Sign in with any email and the password you set in `NEXTAUTH_CREDENTIALS_PASSWORD` (or, in dev only, leave both fields blank to sign in as dev@localhost).
 
+5. **Lint** (optional; Next.js 16 uses the ESLint CLI, not `next lint`)
+   ```bash
+   npm run lint
+   ```
+
 ## Stack
 
 - **Next.js** (App Router), **TypeScript**, **Tailwind**

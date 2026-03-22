@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       email: user.email,
       name: user.name,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
   }
 }

@@ -14,7 +14,7 @@ export async function GET() {
     return NextResponse.json(
       list.map((r) => ({ id: r.id, label: r.label, sort_order: r.sortOrder }))
     );
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       label: rego.label,
       sort_order: rego.sortOrder,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to create rego" }, { status: 500 });
   }
 }

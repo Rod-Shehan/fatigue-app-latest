@@ -18,7 +18,6 @@ import {
   offlineEnqueue,
   offlineRemovePending,
   offlineDeleteSheet,
-  type PendingWrite,
 } from "./offline";
 
 export { isOnline };

@@ -90,7 +90,7 @@ export async function PATCH(
       cvd_medical_expiry: driver.cvdMedicalExpiry ? driver.cvdMedicalExpiry.toISOString().slice(0, 10) : null,
       is_active: driver.isActive,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
   }
 }
@@ -107,7 +107,7 @@ export async function DELETE(
     const { id } = await params;
     await prisma.driver.delete({ where: { id } });
     return new NextResponse(null, { status: 204 });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
   }
 }

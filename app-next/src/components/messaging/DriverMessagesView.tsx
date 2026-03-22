@@ -43,7 +43,7 @@ export function DriverMessagesView() {
     queryFn: () => api.messages.threads(),
     refetchInterval: 7000,
   });
-  const threads = threadsData?.threads ?? [];
+  const threads = useMemo(() => threadsData?.threads ?? [], [threadsData?.threads]);
 
   const { data: sheets = [] } = useQuery({
     queryKey: ["sheets"],

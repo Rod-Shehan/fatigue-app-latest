@@ -49,19 +49,20 @@ export function PageHeader({
 }) {
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
+  /** Most drivers have no DB role (null); only managers have role === "manager". */
+  const isManager = role === "manager";
   const sessionDisplayName = getDisplayNameFromSession(session ?? null);
   const driverSuffix =
     (driverDisplayName?.trim() ||
       roleDisplayLabel?.trim() ||
       sessionDisplayName) ||
     "";
-  const roleBadgeText =
-    session?.user && role
-      ? role === "manager"
-        ? formatRoleBadge("Manager", sessionDisplayName)
-        : formatRoleBadge("Driver", driverSuffix)
-      : null;
-  const isManagerBadge = role === "manager";
+  const roleBadgeText = session?.user
+    ? isManager
+      ? formatRoleBadge("Manager", sessionDisplayName)
+      : formatRoleBadge("Driver", driverSuffix)
+    : null;
+  const isManagerBadge = isManager;
 
   const di =
     driverIdentity != null && driverIdentity.name.trim() !== "" ? driverIdentity : null;

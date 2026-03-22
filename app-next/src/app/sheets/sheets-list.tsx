@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { format } from "date-fns";
 import { signOut, useSession } from "next-auth/react";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
-import { Plus, FileText, Loader2, Clock, ChevronRight, Truck, LogOut, MessageSquare } from "lucide-react";
+import { Plus, FileText, Loader2, ChevronRight, Truck, LogOut, MessageSquare } from "lucide-react";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
 

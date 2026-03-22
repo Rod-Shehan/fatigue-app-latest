@@ -54,8 +54,6 @@ function formatWeekLabel(weekStarting: string): string {
   });
 }
 
-const LAST_SHEET_KEY = "fatigue-last-sheet-id";
-
 function formatSheetLabel(sheet: FatigueSheet): string {
   const driver = sheet.driver_name || "Draft";
   const week = sheet.week_starting
@@ -157,7 +155,6 @@ function dayHasActivity(day: DayData | undefined): boolean {
 export function ManagerView() {
   const queryClient = useQueryClient();
   const [selectedSheetId, setSelectedSheetId] = useState<string>("");
-  const [lastSheetId, setLastSheetId] = useState<string | null>(null);
   const [showAmendDialog, setShowAmendDialog] = useState(false);
   const [amendmentReason, setAmendmentReason] = useState("");
   const [activeWeekStarting, setActiveWeekStarting] = useState<string>(() =>
@@ -176,15 +173,6 @@ export function ManagerView() {
     const n = new Date();
     return { y: n.getFullYear(), m: n.getMonth() };
   });
-
-  useEffect(() => {
-    try {
-      const id = sessionStorage.getItem(LAST_SHEET_KEY);
-      if (id) setLastSheetId(id);
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   const [form, setForm] = useState<{
     last_24h_break: string;

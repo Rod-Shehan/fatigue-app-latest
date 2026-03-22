@@ -81,7 +81,7 @@ function buildSegments(events: { time: string; type: string }[] | undefined, dat
     const start = new Date(ev.time).getTime();
     const clampedStart = Math.max(start, dayStart);
     if (clampedStart >= clampedEnd) continue;
-    let startMin = Math.floor((clampedStart - dayStart) / 60000);
+    const startMin = Math.floor((clampedStart - dayStart) / 60000);
     let endMin = Math.ceil((clampedEnd - dayStart) / 60000);
     endMin = Math.min(endMin, effectiveEndMin);
     if (startMin >= endMin) continue;

@@ -96,12 +96,10 @@ async function main() {
   console.log("Users:", managerUser.email, "(manager),", driverUser.email, "(driver)");
 
   // One fatigue sheet for this week (minimal 7-day structure; day 0 has a short work segment so compliance has something to show)
-  const todayStr = new Date().toISOString().slice(0, 10);
   const day0Date = getSheetDayDate(weekStarting, 0);
   const days = [];
   for (let i = 0; i < 7; i++) {
     const dateStr = getSheetDayDate(weekStarting, i);
-    const isToday = dateStr === todayStr;
     const day = {
       date: dateStr,
       truck_rego: i === 0 ? rego1.label : undefined,
