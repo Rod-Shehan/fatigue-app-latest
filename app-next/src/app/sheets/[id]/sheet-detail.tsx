@@ -280,6 +280,12 @@ export function SheetDetail({
     return { name, isManagerView: isManager };
   }, [isManager, sessionStatus, sessionDriverName, sheetData.driver_name]);
 
+  /** Title pill: Driver · name (drivers) or Manager · session name (handled in PageHeader). */
+  const headerDriverDisplayName = useMemo(() => {
+    if (isManager) return undefined;
+    return (sessionDriverName || sheetData.driver_name || "").trim() || undefined;
+  }, [isManager, sessionDriverName, sheetData.driver_name]);
+
   const matchedRosterPrimary = useMemo(() => {
     const n = sheetData.driver_name?.trim().toLowerCase();
     if (!n) return null;
@@ -690,6 +696,7 @@ export function SheetDetail({
             backLabel="Your Sheets"
             title="Fatigue Record"
             subtitle="WA Commercial Driver Fatigue Management"
+            driverDisplayName={headerDriverDisplayName}
           />
           <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
             <Loader2 className="w-8 h-8 animate-spin text-slate-400 dark:text-slate-500 mb-3" />
@@ -734,6 +741,7 @@ export function SheetDetail({
           backLabel="Your Sheets"
           title="Fatigue Record"
           subtitle="WA Commercial Driver Fatigue Management"
+          driverDisplayName={headerDriverDisplayName}
           driverIdentity={driverPageIdentity}
           actions={
             sheetData.status === "completed" ? (

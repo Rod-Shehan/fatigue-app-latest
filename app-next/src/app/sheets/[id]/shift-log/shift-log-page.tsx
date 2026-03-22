@@ -4,12 +4,16 @@ import React, { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSheetOfflineFirst } from "@/lib/offline-api";
 import { PageHeader } from "@/components/PageHeader";
+import { useSession } from "next-auth/react";
+import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { FileText, Loader2 } from "lucide-react";
 import ShiftLogView from "@/components/fatigue/ShiftLogView";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
 
 export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
+  const { data: session } = useSession();
+  const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
   useEffect(() => {
     if (sheetId) {
       try {
@@ -34,6 +38,7 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
             backLabel="Fatigue Record"
             title="Shift Log"
             subtitle="Loading…"
+            driverDisplayName={isManager ? undefined : getDisplayNameFromSession(session ?? null) || undefined}
             icon={<FileText className="w-5 h-5" />}
           />
           <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
@@ -55,6 +60,10 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
     .filter(Boolean)
     .join(" · ");
 
+  const driverDisplayName = isManager
+    ? undefined
+    : getDisplayNameFromSession(session ?? null) || (sheet.driver_name || "").trim() || undefined;
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
       <div className="max-w-[800px] mx-auto px-4 py-6">
@@ -63,6 +72,7 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
           backLabel="Fatigue Record"
           title="Shift Log"
           subtitle={subtitle || undefined}
+          driverDisplayName={driverDisplayName}
           icon={<FileText className="w-5 h-5" />}
         />
         <ShiftLogView days={days} weekStarting={weekStarting} />

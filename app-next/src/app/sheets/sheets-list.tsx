@@ -9,7 +9,8 @@ import { parseLocalDate } from "@/lib/weeks";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { format } from "date-fns";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
+import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { Plus, FileText, Loader2, Clock, ChevronRight, Truck, LogOut, MessageSquare } from "lucide-react";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
@@ -23,6 +24,8 @@ function getTotalWorkHours(sheet: FatigueSheet) {
 }
 
 export function SheetsList() {
+  const { data: session } = useSession();
+  const driverDisplayName = getDisplayNameFromSession(session ?? null) || undefined;
   const [backToSheetId, setBackToSheetId] = useState<string | null>(null);
   useEffect(() => {
     try {
@@ -50,6 +53,7 @@ export function SheetsList() {
             backLabel={backLabel}
             title="Driver Fatigue Log"
             subtitle="WA Commercial Vehicle Fatigue Management"
+            driverDisplayName={driverDisplayName}
             icon={<Truck className="w-5 h-5" />}
             actions={
               <div className="flex flex-wrap items-center gap-2">

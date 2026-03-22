@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { formatRoleBadge, getDisplayNameFromSession } from "@/lib/session-display-name";
 
 /**
  * Consistent page header across the app.
@@ -19,9 +20,9 @@ export function PageHeader({
   subtitle,
   icon,
   actions,
-  /** When logged in as driver, shown in the role badge instead of "Driver" (e.g. roster name). */
+  driverDisplayName,
+  /** @deprecated Use driverDisplayName */
   roleDisplayLabel,
-  /** Prominent driver name tile — visually separate from form dropdowns on the sheet. */
   driverIdentity,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
@@ -34,6 +35,12 @@ export function PageHeader({
   icon?: React.ReactNode;
   /** Optional content on the right (buttons, badges, etc.). */
   actions?: React.ReactNode;
+  /**
+   * Driver role: name after "Driver ·" in the title pill. Falls back to session name if omitted.
+   * Manager role: ignored (badge uses logged-in manager name).
+   */
+  driverDisplayName?: string | null;
+  /** @deprecated Use driverDisplayName */
   roleDisplayLabel?: string | null;
   driverIdentity?: {
     name: string;
@@ -42,11 +49,18 @@ export function PageHeader({
 }) {
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
-  const roleLabel = session?.user
-    ? role === "manager"
-      ? "Manager"
-      : (roleDisplayLabel?.trim() || "Driver")
-    : null;
+  const sessionDisplayName = getDisplayNameFromSession(session ?? null);
+  const driverSuffix =
+    (driverDisplayName?.trim() ||
+      roleDisplayLabel?.trim() ||
+      sessionDisplayName) ||
+    "";
+  const roleBadgeText =
+    session?.user && role
+      ? role === "manager"
+        ? formatRoleBadge("Manager", sessionDisplayName)
+        : formatRoleBadge("Driver", driverSuffix)
+      : null;
   const isManagerBadge = role === "manager";
 
   const di =
@@ -114,16 +128,16 @@ export function PageHeader({
                 <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
                   {title}
                 </h1>
-                {roleLabel && (
+                {roleBadgeText && (
                   <span
-                    className={`shrink-0 rounded-md px-2 py-0.5 max-w-[min(200px,45vw)] truncate ${
+                    className={`shrink-0 rounded-md px-2 py-0.5 max-w-[min(280px,55vw)] truncate ${
                       isManagerBadge
                         ? "text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
                         : "text-[11px] font-semibold tracking-tight bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                     }`}
-                    title={isManagerBadge ? "Manager view" : `${roleLabel} (driver)`}
+                    title={roleBadgeText}
                   >
-                    {roleLabel}
+                    {roleBadgeText}
                   </span>
                 )}
               </div>

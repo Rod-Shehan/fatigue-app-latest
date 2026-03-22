@@ -16,7 +16,7 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = (credentials?.email ?? "").trim();
+        const email = (credentials?.email ?? "").trim().toLowerCase();
         const password = credentials?.password ?? "";
         // Dev only: allow blank credentials to sign in as a dev user (login page stays, fields can be empty)
         if (process.env.NODE_ENV === "development" && email === "" && password === "") {

@@ -127,7 +127,7 @@ export function DriverMessagesView() {
           backLabel="Your sheets"
           title="Messages"
           subtitle="Contact your manager — training, questions, or sheet edit requests"
-          roleDisplayLabel={headerDriverName ?? undefined}
+          driverDisplayName={headerDriverName ?? undefined}
           icon={<MessageSquare className="w-5 h-5" />}
           actions={
             <Button className="gap-2" onClick={() => { setNewKind("training"); setNewSubject(""); setNewBody(""); setNewSheetId(""); setNewOpen(true); }}>

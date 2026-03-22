@@ -144,10 +144,21 @@ function LoginForm() {
             </Button>
           </div>
         </form>
-        <p className="text-xs text-center text-slate-400 dark:text-slate-500">
-          {process.env.NODE_ENV === "development"
-            ? "Dev: leave email and password blank to sign in."
-            : "Testing mode: enter any email and leave password blank."}
+        <p className="text-xs text-center text-slate-400 dark:text-slate-500 max-w-sm mx-auto leading-snug">
+          {process.env.NODE_ENV === "development" ? (
+            <>
+              <strong className="text-slate-500 dark:text-slate-400">Local dev:</strong> leave both fields blank to sign in as
+              dev@localhost, or enter any email with a blank password to sign in without a stored password.
+            </>
+          ) : (
+            <>
+              Use the password set for your account (e.g. when a manager created it). If your deployment uses a shared test
+              password in server config, enter that.{" "}
+              <span className="text-slate-500 dark:text-slate-400">
+                Blank password is not accepted on this server — only in local development.
+              </span>
+            </>
+          )}
         </p>
       </div>
     </div>
