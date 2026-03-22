@@ -39,7 +39,7 @@ Drivers can use the app without being a manager; they only need to sign in and c
 
 ## 4. What to try (goals)
 
-- **Drivers:** Create a fatigue sheet, log work and breaks on the time grid, then **mark the sheet complete** and export a PDF.
+- **Drivers:** Create a fatigue sheet, log work and breaks on the time grid, then **mark the sheet complete** and export a PDF. When you set **Last 24 hour break**, use **date and time** (when the continuous rest ended)—especially if that was **this morning** before starting a shift—so yesterday’s non-work isn’t cleared incorrectly.
 - **Managers:** Open the **Manager dashboard**, select a sheet, check **compliance** and **event map**, and (if allowed) add **drivers** and **regos** so drivers can select them on sheets.
 
 One-sentence goal: **Log a week of work/breaks and check that compliance and export work as you expect.**

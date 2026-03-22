@@ -5,6 +5,7 @@ import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Tr
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { getTodayLocalDateString, getSheetDayDateString } from "@/lib/weeks";
+import { isDayOnOrAfterBreakCalendar, parseLast24hBreak, trimNonWorkAfterBreakEnd } from "@/lib/last-24h-break";
 
 const EVENT_CONFIG: Record<ActivityKey, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   work: { label: "Work", icon: Briefcase },
@@ -194,8 +195,11 @@ function reclassifyLongBreaksAsNonWork(
 }
 
 /**
- * Do not record non-work time before the last 24 hour break date on days that have
- * no work time recorded. For each day before last24hBreak with no work, zero non_work.
+ * Legacy **date-only** break: before the break calendar day, days with no work get non_work cleared
+ * (no inferred rest before the declared break).
+ * **Date + time** break: prior calendar days are left as-is so drivers can record rest (e.g. Sunday)
+ * when the break ends Monday morning. On the break calendar day, trim inferred non_work from the
+ * break end instant onward so the same day can show work after the break.
  */
 export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; non_work?: boolean[] }>(
   days: T[],
@@ -203,11 +207,20 @@ export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; 
   last24hBreak: string | undefined
 ): T[] {
   if (!last24hBreak?.trim() || !weekStarting) return days;
+  const parsed = parseLast24hBreak(last24hBreak);
+  if (!parsed) return days;
   return days.map((d, i) => {
     const dateStr = getSheetDayDateString(weekStarting, i);
-    if (dateStr >= last24hBreak) return d;
+    if (isDayOnOrAfterBreakCalendar(dateStr, last24hBreak)) {
+      if (dateStr === parsed.calendarDate) {
+        return trimNonWorkAfterBreakEnd(d, dateStr, parsed);
+      }
+      return d;
+    }
     const hasWorkOnDay = (d.work_time || []).some(Boolean);
     if (hasWorkOnDay) return d;
+    /** Date+time: keep prior days’ non-work so drivers can record rest before the break ended (e.g. Sun + Mon 08:00 break). */
+    if (parsed.hasTime) return d;
     return { ...d, non_work: Array(48).fill(false) };
   });
 }

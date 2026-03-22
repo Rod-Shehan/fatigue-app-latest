@@ -41,6 +41,7 @@ import {
   toYMD,
 } from "@/app/manager/manager-month-calendar";
 import { getPreviousWeekSunday } from "@/lib/weeks";
+import { last24hBreakToDatetimeLocalValue } from "@/lib/last-24h-break";
 import type { ManagerComplianceItem } from "@/lib/api";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -862,8 +863,8 @@ export function ManagerView() {
                           Last 24 hour break
                         </Label>
                         <Input
-                          type="date"
-                          value={form.last_24h_break}
+                          type="datetime-local"
+                          value={last24hBreakToDatetimeLocalValue(form.last_24h_break)}
                           onChange={(e) =>
                             setForm((f) => ({
                               ...f,
@@ -873,8 +874,10 @@ export function ManagerView() {
                           className="h-9 font-mono max-w-xs"
                         />
                         <p className="text-xs text-slate-400">
-                          Date of last 24h non-work time; resets 17h and 72h rules. Leave
-                          empty if not set.
+                          When the last continuous 24h non-work break ended (date and time). Use today with the
+                          actual finish time if starting a shift after that break. Resets 17h and 72h rule
+                          segments. Leave empty if not set. Legacy date-only values are treated as end of that
+                          day.
                         </p>
                       </div>
                       <div className="space-y-1.5">

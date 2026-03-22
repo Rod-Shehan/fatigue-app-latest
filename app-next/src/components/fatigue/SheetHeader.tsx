@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { api } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
+import { formatLast24hBreakDisplay } from "@/lib/last-24h-break";
 import { DEFAULT_JURISDICTION_CODE, getJurisdictionOptions } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 
@@ -214,7 +215,7 @@ export default function SheetHeader({
               className="h-9 w-full justify-start gap-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
             >
               <Calendar className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
-              <span className="tabular-nums">{formatSheetDisplayDate(sheetData.last_24h_break!)}</span>
+              <span className="tabular-nums">{formatLast24hBreakDisplay(sheetData.last_24h_break!)}</span>
               <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Locked
               </span>
@@ -225,7 +226,7 @@ export default function SheetHeader({
               <input
                 key={last24hPickerResetKey}
                 ref={last24hDateInputRef}
-                type="date"
+                type="datetime-local"
                 value={last24hPickerValue}
                 placeholder="Set last 24h break"
                 disabled={readOnly}
@@ -239,7 +240,7 @@ export default function SheetHeader({
                   }
                 }}
                 className="h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 pl-10 pr-3 text-sm font-medium tabular-nums text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                aria-label="Set last 24 hour break date"
+                aria-label="Set last 24 hour break date and time"
               />
               <Dialog
                 open={confirmLast24hOpen}
@@ -257,12 +258,12 @@ export default function SheetHeader({
                   <DialogHeader>
                     <DialogTitle>Confirm last 24 hour break</DialogTitle>
                     <DialogDescription>
-                      Set this date as your last 24 hour break? Once set, it will be locked for this sheet (manager amendment required to change).
+                      Set this date and time as when your last continuous 24 hour non-work break ended? Once set, it will be locked for this sheet (manager amendment required to change). Use today&apos;s date with the time you finished the break if you are about to start a shift.
                     </DialogDescription>
                   </DialogHeader>
                   {pendingLast24hDate && (
                     <p className="text-sm font-medium tabular-nums text-slate-800 dark:text-slate-100">
-                      {formatSheetDisplayDate(pendingLast24hDate)}
+                      {formatLast24hBreakDisplay(pendingLast24hDate)}
                     </p>
                   )}
                   <label className="flex items-start gap-2 pt-1 text-sm text-slate-700 dark:text-slate-200">
@@ -272,7 +273,7 @@ export default function SheetHeader({
                       checked={confirmLast24hChecked}
                       onChange={(e) => setConfirmLast24hChecked(e.target.checked)}
                     />
-                    <span>I confirm this date is correct.</span>
+                    <span>I confirm this date and time are correct.</span>
                   </label>
                   <div className="flex gap-2 justify-end pt-2">
                     <Button

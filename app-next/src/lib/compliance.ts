@@ -7,6 +7,7 @@
  */
 
 import { getSheetDayDateString } from "@/lib/weeks";
+import { getLast24hBreakCalendarDate, last24hBreakHasTime } from "@/lib/last-24h-break";
 import { haversineDistanceKm } from "@/lib/geo";
 
 export type ComplianceDayData = {
@@ -121,7 +122,7 @@ function getExtendedDayDate(
 /**
  * Split days into segments separated by ≥24h continuous no-work (non-work or no work record; rolling).
  * Same rule as "last 24 hour break" input: declared date, or any ≥24h with no work / non-work.
- * When last24hBreak (YYYY-MM-DD) is set, any boundary touching that date is also treated as a 24h break (resets rules).
+ * When last24hBreak is set (date or date+time), any boundary touching its **calendar day** is also treated as a 24h break (resets rules).
  */
 function segmentsSplitBy24hNonWork(
   days: ComplianceDayData[],
@@ -130,15 +131,16 @@ function segmentsSplitBy24hNonWork(
   if (days.length === 0) return [];
   if (days.length === 1) return [[0]];
   const { weekStarting = "", prevWeekStarting = "", prevCount = 0, last24hBreak } = options ?? {};
+  const breakCal = last24hBreak ? getLast24hBreakCalendarDate(last24hBreak) : null;
   const segments: number[][] = [];
   let start = 0;
   for (let i = 0; i < days.length - 1; i++) {
     const across = continuousNoWorkAcrossBoundary(days[i], days[i + 1]);
     const isDeclaredBreak =
-      last24hBreak &&
+      breakCal &&
       weekStarting &&
-      (getExtendedDayDate(i, weekStarting, prevWeekStarting, prevCount) === last24hBreak ||
-        getExtendedDayDate(i + 1, weekStarting, prevWeekStarting, prevCount) === last24hBreak);
+      (getExtendedDayDate(i, weekStarting, prevWeekStarting, prevCount) === breakCal ||
+        getExtendedDayDate(i + 1, weekStarting, prevWeekStarting, prevCount) === breakCal);
     if (across >= NON_WORK_SLOTS_24H || isDeclaredBreak) {
       segments.push(Array.from({ length: i - start + 1 }, (_, j) => start + j));
       start = i + 1;
@@ -259,6 +261,9 @@ function checkSoloRules(
   const hasAnyWork = days.some(dayHasWork);
   if (!hasAnyWork) return;
 
+  const last24hCal = soloOptions?.last24hBreak ? getLast24hBreakCalendarDate(soloOptions.last24hBreak) : null;
+  const last24hHasTime = soloOptions?.last24hBreak ? last24hBreakHasTime(soloOptions.last24hBreak) : false;
+
   days.forEach((day, idx) => {
     if (idx < prevCount) return;
     if (!dayHasWork(day)) return;
@@ -272,10 +277,8 @@ function checkSoloRules(
 
     const longestNonWork = findLongestContinuousBlock(day.non_work);
     const dayDate = getExtendedDayDate(idx, soloOptions?.weekStarting ?? "", soloOptions?.prevWeekStarting ?? "", prevCount);
-    const isBefore24hBreakWithNoWork =
-      soloOptions?.last24hBreak && dayDate < soloOptions.last24hBreak && !dayHasWork(day);
-    if (isBefore24hBreakWithNoWork) return;
-    const is24hBreakDay = soloOptions?.last24hBreak && dayDate === soloOptions.last24hBreak;
+    /** Legacy date-only: whole calendar day skips ≥7h block check. With time, same-day post-break work is checked normally. */
+    const is24hBreakDay = last24hCal && dayDate === last24hCal && !last24hHasTime;
     if (is24hBreakDay) return;
 
     /** ≥12h recorded in 24h requires ≥7h continuous non-work in the non_work grid (explicit). */
@@ -327,7 +330,8 @@ function checkSoloRules(
         if (workBreakRun > SLOTS_17H) {
           const dayIdx = segment[dayIndexInSegment];
           const violationDayDate = getExtendedDayDate(dayIdx, soloOptions?.weekStarting ?? "", soloOptions?.prevWeekStarting ?? "", prevCount);
-          if (soloOptions?.last24hBreak && violationDayDate === soloOptions.last24hBreak) {
+          const brCal = soloOptions?.last24hBreak ? getLast24hBreakCalendarDate(soloOptions.last24hBreak) : null;
+          if (brCal && violationDayDate === brCal) {
             workBreakRun = 0;
             continue;
           }

@@ -80,7 +80,7 @@ model FatigueSheet {
   secondDriver    String?
   driverType      String    @default("solo") // "solo" | "two_up"
   destination     String?
-  last24hBreak    String?   // YYYY-MM-DD date of last 24-hour break
+  last24hBreak    String?   // YYYY-MM-DD (legacy) or YYYY-MM-DDTHH:mm local — when last 24h non-work ended
   weekStarting    String    // YYYY-MM-DD
   days            String    // JSON array of 7 day objects
   status          String    @default("draft") // "draft" | "completed"
