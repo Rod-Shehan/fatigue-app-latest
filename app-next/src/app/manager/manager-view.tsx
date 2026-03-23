@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, type DayData, type FatigueSheet, type SheetUpdatePayload } from "@/lib/api";
+import { api, type FatigueSheet, type SheetUpdatePayload } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -140,19 +140,6 @@ function formatDayDateLabel(weekStarting: string, dayIndex: number): string {
   return `${day} ${date}`;
 }
 
-/** True if this day column has any logged data (events, rego, times, etc.). */
-function dayHasActivity(day: DayData | undefined): boolean {
-  if (!day || typeof day !== "object") return false;
-  if (typeof day.truck_rego === "string" && day.truck_rego.trim()) return true;
-  if (typeof day.destination === "string" && day.destination.trim()) return true;
-  if (Array.isArray(day.events) && day.events.length > 0) return true;
-  if (Array.isArray(day.work_time) && day.work_time.some(Boolean)) return true;
-  if (Array.isArray(day.breaks) && day.breaks.some(Boolean)) return true;
-  if (Array.isArray(day.non_work) && day.non_work.some(Boolean)) return true;
-  if (day.start_kms != null || day.end_kms != null) return true;
-  return false;
-}
-
 export function ManagerView() {
   const queryClient = useQueryClient();
   const [selectedSheetId, setSelectedSheetId] = useState<string>("");
@@ -211,6 +198,11 @@ export function ManagerView() {
     return [...set].sort().reverse();
   }, [weekOptions, activeWeekStarting]);
 
+  /**
+   * Driver / rego dropdowns are scoped to the selected **work week**, not the highlighted calendar day.
+   * Otherwise managers cannot open a sheet to fix header fields (e.g. last 24h break) when the driver
+   * has not logged anything on that specific day yet.
+   */
   const { driverOptions, regoOptions } = useMemo(() => {
     if (!activeWeekStarting) {
       return { driverOptions: [] as string[], regoOptions: [] as string[] };
@@ -219,20 +211,21 @@ export function ManagerView() {
     const regos = new Set<string>();
     for (const s of sheets) {
       if (s.week_starting !== activeWeekStarting) continue;
-      const day = Array.isArray(s.days) ? s.days[activeDayIndex] : undefined;
-      if (!dayHasActivity(day)) continue;
       const name = (s.driver_name ?? "").trim();
       if (name) drivers.add(name);
       const second = (s.second_driver ?? "").trim();
       if (second) drivers.add(second);
-      const rego = typeof day?.truck_rego === "string" ? day.truck_rego.trim() : "";
-      if (rego) regos.add(rego);
+      const days = Array.isArray(s.days) ? s.days : [];
+      for (const day of days) {
+        const rego = typeof day?.truck_rego === "string" ? day.truck_rego.trim() : "";
+        if (rego) regos.add(rego);
+      }
     }
     return {
       driverOptions: [...drivers].sort((a, b) => a.localeCompare(b)),
       regoOptions: [...regos].sort((a, b) => a.localeCompare(b)),
     };
-  }, [sheets, activeWeekStarting, activeDayIndex]);
+  }, [sheets, activeWeekStarting]);
 
   useEffect(() => {
     if (selectedDriverFilter && !driverOptions.includes(selectedDriverFilter)) {
@@ -246,24 +239,30 @@ export function ManagerView() {
     }
   }, [selectedRegoFilter, regoOptions]);
 
+  /**
+   * Sheets for the edit picker: every sheet whose `week_starting` matches the selected work week.
+   * No requirement for work/break grid rows — header-only saves (last 24h break, destination, etc.)
+   * must list the sheet so a manager can fix them before the driver continues the timesheet.
+   */
   const filteredSheetsForPicker = useMemo(() => {
     if (!activeWeekStarting) return sheets;
     return sheets.filter((s) => {
       if (s.week_starting !== activeWeekStarting) return false;
-      const day = Array.isArray(s.days) ? s.days[activeDayIndex] : undefined;
-      if (!dayHasActivity(day)) return false;
+      const days = Array.isArray(s.days) ? s.days : [];
       if (selectedDriverFilter) {
         const primary = (s.driver_name ?? "").trim();
         const second = (s.second_driver ?? "").trim();
         if (primary !== selectedDriverFilter && second !== selectedDriverFilter) return false;
       }
       if (selectedRegoFilter) {
-        const r = typeof day?.truck_rego === "string" ? day.truck_rego.trim() : "";
-        if (r !== selectedRegoFilter) return false;
+        const match = days.some(
+          (d) => (typeof d?.truck_rego === "string" ? d.truck_rego.trim() : "") === selectedRegoFilter
+        );
+        if (!match) return false;
       }
       return true;
     });
-  }, [sheets, activeWeekStarting, activeDayIndex, selectedDriverFilter, selectedRegoFilter]);
+  }, [sheets, activeWeekStarting, selectedDriverFilter, selectedRegoFilter]);
 
   useEffect(() => {
     if (!selectedSheetId) return;
@@ -592,7 +591,7 @@ export function ManagerView() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
             {managerTab === "compliance"
               ? "Review a work week by day. Use filters to focus on non-compliant or incomplete sheets, then switch to Edit sheet to open or amend a sheet."
-              : "Select a sheet to edit driver-entered fields such as last 24 hour break date, driver type, week starting, and destination."}
+              : "Every sheet for the selected work week appears below (after the driver creates or saves it). Edit header fields such as last 24 hour break, driver type, week starting, and destination — even before any work time is logged."}
           </p>
 
           <div className="space-y-4">
@@ -678,14 +677,10 @@ export function ManagerView() {
             {activeWeekStarting && !sheetsLoading ? (
               <div className="flex flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400">
                 {driverOptions.length === 0 ? (
-                  <p>
-                    No driver data on {formatDayDateLabel(activeWeekStarting, activeDayIndex)} for this week.
-                  </p>
+                  <p>No sheets for this work week yet — the &quot;Week starting&quot; on the sheet must match the work week selected above.</p>
                 ) : null}
                 {regoOptions.length === 0 ? (
-                  <p>
-                    No rego on {formatDayDateLabel(activeWeekStarting, activeDayIndex)} for this week.
-                  </p>
+                  <p>No rego on any day in this work week (optional filter — sheets still appear below).</p>
                 ) : null}
               </div>
             ) : null}
@@ -805,7 +800,7 @@ export function ManagerView() {
                     <SelectValue
                       placeholder={
                         filteredSheetsForPicker.length === 0 && activeWeekStarting
-                          ? "No matching sheets for this day / filters"
+                          ? "No matching sheets for this week / filters"
                           : sheets.length === 0
                             ? "No sheets yet"
                             : "Select a sheet…"
@@ -831,8 +826,9 @@ export function ManagerView() {
                   sheets.length > 0 &&
                   !sheetsLoading && (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
-                      No sheets have data on the selected day for this week (and current driver/rego filters).
-                      Change the calendar day, filters, or work week.
+                      No sheets match this work week and the current driver/rego filters. Confirm the sheet&apos;s
+                      &quot;Week starting&quot; matches Work week, set Driver/Rego to &quot;All&quot; if needed, or
+                      wait for the list to refresh after the driver saves.
                     </p>
                   )}
                 {sheets.length === 0 && !sheetsLoading && (
