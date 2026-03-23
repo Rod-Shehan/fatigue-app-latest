@@ -267,18 +267,9 @@ export function SheetDetail({
     queryFn: () => api.drivers.list(),
   });
 
-  const { data: session, status: sessionStatus } = useSession();
+  const { data: session } = useSession();
   const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
-  const driverPageIdentity = useMemo(() => {
-    const name = isManager
-      ? (sheetData.driver_name || "").trim() || "—"
-      : sessionStatus === "loading"
-        ? "…"
-        : (sessionDriverName || sheetData.driver_name || "").trim() || "—";
-    return { name, isManagerView: isManager };
-  }, [isManager, sessionStatus, sessionDriverName, sheetData.driver_name]);
-
   /** Title pill: Driver · name (drivers) or Manager · session name (handled in PageHeader). */
   const headerDriverDisplayName = useMemo(() => {
     if (isManager) return undefined;
@@ -741,7 +732,6 @@ export function SheetDetail({
           title="Fatigue Record"
           subtitle="WA Commercial Driver Fatigue Management"
           driverDisplayName={headerDriverDisplayName}
-          driverIdentity={driverPageIdentity}
           actions={
             sheetData.status === "completed" ? (
               <>

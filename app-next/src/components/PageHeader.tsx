@@ -2,9 +2,8 @@
 
 import React from "react";
 import Link from "next/link";
-import { ArrowLeft, UserRound } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { cn } from "@/lib/utils";
 import { formatRoleBadge, getDisplayNameFromSession } from "@/lib/session-display-name";
 
 /**
@@ -21,9 +20,8 @@ export function PageHeader({
   icon,
   actions,
   driverDisplayName,
-  /** @deprecated Use driverDisplayName */
+  /** @deprecated Kept for call-site compatibility. */
   roleDisplayLabel,
-  driverIdentity,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
   backHref?: string;
@@ -40,12 +38,8 @@ export function PageHeader({
    * Manager role: ignored (badge uses logged-in manager name).
    */
   driverDisplayName?: string | null;
-  /** @deprecated Use driverDisplayName */
+  /** @deprecated Kept for call-site compatibility. */
   roleDisplayLabel?: string | null;
-  driverIdentity?: {
-    name: string;
-    isManagerView?: boolean;
-  } | null;
 }) {
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
@@ -53,10 +47,7 @@ export function PageHeader({
   const isManager = role === "manager";
   const sessionDisplayName = getDisplayNameFromSession(session ?? null);
   const driverSuffix =
-    (driverDisplayName?.trim() ||
-      roleDisplayLabel?.trim() ||
-      sessionDisplayName) ||
-    "";
+    (driverDisplayName?.trim() || roleDisplayLabel?.trim() || sessionDisplayName) || "";
   const roleBadgeText = session?.user
     ? isManager
       ? formatRoleBadge("Manager", sessionDisplayName)
@@ -64,45 +55,9 @@ export function PageHeader({
     : null;
   const isManagerBadge = isManager;
 
-  const di =
-    driverIdentity != null && driverIdentity.name.trim() !== "" ? driverIdentity : null;
-  const hasDriverTile = di != null;
-
-  const driverTile = di ? (
-    <div
-      className="w-full rounded-xl border border-slate-200/90 bg-white px-4 py-3 shadow-sm dark:border-slate-600 dark:bg-slate-900/80 dark:shadow-none lg:max-w-sm lg:shrink-0"
-      role="status"
-      aria-label={`Driver name: ${di.name}`}
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white dark:bg-slate-700"
-          aria-hidden
-        >
-          <UserRound className="h-5 w-5" strokeWidth={2} />
-        </div>
-        <div className="min-w-0 flex-1 pt-0.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-            Driver name
-          </p>
-          <p className="mt-0.5 text-lg font-bold leading-snug tracking-tight text-slate-900 dark:text-slate-50 sm:text-xl">
-            {di.name}
-          </p>
-        </div>
-      </div>
-    </div>
-  ) : null;
-
   return (
     <header className="mb-6 flex flex-col gap-3">
-      <div
-        className={cn(
-          "flex gap-3",
-          hasDriverTile
-            ? "flex-col lg:flex-row lg:items-start lg:justify-between"
-            : "flex-col sm:flex-row sm:items-center sm:justify-between sm:flex-wrap"
-        )}
-      >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-wrap">
         <div className="flex min-w-0 flex-1 items-start gap-3">
           {backHref != null ? (
             <Link
@@ -151,26 +106,9 @@ export function PageHeader({
           </div>
         </div>
 
-        {(driverTile != null || actions != null) && (
-          <div
-            className={cn(
-              "flex min-w-0 w-full shrink-0 gap-2",
-              hasDriverTile
-                ? "flex-col lg:w-auto lg:max-w-md lg:items-stretch"
-                : "flex-wrap items-center justify-start sm:w-auto sm:justify-end"
-            )}
-          >
-            {driverTile}
-            {actions != null && (
-              <div
-                className={cn(
-                  "flex flex-wrap items-center gap-2",
-                  hasDriverTile ? "justify-start lg:justify-end" : "min-w-0 justify-start sm:justify-end"
-                )}
-              >
-                {actions}
-              </div>
-            )}
+        {actions != null && (
+          <div className="flex min-w-0 w-full shrink-0 flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
+            {actions}
           </div>
         )}
       </div>
