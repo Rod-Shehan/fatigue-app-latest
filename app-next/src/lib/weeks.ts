@@ -59,6 +59,26 @@ export function getSheetDayDateString(weekStarting: string, dayIndex: number): s
   return formatDateLocal(date);
 }
 
+/** Inclusive Sun–Sat range for a sheet week (YYYY-MM-DD strings, local calendar). */
+export function getSheetWeekRangeBounds(weekStarting: string): { start: string; end: string } {
+  const start = normalizeWeekDateString(weekStarting);
+  const [y, m, d] = start.split("-").map(Number);
+  const endDate = new Date(y, m - 1, d);
+  endDate.setDate(endDate.getDate() + 6);
+  return { start, end: formatDateLocal(endDate) };
+}
+
+/**
+ * True if two Sunday-based work weeks share at least one calendar day.
+ * Use this so the manager picker still finds a sheet when `week_starting` was saved
+ * off by one day (e.g. UTC vs local) relative to the selected work week.
+ */
+export function sheetWeeksOverlap(aWeekStarting: string, bWeekStarting: string): boolean {
+  const a = getSheetWeekRangeBounds(aWeekStarting);
+  const b = getSheetWeekRangeBounds(bWeekStarting);
+  return a.start <= b.end && b.start <= a.end;
+}
+
 /**
  * Parse YYYY-MM-DD as local midnight. Use this instead of new Date(dateStr), which
  * parses date-only as UTC and can shift the calendar day across the 9–10 March boundary.

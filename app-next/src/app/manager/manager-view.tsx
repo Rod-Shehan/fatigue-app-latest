@@ -40,7 +40,7 @@ import {
   startOfWeekSunday,
   toYMD,
 } from "@/app/manager/manager-month-calendar";
-import { getPreviousWeekSunday } from "@/lib/weeks";
+import { getPreviousWeekSunday, sheetWeeksOverlap } from "@/lib/weeks";
 import { last24hBreakToDatetimeLocalValue } from "@/lib/last-24h-break";
 import type { ManagerComplianceItem } from "@/lib/api";
 
@@ -199,9 +199,8 @@ export function ManagerView() {
   }, [weekOptions, activeWeekStarting]);
 
   /**
-   * Driver / rego dropdowns are scoped to the selected **work week**, not the highlighted calendar day.
-   * Otherwise managers cannot open a sheet to fix header fields (e.g. last 24h break) when the driver
-   * has not logged anything on that specific day yet.
+   * Driver / rego dropdowns follow the same **week overlap** rule as the sheet picker: any sheet whose
+   * Sun–Sat range overlaps the selected work week (not only exact `week_starting` string match).
    */
   const { driverOptions, regoOptions } = useMemo(() => {
     if (!activeWeekStarting) {
@@ -210,7 +209,7 @@ export function ManagerView() {
     const drivers = new Set<string>();
     const regos = new Set<string>();
     for (const s of sheets) {
-      if (s.week_starting !== activeWeekStarting) continue;
+      if (!sheetWeeksOverlap(s.week_starting, activeWeekStarting)) continue;
       const name = (s.driver_name ?? "").trim();
       if (name) drivers.add(name);
       const second = (s.second_driver ?? "").trim();
@@ -240,14 +239,14 @@ export function ManagerView() {
   }, [selectedRegoFilter, regoOptions]);
 
   /**
-   * Sheets for the edit picker: every sheet whose `week_starting` matches the selected work week.
-   * No requirement for work/break grid rows — header-only saves (last 24h break, destination, etc.)
-   * must list the sheet so a manager can fix them before the driver continues the timesheet.
+   * Sheets for the edit picker: any sheet whose week overlaps the selected work week (shares a calendar day).
+   * Handles off-by-one `week_starting` values vs the calendar. No requirement for grid rows — header-only
+   * saves must still list the sheet.
    */
   const filteredSheetsForPicker = useMemo(() => {
     if (!activeWeekStarting) return sheets;
     return sheets.filter((s) => {
-      if (s.week_starting !== activeWeekStarting) return false;
+      if (!sheetWeeksOverlap(s.week_starting, activeWeekStarting)) return false;
       const days = Array.isArray(s.days) ? s.days : [];
       if (selectedDriverFilter) {
         const primary = (s.driver_name ?? "").trim();
@@ -826,9 +825,9 @@ export function ManagerView() {
                   sheets.length > 0 &&
                   !sheetsLoading && (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
-                      No sheets match this work week and the current driver/rego filters. Confirm the sheet&apos;s
-                      &quot;Week starting&quot; matches Work week, set Driver/Rego to &quot;All&quot; if needed, or
-                      wait for the list to refresh after the driver saves.
+                      No sheets overlap this work week with the current driver/rego filters. Set Driver/Rego to
+                      &quot;All&quot;, pick the week that contains the driver&apos;s sheet, or wait for the list
+                      to refresh after the driver saves. (Very old sheets may be beyond the loaded list limit.)
                     </p>
                   )}
                 {sheets.length === 0 && !sheetsLoading && (

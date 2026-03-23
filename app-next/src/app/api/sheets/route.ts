@@ -57,7 +57,8 @@ export async function GET() {
     const sheets = await prisma.fatigueSheet.findMany({
       where,
       orderBy: { weekStarting: "desc" },
-      take: 50,
+      // Managers need enough history that a target week isn’t missing from the picker.
+      take: access.isManager ? 200 : 50,
     });
     const list = sheets.map((s) => sheetToJson(s));
     return NextResponse.json(list);
