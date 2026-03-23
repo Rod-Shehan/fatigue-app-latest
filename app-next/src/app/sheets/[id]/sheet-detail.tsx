@@ -53,6 +53,7 @@ import LogBar from "@/components/fatigue/LogBar";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
   getSheetDayDateString,
+  getThisWeekSunday,
   getTodayLocalDateString,
   getPreviousWeekSunday,
 } from "@/lib/weeks";
@@ -73,14 +74,6 @@ const EMPTY_DAY = (): DayData => ({
   breaks: Array(48).fill(false),
   non_work: Array(48).fill(false),
 });
-
-function getThisWeekSunday() {
-  const today = new Date();
-  const day = today.getDay();
-  const sunday = new Date(today);
-  sunday.setDate(today.getDate() - day);
-  return sunday.toISOString().split("T")[0];
-}
 
 /** Current day index (0–6) for the sheet week from device date; not user-selectable. */
 function getCurrentDayIndex(weekStarting: string): number {

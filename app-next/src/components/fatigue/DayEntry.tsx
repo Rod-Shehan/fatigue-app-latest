@@ -16,8 +16,14 @@ import { Truck, MapPin, Clock, Trash2 } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
-import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
+import {
+  formatSheetDisplayDate,
+  getSheetDayDateString,
+  getSheetDayWeekdayLetter,
+  getSheetDayWeekdayLong,
+} from "@/lib/weeks";
 
+/** Fallback when weekStart is missing (should be rare). */
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type DayData = {
@@ -79,6 +85,10 @@ export default function DayEntry({
 
   const sheetDayYmd = weekStart ? getSheetDayDateString(weekStart, dayIndex) : todayYmd;
   const isToday = sheetDayYmd === todayYmd;
+  const weekdayLetter = weekStart
+    ? getSheetDayWeekdayLetter(weekStart, dayIndex)
+    : (DAY_NAMES[dayIndex]?.charAt(0) ?? "?");
+  const weekdayLong = weekStart ? getSheetDayWeekdayLong(weekStart, dayIndex) : (DAY_NAMES[dayIndex] ?? "");
 
   const [editOpen, setEditOpen] = useState(false);
   const [draftEvents, setDraftEvents] = useState<Array<{ type: string; time: string; driver?: "primary" | "second" }>>([]);
@@ -110,7 +120,7 @@ export default function DayEntry({
                 : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
             }`}
           >
-            {DAY_NAMES[dayIndex]?.charAt(0)}
+            {weekdayLetter}
           </div>
           <div>
             <p
@@ -120,7 +130,7 @@ export default function DayEntry({
                   : "text-slate-800 dark:text-slate-100"
               }`}
             >
-              {DAY_NAMES[dayIndex]}
+              {weekdayLong}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
           </div>

@@ -94,3 +94,24 @@ export function formatSheetDisplayDate(ymd: string): string {
   const d = parseLocalDate(normalizeWeekDateString(ymd));
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
+
+/**
+ * Weekday for a sheet column from the **actual calendar date** (week_starting + dayIndex),
+ * not from slot index alone. Keeps labels aligned with dates when week_starting is wrong
+ * (e.g. legacy UTC `toISOString().split("T")[0]` off-by-one) or edited manually.
+ */
+export function getSheetDayWeekdayLong(weekStarting: string, dayIndex: number): string {
+  const ymd = getSheetDayDateString(weekStarting, dayIndex);
+  return parseLocalDate(ymd).toLocaleDateString("en-AU", { weekday: "long" });
+}
+
+export function getSheetDayWeekdayShort(weekStarting: string, dayIndex: number): string {
+  const ymd = getSheetDayDateString(weekStarting, dayIndex);
+  return parseLocalDate(ymd).toLocaleDateString("en-AU", { weekday: "short" });
+}
+
+/** First character of short weekday for compact badges (Sun → S, Tue → T). */
+export function getSheetDayWeekdayLetter(weekStarting: string, dayIndex: number): string {
+  const s = getSheetDayWeekdayShort(weekStarting, dayIndex);
+  return s ? s.charAt(0).toUpperCase() : "?";
+}

@@ -40,7 +40,7 @@ import {
   startOfWeekSunday,
   toYMD,
 } from "@/app/manager/manager-month-calendar";
-import { getPreviousWeekSunday, sheetWeeksOverlap } from "@/lib/weeks";
+import { getPreviousWeekSunday, getSheetDayDateString, parseLocalDate, sheetWeeksOverlap } from "@/lib/weeks";
 import { last24hBreakToDatetimeLocalValue } from "@/lib/last-24h-break";
 import type { ManagerComplianceItem } from "@/lib/api";
 
@@ -133,9 +133,9 @@ function ViolationListBlock({
 
 function formatDayDateLabel(weekStarting: string, dayIndex: number): string {
   if (!weekStarting) return DAY_LABELS[dayIndex] ?? `D${dayIndex + 1}`;
-  const d = new Date(weekStarting + "T12:00:00");
-  d.setDate(d.getDate() + dayIndex);
-  const day = DAY_LABELS[dayIndex] ?? `D${dayIndex + 1}`;
+  const ymd = getSheetDayDateString(weekStarting, dayIndex);
+  const d = parseLocalDate(ymd);
+  const day = d.toLocaleDateString("en-AU", { weekday: "short" });
   const date = d.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
   return `${day} ${date}`;
 }

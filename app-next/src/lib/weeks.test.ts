@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  getSheetDayWeekdayShort,
   getSheetWeekRangeBounds,
+  parseLocalDate,
   sheetWeeksOverlap,
 } from "./weeks";
 
@@ -26,5 +28,13 @@ describe("sheetWeeksOverlap", () => {
 
   it("is false for non-overlapping weeks", () => {
     expect(sheetWeeksOverlap("2026-03-01", "2026-03-22")).toBe(false);
+  });
+});
+
+describe("getSheetDayWeekdayShort", () => {
+  it("uses the calendar date of the column, not slot index (Sat 21 Mar 2026)", () => {
+    // 21 Mar 2026 is a Saturday — label must not say Sun just because dayIndex is 0
+    expect(parseLocalDate("2026-03-21").getDay()).toBe(6);
+    expect(getSheetDayWeekdayShort("2026-03-21", 0).toLowerCase()).toMatch(/^sat/);
   });
 });

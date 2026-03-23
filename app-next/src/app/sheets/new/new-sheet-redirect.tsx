@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { getThisWeekSunday } from "@/lib/weeks";
 
 const EMPTY_DAY = () => ({
   day_label: "",
@@ -21,14 +22,6 @@ const EMPTY_DAY = () => ({
   breaks: Array(48).fill(false),
   non_work: Array(48).fill(false),
 });
-
-function getThisWeekSunday() {
-  const today = new Date();
-  const day = today.getDay();
-  const sunday = new Date(today);
-  sunday.setDate(today.getDate() - day);
-  return sunday.toISOString().split("T")[0];
-}
 
 export function NewSheetRedirect() {
   const router = useRouter();

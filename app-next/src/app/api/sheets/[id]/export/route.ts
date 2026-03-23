@@ -4,11 +4,10 @@ import { getSessionForSheetAccess, canAccessSheet } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
+import { getSheetDayWeekdayLong } from "@/lib/weeks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
 const GREY_TEXT = [30, 30, 30] as [number, number, number];
 const GREY_LABEL = [80, 80, 80] as [number, number, number];
@@ -334,7 +333,9 @@ function renderPdfHtml(opts: {
 
   const dayBlocks = dayList
     .map((day, idx) => {
-      const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
+      const dayName = sheet.week_starting
+        ? getSheetDayWeekdayLong(sheet.week_starting, idx)
+        : `Day ${idx + 1}`;
       const dateLabel = getDateStr(sheet.week_starting, idx);
       const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
       const segments = getDaySegments(day, isoDate, todayStr);
@@ -760,7 +761,9 @@ export async function GET(
         doc.addPage();
         y = 20;
       }
-      const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
+      const dayName = sheet.week_starting
+        ? getSheetDayWeekdayLong(sheet.week_starting, idx)
+        : `Day ${idx + 1}`;
       const dateStr = getDateStr(sheet.week_starting, idx);
       const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
       const segments = getDaySegments(day, isoDate, todayStr);

@@ -3,7 +3,13 @@
 import React, { useState, useEffect } from "react";
 import { Briefcase, Coffee, Moon, Square, MapPin } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
-import { getSheetDayDateString, getTodayLocalDateString } from "@/lib/weeks";
+import {
+  getSheetDayDateString,
+  getSheetDayWeekdayShort,
+  getTodayLocalDateString,
+  normalizeWeekDateString,
+  parseLocalDate,
+} from "@/lib/weeks";
 
 const EVENT_CONFIG: Record<ActivityKey, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   work: { label: "Work", icon: Briefcase },
@@ -68,8 +74,15 @@ export default function ShiftLogView({
     const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
     const elapsedMinutes = lastEvent && currentType ? Math.floor(getElapsedSeconds(lastEvent.time) / 60) : 0;
     const isToday = dateStr === todayStr;
-    const dayLabel = DAY_NAMES[dayIndex] ?? `D${dayIndex + 1}`;
-    const dateLabel = dateStr ? new Date(dateStr + "T12:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" }) : "";
+    const dayLabel = weekStarting
+      ? getSheetDayWeekdayShort(weekStarting, dayIndex)
+      : (DAY_NAMES[dayIndex] ?? `D${dayIndex + 1}`);
+    const dateLabel = dateStr
+      ? parseLocalDate(normalizeWeekDateString(dateStr)).toLocaleDateString("en-AU", {
+          day: "numeric",
+          month: "short",
+        })
+      : "";
 
     events.forEach((ev, idx) => {
       const nextEv = events[idx + 1];
