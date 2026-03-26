@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import {
   getSpeechRecognitionConstructor,
   isVoiceCommandInputSupported,
-  matchStrictVoiceIntent,
+  matchWakeAndCommand,
   type SpeechRecognitionCtor,
   type VoiceIntent,
   VOICE_COMMAND_HINT,
@@ -90,7 +90,7 @@ export function VoiceCommandControl({ voiceLabels, onConfirmIntent, className, d
     rec.onresult = (ev: Event) => {
       const results = (ev as unknown as { results: { [i: number]: { [j: number]: { transcript: string } } } }).results;
       const transcript = results?.[0]?.[0]?.transcript ?? "";
-      const matched = matchStrictVoiceIntent(transcript);
+      const matched = matchWakeAndCommand(transcript);
       stopListening();
       if (!matched) {
         setBanner(`No match. ${VOICE_COMMAND_HINT}`);
@@ -129,7 +129,7 @@ export function VoiceCommandControl({ voiceLabels, onConfirmIntent, className, d
         } catch {
           /* ignore */
         }
-      }, 12000);
+      }, 18000);
     } catch {
       setListening(false);
       setBanner("Could not start voice input. Use the buttons instead.");
@@ -165,8 +165,8 @@ export function VoiceCommandControl({ voiceLabels, onConfirmIntent, className, d
           title={
             supported
               ? listening
-                ? "Listening… speak a command"
-                : `Voice command — ${VOICE_COMMAND_HINT}`
+                ? "Listening… say Hey Circadia and your command in one phrase"
+                : `Voice — ${VOICE_COMMAND_HINT}`
               : "Voice commands are not supported in this browser"
           }
           aria-label={listening ? "Listening for voice command" : "Start voice command"}
