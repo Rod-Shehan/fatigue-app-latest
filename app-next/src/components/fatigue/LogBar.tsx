@@ -559,7 +559,7 @@ export default function LogBar({
             {leadingIcon}
           </span>
         )}
-        <div className="inline-flex items-center gap-3 shrink-0">
+        <div className="flex w-full max-w-md flex-col items-stretch gap-2 sm:inline-flex sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 shrink-0">
           {(() => {
             const nextWorkBreak = getNextWorkBreakType(currentType);
             const isPending = pendingType === nextWorkBreak;
@@ -570,7 +570,7 @@ export default function LogBar({
               <button
                 type="button"
                 onClick={() => handleLog(nextWorkBreak)}
-                className={`flex items-center justify-center gap-4 px-10 py-5 rounded-md text-white text-lg font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[64px] min-w-[180px] shrink-0 ${theme.button} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
+                className={`flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-md text-white text-base sm:text-lg font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[180px] sm:w-auto shrink-0 ${theme.button} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
               >
                 {React.createElement(EVENT_ICONS[nextWorkBreak], { className: "w-8 h-8" })}
                 {isPending ? "Tap again to log" : primaryLabel}
@@ -590,7 +590,7 @@ export default function LogBar({
                 type="button"
                 onClick={() => handleLog(type)}
                 disabled={isDisabled}
-                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-white text-xs font-bold transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
+                className={`flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-lg text-white text-xs font-bold transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
               >
                 {React.createElement(EVENT_ICONS[type], { className: "w-4 h-4" })}
                 {isPending ? "Tap again to end shift" : EVENT_LABELS[type]}
@@ -698,27 +698,33 @@ export default function LogBar({
   return (
     <>
       {/* In-flow spacer so title/save row sit below the fixed bar; same structure = same height */}
-      <div className="max-w-[1400px] mx-auto px-4 py-3 invisible pointer-events-none select-none flex items-start gap-3" aria-hidden>
-        <div className="flex-1 min-w-0">{barContent}</div>
-        <div className="w-12 h-12 shrink-0" />
-        <div className="flex shrink-0 items-center gap-1">
-          <span className="w-11 h-11 shrink-0" />
-          <span className="w-11 h-11 shrink-0" />
-          <span className="w-11 h-11 shrink-0" />
+      <div
+        className="max-w-[1400px] mx-auto px-4 py-3 invisible pointer-events-none select-none flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
+        aria-hidden
+      >
+        <div className="flex-1 min-w-0 w-full">{barContent}</div>
+        <div className="flex w-full shrink-0 items-center justify-end gap-2 md:w-auto md:self-center md:justify-start md:gap-2">
+          <span className="w-12 h-12 shrink-0" aria-hidden />
+          <div className="flex shrink-0 items-center gap-1">
+            <span className="w-11 h-11 shrink-0" aria-hidden />
+            <span className="w-11 h-11 shrink-0" aria-hidden />
+            <span className="w-11 h-11 shrink-0" aria-hidden />
+          </div>
         </div>
       </div>
       <div
         className={`fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-colors duration-300 ${headerShellClass}`}
       >
-        <div className="max-w-[1400px] mx-auto flex items-start gap-3">
-          <div className="flex-1 min-w-0">{barContent}</div>
-          {complianceButton && (
+        <div className="max-w-[1400px] mx-auto flex flex-col gap-2 md:flex-row md:items-start md:gap-3">
+          <div className="flex-1 min-w-0 w-full">{barContent}</div>
+          <div className="flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start">
+            {complianceButton && (
             <button
               type="button"
               onClick={complianceButton.onClick}
               disabled={complianceButton.loading}
               className={cn(
-                "shrink-0 self-center flex items-center justify-center h-12 w-12 min-h-[48px] min-w-[48px] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
+                "shrink-0 flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] md:h-12 md:w-12 md:min-h-[48px] md:min-w-[48px] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
                 complianceTone === "ok" &&
                   "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-emerald-900 dark:focus-visible:ring-white focus-visible:ring-offset-emerald-400 dark:focus-visible:ring-offset-emerald-600",
                 complianceTone === "pending" &&
@@ -753,31 +759,39 @@ export default function LogBar({
               {complianceButton.loading ? (
                 <Loader2
                   className={cn(
-                    "w-9 h-9 animate-spin shrink-0",
+                    "w-8 h-8 md:w-9 md:h-9 animate-spin shrink-0",
                     complianceTone === "default" ? "text-slate-700 dark:text-slate-200" : "text-slate-900 dark:text-white"
                   )}
                   aria-hidden
                 />
               ) : complianceButton.hasViolations ? (
-                <X className="w-9 h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm" strokeWidth={3} aria-hidden />
+                <X
+                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm"
+                  strokeWidth={3}
+                  aria-hidden
+                />
               ) : complianceButton.hasWarnings ? (
-                <AlertTriangle className="w-9 h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm" strokeWidth={2.5} aria-hidden />
+                <AlertTriangle
+                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm"
+                  strokeWidth={2.5}
+                  aria-hidden
+                />
               ) : complianceTone === "pending" ? (
                 <Clock
-                  className="w-9 h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   strokeWidth={2.5}
                   aria-hidden
                 />
               ) : (
                 <Check
-                  className="w-9 h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   strokeWidth={3}
                   aria-hidden
                 />
               )}
             </button>
-          )}
-          <div className="shrink-0 self-center flex items-center gap-1">
+            )}
+          <div className="flex shrink-0 items-center gap-1">
             <VoiceCommandControl
               voiceLabels={{
                 work:
@@ -792,6 +806,7 @@ export default function LogBar({
             />
             <VoiceAlertsToggle enabled={voiceAlertsEnabled} onChange={setVoiceAlertsEnabled} />
             <ThemeToggle />
+          </div>
           </div>
         </div>
         {forgottenActionReminder && (
