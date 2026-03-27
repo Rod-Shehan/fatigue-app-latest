@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Briefcase, Coffee, Moon, Square, Check, X, Loader2, AlertTriangle, Clock } from "lucide-react";
+import { Briefcase, Coffee, Moon, Square, ClipboardList, X, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
@@ -783,9 +783,9 @@ export default function LogBar({
                   aria-hidden
                 />
               ) : (
-                <Check
+                <ClipboardList
                   className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
-                  strokeWidth={3}
+                  strokeWidth={2}
                   aria-hidden
                 />
               )}
