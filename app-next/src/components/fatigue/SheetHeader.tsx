@@ -193,13 +193,22 @@ export default function SheetHeader({
           <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
             Week Starting
           </Label>
-          <Input
-            type="date"
-            value={sheetData.week_starting || ""}
-            onChange={(e) => handleChange("week_starting", e.target.value)}
-            className="h-9 text-sm font-medium tabular-nums"
-            disabled={readOnly}
-          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled
+            title="Week is set when this sheet is created. Ask your manager if it needs to be changed."
+            className="h-9 w-full justify-start gap-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
+          >
+            <Calendar className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
+            <span className="tabular-nums font-normal text-slate-500 dark:text-slate-400">
+              {sheetData.week_starting ? formatSheetDisplayDate(sheetData.week_starting) : "—"}
+            </span>
+            <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              Locked
+            </span>
+          </Button>
         </div>
         <div className="space-y-1.5">
           <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400">
@@ -214,7 +223,9 @@ export default function SheetHeader({
               className="h-9 w-full justify-start gap-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
             >
               <Calendar className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
-              <span className="tabular-nums">{formatSheetDisplayDate(sheetData.last_24h_break!)}</span>
+              <span className="tabular-nums font-normal text-slate-500 dark:text-slate-400">
+                {formatSheetDisplayDate(sheetData.last_24h_break!)}
+              </span>
               <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Locked
               </span>
