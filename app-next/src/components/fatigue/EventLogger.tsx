@@ -59,12 +59,14 @@ export function deriveGridFromEvents(
     assumeIdleFromMs?: number;
     isToday?: boolean;
     dayStart?: number;
+    /** Regulatory or display "today" (e.g. Australia/Perth for WA); defaults to device local. */
+    todayStr?: string;
   }
 ): { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] } {
   const work_time = Array(48).fill(false);
   const breaks = Array(48).fill(false);
   const non_work = Array(48).fill(false);
-  const todayStr = getTodayLocalDateString();
+  const todayStr = options?.todayStr ?? getTodayLocalDateString();
   if (dateStr > todayStr) return { work_time, breaks, non_work };
   const isToday = dateStr === todayStr;
   const now = Date.now();
@@ -215,19 +217,47 @@ export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; 
 }
 
 /**
+ * Open work/break at end of a calendar day for rollover: past days use derived grid tail;
+ * "today" uses last event (open segment). End shift clears carry.
+ */
+export function getEffectiveOpenActivityAtDayEnd(
+  day: { work_time?: boolean[]; breaks?: boolean[]; events?: { time: string; type: string }[] },
+  dateStr: string,
+  todayStr: string
+): "work" | "break" | null {
+  const evs = day.events ?? [];
+  const lastEv = evs[evs.length - 1];
+  if (lastEv?.type === "stop") return null;
+  if (dateStr < todayStr) {
+    const w = day.work_time ?? [];
+    const b = day.breaks ?? [];
+    for (let s = 47; s >= 0; s--) {
+      if (w[s]) return "work";
+      if (b[s]) return "break";
+    }
+    if (lastEv?.type === "work" || lastEv?.type === "break") return lastEv.type;
+    return null;
+  }
+  if (dateStr === todayStr) {
+    if (lastEv?.type === "work" || lastEv?.type === "break") return lastEv.type;
+    return null;
+  }
+  return null;
+}
+
+/**
  * Derive work_time, breaks, non_work for all days with rollover: when the previous
  * day ended with work or break (no End shift), that activity rolls into the next
  * day from 00:00 until the first event on that day.
  */
 export function deriveDaysWithRollover<T extends { events?: { time: string; type: string }[] }>(
   days: T[],
-  weekStarting: string
+  weekStarting: string,
+  options?: { todayStr?: string }
 ): (T & { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] })[] {
-  const todayStr = getTodayLocalDateString();
+  const todayStr = options?.todayStr ?? getTodayLocalDateString();
   const result = days.map((d) => ({ ...d })) as (T & { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] })[];
   for (let i = 0; i < days.length; i++) {
-    const prevEvents = i > 0 ? result[i - 1].events || [] : [];
-    const lastPrev = prevEvents[prevEvents.length - 1];
     const currentEvents = (result[i].events || []) as { time: string; type: string }[];
     const dateStr = getSheetDayDateString(weekStarting, i);
     const dayStart = new Date(dateStr + "T00:00:00").getTime();
@@ -237,13 +267,9 @@ export function deriveDaysWithRollover<T extends { events?: { time: string; type
     const effectiveEnd = isToday ? Math.min(dayEnd, now) : dayEnd;
     const maxSlotExclusive = isToday ? Math.min(48, Math.ceil((effectiveEnd - dayStart) / (30 * 60 * 1000))) : 48;
 
-    /* Carry over work/break from previous day only when: (1) today (so overnight work shows until they log), or (2) this day has at least one event (carry-over stops at first event). For past days with no events, do not carry over — we don't know they worked that day. */
+    const prevDateStr = i > 0 ? getSheetDayDateString(weekStarting, i - 1) : "";
     const carryOverType =
-      (isToday || currentEvents.length > 0) &&
-      lastPrev &&
-      (lastPrev.type === "work" || lastPrev.type === "break")
-        ? (lastPrev.type as "work" | "break")
-        : null;
+      i > 0 ? getEffectiveOpenActivityAtDayEnd(result[i - 1], prevDateStr, todayStr) : null;
     let carryOverEndSlot = 0;
     if (carryOverType) {
       const firstEv = currentEvents[0];
@@ -263,6 +289,7 @@ export function deriveDaysWithRollover<T extends { events?: { time: string; type
       assumeIdleFromMs: assumeIdleFrom ? new Date(assumeIdleFrom).getTime() : undefined,
       isToday,
       dayStart,
+      todayStr,
     });
     result[i] = { ...result[i], ...derived };
   }

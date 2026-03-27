@@ -5,6 +5,7 @@ import type { ComplianceDayData } from "@/lib/compliance";
 import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
 import type { ComplianceCheckResult } from "@/lib/api";
 import { getPreviousWeekSunday } from "@/lib/weeks";
+import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 
 function parseDays(daysJson: string): ComplianceDayData[] {
   try {
@@ -51,11 +52,10 @@ export async function GET() {
     const now = Date.now();
     const today = new Date(now);
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const slotOffsetWithinToday = Math.min(48, Math.max(0, Math.floor((now - todayStart) / (30 * 60 * 1000))));
 
     const items: ManagerComplianceItem[] = [];
     for (const sheet of sheets) {
+      const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheet.jurisdictionCode);
       const engine = getComplianceEngine(parseJurisdictionCode(sheet.jurisdictionCode));
       const prevWeekStarting = getPreviousWeekSunday(sheet.weekStarting);
       const prevSheet = byDriverWeek.get(`${sheet.driverName}|${prevWeekStarting}`) ?? null;

@@ -7,6 +7,7 @@ export type RollingEvent = {
   time: string;
   type: string;
   dayIndex: number;
+  driver?: "primary" | "second";
 };
 
 type DayWithEvents = { events?: { time: string; type: string; driver?: "primary" | "second" }[] };
@@ -17,10 +18,30 @@ type DayWithEvents = { events?: { time: string; type: string; driver?: "primary"
  */
 export function getEventsInTimeOrder(days: DayWithEvents[]): RollingEvent[] {
   const withDay = days.flatMap((day, dayIndex) =>
-    (day.events ?? []).map((ev) => ({ time: ev.time, type: ev.type, dayIndex }))
+    (day.events ?? []).map((ev) => {
+      const row: RollingEvent = { time: ev.time, type: ev.type, dayIndex };
+      if (ev.driver) row.driver = ev.driver;
+      return row;
+    })
   );
   withDay.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
   return withDay;
+}
+
+/**
+ * Events in chronological order for a single driver (two-up) or all events (solo).
+ * Missing driver on an event is treated as primary.
+ */
+export function getEventsForDriverInOrder(
+  days: DayWithEvents[],
+  activeDriver?: "primary" | "second"
+): { time: string; type: string }[] {
+  const ordered = getEventsInTimeOrder(days);
+  const filtered =
+    activeDriver === undefined
+      ? ordered
+      : ordered.filter((ev) => (ev.driver ?? "primary") === activeDriver);
+  return filtered.map(({ time, type }) => ({ time, type }));
 }
 
 /**

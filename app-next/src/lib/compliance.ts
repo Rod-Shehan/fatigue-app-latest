@@ -6,7 +6,7 @@
  * and src/lib/jurisdiction/. Do not claim NHVR EWD approval from this module alone.
  */
 
-import { getSheetDayDateString } from "@/lib/weeks";
+import { getSheetDayDateString, getPerthMidnightUtcMs, getTodayYmdInTimeZone } from "@/lib/weeks";
 import { haversineDistanceKm } from "@/lib/geo";
 
 export type ComplianceDayData = {
@@ -705,13 +705,22 @@ export function runComplianceChecks(
   return results;
 }
 
-/** Slot index (0–47) for "now" on the given sheet day. Uses local date. */
-function getSlotIndexForNow(weekStarting: string, currentDayIndex: number): number {
-  const dateStr = getSheetDayDateString(weekStarting, currentDayIndex);
-  const startOfDay = new Date(dateStr + "T00:00:00").getTime();
-  const now = Date.now();
-  const slot = Math.floor((now - startOfDay) / (30 * 60 * 1000));
-  return Math.max(0, Math.min(47, slot));
+/**
+ * Half-hour slots elapsed since regulatory midnight today (0–48). Matches sheet-detail / API compliance payload.
+ * WA: Australia/Perth calendar day; otherwise device local. Used for 72h retrospective "window ending now".
+ */
+export function getSlotOffsetWithinTodayLocal(
+  nowMs: number = Date.now(),
+  jurisdictionCode?: string | null
+): number {
+  if (jurisdictionCode == null || jurisdictionCode === "WA_OSH_3132") {
+    const ymd = getTodayYmdInTimeZone("Australia/Perth", new Date(nowMs));
+    const start = getPerthMidnightUtcMs(ymd);
+    return Math.min(48, Math.max(0, Math.floor((nowMs - start) / (30 * 60 * 1000))));
+  }
+  const today = new Date(nowMs);
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  return Math.min(48, Math.max(0, Math.floor((nowMs - todayStart) / (30 * 60 * 1000))));
 }
 
 /** Clone days and set one work_time slot to true (for prospective "log work now" check). */
@@ -762,13 +771,18 @@ export function getProspectiveWorkWarnings(
     prevWeekDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
     prevWeekStarting?: string;
+    jurisdictionCode?: string | null;
   }
 ): string[] {
-  const slot = getSlotIndexForNow(weekStarting, currentDayIndex);
-  const cloned = cloneDaysAndInjectWork(days, currentDayIndex, slot);
+  const { jurisdictionCode, ...rest } = options;
+  const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(undefined, jurisdictionCode);
+  const injectSlot = Math.min(47, slotOffsetWithinToday);
+  const cloned = cloneDaysAndInjectWork(days, currentDayIndex, injectSlot);
   const results = runComplianceChecks(cloned, {
-    ...options,
+    ...rest,
     weekStarting,
+    currentDayIndex,
+    slotOffsetWithinToday,
   });
   const relevant = filterWorkRelevantResults(results);
   return relevant.map((r) => r.message);

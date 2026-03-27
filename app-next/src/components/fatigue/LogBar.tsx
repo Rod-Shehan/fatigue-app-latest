@@ -1,13 +1,17 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { Briefcase, Coffee, Moon, Square, ClipboardList, X, Loader2, AlertTriangle, Clock } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
-import { getEventsInTimeOrder, getInsufficientNonWorkMessage } from "@/lib/rolling-events";
+import {
+  getEventsForDriverInOrder,
+  getEventsInTimeOrder,
+  getInsufficientNonWorkMessage,
+} from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 
 const WORK_TARGET_MINUTES = 5 * 60;
@@ -205,7 +209,6 @@ export default function LogBar({
   weekStarting: _weekStarting,
   onLogEvent,
   onEndShiftRequest,
-  leadingIcon,
   workRelevantComplianceMessages,
   onAssumeIdle,
   onStartShiftBlocked,
@@ -224,8 +227,6 @@ export default function LogBar({
   onLogEvent: (dayIndex: number, type: string, driver?: "primary" | "second") => void;
   /** When provided, End shift (second tap) calls this instead of onLogEvent so the parent can show end km input. */
   onEndShiftRequest?: (dayIndex: number) => void;
-  /** Optional icon beside the activity line above the time bar (and near actions when idle). */
-  leadingIcon?: React.ReactNode;
   /** Prospective compliance messages (non-work time, limits) if work were logged now. When set, shown when user taps Work. */
   workRelevantComplianceMessages?: string[];
   /** When provided and in work/break state, "Assume idle" is shown. Call to mark from now as non-work (forgot to end shift). */
@@ -267,8 +268,12 @@ export default function LogBar({
 
   const day = days[currentDayIndex];
   const dayForCardFields = currentDayDisplay ?? day;
-  const events = day?.events || [];
-  const lastEvent = events[events.length - 1];
+  /** Chronological events for this driver across all sheet days — open work/break survives calendar midnight. */
+  const eventsForDriver = useMemo(
+    () => getEventsForDriverInOrder(days, driverType === "two_up" ? activeDriver : undefined),
+    [days, driverType, activeDriver]
+  );
+  const lastEvent = eventsForDriver.length ? eventsForDriver[eventsForDriver.length - 1] : undefined;
   const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
 
   /** Faster tick during work/break so compliance header (e.g. pending → OK) updates within a few seconds. */
@@ -404,11 +409,14 @@ export default function LogBar({
     return "Break under 10 minutes is automatically counted as work time.";
   };
 
-  /** Warning when starting work with <7h non-work since last shift (rolling time: last stop anywhere). */
+  /** Warning when starting work with <7h non-work since last shift (rolling time: last stop on this driver's timeline). */
   const getInsufficientNonWorkWarning = () => {
     if (currentType !== null && currentType !== "stop") return null;
-    const rollingEvents = getEventsInTimeOrder(days);
-    return getInsufficientNonWorkMessage(rollingEvents, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
+    const rolling =
+      driverType === "two_up"
+        ? getEventsInTimeOrder(days).filter((ev) => (ev.driver ?? "primary") === activeDriver)
+        : getEventsInTimeOrder(days);
+    return getInsufficientNonWorkMessage(rolling, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
   };
 
   const handleLog = (type: string) => {
@@ -440,7 +448,7 @@ export default function LogBar({
 
     if (pendingType === type) {
       if (type === "work") {
-        const insufficientBreakMsg = getBreakWarningIfNeeded(events, Date.now());
+        const insufficientBreakMsg = getBreakWarningIfNeeded(eventsForDriver, Date.now());
         if (insufficientBreakMsg) {
           setWorkWarning({
             message: insufficientBreakMsg,
@@ -554,11 +562,6 @@ export default function LogBar({
             </button>
           </span>
         )}
-        {leadingIcon != null && !contextualBar && (
-          <span className="flex items-center justify-center text-slate-500 dark:text-slate-400 shrink-0" aria-hidden>
-            {leadingIcon}
-          </span>
-        )}
         <div className="flex w-full max-w-md flex-col items-stretch gap-2 sm:inline-flex sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 shrink-0">
           {(() => {
             const nextWorkBreak = getNextWorkBreakType(currentType);
@@ -603,17 +606,9 @@ export default function LogBar({
       {contextualBar && (
         <div className="pt-1">
           <div className="mb-0.5 flex items-start gap-2 min-w-0">
-            {leadingIcon != null && (
-              <span
-                className="flex shrink-0 items-center justify-center text-slate-500 dark:text-slate-400"
-                aria-hidden
-              >
-                {leadingIcon}
-              </span>
-            )}
             <span className="min-w-0 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {contextualBar.type === "work" && (() => {
-                const breakDueByMs = getBreakDueByTime(events, Date.now());
+                const breakDueByMs = getBreakDueByTime(eventsForDriver, Date.now());
                 const timeStr =
                   breakDueByMs != null
                     ? new Date(breakDueByMs).toLocaleTimeString("en-AU", {
@@ -627,7 +622,7 @@ export default function LogBar({
                   : "CURRENT ACTIVITY WORK - BREAK DUE";
               })()}
               {contextualBar.type === "break" && (() => {
-                const completeByMs = getBreakCompleteByTime(events, Date.now());
+                const completeByMs = getBreakCompleteByTime(eventsForDriver, Date.now());
                 const timeStr =
                   completeByMs != null
                     ? new Date(completeByMs).toLocaleTimeString("en-AU", {

@@ -38,6 +38,38 @@ export function getTodayLocalDateString(): string {
   return formatDateLocal(new Date());
 }
 
+/** Calendar YYYY-MM-DD in a given IANA zone (e.g. Australia/Perth for WA regulatory day). */
+export function getTodayYmdInTimeZone(timeZone: string, date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const m = (parts.find((p) => p.type === "month")?.value ?? "1").padStart(2, "0");
+  const d = (parts.find((p) => p.type === "day")?.value ?? "1").padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+/**
+ * Midnight Australia/Perth as UTC ms for a calendar YYYY-MM-DD (Perth is fixed UTC+8, no DST).
+ */
+export function getPerthMidnightUtcMs(ymd: string): number {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return Date.UTC(y, m - 1, d, 0, 0, 0, 0) - 8 * 60 * 60 * 1000;
+}
+
+/**
+ * "Today" YYYY-MM-DD for fatigue rules: Perth calendar for WA OSH; device local otherwise.
+ */
+export function getRegulatoryTodayYmd(jurisdictionCode?: string | null): string {
+  if (jurisdictionCode == null || jurisdictionCode === "WA_OSH_3132") {
+    return getTodayYmdInTimeZone("Australia/Perth");
+  }
+  return getTodayLocalDateString();
+}
+
 /** Strip time / timezone suffix so "2026-03-15T00:00:00.000Z" → "2026-03-15". */
 export function normalizeWeekDateString(weekStarting: string): string {
   const s = weekStarting.trim();

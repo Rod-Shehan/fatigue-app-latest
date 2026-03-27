@@ -31,7 +31,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Save,
-  FileText,
   Loader2,
   CheckCircle2,
   ScrollText,
@@ -52,13 +51,17 @@ import DayEntry from "@/components/fatigue/DayEntry";
 import CompliancePanel from "@/components/fatigue/CompliancePanel";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
-import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
+import {
+  deriveDaysWithRollover,
+  applyLast24hBreakNonWorkRule,
+  getEffectiveOpenActivityAtDayEnd,
+} from "@/components/fatigue/EventLogger";
 import {
   getSheetDayDateString,
-  getTodayLocalDateString,
   getPreviousWeekSunday,
+  getRegulatoryTodayYmd,
 } from "@/lib/weeks";
-import { getProspectiveWorkWarnings } from "@/lib/compliance";
+import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import { validateDayKms, getMinAllowedStartKms, validateSheetKms } from "@/lib/rego-kms-validation";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
@@ -84,39 +87,33 @@ function getThisWeekSunday() {
   return sunday.toISOString().split("T")[0];
 }
 
-/** Current day index (0–6) for the sheet week from device date; not user-selectable. */
-function getCurrentDayIndex(weekStarting: string): number {
-  if (!weekStarting) return new Date().getDay();
+/** Current day index (0–6) for the sheet week from regulatory "today" (WA: Perth calendar); not user-selectable. */
+function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
+  const [ty, tm, td] = todayYmd.split("-").map(Number);
+  const today = new Date(ty, tm - 1, td);
+  if (!weekStarting) return today.getDay();
   const [y, m, d] = weekStarting.split("-").map(Number);
   const weekStart = new Date(y, m - 1, d);
-  const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const diffDays = Math.round((todayStart.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
+  const diffDays = Math.round((today.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
   return Math.max(0, Math.min(6, diffDays));
 }
 
 /**
- * Day card rego and start_km carry-over: when the previous day did not end with "End shift"
- * and the same carry-over rule as work/break applies (this day is today or has events),
- * fill this day's truck_rego and start_kms from the previous day when this day has none.
- * Reset (no carry) when previous day ended with "End shift" or when carry-over rules don't apply.
+ * Day card rego and start_km carry-over when the previous calendar day ended with open work/break
+ * (same end-of-day rule as deriveDaysWithRollover). No carry after End shift or when previous day closed in non-work.
  */
 function getDayWithCarriedOverCardInfo(
   days: DayData[],
   dayIndex: number,
-  weekStarting: string
+  weekStarting: string,
+  todayYmd: string
 ): DayData {
   const day = days[dayIndex] ?? {};
   if (dayIndex === 0) return day;
   const prev = days[dayIndex - 1];
-  const prevEvents = prev?.events ?? [];
-  const lastPrev = prevEvents[prevEvents.length - 1];
-  const prevEndedWithStop = lastPrev?.type === "stop";
-  const dateStr = getSheetDayDateString(weekStarting, dayIndex);
-  const isToday = dateStr === getTodayLocalDateString();
-  const hasEvents = (day.events?.length ?? 0) > 0;
-  const carryOverApplies = !prevEndedWithStop && (isToday || hasEvents);
-  if (!carryOverApplies) return day;
+  const dateStrPrev = getSheetDayDateString(weekStarting, dayIndex - 1);
+  const openAtEnd = getEffectiveOpenActivityAtDayEnd(prev, dateStrPrev, todayYmd);
+  if (openAtEnd == null) return day;
   const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
   const hasOwnStartKms = day.start_kms != null && !Number.isNaN(Number(day.start_kms));
   return {
@@ -229,12 +226,15 @@ export function SheetDetail({
       }
     }
   }, [sheetId]);
-  const currentDayIndex = useMemo(
-    () => getCurrentDayIndex(sheetData.week_starting),
-    [sheetData.week_starting, now]
+  const todayYmd = useMemo(
+    () => getRegulatoryTodayYmd(sheetData.jurisdiction_code),
+    [sheetData.jurisdiction_code, now]
   );
 
-  const todayYmd = useMemo(() => getTodayLocalDateString(), [now]);
+  const currentDayIndex = useMemo(
+    () => getCurrentDayIndex(sheetData.week_starting, todayYmd),
+    [sheetData.week_starting, todayYmd]
+  );
 
   const forgottenActionReminder = useMemo(
     () => getForgottenActionReminder(sheetData.days, currentDayIndex),
@@ -244,7 +244,9 @@ export function SheetDetail({
   // Re-derive time grids every minute so non-work accumulates in real-time on the current day
   useEffect(() => {
     setSheetData((prev) => {
-      const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting);
+      const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+      });
       return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
     });
   }, [now]);
@@ -313,7 +315,8 @@ export function SheetDetail({
         days: applyLast24hBreakNonWorkRule(
           deriveDaysWithRollover(
             (sheet.days || []).map((d) => ({ ...EMPTY_DAY(), ...d })),
-            weekStart
+            weekStart,
+            { todayStr: getRegulatoryTodayYmd(sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE) }
           ),
           weekStart,
           sheet.last_24h_break || undefined
@@ -339,12 +342,7 @@ export function SheetDetail({
   }, [allSheets, sheetData.driver_name, sheetData.week_starting, sheetId]);
 
   const compliancePayload = useMemo(() => {
-    const today = new Date(now);
-    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const slotOffsetWithinToday = Math.min(
-      48,
-      Math.max(0, Math.floor((now - todayStart) / (30 * 60 * 1000)))
-    );
+    const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheetData.jurisdiction_code);
     return {
       days: sheetData.days,
       driverType: sheetData.driver_type,
@@ -365,6 +363,7 @@ export function SheetDetail({
     prevWeekSheet,
     currentDayIndex,
     now,
+    sheetData.jurisdiction_code,
   ]);
   const { data: complianceData, isLoading: complianceLoading } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],
@@ -386,6 +385,7 @@ export function SheetDetail({
         prevWeekDays: prevWeekSheet?.days ?? null,
         last24hBreak: sheetData.last_24h_break || undefined,
         prevWeekStarting: prevWeekSheet?.week_starting ?? undefined,
+        jurisdictionCode: sheetData.jurisdiction_code,
       }
     );
   }, [
@@ -394,6 +394,7 @@ export function SheetDetail({
     sheetData.driver_type,
     sheetData.last_24h_break,
     sheetData.status,
+    sheetData.jurisdiction_code,
     currentDayIndex,
     prevWeekSheet?.days,
     prevWeekSheet?.week_starting,
@@ -485,7 +486,9 @@ export function SheetDetail({
     setSheetData((prev) => {
       const newDays = [...prev.days];
       newDays[dayIndex] = dayData;
-      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting);
+      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+      });
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
     setIsDirty(true);
@@ -496,7 +499,9 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const day = newDays[currentDayIndex] ?? {};
       newDays[currentDayIndex] = { ...day, assume_idle_from: new Date().toISOString() };
-      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting);
+      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+      });
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
     setIsDirty(true);
@@ -518,7 +523,9 @@ export function SheetDetail({
             : baseEvent;
       const newEvents = [...events, newEvent];
       newDays[dayIndex] = { ...day, events: newEvents };
-      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting);
+      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+      });
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
     setIsDirty(true);
@@ -609,7 +616,9 @@ export function SheetDetail({
       const newEvent = { time: new Date().toISOString(), type: "stop" };
       const newEvents = [...events, newEvent];
       newDays[dayIndex] = { ...d, end_kms: endKmsParsed, events: newEvents };
-      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting);
+      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+      });
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
     setIsDirty(true);
@@ -718,11 +727,10 @@ export function SheetDetail({
             weekStarting={sheetData.week_starting}
             onLogEvent={handleLogEvent}
             onEndShiftRequest={handleEndShiftRequest}
-            leadingIcon={<FileText className="w-5 h-5" />}
             workRelevantComplianceMessages={prospectiveWorkWarnings}
             onAssumeIdle={handleAssumeIdle}
             onStartShiftBlocked={scrollToCurrentDayCard}
-            currentDayDisplay={getDayWithCarriedOverCardInfo(sheetData.days, currentDayIndex, sheetData.week_starting)}
+            currentDayDisplay={getDayWithCarriedOverCardInfo(sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd)}
             driverType={sheetData.driver_type}
             primaryDriverName={sheetData.driver_name}
             secondDriverName={sheetData.second_driver}
@@ -968,7 +976,7 @@ export function SheetDetail({
                 >
                   <DayEntry
                     dayIndex={idx}
-                    dayData={getDayWithCarriedOverCardInfo(sheetData.days, idx, sheetData.week_starting)}
+                    dayData={getDayWithCarriedOverCardInfo(sheetData.days, idx, sheetData.week_starting, todayYmd)}
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}
                     regos={regos}
