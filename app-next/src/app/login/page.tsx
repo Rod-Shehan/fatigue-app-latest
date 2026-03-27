@@ -153,8 +153,8 @@ function LoginForm() {
             </>
           ) : (
             <>
-              Use the password set for your account (e.g. when a manager created it). If your deployment uses a shared test
-              password in server config, enter that.{" "}
+              Use the password set for your account (e.g. when a manager created it), or the shared server password if your
+              deployment sets <code className="text-[10px]">NEXTAUTH_CREDENTIALS_PASSWORD</code>.{" "}
               <span className="text-slate-500 dark:text-slate-400">
                 Blank password is not accepted on this server — only in local development.
               </span>

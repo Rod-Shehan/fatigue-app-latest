@@ -4,6 +4,7 @@
  * Requires: database migrated (npx prisma db push) and .env.local with DATABASE_URL (and optionally NEXTAUTH_SECRET).
  */
 const { PrismaClient } = require("@prisma/client");
+const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 function getThisWeekSunday() {
@@ -28,6 +29,10 @@ function getSheetDayDate(weekStarting, dayIndex) {
 }
 
 async function main() {
+  const seedPassRaw = process.env.SEED_USER_PASSWORD || process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
+  const seedPass = typeof seedPassRaw === "string" && seedPassRaw.trim().length > 0 ? seedPassRaw.trim() : null;
+  const passwordHash = seedPass ? await bcrypt.hash(seedPass, 10) : undefined;
+
   const weekStarting = getThisWeekSunday();
 
   // Drivers (for dropdown on sheets)
@@ -77,20 +82,27 @@ async function main() {
   // Test users: one manager, one driver
   const managerUser = await prisma.user.upsert({
     where: { email: "manager@test.local" },
-    update: { role: "manager" },
+    update: {
+      role: "manager",
+      ...(passwordHash ? { passwordHash } : {}),
+    },
     create: {
       email: "manager@test.local",
       name: "Test Manager",
       role: "manager",
+      ...(passwordHash ? { passwordHash } : {}),
     },
   });
   const driverUser = await prisma.user.upsert({
     where: { email: "driver@test.local" },
-    update: {},
+    update: {
+      ...(passwordHash ? { passwordHash } : {}),
+    },
     create: {
       email: "driver@test.local",
       name: "Test Driver",
       role: null,
+      ...(passwordHash ? { passwordHash } : {}),
     },
   });
   console.log("Users:", managerUser.email, "(manager),", driverUser.email, "(driver)");
@@ -141,7 +153,16 @@ async function main() {
   });
   console.log("Sheet:", sheet.driverName, "week", sheet.weekStarting, "status", sheet.status);
 
-  console.log("\nSeed done. Sign in as manager@test.local or driver@test.local (with your NEXTAUTH_CREDENTIALS_PASSWORD) to test.");
+  console.log("\nSeed done. Sign in as manager@test.local or driver@test.local.");
+  if (passwordHash) {
+    console.log(
+      "Password: same as SEED_USER_PASSWORD or NEXTAUTH_CREDENTIALS_PASSWORD when this seed ran (stored as bcrypt hash)."
+    );
+  } else {
+    console.log(
+      "No password hash stored — in production set NEXTAUTH_CREDENTIALS_PASSWORD on the server and use that at login, or re-seed with SEED_USER_PASSWORD set."
+    );
+  }
 }
 
 main()

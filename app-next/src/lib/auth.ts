@@ -1,10 +1,16 @@
-import NextAuth, { getServerSession } from "next-auth";
+import NextAuth, { getServerSession, type NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 
-export const authOptions = {
+/**
+ * Production sign-in (no passwordHash on user):
+ * set NEXTAUTH_CREDENTIALS_PASSWORD and use that exact string as the password.
+ * Dev-only: blank credentials / email + empty password (see authorize below).
+ */
+export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" as const, maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login" },
