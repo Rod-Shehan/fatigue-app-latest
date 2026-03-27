@@ -31,19 +31,6 @@ export const authOptions = {
         }
         if (!email) return null;
 
-        /** Seeded test manager — passwordless sign-in (Vercel/demo when DB has this user as manager). */
-        const passwordlessManagerEmail = "manager@test.local";
-        if (email === passwordlessManagerEmail && password === "") {
-          const testManager = await prisma.user.findUnique({
-            where: { email: passwordlessManagerEmail },
-            select: { id: true, email: true, name: true, role: true },
-          });
-          if (testManager?.role === "manager") {
-            return { id: testManager.id, email: testManager.email, name: testManager.name };
-          }
-          return null;
-        }
-
         // If the user has a manager-set password, require it (no passwordless/shared bypass).
         const existing = await prisma.user.findUnique({
           where: { email },
