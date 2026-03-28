@@ -43,6 +43,54 @@ export function matchStrictVoiceIntent(transcript: string): { intent: VoiceInten
   return null;
 }
 
+/** Phrases for the confirmation dialog (strict match on normalised transcript). */
+const CONFIRM_YES: readonly string[] = [
+  "yes",
+  "yeah",
+  "yep",
+  "confirm",
+  "correct",
+  "proceed",
+  "do it",
+  "ok",
+  "okay",
+  "absolutely",
+  "sure",
+  "affirmative",
+  "thats right",
+  "yes log it",
+  "log it",
+];
+
+const CONFIRM_NO: readonly string[] = [
+  "no",
+  "nope",
+  "cancel",
+  "abort",
+  "negative",
+  "dont",
+  "never mind",
+  "no thanks",
+];
+
+/**
+ * Match yes/no for the post-command confirmation step.
+ * Returns null if the transcript does not match an allowed phrase.
+ */
+export function matchVoiceConfirmTranscript(transcript: string): "yes" | "no" | null {
+  const n = normalizeVoiceTranscript(transcript);
+  if (!n) return null;
+  const variants = [n, n.replace(/ now$/, "").trim()].filter((x, i, a) => a.indexOf(x) === i);
+  for (const candidate of variants) {
+    if (CONFIRM_YES.some((p) => candidate === p || candidate === `${p} now`)) return "yes";
+    if (CONFIRM_NO.some((p) => candidate === p || candidate === `${p} now`)) return "no";
+  }
+  return null;
+}
+
+/** Hint shown when confirmation listening did not understand. */
+export const VOICE_CONFIRM_HINT = 'Say "yes" or "no", or use the buttons below.';
+
 /** Minimal typing; DOM lib may not include SpeechRecognition. */
 export type SpeechRecognitionCtor = new () => {
   lang: string;

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { matchStrictVoiceIntent, normalizeVoiceTranscript } from "./voice-command-input";
+import {
+  matchStrictVoiceIntent,
+  matchVoiceConfirmTranscript,
+  normalizeVoiceTranscript,
+} from "./voice-command-input";
 
 describe("matchStrictVoiceIntent", () => {
   it("matches exact sensible phrases only", () => {
@@ -25,6 +29,22 @@ describe("matchStrictVoiceIntent", () => {
     const n = normalizeVoiceTranscript("  End Shift! ");
     expect(n).toBe("end shift");
     expect(matchStrictVoiceIntent("  End Shift! ")?.intent).toBe("stop");
+  });
+});
+
+describe("matchVoiceConfirmTranscript", () => {
+  it("matches yes and no phrases", () => {
+    expect(matchVoiceConfirmTranscript("yes")).toBe("yes");
+    expect(matchVoiceConfirmTranscript("Yeah")).toBe("yes");
+    expect(matchVoiceConfirmTranscript("confirm")).toBe("yes");
+    expect(matchVoiceConfirmTranscript("no")).toBe("no");
+    expect(matchVoiceConfirmTranscript("cancel")).toBe("no");
+    expect(matchVoiceConfirmTranscript("no thanks")).toBe("no");
+  });
+
+  it("rejects unclear text", () => {
+    expect(matchVoiceConfirmTranscript("maybe")).toBeNull();
+    expect(matchVoiceConfirmTranscript("")).toBeNull();
   });
 });
 

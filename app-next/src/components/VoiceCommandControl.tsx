@@ -9,9 +9,11 @@ import {
   getSpeechRecognitionConstructor,
   isVoiceCommandInputSupported,
   matchStrictVoiceIntent,
+  matchVoiceConfirmTranscript,
   type SpeechRecognitionCtor,
   type VoiceIntent,
   VOICE_COMMAND_HINT,
+  VOICE_CONFIRM_HINT,
 } from "@/lib/voice-command-input";
 
 type RecInstance = InstanceType<SpeechRecognitionCtor>;
@@ -42,13 +44,19 @@ export function VoiceCommandControl({
   const [listening, setListening] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmListening, setConfirmListening] = useState(false);
+  const [confirmDialogBanner, setConfirmDialogBanner] = useState<string | null>(null);
   const [pending, setPending] = useState<{
     intent: VoiceIntent;
     heard: string;
     actionLabel: string;
   } | null>(null);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
   const recRef = useRef<RecInstance | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmRecRef = useRef<RecInstance | null>(null);
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const Ctor = typeof window !== "undefined" ? getSpeechRecognitionConstructor() : null;
   const supported = typeof window !== "undefined" && isVoiceCommandInputSupported();
@@ -73,6 +81,113 @@ export function VoiceCommandControl({
   }, [clearTimers]);
 
   useEffect(() => () => stopListening(), [stopListening]);
+
+  const stopConfirmListening = useCallback(() => {
+    try {
+      confirmRecRef.current?.stop?.();
+      confirmRecRef.current?.abort?.();
+    } catch {
+      /* ignore */
+    }
+    confirmRecRef.current = null;
+    if (confirmTimeoutRef.current) {
+      clearTimeout(confirmTimeoutRef.current);
+      confirmTimeoutRef.current = null;
+    }
+    setConfirmListening(false);
+  }, []);
+
+  const onConfirmIntentRef = useRef(onConfirmIntent);
+  onConfirmIntentRef.current = onConfirmIntent;
+
+  /** After a command matches, listen for spoken yes/no without requiring the tap buttons. */
+  useEffect(() => {
+    if (!confirmOpen || !Ctor || disabled) {
+      stopConfirmListening();
+      setConfirmDialogBanner(null);
+      return;
+    }
+
+    let cancelled = false;
+    const CONFIRM_LISTEN_MS = 15000;
+
+    const startConfirmSession = (retryAttempt: number) => {
+      if (cancelled) return;
+      stopConfirmListening();
+      if (cancelled) return;
+
+      const rec = new Ctor() as RecInstance;
+      confirmRecRef.current = rec;
+      rec.lang = "en-AU";
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+
+      rec.onresult = (ev: Event) => {
+        if (cancelled) return;
+        const results = (ev as unknown as { results: { [i: number]: { [j: number]: { transcript: string } } } }).results;
+        const transcript = results?.[0]?.[0]?.transcript ?? "";
+        const c = matchVoiceConfirmTranscript(transcript);
+        stopConfirmListening();
+        if (c === "yes") {
+          const p = pendingRef.current;
+          if (p) {
+            onConfirmIntentRef.current(p.intent);
+            setPending(null);
+            setConfirmOpen(false);
+            setConfirmDialogBanner(null);
+          }
+        } else if (c === "no") {
+          setPending(null);
+          setConfirmOpen(false);
+          setConfirmDialogBanner(null);
+        } else {
+          setConfirmDialogBanner(VOICE_CONFIRM_HINT);
+          if (retryAttempt < 2) {
+            window.setTimeout(() => startConfirmSession(retryAttempt + 1), 450);
+          }
+        }
+      };
+
+      rec.onerror = (ev: Event) => {
+        const err = (ev as unknown as { error?: string }).error ?? "unknown";
+        stopConfirmListening();
+        if (cancelled) return;
+        if (err !== "aborted" && err !== "no-speech") {
+          setConfirmDialogBanner(`Voice error (${err}). Use the buttons or wait for the next listen.`);
+        }
+      };
+
+      rec.onend = () => {
+        confirmRecRef.current = null;
+        if (!cancelled) setConfirmListening(false);
+      };
+
+      setConfirmListening(true);
+      if (retryAttempt === 0) setConfirmDialogBanner(null);
+      try {
+        rec.start();
+        confirmTimeoutRef.current = setTimeout(() => {
+          try {
+            rec.stop();
+          } catch {
+            /* ignore */
+          }
+        }, CONFIRM_LISTEN_MS);
+      } catch {
+        setConfirmListening(false);
+        setConfirmDialogBanner("Could not listen for confirmation. Use the buttons below.");
+      }
+    };
+
+    const t = window.setTimeout(() => startConfirmSession(0), 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      stopConfirmListening();
+    };
+  }, [confirmOpen, Ctor, disabled, stopConfirmListening]);
 
   const intentToLabel = useCallback(
     (intent: VoiceIntent): string => {
@@ -149,15 +264,20 @@ export function VoiceCommandControl({
   }, [Ctor, disabled, intentToLabel, stopListening, allowStopIntent]);
 
   const handleConfirm = () => {
-    if (!pending) return;
-    onConfirmIntent(pending.intent);
+    stopConfirmListening();
+    const p = pendingRef.current;
+    if (!p) return;
+    onConfirmIntent(p.intent);
     setPending(null);
     setConfirmOpen(false);
+    setConfirmDialogBanner(null);
   };
 
   const handleCancel = () => {
+    stopConfirmListening();
     setPending(null);
     setConfirmOpen(false);
+    setConfirmDialogBanner(null);
   };
 
   return (
@@ -167,7 +287,7 @@ export function VoiceCommandControl({
           type="button"
           variant="ghost"
           size="icon"
-          disabled={disabled || !supported}
+          disabled={disabled || !supported || confirmOpen}
           className={cn(
             "h-11 w-11 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100",
             listening && "ring-2 ring-cyan-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 animate-pulse",
@@ -175,11 +295,13 @@ export function VoiceCommandControl({
           )}
           aria-pressed={listening}
           title={
-            supported
-              ? listening
-                ? "Listening… say a command, e.g. start shift or take a break"
-                : `Voice — ${VOICE_COMMAND_HINT}`
-              : "Voice commands are not supported in this browser"
+            confirmOpen
+              ? "Confirm the dialog with your voice or the buttons"
+              : supported
+                ? listening
+                  ? "Listening… say a command, e.g. start shift or take a break"
+                  : `Voice — ${VOICE_COMMAND_HINT}`
+                : "Voice commands are not supported in this browser"
           }
           aria-label={listening ? "Listening for voice command" : "Start voice command"}
           onClick={() => {
@@ -202,7 +324,13 @@ export function VoiceCommandControl({
       </div>
 
       <Dialog open={confirmOpen} onOpenChange={(o) => !o && handleCancel()}>
-        <DialogContent className="sm:max-w-md" aria-describedby="voice-confirm-desc">
+        <DialogContent
+          className={cn(
+            "sm:max-w-md",
+            confirmListening && "ring-2 ring-cyan-500 ring-offset-2 ring-offset-background"
+          )}
+          aria-describedby="voice-confirm-desc"
+        >
           <DialogHeader>
             <DialogTitle>Confirm shift action</DialogTitle>
             <DialogDescription id="voice-confirm-desc" className="space-y-2 text-left">
@@ -217,6 +345,16 @@ export function VoiceCommandControl({
               <span className="block text-xs text-slate-500 dark:text-slate-500">
                 This will log the same as tapping the button — only confirm if that is correct.
               </span>
+              <span
+                className={`block text-sm font-medium ${confirmListening ? "text-cyan-700 dark:text-cyan-300" : "text-slate-600 dark:text-slate-400"}`}
+              >
+                {confirmListening
+                  ? "Listening… say yes or no (e.g. “yes”, “confirm”, “no”, “cancel”)."
+                  : "You can confirm by voice or tap a button below."}
+              </span>
+              {confirmDialogBanner && (
+                <span className="block text-xs text-amber-800 dark:text-amber-200">{confirmDialogBanner}</span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-2">
