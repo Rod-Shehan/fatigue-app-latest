@@ -92,13 +92,6 @@ function formatHours(minutes: number) {
   return `${h}h ${m}m`;
 }
 
-/** Minutes since midnight to "HH:MM" for labels under bars. */
-function minToHHMM(minutes: number): string {
-  const h = Math.floor(minutes / 60) % 24;
-  const m = minutes % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
 type DayDataGrid = {
   events?: { time: string; type: string }[];
   date?: string;
@@ -142,17 +135,6 @@ export default function TimeGrid({ dayData }: { dayData: DayDataGrid }) {
 
   return (
     <div className="select-none">
-      <div className="relative h-3 mb-0.5" style={{ marginLeft: 72 }}>
-        {ticks.map((h) => (
-          <span
-            key={h}
-            className="absolute text-[8px] font-mono text-slate-300 dark:text-slate-500 -translate-x-1/2"
-            style={{ left: `${(h / 24) * 100}%` }}
-          >
-            {String(h).padStart(2, "0")}
-          </span>
-        ))}
-      </div>
       <div className="space-y-1">
         {TIME_GRID_ROWS.map((row) => {
           const segs = segments[row.key as keyof typeof segments];
@@ -193,29 +175,6 @@ export default function TimeGrid({ dayData }: { dayData: DayDataGrid }) {
                     />
                   ))}
                 </div>
-                {segs.length > 0 && (
-                  <div className="relative h-3.5 mt-0.5 flex items-center">
-                    {segs.map((seg, i) => {
-                      const pctStart = (seg.startMin / TOTAL_MINUTES) * 100;
-                      const pctWidth = Math.max(((seg.endMin - seg.startMin) / TOTAL_MINUTES) * 100, 0.2);
-                      const narrow = pctWidth < 12;
-                      return (
-                        <span
-                          key={i}
-                          className="absolute text-[8px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-full"
-                          style={{
-                            left: `${pctStart}%`,
-                            width: `${pctWidth}%`,
-                            paddingLeft: "1px",
-                          }}
-                          title={`${minToHHMM(seg.startMin)} – ${minToHHMM(seg.endMin)}`}
-                        >
-                          {narrow ? minToHHMM(seg.startMin) : `${minToHHMM(seg.startMin)}–${minToHHMM(seg.endMin)}`}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
               <span className="w-12 sm:w-14 shrink-0 text-right text-[10px] sm:text-[11px] font-bold font-mono text-slate-600 dark:text-slate-300 pt-0.5">
                 {totalMins > 0 ? formatHours(totalMins) : <span className="text-slate-300 dark:text-slate-500">—</span>}
