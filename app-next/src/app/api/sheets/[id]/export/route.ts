@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { PRODUCT_NAME_EXPORT, TAGLINE_DRIVER } from "@/lib/branding";
+import { jurisdictionDisplayLabel, parseJurisdictionCode } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import { halfHourSlotsToRanges, minuteBooleansToRanges } from "@/lib/coverage/grid-to-ranges";
 
@@ -244,6 +245,22 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/** Display stored ISO timestamps in Australia/Perth for the shift log. */
+function formatTimestampPerth(iso: string): string {
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return iso;
+  return d.toLocaleString("en-AU", { timeZone: "Australia/Perth" });
+}
+
+function logEventTypeLabel(type: string): string {
+  const t = type.toLowerCase();
+  if (t === "work") return "Work";
+  if (t === "break") return "Break";
+  if (t === "stop") return "End shift";
+  if (t === "non_work") return "Non-work";
+  return type;
+}
+
 type RoadsidePdfPayload = {
   driverName: string;
   weekStarting: string;
@@ -292,13 +309,17 @@ function buildRoadsideSectionHtml(r: RoadsidePdfPayload): string {
   </section>`;
 }
 
-function renderPdfHtml(opts: {
+function buildShiftLogHtml(opts: {
   sheet: {
     driver_name: string;
     second_driver: string | null;
     driver_type: string;
     destination: string | null;
     week_starting: string;
+    jurisdiction_label: string;
+    last_24h_break: string | null;
+    status: string;
+    signed_at: string | null;
     days: Array<{
       work_time?: boolean[];
       breaks?: boolean[];
@@ -308,7 +329,194 @@ function renderPdfHtml(opts: {
       destination?: string;
       start_kms?: number;
       end_kms?: number;
-      events?: Array<{ time: string; type: string }>;
+      assume_idle_from?: string;
+      events?: Array<{
+        time: string;
+        type: string;
+        lat?: number;
+        lng?: number;
+        accuracy?: number;
+        driver?: "primary" | "second";
+      }>;
+    }>;
+  };
+  todayStr: string;
+}): string {
+  const { sheet, todayStr } = opts;
+  const primaryName = (sheet.driver_name || "").trim() || "—";
+  const secondName = (sheet.second_driver || "").trim();
+  const dayList = (sheet.days || []).slice(0, 7);
+  while (dayList.length < 7) dayList.push({});
+
+  const metaRows: { label: string; value: string }[] = [
+    { label: "Primary driver", value: primaryName },
+    ...(secondName ? [{ label: "Second driver", value: secondName }] as const : []),
+    { label: "Driver type", value: sheet.driver_type === "two_up" ? "Two-up" : "Solo" },
+    { label: "Week starting", value: sheet.week_starting || "—" },
+    { label: "Rules (jurisdiction)", value: sheet.jurisdiction_label || "—" },
+    { label: "Destination (sheet)", value: (sheet.destination || "").trim() || "—" },
+    {
+      label: "Last 24h continuous rest (date)",
+      value: (sheet.last_24h_break || "").trim() || "—",
+    },
+    { label: "Sheet status", value: sheet.status === "completed" ? "Completed" : "Draft" },
+    ...(sheet.signed_at
+      ? ([
+          {
+            label: "Signed (Australia/Perth)",
+            value: formatTimestampPerth(sheet.signed_at),
+          },
+        ] as const)
+      : []),
+  ];
+
+  const metaHtml = metaRows
+    .map(
+      (r) =>
+        `<tr><th scope="row">${escapeHtml(r.label)}</th><td>${escapeHtml(r.value)}</td></tr>`
+    )
+    .join("");
+
+  const dayBlocks = dayList
+    .map((day, idx) => {
+      const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
+      const dateLabel = getDateStr(sheet.week_starting, idx);
+      const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
+      const heading = `${dayName} — ${dateLabel}`;
+
+      const rego = (day as { truck_rego?: string }).truck_rego ?? "";
+      const dest = (day as { destination?: string }).destination ?? "";
+      const startKms = (day as { start_kms?: number | null }).start_kms;
+      const endKms = (day as { end_kms?: number | null }).end_kms;
+      const cardBits: string[] = [];
+      if (rego) cardBits.push(`Rego: ${rego}`);
+      if (dest) cardBits.push(`Destination: ${dest}`);
+      if (startKms != null && !Number.isNaN(Number(startKms))) cardBits.push(`Start odometer: ${startKms} km`);
+      if (endKms != null && !Number.isNaN(Number(endKms))) cardBits.push(`End odometer: ${endKms} km`);
+      const cardLine =
+        cardBits.length > 0 ? cardBits.join(" · ") : "No vehicle/route fields entered for this day.";
+
+      const assumeIdle = (day as { assume_idle_from?: string }).assume_idle_from;
+      const assumeLine = assumeIdle?.trim()
+        ? `<p class="shiftAssume"><strong>Assume non-work from:</strong> ${escapeHtml(formatTimestampPerth(assumeIdle))}</p>`
+        : "";
+
+      const events = (day as {
+        events?: Array<{
+          time: string;
+          type: string;
+          lat?: number;
+          lng?: number;
+          accuracy?: number;
+          driver?: string;
+        }>;
+      }).events;
+      const hasEvents = Array.isArray(events) && events.length > 0;
+
+      let bodyHtml: string;
+      if (hasEvents) {
+        const rows = events!
+          .filter((ev) => ev && ev.time)
+          .map((ev) => {
+            const typeLabel = logEventTypeLabel(ev.type || "");
+            let driverCol = "—";
+            if (sheet.driver_type === "two_up" && ev.driver === "second") {
+              driverCol = secondName || "Second driver";
+            } else if (sheet.driver_type === "two_up" && ev.driver === "primary") {
+              driverCol = primaryName;
+            } else if (sheet.driver_type === "two_up") {
+              driverCol = "—";
+            }
+            let loc = "—";
+            if (ev.lat != null && ev.lng != null && Number.isFinite(ev.lat) && Number.isFinite(ev.lng)) {
+              loc = `${ev.lat.toFixed(5)}, ${ev.lng.toFixed(5)}`;
+              if (ev.accuracy != null && Number.isFinite(ev.accuracy)) {
+                loc += ` (±${Math.round(ev.accuracy)} m)`;
+              }
+            }
+            return `<tr>
+              <td class="mono">${escapeHtml(formatTimestampPerth(ev.time))}</td>
+              <td>${escapeHtml(typeLabel)}</td>
+              <td>${escapeHtml(driverCol)}</td>
+              <td class="mono">${escapeHtml(loc)}</td>
+            </tr>`;
+          })
+          .join("");
+        bodyHtml = `
+          <p class="shiftSource">Logged events (exact times and types as recorded in the app).</p>
+          <table class="shiftEventTable">
+            <thead><tr><th>Time (Australia/Perth)</th><th>Type</th><th>Driver</th><th>Location</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="4" class="empty">No events</td></tr>`}</tbody>
+          </table>`;
+      } else {
+        const segments = getDaySegments(day, isoDate, todayStr);
+        const timeline = segmentsToTimeline(segments);
+        const rows = timeline.map((seg) => {
+          return `<tr>
+            <td class="mono">${escapeHtml(minToHHMM(seg.startMin))}</td>
+            <td class="mono">${escapeHtml(minToHHMM(seg.endMin))}</td>
+            <td class="mono">${escapeHtml(formatDuration(seg.endMin - seg.startMin))}</td>
+            <td>${escapeHtml(segmentLabel(seg.type))}</td>
+          </tr>`;
+        }).join("");
+        bodyHtml = `
+          <p class="shiftSource">Time blocks derived from the diary grid (work / break / non-work) for this day — use when no event log is stored.</p>
+          <table class="shiftEventTable">
+            <thead><tr><th>Start</th><th>End</th><th>Duration</th><th>Type</th></tr></thead>
+            <tbody>${rows || `<tr><td colspan="4" class="empty">No time recorded</td></tr>`}</tbody>
+          </table>`;
+      }
+
+      return `
+        <section class="shiftDay">
+          <h4>${escapeHtml(heading)}</h4>
+          <p class="shiftCard">${escapeHtml(cardLine)}</p>
+          ${assumeLine}
+          ${bodyHtml}
+        </section>`;
+    })
+    .join("");
+
+  return `
+  <section class="shiftLog">
+    <h2>SHIFT LOG (Appendix)</h2>
+    <p class="shiftIntro">Plain record of driver-entered data for this weekly sheet: identification, day cards, then either logged events (tap log) or time blocks from the diary grid. Times are shown in Australia/Perth unless otherwise noted.</p>
+    <table class="shiftMeta">
+      <tbody>${metaHtml}</tbody>
+    </table>
+    ${dayBlocks}
+  </section>`;
+}
+
+function renderPdfHtml(opts: {
+  sheet: {
+    driver_name: string;
+    second_driver: string | null;
+    driver_type: string;
+    destination: string | null;
+    week_starting: string;
+    jurisdiction_label: string;
+    last_24h_break: string | null;
+    status: string;
+    signed_at: string | null;
+    days: Array<{
+      work_time?: boolean[];
+      breaks?: boolean[];
+      non_work?: boolean[];
+      date?: string;
+      truck_rego?: string;
+      destination?: string;
+      start_kms?: number;
+      end_kms?: number;
+      assume_idle_from?: string;
+      events?: Array<{
+        time: string;
+        type: string;
+        lat?: number;
+        lng?: number;
+        accuracy?: number;
+        driver?: "primary" | "second";
+      }>;
     }>;
   };
   todayStr: string;
@@ -467,6 +675,21 @@ function renderPdfHtml(opts: {
         .qrImg { width: 120px; height: 120px; image-rendering: pixelated; }
         .qrCap { font-size: 9px; color: #64748b; }
         .roadDisclaimer { font-size: 8.5px; color: #475569; margin: 10px 0 0; line-height: 1.35; }
+        .shiftLog { margin-top: 18px; page-break-before: always; break-inside: auto; }
+        .shiftLog h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
+        .shiftIntro { font-size: 9.5px; color: #64748b; margin: 0 0 12px; line-height: 1.45; }
+        .shiftMeta { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 14px; }
+        .shiftMeta th { text-align: left; width: 42%; padding: 4px 8px 4px 0; color: #475569; font-weight: 700; vertical-align: top; border-bottom: 1px solid #e2e8f0; }
+        .shiftMeta td { padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
+        .shiftDay { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; break-inside: avoid; background: #fafafa; }
+        .shiftDay h4 { font-size: 12px; font-weight: 800; margin: 0 0 6px; color: #0f172a; }
+        .shiftCard { font-size: 10px; color: #334155; margin: 0 0 8px; line-height: 1.4; }
+        .shiftAssume { font-size: 9.5px; color: #92400e; margin: 0 0 8px; }
+        .shiftSource { font-size: 9.5px; color: #64748b; margin: 0 0 6px; line-height: 1.35; }
+        .shiftEventTable { width: 100%; border-collapse: collapse; font-size: 9.5px; }
+        .shiftEventTable thead th { text-align: left; padding: 5px 6px; border-bottom: 1px solid #cbd5e1; color: #475569; font-weight: 800; background: #f1f5f9; }
+        .shiftEventTable tbody td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+        .shiftEventTable tbody tr:nth-child(even) td { background: #fff; }
       </style>
     </head>
     <body>
@@ -481,6 +704,7 @@ function renderPdfHtml(opts: {
       </div>
       ${roadside ? buildRoadsideSectionHtml(roadside) : ""}
       ${dayBlocks}
+      ${buildShiftLogHtml({ sheet, todayStr })}
     </body>
   </html>`;
 }
@@ -573,6 +797,193 @@ function renderRoadsideJsPDF(
   return y;
 }
 
+/** jsPDF fallback: shift log appendix (same intent as `buildShiftLogHtml`). Always begins on a new page. */
+function renderShiftLogJsPDF(
+  doc: jsPDF,
+  margin: number,
+  colW: number,
+  sheet: {
+    driver_name: string;
+    second_driver: string | null;
+    driver_type: string;
+    destination: string | null;
+    week_starting: string;
+    jurisdiction_label: string;
+    last_24h_break: string | null;
+    status: string;
+    signed_at: string | null;
+    days: Array<Record<string, unknown>>;
+  },
+  todayStr: string
+): number {
+  doc.addPage();
+  let y = 18;
+  const pageBreak = () => {
+    doc.addPage();
+    y = 16;
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(30, 30, 30);
+  doc.text("SHIFT LOG (Appendix)", margin, y);
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80);
+  const intro = doc.splitTextToSize(
+    "Plain record of driver-entered data for this weekly sheet: identification, day cards, then logged events or time blocks from the grid. Times in Australia/Perth unless noted.",
+    colW
+  );
+  doc.text(intro, margin, y);
+  y += intro.length * 3.5 + 6;
+
+  const metaBits: string[] = [
+    `Primary driver: ${sheet.driver_name || "—"}`,
+    ...(sheet.second_driver?.trim() ? [`Second driver: ${sheet.second_driver.trim()}`] : []),
+    `Driver type: ${sheet.driver_type === "two_up" ? "Two-up" : "Solo"}`,
+    `Week starting: ${sheet.week_starting || "—"}`,
+    `Rules: ${sheet.jurisdiction_label || "—"}`,
+    `Destination (sheet): ${(sheet.destination || "").trim() || "—"}`,
+    `Last 24h rest (date): ${(sheet.last_24h_break || "").trim() || "—"}`,
+    `Status: ${sheet.status === "completed" ? "Completed" : "Draft"}`,
+    ...(sheet.signed_at ? [`Signed: ${formatTimestampPerth(sheet.signed_at)}`] : []),
+  ];
+  doc.setTextColor(50, 50, 50);
+  for (const bit of metaBits) {
+    const wrapped = doc.splitTextToSize(bit, colW);
+    if (y + wrapped.length * 3.6 > 275) pageBreak();
+    doc.text(wrapped, margin, y);
+    y += wrapped.length * 3.6 + 0.5;
+  }
+  y += 4;
+
+  const primaryName = (sheet.driver_name || "").trim() || "—";
+  const secondName = (sheet.second_driver || "").trim();
+  const dayList = (sheet.days || []).slice(0, 7);
+  while (dayList.length < 7) dayList.push({});
+
+  for (let idx = 0; idx < 7; idx++) {
+    const day = dayList[idx];
+    const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
+    const dateLabel = getDateStr(sheet.week_starting, idx);
+    const isoDate =
+      (typeof (day as { date?: string }).date === "string" && (day as { date?: string }).date) ||
+      getIsoDate(sheet.week_starting, idx);
+
+    if (y > 235) pageBreak();
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 30, 30);
+    doc.text(`${dayName} — ${dateLabel}`, margin, y);
+    y += 5;
+
+    const rego = String((day as { truck_rego?: string }).truck_rego ?? "");
+    const dest = String((day as { destination?: string }).destination ?? "");
+    const sk = (day as { start_kms?: number | null }).start_kms;
+    const ek = (day as { end_kms?: number | null }).end_kms;
+    const cardBits: string[] = [];
+    if (rego) cardBits.push(`Rego: ${rego}`);
+    if (dest) cardBits.push(`Destination: ${dest}`);
+    if (sk != null && !Number.isNaN(Number(sk))) cardBits.push(`Start odometer: ${sk} km`);
+    if (ek != null && !Number.isNaN(Number(ek))) cardBits.push(`End odometer: ${ek} km`);
+    const cardLine =
+      cardBits.length > 0 ? cardBits.join(" · ") : "No vehicle/route fields entered for this day.";
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(50, 50, 50);
+    const cardWrapped = doc.splitTextToSize(cardLine, colW);
+    doc.text(cardWrapped, margin, y);
+    y += cardWrapped.length * 3.5 + 2;
+
+    const assumeIdle = (day as { assume_idle_from?: string }).assume_idle_from;
+    if (assumeIdle?.trim()) {
+      doc.setTextColor(120, 60, 10);
+      const a = doc.splitTextToSize(
+        `Assume non-work from: ${formatTimestampPerth(assumeIdle.trim())}`,
+        colW
+      );
+      doc.text(a, margin, y);
+      y += a.length * 3.5 + 2;
+      doc.setTextColor(50, 50, 50);
+    }
+
+    const events = (day as { events?: Array<Record<string, unknown>> }).events;
+    const evList = Array.isArray(events) ? events : [];
+    const hasEvents = evList.some((ev) => ev && typeof (ev as { time?: string }).time === "string");
+
+    if (hasEvents) {
+      doc.setFontSize(7.5);
+      doc.setTextColor(90, 90, 90);
+      const src = doc.splitTextToSize("Logged events (as recorded in the app).", colW);
+      doc.text(src, margin, y);
+      y += src.length * 3.2 + 2;
+      doc.setTextColor(30, 30, 30);
+      for (const ev of evList) {
+        const time = (ev as { time?: string }).time;
+        if (!time) continue;
+        const typeLabel = logEventTypeLabel(String((ev as { type?: string }).type ?? ""));
+        let driverCol = "—";
+        if (sheet.driver_type === "two_up") {
+          if ((ev as { driver?: string }).driver === "second") driverCol = secondName || "Second";
+          else if ((ev as { driver?: string }).driver === "primary") driverCol = primaryName;
+        }
+        let loc = "—";
+        const lat = (ev as { lat?: number }).lat;
+        const lng = (ev as { lng?: number }).lng;
+        const acc = (ev as { accuracy?: number }).accuracy;
+        if (lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng)) {
+          loc = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+          if (acc != null && Number.isFinite(acc)) loc += ` (±${Math.round(acc)} m)`;
+        }
+        const line = `${formatTimestampPerth(time)}  |  ${typeLabel}  |  ${driverCol}  |  ${loc}`;
+        const wrapped = doc.splitTextToSize(line, colW);
+        if (y + wrapped.length * 3.2 > 278) pageBreak();
+        doc.setFontSize(7.5);
+        doc.text(wrapped, margin, y);
+        y += wrapped.length * 3.2 + 0.5;
+      }
+    } else {
+      doc.setFontSize(7.5);
+      doc.setTextColor(90, 90, 90);
+      const src = doc.splitTextToSize(
+        "Time blocks derived from the diary grid for this day (no event log stored).",
+        colW
+      );
+      doc.text(src, margin, y);
+      y += src.length * 3.2 + 2;
+      doc.setTextColor(30, 30, 30);
+      const segments = getDaySegments(
+        day as { work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] },
+        isoDate,
+        todayStr
+      );
+      const timeline = segmentsToTimeline(segments);
+      const cap = 60;
+      const slice = timeline.slice(0, cap);
+      for (const seg of slice) {
+        const row = `${minToHHMM(seg.startMin)} – ${minToHHMM(seg.endMin)}  |  ${formatDuration(seg.endMin - seg.startMin)}  |  ${segmentLabel(seg.type)}`;
+        if (y > 278) pageBreak();
+        doc.setFontSize(7.5);
+        doc.text(row, margin, y);
+        y += 3.5;
+      }
+      if (timeline.length > cap) {
+        doc.setFontSize(7);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`(+${timeline.length - cap} more segments)`, margin, y);
+        y += 4;
+        doc.setTextColor(30, 30, 30);
+      }
+    }
+
+    y += 4;
+  }
+
+  return y;
+}
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -596,7 +1007,15 @@ export async function GET(
         destination?: string;
         start_kms?: number;
         end_kms?: number;
-        events?: Array<{ time: string; type: string }>;
+        assume_idle_from?: string;
+        events?: Array<{
+          time: string;
+          type: string;
+          lat?: number;
+          lng?: number;
+          accuracy?: number;
+          driver?: "primary" | "second";
+        }>;
       }>;
     try {
       const parsed = row.days ? JSON.parse(row.days) : [];
@@ -604,6 +1023,8 @@ export async function GET(
     } catch {
       days = [];
     }
+
+    const jurisdictionLabel = jurisdictionDisplayLabel(parseJurisdictionCode(row.jurisdictionCode));
 
     const sheet = {
       driver_name: row.driverName,
@@ -615,19 +1036,9 @@ export async function GET(
       status: row.status,
       signature: row.signature,
       signed_at: row.signedAt?.toISOString() ?? null,
+      jurisdiction_label: jurisdictionLabel,
+      last_24h_break: row.last24hBreak,
     };
-
-    const audit = await prisma.auditEvent.findMany({
-      where: { sheetId: id },
-      orderBy: { createdAt: "asc" },
-      take: 200,
-      select: {
-        createdAt: true,
-        action: true,
-        payload: true,
-        actor: { select: { email: true, name: true } },
-      },
-    });
 
     const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, id);
     const rv = roadsideExtras.results.filter((r) => r.type === "violation");
@@ -662,6 +1073,10 @@ export async function GET(
           destination: row.destination,
           week_starting: row.weekStarting,
           days,
+          jurisdiction_label: jurisdictionLabel,
+          last_24h_break: row.last24hBreak,
+          status: row.status,
+          signed_at: row.signedAt?.toISOString() ?? null,
         },
         todayStr,
         generatedAtLabel,
@@ -944,46 +1359,7 @@ export async function GET(
       y += tilePadding + 4;
     });
 
-    // Audit trail appendix (snapshot of edit history)
-    if (audit.length > 0) {
-      doc.addPage();
-      let ay = 18;
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(30, 30, 30);
-      doc.text("AUDIT TRAIL (Appendix)", margin, ay);
-      ay += 6;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(80, 80, 80);
-      doc.text(
-        "Append-only log of sheet changes captured by the system. Times shown in Australia/Perth.",
-        margin,
-        ay
-      );
-      ay += 6;
-
-      doc.setTextColor(30, 30, 30);
-      const maxLines = 200;
-      const rows = audit.slice(Math.max(0, audit.length - maxLines));
-      for (const e of rows) {
-        const who = e.actor?.name || e.actor?.email || "unknown";
-        const when = new Date(e.createdAt).toLocaleString("en-AU", { timeZone: "Australia/Perth" });
-        const action = e.action;
-        const changed =
-          e.payload && typeof e.payload === "object" && "changed_fields" in (e.payload as any)
-            ? (e.payload as any).changed_fields
-            : undefined;
-        const line = `${when} — ${action}${who ? ` — ${who}` : ""}${Array.isArray(changed) ? ` — ${changed.join(", ")}` : ""}`;
-        const wrapped = doc.splitTextToSize(line, colW);
-        if (ay + wrapped.length * 4 > 280) {
-          doc.addPage();
-          ay = 16;
-        }
-        doc.text(wrapped, margin, ay);
-        ay += wrapped.length * 4 + 1;
-      }
-    }
+    y = renderShiftLogJsPDF(doc, margin, colW, sheet, todayStr);
 
     y += 4;
     if (sheet.signature) {
