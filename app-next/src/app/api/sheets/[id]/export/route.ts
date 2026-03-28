@@ -413,6 +413,7 @@ function buildShiftLogHtml(opts: {
       }).events;
       const hasEvents = Array.isArray(events) && events.length > 0;
 
+      const isTwoUp = sheet.driver_type === "two_up";
       let bodyHtml: string;
       if (hasEvents) {
         const rows = events!
@@ -420,11 +421,11 @@ function buildShiftLogHtml(opts: {
           .map((ev) => {
             const typeLabel = logEventTypeLabel(ev.type || "");
             let driverCol = "—";
-            if (sheet.driver_type === "two_up" && ev.driver === "second") {
+            if (isTwoUp && ev.driver === "second") {
               driverCol = secondName || "Second driver";
-            } else if (sheet.driver_type === "two_up" && ev.driver === "primary") {
+            } else if (isTwoUp && ev.driver === "primary") {
               driverCol = primaryName;
-            } else if (sheet.driver_type === "two_up") {
+            } else if (isTwoUp) {
               driverCol = "—";
             }
             let loc = "—";
@@ -434,19 +435,26 @@ function buildShiftLogHtml(opts: {
                 loc += ` (±${Math.round(ev.accuracy)} m)`;
               }
             }
-            return `<tr>
-              <td class="mono">${escapeHtml(formatTimestampPerth(ev.time))}</td>
+            const cells = isTwoUp
+              ? `<td class="mono">${escapeHtml(formatTimestampPerth(ev.time))}</td>
               <td>${escapeHtml(typeLabel)}</td>
               <td>${escapeHtml(driverCol)}</td>
-              <td class="mono">${escapeHtml(loc)}</td>
-            </tr>`;
+              <td class="mono">${escapeHtml(loc)}</td>`
+              : `<td class="mono">${escapeHtml(formatTimestampPerth(ev.time))}</td>
+              <td>${escapeHtml(typeLabel)}</td>
+              <td class="mono">${escapeHtml(loc)}</td>`;
+            return `<tr>${cells}</tr>`;
           })
           .join("");
+        const thead = isTwoUp
+          ? "<tr><th>Time (Australia/Perth)</th><th>Type</th><th>Driver (two-up)</th><th>Location</th></tr>"
+          : "<tr><th>Time (Australia/Perth)</th><th>Type</th><th>Location</th></tr>";
+        const emptyColspan = isTwoUp ? 4 : 3;
         bodyHtml = `
           <p class="shiftSource">Logged events (exact times and types as recorded in the app).</p>
           <table class="shiftEventTable">
-            <thead><tr><th>Time (Australia/Perth)</th><th>Type</th><th>Driver</th><th>Location</th></tr></thead>
-            <tbody>${rows || `<tr><td colspan="4" class="empty">No events</td></tr>`}</tbody>
+            <thead>${thead}</thead>
+            <tbody>${rows || `<tr><td colspan="${emptyColspan}" class="empty">No events</td></tr>`}</tbody>
           </table>`;
       } else {
         const segments = getDaySegments(day, isoDate, todayStr);
@@ -860,6 +868,7 @@ function renderShiftLogJsPDF(
 
   const primaryName = (sheet.driver_name || "").trim() || "—";
   const secondName = (sheet.second_driver || "").trim();
+  const isTwoUp = sheet.driver_type === "two_up";
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
 
@@ -925,7 +934,7 @@ function renderShiftLogJsPDF(
         if (!time) continue;
         const typeLabel = logEventTypeLabel(String((ev as { type?: string }).type ?? ""));
         let driverCol = "—";
-        if (sheet.driver_type === "two_up") {
+        if (isTwoUp) {
           if ((ev as { driver?: string }).driver === "second") driverCol = secondName || "Second";
           else if ((ev as { driver?: string }).driver === "primary") driverCol = primaryName;
         }
@@ -937,7 +946,9 @@ function renderShiftLogJsPDF(
           loc = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
           if (acc != null && Number.isFinite(acc)) loc += ` (±${Math.round(acc)} m)`;
         }
-        const line = `${formatTimestampPerth(time)}  |  ${typeLabel}  |  ${driverCol}  |  ${loc}`;
+        const line = isTwoUp
+          ? `${formatTimestampPerth(time)}  |  ${typeLabel}  |  ${driverCol}  |  ${loc}`
+          : `${formatTimestampPerth(time)}  |  ${typeLabel}  |  ${loc}`;
         const wrapped = doc.splitTextToSize(line, colW);
         if (y + wrapped.length * 3.2 > 278) pageBreak();
         doc.setFontSize(7.5);
