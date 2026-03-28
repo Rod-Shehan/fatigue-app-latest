@@ -191,14 +191,12 @@ export function ManagerView() {
     last_24h_break: string;
     driver_type: string;
     week_starting: string;
-    destination: string;
     driver_name: string;
     second_driver: string;
   }>({
     last_24h_break: "",
     driver_type: "solo",
     week_starting: "",
-    destination: "",
     driver_name: "",
     second_driver: "",
   });
@@ -335,7 +333,6 @@ export function ManagerView() {
       last_24h_break: selectedSheet.last_24h_break ?? "",
       driver_type: selectedSheet.driver_type ?? "solo",
       week_starting: selectedSheet.week_starting ?? "",
-      destination: selectedSheet.destination ?? "",
       driver_name: selectedSheet.driver_name ?? "",
       second_driver: selectedSheet.second_driver ?? "",
     });
@@ -385,7 +382,7 @@ export function ManagerView() {
       last_24h_break: form.last_24h_break || undefined,
       driver_type: form.driver_type,
       week_starting: form.week_starting || undefined,
-      destination: form.destination || undefined,
+      destination: null,
       driver_name: form.driver_name || undefined,
       second_driver: form.second_driver || undefined,
     });
@@ -398,7 +395,6 @@ export function ManagerView() {
     (form.last_24h_break !== (selectedSheet.last_24h_break ?? "") ||
       form.driver_type !== (selectedSheet.driver_type ?? "solo") ||
       form.week_starting !== (selectedSheet.week_starting ?? "") ||
-      form.destination !== (selectedSheet.destination ?? "") ||
       form.driver_name !== (selectedSheet.driver_name ?? "") ||
       form.second_driver !== (selectedSheet.second_driver ?? ""));
 
@@ -604,7 +600,7 @@ export function ManagerView() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
             {managerTab === "compliance"
               ? "Review a work week by day. Use filters to focus on non-compliant or incomplete sheets, then switch to Edit sheet to open or amend a sheet."
-              : "Select a sheet to edit driver-entered fields such as last 24 hour break date, driver type, week starting, and destination."}
+              : "Select a sheet to edit driver-entered fields such as last 24 hour break date, driver type, and week starting."}
           </p>
 
           <div className="space-y-4">
@@ -963,22 +959,6 @@ export function ManagerView() {
                           />
                         </div>
                       )}
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                          Destination
-                        </Label>
-                        <Input
-                          value={form.destination}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              destination: e.target.value,
-                            }))
-                          }
-                          placeholder="Destination"
-                          className="h-9 max-w-xs"
-                        />
-                      </div>
                       <div className="sm:col-span-2 flex items-center gap-3 pt-2">
                         <Button
                           onClick={handleSave}

@@ -169,7 +169,6 @@ export function SheetDetail({
     second_driver: string;
     driver_type: string;
     jurisdiction_code: string;
-    destination: string;
     last_24h_break: string;
     week_starting: string;
     days: DayData[];
@@ -181,7 +180,6 @@ export function SheetDetail({
     second_driver: "",
     driver_type: "solo",
     jurisdiction_code: DEFAULT_JURISDICTION_CODE,
-    destination: "",
     last_24h_break: "",
     week_starting: getThisWeekSunday(),
     days: Array(7)
@@ -305,7 +303,6 @@ export function SheetDetail({
         second_driver: sheet.second_driver || "",
         driver_type: sheet.driver_type || "solo",
         jurisdiction_code: sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
-        destination: sheet.destination || "",
         last_24h_break: sheet.last_24h_break || "",
         week_starting: weekStart,
         days: applyLast24hBreakNonWorkRule(
@@ -454,7 +451,7 @@ export function SheetDetail({
       driver_name: d.driver_name,
       second_driver: d.second_driver,
       driver_type: d.driver_type,
-      destination: d.destination,
+      destination: null,
       last_24h_break: d.last_24h_break || undefined,
       week_starting: d.week_starting,
       days: d.days,
@@ -671,7 +668,7 @@ export function SheetDetail({
       driver_name: sheetData.driver_name,
       second_driver: sheetData.second_driver,
       driver_type: sheetData.driver_type,
-      destination: sheetData.destination,
+      destination: null,
       last_24h_break: sheetData.last_24h_break || undefined,
       week_starting: sheetData.week_starting,
       days: sheetData.days,
@@ -703,7 +700,7 @@ export function SheetDetail({
       driver_name: sheetData.driver_name,
       second_driver: sheetData.second_driver,
       driver_type: sheetData.driver_type,
-      destination: sheetData.destination,
+      destination: null,
       last_24h_break: sheetData.last_24h_break || undefined,
       week_starting: sheetData.week_starting,
       days: sheetData.days,

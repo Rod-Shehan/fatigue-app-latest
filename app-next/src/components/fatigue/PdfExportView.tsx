@@ -105,7 +105,6 @@ export type PdfExportViewProps = {
     driver_name: string;
     second_driver?: string;
     driver_type: string;
-    destination: string;
     last_24h_break?: string;
     week_starting: string;
     days: DayData[];

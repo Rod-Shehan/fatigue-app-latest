@@ -314,7 +314,6 @@ function buildShiftLogHtml(opts: {
     driver_name: string;
     second_driver: string | null;
     driver_type: string;
-    destination: string | null;
     week_starting: string;
     jurisdiction_label: string;
     last_24h_break: string | null;
@@ -354,7 +353,6 @@ function buildShiftLogHtml(opts: {
     { label: "Driver type", value: sheet.driver_type === "two_up" ? "Two-up" : "Solo" },
     { label: "Week starting", value: sheet.week_starting || "—" },
     { label: "Rules (jurisdiction)", value: sheet.jurisdiction_label || "—" },
-    { label: "Destination (sheet)", value: (sheet.destination || "").trim() || "—" },
     {
       label: "Last 24h continuous rest (date)",
       value: (sheet.last_24h_break || "").trim() || "—",
@@ -501,7 +499,6 @@ function renderPdfHtml(opts: {
     driver_name: string;
     second_driver: string | null;
     driver_type: string;
-    destination: string | null;
     week_starting: string;
     jurisdiction_label: string;
     last_24h_break: string | null;
@@ -814,7 +811,6 @@ function renderShiftLogJsPDF(
     driver_name: string;
     second_driver: string | null;
     driver_type: string;
-    destination: string | null;
     week_starting: string;
     jurisdiction_label: string;
     last_24h_break: string | null;
@@ -852,7 +848,6 @@ function renderShiftLogJsPDF(
     `Driver type: ${sheet.driver_type === "two_up" ? "Two-up" : "Solo"}`,
     `Week starting: ${sheet.week_starting || "—"}`,
     `Rules: ${sheet.jurisdiction_label || "—"}`,
-    `Destination (sheet): ${(sheet.destination || "").trim() || "—"}`,
     `Last 24h rest (date): ${(sheet.last_24h_break || "").trim() || "—"}`,
     `Status: ${sheet.status === "completed" ? "Completed" : "Draft"}`,
     ...(sheet.signed_at ? [`Signed: ${formatTimestampPerth(sheet.signed_at)}`] : []),
@@ -1041,7 +1036,6 @@ export async function GET(
       driver_name: row.driverName,
       second_driver: row.secondDriver,
       driver_type: row.driverType,
-      destination: row.destination,
       week_starting: row.weekStarting,
       days,
       status: row.status,
@@ -1081,7 +1075,6 @@ export async function GET(
           driver_name: row.driverName,
           second_driver: row.secondDriver,
           driver_type: row.driverType,
-          destination: row.destination,
           week_starting: row.weekStarting,
           days,
           jurisdiction_label: jurisdictionLabel,

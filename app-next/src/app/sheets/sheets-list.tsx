@@ -166,9 +166,6 @@ export function SheetsList() {
                             This week
                           </span>
                         )}
-                        {sheet.destination && (
-                          <span className="text-xs text-slate-400 dark:text-slate-500">→ {sheet.destination}</span>
-                        )}
                       </div>
                     </div>
                   </div>

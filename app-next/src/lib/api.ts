@@ -71,7 +71,8 @@ export type FatigueSheet = {
   driver_name: string;
   second_driver?: string;
   driver_type: string;
-  destination?: string;
+  /** Deprecated: use per-day `days[].destination` only; may be null from API. */
+  destination?: string | null;
   last_24h_break?: string;
   week_starting: string;
   days: DayData[];

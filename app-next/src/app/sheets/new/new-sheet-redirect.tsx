@@ -36,7 +36,6 @@ export function NewSheetRedirect() {
         driver_name: defaultDriverName,
         second_driver: "",
         driver_type: "solo",
-        destination: "",
         week_starting: getThisWeekSunday(),
         days: Array(7)
           .fill(null)

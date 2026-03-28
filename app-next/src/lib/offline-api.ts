@@ -44,7 +44,6 @@ export async function runSync(): Promise<{ synced: number; error?: string; repla
               driver_name: latest.driver_name,
               second_driver: latest.second_driver,
               driver_type: latest.driver_type,
-              destination: latest.destination,
               last_24h_break: latest.last_24h_break,
               week_starting: latest.week_starting,
               days: latest.days,
