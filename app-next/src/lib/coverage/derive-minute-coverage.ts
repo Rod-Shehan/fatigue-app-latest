@@ -170,6 +170,23 @@ export function expandHalfHourSlotsToMinutes(slots: boolean[]): boolean[] {
   return out;
 }
 
+/**
+ * Single interpretation for one coverage row (work, break, or non-work): legacy 48 half-hour
+ * slots expand to 1440 minutes; anything else is treated as per-minute booleans up to one day
+ * (pad short, truncate long) so getHours never mixes half-hour and minute math by accident.
+ */
+export function normalizeCoverageFieldToMinutes(slots: boolean[] | undefined | null): boolean[] {
+  if (!slots || slots.length === 0) return Array(MINUTES_PER_DAY).fill(false);
+  if (slots.length === 48) return expandHalfHourSlotsToMinutes(slots);
+  if (slots.length === MINUTES_PER_DAY) return slots.slice();
+  if (slots.length < MINUTES_PER_DAY) {
+    const out = slots.slice();
+    while (out.length < MINUTES_PER_DAY) out.push(false);
+    return out.slice(0, MINUTES_PER_DAY);
+  }
+  return slots.slice(0, MINUTES_PER_DAY);
+}
+
 /** Ensure work_time/breaks/non_work are 1440-length (expand from 48 if needed). */
 export function normalizeDayCoverageArrays<T extends { work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[] }>(
   d: T
@@ -217,4 +234,18 @@ export function normalizeDayCoverageArrays<T extends { work_time?: boolean[]; br
     breaks: (d.breaks ?? []).slice(0, MINUTES_PER_DAY),
     non_work: (d.non_work ?? []).slice(0, MINUTES_PER_DAY),
   };
+}
+
+/**
+ * API boundary: normalize each day's coverage to 1440 booleans (expand legacy 48-slot grids).
+ * Preserves other day fields (events, kms, etc.). Safe for GET responses and POST/PATCH persist.
+ */
+export function normalizeSheetDaysForApi(days: unknown): unknown[] {
+  if (!Array.isArray(days)) return [];
+  return days.map((d) => {
+    if (d && typeof d === "object" && !Array.isArray(d)) {
+      return normalizeDayCoverageArrays(d as { work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[] });
+    }
+    return d;
+  });
 }

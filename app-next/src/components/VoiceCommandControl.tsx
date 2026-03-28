@@ -28,9 +28,17 @@ type Props = {
   onConfirmIntent: (intent: VoiceIntent) => void;
   className?: string;
   disabled?: boolean;
+  /** When false, "end shift" / stop intent is ignored and a banner explains why (e.g. no open work/break). */
+  allowStopIntent?: boolean;
 };
 
-export function VoiceCommandControl({ voiceLabels, onConfirmIntent, className, disabled }: Props) {
+export function VoiceCommandControl({
+  voiceLabels,
+  onConfirmIntent,
+  className,
+  disabled,
+  allowStopIntent = true,
+}: Props) {
   const [listening, setListening] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -96,6 +104,10 @@ export function VoiceCommandControl({ voiceLabels, onConfirmIntent, className, d
         setBanner(`No match. ${VOICE_COMMAND_HINT}`);
         return;
       }
+      if (matched.intent === "stop" && !allowStopIntent) {
+        setBanner("No shift to end — start work or a break first.");
+        return;
+      }
       const actionLabel = intentToLabel(matched.intent);
       setPending({
         intent: matched.intent,
@@ -134,7 +146,7 @@ export function VoiceCommandControl({ voiceLabels, onConfirmIntent, className, d
       setListening(false);
       setBanner("Could not start voice input. Use the buttons instead.");
     }
-  }, [Ctor, disabled, intentToLabel, stopListening]);
+  }, [Ctor, disabled, intentToLabel, stopListening, allowStopIntent]);
 
   const handleConfirm = () => {
     if (!pending) return;

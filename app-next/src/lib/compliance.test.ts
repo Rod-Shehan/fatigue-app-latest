@@ -4,6 +4,7 @@ import {
   findLongestContinuousBlock,
   countContinuousBlocksOfAtLeast,
   runComplianceChecks,
+  getProspectiveWorkWarnings,
   type ComplianceDayData,
 } from "./compliance";
 import { MINUTES_PER_DAY } from "./coverage/derive-minute-coverage";
@@ -50,6 +51,26 @@ describe("compliance helpers", () => {
     expect(getHours(workSlots(5))).toBe(5);
     expect(getHours(undefined)).toBe(0);
     expect(getHours([])).toBe(0);
+  });
+
+  it("getHours treats ambiguous-length arrays as minutes (no half-hour misread)", () => {
+    expect(getHours(Array(100).fill(true))).toBeCloseTo(100 / 60, 5);
+  });
+
+  it("getProspectiveWorkWarnings accepts legacy 48-slot days (normalizes before inject)", () => {
+    const legacyEmpty = () => ({
+      work_time: Array(48).fill(false),
+      breaks: Array(48).fill(false),
+      non_work: Array(48).fill(false),
+    });
+    const week = Array(7)
+      .fill(null)
+      .map(() => legacyEmpty()) as ComplianceDayData[];
+    expect(() =>
+      getProspectiveWorkWarnings(week, 0, "2026-06-01", { driverType: "solo" })
+    ).not.toThrow();
+    const msgs = getProspectiveWorkWarnings(week, 0, "2026-06-01", { driverType: "solo" });
+    expect(Array.isArray(msgs)).toBe(true);
   });
 
   it("findLongestContinuousBlock finds longest run", () => {

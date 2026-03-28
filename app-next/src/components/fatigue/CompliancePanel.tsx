@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, Coffee, Loader2, MapPin, Moon, Tren
 import { motion, AnimatePresence } from "framer-motion";
 import type { ComplianceCheckResult } from "@/lib/api";
 import { getHours } from "@/lib/compliance";
+import { formatHoursStatistic } from "@/lib/hours";
 import { getSheetDayDateString } from "@/lib/weeks";
 import { ACTIVITY_THEME } from "@/lib/theme";
 
@@ -83,20 +84,20 @@ export default function CompliancePanel({
       <div className="grid grid-cols-3 gap-2">
         <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.work.statsCard}`}>
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.work.statsLabel}`}>Work</p>
-          <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.work.statsValue}`}>{totalWork}h</p>
+          <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.work.statsValue}`}>{formatHoursStatistic(totalWork)}h</p>
           {prevWeekDays && prevWeekDays.length > 0 && (
-            <p className="text-[10px] text-blue-400 font-mono">14d: {totalWork + prevWeekWork}h</p>
+            <p className="text-[10px] text-blue-400 font-mono">14d: {formatHoursStatistic(totalWork + prevWeekWork)}h</p>
           )}
         </div>
         <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.break.statsCard}`} title="Short gaps (≤30 min) between work count as break. Break longer than 30 min counts as non-work.">
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.break.statsLabel}`}>Break</p>
           <p className="text-[9px] text-slate-400 mt-0.5">≤30 min between work</p>
-          <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.break.statsValue}`}>{totalBreaks}h</p>
+          <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.break.statsValue}`}>{formatHoursStatistic(totalBreaks)}h</p>
         </div>
         <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.non_work.statsCard}`} title="Recovery time; includes breaks &gt;30 min and time between shifts.">
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.non_work.statsLabel}`}>Non-Work Time</p>
           <p className="text-[9px] text-slate-400 mt-0.5">recovery; breaks &gt;30 min</p>
-          <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.non_work.statsValue}`}>{totalNonWork}h</p>
+          <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.non_work.statsValue}`}>{formatHoursStatistic(totalNonWork)}h</p>
         </div>
       </div>
       {prevWeekDays && prevWeekDays.length > 0 && (

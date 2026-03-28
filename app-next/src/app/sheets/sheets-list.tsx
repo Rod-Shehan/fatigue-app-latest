@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { type FatigueSheet } from "@/lib/api";
 import { getHours } from "@/lib/compliance";
+import { formatHoursStatistic } from "@/lib/hours";
 import { listSheetsOfflineFirst } from "@/lib/offline-api";
 import { parseLocalDate } from "@/lib/weeks";
 import { Button } from "@/components/ui/button";
@@ -138,7 +139,7 @@ export function SheetsList() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="hidden md:inline text-sm font-mono text-slate-500 dark:text-slate-400">
-                    {getTotalWorkHours(sheet)}h
+                    {formatHoursStatistic(getTotalWorkHours(sheet))}h
                   </span>
                   <span
                     className={`text-xs px-2 py-0.5 rounded border ${

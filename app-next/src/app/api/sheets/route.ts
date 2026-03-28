@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { autoCloseStaleDraftSheetsForUser } from "@/lib/sheet-auto-close-db";
 import { getThisWeekSunday, isNextWeekOrLater } from "@/lib/weeks";
 import { parseJurisdictionCode } from "@/lib/jurisdiction";
+import { normalizeSheetDaysForApi } from "@/lib/coverage/derive-minute-coverage";
 
 function parseDays(daysJson: string): unknown[] {
   try {
@@ -39,7 +40,7 @@ function sheetToJson(row: {
     destination: row.destination,
     last_24h_break: row.last24hBreak,
     week_starting: row.weekStarting,
-    days: parseDays(row.days),
+    days: normalizeSheetDaysForApi(parseDays(row.days)),
     status: row.status,
     signature: row.signature,
     signed_at: row.signedAt?.toISOString() ?? null,
@@ -166,7 +167,7 @@ export async function POST(req: Request) {
         destination: destination ?? null,
         last24hBreak: body.last_24h_break ?? null,
         weekStarting: week_starting,
-        days: JSON.stringify(days),
+        days: JSON.stringify(normalizeSheetDaysForApi(days)),
         status: status ?? "draft",
         signature: signature ?? null,
         signedAt: signed_at ? new Date(signed_at) : null,

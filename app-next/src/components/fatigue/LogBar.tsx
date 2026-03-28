@@ -275,6 +275,8 @@ export default function LogBar({
   );
   const lastEvent = eventsForDriver.length ? eventsForDriver[eventsForDriver.length - 1] : undefined;
   const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
+  /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
+  const shiftSegmentOpen = currentType === "work" || currentType === "break";
 
   /** Faster tick during work/break so compliance header (e.g. pending → OK) updates within a few seconds. */
   useEffect(() => {
@@ -411,7 +413,7 @@ export default function LogBar({
 
   /** Warning when starting work with <7h non-work since last shift (rolling time: last stop on this driver's timeline). */
   const getInsufficientNonWorkWarning = () => {
-    if (currentType !== null && currentType !== "stop") return null;
+    if (currentType !== null) return null;
     const rolling =
       driverType === "two_up"
         ? getEventsInTimeOrder(days).filter((ev) => (ev.driver ?? "primary") === activeDriver)
@@ -422,7 +424,15 @@ export default function LogBar({
   const handleLog = (type: string) => {
     if (type === currentType) return;
 
-    const isStartingShift = type === "work" && (currentType === null || currentType === "stop");
+    if (
+      type === "stop" &&
+      !shiftSegmentOpen &&
+      pendingType !== "stop"
+    ) {
+      return;
+    }
+
+    const isStartingShift = type === "work" && currentType === null;
     if (isStartingShift) {
       const hasRego = (dayForCardFields?.truck_rego ?? "").toString().trim() !== "";
       const hasDestination = (dayForCardFields?.destination ?? "").toString().trim() !== "";
@@ -515,7 +525,7 @@ export default function LogBar({
             : "Logging work now may affect these compliance rules:\n\n• " + workRelevantComplianceMessages.join("\n\n• ");
         setWorkWarning({
           message,
-          confirmLabel: currentType === null || currentType === "stop" ? "Start shift anyway" : "Log work anyway",
+          confirmLabel: currentType === null ? "Start shift anyway" : "Log work anyway",
           subtext: "Tap Work again within a few seconds to confirm.",
           onConfirm: () => {
             setWorkWarning(null);
@@ -567,7 +577,7 @@ export default function LogBar({
             const nextWorkBreak = getNextWorkBreakType(currentType);
             const isPending = pendingType === nextWorkBreak;
             const theme = ACTIVITY_THEME[nextWorkBreak];
-            const isStartingShift = nextWorkBreak === "work" && (currentType === null || currentType === "stop");
+            const isStartingShift = nextWorkBreak === "work" && currentType === null;
             const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
             return (
               <button
@@ -580,26 +590,25 @@ export default function LogBar({
               </button>
             );
           })()}
-          {(() => {
-            const type = "stop";
-            const isPending = pendingType === type;
-            const isDisabled = currentType === type;
-            const theme = ACTIVITY_THEME[type];
-            const buttonColors = isPending
-              ? "bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300"
-              : theme.button;
-            return (
-              <button
-                type="button"
-                onClick={() => handleLog(type)}
-                disabled={isDisabled}
-                className={`flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-lg text-white text-xs font-bold transition-all duration-150 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
-              >
-                {React.createElement(EVENT_ICONS[type], { className: "w-4 h-4" })}
-                {isPending ? "Tap again to end shift" : EVENT_LABELS[type]}
-              </button>
-            );
-          })()}
+          {(shiftSegmentOpen || pendingType === "stop") &&
+            (() => {
+              const type = "stop";
+              const isPending = pendingType === type;
+              const theme = ACTIVITY_THEME[type];
+              const buttonColors = isPending
+                ? "bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300"
+                : theme.button;
+              return (
+                <button
+                  type="button"
+                  onClick={() => handleLog(type)}
+                  className={`flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-lg text-white text-xs font-bold transition-all duration-150 active:scale-95 shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
+                >
+                  {React.createElement(EVENT_ICONS[type], { className: "w-4 h-4" })}
+                  {isPending ? "Tap again to end shift" : EVENT_LABELS[type]}
+                </button>
+              );
+            })()}
         </div>
       </div>
 
@@ -788,12 +797,10 @@ export default function LogBar({
             )}
           <div className="flex shrink-0 items-center gap-1">
             <VoiceCommandControl
+              allowStopIntent={shiftSegmentOpen || pendingType === "stop"}
               voiceLabels={{
                 work:
-                  getNextWorkBreakType(currentType) === "work" &&
-                  (currentType === null || currentType === "stop")
-                    ? "Start shift"
-                    : "Log work",
+                  getNextWorkBreakType(currentType) === "work" && currentType === null ? "Start shift" : "Log work",
                 break: "Log break",
                 stop: EVENT_LABELS.stop,
               }}

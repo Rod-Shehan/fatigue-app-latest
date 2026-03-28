@@ -8,7 +8,11 @@
 
 import { getSheetDayDateString, getPerthMidnightUtcMs, getTodayYmdInTimeZone } from "@/lib/weeks";
 import { haversineDistanceKm } from "@/lib/geo";
-import { MINUTES_PER_DAY, normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
+import {
+  MINUTES_PER_DAY,
+  normalizeCoverageFieldToMinutes,
+  normalizeDayCoverageArrays,
+} from "@/lib/coverage/derive-minute-coverage";
 
 export type ComplianceDayData = {
   work_time?: boolean[];
@@ -26,12 +30,10 @@ export type ComplianceCheckResult = {
   message: string;
 };
 
-/** Hours from coverage: 1440 booleans = 1 min each; legacy 48 = 30 min each. */
+/** Hours from coverage: always via minute grid (48-slot legacy expanded to 1440 first). */
 export function getHours(slots: boolean[] | undefined): number {
-  const arr = slots || [];
-  if (arr.length === 0) return 0;
-  if (arr.length === 48) return arr.filter(Boolean).length * 0.5;
-  return arr.filter(Boolean).length / 60;
+  const mins = normalizeCoverageFieldToMinutes(slots);
+  return mins.filter(Boolean).length / 60;
 }
 
 /** Day is considered to have work if it has work_time slots or any work event (used for 7h/17h rule scope). */
@@ -41,8 +43,7 @@ function dayHasWork(day: ComplianceDayData): boolean {
 }
 
 export function findLongestContinuousBlock(slots: boolean[] | undefined): number {
-  const arr = slots || [];
-  const minuteMode = arr.length !== 48;
+  const arr = normalizeCoverageFieldToMinutes(slots);
   let max = 0,
     current = 0;
   for (let i = 0; i < arr.length; i++) {
@@ -53,13 +54,12 @@ export function findLongestContinuousBlock(slots: boolean[] | undefined): number
       current = 0;
     }
   }
-  return minuteMode ? max / 60 : max * 0.5;
+  return max / 60;
 }
 
 export function countContinuousBlocksOfAtLeast(slots: boolean[] | undefined, minHours: number): number {
-  const arr = slots || [];
-  const minuteMode = arr.length !== 48;
-  const minSlots = minuteMode ? minHours * 60 : minHours * 2;
+  const arr = normalizeCoverageFieldToMinutes(slots);
+  const minSlots = minHours * 60;
   let count = 0,
     current = 0;
   for (let i = 0; i < arr.length; i++) {
@@ -165,7 +165,10 @@ const MIN_NON_WORK_MINUTES_24H = MIN_NON_WORK_HRS_24H * 60;
 const MIN_RECORDED_HRS_24H = 16;
 const MIN_7H_BLOCK_MINUTES = 7 * 60;
 
-/** Flat minute arrays across days for rolling window checks. */
+/**
+ * Flat minute arrays across days for rolling window checks.
+ * Call only with days already passed through `normalizeDayCoverageArrays` (as in `runComplianceChecks`).
+ */
 function flatSlots(days: ComplianceDayData[], key: "non_work" | "work_time" | "breaks"): boolean[] {
   return days.flatMap((d) => (d[key] || Array(MINUTES_PER_DAY).fill(false)).slice(0, MINUTES_PER_DAY));
 }
@@ -730,17 +733,17 @@ export function getSlotOffsetWithinTodayLocal(
   return Math.min(MINUTES_PER_DAY, Math.max(0, Math.floor((nowMs - todayStart) / 60000)));
 }
 
-/** Clone days and set one work_time slot to true (for prospective "log work now" check). */
+/** Clone days and set one work_time minute to true (for prospective "log work now" check). Expects minute-length grids. */
 function cloneDaysAndInjectWork(
   days: ComplianceDayData[],
   dayIndex: number,
-  slotIndex: number
+  minuteIndex: number
 ): ComplianceDayData[] {
   return days.map((d, i) => {
     if (i !== dayIndex) return { ...d };
     const work = d.work_time ?? Array(MINUTES_PER_DAY).fill(false);
     const next = [...work];
-    if (slotIndex >= 0 && slotIndex < next.length) next[slotIndex] = true;
+    if (minuteIndex >= 0 && minuteIndex < next.length) next[minuteIndex] = true;
     return { ...d, work_time: next };
   });
 }
@@ -765,7 +768,8 @@ function filterWorkRelevantResults(results: ComplianceCheckResult[]): Compliance
 }
 
 /**
- * Run compliance as if one more 30-min work segment were logged at "now" on the current day.
+ * Run compliance as if one more minute of work were logged at "now" on the current day.
+ * Normalizes legacy 48-slot grids first so injection targets the correct minute index.
  * Returns work-relevant violation/warning messages (non-work time, limits).
  * Use when the user is about to tap "Work" to show prospective issues.
  */
@@ -782,11 +786,14 @@ export function getProspectiveWorkWarnings(
   }
 ): string[] {
   const { jurisdictionCode, ...rest } = options;
+  const normalizedDays = days.map((d) => normalizeDayCoverageArrays(d));
+  const normalizedPrev = (options.prevWeekDays ?? null)?.map((d) => normalizeDayCoverageArrays(d)) ?? null;
   const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(undefined, jurisdictionCode);
-  const injectSlot = Math.min(MINUTES_PER_DAY - 1, Math.max(0, slotOffsetWithinToday));
-  const cloned = cloneDaysAndInjectWork(days, currentDayIndex, injectSlot);
+  const injectMinute = Math.min(MINUTES_PER_DAY - 1, Math.max(0, slotOffsetWithinToday));
+  const cloned = cloneDaysAndInjectWork(normalizedDays, currentDayIndex, injectMinute);
   const results = runComplianceChecks(cloned, {
     ...rest,
+    prevWeekDays: normalizedPrev,
     weekStarting,
     currentDayIndex,
     slotOffsetWithinToday,
