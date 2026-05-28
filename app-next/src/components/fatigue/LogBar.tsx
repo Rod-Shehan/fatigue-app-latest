@@ -171,6 +171,8 @@ export default function LogBar({
   primaryDriverName,
   secondDriverName,
   forgottenActionReminder,
+  /** True when this sheet/day is "live now" (today); otherwise hide live elapsed/timers. */
+  isLiveNow,
   /** Header tint + icon (right side); tap to jump to compliance panel. */
   complianceButton,
   /** When set, tapping Work / Start shift is blocked until driver signs past weeks (see Your Sheets). */
@@ -202,6 +204,7 @@ export default function LogBar({
   secondDriverName?: string;
   /** Reminder banner content (e.g. forgot end shift). Rendered prominently inside fixed header. */
   forgottenActionReminder?: { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null;
+  isLiveNow?: boolean;
   complianceButton?: {
     onClick: () => void;
     hasViolations: boolean;
@@ -295,12 +298,14 @@ export default function LogBar({
 
   /** Faster tick during work/break so compliance header (e.g. pending → OK) updates within a few seconds. */
   useEffect(() => {
+    if (!isLiveNow) return;
     const ms = currentType === "work" || currentType === "break" ? 2000 : 10000;
     const id = setInterval(() => setTick((t) => t + 1), ms);
     return () => clearInterval(id);
-  }, [currentType]);
+  }, [currentType, isLiveNow]);
 
-  const elapsedMs = currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
+  const elapsedMs =
+    isLiveNow && currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
   const elapsedMinutes = Math.max(0, elapsedMs / 60000);
   const contextualBar = (() => {
     if (!currentType || currentType === "stop") return null;

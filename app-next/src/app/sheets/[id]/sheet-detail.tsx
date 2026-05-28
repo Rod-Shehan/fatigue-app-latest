@@ -130,8 +130,15 @@ const AUTO_SAVE_DEBOUNCE_MS = 5000;
 
 function getForgottenActionReminder(
   days: DayData[],
-  currentDayIndex: number
+  currentDayIndex: number,
+  weekStarting: string,
+  todayYmd: string
 ): { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null {
+  // Only show “you might have forgotten…” prompts on the *current* regulatory day for the *current* week.
+  if (!weekStarting) return null;
+  const sheetDayYmd = getSheetDayDateString(weekStarting, currentDayIndex);
+  if (sheetDayYmd !== todayYmd) return null;
+
   const day = days[currentDayIndex];
   const events = day?.events ?? [];
   const last = events[events.length - 1];
@@ -236,8 +243,8 @@ export function SheetDetail({
   );
 
   const forgottenActionReminder = useMemo(
-    () => getForgottenActionReminder(sheetData.days, currentDayIndex),
-    [sheetData.days, currentDayIndex, now]
+    () => getForgottenActionReminder(sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd),
+    [sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd, now]
   );
 
   // Re-derive time grids every minute so non-work accumulates in real-time on the current day
@@ -757,6 +764,7 @@ export function SheetDetail({
             primaryDriverName={sheetData.driver_name}
             secondDriverName={sheetData.second_driver}
             forgottenActionReminder={forgottenActionReminder}
+            isLiveNow={getSheetDayDateString(sheetData.week_starting, currentDayIndex) === todayYmd}
             complianceButton={{
               onClick: scrollToCompliance,
               hasViolations: hasComplianceViolations,
