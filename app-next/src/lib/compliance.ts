@@ -403,7 +403,7 @@ function checkSoloRules(
     const work = flatSlots(segmentDays, "work_time");
     const breaks = flatSlots(segmentDays, "breaks");
     const getLabelSlot = (minuteIndex: number) =>
-      getLabel(segment[Math.min(Math.floor(minuteIndex / MINUTES_PER_DAY), segment.length - 1)]);
+      getDayLabel(segment[Math.min(Math.floor(minuteIndex / MINUTES_PER_DAY), segment.length - 1)]);
 
     const daysBeforeToday = segment.filter((i) => i < todayExtended!).length;
     const effectiveEndMinute =
