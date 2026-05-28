@@ -25,6 +25,11 @@ type DayData = {
   destination?: string;
   start_kms?: number | null;
   end_kms?: number | null;
+  /**
+   * Shift label used ONLY to indicate a shift change (A↔B) for the 24h break rule.
+   * Displayed as Day/Night for familiarity, but does not change other compliance math.
+   */
+  shift_label?: "A" | "B" | "";
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
@@ -87,6 +92,11 @@ export default function DayEntry({
     const base = (dayData.events ?? []).filter((e) => e && typeof e.time === "string" && typeof e.type === "string");
     return [...base].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
   }, [dayData.events]);
+
+  const hasWork = useMemo(() => {
+    if ((dayData.work_time ?? []).some(Boolean)) return true;
+    return events.some((e) => e.type === "work");
+  }, [dayData.work_time, events]);
 
   const canShowEditTimes = canEditTimes && !readOnly;
 
@@ -171,6 +181,27 @@ export default function DayEntry({
                     </SelectItem>
                   ));
                 })()}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              Shift
+            </Label>
+            <Select
+              value={hasWork ? (dayData.shift_label || "__none__") : "__none__"}
+              onValueChange={(value) => handleFieldChange("shift_label", value === "__none__" ? "" : value)}
+              disabled={readOnly || !hasWork}
+            >
+              <SelectTrigger className="w-28 h-7 text-xs px-2" aria-label="Shift label">
+                <SelectValue placeholder="(optional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__" className="text-slate-500 dark:text-slate-400">
+                  (no label)
+                </SelectItem>
+                <SelectItem value="A">Day (A)</SelectItem>
+                <SelectItem value="B">Night (B)</SelectItem>
               </SelectContent>
             </Select>
           </div>

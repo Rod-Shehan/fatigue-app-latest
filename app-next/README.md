@@ -48,6 +48,7 @@ See **MIGRATION.md** in the repo root for the full conversion guide.
 ## Australia-wide architecture & approvals
 
 - **ADR:** `docs/adr/0001-multi-jurisdiction-fatigue-architecture.md`  
+- **WA rule source mapping:** `docs/regulatory/wa-commercial-vehicle-hours.md` (Reg 184E / OSH 3.132 operating standard — time requirements)  
 - **Step-by-step roadmap & approval gates:** `docs/roadmap/approval-gates.md` (major changes need explicit **Approve: S#** before implementation)  
 - **Product positioning:** `docs/product/positioning.md`  
 - **Transition checklist:** `docs/architecture/australia-wide-transition.md`  

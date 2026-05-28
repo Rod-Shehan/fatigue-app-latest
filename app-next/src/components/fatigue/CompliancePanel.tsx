@@ -5,6 +5,7 @@ import { AlertTriangle, CheckCircle2, Clock, Coffee, Loader2, MapPin, Moon, Tren
 import { motion, AnimatePresence } from "framer-motion";
 import type { ComplianceCheckResult } from "@/lib/api";
 import { getHours } from "@/lib/compliance";
+import { computeEvidenceSummary } from "@/lib/evidence";
 import { formatHoursStatistic } from "@/lib/hours";
 import { getSheetDayDateString } from "@/lib/weeks";
 import { ACTIVITY_THEME } from "@/lib/theme";
@@ -47,7 +48,14 @@ const ICON_MAP = {
   MapPin,
 } as const;
 
-type DayLike = { work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[] };
+type DayLike = {
+  work_time?: boolean[];
+  breaks?: boolean[];
+  non_work?: boolean[];
+  events?: { time: string; type: string; lat?: number; lng?: number; accuracy?: number }[];
+  start_kms?: number | null;
+  end_kms?: number | null;
+};
 
 export default function CompliancePanel({
   days,
@@ -75,6 +83,7 @@ export default function CompliancePanel({
   const totalNonWork = days.reduce((s, d) => s + getHours(d.non_work), 0);
   const prevWeekWork = (prevWeekDays || []).reduce((s, d) => s + getHours(d.work_time), 0);
   const isTwoUp = driverType === "two_up";
+  const evidence = React.useMemo(() => computeEvidenceSummary(days), [days]);
 
   return (
     <div className="space-y-4">
@@ -150,6 +159,54 @@ export default function CompliancePanel({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3">
+        <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold mb-2">
+          Plausibility & evidence
+        </p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-md bg-white/70 dark:bg-slate-900/30 border border-slate-200/70 dark:border-slate-700/70 p-2">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">GPS coverage</p>
+            <p className="text-sm font-mono text-slate-700 dark:text-slate-200">
+              {evidence.gpsCoveragePct}% <span className="text-[10px] text-slate-400">({evidence.gpsEvents}/{evidence.totalEvents})</span>
+            </p>
+          </div>
+          <div className="rounded-md bg-white/70 dark:bg-slate-900/30 border border-slate-200/70 dark:border-slate-700/70 p-2">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">GPS km</p>
+            <p className="text-sm font-mono text-slate-700 dark:text-slate-200">
+              {evidence.gpsKm == null ? "—" : `${evidence.gpsKm} km`}
+            </p>
+          </div>
+          <div className="rounded-md bg-white/70 dark:bg-slate-900/30 border border-slate-200/70 dark:border-slate-700/70 p-2">
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Odometer km</p>
+            <p className="text-sm font-mono text-slate-700 dark:text-slate-200">
+              {evidence.odometerKm == null ? "—" : `${evidence.odometerKm} km`}
+            </p>
+          </div>
+        </div>
+        <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+          <p>
+            Interval classification (min):{" "}
+            <span className="font-mono">
+              stationary {evidence.intervalMinutesClassified.stationary}, moving {evidence.intervalMinutesClassified.moving}, unknown {evidence.intervalMinutesClassified.unknown}
+            </span>
+          </p>
+          {evidence.movingDuringRestCount > 0 && (
+            <p className="text-amber-700 dark:text-amber-200">
+              Possible movement during rest: {evidence.movingDuringRestCount} interval(s)
+            </p>
+          )}
+          {evidence.flags.length > 0 && (
+            <ul className="space-y-1">
+              {evidence.flags.map((f) => (
+                <li key={f.code} className={f.severity === "warning" ? "text-amber-700 dark:text-amber-200" : ""}>
+                  • {f.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
       <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
         <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
           <strong className="text-slate-600 dark:text-slate-300">Break</strong> = short gap (≤30 min) between work; counts toward the 20 min / 5h rule.{" "}

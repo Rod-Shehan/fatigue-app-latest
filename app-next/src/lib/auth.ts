@@ -35,16 +35,36 @@ export const authOptions: NextAuthOptions = {
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "false" &&
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "0";
 
-        // Dev only: allow blank credentials to sign in as a dev user (login page stays, fields can be empty)
-        if (process.env.NODE_ENV === "development" && email === "" && password === "") {
-          const devEmail = "dev@localhost";
-          let user = await prisma.user.findUnique({ where: { email: devEmail } });
-          if (!user) {
-            user = await prisma.user.create({
-              data: { email: devEmail, name: "Dev User" },
-            });
+        // Dev only: make local testing frictionless.
+        // - If both fields are blank: sign in as dev@localhost.
+        // - If an email is provided and password is blank: sign in / auto-provision that email.
+        if (process.env.NODE_ENV === "development") {
+          if (email === "" && password === "") {
+            const devEmail = "dev@localhost";
+            let user = await prisma.user.findUnique({ where: { email: devEmail } });
+            if (!user) {
+              user = await prisma.user.create({
+                data: { email: devEmail, name: "Dev User" },
+              });
+            }
+            return { id: user.id, email: user.email, name: user.name };
           }
-          return { id: user.id, email: user.email, name: user.name };
+          if (email !== "" && password === "") {
+            const existingDev = await prisma.user.findUnique({
+              where: { email },
+              select: { id: true, email: true, name: true, passwordHash: true },
+            });
+            // If a manager-set password exists, require it even in dev (prevents confusion in shared dev DBs).
+            if (existingDev?.passwordHash) return null;
+            let user = existingDev;
+            if (!user) {
+              user = await prisma.user.create({
+                data: { email, name: email.split("@")[0] },
+                select: { id: true, email: true, name: true, passwordHash: true },
+              });
+            }
+            return { id: user.id, email: user.email, name: user.name };
+          }
         }
         if (!email) return null;
 
@@ -75,17 +95,7 @@ export const authOptions: NextAuthOptions = {
           return { id: existing.id, email: existing.email, name: existing.name };
         }
 
-        // Dev only: email + empty password (no manager-set password). Never in production.
-        if (process.env.NODE_ENV === "development" && password === "") {
-          let user = existing;
-          if (!user) {
-            user = await prisma.user.create({
-              data: { email, name: email.split("@")[0] },
-              select: { id: true, email: true, name: true, passwordHash: true },
-            });
-          }
-          return { id: user.id, email: user.email, name: user.name };
-        }
+        // (Dev blank-password handling is done above, before shared/passwordHash logic.)
 
         // Shared password when user has no passwordHash (or hash path skipped). Trimmed match.
         if (sharedPasswordMatches) {

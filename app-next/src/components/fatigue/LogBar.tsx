@@ -23,6 +23,8 @@ import {
   getEventsForDriverInOrder,
   getEventsInTimeOrder,
   getInsufficientNonWorkMessage,
+  getLastStopTime,
+  getNonWorkHoursSinceLastStop,
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 import {
@@ -142,6 +144,10 @@ function getBreakCompleteByTime(events: { time: string; type: string }[], nowMs:
   const prior = getPriorRestSlotsBeforeTime(events, windowStartMs, breakStartMs);
   const additional = getAdditionalMinutesNeededForCurrentBreak(prior);
   return breakStartMs + additional * 60 * 1000;
+}
+
+function formatTimeHm(ms: number): string {
+  return new Date(ms).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 type DayData = {
@@ -462,6 +468,52 @@ export default function LogBar({
     return getInsufficientNonWorkMessage(rolling, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
   };
 
+  const nextRisk = useMemo(() => {
+    const nowMs = Date.now();
+    const rolling =
+      driverType === "two_up"
+        ? getEventsInTimeOrder(days).filter((ev) => (ev.driver ?? "primary") === activeDriver)
+        : getEventsInTimeOrder(days);
+    const lastStopMs = getLastStopTime(rolling, nowMs + 1);
+    const nonWorkHours = getNonWorkHoursSinceLastStop(rolling, nowMs);
+
+    if (currentType === "work") {
+      const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
+      if (!dueBy) return null;
+      const mins = Math.max(0, Math.ceil((dueBy - nowMs) / 60000));
+      return {
+        tone: "break" as const,
+        title: "Next required rest",
+        detail: `Break due by ${formatTimeHm(dueBy)} (${formatCountdown(mins)})`,
+      };
+    }
+    if (currentType === "break") {
+      const completeBy = getBreakCompleteByTime(eventsForDriver, nowMs);
+      if (!completeBy) return null;
+      const mins = Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
+      return {
+        tone: "break" as const,
+        title: "Next safe action",
+        detail: `Minimum rest complete by ${formatTimeHm(completeBy)} (${formatCountdown(mins)})`,
+      };
+    }
+    if (
+      currentType === null &&
+      lastStopMs != null &&
+      nonWorkHours != null &&
+      nonWorkHours < MIN_NON_WORK_HOURS_BETWEEN_SHIFTS
+    ) {
+      const safeAt = lastStopMs + MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 3600 * 1000;
+      const mins = Math.max(0, Math.ceil((safeAt - nowMs) / 60000));
+      return {
+        tone: "nonwork" as const,
+        title: "Recovery check",
+        detail: `Rest until ${formatTimeHm(safeAt)} to reach 7h non-work (${formatCountdown(mins)})`,
+      };
+    }
+    return null;
+  }, [activeDriver, currentType, days, driverType, eventsForDriver]);
+
   const handleLog = (type: string) => {
     if (type === currentType) return;
 
@@ -561,7 +613,7 @@ export default function LogBar({
       if (nonWorkMsg) {
         setWorkWarning({
           message: nonWorkMsg,
-          confirmLabel: "Start shift anyway",
+          confirmLabel: "Start anyway",
           subtext: "Tap Work again within a few seconds to confirm.",
           onConfirm: () => {
             setWorkWarning(null);
@@ -1053,6 +1105,23 @@ export default function LogBar({
             </div>
           </div>
         )}
+        {nextRisk && (
+          <div className="max-w-[1400px] mx-auto mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/50 px-3 py-2.5">
+            <div className="flex items-start gap-2">
+              <span
+                className={cn(
+                  "mt-1 h-2 w-2 rounded-full shrink-0",
+                  nextRisk.tone === "break" ? "bg-amber-500" : "bg-slate-500"
+                )}
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{nextRisk.title}</p>
+                <p className="text-xs text-slate-600 dark:text-slate-300">{nextRisk.detail}</p>
+              </div>
+            </div>
+          </div>
+        )}
         {forgottenActionReminder && (
           <div
             role="alert"
@@ -1062,6 +1131,47 @@ export default function LogBar({
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden />
               <p className="flex-1 font-medium min-w-0">{forgottenActionReminder.message}</p>
             </div>
+            {forgottenActionReminder.variant === "break-due" && (
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onLogEvent(currentDayIndex, "break", driverType === "two_up" ? activeDriver : undefined)}
+                  className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
+                >
+                  <Coffee className="w-4 h-4" />
+                  Start break now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileToolsOpen(true)}
+                  className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold"
+                >
+                  Show tools
+                </button>
+              </div>
+            )}
+            {(forgottenActionReminder.variant === "break-complete" || forgottenActionReminder.variant === "break-long") && (
+              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => onLogEvent(currentDayIndex, "work", driverType === "two_up" ? activeDriver : undefined)}
+                  className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  Resume work
+                </button>
+                {onEndShiftRequest && (
+                  <button
+                    type="button"
+                    onClick={() => onEndShiftRequest(currentDayIndex)}
+                    className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold flex items-center justify-center gap-2"
+                  >
+                    <Square className="w-4 h-4" />
+                    End shift
+                  </button>
+                )}
+              </div>
+            )}
             {forgottenActionReminder.variant === "end-shift" && onEndShiftRequest && onAssumeIdle && (
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
@@ -1100,7 +1210,7 @@ export default function LogBar({
                   }}
                   className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500"
                 >
-                  Cancel
+                  {workWarning.confirmLabel === "Start anyway" ? "Keep resting" : "Cancel"}
                 </button>
                 <button
                   type="button"

@@ -4,6 +4,7 @@ import { getSessionForSheetAccess, canAccessSheet } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
+import { computeEvidenceSummary } from "@/lib/evidence";
 import { PRODUCT_NAME_EXPORT, TAGLINE_DRIVER } from "@/lib/branding";
 import { jurisdictionDisplayLabel, parseJurisdictionCode } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
@@ -267,6 +268,13 @@ type RoadsidePdfPayload = {
   jurisdictionLabel: string;
   violations: { day: string; message: string }[];
   warnings: { day: string; message: string }[];
+  evidence?: {
+    gpsCoveragePct: number;
+    gpsKm: number | null;
+    odometerKm: number | null;
+    movingDuringRestCount: number;
+    flags: { severity: "info" | "warning"; message: string }[];
+  };
   disclaimer: string;
   qrDataUrl?: string;
 };
@@ -287,11 +295,31 @@ function buildRoadsideSectionHtml(r: RoadsidePdfPayload): string {
   const qr = r.qrDataUrl
     ? `<div class="qrWrap"><img class="qrImg" src="${r.qrDataUrl}" alt="QR code" /><div class="qrCap">Read-only snapshot (link expires)</div></div>`
     : "";
+  const ev = r.evidence
+    ? `<div class="roadEvidence">
+        <h3>Plausibility & evidence</h3>
+        <div class="roadEvidenceGrid">
+          <div><strong>GPS coverage</strong><br/>${r.evidence.gpsCoveragePct}%</div>
+          <div><strong>GPS km</strong><br/>${r.evidence.gpsKm == null ? "—" : `${r.evidence.gpsKm} km`}</div>
+          <div><strong>Odometer km</strong><br/>${r.evidence.odometerKm == null ? "—" : `${r.evidence.odometerKm} km`}</div>
+        </div>
+        <p class="roadEvidenceNote"><strong>Possible movement during rest:</strong> ${r.evidence.movingDuringRestCount}</p>
+        ${
+          r.evidence.flags.length
+            ? `<ul class="roadList">${r.evidence.flags
+                .slice(0, 6)
+                .map((f) => `<li>${escapeHtml(f.message)}</li>`)
+                .join("")}</ul>`
+            : `<p class="roadEmpty">No evidence flags</p>`
+        }
+      </div>`
+    : "";
   return `
   <section class="roadside">
     <h2>Roadside compliance summary</h2>
     <p class="roadMeta"><strong>Driver:</strong> ${escapeHtml(r.driverName)} &nbsp;|&nbsp; <strong>Week starting:</strong> ${escapeHtml(r.weekStarting)} &nbsp;|&nbsp; <strong>Rules:</strong> ${escapeHtml(r.jurisdictionLabel)}</p>
     <p class="roadCounts"><strong>Violations:</strong> ${r.violations.length} &nbsp;&nbsp; <strong>Warnings:</strong> ${r.warnings.length}</p>
+    ${ev}
     <div class="roadCols">
       <div class="roadCol">
         <h3>Violations</h3>
@@ -670,6 +698,10 @@ function renderPdfHtml(opts: {
         .roadside h3 { font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #334155; }
         .roadMeta { font-size: 10px; color: #334155; margin: 0 0 6px; line-height: 1.35; }
         .roadCounts { font-size: 11px; font-weight: 700; color: #0f172a; margin: 0 0 8px; }
+        .roadEvidence { margin: 8px 0 10px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; }
+        .roadEvidenceGrid { display: flex; gap: 10px; font-size: 9.5px; color: #334155; }
+        .roadEvidenceGrid > div { flex: 1; min-width: 0; }
+        .roadEvidenceNote { margin: 6px 0 0; font-size: 9.5px; color: #334155; }
         .roadCols { display: flex; gap: 12px; align-items: flex-start; }
         .roadCol { flex: 1; min-width: 0; }
         .roadList { margin: 0; padding-left: 14px; font-size: 9.5px; color: #1e293b; }
@@ -750,6 +782,28 @@ function renderRoadsideJsPDF(
   doc.setFontSize(9);
   doc.text(`Violations: ${roadside.violations.length}    Warnings: ${roadside.warnings.length}`, margin, y);
   y += 5;
+
+  if (roadside.evidence) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(40, 40, 40);
+    doc.text("Plausibility & evidence", margin, y);
+    y += 4;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(70, 70, 70);
+    const e = roadside.evidence;
+    doc.text(`GPS coverage: ${e.gpsCoveragePct}%`, margin, y);
+    y += 3.8;
+    doc.text(
+      `GPS km: ${e.gpsKm == null ? "—" : `${e.gpsKm} km`}    Odometer km: ${e.odometerKm == null ? "—" : `${e.odometerKm} km`}`,
+      margin,
+      y
+    );
+    y += 3.8;
+    doc.text(`Possible movement during rest: ${e.movingDuringRestCount}`, margin, y);
+    y += 5;
+  }
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(40, 40, 40);
@@ -1054,6 +1108,16 @@ export async function GET(
       jurisdictionLabel: roadsideExtras.jurisdictionLabel,
       violations: rv.map((v) => ({ day: v.day, message: v.message })),
       warnings: rw.map((w) => ({ day: w.day, message: w.message })),
+      evidence: (() => {
+        const ev = computeEvidenceSummary(days);
+        return {
+          gpsCoveragePct: ev.gpsCoveragePct,
+          gpsKm: ev.gpsKm,
+          odometerKm: ev.odometerKm,
+          movingDuringRestCount: ev.movingDuringRestCount,
+          flags: ev.flags.map((f) => ({ severity: f.severity, message: f.message })),
+        };
+      })(),
       disclaimer: ROADSIDE_PDF_DISCLAIMER,
       qrDataUrl: roadsideExtras.qrDataUrl,
     };

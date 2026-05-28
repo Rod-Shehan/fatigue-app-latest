@@ -34,6 +34,7 @@ import {
   MessageSquare,
   XCircle,
   Calendar,
+  ExternalLink,
 } from "lucide-react";
 import {
   ManagerMonthCalendar,
@@ -43,6 +44,8 @@ import {
 } from "@/app/manager/manager-month-calendar";
 import { getPreviousWeekSunday } from "@/lib/weeks";
 import type { ManagerComplianceItem } from "@/lib/api";
+import { getEventsInTimeOrder, getLastStopTime, getNonWorkHoursSinceLastStop } from "@/lib/rolling-events";
+import { findWorkWindowStartMs, getRestSlotsForBreakRange, getMinutesBeforeDueFromSlots, WORK_WINDOW_MIN } from "@/lib/five-hour-break-rule";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -70,15 +73,69 @@ function formatSheetLabel(sheet: FatigueSheet): string {
 }
 
 type ViolationLine = { sheetId: string; driver: string; day: string; message: string };
+type GlanceBadge = { label: string; tone: "neutral" | "warn" | "bad" };
+type ViolationLineWithBadges = ViolationLine & { badges?: GlanceBadge[] };
+
+function buildGlanceBadges(item: ManagerComplianceItem): GlanceBadge[] {
+  const badges: GlanceBadge[] = [];
+  const results = item.results ?? [];
+  const hasShiftChangeViolation = results.some(
+    (r) => r.type === "violation" && r.message.toLowerCase().includes("shift change")
+  );
+  const hasShiftChangeWarning = results.some(
+    (r) => r.type === "warning" && r.message.toLowerCase().includes("shift change marked")
+  );
+  if (hasShiftChangeViolation) badges.push({ label: "Shift change <24h", tone: "bad" });
+  else if (hasShiftChangeWarning) badges.push({ label: "Shift change time missing", tone: "warn" });
+
+  const movementDetected = results.some((r) => r.message.toLowerCase().includes("movement evidence detected"));
+  const stationaryNotProven = results.some(
+    (r) => r.type === "warning" && r.message.toLowerCase().includes("enable location to prove stationary")
+  );
+  if (movementDetected) badges.push({ label: "Movement during rest", tone: "bad" });
+  else if (stationaryNotProven) badges.push({ label: "Stationary rest not proven", tone: "warn" });
+
+  const total = item.totalEvents ?? 0;
+  const withLoc = item.eventsWithLocation ?? 0;
+  if (total > 0) {
+    const pct = Math.round((withLoc / total) * 100);
+    badges.push({ label: `GPS ${pct}%`, tone: pct < 50 ? "warn" : "neutral" });
+  }
+  return badges;
+}
+
+type RiskLine = {
+  sheetId: string;
+  driver: string;
+  kind: "break_due" | "break_overdue" | "no_stop_long" | "insufficient_nonwork";
+  detail: string;
+  messageTemplate: string;
+};
+
+function formatTimeHm(ms: number): string {
+  return new Date(ms).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function getBreakDueByTime(events: { time: string; type: string }[], nowMs: number): number | null {
+  if (events.length === 0) return null;
+  const last = events[events.length - 1];
+  if (last.type !== "work") return null;
+  const windowStartMs = findWorkWindowStartMs(events, nowMs);
+  if (windowStartMs == null) return null;
+  const slots = getRestSlotsForBreakRange(events, windowStartMs, nowMs);
+  const minutesBeforeDue = getMinutesBeforeDueFromSlots(slots);
+  return windowStartMs + (WORK_WINDOW_MIN - minutesBeforeDue) * 60 * 1000;
+}
 
 function violationLinesForWeek(
   items: ManagerComplianceItem[] | undefined,
   weekStarting: string
-): ViolationLine[] {
+): ViolationLineWithBadges[] {
   if (!items?.length || !weekStarting) return [];
   const filtered = items.filter((i) => i.week_starting === weekStarting);
-  const lines: ViolationLine[] = [];
+  const lines: ViolationLineWithBadges[] = [];
   for (const item of filtered) {
+    const badges = buildGlanceBadges(item);
     for (const r of item.results) {
       if (r.type === "violation") {
         lines.push({
@@ -86,6 +143,7 @@ function violationLinesForWeek(
           driver: item.driver_name,
           day: r.day,
           message: r.message,
+          badges,
         });
       }
     }
@@ -97,7 +155,7 @@ function ViolationListBlock({
   lines,
   emptyLabel,
 }: {
-  lines: ViolationLine[];
+  lines: ViolationLineWithBadges[];
   emptyLabel: string;
 }) {
   if (lines.length === 0) {
@@ -125,6 +183,24 @@ function ViolationListBlock({
             <span className="text-[11px] font-medium uppercase tracking-wide text-violet-700/85 dark:text-violet-400/90">
               {line.day}
             </span>
+            {line.badges?.length ? (
+              <span className="flex flex-wrap items-center gap-1.5 mt-1">
+                {line.badges.slice(0, 3).map((b) => (
+                  <span
+                    key={b.label}
+                    className={
+                      b.tone === "bad"
+                        ? "rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200 px-2 py-0.5 text-[10px] font-semibold"
+                        : b.tone === "warn"
+                          ? "rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 px-2 py-0.5 text-[10px] font-semibold"
+                          : "rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 px-2 py-0.5 text-[10px] font-semibold"
+                    }
+                  >
+                    {b.label}
+                  </span>
+                ))}
+              </span>
+            ) : null}
           </div>
           <p className="min-w-0 flex-1 text-sm leading-snug text-slate-700 dark:text-slate-200">{line.message}</p>
         </li>
@@ -172,6 +248,7 @@ export function ManagerView() {
   const [filterOnlyViolations, setFilterOnlyViolations] = useState(false);
   const [filterOnlyWarnings, setFilterOnlyWarnings] = useState(false);
   const [filterOnlyIncomplete, setFilterOnlyIncomplete] = useState(false);
+  const [filterOnlyAtRiskSoon, setFilterOnlyAtRiskSoon] = useState(false);
   const [managerTab, setManagerTab] = useState<"compliance" | "edit">("compliance");
   const [calView, setCalView] = useState(() => {
     const n = new Date();
@@ -310,6 +387,82 @@ export function ManagerView() {
     queryKey: ["manager", "compliance"],
     queryFn: () => api.manager.compliance(),
   });
+
+  const riskLines = useMemo(() => {
+    const nowMs = Date.now();
+    const horizonMs = nowMs + 24 * 3600 * 1000;
+    if (!activeWeekStarting) return [] as RiskLine[];
+
+    const out: RiskLine[] = [];
+    for (const s of sheets) {
+      if (s.week_starting !== activeWeekStarting) continue;
+      const driver = (s.driver_name || "—").trim() || "—";
+      const day = Array.isArray(s.days) ? (s.days[activeDayIndex] as DayData | undefined) : undefined;
+      const events = Array.isArray(day?.events) ? (day!.events as { time: string; type: string }[]) : [];
+      if (!events.length) continue;
+
+      const last = events[events.length - 1];
+      const lastMs = new Date(last.time).getTime();
+      const elapsedHrs = (nowMs - lastMs) / 3600000;
+
+      // 1) Break due / overdue when working (prevention-focused, tied to 5h rule).
+      const dueBy = getBreakDueByTime(events, nowMs);
+      if (dueBy != null && dueBy <= horizonMs) {
+        const overdue = dueBy <= nowMs;
+        out.push({
+          sheetId: s.id,
+          driver,
+          kind: overdue ? "break_overdue" : "break_due",
+          detail: overdue
+            ? `Break overdue (was due by ${formatTimeHm(dueBy)})`
+            : `Break due by ${formatTimeHm(dueBy)}`,
+          messageTemplate: overdue
+            ? `Hi ${driver}, break is overdue (20 min rest per 5h). Please pull up safely and start your break now, then confirm once complete.`
+            : `Hi ${driver}, reminder: break due by ${formatTimeHm(dueBy)} (20 min per 5h). Please plan a safe stop.`,
+        });
+      }
+
+      // 2) No stop logged for a long time (likely missing End shift).
+      if ((last.type === "work" || last.type === "break") && elapsedHrs >= 12) {
+        out.push({
+          sheetId: s.id,
+          driver,
+          kind: "no_stop_long",
+          detail: `No End shift logged for ${Math.floor(elapsedHrs)}h+ (last: ${last.type})`,
+          messageTemplate: `Hi ${driver}, we haven’t seen an End shift logged for ${Math.floor(elapsedHrs)}h+. If you’ve finished, please log End shift (or mark non-work from when you stopped).`,
+        });
+      }
+
+      // 3) If the last event is a stop and it was recent, driver may still be inside 7h recovery window.
+      const rolling = getEventsInTimeOrder(Array.isArray(s.days) ? (s.days as { events?: any[] }[]) : []);
+      const lastStopMs = getLastStopTime(rolling, nowMs + 1);
+      const nonWorkHours = getNonWorkHoursSinceLastStop(rolling, nowMs);
+      if (last.type === "stop" && lastStopMs != null && nonWorkHours != null && nonWorkHours < 7) {
+        const safeAt = lastStopMs + 7 * 3600 * 1000;
+        out.push({
+          sheetId: s.id,
+          driver,
+          kind: "insufficient_nonwork",
+          detail: `Recovery in progress: ${nonWorkHours.toFixed(1)}h since End shift (7h target by ${formatTimeHm(safeAt)})`,
+          messageTemplate: `Hi ${driver}, reminder: minimum 7h non-work between shifts. Earliest safe start is ${formatTimeHm(safeAt)}.`,
+        });
+      }
+    }
+
+    // De-dupe by driver+kind (keep earliest).
+    const seen = new Set<string>();
+    return out.filter((r) => {
+      const k = `${r.driver}:${r.kind}`;
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [sheets, activeWeekStarting, activeDayIndex]);
+
+  const riskLinesFiltered = useMemo(() => {
+    if (!filterOnlyAtRiskSoon) return riskLines;
+    return riskLines;
+  }, [riskLines, filterOnlyAtRiskSoon]);
 
   const weekViolationLines = useMemo(
     () => violationLinesForWeek(managerCompliance?.items, weekForSnapshot),
@@ -747,6 +900,81 @@ export function ManagerView() {
                   >
                     Incomplete only
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={filterOnlyAtRiskSoon ? "default" : "outline"}
+                    onClick={() => setFilterOnlyAtRiskSoon((v) => !v)}
+                  >
+                    At risk soon
+                  </Button>
+                </div>
+                <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Prevention — at risk in next 24h</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Based on current sheet events (break due/overdue, long running work without end shift, recovery window).
+                      </p>
+                    </div>
+                    <Link href="/manager/messages">
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <MessageSquare className="h-4 w-4" /> Messages
+                      </Button>
+                    </Link>
+                  </div>
+                  {riskLinesFiltered.length === 0 ? (
+                    <div className="mt-3 flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+                      <span>No upcoming risks detected for the selected week/day filters.</span>
+                    </div>
+                  ) : (
+                    <ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-800">
+                      {riskLinesFiltered.slice(0, 12).map((r, idx) => (
+                        <li key={`${r.sheetId}-${r.kind}-${idx}`} className="py-3 first:pt-0">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <Link
+                                href={`/sheets/${r.sheetId}`}
+                                className="text-sm font-semibold text-violet-950 underline-offset-2 hover:underline dark:text-violet-100"
+                              >
+                                {r.driver}
+                              </Link>
+                              <p className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">{r.detail}</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 sm:justify-end">
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="gap-2"
+                                onClick={async () => {
+                                  try {
+                                    await navigator.clipboard.writeText(r.messageTemplate);
+                                    window.alert("Message copied. Paste it into Messages.");
+                                  } catch {
+                                    window.prompt("Copy message:", r.messageTemplate);
+                                  }
+                                }}
+                              >
+                                Copy message
+                              </Button>
+                              <Link href={`/manager/messages?driver=${encodeURIComponent(r.driver)}`}>
+                                <Button type="button" size="sm" className="gap-2">
+                                  <ExternalLink className="h-4 w-4" /> Open inbox
+                                </Button>
+                              </Link>
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {riskLinesFiltered.length > 12 && (
+                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                      Showing first 12 items. Use filters to narrow.
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50/80 dark:bg-slate-800/40 p-4 text-sm text-slate-600 dark:text-slate-300">
                   <p className="font-medium text-slate-800 dark:text-slate-100 mb-1">Filter context</p>
@@ -781,13 +1009,14 @@ export function ManagerView() {
                         </span>
                       </>
                     ) : null}
-                    {(filterOnlyViolations || filterOnlyWarnings || filterOnlyIncomplete) && (
+                    {(filterOnlyViolations || filterOnlyWarnings || filterOnlyIncomplete || filterOnlyAtRiskSoon) && (
                       <span className="block mt-2 text-slate-500 dark:text-slate-400">
                         Active:{" "}
                         {[
                           filterOnlyViolations && "violations",
                           filterOnlyWarnings && "warnings",
                           filterOnlyIncomplete && "incomplete",
+                          filterOnlyAtRiskSoon && "at-risk",
                         ]
                           .filter(Boolean)
                           .join(", ")}

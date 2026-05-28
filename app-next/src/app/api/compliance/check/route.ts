@@ -7,6 +7,7 @@ export type ComplianceCheckPayload = {
   days: ComplianceDayData[];
   driverType?: string;
   prevWeekDays?: ComplianceDayData[] | null;
+  historyDays?: ComplianceDayData[] | null;
   last24hBreak?: string;
   weekStarting?: string;
   prevWeekStarting?: string;
@@ -27,6 +28,7 @@ export async function POST(req: Request) {
       days,
       driverType = "solo",
       prevWeekDays,
+      historyDays,
       last24hBreak,
       weekStarting,
       prevWeekStarting,
@@ -44,6 +46,7 @@ export async function POST(req: Request) {
     const results = engine.run(days, {
       driverType,
       prevWeekDays: prevWeekDays ?? null,
+      historyDays: historyDays ?? null,
       last24hBreak,
       weekStarting,
       prevWeekStarting,

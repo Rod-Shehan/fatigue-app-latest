@@ -14,6 +14,7 @@ import {
   normalizeDayCoverageArrays,
 } from "@/lib/coverage/derive-minute-coverage";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
+import { getEventsForDriverInOrder, getEventsInTimeOrder } from "@/lib/rolling-events";
 
 export type ComplianceDayData = {
   work_time?: boolean[];
@@ -22,6 +23,8 @@ export type ComplianceDayData = {
   events?: { time: string; type: string; lat?: number; lng?: number; accuracy?: number }[];
   start_kms?: number | null;
   end_kms?: number | null;
+  /** Optional label used only for shift-change 24h rule: "A" | "B". */
+  shift_label?: "A" | "B" | "" | null;
 };
 
 export type ComplianceCheckResult = {
@@ -44,7 +47,15 @@ function dayHasWork(day: ComplianceDayData): boolean {
 }
 
 export function findLongestContinuousBlock(slots: boolean[] | undefined): number {
-  const arr = normalizeCoverageFieldToMinutes(slots);
+  const arr = (() => {
+    if (!slots || slots.length === 0) return Array(MINUTES_PER_DAY).fill(false);
+    // Legacy: one-day half-hour slots.
+    if (slots.length === 48) return normalizeCoverageFieldToMinutes(slots);
+    // Single day: pad/truncate to 1440.
+    if (slots.length <= MINUTES_PER_DAY) return normalizeCoverageFieldToMinutes(slots);
+    // Multi-day minute grid already flattened: do NOT truncate.
+    return slots.slice();
+  })();
   let max = 0,
     current = 0;
   for (let i = 0; i < arr.length; i++) {
@@ -59,7 +70,15 @@ export function findLongestContinuousBlock(slots: boolean[] | undefined): number
 }
 
 export function countContinuousBlocksOfAtLeast(slots: boolean[] | undefined, minHours: number): number {
-  const arr = normalizeCoverageFieldToMinutes(slots);
+  const arr = (() => {
+    if (!slots || slots.length === 0) return Array(MINUTES_PER_DAY).fill(false);
+    // Legacy: one-day half-hour slots.
+    if (slots.length === 48) return normalizeCoverageFieldToMinutes(slots);
+    // Single day: pad/truncate to 1440.
+    if (slots.length <= MINUTES_PER_DAY) return normalizeCoverageFieldToMinutes(slots);
+    // Multi-day minute grid already flattened: do NOT truncate.
+    return slots.slice();
+  })();
   const minSlots = minHours * 60;
   let count = 0,
     current = 0;
@@ -165,6 +184,7 @@ const MIN_NON_WORK_HRS_24H = 7;
 const MIN_NON_WORK_MINUTES_24H = MIN_NON_WORK_HRS_24H * 60;
 const MIN_RECORDED_HRS_24H = 16;
 const MIN_7H_BLOCK_MINUTES = 7 * 60;
+const MIN_24H_BLOCK_MINUTES = 24 * 60;
 
 /**
  * Flat minute arrays across days for rolling window checks.
@@ -174,70 +194,21 @@ function flatSlots(days: ComplianceDayData[], key: "non_work" | "work_time" | "b
   return days.flatMap((d) => (d[key] || Array(MINUTES_PER_DAY).fill(false)).slice(0, MINUTES_PER_DAY));
 }
 
+function fiveHourBreakViolationMessage(): string {
+  return "20 min rest per 5h work not met (2×10 min or 1×20 min)";
+}
+
 function checkBreakFromDriving(days: ComplianceDayData[], results: ComplianceCheckResult[]) {
-  days.forEach((day, idx) => {
-    const dayLabel = DAY_LABELS[idx];
-    const workHrs = getHours(day.work_time);
-    const breakHrs = getHours(day.breaks);
-    const nonWorkHrs = getHours(day.non_work);
-    const totalRecorded = workHrs + breakHrs + nonWorkHrs;
-    if (totalRecorded === 0) return;
-
-    const events = day.events || [];
-    if (events.length > 1) {
-      let workMinsSinceBreak = 0;
-      let pendingBreakStart: string | null = null;
-      const pendingBreakSegments: number[] = [];
-      /** Only one 5h-rule violation per block; block resets when break is pressed. */
-      let violationEmittedForCurrentBlock = false;
-
-      for (let i = 0; i < events.length; i++) {
-        const ev = events[i];
-        const nextEv = events[i + 1];
-        if (!nextEv) continue;
-        const dur = Math.floor((new Date(nextEv.time).getTime() - new Date(ev.time).getTime()) / 60000);
-
-        if (ev.type === "work") {
-          if (pendingBreakSegments.length > 0) {
-            const valid = qualifyingRestMetForWorkAfterBreak(events.slice(0, i), pendingBreakSegments);
-            if (!valid && !violationEmittedForCurrentBlock) {
-              results.push({
-                type: "violation",
-                iconKey: "Coffee",
-                day: dayLabel,
-                message: `20 min rest per 5h work not met (2×10 min or 1×20 min)`,
-              });
-              violationEmittedForCurrentBlock = true;
-            }
-            if (valid) {
-              workMinsSinceBreak = 0;
-              violationEmittedForCurrentBlock = false;
-            }
-            pendingBreakSegments.length = 0;
-            pendingBreakStart = null;
-          }
-          workMinsSinceBreak += dur;
-          if (workMinsSinceBreak > 5 * 60 && !violationEmittedForCurrentBlock) {
-            results.push({
-              type: "violation",
-              iconKey: "AlertTriangle",
-              day: dayLabel,
-              message: "More than 5h work without valid break",
-            });
-            violationEmittedForCurrentBlock = true;
-          }
-          if (workMinsSinceBreak > 5 * 60) workMinsSinceBreak = 0;
-        } else if (ev.type === "break") {
-          if (!pendingBreakStart) pendingBreakStart = ev.time;
-          pendingBreakSegments.push(dur);
-        } else {
-          pendingBreakSegments.length = 0;
-          pendingBreakStart = null;
-          workMinsSinceBreak = 0;
-          violationEmittedForCurrentBlock = false;
-        }
-      }
-    } else {
+  // Rolling-time evaluation: flatten all events across days (midnight is not a boundary).
+  // Days are used only for attribution/labels.
+  const ordered = getEventsInTimeOrder(days);
+  if (ordered.length < 2) {
+    // Coverage-only fallback: if we have no meaningful event timeline, still warn in the
+    // simplest "5h work with no breaks recorded" case so users aren’t misled by silence.
+    days.forEach((day, idx) => {
+      const dayLabel = DAY_LABELS[idx] ?? `D${idx + 1}`;
+      const workHrs = getHours(day.work_time);
+      const breakHrs = getHours(day.breaks);
       if (workHrs >= 5 && breakHrs === 0) {
         results.push({
           type: "warning",
@@ -246,8 +217,72 @@ function checkBreakFromDriving(days: ComplianceDayData[], results: ComplianceChe
           message: "20 min rest per 5h work (2×10 min or 1×20 min)",
         });
       }
+    });
+    return;
+  }
+
+  // Mirror LogBar logic: evaluate rest when returning to work after a break run,
+  // and emit at most one violation per "block" until a valid break occurs or stop resets the block.
+  let workMinsSinceValidBreak = 0;
+  let breakSegments: number[] = [];
+  let violationEmittedForCurrentBlock = false;
+
+  for (let i = 0; i < ordered.length - 1; i++) {
+    const ev = ordered[i];
+    const next = ordered[i + 1];
+    const segStart = new Date(ev.time).getTime();
+    const segEnd = new Date(next.time).getTime();
+    const dur = Math.max(0, Math.floor((segEnd - segStart) / 60000));
+    if (dur === 0) continue;
+
+    if (ev.type === "work") {
+      // If a break run just ended and we’re moving into work, decide if that run qualified.
+      if (breakSegments.length > 0) {
+        const slice = ordered
+          .slice(0, i)
+          .map(({ time, type }) => ({ time, type }));
+        const valid = qualifyingRestMetForWorkAfterBreak(slice, breakSegments);
+        if (!valid && !violationEmittedForCurrentBlock) {
+          const dayLabel = DAY_LABELS[ev.dayIndex] ?? `D${ev.dayIndex + 1}`;
+          results.push({
+            type: "violation",
+            iconKey: "Coffee",
+            day: dayLabel,
+            message: fiveHourBreakViolationMessage(),
+          });
+          violationEmittedForCurrentBlock = true;
+        }
+        if (valid) {
+          workMinsSinceValidBreak = 0;
+          violationEmittedForCurrentBlock = false;
+        }
+        breakSegments = [];
+      }
+
+      workMinsSinceValidBreak += dur;
+      if (workMinsSinceValidBreak > 5 * 60 && !violationEmittedForCurrentBlock) {
+        const dayLabel = DAY_LABELS[ev.dayIndex] ?? `D${ev.dayIndex + 1}`;
+        results.push({
+          type: "violation",
+          iconKey: "AlertTriangle",
+          day: dayLabel,
+          message: "More than 5h work without valid break",
+        });
+        violationEmittedForCurrentBlock = true;
+      }
+      continue;
     }
-  });
+
+    if (ev.type === "break") {
+      breakSegments.push(dur);
+      continue;
+    }
+
+    // stop/non_work/etc: reset the rolling work/break block.
+    breakSegments = [];
+    workMinsSinceValidBreak = 0;
+    violationEmittedForCurrentBlock = false;
+  }
 }
 
 const MINUTES_17H_WORK_BREAK = 17 * 60;
@@ -265,40 +300,12 @@ function checkSoloRules(
     currentDayIndex?: number;
     /** Minutes elapsed since regulatory midnight today (0–1440); 72h window ends at "now". */
     slotOffsetWithinToday?: number;
+    /** Optional preceding history days (chronological) to allow 28-day checks. */
+    historyDays?: ComplianceDayData[] | null;
   }
 ) {
   const hasAnyWork = days.some(dayHasWork);
   if (!hasAnyWork) return;
-
-  days.forEach((day, idx) => {
-    if (idx < prevCount) return;
-    if (!dayHasWork(day)) return;
-    const currentIdx = idx - prevCount;
-    const dayLabel = DAY_LABELS[currentIdx] || `Day${currentIdx + 1}`;
-    const workHrs = getHours(day.work_time);
-    const breakHrs = getHours(day.breaks);
-    const nonWorkHrs = getHours(day.non_work);
-    const totalRecorded = workHrs + breakHrs + nonWorkHrs;
-    if (totalRecorded === 0) return;
-
-    const longestNonWork = findLongestContinuousBlock(day.non_work);
-    const dayDate = getExtendedDayDate(idx, soloOptions?.weekStarting ?? "", soloOptions?.prevWeekStarting ?? "", prevCount);
-    const isBefore24hBreakWithNoWork =
-      soloOptions?.last24hBreak && dayDate < soloOptions.last24hBreak && !dayHasWork(day);
-    if (isBefore24hBreakWithNoWork) return;
-    const is24hBreakDay = soloOptions?.last24hBreak && dayDate === soloOptions.last24hBreak;
-    if (is24hBreakDay) return;
-
-    /** ≥12h recorded in 24h requires ≥7h continuous non-work in the non_work grid (explicit). */
-    if (totalRecorded >= 12 && longestNonWork < 7) {
-      results.push({
-        type: "violation",
-        iconKey: "Moon",
-        day: dayLabel,
-        message: "Need ≥7 continuous hrs non-work",
-      });
-    }
-  });
 
   const segments24 = segmentsSplitBy24hNonWork(days, {
     weekStarting: soloOptions?.weekStarting,
@@ -306,52 +313,68 @@ function checkSoloRules(
     prevCount,
     last24hBreak: soloOptions?.last24hBreak,
   });
-  const getLabel = (dayIdx: number) => {
+  const getDayLabel = (dayIdx: number) => {
     const ci = dayIdx - prevCount;
     return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
   };
 
-  /* 17-hour rule (Solo): two periods of non-work time (each longer than 7h) cannot be separated by more than 17h of work and break combined. */
+  /*
+   * Reg 184E(2)(a): within any 72h period there must be ≥3 periods of ≥7h consecutive non-work,
+   * and each period must be separated from the next by not more than 17h.
+   *
+   * We evaluate the "≤17h between ≥7h non-work periods" as an elapsed-time separation where
+   * any minute that is NOT non_work counts toward the separation (not just work+break minutes).
+   * Segments split by ≥24h non-work (or declared last24hBreak) act as resets for the 17h/72h checks.
+   */
   for (const segment of segments24) {
     const segmentDays = segment.map((i) => days[i]);
     const nonWork = flatSlots(segmentDays, "non_work");
-    const work = flatSlots(segmentDays, "work_time");
-    const breaks = flatSlots(segmentDays, "breaks");
-    let workBreakRun = 0;
-    let nonWorkRun = 0;
+    let separationRun = 0; // minutes since end of last qualifying ≥7h non-work period
+    let nonWorkRun = 0; // minutes in current non-work run
+    let lastNonWorkQualified = false;
     for (let s = 0; s < nonWork.length; s++) {
       const dayIndexInSegment = Math.min(Math.floor(s / MINUTES_PER_DAY), segmentDays.length - 1);
       const segmentDayHasWork = dayHasWork(segmentDays[dayIndexInSegment] ?? {});
       if (!segmentDayHasWork) {
-        workBreakRun = 0;
+        separationRun = 0;
         nonWorkRun = 0;
+        lastNonWorkQualified = false;
         continue;
       }
-      const isWorkBreak = work[s] || breaks[s];
       if (nonWork[s]) {
         nonWorkRun++;
-        workBreakRun = 0;
-      } else if (isWorkBreak) {
-        if (nonWorkRun >= MINUTES_7H_NON_WORK) workBreakRun = 0;
+        // Once we reach a qualifying ≥7h in this run, it "anchors" the separation.
+        if (nonWorkRun >= MINUTES_7H_NON_WORK) {
+          if (lastNonWorkQualified) {
+            // We have now found the "next" qualifying period; reset separation counter.
+            separationRun = 0;
+          }
+          lastNonWorkQualified = true;
+        }
+      } else {
+        // Not non-work: counts toward the 17h separation window once a qualifying non-work period exists.
+        if (lastNonWorkQualified) separationRun++;
         nonWorkRun = 0;
-        workBreakRun++;
-        if (workBreakRun > MINUTES_17H_WORK_BREAK) {
+        if (separationRun > MINUTES_17H_WORK_BREAK) {
           const dayIdx = segment[dayIndexInSegment];
-          const violationDayDate = getExtendedDayDate(dayIdx, soloOptions?.weekStarting ?? "", soloOptions?.prevWeekStarting ?? "", prevCount);
+          const violationDayDate = getExtendedDayDate(
+            dayIdx,
+            soloOptions?.weekStarting ?? "",
+            soloOptions?.prevWeekStarting ?? "",
+            prevCount
+          );
           if (soloOptions?.last24hBreak && violationDayDate === soloOptions.last24hBreak) {
-            workBreakRun = 0;
+            separationRun = 0;
             continue;
           }
           results.push({
             type: "violation",
             iconKey: "Clock",
-            day: getLabel(dayIdx),
-            message: "Two 7-hr+ non-work periods cannot be separated by more than 17h work+break",
+            day: getDayLabel(dayIdx),
+            message: "Two ≥7h non-work periods cannot be separated by more than 17h (elapsed time)",
           });
           break;
         }
-      } else {
-        nonWorkRun = 0;
       }
     }
   }
@@ -412,9 +435,63 @@ function checkSoloRules(
       });
     }
   }
+
+  /*
+   * Reg 184E(2)(b): either
+   * (i) in any 14-day period — at least 2 periods of 24 consecutive hours non-work time; OR
+   * (ii) in any 28-day period — at least 4 periods of 24 consecutive hours non-work time
+   *      if, and only if, the driver has no more than 144 hours work time in any 14-day period
+   *      that is part of the 28-day period.
+   *
+   * We evaluate using the available history:
+   * - 14-day check uses the last 14 days when available.
+   * - 28-day alternative is applied only when we have a full 28 days AND the 144h/14-day condition holds.
+   */
+  const combined = [...(soloOptions?.historyDays ?? []), ...days];
+  if (combined.length >= 14) {
+    const last14 = combined.slice(-14);
+    const last14NonWork = flatSlots(last14, "non_work");
+    const blocks24h14 = countContinuousBlocksOfAtLeast(last14NonWork, 24);
+    const option14Ok = blocks24h14 >= 2;
+
+    let option28Ok = false;
+    if (combined.length >= 28) {
+      const last28 = combined.slice(-28);
+      const last28NonWork = flatSlots(last28, "non_work");
+      const blocks24h28 = countContinuousBlocksOfAtLeast(last28NonWork, 24);
+
+      if (blocks24h28 >= 4) {
+        // 144h condition: every 14-day period within the 28-day period must have ≤144h work.
+        let workOk = true;
+        for (let startDay = 0; startDay <= 14; startDay++) {
+          const w14 = last28.slice(startDay, startDay + 14).reduce((s, d) => s + getHours(d.work_time), 0);
+          if (w14 > 144) {
+            workOk = false;
+            break;
+          }
+        }
+        option28Ok = workOk;
+      }
+    }
+
+    if (!option14Ok && !option28Ok) {
+      results.push({
+        type: "violation",
+        iconKey: "Moon",
+        day: "14-day",
+        message:
+          "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative: 4×24h + ≤144h work in any 14 days)",
+      });
+    }
+  }
 }
 
-function checkTwoUpRules(days: ComplianceDayData[], results: ComplianceCheckResult[], prevCount: number) {
+function checkTwoUpRules(
+  days: ComplianceDayData[],
+  results: ComplianceCheckResult[],
+  prevCount: number,
+  evidence?: { movingDuringBreakCount?: number }
+) {
   const nonWork = flatSlots(days, "non_work");
   const work = flatSlots(days, "work_time");
   const breaks = flatSlots(days, "breaks");
@@ -430,34 +507,16 @@ function checkTwoUpRules(days: ComplianceDayData[], results: ComplianceCheckResu
       const windowNonWork = nonWork.slice(start, end).filter(Boolean).length;
       const windowWorkBreak = work.slice(start, end).filter(Boolean).length + breaks.slice(start, end).filter(Boolean).length;
       const nonWorkHrs = windowNonWork / 60;
-      const recordedHrs = windowWorkBreak / 60;
-      if (recordedHrs >= MIN_RECORDED_HRS_24H && nonWorkHrs < MIN_NON_WORK_HRS_24H) {
+      const hasData = windowWorkBreak > 0;
+      // Reg 184E(3)(a): in any 24h period — at least 7h non-work time (may be in moving vehicle).
+      if (hasData && nonWorkHrs < MIN_NON_WORK_HRS_24H) {
         results.push({
           type: "violation",
           iconKey: "Moon",
           day: getLabel(end - 1),
-          message: "Need ≥7h non-work in rolling 24h",
+          message: "Need ≥7h non-work in any rolling 24h period (Two-Up)",
         });
         break;
-      }
-    }
-  }
-
-  if (nonWork.length >= MINUTES_48H) {
-    for (let start = 0; start <= nonWork.length - MINUTES_48H; start++) {
-      const window = nonWork.slice(start, start + MINUTES_48H);
-      const sevenHrBlocks = countContinuousBlocksOfAtLeast(window, 7);
-      if (sevenHrBlocks < 1) {
-        const hasData = window.some((_, i) => work[start + i] || breaks[start + i]);
-        if (hasData) {
-          results.push({
-            type: "warning",
-            iconKey: "Moon",
-            day: getLabel(start + MINUTES_48H - 1),
-            message: "Need ≥1 block of ≥7 continuous hrs non-work in any rolling 48 hrs (Two-Up rule)",
-          });
-          break;
-        }
       }
     }
   }
@@ -466,21 +525,77 @@ function checkTwoUpRules(days: ComplianceDayData[], results: ComplianceCheckResu
   const totalWeekNonWork = currentDays.reduce((sum, d) => sum + getHours(d.non_work), 0);
   const allSlots = currentDays.flatMap((d) => d.non_work || Array(MINUTES_PER_DAY).fill(false));
   const longestBlock = findLongestContinuousBlock(allSlots);
-  if (totalWeekNonWork > 0 && totalWeekNonWork < 48) {
+  const hasAnyWork = currentDays.some(dayHasWork);
+
+  // Reg 184E(3)(b)(ii): 7-day option
+  const nonWorkBlocksUnder7 = (() => {
+    const arr = normalizeCoverageFieldToMinutes(allSlots);
+    let current = 0;
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i]) current++;
+      else {
+        if (current > 0 && current < MIN_7H_BLOCK_MINUTES) return true;
+        current = 0;
+      }
+    }
+    if (current > 0 && current < MIN_7H_BLOCK_MINUTES) return true;
+    return false;
+  })();
+
+  const meetsTwoUp7DayOption =
+    hasAnyWork &&
+    totalWeekNonWork >= 48 &&
+    longestBlock >= 24 &&
+    !nonWorkBlocksUnder7;
+
+  if (hasAnyWork && totalWeekNonWork > 0 && totalWeekNonWork < 48) {
     results.push({
       type: "warning",
       iconKey: "TrendingUp",
       day: "7-day",
-      message: `Need ≥48 hrs non-work in 7 days (current: ${totalWeekNonWork}h) — Two-Up rule`,
+      message: `Need ≥48 hrs non-work in any 7-day period (current: ${totalWeekNonWork}h) — Two-Up`,
     });
   }
-  if (totalWeekNonWork >= 48 && longestBlock < 24) {
+  if (hasAnyWork && totalWeekNonWork >= 48 && longestBlock < 24) {
     results.push({
       type: "warning",
       iconKey: "Moon",
       day: "7-day",
-      message: `48hrs non-work must include ≥24 continuous hrs (longest: ${longestBlock}h) — Two-Up rule`,
+      message: `48hrs non-work must include ≥24 continuous hrs (longest: ${longestBlock}h) — Two-Up`,
     });
+  }
+  if (hasAnyWork && totalWeekNonWork >= 48 && nonWorkBlocksUnder7) {
+    results.push({
+      type: "warning",
+      iconKey: "Moon",
+      day: "7-day",
+      message: "Non-work time must not include a period of less than 7 consecutive hours — Two-Up",
+    });
+  }
+
+  // Reg 184E(3)(b)(i): 48-hour option applies only if not meeting the 7-day option.
+  if (!meetsTwoUp7DayOption && nonWork.length >= MINUTES_48H) {
+    for (let start = 0; start <= nonWork.length - MINUTES_48H; start++) {
+      const window = nonWork.slice(start, start + MINUTES_48H);
+      const sevenHrBlocks = countContinuousBlocksOfAtLeast(window, 7);
+      const hasData = window.some((_, i) => work[start + i] || breaks[start + i]);
+      if (!hasData) continue;
+      if (sevenHrBlocks < 1) {
+        const movingCount = evidence?.movingDuringBreakCount ?? 0;
+        results.push({
+          // We cannot fail purely due to missing/insufficient evidence.
+          // Escalate to violation only when we have positive movement evidence during rest.
+          type: movingCount > 0 ? "violation" : "warning",
+          iconKey: "Moon",
+          day: getLabel(start + MINUTES_48H - 1),
+          message:
+            movingCount > 0
+              ? "Need ≥1 period of ≥7 continuous hours non-work NOT spent in a moving vehicle in any rolling 48h period (Two-Up) — movement evidence detected"
+              : "Need ≥1 period of ≥7 continuous hours non-work NOT spent in a moving vehicle in any rolling 48h period (Two-Up) — enable location to prove stationary non-work",
+        });
+        break;
+      }
+    }
   }
 }
 
@@ -519,13 +634,14 @@ function checkRestBreakMovingVehicle(
   days: ComplianceDayData[],
   results: ComplianceCheckResult[],
   options: { weekStarting?: string; prevWeekStarting?: string; prevCount: number }
-) {
+): number {
   const { prevCount, weekStarting = "", prevWeekStarting = "" } = options;
   const getLabel = (dayIdx: number) => {
     const ci = dayIdx - prevCount;
     return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
   };
   const flat = flattenEventsByTime(days);
+  let movingCount = 0;
   for (let i = 0; i < flat.length; i++) {
     if (flat[i].type !== "break") continue;
     const next = flat[i + 1];
@@ -538,6 +654,7 @@ function checkRestBreakMovingVehicle(
     if (durationMin < BREAK_MIN_DURATION_MINS) continue;
     const distanceKm = haversineDistanceKm(flat[i].lat!, flat[i].lng!, next.lat!, next.lng!);
     if (distanceKm <= BREAK_MOVING_DISTANCE_KM) continue;
+    movingCount += 1;
     results.push({
       type: "warning",
       iconKey: "MapPin",
@@ -545,6 +662,7 @@ function checkRestBreakMovingVehicle(
       message: `Break may have been taken in a moving vehicle (${distanceKm.toFixed(1)} km over ${durationMin} min) — 7h non-work rule may require stationary non-work time.`,
     });
   }
+  return movingCount;
 }
 
 /**
@@ -614,6 +732,74 @@ function checkLocationEvidenceWarning(days: ComplianceDayData[], results: Compli
   }
 }
 
+function checkShiftChange24hBetweenShifts(
+  days: ComplianceDayData[],
+  results: ComplianceCheckResult[],
+  prevCount: number
+) {
+  // Reg 184E(4): if shiftwork on 5+ consecutive days, require ≥24h continuous non-work between shift changes.
+  // We treat shift changes as explicit label transitions (A↔B) on consecutive worked days, and use actual
+  // finish/start timestamps from events: last "stop" of day N to first "work" of day N+1.
+  const didWork = days.map(dayHasWork);
+  const getLabel = (dayIdx: number) => {
+    const ci = dayIdx - prevCount;
+    return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
+  };
+
+  let runStart = 0;
+  while (runStart < didWork.length) {
+    while (runStart < didWork.length && !didWork[runStart]) runStart++;
+    if (runStart >= didWork.length) break;
+    let runEnd = runStart;
+    while (runEnd < didWork.length && didWork[runEnd]) runEnd++;
+    const runLen = runEnd - runStart;
+    if (runLen >= 5) {
+      for (let i = runStart; i < runEnd - 1; i++) {
+        const a = (days[i]?.shift_label ?? "") || "";
+        const b = (days[i + 1]?.shift_label ?? "") || "";
+        if (!a || !b || a === b) continue;
+
+        const aEvents = days[i].events ?? [];
+        const bEvents = days[i + 1].events ?? [];
+        const stopMs = [...aEvents]
+          .filter((e) => e.type === "stop")
+          .map((e) => new Date(e.time).getTime())
+          .filter((t) => Number.isFinite(t))
+          .sort((x, y) => y - x)[0];
+        const workMs = [...bEvents]
+          .filter((e) => e.type === "work")
+          .map((e) => new Date(e.time).getTime())
+          .filter((t) => Number.isFinite(t))
+          .sort((x, y) => x - y)[0];
+
+        if (!Number.isFinite(stopMs) || !Number.isFinite(workMs)) {
+          results.push({
+            type: "warning",
+            iconKey: "Clock",
+            day: getLabel(i + 1),
+            message:
+              "Shift change marked (A↔B) but start/finish time is missing — log End shift and next Work time to check 24h requirement",
+          });
+          continue;
+        }
+
+        const gapHrs = (workMs - stopMs) / (3600 * 1000);
+        if (gapHrs < 24) {
+          results.push({
+            type: "violation",
+            iconKey: "Clock",
+            day: getLabel(i + 1),
+            message: `Need ≥24h continuous non-work between shift changes (A↔B). Gap was ${Math.floor(gapHrs)}h ${Math.round(
+              (gapHrs % 1) * 60
+            )}m`,
+          });
+        }
+      }
+    }
+    runStart = runEnd;
+  }
+}
+
 /**
  * Run all compliance checks for the given week and optional previous week.
  * Returns violations and warnings (empty array = all compliant).
@@ -623,6 +809,8 @@ export function runComplianceChecks(
   options: {
     driverType?: string;
     prevWeekDays?: ComplianceDayData[] | null;
+    /** Optional preceding history (chronological) to support 28-day checks. */
+    historyDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
     weekStarting?: string;
     prevWeekStarting?: string;
@@ -636,6 +824,7 @@ export function runComplianceChecks(
   const {
     driverType = "solo",
     prevWeekDays,
+    historyDays,
     last24hBreak,
     weekStarting,
     prevWeekStarting,
@@ -653,8 +842,12 @@ export function runComplianceChecks(
   const prevCount = Math.min(3, prevDays.length);
 
   if (driverType === "two_up") {
-    checkTwoUpRules(extendedDays, results, prevCount);
-    checkRestBreakMovingVehicle(extendedDays, results, { weekStarting, prevWeekStarting, prevCount });
+    const movingDuringBreakCount = checkRestBreakMovingVehicle(extendedDays, results, {
+      weekStarting,
+      prevWeekStarting,
+      prevCount,
+    });
+    checkTwoUpRules(extendedDays, results, prevCount, { movingDuringBreakCount });
   } else {
     checkSoloRules(extendedDays, results, prevCount, {
       weekStarting,
@@ -662,8 +855,11 @@ export function runComplianceChecks(
       last24hBreak,
       currentDayIndex,
       slotOffsetWithinToday,
+      historyDays: (historyDays || []).map((d) => normalizeDayCoverageArrays(d)),
     });
   }
+
+  checkShiftChange24hBetweenShifts(extendedDays, results, prevCount);
 
   checkOdometerVsGpsPlausibility(extendedDays, results, { weekStarting, prevWeekStarting, prevCount });
   checkLocationEvidenceWarning(extendedDays, results);

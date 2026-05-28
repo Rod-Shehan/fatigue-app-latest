@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
@@ -24,6 +25,7 @@ function weekLabel(weekStarting: string) {
 
 export function ManagerMessagesView() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const [activeThreadId, setActiveThreadId] = useState<string>("");
   const [driverSearch, setDriverSearch] = useState("");
   const [compose, setCompose] = useState("");
@@ -58,6 +60,17 @@ export function ManagerMessagesView() {
       return true;
     });
   }, [threads, driverSearch, drivers]);
+
+  useEffect(() => {
+    const fromUrl = (searchParams.get("driver") ?? "").trim();
+    if (!fromUrl) return;
+    setDriverSearch((prev) => (prev ? prev : fromUrl));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (activeThreadId) return;
+    if (filteredThreads.length === 1) setActiveThreadId(filteredThreads[0].id);
+  }, [activeThreadId, filteredThreads]);
 
   const activeThread = useMemo(
     () => filteredThreads.find((t) => t.id === activeThreadId) ?? threads.find((t) => t.id === activeThreadId) ?? null,

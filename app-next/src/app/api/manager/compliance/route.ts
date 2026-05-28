@@ -58,9 +58,18 @@ export async function GET() {
       const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheet.jurisdictionCode);
       const engine = getComplianceEngine(parseJurisdictionCode(sheet.jurisdictionCode));
       const prevWeekStarting = getPreviousWeekSunday(sheet.weekStarting);
+      const prev2WeekStarting = getPreviousWeekSunday(prevWeekStarting);
+      const prev3WeekStarting = getPreviousWeekSunday(prev2WeekStarting);
       const prevSheet = byDriverWeek.get(`${sheet.driverName}|${prevWeekStarting}`) ?? null;
+      const prev2Sheet = byDriverWeek.get(`${sheet.driverName}|${prev2WeekStarting}`) ?? null;
+      const prev3Sheet = byDriverWeek.get(`${sheet.driverName}|${prev3WeekStarting}`) ?? null;
       const days = parseDays(sheet.days);
       const prevWeekDays = prevSheet ? parseDays(prevSheet.days) : null;
+      const historyDays = [
+        ...(prev3Sheet ? parseDays(prev3Sheet.days) : []),
+        ...(prev2Sheet ? parseDays(prev2Sheet.days) : []),
+        ...(prevSheet ? parseDays(prevSheet.days) : []),
+      ];
 
       const [yw, mw, dw] = sheet.weekStarting.split("-").map(Number);
       let currentDayIndex: number | undefined;
@@ -76,6 +85,7 @@ export async function GET() {
       const results = engine.run(days, {
         driverType: sheet.driverType ?? "solo",
         prevWeekDays,
+        historyDays,
         last24hBreak: sheet.last24hBreak ?? undefined,
         weekStarting: sheet.weekStarting,
         prevWeekStarting: prevSheet?.weekStarting ?? undefined,

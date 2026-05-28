@@ -25,14 +25,20 @@ export async function computeComplianceForSheetExport(
   >
 ): Promise<{ results: ComplianceCheckResult[]; jurisdictionCode: JurisdictionCode }> {
   const prevWeekStarting = getPreviousWeekSunday(row.weekStarting);
-  const prevSheet = await prisma.fatigueSheet.findFirst({
-    where: {
-      driverName: row.driverName,
-      weekStarting: prevWeekStarting,
-    },
-  });
+  const prev2WeekStarting = getPreviousWeekSunday(prevWeekStarting);
+  const prev3WeekStarting = getPreviousWeekSunday(prev2WeekStarting);
+  const [prevSheet, prev2Sheet, prev3Sheet] = await Promise.all([
+    prisma.fatigueSheet.findFirst({ where: { driverName: row.driverName, weekStarting: prevWeekStarting } }),
+    prisma.fatigueSheet.findFirst({ where: { driverName: row.driverName, weekStarting: prev2WeekStarting } }),
+    prisma.fatigueSheet.findFirst({ where: { driverName: row.driverName, weekStarting: prev3WeekStarting } }),
+  ]);
   const days = parseDays(row.days);
   const prevWeekDays = prevSheet ? parseDays(prevSheet.days) : null;
+  const historyDays = [
+    ...(prev3Sheet ? parseDays(prev3Sheet.days) : []),
+    ...(prev2Sheet ? parseDays(prev2Sheet.days) : []),
+    ...(prevSheet ? parseDays(prevSheet.days) : []),
+  ];
 
   const now = Date.now();
   const today = new Date(now);
@@ -55,6 +61,7 @@ export async function computeComplianceForSheetExport(
   const results = engine.run(days, {
     driverType: row.driverType ?? "solo",
     prevWeekDays,
+    historyDays,
     last24hBreak: row.last24hBreak ?? undefined,
     weekStarting: row.weekStarting,
     prevWeekStarting: prevSheet?.weekStarting ?? undefined,

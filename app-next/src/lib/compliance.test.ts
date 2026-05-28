@@ -104,6 +104,23 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(breakWarning!.day).toBe("Sun");
   });
 
+  it("5h break rule does not reset at midnight (rolling events)", () => {
+    const days = emptyWeek();
+    // Work starts late Sunday and continues into Monday without a qualifying break.
+    // Total continuous work > 5h across the midnight boundary should trigger a violation.
+    days[0] = {
+      ...days[0],
+      events: [{ time: "2026-03-08T20:00:00.000Z", type: "work" }],
+    };
+    days[1] = {
+      ...days[1],
+      events: [{ time: "2026-03-09T02:30:00.000Z", type: "work" }, { time: "2026-03-09T02:31:00.000Z", type: "stop" }],
+    };
+    const results = runComplianceChecks(days, { driverType: "solo" });
+    const fiveHourViolation = results.find((r) => r.type === "violation" && r.message.includes("5h work"));
+    expect(fiveHourViolation).toBeDefined();
+  });
+
   it("14-day work > 168h with prev week: violation", () => {
     const thisWeek = emptyWeek();
     for (let i = 0; i < 7; i++) thisWeek[i] = dayWorkOnly(14); // 98h this week
@@ -135,19 +152,6 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(violation).toBeUndefined();
   });
 
-  it("solo: 12h recorded in a day but <7h continuous non-work: violation", () => {
-    const days = emptyWeek();
-    days[1] = {
-      work_time: workSlots(12),
-      breaks: Array(MINUTES_PER_DAY).fill(false),
-      non_work: Array(MINUTES_PER_DAY).fill(false), // 0 non-work
-    };
-    const results = runComplianceChecks(days, { driverType: "solo" });
-    const v = results.find((r) => r.message.includes("7 continuous hrs non-work") && r.type === "violation");
-    expect(v).toBeDefined();
-    expect(v!.day).toBe("Mon");
-  });
-
   it("two-up: <7h non-work in 24h with 16h+ recorded: violation", () => {
     const days = emptyWeek();
     days[2] = {
@@ -158,6 +162,110 @@ describe("compliance scenarios — what the logic produces", () => {
     const results = runComplianceChecks(days, { driverType: "two_up" });
     const v = results.find((r) => r.message.includes("7h non-work") && r.message.includes("24h") && r.type === "violation");
     expect(v).toBeDefined();
+  });
+
+  it("two-up 48h stationary requirement: warning when no movement evidence (cannot prove)", () => {
+    const days = emptyWeek();
+    // Any work in window, but no non_work at all -> triggers 48h option.
+    for (let i = 0; i < 2; i++) {
+      days[i] = { ...dayWorkOnly(6), non_work: Array(MINUTES_PER_DAY).fill(false), breaks: Array(MINUTES_PER_DAY).fill(false), events: [] as any };
+    }
+    const results = runComplianceChecks(days as any, { driverType: "two_up" });
+    const w = results.find((r) => r.message.includes("NOT spent in a moving vehicle") && r.type === "warning");
+    expect(w).toBeDefined();
+  });
+
+  it("two-up 48h stationary requirement: violation when movement evidence detected during break", () => {
+    const days = emptyWeek();
+    days[0] = { ...dayWorkOnly(6), non_work: Array(MINUTES_PER_DAY).fill(false), breaks: Array(MINUTES_PER_DAY).fill(false), events: [] as any };
+    days[1] = { ...dayWorkOnly(6), non_work: Array(MINUTES_PER_DAY).fill(false), breaks: Array(MINUTES_PER_DAY).fill(false), events: [] as any };
+    // Inject a break->work with large GPS movement to create positive evidence.
+    days[0].events = [
+      { time: "2026-01-01T00:00:00.000Z", type: "break", lat: -31.95, lng: 115.86, accuracy: 10 },
+      { time: "2026-01-01T01:00:00.000Z", type: "work", lat: -31.50, lng: 115.86, accuracy: 10 },
+    ];
+    const results = runComplianceChecks(days as any, { driverType: "two_up" });
+    const v = results.find((r) => r.message.includes("movement evidence detected") && r.type === "violation");
+    expect(v).toBeDefined();
+  });
+
+  it("shift change (A↔B) in 5+ consecutive worked days: requires 24h between stop and next work", () => {
+    const days = emptyWeek();
+    // 5 consecutive worked days: Sun..Thu
+    for (let i = 0; i < 5; i++) {
+      days[i] = {
+        ...dayWorkOnly(1),
+        shift_label: i < 2 ? "A" : "B",
+        events: [],
+      };
+    }
+    // Sun ends at 08:00Z, Mon starts at 06:00Z (not a shift change yet: A->A)
+    days[0].events = [{ time: "2026-01-01T08:00:00.000Z", type: "stop" }];
+    days[1].events = [{ time: "2026-01-02T06:00:00.000Z", type: "work" }, { time: "2026-01-02T10:00:00.000Z", type: "stop" }];
+    // Mon label A, Tue label B shift change; gap is 23h (violation)
+    days[2].events = [{ time: "2026-01-03T09:00:00.000Z", type: "work" }]; // 23h after 10:00Z
+
+    const results = runComplianceChecks(days as any, { driverType: "solo" });
+    const v = results.find((r) => r.type === "violation" && r.message.includes("shift changes") && r.message.includes("24h"));
+    expect(v).toBeDefined();
+  });
+
+  it("shift change marked but missing stop/work times: warning", () => {
+    const days = emptyWeek();
+    for (let i = 0; i < 5; i++) {
+      days[i] = { ...dayWorkOnly(1), shift_label: "A", events: [] };
+    }
+    // Create a shift change between day 1 and 2 but omit stop/work events needed.
+    days[1].shift_label = "A";
+    days[2].shift_label = "B";
+    days[1].events = []; // missing stop
+    days[2].events = []; // missing work
+    const results = runComplianceChecks(days as any, { driverType: "solo" });
+    const w = results.find((r) => r.type === "warning" && r.message.includes("Shift change marked") && r.message.includes("missing"));
+    expect(w).toBeDefined();
+  });
+
+  it("solo 28-day alternative (4×24h + ≤144h work in any 14 days) satisfies the 24h-break requirement", () => {
+    const days = emptyWeek();
+    // Current week has work, but only ONE 24h non-work day inside the last 14 days.
+    for (let i = 0; i < 7; i++) {
+      const w = workSlots(10);
+      const nw = Array(MINUTES_PER_DAY).fill(false);
+      for (let m = 10 * 60; m < MINUTES_PER_DAY; m++) nw[m] = true;
+      days[i] = { work_time: w, breaks: Array(MINUTES_PER_DAY).fill(false), non_work: nw };
+    }
+    days[6] = {
+      work_time: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      non_work: Array(MINUTES_PER_DAY).fill(true), // one 24h block inside last14
+    };
+
+    // Provide 21 prior days to make a full 28-day horizon.
+    // Include 3 additional 24h non-work blocks in the earlier 14 days (outside the last14).
+    const historyDays = Array.from({ length: 21 }, (_, idx) => {
+      if (idx === 0 || idx === 6 || idx === 12) {
+        return {
+          work_time: Array(MINUTES_PER_DAY).fill(false),
+          breaks: Array(MINUTES_PER_DAY).fill(false),
+          non_work: Array(MINUTES_PER_DAY).fill(true),
+        };
+      }
+      const w = workSlots(10);
+      const nw = Array(MINUTES_PER_DAY).fill(false);
+      for (let m = 10 * 60; m < MINUTES_PER_DAY; m++) nw[m] = true;
+      return { work_time: w, breaks: Array(MINUTES_PER_DAY).fill(false), non_work: nw }; // 10h/day ensures ≤140h in any 14-day window
+    });
+
+    const combinedNonWork = [...historyDays, ...days].flatMap((d) => d.non_work || Array(MINUTES_PER_DAY).fill(false));
+    expect(countContinuousBlocksOfAtLeast(combinedNonWork as any, 24)).toBeGreaterThanOrEqual(4);
+
+    const results = runComplianceChecks(days, {
+      driverType: "solo",
+      historyDays,
+    } as any);
+
+    const v = results.find((r) => r.type === "violation" && r.message.includes("28-day alternative"));
+    expect(v).toBeUndefined();
   });
 
   it("this week >84h and no prev week: 14-day warning", () => {

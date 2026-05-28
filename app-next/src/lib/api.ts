@@ -148,6 +148,7 @@ export const api = {
       }>;
       driverType?: string;
       prevWeekDays?: Array<{ work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] }> | null;
+      historyDays?: Array<{ work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] }> | null;
       last24hBreak?: string;
       weekStarting?: string;
       prevWeekStarting?: string;

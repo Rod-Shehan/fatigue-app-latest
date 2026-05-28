@@ -121,7 +121,8 @@ function getDayWithCarriedOverCardInfo(
 
 /** Reminder when driver may have forgotten to log work / break / end shift. */
 const WORK_BREAK_DUE_MIN = 5 * 60;
-const WORK_FORGOT_END_SHIFT_MIN = 12 * 60;
+/** If still in work and no log updates for this long, prompt to end shift. Tied to 5h break due + buffer. */
+const WORK_NO_LOG_CHECK_IN_MIN = 7 * 60;
 const BREAK_COMPLETE_MIN = 20;
 const BREAK_LONG_MIN = 60;
 
@@ -137,8 +138,9 @@ function getForgottenActionReminder(
   if (!last || last.type === "stop") return null;
   const elapsedMin = Math.floor((Date.now() - new Date(last.time).getTime()) / 60000);
   if (last.type === "work") {
-    if (elapsedMin >= WORK_FORGOT_END_SHIFT_MIN)
-      return { message: "Work has been running for 12+ hours. Tap End shift if you've finished.", variant: "end-shift" };
+    // This is an inactivity-style prompt: time since the last logged event while still in "work".
+    if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
+      return { message: "No log updates for 7+ hours. Tap End shift if you've finished (or log Break if you stopped).", variant: "end-shift" };
     if (elapsedMin >= WORK_BREAK_DUE_MIN)
       return { message: "Time for your 20 min break — tap Break when you start.", variant: "break-due" };
     return null;
