@@ -1,0 +1,26 @@
+---
+description: Prevent accidental repo/folder moves and git remote changes
+alwaysApply: true
+---
+
+# Repo & workspace safety
+
+## Single source of truth
+
+- Treat `C:\Users\r_she\Documents\fatigue-app-latest` as the **only** workspace root for this project.
+- Treat `app-next/` as the **current app** (Next.js + Prisma + NextAuth). Do not switch stacks or folders unless the user explicitly asks.
+
+## Do not “move the repo”
+
+Never do any of the following unless the user explicitly requests it in the current message:
+
+- Create a new project folder (e.g. by cloning again, copying, extracting zips into a new name).
+- Rename the repo folder, relocate it, or recommend using a different folder as the “main” one without verifying `.git` and explaining why.
+- Change Git remotes (`git remote add/set-url/remove`), switch SSH↔HTTPS, or “fix casing” of the remote URL.
+- Push to a different remote, different repo, or different default branch.
+
+## Git actions require explicit permission
+
+- Do not run `git commit`, `git push`, or any destructive git commands unless the user explicitly asks.
+- If git output indicates multiple folders exist, **stop** and determine which folder contains `.git` before continuing.
+

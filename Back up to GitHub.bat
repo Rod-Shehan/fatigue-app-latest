@@ -24,7 +24,7 @@ if errorlevel 1 (
     echo No changes to commit. Your files match the last commit.
 )
 
-git push origin main
+git push origin HEAD
 if errorlevel 1 (
     echo.
     echo Push failed. You may need to sign in:
