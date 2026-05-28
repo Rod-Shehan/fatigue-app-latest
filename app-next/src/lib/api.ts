@@ -49,6 +49,8 @@ export type DayData = {
   destination?: string;
   start_kms?: number | null;
   end_kms?: number | null;
+  /** Day (A) / Night (B) — for Reg 184E(4) shift-pattern change after 5+ work days. */
+  shift_label?: "A" | "B" | "";
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
@@ -94,6 +96,17 @@ export type ComplianceCheckResult = {
   iconKey: "Coffee" | "AlertTriangle" | "Moon" | "Clock" | "TrendingUp" | "CheckCircle2" | "MapPin";
   day: string;
   message: string;
+  ruleId?: "shift_change_24h" | "shift_change_education";
+  scrollDayIndex?: number;
+  shiftChange?: {
+    fromDayIndex: number;
+    toDayIndex: number;
+    fromLabel: "A" | "B";
+    toLabel: "A" | "B";
+    gapHours: number;
+    stopTimeIso?: string;
+    workTimeIso?: string;
+  };
 };
 
 /** One sheet's compliance results for manager oversight. */

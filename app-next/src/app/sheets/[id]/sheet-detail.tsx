@@ -51,18 +51,25 @@ import DayEntry from "@/components/fatigue/DayEntry";
 import CompliancePanel from "@/components/fatigue/CompliancePanel";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
+import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
 import {
   deriveDaysWithRollover,
   applyLast24hBreakNonWorkRule,
   getEffectiveOpenActivityAtDayEnd,
 } from "@/components/fatigue/EventLogger";
 import {
+  formatSheetDisplayDate,
   getSheetDayDateString,
   getPreviousWeekSunday,
   getRegulatoryTodayYmd,
   getThisWeekSunday,
   normalizeWeekDateString,
 } from "@/lib/weeks";
+import {
+  consecutiveWorkDaysEndingAt,
+  shouldEducateAfterEndShift,
+  type ShiftLabel,
+} from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import { validateDayKms, getMinAllowedStartKms, validateSheetKms } from "@/lib/rego-kms-validation";
@@ -203,6 +210,7 @@ export function SheetDetail({
   const [endShiftDialog, setEndShiftDialog] = useState<{ dayIndex: number } | null>(null);
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
+  const [shiftPatternPrompt, setShiftPatternPrompt] = useState<{ dayIndex: number } | null>(null);
   /** LogBar work/break segment open — used to open large mobile tools on day-card tap. */
   const [shiftSegmentOpenForMobile, setShiftSegmentOpenForMobile] = useState(false);
   const [mobileLogToolsOpen, setMobileLogToolsOpen] = useState(false);
@@ -444,6 +452,26 @@ export function SheetDetail({
     window.setTimeout(run, 120);
   }, [currentDayIndex]);
 
+  const scrollToDayCard = useCallback((dayIndex: number) => {
+    const run = () => {
+      dayCardElsRef.current[dayIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    window.setTimeout(run, 80);
+  }, []);
+
+  const extendedDaysForShiftStreak = useMemo(() => {
+    const prev = (prevWeekSheet?.days ?? []).slice(-3);
+    return [...prev, ...sheetData.days];
+  }, [prevWeekSheet?.days, sheetData.days]);
+
+  const prevStreakCount = Math.min(3, (prevWeekSheet?.days ?? []).length);
+
+  const getConsecutiveWorkDaysForCard = useCallback(
+    (dayIndex: number) =>
+      consecutiveWorkDaysEndingAt(extendedDaysForShiftStreak, prevStreakCount + dayIndex),
+    [extendedDaysForShiftStreak, prevStreakCount]
+  );
+
   const saveMutation = useMutation({
     mutationFn: async (data: Partial<FatigueSheet>) => {
       return updateSheetOfflineFirst(sheetId, data);
@@ -638,6 +666,7 @@ export function SheetDetail({
       setEndShiftError(validation.message ?? "Invalid km.");
       return;
     }
+    let daysAfterEndShift: DayData[] | null = null;
     setSheetData((prev) => {
       const newDays = [...prev.days];
       const d = newDays[dayIndex];
@@ -648,11 +677,16 @@ export function SheetDetail({
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
       });
-      return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
+      const finalDays = applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined);
+      daysAfterEndShift = finalDays;
+      return { ...prev, days: finalDays };
     });
     setIsDirty(true);
     setEndShiftDialog(null);
     setEndShiftEndKms("");
+    if (daysAfterEndShift && shouldEducateAfterEndShift(daysAfterEndShift, dayIndex)) {
+      setShiftPatternPrompt({ dayIndex });
+    }
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
         if (!loc) return;
@@ -669,6 +703,29 @@ export function SheetDetail({
       })
       .catch(() => {});
   }, [endShiftDialog, endShiftEndKms]);
+
+  const handleShiftPatternSave = useCallback(
+    (todayShift: ShiftLabel | "", tomorrowShift: ShiftLabel | "") => {
+      if (shiftPatternPrompt == null) return;
+      const dayIndex = shiftPatternPrompt.dayIndex;
+      setSheetData((prev) => {
+        const newDays = [...prev.days];
+        if (todayShift) {
+          newDays[dayIndex] = { ...newDays[dayIndex], shift_label: todayShift };
+        }
+        if (tomorrowShift && dayIndex < 6) {
+          newDays[dayIndex + 1] = {
+            ...newDays[dayIndex + 1],
+            shift_label: tomorrowShift,
+          };
+        }
+        return { ...prev, days: newDays };
+      });
+      setIsDirty(true);
+      setShiftPatternPrompt(null);
+    },
+    [shiftPatternPrompt]
+  );
 
   const handleSave = () => {
     const kmError = validateSheetKms(sheetData.days);
@@ -1029,6 +1086,7 @@ export function SheetDetail({
                     weekStart={sheetData.week_starting}
                     regos={regos}
                     canEditTimes={canAccessManager && sheetData.status !== "completed"}
+                    consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
                     todayYmd={todayYmd}
                   />
                 </div>
@@ -1047,6 +1105,7 @@ export function SheetDetail({
                   prevWeekStarting={prevWeekSheet?.week_starting ?? undefined}
                   complianceResults={complianceData?.results ?? null}
                   complianceLoading={complianceLoading}
+                  onScrollToDay={scrollToDayCard}
                 />
               </motion.div>
               {sheetData.signature && (
@@ -1105,6 +1164,23 @@ export function SheetDetail({
           </div>
         </DialogContent>
       </Dialog>
+      {shiftPatternPrompt != null && (
+        <ShiftPatternEndShiftDialog
+          open
+          onOpenChange={(open) => !open && setShiftPatternPrompt(null)}
+          todayLabel={formatSheetDisplayDate(
+            getSheetDayDateString(sheetData.week_starting, shiftPatternPrompt.dayIndex)
+          )}
+          nextDayLabel={
+            shiftPatternPrompt.dayIndex < 6
+              ? formatSheetDisplayDate(
+                  getSheetDayDateString(sheetData.week_starting, shiftPatternPrompt.dayIndex + 1)
+                )
+              : ""
+          }
+          onSave={handleShiftPatternSave}
+        />
+      )}
       <Dialog open={!!endShiftDialog} onOpenChange={(open) => !open && setEndShiftDialog(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>

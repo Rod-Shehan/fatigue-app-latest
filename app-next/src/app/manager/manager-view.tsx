@@ -80,10 +80,13 @@ function buildGlanceBadges(item: ManagerComplianceItem): GlanceBadge[] {
   const badges: GlanceBadge[] = [];
   const results = item.results ?? [];
   const hasShiftChangeViolation = results.some(
-    (r) => r.type === "violation" && r.message.toLowerCase().includes("shift change")
+    (r) => r.ruleId === "shift_change_24h" && r.type === "violation"
   );
   const hasShiftChangeWarning = results.some(
-    (r) => r.type === "warning" && r.message.toLowerCase().includes("shift change marked")
+    (r) =>
+      r.ruleId === "shift_change_24h" &&
+      r.type === "warning" &&
+      r.message.toLowerCase().includes("end shift")
   );
   if (hasShiftChangeViolation) badges.push({ label: "Shift change <24h", tone: "bad" });
   else if (hasShiftChangeWarning) badges.push({ label: "Shift change time missing", tone: "warn" });

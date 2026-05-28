@@ -9,6 +9,13 @@ import { computeEvidenceSummary } from "@/lib/evidence";
 import { formatHoursStatistic } from "@/lib/hours";
 import { getSheetDayDateString } from "@/lib/weeks";
 import { ACTIVITY_THEME } from "@/lib/theme";
+import {
+  SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS,
+  SHIFT_CHANGE_MIN_GAP_HOURS,
+  formatShiftChangeGapHours,
+  shiftLabelDisplay,
+} from "@/lib/shift-change";
+import { Button } from "@/components/ui/button";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -38,6 +45,20 @@ function formatDateForDriver(isoDate: string): string {
   return d.toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
 }
 
+function formatEventTimeForDriver(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString("en-AU", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 const ICON_MAP = {
   Coffee,
   AlertTriangle,
@@ -47,6 +68,69 @@ const ICON_MAP = {
   CheckCircle2,
   MapPin,
 } as const;
+
+function ComplianceResultRow({
+  result,
+  when,
+  tone,
+  onScrollToDay,
+}: {
+  result: ComplianceCheckResult;
+  when: string;
+  tone: "violation" | "warning";
+  onScrollToDay?: (dayIndex: number) => void;
+}) {
+  const Icon = ICON_MAP[result.iconKey as keyof typeof ICON_MAP];
+  const shell =
+    tone === "violation"
+      ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
+      : "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800";
+  const text = tone === "violation" ? "text-red-700 dark:text-red-200" : "text-amber-700 dark:text-amber-200";
+  const iconCls = tone === "violation" ? "text-red-500 dark:text-red-400" : "text-amber-500 dark:text-amber-400";
+  const sc = result.shiftChange;
+  const appendWhen = result.message.includes("72h window ending") ? "" : ` — ${when}`;
+
+  return (
+    <div className={`flex flex-col gap-2 border rounded-lg p-2.5 ${shell}`}>
+      <div className="flex items-start gap-2">
+        {Icon && <Icon className={`w-4 h-4 mt-0.5 shrink-0 ${iconCls}`} />}
+        <p className={`text-xs ${text}`}>
+          {result.message}
+          {appendWhen}
+        </p>
+      </div>
+      {sc && (
+        <ul className={`text-[11px] space-y-0.5 pl-6 list-disc ${text}`}>
+          <li>
+            Pattern: {shiftLabelDisplay(sc.fromLabel)} → {shiftLabelDisplay(sc.toLabel)}
+          </li>
+          {formatEventTimeForDriver(sc.stopTimeIso) && (
+            <li>End shift logged: {formatEventTimeForDriver(sc.stopTimeIso)}</li>
+          )}
+          {formatEventTimeForDriver(sc.workTimeIso) && (
+            <li>Next Work logged: {formatEventTimeForDriver(sc.workTimeIso)}</li>
+          )}
+          {sc.gapHours > 0 && (
+            <li>
+              Time off between: {formatShiftChangeGapHours(sc.gapHours)} (need ≥{SHIFT_CHANGE_MIN_GAP_HOURS}h)
+            </li>
+          )}
+        </ul>
+      )}
+      {result.scrollDayIndex != null && onScrollToDay && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 text-xs self-start ml-6"
+          onClick={() => onScrollToDay(result.scrollDayIndex!)}
+        >
+          View day card
+        </Button>
+      )}
+    </div>
+  );
+}
 
 type DayLike = {
   work_time?: boolean[];
@@ -65,6 +149,7 @@ export default function CompliancePanel({
   prevWeekStarting,
   complianceResults,
   complianceLoading,
+  onScrollToDay,
 }: {
   days: DayLike[];
   driverType?: string;
@@ -74,6 +159,7 @@ export default function CompliancePanel({
   prevWeekStarting?: string;
   complianceResults?: ComplianceCheckResult[] | null;
   complianceLoading?: boolean;
+  onScrollToDay?: (dayIndex: number) => void;
 }) {
   const checks = complianceResults ?? [];
   const violations = checks.filter((c) => c.type === "violation");
@@ -131,15 +217,15 @@ export default function CompliancePanel({
         {violations.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-wider text-red-500 dark:text-red-400 font-bold">Violations ({violations.length})</p>
-            {violations.map((v, i) => {
-                const Icon = ICON_MAP[v.iconKey as keyof typeof ICON_MAP];
-                return (
-              <div key={i} className="flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-2.5">
-                {Icon && <Icon className="w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />}
-                <p className="text-xs text-red-700 dark:text-red-200">{v.message} — {whenLabel(v.day, weekStarting, prevWeekStarting)}</p>
-              </div>
-                );
-            })}
+            {violations.map((v, i) => (
+              <ComplianceResultRow
+                key={i}
+                result={v}
+                tone="violation"
+                when={whenLabel(v.day, weekStarting, prevWeekStarting)}
+                onScrollToDay={onScrollToDay}
+              />
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -147,15 +233,15 @@ export default function CompliancePanel({
         {warnings.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
             <p className="text-[10px] uppercase tracking-wider text-amber-500 dark:text-amber-400 font-bold">Warnings ({warnings.length})</p>
-            {warnings.map((w, i) => {
-                const Icon = ICON_MAP[w.iconKey as keyof typeof ICON_MAP];
-                return (
-              <div key={i} className="flex items-start gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
-                {Icon && <Icon className="w-4 h-4 text-amber-500 dark:text-amber-400 mt-0.5 shrink-0" />}
-                <p className="text-xs text-amber-700 dark:text-amber-200">{w.message}{w.message.includes("72h window ending") ? "" : ` — ${whenLabel(w.day, weekStarting, prevWeekStarting)}`}</p>
-              </div>
-                );
-            })}
+            {warnings.map((w, i) => (
+              <ComplianceResultRow
+                key={i}
+                result={w}
+                tone="warning"
+                when={whenLabel(w.day, weekStarting, prevWeekStarting)}
+                onScrollToDay={onScrollToDay}
+              />
+            ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -229,6 +315,10 @@ export default function CompliancePanel({
             <li>• ≥7 continuous hrs non-work time required</li>
             <li>• Two periods of non-work time (each longer than 7h) cannot be separated by more than 17h of work and break combined (24h non-work resets)</li>
             <li>• ≥27 hrs non-work in any rolling 72 hrs (incl. 3× ≥7hr blocks; 24h non-work resets)</li>
+            <li>
+              • After {SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS}+ consecutive work days, changing shift pattern (Day A ↔ Night B on the day card) needs ≥
+              {SHIFT_CHANGE_MIN_GAP_HOURS}h off between End shift and next Work
+            </li>
             <li>• Max 168 hrs work in any 14-day period (rolling; resets after ≥48h continuous non-work)</li>
           </ul>
         )}

@@ -206,8 +206,10 @@ describe("compliance scenarios — what the logic produces", () => {
     days[2].events = [{ time: "2026-01-03T09:00:00.000Z", type: "work" }]; // 23h after 10:00Z
 
     const results = runComplianceChecks(days as any, { driverType: "solo" });
-    const v = results.find((r) => r.type === "violation" && r.message.includes("shift changes") && r.message.includes("24h"));
+    const v = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "violation");
     expect(v).toBeDefined();
+    expect(v?.message).toContain("24");
+    expect(v?.shiftChange?.gapHours).toBeLessThan(24);
   });
 
   it("shift change marked but missing stop/work times: warning", () => {
@@ -221,7 +223,18 @@ describe("compliance scenarios — what the logic produces", () => {
     days[1].events = []; // missing stop
     days[2].events = []; // missing work
     const results = runComplianceChecks(days as any, { driverType: "solo" });
-    const w = results.find((r) => r.type === "warning" && r.message.includes("Shift change marked") && r.message.includes("missing"));
+    const w = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "warning");
+    expect(w).toBeDefined();
+    expect(w?.message).toContain("End shift");
+  });
+
+  it("5+ work days without shift labels: education warning", () => {
+    const days = emptyWeek();
+    for (let i = 0; i < 5; i++) {
+      days[i] = { ...dayWorkOnly(1), shift_label: "", events: [] };
+    }
+    const results = runComplianceChecks(days as any, { driverType: "solo" });
+    const w = results.find((r) => r.ruleId === "shift_change_education");
     expect(w).toBeDefined();
   });
 

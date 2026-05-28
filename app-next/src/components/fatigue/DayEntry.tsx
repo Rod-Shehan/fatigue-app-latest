@@ -17,6 +17,7 @@ import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
 import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
+import { SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS, SHIFT_PATTERN_FIELD_HELP } from "@/lib/shift-change";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -57,6 +58,8 @@ export default function DayEntry({
   regos = [],
   readOnly = false,
   canEditTimes = false,
+  /** Consecutive work days ending this day (incl. linked prior sheet days). */
+  consecutiveWorkDays = 0,
   /** YYYY-MM-DD for "today" from parent (recomputed when clock ticks) so highlight is always correct on load. */
   todayYmd,
 }: {
@@ -67,6 +70,7 @@ export default function DayEntry({
   regos?: Rego[];
   readOnly?: boolean;
   canEditTimes?: boolean;
+  consecutiveWorkDays?: number;
   todayYmd: string;
 }) {
   const handleFieldChange = (field: string, value: unknown) => {
@@ -97,6 +101,9 @@ export default function DayEntry({
     if ((dayData.work_time ?? []).some(Boolean)) return true;
     return events.some((e) => e.type === "work");
   }, [dayData.work_time, events]);
+
+  const showShiftPatternEducation =
+    consecutiveWorkDays >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS && !dayData.shift_label;
 
   const canShowEditTimes = canEditTimes && !readOnly;
 
@@ -184,21 +191,27 @@ export default function DayEntry({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
-              Shift
+          <div className="flex flex-col gap-0.5 min-w-[8.5rem]">
+            <Label
+              className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap"
+              title={SHIFT_PATTERN_FIELD_HELP}
+            >
+              Shift pattern (A/B)
             </Label>
             <Select
-              value={hasWork ? (dayData.shift_label || "__none__") : "__none__"}
+              value={dayData.shift_label || "__none__"}
               onValueChange={(value) => handleFieldChange("shift_label", value === "__none__" ? "" : value)}
-              disabled={readOnly || !hasWork}
+              disabled={readOnly}
             >
-              <SelectTrigger className="w-28 h-7 text-xs px-2" aria-label="Shift label">
+              <SelectTrigger
+                className="w-32 h-7 text-xs px-2"
+                aria-label="Shift pattern — day or night, for shift-change rule"
+              >
                 <SelectValue placeholder="(optional)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__" className="text-slate-500 dark:text-slate-400">
-                  (no label)
+                  (not set)
                 </SelectItem>
                 <SelectItem value="A">Day (A)</SelectItem>
                 <SelectItem value="B">Night (B)</SelectItem>
@@ -235,6 +248,15 @@ export default function DayEntry({
           )}
         </div>
       </div>
+      {showShiftPatternEducation && (
+        <p className="mb-2 text-[11px] leading-snug text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-2 py-1.5">
+          You&apos;ve worked {consecutiveWorkDays} days in a row. If tomorrow is a different pattern (day ↔ night),
+          set Day (A) or Night (B) here and allow at least 24 hours off when the pattern changes.
+        </p>
+      )}
+      {!dayData.shift_label && (
+        <p className="mb-2 text-[10px] leading-snug text-slate-500 dark:text-slate-400">{SHIFT_PATTERN_FIELD_HELP}</p>
+      )}
       <TimeGrid dayData={{ ...dayData, date: getISODate() }} />
 
       {canShowEditTimes ? (
