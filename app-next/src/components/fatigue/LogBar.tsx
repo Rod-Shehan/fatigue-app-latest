@@ -44,9 +44,48 @@ const WORK_TARGET_MINUTES = WORK_WINDOW_MIN;
 const BREAK_TARGET_MINUTES = 20;
 
 function formatCountdown(mins: number): string {
-  if (mins <= 0) return "Due now";
+  if (mins <= 0) return "now";
   if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   return `${mins}m`;
+}
+
+/** High-contrast countdown chip on the primary log button (cab / outdoor legibility). */
+function PrimaryActionCountdownBlock({
+  labelPrefix,
+  mins,
+  actionKey,
+}: {
+  labelPrefix: string;
+  mins: number;
+  actionKey: "work" | "break";
+}) {
+  const overdue = mins <= 0;
+  const timerChipClass =
+    actionKey === "break"
+      ? overdue
+        ? "bg-red-800 text-white ring-white/90"
+        : "bg-slate-950 text-white ring-white/90"
+      : overdue
+        ? "bg-red-800 text-white ring-white/90"
+        : "bg-amber-300 text-slate-950 ring-white/90";
+
+  return (
+    <span className="flex flex-col items-start leading-none gap-1 min-w-0">
+      <span className="text-sm sm:text-base font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
+        {overdue ? labelPrefix.replace(/ in$/, " now") : labelPrefix}
+      </span>
+      <span
+        className={cn(
+          "inline-flex items-center rounded-lg px-2.5 py-1 font-mono font-extrabold tabular-nums tracking-tight text-2xl sm:text-3xl ring-2 shadow-md",
+          timerChipClass,
+          overdue && "animate-pulse"
+        )}
+        aria-live="polite"
+      >
+        {formatCountdown(mins)}
+      </span>
+    </span>
+  );
 }
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
@@ -356,11 +395,11 @@ export default function LogBar({
   /** Saturated bands + thick border for single-glance compliance (outdoor / cab visibility). */
   const headerShellClass =
     complianceTone === "violation" || complianceTone === "warning"
-      ? "bg-amber-400 dark:bg-amber-500 border-b-4 border-amber-900 dark:border-amber-100 shadow-lg"
+      ? "bg-amber-500 dark:bg-amber-600 border-b-4 border-amber-950 dark:border-amber-100 shadow-lg"
       : complianceTone === "pending"
-          ? "bg-gradient-to-r from-amber-400 via-lime-400 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-b-4 border-amber-900 dark:border-emerald-100 shadow-lg"
+          ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-b-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
           : complianceTone === "ok"
-            ? "bg-emerald-400 dark:bg-emerald-600 border-b-4 border-emerald-900 dark:border-emerald-100 shadow-lg"
+            ? "bg-emerald-500 dark:bg-emerald-600 border-b-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
             : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-md";
 
   /** Keep labels readable on solid compliance backgrounds. */
@@ -479,13 +518,13 @@ export default function LogBar({
       const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
       if (!dueBy) return null;
       const mins = Math.max(0, Math.ceil((dueBy - nowMs) / 60000));
-      return { mins, hint: "break due" as const };
+      return { mins, labelPrefix: "Break due in" as const };
     }
     if (currentType === "break") {
       const completeBy = getBreakCompleteByTime(eventsForDriver, nowMs);
       if (!completeBy) return null;
       const mins = Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
-      return { mins, hint: "rest left" as const };
+      return { mins, labelPrefix: "Work in" as const };
     }
     if (currentType === null) {
       const lastStopMs = getLastStopTime(rolling, nowMs + 1);
@@ -499,7 +538,7 @@ export default function LogBar({
       }
       const safeAt = lastStopMs + MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 3600 * 1000;
       const mins = Math.max(0, Math.ceil((safeAt - nowMs) / 60000));
-      return { mins, hint: "until shift" as const };
+      return { mins, labelPrefix: "Start shift in" as const };
     }
     return null;
   }, [activeDriver, currentType, days, driverType, eventsForDriver, isLiveNow, tick]);
@@ -721,52 +760,37 @@ export default function LogBar({
             const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
             const showCountdown =
               primaryActionCountdown != null && getNextWorkBreakType(currentType) === nextWorkBreak;
-            const countdownAccentClass =
-              nextWorkBreak === "break"
-                ? "text-emerald-950 dark:text-emerald-100"
-                : nextWorkBreak === "work"
-                  ? "text-amber-100 dark:text-amber-200"
-                  : "";
-            const countdownHintClass =
-              nextWorkBreak === "break"
-                ? "text-emerald-900/80 dark:text-emerald-100/80"
-                : "text-blue-100/90 dark:text-blue-100/80";
             return (
               <button
                 type="button"
                 onClick={() => handleLog(nextWorkBreak)}
-                className={`flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-md text-white text-base sm:text-lg font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[180px] sm:w-auto shrink-0 ${theme.button} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
+                className={cn(
+                  "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
+                  theme.button,
+                  showCountdown && !isPending && nextWorkBreak === "break" && "bg-amber-600 hover:bg-amber-700",
+                  isPending && "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse"
+                )}
                 aria-label={
                   showCountdown && !isPending
-                    ? `${primaryLabel} — ${primaryActionCountdown.hint} ${formatCountdown(primaryActionCountdown.mins)}`
+                    ? `${primaryActionCountdown.labelPrefix} ${formatCountdown(primaryActionCountdown.mins)}`
                     : isPending
                       ? "Tap again to confirm"
                       : primaryLabel
                 }
               >
                 {React.createElement(EVENT_ICONS[nextWorkBreak], {
-                  className: cn("shrink-0", showCountdown && !isPending ? "w-7 h-7 sm:w-8 sm:h-8" : "w-8 h-8"),
+                  className: cn("shrink-0 text-white drop-shadow-sm", showCountdown && !isPending ? "w-8 h-8 sm:w-9 sm:h-9" : "w-8 h-8"),
                 })}
                 {isPending ? (
-                  "Tap again to log"
+                  <span className="text-base sm:text-lg">Tap again to log</span>
                 ) : showCountdown ? (
-                  <span className="flex flex-col items-start leading-none gap-0.5 min-w-0">
-                    <span className="text-base sm:text-lg">{primaryLabel}</span>
-                    <span
-                      className={cn(
-                        "font-mono font-extrabold tabular-nums tracking-tight text-xl sm:text-2xl",
-                        primaryActionCountdown.mins <= 0 ? "text-red-100 animate-pulse" : countdownAccentClass
-                      )}
-                      aria-live="polite"
-                    >
-                      {formatCountdown(primaryActionCountdown.mins)}
-                    </span>
-                    <span className={cn("text-[10px] sm:text-xs font-semibold uppercase tracking-wider", countdownHintClass)}>
-                      {primaryActionCountdown.hint}
-                    </span>
-                  </span>
+                  <PrimaryActionCountdownBlock
+                    labelPrefix={primaryActionCountdown.labelPrefix}
+                    mins={primaryActionCountdown.mins}
+                    actionKey={nextWorkBreak}
+                  />
                 ) : (
-                  primaryLabel
+                  <span className="text-base sm:text-lg">{primaryLabel}</span>
                 )}
               </button>
             );
@@ -798,9 +822,9 @@ export default function LogBar({
           <div className="flex items-center gap-2 min-w-0">
             <div
               className={cn(
-                "relative h-8 min-h-8 flex-1 min-w-0 rounded-lg overflow-hidden",
+                "relative h-9 min-h-9 sm:h-10 sm:min-h-10 flex-1 min-w-0 rounded-lg overflow-hidden",
                 barOnColoredHeader
-                  ? "bg-black/50 ring-1 ring-white/35 shadow-[inset_0_1px_4px_rgba(0,0,0,0.5)] dark:bg-black/55 dark:ring-white/25"
+                  ? "bg-black/60 ring-2 ring-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.55)] dark:bg-black/65 dark:ring-white/30"
                   : "bg-slate-100 dark:bg-slate-700"
               )}
             >
@@ -811,7 +835,7 @@ export default function LogBar({
                       className={cn(
                         "absolute inset-y-0 left-0 rounded-lg transition-all duration-300",
                         barOnColoredHeader &&
-                          "bg-emerald-400 shadow-sm dark:bg-emerald-300 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
+                          "bg-lime-300 shadow-sm dark:bg-lime-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
                       )}
                       style={{
                         width: `${contextualBar.pct}%`,
@@ -892,7 +916,12 @@ export default function LogBar({
               )}
             </div>
             <span
-              className="h-8 min-h-8 flex shrink-0 items-center font-mono font-semibold tabular-nums leading-none text-[2rem] tracking-tight"
+              className={cn(
+                "h-9 min-h-9 sm:h-10 sm:min-h-10 flex shrink-0 items-center font-mono font-extrabold tabular-nums leading-none text-[1.75rem] sm:text-[2rem] tracking-tight",
+                barOnColoredHeader
+                  ? "text-slate-950 dark:text-white drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+                  : "text-slate-900 dark:text-slate-100"
+              )}
               title="Elapsed time this work / break"
               aria-live="polite"
             >
