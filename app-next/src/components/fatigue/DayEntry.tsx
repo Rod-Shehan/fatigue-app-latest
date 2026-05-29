@@ -2,36 +2,21 @@
 
 import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Truck, MapPin, Navigation, Clock, Trash2 } from "lucide-react";
+import { Clock, Pencil, Trash2, ArrowRight } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
 import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
-import { SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS, SHIFT_PATTERN_FIELD_HELP } from "@/lib/shift-change";
+import { SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS } from "@/lib/shift-change";
+import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
+import { cn } from "@/lib/utils";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-type DayData = {
-  truck_rego?: string;
-  start_location?: string;
-  destination?: string;
-  start_kms?: number | null;
+type DayData = DayCardFields & {
   end_kms?: number | null;
-  /**
-   * Shift label used ONLY to indicate a shift change (A↔B) for the 24h break rule.
-   * Displayed as Day/Night for familiarity, but does not change other compliance math.
-   */
-  shift_label?: "A" | "B" | "";
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
@@ -47,8 +32,47 @@ function isoToHHMM(iso: string): string {
 }
 
 function hhmmToIsoOnDate(dayYmd: string, hhmm: string): string {
-  const candidate = new Date(`${dayYmd}T${hhmm}:00`);
-  return candidate.toISOString();
+  return new Date(`${dayYmd}T${hhmm}:00`).toISOString();
+}
+
+function formatShiftLabel(label?: "A" | "B" | ""): string {
+  if (label === "A") return "Day (A)";
+  if (label === "B") return "Night (B)";
+  return "—";
+}
+
+function formatKm(n: number | null | undefined): string {
+  if (n == null || Number.isNaN(Number(n))) return "—";
+  return Number(n).toLocaleString("en-AU");
+}
+
+function StatBlock({
+  label,
+  value,
+  mono,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {label}
+      </p>
+      <p
+        className={cn(
+          "text-sm font-semibold truncate mt-0.5",
+          emphasis ? "text-amber-900 dark:text-amber-100" : "text-slate-900 dark:text-slate-100",
+          mono && "font-mono tabular-nums tracking-tight"
+        )}
+      >
+        {value || "—"}
+      </p>
+    </div>
+  );
 }
 
 export default function DayEntry({
@@ -59,9 +83,7 @@ export default function DayEntry({
   regos = [],
   readOnly = false,
   canEditTimes = false,
-  /** Consecutive work days ending this day (incl. linked prior sheet days). */
   consecutiveWorkDays = 0,
-  /** YYYY-MM-DD for "today" from parent (recomputed when clock ticks) so highlight is always correct on load. */
   todayYmd,
 }: {
   dayIndex: number;
@@ -74,10 +96,6 @@ export default function DayEntry({
   consecutiveWorkDays?: number;
   todayYmd: string;
 }) {
-  const handleFieldChange = (field: string, value: unknown) => {
-    onUpdate(dayIndex, { ...dayData, [field]: value });
-  };
-
   const getDateStr = () => {
     if (!weekStart) return "";
     return formatSheetDisplayDate(getSheetDayDateString(weekStart, dayIndex));
@@ -90,205 +108,176 @@ export default function DayEntry({
   const sheetDayYmd = weekStart ? getSheetDayDateString(weekStart, dayIndex) : todayYmd;
   const isToday = sheetDayYmd === todayYmd;
 
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [draftEvents, setDraftEvents] = useState<Array<{ type: string; time: string; driver?: "primary" | "second" }>>([]);
+  const [draftEvents, setDraftEvents] = useState<Array<{ type: string; time: string; driver?: "primary" | "second" }>>(
+    []
+  );
 
   const events = useMemo(() => {
     const base = (dayData.events ?? []).filter((e) => e && typeof e.time === "string" && typeof e.type === "string");
     return [...base].sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
   }, [dayData.events]);
 
-  const hasWork = useMemo(() => {
-    if ((dayData.work_time ?? []).some(Boolean)) return true;
-    return events.some((e) => e.type === "work");
-  }, [dayData.work_time, events]);
-
   const showShiftPatternEducation =
     consecutiveWorkDays >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS && !dayData.shift_label;
 
   const canShowEditTimes = canEditTimes && !readOnly;
+  const canEditDetails = !readOnly;
+
+  const hasRouteDetails =
+    (dayData.start_location ?? "").trim() !== "" ||
+    (dayData.destination ?? "").trim() !== "" ||
+    (dayData.truck_rego ?? "").trim() !== "" ||
+    dayData.start_kms != null;
+
+  const detailsComplete =
+    (dayData.truck_rego ?? "").trim() !== "" &&
+    (dayData.start_location ?? "").trim() !== "" &&
+    (dayData.destination ?? "").trim() !== "" &&
+    dayData.start_kms != null &&
+    !Number.isNaN(Number(dayData.start_kms));
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: dayIndex * 0.04 }}
-      className={`rounded-xl border-2 shadow-sm p-3 md:p-5 transition-colors ${
+      className={cn(
+        "rounded-xl border-2 shadow-sm p-3 md:p-5 transition-colors",
         isToday
           ? "bg-amber-50 dark:bg-slate-800/95 border-amber-400 dark:border-amber-500 ring-2 ring-amber-200/80 dark:ring-amber-500/40"
           : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
-      }`}
+      )}
     >
-      <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 shrink-0">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
-                isToday
-                  ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
-                  : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
-              }`}
-            >
-              {DAY_NAMES[dayIndex]?.charAt(0)}
-            </div>
-            <div>
-              <p
-                className={`text-sm font-semibold ${
-                  isToday
-                    ? "text-amber-800 dark:text-amber-300"
-                    : "text-slate-800 dark:text-slate-100"
-                }`}
-              >
-                {DAY_NAMES[dayIndex]}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
-            </div>
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 shrink-0">
+          <div
+            className={cn(
+              "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold",
+              isToday
+                ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
+                : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
+            )}
+          >
+            {DAY_NAMES[dayIndex]?.charAt(0)}
           </div>
-          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5 max-w-md">
-            <Navigation className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <Label className="sr-only">Start location</Label>
-              <Input
-                placeholder="Start location"
-                value={dayData.start_location || ""}
-                onChange={(e) => handleFieldChange("start_location", e.target.value)}
-                className="h-8 w-full text-sm font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                disabled={readOnly}
-                aria-label="Start location"
-              />
-            </div>
+          <div>
+            <p
+              className={cn(
+                "text-base font-bold",
+                isToday ? "text-amber-800 dark:text-amber-300" : "text-slate-800 dark:text-slate-100"
+              )}
+            >
+              {DAY_NAMES[dayIndex]}
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-          {canShowEditTimes ? (
+        <div className="flex flex-wrap items-center gap-2">
+          {canEditDetails && (
+            <Button
+              type="button"
+              variant={detailsComplete ? "outline" : "default"}
+              size="sm"
+              className={cn(
+                "min-h-9 gap-1.5 text-sm font-semibold",
+                !detailsComplete && "bg-amber-600 hover:bg-amber-700 text-white"
+              )}
+              onClick={() => setDetailsOpen(true)}
+            >
+              <Pencil className="w-4 h-4 shrink-0" aria-hidden />
+              {hasRouteDetails ? "Edit route" : "Set route"}
+            </Button>
+          )}
+          {canShowEditTimes && (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="h-7 px-2 gap-1.5 text-xs"
+              className="min-h-9 gap-1.5 text-sm"
               onClick={() => {
                 setDraftEvents(events.map((e) => ({ ...e })));
                 setEditOpen(true);
               }}
-              title="Edit logged event times"
             >
-              <Clock className="w-3.5 h-3.5" />
+              <Clock className="w-4 h-4 shrink-0" aria-hidden />
               Edit times
             </Button>
-          ) : null}
-          <div className="flex items-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-            <Select
-              value={dayData.truck_rego?.trim() || "__none__"}
-              onValueChange={(value) =>
-                handleFieldChange("truck_rego", value === "__none__" ? "" : value)
-              }
-              disabled={readOnly}
-            >
-              <SelectTrigger
-                className="w-28 h-7 text-xs font-mono px-2 [&>span]:line-clamp-1"
-                aria-label="Rego"
-              >
-                <SelectValue placeholder="Rego" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__" className="text-slate-500 dark:text-slate-400">
-                  Rego
-                </SelectItem>
-                {(() => {
-                  const labels = regos.map((r) => r.label);
-                  const current = dayData.truck_rego?.trim();
-                  if (current && !labels.includes(current)) labels.unshift(current);
-                  return labels.map((label) => (
-                    <SelectItem key={label} value={label} className="font-mono">
-                      {label}
-                    </SelectItem>
-                  ));
-                })()}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-0.5 min-w-[8.5rem]">
-            <Label
-              className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap"
-              title={
-                showShiftPatternEducation
-                  ? SHIFT_PATTERN_FIELD_HELP
-                  : "Optional — only used if you swap day ↔ night shifts after 5+ work days in a row"
-              }
-            >
-              Shift pattern (A/B)
-            </Label>
-            <Select
-              value={dayData.shift_label || "__none__"}
-              onValueChange={(value) => handleFieldChange("shift_label", value === "__none__" ? "" : value)}
-              disabled={readOnly}
-            >
-              <SelectTrigger
-                className="w-32 h-7 text-xs px-2"
-                aria-label="Shift pattern — day or night, for shift-change rule"
-              >
-                <SelectValue placeholder="(optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__none__" className="text-slate-500 dark:text-slate-400">
-                  (not set)
-                </SelectItem>
-                <SelectItem value="A">Day (A)</SelectItem>
-                <SelectItem value="B">Night (B)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5 max-w-xs sm:max-w-[11rem] sm:flex-initial">
-            <MapPin className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
-            <div className="min-w-0 flex-1">
-              <Label className="sr-only">Destination</Label>
-              <Input
-                placeholder="Destination"
-                value={dayData.destination || ""}
-                onChange={(e) => handleFieldChange("destination", e.target.value)}
-                className="h-8 w-full text-sm font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400"
-                disabled={readOnly}
-                aria-label="Destination"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">
-              Start km{dayData.truck_rego?.trim() ? " *" : ""}
-            </Label>
-            <Input
-              type="number"
-              placeholder="0"
-              value={dayData.start_kms ?? ""}
-              onChange={(e) => handleFieldChange("start_kms", e.target.value ? Number(e.target.value) : null)}
-              className="h-7 w-20 text-xs font-medium tabular-nums"
-              disabled={readOnly}
-            />
-          </div>
-          {kmsTotal > 0 && (
-            <span className="rounded bg-slate-50 px-2 py-0.5 text-[10px] font-medium tabular-nums text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-              {kmsTotal} km
-            </span>
           )}
         </div>
       </div>
-      {showShiftPatternEducation && (
+
+      <div
+        className={cn(
+          "mb-3 rounded-lg border bg-slate-50/90 dark:bg-slate-950/50 px-3 py-3",
+          isToday && !detailsComplete && canEditDetails
+            ? "border-amber-300 dark:border-amber-700"
+            : "border-slate-200 dark:border-slate-700"
+        )}
+      >
+        {!hasRouteDetails ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            {readOnly ? "No route details recorded." : "Route and vehicle not set — use Set route before Start shift."}
+          </p>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 min-w-0 mb-3">
+              <StatBlock label="From" value={(dayData.start_location || "").trim() || "—"} emphasis />
+              <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
+              <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+              <StatBlock label="Rego" value={(dayData.truck_rego || "").trim() || "—"} mono />
+              <StatBlock label="Pattern" value={formatShiftLabel(dayData.shift_label)} />
+              <StatBlock label="Start km" value={formatKm(dayData.start_kms)} mono />
+              <StatBlock
+                label="Trip km"
+                value={kmsTotal > 0 ? formatKm(kmsTotal) : dayData.end_kms != null ? formatKm(0) : "—"}
+                mono
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {showShiftPatternEducation && !detailsOpen && (
         <p className="mb-2 text-xs leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
-          <span className="font-semibold">Shift pattern (not Start/End shift):</span> you&apos;ve worked{" "}
-          {consecutiveWorkDays} days in a row. If your next shift swaps day ↔ night, pick Day (A) or Night (B) above
-          and plan at least 24 hours off before the new pattern.
+          <span className="font-semibold">Shift pattern:</span> set Day (A) or Night (B) in route details if you swap
+          patterns after {consecutiveWorkDays} work days in a row.
         </p>
       )}
+
       <TimeGrid dayData={{ ...dayData, date: getISODate() }} />
 
-      {canShowEditTimes ? (
+      {canEditDetails && (
+        <DayCardDetailsDialog
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          dayTitle={DAY_NAMES[dayIndex] ?? "Day"}
+          dateLabel={getDateStr()}
+          initial={{
+            truck_rego: dayData.truck_rego,
+            start_location: dayData.start_location,
+            destination: dayData.destination,
+            start_kms: dayData.start_kms,
+            shift_label: dayData.shift_label,
+          }}
+          regos={regos}
+          showShiftPatternEducation={showShiftPatternEducation}
+          consecutiveWorkDays={consecutiveWorkDays}
+          onConfirm={(fields) => onUpdate(dayIndex, { ...dayData, ...fields })}
+        />
+      )}
+
+      {canShowEditTimes && (
         <Dialog open={editOpen} onOpenChange={setEditOpen}>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit event times</DialogTitle>
               <DialogDescription>
-                Adjust the logged timestamps for this day. Times are saved onto this sheet and will affect compliance calculations.
+                Adjust the logged timestamps for this day. Times are saved onto this sheet and will affect compliance
+                calculations.
               </DialogDescription>
             </DialogHeader>
 
@@ -313,17 +302,16 @@ export default function DayEntry({
                           return next;
                         });
                       }}
-                      className="h-8 w-32 font-mono"
+                      className="h-10 w-36 text-base font-mono"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-8 px-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/40"
+                      className="h-10 px-2 text-red-600 dark:text-red-400"
                       onClick={() => setDraftEvents((prev) => prev.filter((_, idx) => idx !== i))}
-                      title="Delete event"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 ))}
@@ -331,11 +319,12 @@ export default function DayEntry({
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+              <Button type="button" variant="outline" className="min-h-11" onClick={() => setEditOpen(false)}>
                 Cancel
               </Button>
               <Button
                 type="button"
+                className="min-h-11"
                 disabled={draftEvents.length === 0}
                 onClick={() => {
                   const normalized = [...draftEvents].sort(
@@ -350,7 +339,7 @@ export default function DayEntry({
             </div>
           </DialogContent>
         </Dialog>
-      ) : null}
+      )}
     </motion.div>
   );
 }
