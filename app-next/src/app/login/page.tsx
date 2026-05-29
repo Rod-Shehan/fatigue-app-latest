@@ -46,10 +46,14 @@ function LoginForm() {
         redirect: false,
       });
       if (res?.error) {
+        const devHint =
+          process.env.NEXT_PUBLIC_AUTH_DEV_LOGIN_HINT === "true"
+            ? " Dev bypass: set NEXTAUTH_ALLOW_DEV_LOGIN and NEXTAUTH_DEV_BYPASS_SECRET on the server, then use that secret as the password (or use local npm run dev with a blank password)."
+            : "";
         setError(
           res.error === "Configuration"
             ? "Sign-in is misconfigured on the server (check NEXTAUTH_SECRET and NEXTAUTH_URL)."
-            : "Invalid email or password. Use your fleet shared password (NEXTAUTH_CREDENTIALS_PASSWORD) or the password your manager set."
+            : `Invalid email or password. Use your fleet shared password (NEXTAUTH_CREDENTIALS_PASSWORD) or the password your manager set.${devHint}`
         );
         setLoading(false);
         return;
@@ -155,6 +159,13 @@ function LoginForm() {
               <strong className="text-slate-500 dark:text-slate-400">Local dev:</strong> leave both fields blank to sign in as
               dev@localhost, or enter any email with a blank password to sign in without a stored password.
             </>
+          ) : process.env.NEXT_PUBLIC_AUTH_DEV_LOGIN_HINT === "true" ? (
+            <>
+              <strong className="text-amber-600 dark:text-amber-400">Dev / staging login:</strong> use your email and enter{" "}
+              <strong>NEXTAUTH_DEV_BYPASS_SECRET</strong> as the password (set on Vercel with{" "}
+              <code className="text-[10px]">NEXTAUTH_ALLOW_DEV_LOGIN=true</code>). Remove these env vars before launch.
+              Or run <code className="text-[10px]">npm run dev</code> locally for blank-password sign-in.
+            </>
           ) : (
             <>
               By default the fleet shared password (
@@ -163,7 +174,7 @@ function LoginForm() {
               <code className="text-[10px]">NEXTAUTH_SHARED_PASSWORD_PRIORITY=false</code> on the server to require
               individual passwords first.{" "}
               <span className="text-slate-500 dark:text-slate-400">
-                Blank password is not accepted here — only in local development.
+                Blank password is not accepted here — use local dev or enable the dev bypass on the server.
               </span>
             </>
           )}

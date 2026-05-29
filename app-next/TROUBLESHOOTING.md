@@ -38,16 +38,29 @@
 
 ## 4. Login page appears but sign-in does nothing / "Invalid email or password"
 
-**Cause:** No password is set for the app.
+**Cause:** No password is set for the app, or you are on **production Vercel** without the fleet password / dev bypass.
 
-**Fix:**
-- In the **app-next** folder, open the **.env** file in Notepad.
-- Add or edit: **NEXTAUTH_CREDENTIALS_PASSWORD=** and type a password after the `=`, e.g.  
-  `NEXTAUTH_CREDENTIALS_PASSWORD=mysecret`
-- Add: **NEXTAUTH_SECRET=** and type any long random string, e.g.  
-  `NEXTAUTH_SECRET=something-random-12345`
-- Save the file, **close the "Next.js - Fatigue App" window**, then run **Start App (Next).bat** again.
-- Sign in with **any email** (e.g. you@example.com) and the password you set.
+**Fix (local — easiest while building UI):**
+- Run **`npm run dev`** in **app-next** (not the production URL).
+- Open **http://localhost:3000** and sign in with **both fields blank** (dev@localhost), or your email + **blank password** if you have no manager-set password in the DB.
+
+**Fix (local .env):**
+- In **app-next**, open **`.env.local`**.
+- Set **NEXTAUTH_CREDENTIALS_PASSWORD=** to a password you choose.
+- Set **NEXTAUTH_SECRET=** to any long random string.
+- Restart the dev server. Sign in with any email + that password.
+
+**Fix (Vercel production / preview while still in dev):**
+1. In **Vercel → Project → Settings → Environment Variables**, add:
+   - `NEXTAUTH_ALLOW_DEV_LOGIN` = `true`
+   - `NEXTAUTH_DEV_BYPASS_SECRET` = a long random string (e.g. from `openssl rand -base64 32`)
+   - `NEXT_PUBLIC_AUTH_DEV_LOGIN_HINT` = `true` (shows instructions on the login page)
+2. **Redeploy** (env changes need a new deployment).
+3. Sign in with your email and paste **NEXTAUTH_DEV_BYPASS_SECRET** into the **Password** field.
+
+**Or** set `NEXTAUTH_CREDENTIALS_PASSWORD` on Vercel to a shared fleet password and use that instead.
+
+Remove `NEXTAUTH_ALLOW_DEV_LOGIN`, `NEXTAUTH_DEV_BYPASS_SECRET`, and `NEXT_PUBLIC_AUTH_DEV_LOGIN_HINT` before real users go live.
 
 ---
 

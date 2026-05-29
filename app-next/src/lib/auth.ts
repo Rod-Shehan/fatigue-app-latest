@@ -3,6 +3,11 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
+import {
+  tryDevBypassSecretLogin,
+  tryLocalDevelopmentLogin,
+  tryPasswordlessStagingLogin,
+} from "./auth-dev-login";
 
 /**
  * Production sign-in:
@@ -10,7 +15,11 @@ import bcrypt from "bcryptjs";
  *   (NEXTAUTH_SHARED_PASSWORD_PRIORITY defaults to on). Set NEXTAUTH_SHARED_PASSWORD_PRIORITY=false to require
  *   per-user password when passwordHash exists.
  * - User without passwordHash: NEXTAUTH_CREDENTIALS_PASSWORD must be set; password field must match (trimmed).
- * Dev-only: blank credentials / email + empty password (see authorize below).
+ *
+ * Dev / staging (opt-in via NEXTAUTH_ALLOW_DEV_LOGIN — see auth-dev-login.ts and .env.example):
+ * - Local: blank fields → dev@localhost; email + blank password if no passwordHash.
+ * - Vercel preview: same blank-password rule when ALLOW_DEV_LOGIN=true.
+ * - Any deploy with ALLOW_DEV_LOGIN + NEXTAUTH_DEV_BYPASS_SECRET: use that secret as the password.
  */
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -35,37 +44,15 @@ export const authOptions: NextAuthOptions = {
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "false" &&
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "0";
 
-        // Dev only: make local testing frictionless.
-        // - If both fields are blank: sign in as dev@localhost.
-        // - If an email is provided and password is blank: sign in / auto-provision that email.
-        if (process.env.NODE_ENV === "development") {
-          if (email === "" && password === "") {
-            const devEmail = "dev@localhost";
-            let user = await prisma.user.findUnique({ where: { email: devEmail } });
-            if (!user) {
-              user = await prisma.user.create({
-                data: { email: devEmail, name: "Dev User" },
-              });
-            }
-            return { id: user.id, email: user.email, name: user.name };
-          }
-          if (email !== "" && password === "") {
-            const existingDev = await prisma.user.findUnique({
-              where: { email },
-              select: { id: true, email: true, name: true, passwordHash: true },
-            });
-            // If a manager-set password exists, require it even in dev (prevents confusion in shared dev DBs).
-            if (existingDev?.passwordHash) return null;
-            let user = existingDev;
-            if (!user) {
-              user = await prisma.user.create({
-                data: { email, name: email.split("@")[0] },
-                select: { id: true, email: true, name: true, passwordHash: true },
-              });
-            }
-            return { id: user.id, email: user.email, name: user.name };
-          }
-        }
+        const localDev = await tryLocalDevelopmentLogin(email, password);
+        if (localDev) return localDev;
+
+        const bypass = await tryDevBypassSecretLogin(email, password);
+        if (bypass) return bypass;
+
+        const passwordlessStaging = await tryPasswordlessStagingLogin(email, password);
+        if (passwordlessStaging) return passwordlessStaging;
+
         if (!email) return null;
 
         const existing = await prisma.user.findUnique({
