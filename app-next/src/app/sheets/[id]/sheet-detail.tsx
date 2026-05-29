@@ -11,14 +11,7 @@ import {
   listSheetsOfflineFirst,
   listRegosOfflineFirst,
 } from "@/lib/offline-api";
-import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -29,19 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Save,
-  Loader2,
-  CheckCircle2,
-  ScrollText,
-  XCircle,
-  Download,
-  LayoutDashboard,
-  MessageSquare,
-  Square,
-  AlertCircle,
-  ChevronDown,
-} from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Square, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { PageHeader } from "@/components/PageHeader";
@@ -52,6 +33,7 @@ import CompliancePanel from "@/components/fatigue/CompliancePanel";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
+import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
 import {
   deriveDaysWithRollover,
   applyLast24hBreakNonWorkRule,
@@ -168,8 +150,6 @@ function getForgottenActionReminder(
   }
   return null;
 }
-
-const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
 
 export function SheetDetail({
   sheetId,
@@ -837,8 +817,8 @@ export function SheetDetail({
       )}
       <div className="max-w-[1400px] mx-auto px-4 py-6">
         <PageHeader
-          backHref="/sheets"
-          backLabel="Your Sheets"
+          backHref="/driver"
+          backLabel="This week"
           title={PRODUCT_NAME}
           subtitle={TAGLINE_DRIVER}
           driverDisplayName={headerDriverDisplayName}
@@ -874,122 +854,20 @@ export function SheetDetail({
         />
 
         <nav
-          className="mb-6 flex flex-wrap items-center gap-x-2 gap-y-2 sm:gap-x-3"
+          className="mb-6 flex flex-wrap items-center justify-between gap-2"
           aria-label={`${PRODUCT_NAME} toolbar`}
         >
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="gap-1.5 text-xs h-8 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 shrink-0"
-                aria-label="File: save, mark complete, or export PDF"
-              >
-                File
-                <ChevronDown className="w-3.5 h-3.5 opacity-70" aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="min-w-[11rem]">
-              <DropdownMenuItem
-                onSelect={() => {
-                  handleSave();
-                }}
-                disabled={saveMutation.isPending}
-                className="text-xs"
-              >
-                {saveMutation.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                ) : (
-                  <Save className="w-3.5 h-3.5 shrink-0" />
-                )}
-                Save
-              </DropdownMenuItem>
-              {sheetData.status !== "completed" && (
-                <DropdownMenuItem
-                  onSelect={() => {
-                    handleMarkCompleteClick();
-                  }}
-                  className="text-xs"
-                  title="Sign off this record when the week is finished"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                  Mark complete
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                onSelect={() => {
-                  handleExportPdf();
-                }}
-                className="text-xs"
-              >
-                <Download className="w-3.5 h-3.5 shrink-0" />
-                Export PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <div
-            className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
-            aria-hidden
+          <DriverMoreMenu
+            sheetId={sheetId}
+            sheetStatus={sheetData.status}
+            canAccessManager={canAccessManager}
+            onSave={handleSave}
+            savePending={saveMutation.isPending}
+            onMarkComplete={sheetData.status !== "completed" ? handleMarkCompleteClick : undefined}
+            onExportPdf={handleExportPdf}
           />
 
-          <Link
-            href={`/sheets/${sheetId}/shift-log`}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 text-xs text-slate-600 dark:text-slate-300 h-8 shrink-0"
-            )}
-          >
-            <ScrollText className="w-3.5 h-3.5" />
-            Shift Log
-          </Link>
-
-          <div
-            className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
-            aria-hidden
-          />
-
-          <Link
-            href={canAccessManager ? "/manager" : MANAGER_LOGIN_HREF}
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 text-xs text-slate-600 dark:text-slate-300 h-8 shrink-0"
-            )}
-            title={
-              canAccessManager
-                ? "Manager dashboard"
-                : "Sign in with a manager account to open the manager dashboard"
-            }
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            Manager
-          </Link>
-
-          <div
-            className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
-            aria-hidden
-          />
-
-          <Link
-            href="/driver/messages"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "sm" }),
-              "gap-1.5 text-xs text-slate-600 dark:text-slate-300 h-8 shrink-0"
-            )}
-            title="Messages with your manager"
-            aria-label="Messages"
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            Message
-          </Link>
-
-          <div
-            className="w-px h-7 shrink-0 self-center bg-slate-400/90 dark:bg-slate-600"
-            aria-hidden
-          />
-
-          <div className="flex flex-wrap items-center gap-2 min-h-8">
+          <div className="flex flex-wrap items-center gap-2 min-h-8 ml-auto">
             {lastSaved && !isDirty && (
               <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />

@@ -7,5 +7,5 @@ export default async function HomePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   const manager = await getManagerSession();
-  redirect(manager ? "/manager" : "/sheets");
+  redirect(manager ? "/manager" : "/driver");
 }
