@@ -231,8 +231,28 @@ export function DriverHome() {
             </div>
 
             {unsignedPast.length > 0 && (
-              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 text-sm text-amber-900 dark:text-amber-100">
-                {formatUnsignedPastWeeksBlockMessage(unsignedPast.length)}
+              <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 space-y-2">
+                <p className="text-sm text-amber-900 dark:text-amber-100">
+                  {formatUnsignedPastWeeksBlockMessage(unsignedPast.length)}
+                </p>
+                <ul className="space-y-1.5">
+                  {unsignedPast.map((s) => (
+                    <li key={s.id}>
+                      <Link
+                        href={`/sheets/${s.id}`}
+                        className="text-sm font-semibold text-amber-900 dark:text-amber-100 underline underline-offset-2"
+                      >
+                        Sign week of{" "}
+                        {s.week_starting
+                          ? formatSheetDisplayDate(s.week_starting)
+                          : "—"}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-amber-800/90 dark:text-amber-200/90">
+                  Past weeks are archives — use Continue logging below for the current week.
+                </p>
               </div>
             )}
 

@@ -62,7 +62,10 @@ import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY, normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { cn } from "@/lib/utils";
-import { formatUnsignedPastWeeksBlockMessage } from "@/lib/product-copy";
+import {
+  formatPastWeekArchiveSubtitle,
+  formatUnsignedPastWeeksBlockMessage,
+} from "@/lib/product-copy";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 
 const EMPTY_DAY = (): DayData => ({
@@ -217,14 +220,14 @@ export function SheetDetail({
   }, []);
 
   useEffect(() => {
-    if (sheetId) {
-      try {
-        sessionStorage.setItem("fatigue-last-sheet-id", sheetId);
-      } catch {
-        /* ignore */
-      }
+    if (!sheetId || !sheetData.week_starting) return;
+    if (isPastRegulatoryWeek(sheetData.week_starting)) return;
+    try {
+      sessionStorage.setItem("fatigue-last-sheet-id", sheetId);
+    } catch {
+      /* ignore */
     }
-  }, [sheetId]);
+  }, [sheetId, sheetData.week_starting]);
   const todayYmd = useMemo(
     () => getRegulatoryTodayYmd(sheetData.jurisdiction_code),
     [sheetData.jurisdiction_code, now]
@@ -279,6 +282,21 @@ export function SheetDetail({
     () => !isManager && !sheetData.signature,
     [isManager, sheetData.signature]
   );
+
+  const weekOfLabel = useMemo(
+    () =>
+      sheetData.week_starting
+        ? formatSheetDisplayDate(sheetData.week_starting)
+        : "",
+    [sheetData.week_starting]
+  );
+
+  const pageSubtitle = useMemo(() => {
+    if (isPastWeek && weekOfLabel) {
+      return formatPastWeekArchiveSubtitle(weekOfLabel);
+    }
+    return TAGLINE_DRIVER;
+  }, [isPastWeek, weekOfLabel]);
 
   // Re-derive time grids every minute on the live (current) week only
   useEffect(() => {
@@ -842,7 +860,7 @@ export function SheetDetail({
           backHref={isPastWeek ? "/sheets" : "/driver"}
           backLabel={isPastWeek ? "Your weeks" : "Drive home"}
           title={PRODUCT_NAME}
-          subtitle={TAGLINE_DRIVER}
+          subtitle={pageSubtitle}
           compact={canShowLogBar}
           driverDisplayName={headerDriverDisplayName}
           driverIdentity={canShowLogBar ? undefined : driverPageIdentity}
@@ -943,8 +961,10 @@ export function SheetDetail({
 
         <div className="flex flex-col lg:flex-row gap-6">
           <div ref={dayCardsRef} className="flex-1 space-y-4">
-            {isPastWeek && !isManager && (
+            {isPastWeek && !isManager && weekOfLabel && (
               <SheetRecordBanner
+                weekOfLabel={weekOfLabel}
+                isPastWeek
                 variant={canDriverSign ? "sign" : "archive"}
                 onSign={canDriverSign ? handleMarkCompleteClick : undefined}
               />

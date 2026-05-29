@@ -104,9 +104,20 @@ export function SheetsList() {
 
   const openThisWeekHref = currentWeekSheet ? `/sheets/${currentWeekSheet.id}` : "/sheets/new";
 
-  const backHref = backToSheetId ? `/sheets/${backToSheetId}` : "/driver";
+  const lastOpenedSheet = useMemo(
+    () => (backToSheetId ? sheets.find((s) => s.id === backToSheetId) : null),
+    [sheets, backToSheetId]
+  );
+  const lastOpenedIsCurrentWeek = Boolean(
+    lastOpenedSheet?.week_starting &&
+      normalizeWeekDateString(lastOpenedSheet.week_starting) === thisSunday
+  );
 
-  const backLabel = backToSheetId ? "This week" : "Back";
+  const backHref =
+    backToSheetId && lastOpenedIsCurrentWeek ? `/sheets/${backToSheetId}` : "/driver";
+
+  const backLabel =
+    backToSheetId && lastOpenedIsCurrentWeek ? "This week" : "Drive home";
 
 
 

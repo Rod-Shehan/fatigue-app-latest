@@ -46,7 +46,7 @@ export const SHEET_ATTESTATION_WORKFLOW = {
   RESIGN_AFTER_AMENDMENT_TITLE: "Your manager corrected this record",
   RESIGN_AFTER_AMENDMENT_BODY:
     "Review the week below. If it is correct, sign again — your signature is the legal record, not the manager's edit.",
-  /** Driver-facing: unsigned past week after manager fix (or never signed). */
+  /** @deprecated Use formatSignPastWeekTitle — past weeks are not "this week". */
   SIGN_ARCHIVED_WEEK_TITLE: "Sign this week's record",
   SIGN_ARCHIVED_WEEK_BODY:
     "This week is closed for logging. Sign to confirm the record is yours. Ask your manager first if anything still looks wrong.",
@@ -100,4 +100,35 @@ export const UNSIGNED_WEEKS_GATE_HINT =
 export function formatUnsignedPastWeeksBlockMessage(count: number): string {
   if (count <= 0) return "";
   return `You have ${count} past week record${count === 1 ? "" : "s"} that need your signature before you log new work. Sign each from Your Sheets, then return here.`;
+}
+
+/** Banner when signing a past (archived) week — weekOfLabel e.g. "22 Mar 2026". */
+export function formatSignPastWeekTitle(weekOfLabel: string): string {
+  return `Sign week of ${weekOfLabel}`;
+}
+
+export function formatSignPastWeekBody(weekOfLabel: string): string {
+  return (
+    `This is a past week (week of ${weekOfLabel}), not the current week. It is closed for logging. ` +
+    `Sign to confirm that slice of your record is yours. To log work now, use Drive home → Continue logging.`
+  );
+}
+
+export function formatResignPastWeekTitle(weekOfLabel: string): string {
+  return `Re-sign week of ${weekOfLabel}`;
+}
+
+export function formatResignPastWeekBody(weekOfLabel: string): string {
+  return (
+    `Your manager corrected the week of ${weekOfLabel}. Review it below. If it is correct, sign again — ` +
+    `your signature is the legal record. This is not your current logging week.`
+  );
+}
+
+export const SIGN_CURRENT_WEEK_TITLE = "Sign this week's record";
+export const SIGN_CURRENT_WEEK_BODY =
+  "Review this week below. When it is correct, sign to confirm the record is yours.";
+
+export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
+  return `Archive · week of ${weekOfLabel}`;
 }
