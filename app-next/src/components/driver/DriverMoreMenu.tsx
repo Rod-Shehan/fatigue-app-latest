@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Save,
   ScrollText,
+  ShieldCheck,
   Loader2,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
@@ -105,6 +106,12 @@ export function DriverMoreMenu({
               <Link href={`/sheets/${sheetId}/shift-log`}>
                 <ScrollText className="w-3.5 h-3.5 shrink-0" />
                 Shift log
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild className="text-xs gap-2">
+              <Link href={`/sheets/${sheetId}/compliance`}>
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                Compliance check
               </Link>
             </DropdownMenuItem>
             <div className="my-1 h-px bg-slate-200 dark:bg-slate-600" role="separator" />

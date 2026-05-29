@@ -29,7 +29,8 @@ import { PageHeader } from "@/components/PageHeader";
 import SheetHeader from "@/components/fatigue/SheetHeader";
 import { CvdMedicalBanner } from "@/components/fatigue/CvdMedicalBanner";
 import DayEntry from "@/components/fatigue/DayEntry";
-import CompliancePanel from "@/components/fatigue/CompliancePanel";
+import { ComplianceAlertBar } from "@/components/fatigue/ComplianceAlertBar";
+import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialog";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
@@ -197,6 +198,7 @@ export function SheetDetail({
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [showMarkCompleteConfirm, setShowMarkCompleteConfirm] = useState(false);
   const [signBlockedMessage, setSignBlockedMessage] = useState<string | null>(null);
+  const [complianceDialogOpen, setComplianceDialogOpen] = useState(false);
   const [endShiftDialog, setEndShiftDialog] = useState<{ dayIndex: number } | null>(null);
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
@@ -449,9 +451,11 @@ export function SheetDetail({
     prevWeekSheet?.week_starting,
   ]);
 
-  const scrollToCompliance = useCallback(() => {
-    document.getElementById("compliance-check")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const openComplianceDialog = useCallback(() => {
+    setComplianceDialogOpen(true);
   }, []);
+
+  const complianceHref = `/sheets/${sheetId}/compliance`;
 
   /** Scroll after LogBar modal closes so layout/refs are stable (Start shift blocked → "Go to today's card"). */
   const scrollToCurrentDayCard = useCallback(() => {
@@ -470,6 +474,12 @@ export function SheetDetail({
     };
     window.setTimeout(run, 80);
   }, []);
+
+  useEffect(() => {
+    if (!sheetData?.days?.length || typeof window === "undefined") return;
+    const match = window.location.hash.match(/^#fatigue-day-(\d+)$/);
+    if (match) scrollToDayCard(Number(match[1]));
+  }, [sheetData?.days?.length, scrollToDayCard]);
 
   const extendedDaysForShiftStreak = useMemo(() => {
     const prev = (prevWeekSheet?.days ?? []).slice(-3);
@@ -857,7 +867,7 @@ export function SheetDetail({
             forgottenActionReminder={forgottenActionReminder}
             isLiveNow={getSheetDayDateString(sheetData.week_starting, currentDayIndex) === todayYmd}
             complianceButton={{
-              onClick: scrollToCompliance,
+              onClick: openComplianceDialog,
               hasViolations: hasComplianceViolations,
               hasWarnings: hasComplianceWarnings,
               loading: complianceLoading,
@@ -887,18 +897,13 @@ export function SheetDetail({
             sheetData.status === "completed" ? (
               <>
                 <div className="w-full basis-full h-0" aria-hidden />
-                <button
-                  type="button"
-                  onClick={scrollToCompliance}
+                <Link
+                  href={complianceHref}
                   className={`inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-9 rounded-md border px-2.5 sm:px-3 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
                     hasComplianceViolations
                       ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50"
                       : "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-800/50"
                   }`}
-                  title={hasComplianceViolations ? "View compliance — issues found" : "View compliance — OK"}
-                  aria-label={
-                    hasComplianceViolations ? "Compliance: issues found — jump to details" : "Compliance: OK — jump to details"
-                  }
                 >
                   {hasComplianceViolations ? (
                     <XCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
@@ -907,7 +912,7 @@ export function SheetDetail({
                   )}
                   <span>Compliance</span>
                   <span className="font-medium">{hasComplianceViolations ? "Issues" : "OK"}</span>
-                </button>
+                </Link>
               </>
             ) : null
           }
@@ -978,8 +983,15 @@ export function SheetDetail({
             </div>
           )}
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div ref={dayCardsRef} className="flex-1 space-y-4">
+        {sheetData.days?.length > 0 && (
+          <ComplianceAlertBar
+            sheetId={sheetId}
+            loading={complianceLoading}
+            results={complianceResults}
+          />
+        )}
+
+        <div ref={dayCardsRef} className="space-y-4 max-w-4xl">
             {isPastWeek && !isManager && weekOfLabel && (
               <SheetRecordBanner
                 weekOfLabel={weekOfLabel}
@@ -1048,51 +1060,43 @@ export function SheetDetail({
                   />
                 </div>
               ))}
-          </div>
-          <div id="compliance-check" className="w-full lg:w-80 shrink-0 scroll-mt-24">
-            <div className="lg:sticky lg:top-6 space-y-4">
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4">
-                <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 uppercase tracking-wider">Compliance Check</h2>
-                <CompliancePanel
-                  days={sheetData.days}
-                  driverType={sheetData.driver_type}
-                  prevWeekDays={prevWeekSheet?.days || null}
-                  last24hBreak={sheetData.last_24h_break || undefined}
-                  weekStarting={sheetData.week_starting || undefined}
-                  prevWeekStarting={prevWeekSheet?.week_starting ?? undefined}
-                  complianceResults={complianceData?.results ?? null}
-                  complianceLoading={complianceLoading}
-                  onScrollToDay={scrollToDayCard}
-                />
-              </motion.div>
-              {sheetData.signature && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 shadow-sm p-4">
-                  <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 uppercase tracking-wider flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Driver Signature
-                  </h2>
-                  <div className="border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800">
-                    <img src={sheetData.signature} alt="Driver signature" className="w-full h-auto" />
-                  </div>
-                  {sheetData.signed_at && (
-                    <p className="text-[10px] text-slate-400 mt-1.5">
-                      Signed{" "}
-                      {new Date(sheetData.signed_at).toLocaleString("en-AU", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}
-                    </p>
-                  )}
-                </motion.div>
+          {sheetData.signature && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-emerald-200 dark:border-emerald-800 shadow-sm p-4"
+            >
+              <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200 mb-2 uppercase tracking-wider flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> Driver Signature
+              </h2>
+              <div className="border border-slate-200 dark:border-slate-600 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800">
+                <img src={sheetData.signature} alt="Driver signature" className="w-full h-auto" />
+              </div>
+              {sheetData.signed_at && (
+                <p className="text-[10px] text-slate-400 mt-1.5">
+                  Signed{" "}
+                  {new Date(sheetData.signed_at).toLocaleString("en-AU", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </p>
               )}
-            </div>
-          </div>
+            </motion.div>
+          )}
         </div>
       </div>
 
+      <ComplianceQuickDialog
+        open={complianceDialogOpen}
+        onOpenChange={setComplianceDialogOpen}
+        sheetId={sheetId}
+        loading={complianceLoading}
+        results={complianceResults}
+      />
       <SignatureDialog
         open={showSignatureDialog}
         onConfirm={handleSignatureConfirm}
