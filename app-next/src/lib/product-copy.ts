@@ -132,3 +132,11 @@ export const SIGN_CURRENT_WEEK_BODY =
 export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
   return `Archive · week of ${weekOfLabel}`;
 }
+
+/** When driver cannot sign a past week until manager fixes data (read-only archive). */
+export function formatSignBlockedPastWeekMessage(validationError: string, weekOfLabel: string): string {
+  return (
+    `${validationError} This past week (week of ${weekOfLabel}) is read-only here. ` +
+    `Ask your manager to correct the record, then return to sign — or go to Drive home to log the current week.`
+  );
+}

@@ -64,6 +64,7 @@ import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { cn } from "@/lib/utils";
 import {
   formatPastWeekArchiveSubtitle,
+  formatSignBlockedPastWeekMessage,
   formatUnsignedPastWeeksBlockMessage,
 } from "@/lib/product-copy";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
@@ -195,6 +196,7 @@ export function SheetDetail({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [showMarkCompleteConfirm, setShowMarkCompleteConfirm] = useState(false);
+  const [signBlockedMessage, setSignBlockedMessage] = useState<string | null>(null);
   const [endShiftDialog, setEndShiftDialog] = useState<{ dayIndex: number } | null>(null);
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
@@ -362,6 +364,7 @@ export function SheetDetail({
         signature: sheet.signature,
         signed_at: sheet.signed_at,
       });
+      setIsDirty(false);
     }
   }, [sheet]);
 
@@ -765,6 +768,12 @@ export function SheetDetail({
   const handleMarkCompleteClick = () => {
     const kmError = validateSheetKms(sheetData.days);
     if (kmError) {
+      if (isPastWeek && !isManager) {
+        setSignBlockedMessage(
+          formatSignBlockedPastWeekMessage(kmError, weekOfLabel || "this week")
+        );
+        return;
+      }
       window.alert(kmError);
       return;
     }
@@ -780,18 +789,28 @@ export function SheetDetail({
     const signedAt = new Date().toISOString();
     setSheetData((prev) => ({ ...prev, status: "completed", signature: signatureDataUrl, signed_at: signedAt }));
     setShowSignatureDialog(false);
-    saveMutation.mutate({
-      driver_name: sheetData.driver_name,
-      second_driver: sheetData.second_driver,
-      driver_type: sheetData.driver_type,
-      destination: null,
-      last_24h_break: sheetData.last_24h_break || undefined,
-      week_starting: sheetData.week_starting,
-      days: sheetData.days,
-      status: "completed",
-      signature: signatureDataUrl,
-      signed_at: signedAt,
-    });
+    setIsDirty(false);
+    const attestationOnly = isPastWeek && !isManager;
+    saveMutation.mutate(
+      attestationOnly
+        ? {
+            status: "completed",
+            signature: signatureDataUrl,
+            signed_at: signedAt,
+          }
+        : {
+            driver_name: sheetData.driver_name,
+            second_driver: sheetData.second_driver,
+            driver_type: sheetData.driver_type,
+            destination: null,
+            last_24h_break: sheetData.last_24h_break || undefined,
+            week_starting: sheetData.week_starting,
+            days: sheetData.days,
+            status: "completed",
+            signature: signatureDataUrl,
+            signed_at: signedAt,
+          }
+    );
   };
 
   const handleExportPdf = useCallback(() => {
@@ -927,7 +946,7 @@ export function SheetDetail({
                 </span>
               </span>
             )}
-            {isDirty && !saveMutation.isPending && (
+            {isDirty && !saveMutation.isPending && !driverContentLocked && (
               <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
                 Unsaved changes
               </span>
@@ -1080,15 +1099,43 @@ export function SheetDetail({
         onCancel={() => setShowSignatureDialog(false)}
         driverName={sheetData.driver_name}
       />
+      <Dialog open={!!signBlockedMessage} onOpenChange={(open) => !open && setSignBlockedMessage(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-600" />
+              Cannot sign this past week yet
+            </DialogTitle>
+            <DialogDescription className="text-left">{signBlockedMessage}</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={() => setSignBlockedMessage(null)}>
+              Close
+            </Button>
+            <Link href="/sheets">
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                Your weeks
+              </Button>
+            </Link>
+            <Link href="/driver">
+              <Button size="sm" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
+                Current week
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
       <Dialog open={showMarkCompleteConfirm} onOpenChange={(open) => !open && setShowMarkCompleteConfirm(false)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-              Mark sheet complete
+              {isPastWeek ? `Sign week of ${weekOfLabel}` : "Mark sheet complete"}
             </DialogTitle>
             <DialogDescription>
-              You will sign to confirm. The sheet will be locked as complete. Make sure all entries are correct before continuing.
+              {isPastWeek
+                ? "You are signing a past archive week, not the current logging week. Confirm the record is correct before you sign."
+                : "You will sign to confirm. The sheet will be locked as complete. Make sure all entries are correct before continuing."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 justify-end pt-2">
