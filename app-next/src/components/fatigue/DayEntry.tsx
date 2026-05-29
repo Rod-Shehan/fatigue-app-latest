@@ -211,7 +211,11 @@ export default function DayEntry({
           <div className="flex flex-col gap-0.5 min-w-[8.5rem]">
             <Label
               className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap"
-              title={SHIFT_PATTERN_FIELD_HELP}
+              title={
+                showShiftPatternEducation
+                  ? SHIFT_PATTERN_FIELD_HELP
+                  : "Optional — only used if you swap day ↔ night shifts after 5+ work days in a row"
+              }
             >
               Shift pattern (A/B)
             </Label>
@@ -270,13 +274,11 @@ export default function DayEntry({
         </div>
       </div>
       {showShiftPatternEducation && (
-        <p className="mb-2 text-[11px] leading-snug text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-2 py-1.5">
-          You&apos;ve worked {consecutiveWorkDays} days in a row. If tomorrow is a different pattern (day ↔ night),
-          set Day (A) or Night (B) here and allow at least 24 hours off when the pattern changes.
+        <p className="mb-2 text-xs leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+          <span className="font-semibold">Shift pattern (not Start/End shift):</span> you&apos;ve worked{" "}
+          {consecutiveWorkDays} days in a row. If your next shift swaps day ↔ night, pick Day (A) or Night (B) above
+          and plan at least 24 hours off before the new pattern.
         </p>
-      )}
-      {!dayData.shift_label && (
-        <p className="mb-2 text-[10px] leading-snug text-slate-500 dark:text-slate-400">{SHIFT_PATTERN_FIELD_HELP}</p>
       )}
       <TimeGrid dayData={{ ...dayData, date: getISODate() }} />
 

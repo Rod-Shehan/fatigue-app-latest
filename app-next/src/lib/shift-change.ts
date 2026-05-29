@@ -89,7 +89,7 @@ export const SHIFT_CHANGE_EDUCATION_MESSAGE =
   "You've worked 5+ days in a row. If you swap between day and night shifts, set Shift pattern (A/B) on each work day and take at least 24 hours off when the pattern changes (A↔B).";
 
 export const SHIFT_PATTERN_FIELD_HELP =
-  "Not the same as Start/End shift. Use Day (A) or Night (B) so we can check the 24h off rule when you change patterns after 5+ work days in a row.";
+  "This is not Start/End shift. Day (A) or Night (B) is only for WA rules when you swap day ↔ night after 5+ work days in a row — then you need 24 hours off at the change.";
 
 export const SHIFT_PATTERN_END_SHIFT_PROMPT =
   "You've worked 5+ days in a row. If your next shift is a different pattern (e.g. day → night), WA rules require at least 24 hours off between End shift and your next Work. Set Shift pattern (A/B) on today and the next work day.";
