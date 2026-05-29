@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -42,8 +42,21 @@ export default function SheetHeader({
   const [confirmLast24hOpen, setConfirmLast24hOpen] = useState(false);
   const [pendingLast24hDate, setPendingLast24hDate] = useState<string>("");
   const [confirmLast24hChecked, setConfirmLast24hChecked] = useState(false);
-  const [last24hPickerValue, setLast24hPickerValue] = useState("");
   const [last24hPickerResetKey, setLast24hPickerResetKey] = useState(0);
+
+  const openLast24hPicker = useCallback(() => {
+    const el = last24hDateInputRef.current;
+    if (!el || readOnly) return;
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker();
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    el.click();
+  }, [readOnly]);
 
   const handleChange = (field: string, value: unknown) => {
     onChange({ ...sheetData, [field]: value });
@@ -226,40 +239,52 @@ export default function SheetHeader({
             <Button
               type="button"
               variant="outline"
-              size="sm"
               disabled
-              className="h-9 w-full justify-start gap-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
+              className="h-14 min-h-[56px] w-full justify-start gap-3 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-base text-slate-700 dark:text-slate-200 font-medium opacity-100 cursor-not-allowed"
             >
-              <Calendar className="w-4 h-4 shrink-0 text-slate-500 dark:text-slate-400" />
-              <span className="tabular-nums font-normal text-slate-500 dark:text-slate-400">
+              <Calendar className="w-6 h-6 shrink-0 text-slate-500 dark:text-slate-400" />
+              <span className="tabular-nums font-semibold text-slate-600 dark:text-slate-300">
                 {formatSheetDisplayDate(sheetData.last_24h_break!)}
               </span>
-              <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+              <span className="ml-auto text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Locked
               </span>
             </Button>
           ) : (
-            <div className="relative">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-600" />
+            <>
               <input
                 key={last24hPickerResetKey}
                 ref={last24hDateInputRef}
                 type="date"
-                value={last24hPickerValue}
-                placeholder="Set last 24h break"
                 disabled={readOnly}
+                tabIndex={-1}
+                aria-hidden
+                className="sr-only"
                 onChange={(e) => {
                   const v = e.target.value;
-                  setLast24hPickerValue(v);
                   if (v) {
                     setPendingLast24hDate(v);
                     setConfirmLast24hChecked(false);
                     setConfirmLast24hOpen(true);
                   }
                 }}
-                className="h-9 w-full rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 pl-10 pr-3 text-sm font-medium tabular-nums text-amber-900 dark:text-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                aria-label="Set last 24 hour break date"
               />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={readOnly}
+                onClick={openLast24hPicker}
+                className="h-14 min-h-[56px] w-full justify-start gap-3 border-2 border-amber-400 dark:border-amber-600 bg-amber-50 hover:bg-amber-100/90 dark:bg-amber-950/50 dark:hover:bg-amber-950/70 text-base font-semibold text-amber-950 dark:text-amber-50 shadow-sm"
+                aria-label="Open calendar to set last 24 hour break date"
+              >
+                <Calendar className="w-6 h-6 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
+                <span className="text-left leading-tight">
+                  Tap to choose date
+                  <span className="block text-xs font-normal text-amber-800/80 dark:text-amber-200/80 mt-0.5">
+                    Opens your phone calendar — no typing
+                  </span>
+                </span>
+              </Button>
               <Dialog
                 open={confirmLast24hOpen}
                 onOpenChange={(open) => {
@@ -267,12 +292,11 @@ export default function SheetHeader({
                   if (!open) {
                     setPendingLast24hDate("");
                     setConfirmLast24hChecked(false);
-                    setLast24hPickerValue("");
                     setLast24hPickerResetKey((k) => k + 1);
                   }
                 }}
               >
-                <DialogContent className="sm:max-w-sm">
+                <DialogContent className="sm:max-w-md">
                   <DialogHeader>
                     <DialogTitle>Confirm last 24 hour break</DialogTitle>
                     <DialogDescription>
@@ -280,29 +304,39 @@ export default function SheetHeader({
                     </DialogDescription>
                   </DialogHeader>
                   {pendingLast24hDate && (
-                    <p className="text-sm font-medium tabular-nums text-slate-800 dark:text-slate-100">
+                    <p className="text-2xl font-bold tabular-nums text-slate-800 dark:text-slate-100 py-1">
                       {formatSheetDisplayDate(pendingLast24hDate)}
                     </p>
                   )}
-                  <label className="flex items-start gap-2 pt-1 text-sm text-slate-700 dark:text-slate-200">
+                  <label className="flex items-start gap-3 pt-1 text-base text-slate-700 dark:text-slate-200">
                     <input
                       type="checkbox"
-                      className="mt-0.5"
+                      className="mt-1 h-5 w-5 shrink-0"
                       checked={confirmLast24hChecked}
                       onChange={(e) => setConfirmLast24hChecked(e.target.checked)}
                     />
                     <span>I confirm this date is correct.</span>
                   </label>
-                  <div className="flex gap-2 justify-end pt-2">
+                  <div className="flex flex-col-reverse sm:flex-row flex-wrap gap-2 justify-end pt-2">
                     <Button
                       type="button"
                       variant="outline"
-                      size="sm"
+                      className="min-h-11 text-base sm:mr-auto"
+                      onClick={() => {
+                        setConfirmLast24hChecked(false);
+                        openLast24hPicker();
+                      }}
+                    >
+                      Pick another date
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="min-h-11 text-base"
                       onClick={() => {
                         setConfirmLast24hOpen(false);
                         setPendingLast24hDate("");
                         setConfirmLast24hChecked(false);
-                        setLast24hPickerValue("");
                         setLast24hPickerResetKey((k) => k + 1);
                       }}
                     >
@@ -310,24 +344,22 @@ export default function SheetHeader({
                     </Button>
                     <Button
                       type="button"
-                      size="sm"
                       disabled={!confirmLast24hChecked}
                       onClick={() => {
                         handleChange("last_24h_break", pendingLast24hDate);
                         setConfirmLast24hOpen(false);
                         setPendingLast24hDate("");
                         setConfirmLast24hChecked(false);
-                        setLast24hPickerValue("");
                         setLast24hPickerResetKey((k) => k + 1);
                       }}
-                      className="min-w-24 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
+                      className="min-h-11 text-base min-w-28 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
                     >
                       Confirm
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
+            </>
           )}
         </div>
       </div>
