@@ -172,16 +172,16 @@ export function computeEvidenceSummary(days: EvidenceDay[]): EvidenceSummary {
   const flags: EvidenceSummary["flags"] = [];
   if (totalEvents > 0 && gpsCoveragePct < 50) {
     flags.push({
-      severity: "warning",
+      severity: "info",
       code: "gps_low_coverage",
-      message: `Low GPS evidence coverage (${gpsEvents}/${totalEvents} events with location).`,
+      message: `Low GPS coverage (${gpsEvents}/${totalEvents} events with location) — optional; not required for compliance.`,
     });
   }
   if (gpsOdometerRatio != null && (gpsOdometerRatio < 0.3 || gpsOdometerRatio > 3.3)) {
     flags.push({
-      severity: "warning",
+      severity: "info",
       code: "odometer_gps_mismatch",
-      message: `Recorded km may not match GPS path (GPS/odo ratio ~${fmt1(gpsOdometerRatio)}).`,
+      message: `Recorded km may differ from GPS path (GPS/odo ratio ~${fmt1(gpsOdometerRatio)}) — optional check only.`,
     });
   }
   if (movingDuringRestExamples.length > 0) {

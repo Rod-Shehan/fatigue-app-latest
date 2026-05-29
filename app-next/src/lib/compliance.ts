@@ -37,12 +37,12 @@ export type ComplianceDayData = {
 };
 
 export type ComplianceCheckResult = {
-  type: "violation" | "warning";
+  type: "violation" | "warning" | "info";
   iconKey: "Coffee" | "AlertTriangle" | "Moon" | "Clock" | "TrendingUp" | "CheckCircle2" | "MapPin";
   day: string;
   message: string;
   /** Stable id for UI (scroll, education). */
-  ruleId?: "shift_change_24h" | "shift_change_education";
+  ruleId?: "shift_change_24h" | "shift_change_education" | "location_evidence" | "odometer_gps_plausibility";
   /** Current-week day index (0–6) to scroll to when the driver taps “View day”. */
   scrollDayIndex?: number;
   shiftChange?: ShiftChangeGapDetail;
@@ -712,17 +712,18 @@ function checkOdometerVsGpsPlausibility(
     const ratio = gpsKm / odometerKm;
     if (ratio < ODOMETER_GPS_RATIO_MIN || ratio > ODOMETER_GPS_RATIO_MAX) {
       results.push({
-        type: "warning",
+        type: "info",
+        ruleId: "odometer_gps_plausibility",
         iconKey: "MapPin",
         day: getLabel(dayIndex),
-        message: `Recorded km (${odometerKm}) may not match route (GPS path ~${Math.round(gpsKm)} km) — verify odometer.`,
+        message: `Recorded km (${odometerKm}) differs from GPS path (~${Math.round(gpsKm)} km) — optional check if you use location on this record.`,
       });
     }
   });
 }
 
 /**
- * Soft warning when many events have no location data (audit evidence).
+ * Optional notice when many events have no location data (not a regulatory requirement).
  */
 function checkLocationEvidenceWarning(days: ComplianceDayData[], results: ComplianceCheckResult[]) {
   let total = 0;
@@ -738,10 +739,11 @@ function checkLocationEvidenceWarning(days: ComplianceDayData[], results: Compli
   const fractionWithout = 1 - withLocation / total;
   if (fractionWithout > LOCATION_EVIDENCE_WARN_FRACTION) {
     results.push({
-      type: "warning",
+      type: "info",
+      ruleId: "location_evidence",
       iconKey: "MapPin",
       day: "7-day",
-      message: `Many events have no location data (${withLocation}/${total} with GPS) — consider enabling location for compliance evidence.`,
+      message: `Location wasn't recorded for some events (${withLocation}/${total} with GPS). Turning on location in your browser is optional — it can help if you ever need to show where you logged from.`,
     });
   }
 }

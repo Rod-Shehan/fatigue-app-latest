@@ -77,16 +77,28 @@ function ComplianceResultRow({
 }: {
   result: ComplianceCheckResult;
   when: string;
-  tone: "violation" | "warning";
+  tone: "violation" | "warning" | "info";
   onScrollToDay?: (dayIndex: number) => void;
 }) {
   const Icon = ICON_MAP[result.iconKey as keyof typeof ICON_MAP];
   const shell =
     tone === "violation"
       ? "bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800"
-      : "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800";
-  const text = tone === "violation" ? "text-red-700 dark:text-red-200" : "text-amber-700 dark:text-amber-200";
-  const iconCls = tone === "violation" ? "text-red-500 dark:text-red-400" : "text-amber-500 dark:text-amber-400";
+      : tone === "warning"
+        ? "bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800"
+        : "bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700";
+  const text =
+    tone === "violation"
+      ? "text-red-700 dark:text-red-200"
+      : tone === "warning"
+        ? "text-amber-700 dark:text-amber-200"
+        : "text-slate-600 dark:text-slate-300";
+  const iconCls =
+    tone === "violation"
+      ? "text-red-500 dark:text-red-400"
+      : tone === "warning"
+        ? "text-amber-500 dark:text-amber-400"
+        : "text-slate-500 dark:text-slate-400";
   const sc = result.shiftChange;
   const appendWhen = result.message.includes("72h window ending") ? "" : ` — ${when}`;
 
@@ -164,6 +176,7 @@ export default function CompliancePanel({
   const checks = complianceResults ?? [];
   const violations = checks.filter((c) => c.type === "violation");
   const warnings = checks.filter((c) => c.type === "warning");
+  const infoNotes = checks.filter((c) => c.type === "info");
   const totalWork = days.reduce((s, d) => s + getHours(d.work_time), 0);
   const totalBreaks = days.reduce((s, d) => s + getHours(d.breaks), 0);
   const totalNonWork = days.reduce((s, d) => s + getHours(d.non_work), 0);
@@ -207,7 +220,7 @@ export default function CompliancePanel({
           <span className="text-sm text-slate-600 dark:text-slate-300">Checking compliance…</span>
         </div>
       )}
-      {!complianceLoading && complianceResults && checks.length === 0 && (
+      {!complianceLoading && complianceResults && violations.length === 0 && warnings.length === 0 && (
         <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
           <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
           <span className="text-sm font-medium text-emerald-700 dark:text-emerald-200">All compliant — no issues detected</span>
@@ -239,6 +252,24 @@ export default function CompliancePanel({
                 result={w}
                 tone="warning"
                 when={whenLabel(w.day, weekStarting, prevWeekStarting)}
+                onScrollToDay={onScrollToDay}
+              />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {infoNotes.length > 0 && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
+            <p className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">
+              Optional notes ({infoNotes.length})
+            </p>
+            {infoNotes.map((n, i) => (
+              <ComplianceResultRow
+                key={i}
+                result={n}
+                tone="info"
+                when={whenLabel(n.day, weekStarting, prevWeekStarting)}
                 onScrollToDay={onScrollToDay}
               />
             ))}
@@ -285,7 +316,14 @@ export default function CompliancePanel({
           {evidence.flags.length > 0 && (
             <ul className="space-y-1">
               {evidence.flags.map((f) => (
-                <li key={f.code} className={f.severity === "warning" ? "text-amber-700 dark:text-amber-200" : ""}>
+                <li
+                  key={f.code}
+                  className={
+                    f.severity === "warning"
+                      ? "text-amber-700 dark:text-amber-200"
+                      : "text-slate-600 dark:text-slate-400"
+                  }
+                >
                   • {f.message}
                 </li>
               ))}

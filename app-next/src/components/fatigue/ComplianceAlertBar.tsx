@@ -1,8 +1,35 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, ChevronRight, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronRight, Info, Loader2 } from "lucide-react";
 import type { ComplianceCheckResult } from "@/lib/api";
+
+export function ComplianceNoticeBar({ results }: { results: ComplianceCheckResult[] }) {
+  const notices = results.filter((r) => r.type === "info");
+  if (notices.length === 0) return null;
+
+  const detail = notices
+    .slice(0, 2)
+    .map((r) => r.message)
+    .join(" · ");
+
+  return (
+    <div
+      className="mb-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80"
+      role="status"
+    >
+      <Info className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" aria-hidden />
+      <span className="flex-1 min-w-0">
+        <span className="block text-sm font-medium text-slate-800 dark:text-slate-100">
+          {notices.length === 1 ? "Optional note" : `${notices.length} optional notes`}
+        </span>
+        {detail && (
+          <span className="block text-xs text-slate-600 dark:text-slate-400 mt-0.5 line-clamp-2">{detail}</span>
+        )}
+      </span>
+    </div>
+  );
+}
 
 export function ComplianceAlertBar({
   sheetId,

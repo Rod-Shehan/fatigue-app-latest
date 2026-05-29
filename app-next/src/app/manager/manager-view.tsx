@@ -104,7 +104,7 @@ function buildGlanceBadges(item: ManagerComplianceItem): GlanceBadge[] {
   const withLoc = item.eventsWithLocation ?? 0;
   if (total > 0) {
     const pct = Math.round((withLoc / total) * 100);
-    badges.push({ label: `GPS ${pct}%`, tone: pct < 50 ? "warn" : "neutral" });
+    badges.push({ label: `GPS ${pct}%`, tone: "neutral" });
   }
   return badges;
 }

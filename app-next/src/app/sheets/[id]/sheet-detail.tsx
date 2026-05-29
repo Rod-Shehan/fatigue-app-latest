@@ -29,7 +29,7 @@ import { PageHeader } from "@/components/PageHeader";
 import SheetHeader from "@/components/fatigue/SheetHeader";
 import { CvdMedicalBanner } from "@/components/fatigue/CvdMedicalBanner";
 import DayEntry from "@/components/fatigue/DayEntry";
-import { ComplianceAlertBar } from "@/components/fatigue/ComplianceAlertBar";
+import { ComplianceAlertBar, ComplianceNoticeBar } from "@/components/fatigue/ComplianceAlertBar";
 import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialog";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
@@ -398,6 +398,7 @@ export function SheetDetail({
   const complianceResults: ComplianceCheckResult[] = complianceData?.results ?? [];
   const hasComplianceViolations = complianceResults.some((r) => r.type === "violation");
   const hasComplianceWarnings = complianceResults.some((r) => r.type === "warning");
+  const hasComplianceInfo = complianceResults.some((r) => r.type === "info");
 
   const prospectiveWorkWarnings = useMemo(() => {
     if (!sheetData.days?.length || sheetData.status === "completed") return [];
@@ -922,6 +923,9 @@ export function SheetDetail({
                   results={complianceResults}
                 />
               )}
+            {sheetData.days?.length > 0 && !complianceLoading && hasComplianceInfo && (
+              <ComplianceNoticeBar results={complianceResults} />
+            )}
             {isPastWeek && !isManager && weekOfLabel && (
               <SheetRecordBanner
                 weekOfLabel={weekOfLabel}

@@ -96,11 +96,11 @@ export type SheetUpdatePayload = Partial<FatigueSheet> & {
 
 /** Compliance check result (server is source of truth). */
 export type ComplianceCheckResult = {
-  type: "violation" | "warning";
+  type: "violation" | "warning" | "info";
   iconKey: "Coffee" | "AlertTriangle" | "Moon" | "Clock" | "TrendingUp" | "CheckCircle2" | "MapPin";
   day: string;
   message: string;
-  ruleId?: "shift_change_24h" | "shift_change_education";
+  ruleId?: "shift_change_24h" | "shift_change_education" | "location_evidence" | "odometer_gps_plausibility";
   scrollDayIndex?: number;
   shiftChange?: {
     fromDayIndex: number;
