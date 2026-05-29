@@ -66,7 +66,7 @@ export default async function DriverMorePage() {
       <div className="max-w-lg mx-auto px-4 py-8 md:py-10">
         <PageHeader
           backHref="/driver"
-          backLabel="This week"
+          backLabel="Drive home"
           title="More"
           subtitle={PRODUCT_NAME}
           icon={<Menu className="w-5 h-5" />}

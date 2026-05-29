@@ -61,7 +61,9 @@ import { validateDayKms, getMinAllowedStartKms, validateSheetKms } from "@/lib/r
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY, normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { cn } from "@/lib/utils";
 import { formatUnsignedPastWeeksBlockMessage } from "@/lib/product-copy";
+import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 
 const EMPTY_DAY = (): DayData => ({
   day_label: "",
@@ -358,24 +360,9 @@ export function SheetDetail({
     );
   }, [allSheets, sheetData.driver_name, sheetData.week_starting, sheetId]);
 
-  /** Past weeks (before current Sunday) for this driver that are not signed — block new work until signed. */
-  const unsignedPastWeeksForDriver = useMemo(() => {
-    if (isManager) return [];
-    const me = (sessionDriverName || sheetData.driver_name || "").trim().toLowerCase();
-    if (!me) return [];
-    const thisSun = getThisWeekSunday();
-    return allSheets.filter((s) => {
-      const primary = s.driver_name?.trim().toLowerCase();
-      const second = s.second_driver?.trim().toLowerCase();
-      const isMySheet = primary === me || second === me;
-      return (
-        isMySheet &&
-        s.week_starting &&
-        normalizeWeekDateString(s.week_starting) < thisSun &&
-        s.status !== "completed"
-      );
-    });
-  }, [allSheets, sheetData.driver_name, sessionDriverName, isManager]);
+  const unsignedPastWeeksForDriver = useUnsignedPastWeeks(
+    isManager ? undefined : sessionDriverName || sheetData.driver_name
+  );
 
   const blockLoggingWorkReason = useMemo(() => {
     if (isManager || unsignedPastWeeksForDriver.length === 0) return null;
@@ -845,14 +832,20 @@ export function SheetDetail({
           />
         </>
       )}
-      <div className="max-w-[1400px] mx-auto px-4 py-6">
+      <div
+        className={cn(
+          "max-w-[1400px] mx-auto px-4",
+          canShowLogBar ? "py-3 sm:py-4" : "py-6"
+        )}
+      >
         <PageHeader
           backHref={isPastWeek ? "/sheets" : "/driver"}
-          backLabel={isPastWeek ? "Your weeks" : "This week"}
+          backLabel={isPastWeek ? "Your weeks" : "Drive home"}
           title={PRODUCT_NAME}
           subtitle={TAGLINE_DRIVER}
+          compact={canShowLogBar}
           driverDisplayName={headerDriverDisplayName}
-          driverIdentity={driverPageIdentity}
+          driverIdentity={canShowLogBar ? undefined : driverPageIdentity}
           actions={
             sheetData.status === "completed" ? (
               <>
@@ -884,7 +877,10 @@ export function SheetDetail({
         />
 
         <nav
-          className="mb-6 flex flex-wrap items-center justify-between gap-2"
+          className={cn(
+            "flex flex-wrap items-center justify-between gap-2",
+            canShowLogBar ? "mb-3" : "mb-6"
+          )}
           aria-label={`${PRODUCT_NAME} toolbar`}
         >
           <DriverMoreMenu

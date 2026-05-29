@@ -24,6 +24,8 @@ export function PageHeader({
   /** @deprecated Use driverDisplayName */
   roleDisplayLabel,
   driverIdentity,
+  /** Slim header for sheet + LogBar (mobile-first). Hides driver tile and shrinks title. */
+  compact = false,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
   backHref?: string;
@@ -46,6 +48,7 @@ export function PageHeader({
     name: string;
     isManagerView?: boolean;
   } | null;
+  compact?: boolean;
 }) {
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
@@ -65,7 +68,7 @@ export function PageHeader({
 
   const di =
     driverIdentity != null && driverIdentity.name.trim() !== "" ? driverIdentity : null;
-  const hasDriverTile = di != null;
+  const hasDriverTile = di != null && !compact;
 
   const driverTile = di ? (
     <div
@@ -93,7 +96,7 @@ export function PageHeader({
   ) : null;
 
   return (
-    <header className="mb-6 flex flex-col gap-3">
+    <header className={cn("flex flex-col gap-3", compact ? "mb-3" : "mb-6")}>
       <div
         className={cn(
           "flex gap-3",
@@ -102,7 +105,7 @@ export function PageHeader({
             : "flex-col sm:flex-row sm:items-center sm:justify-between sm:flex-wrap"
         )}
       >
-        <div className="flex min-w-0 flex-1 items-start gap-3">
+        <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
           {backHref != null ? (
             <Link
               href={backHref}
@@ -110,22 +113,40 @@ export function PageHeader({
               aria-label={backLabel}
               title={backLabel}
             >
-              <span className="flex items-center justify-center min-w-10 min-h-10 w-10 h-10 sm:min-w-12 sm:min-h-12 sm:w-12 sm:h-12">
-                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.25} />
+              <span
+                className={cn(
+                  "flex items-center justify-center",
+                  compact
+                    ? "min-w-9 min-h-9 w-9 h-9"
+                    : "min-w-10 min-h-10 w-10 h-10 sm:min-w-12 sm:min-h-12 sm:w-12 sm:h-12"
+                )}
+              >
+                <ArrowLeft
+                  className={cn(compact ? "w-4 h-4" : "w-5 h-5 sm:w-6 sm:h-6")}
+                  strokeWidth={2.25}
+                />
               </span>
             </Link>
           ) : (
-            <span className="w-10 h-10 sm:w-12 sm:h-12 shrink-0" aria-hidden />
+            <span
+              className={cn("shrink-0", compact ? "w-9 h-9" : "w-10 h-10 sm:w-12 sm:h-12")}
+              aria-hidden
+            />
           )}
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            {icon != null && (
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            {icon != null && !compact && (
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 dark:bg-slate-600 flex items-center justify-center text-white dark:text-slate-200 shrink-0">
                 {icon}
               </div>
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-base sm:text-lg md:text-xl font-bold text-slate-800 dark:text-slate-100 truncate">
+                <h1
+                  className={cn(
+                    "font-bold text-slate-800 dark:text-slate-100 truncate",
+                    compact ? "text-sm sm:text-base" : "text-base sm:text-lg md:text-xl"
+                  )}
+                >
                   {title}
                 </h1>
                 {roleBadgeText && (
@@ -142,7 +163,12 @@ export function PageHeader({
                 )}
               </div>
               {subtitle != null && (
-                <p className="text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                <p
+                  className={cn(
+                    "text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5",
+                    compact && "hidden sm:block"
+                  )}
+                >
                   {subtitle}
                 </p>
               )}
