@@ -74,7 +74,7 @@ export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
   "Past weeks are closed for logging. Open them from Your weeks to review, export, or sign.",
   "Your signature means you attest that week is your record. It is not the manager's signature.",
   "If something in a past week is wrong, your manager corrects it (with a reason on file). When you both agree it is right, open that week and sign — or sign again after a correction.",
-  "You may be asked to sign past weeks before logging new work on this week.",
+  "Unsigned past weeks show as reminders with links to sign — they do not block logging on the current week.",
 ] as const;
 
 /** Bullets: how weeks appear to the driver in the UI. */
@@ -92,14 +92,21 @@ export const MANAGER_PAST_WEEK_AMEND_HINT =
 export const OPENING_DISCLAIMER_COMPACT =
   "No log does not mean no record: unlogged time in the diary is treated as non-work for display and rolling checks, unless events show otherwise.";
 
-/** Future: block logging work at NOW until past unsigned weeks are signed (copy only). */
+/** Help page: unsigned past weeks are reminders only. */
 export const UNSIGNED_WEEKS_GATE_HINT =
-  "You may need to sign past weekly records before starting a new shift entry.";
+  "Unsigned past weeks show as reminders with links to sign. They do not block Start shift or logging on the current week.";
 
-/** Driver-facing message when work logging is blocked due to unsigned past weeks. */
-export function formatUnsignedPastWeeksBlockMessage(count: number): string {
+/** Soft reminder on drive home / current week sheet (does not block shift start). */
+export function formatUnsignedPastWeeksReminderMessage(count: number): string {
   if (count <= 0) return "";
-  return `You have ${count} past week record${count === 1 ? "" : "s"} that need your signature before you log new work. Sign each from Your Sheets, then return here.`;
+  return count === 1
+    ? "1 past week still needs your signature. You can keep logging this week — sign when you have a moment."
+    : `${count} past weeks still need your signature. You can keep logging this week — sign when you have a moment.`;
+}
+
+/** @deprecated Use formatUnsignedPastWeeksReminderMessage — logging is not blocked. */
+export function formatUnsignedPastWeeksBlockMessage(count: number): string {
+  return formatUnsignedPastWeeksReminderMessage(count);
 }
 
 /** Banner when signing a past (archived) week — weekOfLabel e.g. "22 Mar 2026". */

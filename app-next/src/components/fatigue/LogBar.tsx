@@ -175,8 +175,6 @@ export default function LogBar({
   isLiveNow,
   /** Header tint + icon (right side); tap to jump to compliance panel. */
   complianceButton,
-  /** When set, tapping Work / Start shift is blocked until driver signs past weeks (see Your Sheets). */
-  blockLoggingWorkReason,
   onShiftSegmentChange,
   mobileToolsOpen: mobileToolsOpenProp,
   onMobileToolsOpenChange,
@@ -211,7 +209,6 @@ export default function LogBar({
     hasWarnings?: boolean;
     loading?: boolean;
   };
-  blockLoggingWorkReason?: string | null;
   onShiftSegmentChange?: (shiftSegmentOpen: boolean) => void;
   mobileToolsOpen?: boolean;
   onMobileToolsOpenChange?: (open: boolean) => void;
@@ -521,19 +518,6 @@ export default function LogBar({
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
-
-    if (type === "work" && blockLoggingWorkReason) {
-      setWorkWarning({
-        message: blockLoggingWorkReason,
-        confirmLabel: "Go to Your Sheets",
-        onConfirm: () => {
-          setWorkWarning(null);
-          router.push("/sheets");
-        },
-        onCancel: () => setWorkWarning(null),
-      });
-      return;
-    }
 
     if (
       type === "stop" &&

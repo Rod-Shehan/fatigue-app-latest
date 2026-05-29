@@ -35,6 +35,7 @@ import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
 import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
+import { UnsignedPastWeeksNotice } from "@/components/driver/UnsignedPastWeeksNotice";
 import {
   deriveDaysWithRollover,
   applyLast24hBreakNonWorkRule,
@@ -66,7 +67,6 @@ import { cn } from "@/lib/utils";
 import {
   formatPastWeekArchiveSubtitle,
   formatSignBlockedPastWeekMessage,
-  formatUnsignedPastWeeksBlockMessage,
 } from "@/lib/product-copy";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 
@@ -389,11 +389,6 @@ export function SheetDetail({
   const unsignedPastWeeksForDriver = useUnsignedPastWeeks(
     isManager ? undefined : sessionDriverName || sheetData.driver_name
   );
-
-  const blockLoggingWorkReason = useMemo(() => {
-    if (isManager || unsignedPastWeeksForDriver.length === 0) return null;
-    return formatUnsignedPastWeeksBlockMessage(unsignedPastWeeksForDriver.length);
-  }, [isManager, unsignedPastWeeksForDriver.length]);
 
   const compliancePayload = useMemo(() => {
     const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheetData.jurisdiction_code);
@@ -875,7 +870,6 @@ export function SheetDetail({
               hasWarnings: hasComplianceWarnings,
               loading: complianceLoading,
             }}
-            blockLoggingWorkReason={blockLoggingWorkReason}
             onShiftSegmentChange={setShiftSegmentOpenForMobile}
             mobileToolsOpen={mobileLogToolsOpen}
             onMobileToolsOpenChange={setMobileLogToolsOpen}
@@ -941,6 +935,9 @@ export function SheetDetail({
           )}
 
         <div ref={dayCardsRef} className="space-y-4 max-w-4xl">
+            {!isManager && !isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
+              <UnsignedPastWeeksNotice sheets={unsignedPastWeeksForDriver} />
+            )}
             {sheetData.days?.length > 0 &&
               (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
                 <ComplianceAlertBar
