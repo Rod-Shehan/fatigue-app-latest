@@ -3,7 +3,7 @@ import { isNhvrProvisionalEnabled } from "./flags";
 
 /** Base option always available. */
 export const JURISDICTION_OPTIONS: readonly { value: JurisdictionCode; label: string }[] = [
-  { value: "WA_OSH_3132", label: "Western Australia — OSH Reg 3.132" },
+  { value: "WA_OSH_3132", label: "WA: WHS r184E · OSH r3.132" },
 ] as const;
 
 /** Options for the sheet header selector (client); NHVR appears only when flags are on. */
@@ -22,7 +22,7 @@ export function getJurisdictionOptions(): { value: JurisdictionCode; label: stri
 export function jurisdictionDisplayLabel(code: JurisdictionCode): string {
   switch (code) {
     case "WA_OSH_3132":
-      return "Western Australia — OSH Reg 3.132";
+      return "WA: WHS r184E · OSH r3.132";
     case "NHVR_PROVISIONAL":
       return "NHVR BFM (provisional — not certified EWD)";
     default:
