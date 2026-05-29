@@ -38,13 +38,13 @@ import {
   qualifyingRestMetForWorkAfterBreak,
   getBreakSplitBarState,
   getRemainingBreakMinutesForDisplay,
-  isRestRequirementAlreadyMetBeforeCurrentBreak,
 } from "@/lib/five-hour-break-rule";
 
 const WORK_TARGET_MINUTES = WORK_WINDOW_MIN;
 const BREAK_TARGET_MINUTES = 20;
 
 function formatCountdown(mins: number): string {
+  if (mins <= 0) return "Due now";
   if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   return `${mins}m`;
 }
@@ -144,10 +144,6 @@ function getBreakCompleteByTime(events: { time: string; type: string }[], nowMs:
   const prior = getPriorRestSlotsBeforeTime(events, windowStartMs, breakStartMs);
   const additional = getAdditionalMinutesNeededForCurrentBreak(prior);
   return breakStartMs + additional * 60 * 1000;
-}
-
-function formatTimeHm(ms: number): string {
-  return new Date(ms).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 type DayData = {
@@ -471,51 +467,42 @@ export default function LogBar({
     return getInsufficientNonWorkMessage(rolling, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
   };
 
-  const nextRisk = useMemo(() => {
+  const primaryActionCountdown = useMemo(() => {
+    if (!isLiveNow) return null;
     const nowMs = Date.now();
     const rolling =
       driverType === "two_up"
         ? getEventsInTimeOrder(days).filter((ev) => (ev.driver ?? "primary") === activeDriver)
         : getEventsInTimeOrder(days);
-    const lastStopMs = getLastStopTime(rolling, nowMs + 1);
-    const nonWorkHours = getNonWorkHoursSinceLastStop(rolling, nowMs);
 
     if (currentType === "work") {
       const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
       if (!dueBy) return null;
       const mins = Math.max(0, Math.ceil((dueBy - nowMs) / 60000));
-      return {
-        tone: "break" as const,
-        title: "Next required rest",
-        detail: `Break due by ${formatTimeHm(dueBy)} (${formatCountdown(mins)})`,
-      };
+      return { mins, hint: "break due" as const };
     }
     if (currentType === "break") {
       const completeBy = getBreakCompleteByTime(eventsForDriver, nowMs);
       if (!completeBy) return null;
       const mins = Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
-      return {
-        tone: "break" as const,
-        title: "Next safe action",
-        detail: `Minimum rest complete by ${formatTimeHm(completeBy)} (${formatCountdown(mins)})`,
-      };
+      return { mins, hint: "rest left" as const };
     }
-    if (
-      currentType === null &&
-      lastStopMs != null &&
-      nonWorkHours != null &&
-      nonWorkHours < MIN_NON_WORK_HOURS_BETWEEN_SHIFTS
-    ) {
+    if (currentType === null) {
+      const lastStopMs = getLastStopTime(rolling, nowMs + 1);
+      const nonWorkHours = getNonWorkHoursSinceLastStop(rolling, nowMs);
+      if (
+        lastStopMs == null ||
+        nonWorkHours == null ||
+        nonWorkHours >= MIN_NON_WORK_HOURS_BETWEEN_SHIFTS
+      ) {
+        return null;
+      }
       const safeAt = lastStopMs + MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 3600 * 1000;
       const mins = Math.max(0, Math.ceil((safeAt - nowMs) / 60000));
-      return {
-        tone: "nonwork" as const,
-        title: "Recovery check",
-        detail: `Rest until ${formatTimeHm(safeAt)} to reach 7h non-work (${formatCountdown(mins)})`,
-      };
+      return { mins, hint: "until shift" as const };
     }
     return null;
-  }, [activeDriver, currentType, days, driverType, eventsForDriver]);
+  }, [activeDriver, currentType, days, driverType, eventsForDriver, isLiveNow, tick]);
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
@@ -732,14 +719,55 @@ export default function LogBar({
             const theme = ACTIVITY_THEME[nextWorkBreak];
             const isStartingShift = nextWorkBreak === "work" && currentType === null;
             const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
+            const showCountdown =
+              primaryActionCountdown != null && getNextWorkBreakType(currentType) === nextWorkBreak;
+            const countdownAccentClass =
+              nextWorkBreak === "break"
+                ? "text-emerald-950 dark:text-emerald-100"
+                : nextWorkBreak === "work"
+                  ? "text-amber-100 dark:text-amber-200"
+                  : "";
+            const countdownHintClass =
+              nextWorkBreak === "break"
+                ? "text-emerald-900/80 dark:text-emerald-100/80"
+                : "text-blue-100/90 dark:text-blue-100/80";
             return (
               <button
                 type="button"
                 onClick={() => handleLog(nextWorkBreak)}
                 className={`flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-md text-white text-base sm:text-lg font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[180px] sm:w-auto shrink-0 ${theme.button} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
+                aria-label={
+                  showCountdown && !isPending
+                    ? `${primaryLabel} — ${primaryActionCountdown.hint} ${formatCountdown(primaryActionCountdown.mins)}`
+                    : isPending
+                      ? "Tap again to confirm"
+                      : primaryLabel
+                }
               >
-                {React.createElement(EVENT_ICONS[nextWorkBreak], { className: "w-8 h-8" })}
-                {isPending ? "Tap again to log" : primaryLabel}
+                {React.createElement(EVENT_ICONS[nextWorkBreak], {
+                  className: cn("shrink-0", showCountdown && !isPending ? "w-7 h-7 sm:w-8 sm:h-8" : "w-8 h-8"),
+                })}
+                {isPending ? (
+                  "Tap again to log"
+                ) : showCountdown ? (
+                  <span className="flex flex-col items-start leading-none gap-0.5 min-w-0">
+                    <span className="text-base sm:text-lg">{primaryLabel}</span>
+                    <span
+                      className={cn(
+                        "font-mono font-extrabold tabular-nums tracking-tight text-xl sm:text-2xl",
+                        primaryActionCountdown.mins <= 0 ? "text-red-100 animate-pulse" : countdownAccentClass
+                      )}
+                      aria-live="polite"
+                    >
+                      {formatCountdown(primaryActionCountdown.mins)}
+                    </span>
+                    <span className={cn("text-[10px] sm:text-xs font-semibold uppercase tracking-wider", countdownHintClass)}>
+                      {primaryActionCountdown.hint}
+                    </span>
+                  </span>
+                ) : (
+                  primaryLabel
+                )}
               </button>
             );
           })()}
@@ -767,41 +795,6 @@ export default function LogBar({
 
       {contextualBar && (
         <div className="pt-1">
-          <div className="mb-0.5 flex items-start gap-2 min-w-0">
-            <span className="min-w-0 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              {contextualBar.type === "work" && (() => {
-                const breakDueByMs = getBreakDueByTime(eventsForDriver, Date.now());
-                const timeStr =
-                  breakDueByMs != null
-                    ? new Date(breakDueByMs).toLocaleTimeString("en-AU", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })
-                    : null;
-                return timeStr != null
-                  ? `CURRENT ACTIVITY WORK - BREAK DUE BY ${timeStr}`
-                  : "CURRENT ACTIVITY WORK - BREAK DUE";
-              })()}
-              {contextualBar.type === "break" && (() => {
-                if (isRestRequirementAlreadyMetBeforeCurrentBreak(eventsForDriver)) {
-                  return "CURRENT ACTIVITY BREAK — REST REQUIREMENT ALREADY MET (THIS WORK WINDOW)";
-                }
-                const completeByMs = getBreakCompleteByTime(eventsForDriver, Date.now());
-                const timeStr =
-                  completeByMs != null
-                    ? new Date(completeByMs).toLocaleTimeString("en-AU", {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })
-                    : null;
-                return timeStr != null
-                  ? `CURRENT ACTIVITY BREAK — COMPLETE BY ${timeStr} (2×10 MIN OR 1×20 MIN)`
-                  : "CURRENT ACTIVITY BREAK — 2×10 MIN OR 1×20 MIN";
-              })()}
-            </span>
-          </div>
           <div className="flex items-center gap-2 min-w-0">
             <div
               className={cn(
@@ -1093,23 +1086,6 @@ export default function LogBar({
                   />
                   <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-        {nextRisk && (
-          <div className="max-w-[1400px] mx-auto mt-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/50 px-3 py-2.5">
-            <div className="flex items-start gap-2">
-              <span
-                className={cn(
-                  "mt-1 h-2 w-2 rounded-full shrink-0",
-                  nextRisk.tone === "break" ? "bg-amber-500" : "bg-slate-500"
-                )}
-                aria-hidden
-              />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{nextRisk.title}</p>
-                <p className="text-xs text-slate-600 dark:text-slate-300">{nextRisk.detail}</p>
               </div>
             </div>
           </div>
