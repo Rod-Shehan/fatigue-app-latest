@@ -228,6 +228,7 @@ function dayHasActivity(day: DayData | undefined): boolean {
   if (!day || typeof day !== "object") return false;
   if (typeof day.truck_rego === "string" && day.truck_rego.trim()) return true;
   if (typeof day.destination === "string" && day.destination.trim()) return true;
+  if (typeof day.start_location === "string" && day.start_location.trim()) return true;
   if (Array.isArray(day.events) && day.events.length > 0) return true;
   if (Array.isArray(day.work_time) && day.work_time.some(Boolean)) return true;
   if (Array.isArray(day.breaks) && day.breaks.some(Boolean)) return true;

@@ -411,11 +411,13 @@ function buildShiftLogHtml(opts: {
       const heading = `${dayName} — ${dateLabel}`;
 
       const rego = (day as { truck_rego?: string }).truck_rego ?? "";
+      const startLoc = (day as { start_location?: string }).start_location ?? "";
       const dest = (day as { destination?: string }).destination ?? "";
       const startKms = (day as { start_kms?: number | null }).start_kms;
       const endKms = (day as { end_kms?: number | null }).end_kms;
       const cardBits: string[] = [];
       if (rego) cardBits.push(`Rego: ${rego}`);
+      if (startLoc) cardBits.push(`Start: ${startLoc}`);
       if (dest) cardBits.push(`Destination: ${dest}`);
       if (startKms != null && !Number.isNaN(Number(startKms))) cardBits.push(`Start odometer: ${startKms} km`);
       if (endKms != null && !Number.isNaN(Number(endKms))) cardBits.push(`End odometer: ${endKms} km`);
@@ -1269,15 +1271,23 @@ export async function GET(
       doc.setFontSize(9);
       doc.setTextColor(...GREY_LABEL);
       doc.text(dateStr, margin + 10, y + 5);
-      const dayWithKms = day as { truck_rego?: string; destination?: string; start_kms?: number; end_kms?: number };
+      const dayWithKms = day as {
+        truck_rego?: string;
+        start_location?: string;
+        destination?: string;
+        start_kms?: number;
+        end_kms?: number;
+      };
       const rego = dayWithKms.truck_rego ?? "";
+      const startLoc = dayWithKms.start_location ?? "";
       const dest = dayWithKms.destination ?? "";
       const startKms = dayWithKms.start_kms ?? null;
       const endKms = dayWithKms.end_kms ?? null;
       const kmsTotal = startKms != null && endKms != null ? Math.max(0, endKms - startKms) : null;
       const metaParts: string[] = [];
       if (rego) metaParts.push(`Rego: ${rego}`);
-      if (dest) metaParts.push(dest);
+      if (startLoc) metaParts.push(`From: ${startLoc}`);
+      if (dest) metaParts.push(`To: ${dest}`);
       if (startKms != null) metaParts.push(`Start: ${startKms} km`);
       if (endKms != null) metaParts.push(`End: ${endKms} km`);
       if (kmsTotal != null) metaParts.push(`Total: ${kmsTotal} km`);

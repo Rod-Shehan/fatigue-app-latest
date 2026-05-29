@@ -74,6 +74,7 @@ const EMPTY_DAY = (): DayData => ({
   day_label: "",
   date: "",
   truck_rego: "",
+  start_location: "",
   destination: "",
   start_kms: undefined,
   end_kms: undefined,
@@ -110,10 +111,14 @@ function getDayWithCarriedOverCardInfo(
   const openAtEnd = getEffectiveOpenActivityAtDayEnd(prev, dateStrPrev, todayYmd);
   if (openAtEnd == null) return day;
   const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
+  const hasOwnStartLocation = (day.start_location ?? "").toString().trim() !== "";
   const hasOwnStartKms = day.start_kms != null && !Number.isNaN(Number(day.start_kms));
   return {
     ...day,
     truck_rego: hasOwnRego ? day.truck_rego : (prev?.truck_rego ?? day.truck_rego ?? ""),
+    start_location: hasOwnStartLocation
+      ? day.start_location
+      : (prev?.start_location ?? day.start_location ?? ""),
     start_kms: hasOwnStartKms ? day.start_kms : (prev?.start_kms ?? day.start_kms),
   };
 }

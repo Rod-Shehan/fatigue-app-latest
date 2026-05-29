@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Truck, MapPin, Clock, Trash2 } from "lucide-react";
+import { Truck, MapPin, Navigation, Clock, Trash2 } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
@@ -23,6 +23,7 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 
 type DayData = {
   truck_rego?: string;
+  start_location?: string;
   destination?: string;
   start_kms?: number | null;
   end_kms?: number | null;
@@ -118,31 +119,47 @@ export default function DayEntry({
           : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
       }`}
     >
-      <div className="flex flex-wrap items-center gap-3 mb-3">
-        <div className="flex items-center gap-2">
-          <div
-            className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
-              isToday
-                ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
-                : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
-            }`}
-          >
-            {DAY_NAMES[dayIndex]?.charAt(0)}
-          </div>
-          <div>
-            <p
-              className={`text-sm font-semibold ${
+      <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 shrink-0">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold ${
                 isToday
-                  ? "text-amber-800 dark:text-amber-300"
-                  : "text-slate-800 dark:text-slate-100"
+                  ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
+                  : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
               }`}
             >
-              {DAY_NAMES[dayIndex]}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
+              {DAY_NAMES[dayIndex]?.charAt(0)}
+            </div>
+            <div>
+              <p
+                className={`text-sm font-semibold ${
+                  isToday
+                    ? "text-amber-800 dark:text-amber-300"
+                    : "text-slate-800 dark:text-slate-100"
+                }`}
+              >
+                {DAY_NAMES[dayIndex]}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
+            </div>
+          </div>
+          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5 max-w-md">
+            <Navigation className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <Label className="sr-only">Start location</Label>
+              <Input
+                placeholder="Start location"
+                value={dayData.start_location || ""}
+                onChange={(e) => handleFieldChange("start_location", e.target.value)}
+                className="h-8 w-full text-sm font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                disabled={readOnly}
+                aria-label="Start location"
+              />
+            </div>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2 ml-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
           {canShowEditTimes ? (
             <Button
               type="button"
@@ -218,15 +235,19 @@ export default function DayEntry({
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-            <Input
-              placeholder="Destination"
-              value={dayData.destination || ""}
-              onChange={(e) => handleFieldChange("destination", e.target.value)}
-              className="h-7 w-32 min-w-[8rem] text-xs font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400"
-              disabled={readOnly}
-            />
+          <div className="flex min-w-[10rem] flex-1 items-center gap-1.5 max-w-xs sm:max-w-[11rem] sm:flex-initial">
+            <MapPin className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
+            <div className="min-w-0 flex-1">
+              <Label className="sr-only">Destination</Label>
+              <Input
+                placeholder="Destination"
+                value={dayData.destination || ""}
+                onChange={(e) => handleFieldChange("destination", e.target.value)}
+                className="h-8 w-full text-sm font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400"
+                disabled={readOnly}
+                aria-label="Destination"
+              />
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap">

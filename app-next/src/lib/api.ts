@@ -46,6 +46,8 @@ export type DayData = {
   day_label?: string;
   date?: string;
   truck_rego?: string;
+  /** Where the day's shift / route began (regulator audit: opposite end to destination). */
+  start_location?: string;
   destination?: string;
   start_kms?: number | null;
   end_kms?: number | null;

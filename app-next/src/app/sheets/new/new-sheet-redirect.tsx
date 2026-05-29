@@ -16,6 +16,7 @@ const EMPTY_DAY = () => ({
   day_label: "",
   date: "",
   truck_rego: "",
+  start_location: "",
   destination: "",
   start_kms: null,
   end_kms: null,

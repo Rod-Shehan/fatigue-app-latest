@@ -153,6 +153,7 @@ function formatTimeHm(ms: number): string {
 type DayData = {
   events?: { time: string; type: string }[];
   truck_rego?: string;
+  start_location?: string;
   destination?: string;
   start_kms?: number | null;
 };
@@ -403,7 +404,7 @@ export default function LogBar({
       if (lastSpokenShiftBlockMsgRef.current === key) return;
       lastSpokenShiftBlockMsgRef.current = key;
       speakVoiceAlert(
-        "Complete today's card before starting shift. You need rego, destination, and start kilometres."
+        "Complete today's card before starting shift. You need rego, start location, destination, and start kilometres."
       );
       return;
     }
@@ -530,11 +531,13 @@ export default function LogBar({
     const isStartingShift = type === "work" && currentType === null;
     if (isStartingShift) {
       const hasRego = (dayForCardFields?.truck_rego ?? "").toString().trim() !== "";
+      const hasStartLocation = (dayForCardFields?.start_location ?? "").toString().trim() !== "";
       const hasDestination = (dayForCardFields?.destination ?? "").toString().trim() !== "";
       const hasStartKms = dayForCardFields?.start_kms != null && !Number.isNaN(Number(dayForCardFields.start_kms));
-      if (!hasRego || !hasDestination || !hasStartKms) {
+      if (!hasRego || !hasStartLocation || !hasDestination || !hasStartKms) {
         const missing: string[] = [];
         if (!hasRego) missing.push("Rego");
+        if (!hasStartLocation) missing.push("Start location");
         if (!hasDestination) missing.push("Destination");
         if (!hasStartKms) missing.push("Start KM");
         setWorkWarning({
