@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import { getSessionForSheetAccess, canAccessSheet, getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { autoCloseStaleDraftSheetsForUser } from "@/lib/sheet-auto-close-db";
-import { getPreviousWeekSunday, isNextWeekOrLater } from "@/lib/weeks";
+import { getPreviousWeekSunday, isNextWeekOrLater, isPastRegulatoryWeek } from "@/lib/weeks";
 import { parseJurisdictionCode } from "@/lib/jurisdiction";
 import { normalizeSheetDaysForApi } from "@/lib/coverage/derive-minute-coverage";
+import {
+  managerRequiresAmendmentReason,
+  patchIsAttestationOnly,
+  patchTouchesContent,
+} from "@/lib/sheet-record";
 
 function parseDays(daysJson: string): unknown[] {
   try {
@@ -103,24 +108,58 @@ export async function PATCH(
       jurisdictionCode,
     } = body;
 
-    // Lock after completion/signature:
-    // - Drivers cannot edit completed sheets.
-    // - Managers can amend completed sheets with an explicit reason; amendment clears signature and reopens as draft.
     const isCompleted = sheet.status === "completed";
+    const isPastWeek = isPastRegulatoryWeek(sheet.weekStarting);
     const manager = await getManagerSession();
     const isManager = !!manager;
     const isAmendment = typeof amendment_reason === "string" && amendment_reason.trim().length > 0;
-    if (isCompleted && !isManager) {
-      return NextResponse.json(
-        { error: "This sheet is completed and locked. A manager must create an amendment to make changes." },
-        { status: 409 }
-      );
+    const bodyRecord = body as Record<string, unknown>;
+    const touchesContent = patchTouchesContent(bodyRecord);
+    const attestationOnly = patchIsAttestationOnly(bodyRecord);
+
+    if (!isManager) {
+      if (isPastWeek) {
+        if (!attestationOnly) {
+          return NextResponse.json(
+            {
+              error:
+                "This week is a read-only archive. You can review and sign it; ask your manager to correct errors.",
+              code: "ARCHIVED_READ_ONLY",
+            },
+            { status: 409 }
+          );
+        }
+      } else if (isCompleted) {
+        return NextResponse.json(
+          {
+            error: "This sheet is completed and locked. A manager must create an amendment to make changes.",
+            code: "SHEET_COMPLETED",
+          },
+          { status: 409 }
+        );
+      }
+      if (attestationOnly && status === "completed" && !signature) {
+        return NextResponse.json(
+          { error: "A signature is required to complete this record.", code: "SIGNATURE_REQUIRED" },
+          { status: 400 }
+        );
+      }
     }
-    if (isCompleted && isManager && !isAmendment) {
-      return NextResponse.json(
-        { error: "Amendment reason is required to edit a completed sheet.", code: "AMENDMENT_REASON_REQUIRED" },
-        { status: 400 }
-      );
+
+    if (
+      isManager &&
+      touchesContent &&
+      managerRequiresAmendmentReason(sheet.weekStarting, sheet.status, bodyRecord)
+    ) {
+      if (!isAmendment) {
+        return NextResponse.json(
+          {
+            error: "Amendment reason is required to edit a past or completed sheet.",
+            code: "AMENDMENT_REASON_REQUIRED",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     if (week_starting !== undefined && isNextWeekOrLater(week_starting)) {
@@ -170,14 +209,17 @@ export async function PATCH(
 
     const changeKeys = Object.keys(data);
 
-    // For manager amendments on completed sheets: reopen and clear signature so it can be re-signed.
-    if (isCompleted && isManager && isAmendment) {
-      data.status = "draft";
-      data.signature = null;
-      data.signedAt = null;
-      if (!changeKeys.includes("status")) changeKeys.push("status");
-      if (!changeKeys.includes("signature")) changeKeys.push("signature");
-      if (!changeKeys.includes("signedAt")) changeKeys.push("signedAt");
+    // Manager amendment on past/completed: clear attestation so driver must re-sign after corrections.
+    if (isManager && isAmendment && (isPastWeek || isCompleted) && sheet.signature) {
+      const unlockOnly = !touchesContent;
+      if (unlockOnly || touchesContent) {
+        data.status = "draft";
+        data.signature = null;
+        data.signedAt = null;
+        if (!changeKeys.includes("status")) changeKeys.push("status");
+        if (!changeKeys.includes("signature")) changeKeys.push("signature");
+        if (!changeKeys.includes("signedAt")) changeKeys.push("signedAt");
+      }
     }
     const updated = await prisma.fatigueSheet.update({
       where: { id },
@@ -189,14 +231,15 @@ export async function PATCH(
       data: {
         sheetId: id,
         actorId: access.userId,
-        action: isCompleted && isManager && isAmendment
-          ? "amend_sheet"
-          : status === "completed" || signature !== undefined || signed_at !== undefined
+        action:
+          isManager && isAmendment
+            ? "amend_sheet"
+            : status === "completed" || signature !== undefined || signed_at !== undefined
               ? "complete_sheet"
               : "update_sheet",
         payload: {
           changed_fields: changeKeys,
-          amendment_reason: isCompleted && isManager && isAmendment ? amendment_reason.trim() : undefined,
+          amendment_reason: isManager && isAmendment ? amendment_reason.trim() : undefined,
           status_before: sheet.status,
           status_after: updated.status,
           had_signature_before: !!sheet.signature,

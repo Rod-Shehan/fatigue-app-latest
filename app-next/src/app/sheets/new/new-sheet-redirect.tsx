@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "next-auth/react";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
-import { getThisWeekSunday } from "@/lib/weeks";
+import { findSheetForWeekStarting, getThisWeekSunday } from "@/lib/weeks";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 
 const EMPTY_DAY = () => ({
@@ -53,9 +53,10 @@ export function NewSheetRedirect() {
     // If a draft sheet already exists, open it instead of creating another.
     listSheetsOfflineFirst()
       .then((sheets) => {
-        const draft = sheets.find((s) => s.status !== "completed");
-        if (draft?.id) {
-          router.replace(`/sheets/${draft.id}`);
+        const thisSunday = getThisWeekSunday();
+        const currentWeek = findSheetForWeekStarting(sheets, thisSunday);
+        if (currentWeek?.id) {
+          router.replace(`/sheets/${currentWeek.id}`);
           return;
         }
         createMutation.mutate();

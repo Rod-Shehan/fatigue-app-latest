@@ -79,21 +79,22 @@ export async function POST(req: Request) {
 
     // Limit: only one unfinished (draft) sheet per driver at a time.
     // Prevent multiple live sheets that can be edited concurrently.
-    const existingDraft = await prisma.fatigueSheet.findFirst({
+    const thisWeekSunday = getThisWeekSunday();
+    const existingCurrentWeekDraft = await prisma.fatigueSheet.findFirst({
       where: {
         createdById: access.userId,
         status: { not: "completed" },
+        weekStarting: thisWeekSunday,
       },
-      orderBy: { createdAt: "desc" },
       select: { id: true, weekStarting: true, status: true },
     });
-    if (existingDraft) {
+    if (existingCurrentWeekDraft) {
       return NextResponse.json(
         {
-          error: "You already have an unfinished sheet. Complete and sign it before starting a new one.",
+          error: "You already have an open sheet for this week. Open it to continue logging.",
           code: "UNFINISHED_SHEET_EXISTS",
-          sheet_id: existingDraft.id,
-          week_starting: existingDraft.weekStarting,
+          sheet_id: existingCurrentWeekDraft.id,
+          week_starting: existingCurrentWeekDraft.weekStarting,
         },
         { status: 409 }
       );

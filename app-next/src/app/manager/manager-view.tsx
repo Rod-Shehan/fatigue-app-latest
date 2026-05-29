@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type DayData, type FatigueSheet, type SheetUpdatePayload } from "@/lib/api";
+import { isPastRegulatoryWeek } from "@/lib/weeks";
+import { MANAGER_PAST_WEEK_AMEND_HINT, SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -532,19 +534,22 @@ export function ManagerView() {
     deleteMutation.mutate(selectedSheetId);
   };
 
-  const handleSave = () => {
-    if (!selectedSheetId) return;
-    saveMutation.mutate({
-      last_24h_break: form.last_24h_break || undefined,
-      driver_type: form.driver_type,
-      week_starting: form.week_starting || undefined,
-      destination: null,
-      driver_name: form.driver_name || undefined,
-      second_driver: form.second_driver || undefined,
-    });
-  };
+  const selectedIsPastWeek = useMemo(
+    () =>
+      Boolean(
+        selectedSheet?.week_starting && isPastRegulatoryWeek(selectedSheet.week_starting)
+      ),
+    [selectedSheet?.week_starting]
+  );
 
-  const canAmend = !!selectedSheetId && (selectedSheet?.status ?? "") === "completed";
+  const managerEditNeedsReason = useMemo(
+    () =>
+      Boolean(
+        selectedSheet &&
+          (selectedIsPastWeek || (selectedSheet.status ?? "") === "completed")
+      ),
+    [selectedSheet, selectedIsPastWeek]
+  );
 
   const hasChanges =
     selectedSheet &&
@@ -553,6 +558,29 @@ export function ManagerView() {
       form.week_starting !== (selectedSheet.week_starting ?? "") ||
       form.driver_name !== (selectedSheet.driver_name ?? "") ||
       form.second_driver !== (selectedSheet.second_driver ?? ""));
+
+  const handleSave = () => {
+    if (!selectedSheetId) return;
+    const reason = amendmentReason.trim();
+    if (managerEditNeedsReason && hasChanges && !reason) {
+      window.alert("Enter an amendment reason before saving changes to a past or completed sheet.");
+      return;
+    }
+    saveMutation.mutate({
+      last_24h_break: form.last_24h_break || undefined,
+      driver_type: form.driver_type,
+      week_starting: form.week_starting || undefined,
+      destination: null,
+      driver_name: form.driver_name || undefined,
+      second_driver: form.second_driver || undefined,
+      ...(managerEditNeedsReason && reason ? { amendment_reason: reason } : {}),
+    });
+  };
+
+  const canAmend =
+    !!selectedSheetId &&
+    (selectedSheet?.status ?? "") === "completed" &&
+    Boolean(selectedSheet?.signature);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -1191,10 +1219,39 @@ export function ManagerView() {
                           />
                         </div>
                       )}
+                      {managerEditNeedsReason && (
+                        <div className="sm:col-span-2 space-y-1.5 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 p-3">
+                          <p className="text-xs text-amber-900 dark:text-amber-100">
+                            {selectedIsPastWeek
+                              ? MANAGER_PAST_WEEK_AMEND_HINT
+                              : SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}
+                          </p>
+                          <Label
+                            htmlFor="inline_amendment_reason"
+                            className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+                          >
+                            Amendment reason (required for each save)
+                          </Label>
+                          <Input
+                            id="inline_amendment_reason"
+                            value={amendmentReason}
+                            onChange={(e) => setAmendmentReason(e.target.value)}
+                            placeholder="e.g. Corrected odometer per driver"
+                            className="h-9"
+                          />
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                            {SHEET_ATTESTATION_WORKFLOW.MANAGER_SEND_FOR_DRIVER_SIGN}
+                          </p>
+                        </div>
+                      )}
                       <div className="sm:col-span-2 flex items-center gap-3 pt-2">
                         <Button
                           onClick={handleSave}
-                          disabled={!hasChanges || saveMutation.isPending}
+                          disabled={
+                            !hasChanges ||
+                            saveMutation.isPending ||
+                            (managerEditNeedsReason && !amendmentReason.trim())
+                          }
                           className="gap-2"
                         >
                           {saveMutation.isPending ? (
@@ -1263,9 +1320,9 @@ export function ManagerView() {
         <Dialog open={showAmendDialog} onOpenChange={setShowAmendDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Amend completed sheet</DialogTitle>
+              <DialogTitle>Unlock signed sheet for correction</DialogTitle>
               <DialogDescription>
-                This will reopen the sheet as <strong>draft</strong> and clear the signature so it can be re-signed. An audit log entry will be recorded.
+                Clears the driver&apos;s signature so you can edit with amendment reasons. When you and the driver agree the week is correct, they sign again from Your Sheets.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">

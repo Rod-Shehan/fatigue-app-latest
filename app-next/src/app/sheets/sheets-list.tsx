@@ -16,7 +16,7 @@ import { formatHoursStatistic } from "@/lib/hours";
 
 import { listSheetsOfflineFirst } from "@/lib/offline-api";
 
-import { getThisWeekSunday, normalizeWeekDateString, parseLocalDate } from "@/lib/weeks";
+import { getThisWeekSunday, isPastRegulatoryWeek, normalizeWeekDateString, parseLocalDate } from "@/lib/weeks";
 
 import { Button } from "@/components/ui/button";
 
@@ -254,6 +254,17 @@ export function SheetsList() {
 
               sheet.week_starting && normalizeWeekDateString(sheet.week_starting) === thisSunday;
 
+            const isPastWeek =
+              sheet.week_starting && isPastRegulatoryWeek(sheet.week_starting, thisSunday);
+
+            const statusLabel = isPastWeek
+              ? sheet.signature
+                ? "Signed"
+                : "Needs signature"
+              : sheet.status === "completed"
+                ? "Signed"
+                : "Open";
+
             return (
 
               <div
@@ -330,17 +341,21 @@ export function SheetsList() {
 
                       className={`text-xs px-2 py-0.5 rounded border ${
 
-                        sheet.status === "completed"
+                        statusLabel === "Signed"
 
                           ? "border-emerald-300 text-emerald-600 dark:text-emerald-400"
 
-                          : "border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400"
+                          : statusLabel === "Needs signature"
+
+                            ? "border-amber-300 text-amber-700 dark:text-amber-300"
+
+                            : "border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400"
 
                       }`}
 
                     >
 
-                      {sheet.status === "completed" ? "Signed" : "Open"}
+                      {statusLabel}
 
                     </span>
 

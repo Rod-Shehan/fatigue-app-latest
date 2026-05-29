@@ -11,6 +11,17 @@ export function getThisWeekSunday(): string {
   return formatDateLocal(sunday);
 }
 
+/** Find a sheet whose week_starting (normalized) matches the given Sunday YYYY-MM-DD. */
+export function findSheetForWeekStarting<T extends { week_starting?: string | null }>(
+  sheets: T[],
+  weekSunday: string
+): T | undefined {
+  const target = normalizeWeekDateString(weekSunday);
+  return sheets.find(
+    (s) => s.week_starting && normalizeWeekDateString(s.week_starting) === target
+  );
+}
+
 /** Sunday of the week before the given week_starting (YYYY-MM-DD). */
 export function getPreviousWeekSunday(weekStarting: string): string {
   const [y, m, d] = weekStarting.split("-").map(Number);
@@ -23,6 +34,16 @@ export function getPreviousWeekSunday(weekStarting: string): string {
 export function isNextWeekOrLater(weekStarting: string): boolean {
   const thisWeek = getThisWeekSunday();
   return weekStarting > thisWeek;
+}
+
+/** True when week_starting is strictly before the current regulatory week. */
+export function isPastRegulatoryWeek(
+  weekStarting: string,
+  thisWeekSunday: string = getThisWeekSunday()
+): boolean {
+  const ws = normalizeWeekDateString(weekStarting);
+  const sun = normalizeWeekDateString(thisWeekSunday);
+  return ws < sun;
 }
 
 /** YYYY-MM-DD in local time. Use for "today" and sheet-day comparisons so non-work cap is correct. */

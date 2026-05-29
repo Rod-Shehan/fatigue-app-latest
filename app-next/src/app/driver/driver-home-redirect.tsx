@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { listSheetsOfflineFirst } from "@/lib/offline-api";
-import { getThisWeekSunday, normalizeWeekDateString } from "@/lib/weeks";
+import { findSheetForWeekStarting, getThisWeekSunday } from "@/lib/weeks";
 import { Button } from "@/components/ui/button";
 
 /** Send drivers straight to this week's sheet (or create it). */
@@ -20,18 +20,12 @@ export function DriverHomeRedirect() {
   useEffect(() => {
     if (isLoading || !sheets) return;
     const thisSunday = getThisWeekSunday();
-    const currentWeek = sheets.find(
-      (s) => s.week_starting && normalizeWeekDateString(s.week_starting) === thisSunday
-    );
+    const currentWeek = findSheetForWeekStarting(sheets, thisSunday);
     if (currentWeek?.id) {
       router.replace(`/sheets/${currentWeek.id}`);
       return;
     }
-    const openDraft = sheets.find((s) => s.status !== "completed");
-    if (openDraft?.id) {
-      router.replace(`/sheets/${openDraft.id}`);
-      return;
-    }
+    // Always create/open the regulatory current week — never an older open draft.
     router.replace("/sheets/new");
   }, [isLoading, sheets, router]);
 

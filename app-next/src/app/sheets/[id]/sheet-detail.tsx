@@ -45,8 +45,11 @@ import {
   getPreviousWeekSunday,
   getRegulatoryTodayYmd,
   getThisWeekSunday,
+  isPastRegulatoryWeek,
   normalizeWeekDateString,
 } from "@/lib/weeks";
+import { canDriverEditSheetContent } from "@/lib/sheet-record";
+import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import {
   consecutiveWorkDaysEndingAt,
   shouldEducateAfterEndShift,
@@ -235,16 +238,6 @@ export function SheetDetail({
     [sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd, now]
   );
 
-  // Re-derive time grids every minute so non-work accumulates in real-time on the current day
-  useEffect(() => {
-    setSheetData((prev) => {
-      const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting, {
-        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
-      });
-      return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
-    });
-  }, [now]);
-
   const { data: sheet, isLoading } = useQuery({
     queryKey: ["sheet", sheetId],
     queryFn: () => getSheetOfflineFirst(sheetId),
@@ -267,6 +260,37 @@ export function SheetDetail({
 
   const { data: session, status: sessionStatus } = useSession();
   const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
+
+  const isPastWeek = useMemo(
+    () => isPastRegulatoryWeek(sheetData.week_starting),
+    [sheetData.week_starting]
+  );
+  const driverContentLocked = useMemo(
+    () => !isManager && (isPastWeek || sheetData.status === "completed"),
+    [isManager, isPastWeek, sheetData.status]
+  );
+  const canShowLogBar = useMemo(
+    () => !isManager && canDriverEditSheetContent(sheetData.week_starting, sheetData.status),
+    [isManager, sheetData.week_starting, sheetData.status]
+  );
+  const canDriverSign = useMemo(
+    () => !isManager && !sheetData.signature,
+    [isManager, sheetData.signature]
+  );
+
+  // Re-derive time grids every minute on the live (current) week only
+  useEffect(() => {
+    setSheetData((prev) => {
+      if (!canDriverEditSheetContent(prev.week_starting, prev.status) && !isManager) {
+        return prev;
+      }
+      const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+      });
+      return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
+    });
+  }, [now, isManager]);
+
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
   const driverPageIdentity = useMemo(() => {
     const name = isManager
@@ -480,7 +504,7 @@ export function SheetDetail({
   }, []);
 
   useEffect(() => {
-    if (!isDirty || !sheetData.driver_name) return;
+    if (driverContentLocked || !isDirty || !sheetData.driver_name) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       if (saveMutation.isPending) return;
@@ -489,13 +513,14 @@ export function SheetDetail({
     return () => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     };
-  }, [sheetData, isDirty, buildSavePayload, saveMutation.isPending]);
+  }, [sheetData, isDirty, buildSavePayload, saveMutation.isPending, driverContentLocked]);
 
   // Best-effort: flush unsaved changes when user background/navigates away.
   useEffect(() => {
     const flush = () => {
       if (!isDirtyRef.current) return;
       const d = sheetDataRef.current;
+      if (!canDriverEditSheetContent(d.week_starting, d.status)) return;
       if (!d.driver_name) return;
       if (saveMutation.isPending) return;
       saveMutation.mutate(buildSavePayload());
@@ -512,14 +537,16 @@ export function SheetDetail({
   }, [buildSavePayload, saveMutation]);
 
   const handleHeaderChange = useCallback((updates: Partial<typeof sheetData>) => {
+    if (driverContentLocked) return;
     setSheetData((prev) => {
       const next = { ...prev, ...updates };
       return { ...next, days: applyLast24hBreakNonWorkRule(next.days, next.week_starting, next.last_24h_break || undefined) };
     });
     setIsDirty(true);
-  }, []);
+  }, [driverContentLocked]);
 
   const handleDayUpdate = useCallback((dayIndex: number, dayData: DayData) => {
+    if (driverContentLocked) return;
     setSheetData((prev) => {
       const newDays = [...prev.days];
       newDays[dayIndex] = dayData;
@@ -529,9 +556,10 @@ export function SheetDetail({
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
     setIsDirty(true);
-  }, []);
+  }, [driverContentLocked]);
 
   const handleAssumeIdle = useCallback(() => {
+    if (driverContentLocked) return;
     setSheetData((prev) => {
       const newDays = [...prev.days];
       const day = newDays[currentDayIndex] ?? {};
@@ -542,10 +570,11 @@ export function SheetDetail({
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
     setIsDirty(true);
-  }, [currentDayIndex]);
+  }, [currentDayIndex, driverContentLocked]);
 
   const handleLogEvent = useCallback(
     (dayIndex: number, type: string, driver?: "primary" | "second") => {
+    if (driverContentLocked) return;
     setSheetData((prev) => {
       const newDays = [...prev.days];
       const day = newDays[dayIndex];
@@ -582,9 +611,10 @@ export function SheetDetail({
       })
       .catch(() => {});
   },
-  []);
+  [driverContentLocked]);
 
   const handleEndShiftRequest = useCallback(async (dayIndex: number) => {
+    if (driverContentLocked) return;
     const days = sheetDataRef.current.days;
     const day = days[dayIndex];
     const startKms = day?.start_kms;
@@ -785,7 +815,7 @@ export function SheetDetail({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
-      {sheetData.status !== "completed" && (
+      {canShowLogBar && (
         <>
           <LogBar
             days={sheetData.days}
@@ -817,8 +847,8 @@ export function SheetDetail({
       )}
       <div className="max-w-[1400px] mx-auto px-4 py-6">
         <PageHeader
-          backHref="/driver"
-          backLabel="This week"
+          backHref={isPastWeek ? "/sheets" : "/driver"}
+          backLabel={isPastWeek ? "Your weeks" : "This week"}
           title={PRODUCT_NAME}
           subtitle={TAGLINE_DRIVER}
           driverDisplayName={headerDriverDisplayName}
@@ -860,10 +890,12 @@ export function SheetDetail({
           <DriverMoreMenu
             sheetId={sheetId}
             sheetStatus={sheetData.status}
+            isArchivedWeek={isPastWeek}
             canAccessManager={canAccessManager}
-            onSave={handleSave}
+            onSave={driverContentLocked ? undefined : handleSave}
             savePending={saveMutation.isPending}
-            onMarkComplete={sheetData.status !== "completed" ? handleMarkCompleteClick : undefined}
+            onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
+            markCompleteLabel={isPastWeek ? "Sign record" : undefined}
             onExportPdf={handleExportPdf}
           />
 
@@ -915,8 +947,19 @@ export function SheetDetail({
 
         <div className="flex flex-col lg:flex-row gap-6">
           <div ref={dayCardsRef} className="flex-1 space-y-4">
+            {isPastWeek && !isManager && (
+              <SheetRecordBanner
+                variant={canDriverSign ? "sign" : "archive"}
+                onSign={canDriverSign ? handleMarkCompleteClick : undefined}
+              />
+            )}
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5">
-              <SheetHeader sheetData={sheetData} onChange={handleHeaderChange} hidePrimaryDriverField />
+              <SheetHeader
+                sheetData={sheetData}
+                onChange={handleHeaderChange}
+                hidePrimaryDriverField
+                readOnly={driverContentLocked}
+              />
               {matchedRosterPrimary && (
                 <CvdMedicalBanner
                   driverLabel={matchedRosterPrimary.name}
@@ -941,9 +984,9 @@ export function SheetDetail({
                   ref={(el) => {
                     dayCardElsRef.current[idx] = el;
                   }}
-                  className={sheetData.status !== "completed" ? "scroll-mt-48" : "scroll-mt-6"}
+                  className={canShowLogBar ? "scroll-mt-48" : "scroll-mt-6"}
                   onPointerDown={(e) => {
-                    if (sheetData.status === "completed") return;
+                    if (!canShowLogBar) return;
                     if (!shiftSegmentOpenForMobile || idx !== currentDayIndex) return;
                     const t = e.target;
                     if (!(t instanceof HTMLElement)) return;
@@ -963,7 +1006,8 @@ export function SheetDetail({
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}
                     regos={regos}
-                    canEditTimes={canAccessManager && sheetData.status !== "completed"}
+                    readOnly={driverContentLocked}
+                    canEditTimes={canAccessManager && !driverContentLocked}
                     consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
                     todayYmd={todayYmd}
                   />

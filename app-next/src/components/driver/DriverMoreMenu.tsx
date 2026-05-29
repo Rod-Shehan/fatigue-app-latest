@@ -29,22 +29,27 @@ const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}
 export function DriverMoreMenu({
   sheetId,
   sheetStatus,
+  isArchivedWeek = false,
   canAccessManager = false,
   onSave,
   savePending = false,
   onMarkComplete,
+  markCompleteLabel,
   onExportPdf,
 }: {
   sheetId?: string;
   sheetStatus?: string;
+  isArchivedWeek?: boolean;
   canAccessManager?: boolean;
   onSave?: () => void;
   savePending?: boolean;
   onMarkComplete?: () => void;
+  markCompleteLabel?: string;
   onExportPdf?: () => void;
 }) {
   const onSheet = Boolean(sheetId);
   const isCompleted = sheetStatus === "completed";
+  const sectionLabel = isArchivedWeek ? "Past week" : "This week";
 
   return (
     <DropdownMenu>
@@ -65,7 +70,7 @@ export function DriverMoreMenu({
         {onSheet && (
           <>
             <p className="px-2 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              This week
+              {sectionLabel}
             </p>
             {onSave && (
               <DropdownMenuItem
@@ -84,10 +89,10 @@ export function DriverMoreMenu({
                 Save
               </DropdownMenuItem>
             )}
-            {!isCompleted && onMarkComplete && (
+            {onMarkComplete && (
               <DropdownMenuItem onSelect={onMarkComplete} className="text-xs gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                Mark complete
+                {markCompleteLabel ?? (isCompleted ? "Sign again" : "Mark complete")}
               </DropdownMenuItem>
             )}
             {onExportPdf && (
