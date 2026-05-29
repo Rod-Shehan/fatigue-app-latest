@@ -53,21 +53,14 @@ function formatCountdown(mins: number): string {
 function PrimaryActionCountdownBlock({
   labelPrefix,
   mins,
-  actionKey,
 }: {
   labelPrefix: string;
   mins: number;
-  actionKey: "work" | "break";
 }) {
   const overdue = mins <= 0;
-  const timerChipClass =
-    actionKey === "break"
-      ? overdue
-        ? "bg-red-800 text-white ring-white/90"
-        : "bg-slate-950 text-white ring-white/90"
-      : overdue
-        ? "bg-red-800 text-white ring-white/90"
-        : "bg-amber-300 text-slate-950 ring-white/90";
+  const timerChipClass = overdue
+    ? "bg-red-800 text-white ring-white/90"
+    : "bg-slate-950 text-white ring-white/90";
 
   return (
     <span className="flex flex-col items-start leading-none gap-1 min-w-0">
@@ -183,6 +176,27 @@ function getBreakCompleteByTime(events: { time: string; type: string }[], nowMs:
   const prior = getPriorRestSlotsBeforeTime(events, windowStartMs, breakStartMs);
   const additional = getAdditionalMinutesNeededForCurrentBreak(prior);
   return breakStartMs + additional * 60 * 1000;
+}
+
+/** Minutes until minimum rest is satisfied on the current break (for Work button countdown). */
+function getBreakFinishMinutes(events: { time: string; type: string }[], nowMs: number): number | null {
+  if (events.length === 0) return null;
+  const last = events[events.length - 1];
+  if (last.type !== "break") return null;
+
+  const completeBy = getBreakCompleteByTime(events, nowMs);
+  if (completeBy != null) {
+    return Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
+  }
+
+  const breakStartMs = new Date(last.time).getTime();
+  const elapsedMin = Math.max(0, (nowMs - breakStartMs) / 60000);
+  const windowStartMs = findWorkWindowStartMs(events, breakStartMs);
+  const prior =
+    windowStartMs != null
+      ? getPriorRestSlotsBeforeTime(events, windowStartMs, breakStartMs)
+      : emptySlots();
+  return getRemainingBreakMinutesForDisplay(prior, elapsedMin);
 }
 
 type DayData = {
@@ -521,10 +535,9 @@ export default function LogBar({
       return { mins, labelPrefix: "Break due in" as const };
     }
     if (currentType === "break") {
-      const completeBy = getBreakCompleteByTime(eventsForDriver, nowMs);
-      if (!completeBy) return null;
-      const mins = Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
-      return { mins, labelPrefix: "Work in" as const };
+      const mins = getBreakFinishMinutes(eventsForDriver, nowMs);
+      if (mins == null) return null;
+      return { mins, labelPrefix: "Break finish in" as const };
     }
     if (currentType === null) {
       const lastStopMs = getLastStopTime(rolling, nowMs + 1);
@@ -768,6 +781,7 @@ export default function LogBar({
                   "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
                   theme.button,
                   showCountdown && !isPending && nextWorkBreak === "break" && "bg-amber-600 hover:bg-amber-700",
+                  showCountdown && !isPending && nextWorkBreak === "work" && "bg-blue-600 hover:bg-blue-700",
                   isPending && "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse"
                 )}
                 aria-label={
@@ -787,7 +801,6 @@ export default function LogBar({
                   <PrimaryActionCountdownBlock
                     labelPrefix={primaryActionCountdown.labelPrefix}
                     mins={primaryActionCountdown.mins}
-                    actionKey={nextWorkBreak}
                   />
                 ) : (
                   <span className="text-base sm:text-lg">{primaryLabel}</span>
