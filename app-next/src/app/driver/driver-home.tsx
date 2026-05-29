@@ -4,22 +4,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import {
-  AlertTriangle,
-  Briefcase,
-  CheckCircle2,
-  ChevronRight,
-  Coffee,
-  Loader2,
-  Moon,
-  Square,
-} from "lucide-react";
+import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
 import { PRODUCT_NAME } from "@/lib/branding";
-import { api, type ComplianceCheckResult } from "@/lib/api";
 import { getDriverHomeShiftStatus, type DriverShiftActivity } from "@/lib/driver-home-status";
-import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { formatUnsignedPastWeeksBlockMessage } from "@/lib/product-copy";
 import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
@@ -99,38 +88,6 @@ export function DriverHome() {
     );
   }, [sheet, currentDayIndex, thisSunday, todayYmd, now]);
 
-  const compliancePayload = useMemo(() => {
-    if (!sheet?.days?.length) return null;
-    return {
-      days: sheet.days,
-      driverType: sheet.driver_type,
-      prevWeekDays: null as null,
-      last24hBreak: sheet.last_24h_break || undefined,
-      weekStarting: sheet.week_starting || undefined,
-      currentDayIndex,
-      slotOffsetWithinToday: getSlotOffsetWithinTodayLocal(now, sheet.jurisdiction_code),
-      jurisdiction_code: sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
-    };
-  }, [sheet, currentDayIndex, now]);
-
-  const { data: complianceData, isLoading: complianceLoading } = useQuery({
-    queryKey: ["compliance", sheetId, "home", compliancePayload],
-    queryFn: () => api.compliance.check(compliancePayload!),
-    enabled: !!compliancePayload && !!sheetId,
-  });
-
-  const complianceResults: ComplianceCheckResult[] = complianceData?.results ?? [];
-  const hasViolations = complianceResults.some((r) => r.type === "violation");
-  const hasWarnings = complianceResults.some((r) => r.type === "warning");
-
-  const prospectiveWarnings = useMemo(() => {
-    if (!sheet?.days?.length) return [];
-    return getProspectiveWorkWarnings(sheet.days, currentDayIndex, sheet.week_starting || thisSunday, {
-      driverType: sheet.driver_type,
-      jurisdictionCode: sheet.jurisdiction_code,
-    });
-  }, [sheet, currentDayIndex, thisSunday]);
-
   const continueHref = sheetId ? `/sheets/${sheetId}` : "/sheets/new";
   const weekLabel = formatSheetDisplayDate(thisSunday);
   const todayLabel = formatSheetDisplayDate(
@@ -204,29 +161,6 @@ export function DriverHome() {
                     <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{shiftStatus.detail}</p>
                   )}
                 </div>
-              </div>
-
-              <div className="px-4 pb-4 flex flex-wrap items-center gap-2">
-                {complianceLoading ? (
-                  <span className="text-[10px] text-slate-400">Checking compliance…</span>
-                ) : sheetId ? (
-                  <span
-                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-                      hasViolations
-                        ? "border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-100"
-                        : hasWarnings || prospectiveWarnings.length > 0
-                          ? "border-amber-300 bg-amber-50/80 text-amber-800 dark:text-amber-100"
-                          : "border-emerald-300 bg-emerald-50 text-emerald-800 dark:text-emerald-100"
-                    }`}
-                  >
-                    {hasViolations ? (
-                      <AlertTriangle className="w-3 h-3" />
-                    ) : (
-                      <CheckCircle2 className="w-3 h-3" />
-                    )}
-                    {hasViolations ? "Check compliance" : hasWarnings ? "Warnings" : "Compliance OK"}
-                  </span>
-                ) : null}
               </div>
             </div>
 
