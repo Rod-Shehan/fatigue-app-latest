@@ -26,16 +26,29 @@ export function allowsPasswordlessEmailLogin(): boolean {
 
 type UserRow = { id: string; email: string; name: string | null; passwordHash: string | null };
 
+function toUserRow(
+  row: { id: string; email: string | null; name: string | null; passwordHash: string | null },
+  fallbackEmail: string
+): UserRow {
+  return {
+    id: row.id,
+    email: row.email ?? fallbackEmail,
+    name: row.name,
+    passwordHash: row.passwordHash,
+  };
+}
+
 async function provisionUser(email: string): Promise<UserRow> {
   const existing = await prisma.user.findUnique({
     where: { email },
     select: { id: true, email: true, name: true, passwordHash: true },
   });
-  if (existing) return existing;
-  return prisma.user.create({
+  if (existing) return toUserRow(existing, email);
+  const created = await prisma.user.create({
     data: { email, name: email.split("@")[0] },
     select: { id: true, email: true, name: true, passwordHash: true },
   });
+  return toUserRow(created, email);
 }
 
 /** Local NODE_ENV=development blank-password flows (unchanged behaviour). */
