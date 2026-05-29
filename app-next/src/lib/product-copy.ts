@@ -147,3 +147,11 @@ export function formatSignBlockedPastWeekMessage(validationError: string, weekOf
     `Ask your manager to correct the record, then return to sign — or go to Drive home to log the current week.`
   );
 }
+
+/** Overnight shift rolled into this calendar day — route fields may be carried until confirmed. */
+export function formatContinuedShiftRouteBanner(previousDayName: string): string {
+  return `Your shift continued from ${previousDayName}. Confirm today's route details for this day's record.`;
+}
+
+export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
+  "Carried from your previous day — confirm route to save on this day's record.";

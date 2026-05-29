@@ -12,11 +12,16 @@ import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
 import { SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS } from "@/lib/shift-change";
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
 import { cn } from "@/lib/utils";
+import {
+  CONTINUED_SHIFT_ROUTE_CARD_NOTE,
+  formatContinuedShiftRouteBanner,
+} from "@/lib/product-copy";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type DayData = DayCardFields & {
   end_kms?: number | null;
+  route_confirmed?: boolean;
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
@@ -78,6 +83,7 @@ function StatBlock({
 export default function DayEntry({
   dayIndex,
   dayData,
+  continuedShiftRoute = null,
   onUpdate,
   weekStart,
   regos = [],
@@ -88,6 +94,8 @@ export default function DayEntry({
 }: {
   dayIndex: number;
   dayData: DayData;
+  /** When set, shift continued overnight — prompt to confirm route on this calendar day. */
+  continuedShiftRoute?: { previousDayName: string } | null;
   onUpdate: (idx: number, d: DayData) => void;
   weekStart: string;
   regos?: Rego[];
@@ -208,6 +216,25 @@ export default function DayEntry({
         </div>
       </div>
 
+      {continuedShiftRoute && canEditDetails && (
+        <div
+          className="mb-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-600 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
+          role="status"
+        >
+          <p className="text-sm font-medium text-amber-950 dark:text-amber-100 flex-1 min-w-0">
+            {formatContinuedShiftRouteBanner(continuedShiftRoute.previousDayName)}
+          </p>
+          <Button
+            type="button"
+            size="sm"
+            className="min-h-10 shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            onClick={() => setDetailsOpen(true)}
+          >
+            Confirm route
+          </Button>
+        </div>
+      )}
+
       <div
         className={cn(
           "mb-3 rounded-lg border bg-slate-50/90 dark:bg-slate-950/50 px-3 py-3",
@@ -222,6 +249,11 @@ export default function DayEntry({
           </p>
         ) : (
           <>
+            {continuedShiftRoute && (
+              <p className="text-xs text-amber-800 dark:text-amber-200 mb-2 leading-snug">
+                {CONTINUED_SHIFT_ROUTE_CARD_NOTE}
+              </p>
+            )}
             <div className="flex items-center gap-2 min-w-0 mb-3">
               <StatBlock label="From" value={(dayData.start_location || "").trim() || "—"} emphasis />
               <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
@@ -266,7 +298,10 @@ export default function DayEntry({
           regos={regos}
           showShiftPatternEducation={showShiftPatternEducation}
           consecutiveWorkDays={consecutiveWorkDays}
-          onConfirm={(fields) => onUpdate(dayIndex, { ...dayData, ...fields })}
+          continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
+          onConfirm={(fields) =>
+            onUpdate(dayIndex, { ...dayData, ...fields, route_confirmed: true })
+          }
         />
       )}
 

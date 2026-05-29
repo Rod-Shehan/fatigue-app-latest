@@ -53,6 +53,8 @@ export type DayData = {
   end_kms?: number | null;
   /** Day (A) / Night (B) — for Reg 184E(4) shift-pattern change after 5+ work days. */
   shift_label?: "A" | "B" | "";
+  /** Driver confirmed route/vehicle for this calendar day (required after overnight carry from previous day). */
+  route_confirmed?: boolean;
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];

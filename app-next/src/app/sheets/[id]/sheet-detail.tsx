@@ -36,11 +36,11 @@ import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
 import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
 import { UnsignedPastWeeksNotice } from "@/components/driver/UnsignedPastWeeksNotice";
+import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
-  deriveDaysWithRollover,
-  applyLast24hBreakNonWorkRule,
-  getEffectiveOpenActivityAtDayEnd,
-} from "@/components/fatigue/EventLogger";
+  getDayWithCarriedOverCardInfo,
+  getContinuedShiftRoutePrompt,
+} from "@/lib/day-route-carry";
 import {
   formatSheetDisplayDate,
   getSheetDayDateString,
@@ -92,35 +92,6 @@ function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
   const weekStart = new Date(y, m - 1, d);
   const diffDays = Math.round((today.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000));
   return Math.max(0, Math.min(6, diffDays));
-}
-
-/**
- * Day card rego and start_km carry-over when the previous calendar day ended with open work/break
- * (same end-of-day rule as deriveDaysWithRollover). No carry after End shift or when previous day closed in non-work.
- */
-function getDayWithCarriedOverCardInfo(
-  days: DayData[],
-  dayIndex: number,
-  weekStarting: string,
-  todayYmd: string
-): DayData {
-  const day = days[dayIndex] ?? {};
-  if (dayIndex === 0) return day;
-  const prev = days[dayIndex - 1];
-  const dateStrPrev = getSheetDayDateString(weekStarting, dayIndex - 1);
-  const openAtEnd = getEffectiveOpenActivityAtDayEnd(prev, dateStrPrev, todayYmd);
-  if (openAtEnd == null) return day;
-  const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
-  const hasOwnStartLocation = (day.start_location ?? "").toString().trim() !== "";
-  const hasOwnStartKms = day.start_kms != null && !Number.isNaN(Number(day.start_kms));
-  return {
-    ...day,
-    truck_rego: hasOwnRego ? day.truck_rego : (prev?.truck_rego ?? day.truck_rego ?? ""),
-    start_location: hasOwnStartLocation
-      ? day.start_location
-      : (prev?.start_location ?? day.start_location ?? ""),
-    start_kms: hasOwnStartKms ? day.start_kms : (prev?.start_kms ?? day.start_kms),
-  };
 }
 
 /** Reminder when driver may have forgotten to log work / break / end shift. */
@@ -1050,6 +1021,12 @@ export function SheetDetail({
                   <DayEntry
                     dayIndex={idx}
                     dayData={getDayWithCarriedOverCardInfo(sheetData.days, idx, sheetData.week_starting, todayYmd)}
+                    continuedShiftRoute={getContinuedShiftRoutePrompt(
+                      sheetData.days,
+                      idx,
+                      sheetData.week_starting,
+                      todayYmd
+                    )}
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}
                     regos={regos}
