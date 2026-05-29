@@ -68,6 +68,15 @@ export const PRODUCT_RECORD_PROMISE =
 export const SHEETS_LIST_TAGLINE =
   "Your weekly record exists for compliance whether or not you logged a shift—non-work still counts.";
 
+/** Driver help: records, archives, and signing (plain language). */
+export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
+  "The app opens on this week — the only week where you log Work, Break, and End shift.",
+  "Past weeks are closed for logging. Open them from Your weeks to review, export, or sign.",
+  "Your signature means you attest that week is your record. It is not the manager's signature.",
+  "If something in a past week is wrong, your manager corrects it (with a reason on file). When you both agree it is right, open that week and sign — or sign again after a correction.",
+  "You may be asked to sign past weeks before logging new work on this week.",
+] as const;
+
 /** Bullets: how weeks appear to the driver in the UI. */
 export const USER_VISIBLE_SHEET_STATE_BULLETS = [
   "Current regulatory week — the slice you open to log work and breaks from now.",

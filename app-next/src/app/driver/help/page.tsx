@@ -5,8 +5,11 @@ import { authOptions, getManagerSession } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 import {
+  DRIVER_HELP_RECORDS_SIGNING_BULLETS,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
+  SHEET_ATTESTATION_WORKFLOW,
+  SHEET_RECORD_CONTRACT,
   UNSIGNED_WEEKS_GATE_HINT,
   USER_VISIBLE_SHEET_STATE_BULLETS,
 } from "@/lib/product-copy";
@@ -52,6 +55,36 @@ export default async function DriverHelpPage() {
               ))}
             </ul>
             <p className="mt-3 text-slate-500 dark:text-slate-400">{UNSIGNED_WEEKS_GATE_HINT}</p>
+          </section>
+
+          <section className="rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/30 p-5">
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-2">
+              Records &amp; signing
+            </h2>
+            <p className="text-slate-600 dark:text-slate-300">{SHEET_RECORD_CONTRACT}</p>
+            <ul className="list-disc pl-5 space-y-1.5 mt-3">
+              {DRIVER_HELP_RECORDS_SIGNING_BULLETS.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <div className="mt-4 space-y-3 rounded-lg border border-emerald-200/80 dark:border-emerald-800/80 bg-white/60 dark:bg-slate-900/40 p-3">
+              <div>
+                <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                  {SHEET_ATTESTATION_WORKFLOW.SIGN_ARCHIVED_WEEK_TITLE}
+                </p>
+                <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
+                  {SHEET_ATTESTATION_WORKFLOW.SIGN_ARCHIVED_WEEK_BODY}
+                </p>
+              </div>
+              <div>
+                <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
+                  {SHEET_ATTESTATION_WORKFLOW.RESIGN_AFTER_AMENDMENT_TITLE}
+                </p>
+                <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
+                  {SHEET_ATTESTATION_WORKFLOW.RESIGN_AFTER_AMENDMENT_BODY}
+                </p>
+              </div>
+            </div>
           </section>
 
           <section className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 p-5">
