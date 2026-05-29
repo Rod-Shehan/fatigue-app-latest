@@ -29,11 +29,14 @@ export default function SheetHeader({
   readOnly = false,
   /** When true, primary driver is shown elsewhere (e.g. page title tile); keep second driver + rest. */
   hidePrimaryDriverField = false,
+  /** Right side of driver-type row (e.g. More menu, save status). */
+  headerActions,
 }: {
   sheetData: SheetData;
   onChange: (s: Partial<SheetData>) => void;
   readOnly?: boolean;
   hidePrimaryDriverField?: boolean;
+  headerActions?: React.ReactNode;
 }) {
   const last24hDateInputRef = useRef<HTMLInputElement>(null);
   const [confirmLast24hOpen, setConfirmLast24hOpen] = useState(false);
@@ -71,8 +74,9 @@ export default function SheetHeader({
 
   return (
     <div className="space-y-4">
-      {/* Row 1: Driver type + optional primary name in form; Two-Up adds second driver */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end">
+      {/* Row 1: Driver type + optional primary name; actions (More) on the right */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end flex-1 min-w-0">
         <div className="space-y-1.5 shrink-0">
           <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 block">
             Driver Type
@@ -158,6 +162,10 @@ export default function SheetHeader({
               />
             )}
           </div>
+        )}
+        </div>
+        {headerActions != null && (
+          <div className="flex flex-wrap items-center gap-2 shrink-0 sm:ml-auto">{headerActions}</div>
         )}
       </div>
 

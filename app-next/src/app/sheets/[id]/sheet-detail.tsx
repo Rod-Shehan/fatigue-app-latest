@@ -921,52 +921,6 @@ export function SheetDetail({
           }
         />
 
-        <nav
-          className={cn(
-            "flex flex-wrap items-center justify-between gap-2",
-            canShowLogBar ? "mb-3" : "mb-6"
-          )}
-          aria-label={`${PRODUCT_NAME} toolbar`}
-        >
-          <DriverMoreMenu
-            sheetId={sheetId}
-            sheetStatus={sheetData.status}
-            isArchivedWeek={isPastWeek}
-            canAccessManager={canAccessManager}
-            onSave={driverContentLocked ? undefined : handleSave}
-            savePending={saveMutation.isPending}
-            onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
-            markCompleteLabel={isPastWeek ? "Sign record" : undefined}
-            onExportPdf={handleExportPdf}
-          />
-
-          <div className="flex flex-wrap items-center gap-2 min-h-8 ml-auto">
-            {lastSaved && !isDirty && (
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
-                <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                <span className="hidden sm:inline">
-                  Saved{" "}
-                  {lastSaved.toLocaleTimeString("en-AU", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  })}
-                </span>
-              </span>
-            )}
-            {isDirty && !saveMutation.isPending && !driverContentLocked && (
-              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
-                Unsaved changes
-              </span>
-            )}
-            {sheetData.status === "completed" && (
-              <Badge variant="outline" className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7">
-                <CheckCircle2 className="w-3 h-3" /> Completed
-              </Badge>
-            )}
-          </div>
-        </nav>
-
         {saveMutation.isError &&
           (saveMutation.error as Error & { body?: { code?: string; sheet_id?: string } }).body?.code ===
             "PREVIOUS_WEEK_INCOMPLETE" && (
@@ -1009,6 +963,47 @@ export function SheetDetail({
                 onChange={handleHeaderChange}
                 hidePrimaryDriverField
                 readOnly={driverContentLocked}
+                headerActions={
+                  <>
+                    {lastSaved && !isDirty && (
+                      <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
+                        <span className="hidden sm:inline">
+                          Saved{" "}
+                          {lastSaved.toLocaleTimeString("en-AU", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })}
+                        </span>
+                      </span>
+                    )}
+                    {isDirty && !saveMutation.isPending && !driverContentLocked && (
+                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                        Unsaved changes
+                      </span>
+                    )}
+                    {sheetData.status === "completed" && (
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7"
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> Completed
+                      </Badge>
+                    )}
+                    <DriverMoreMenu
+                      sheetId={sheetId}
+                      sheetStatus={sheetData.status}
+                      isArchivedWeek={isPastWeek}
+                      canAccessManager={canAccessManager}
+                      onSave={driverContentLocked ? undefined : handleSave}
+                      savePending={saveMutation.isPending}
+                      onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
+                      markCompleteLabel={isPastWeek ? "Sign record" : undefined}
+                      onExportPdf={handleExportPdf}
+                    />
+                  </>
+                }
               />
               {matchedRosterPrimary && (
                 <CvdMedicalBanner
