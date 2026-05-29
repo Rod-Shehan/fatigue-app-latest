@@ -299,6 +299,9 @@ export function SheetDetail({
     if (isPastWeek && weekOfLabel) {
       return formatPastWeekArchiveSubtitle(weekOfLabel);
     }
+    if (weekOfLabel) {
+      return `Week of ${weekOfLabel}`;
+    }
     return TAGLINE_DRIVER;
   }, [isPastWeek, weekOfLabel]);
 
@@ -983,15 +986,15 @@ export function SheetDetail({
             </div>
           )}
 
-        {sheetData.days?.length > 0 && (
-          <ComplianceAlertBar
-            sheetId={sheetId}
-            loading={complianceLoading}
-            results={complianceResults}
-          />
-        )}
-
         <div ref={dayCardsRef} className="space-y-4 max-w-4xl">
+            {sheetData.days?.length > 0 &&
+              (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
+                <ComplianceAlertBar
+                  sheetId={sheetId}
+                  loading={complianceLoading}
+                  results={complianceResults}
+                />
+              )}
             {isPastWeek && !isManager && weekOfLabel && (
               <SheetRecordBanner
                 weekOfLabel={weekOfLabel}
