@@ -240,7 +240,6 @@ function dayHasActivity(day: DayData | undefined): boolean {
 export function ManagerView() {
   const queryClient = useQueryClient();
   const [selectedSheetId, setSelectedSheetId] = useState<string>("");
-  const [lastSheetId, setLastSheetId] = useState<string | null>(null);
   const [showAmendDialog, setShowAmendDialog] = useState(false);
   const [amendmentReason, setAmendmentReason] = useState("");
   const [activeWeekStarting, setActiveWeekStarting] = useState<string>(() =>
@@ -264,7 +263,7 @@ export function ManagerView() {
   useEffect(() => {
     try {
       const id = sessionStorage.getItem(LAST_SHEET_KEY);
-      if (id) setLastSheetId(id);
+      if (id) setSelectedSheetId(id);
     } catch {
       /* ignore */
     }
@@ -440,7 +439,13 @@ export function ManagerView() {
       }
 
       // 3) If the last event is a stop and it was recent, driver may still be inside 7h recovery window.
-      const rolling = getEventsInTimeOrder(Array.isArray(s.days) ? (s.days as { events?: any[] }[]) : []);
+      const rolling = getEventsInTimeOrder(
+        Array.isArray(s.days)
+          ? (s.days as {
+              events?: { time: string; type: string; driver?: "primary" | "second" }[];
+            }[])
+          : []
+      );
       const lastStopMs = getLastShiftEndTime(rolling, nowMs + 1);
       const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(rolling, nowMs);
       if ((last.type === "stop" || last.type === "non_work") && lastStopMs != null && nonWorkHours != null && nonWorkHours < 7) {

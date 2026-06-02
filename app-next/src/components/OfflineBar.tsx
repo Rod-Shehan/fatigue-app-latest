@@ -3,7 +3,7 @@
 import { useOfflineSync } from "@/hooks/useOfflineSync";
 
 export function OfflineBar() {
-  const { online, pendingCount } = useOfflineSync();
+  const { pendingCount } = useOfflineSync();
 
   if (pendingCount === 0) return null;
 

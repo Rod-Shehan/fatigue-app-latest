@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
 import {
   Briefcase,
   Coffee,
@@ -24,7 +23,6 @@ import { getShiftRestStatusFromWorkGrid } from "@/lib/shift-rest-status";
 import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import {
   getEventsForDriverInOrder,
-  getEventsInTimeOrder,
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
@@ -149,16 +147,11 @@ function getNextWorkBreakType(currentType: string | null): "work" | "break" {
   return currentType === "work" ? "break" : "work";
 }
 
-const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MIN_BREAK_BLOCK_MINUTES = 10;
 /** Minimum non-work time (hours) between shifts. */
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
 const CONFIRM_RESET_MS = 2500;
-
-function getDurationMinutes(start: string, end: string) {
-  return Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 60000);
-}
 
 function formatDurationHoursMinutes(totalMinutes: number): string {
   const m = Math.max(0, Math.floor(totalMinutes));
@@ -216,7 +209,7 @@ function getBreakDueByTime(events: { time: string; type: string }[], nowMs: numb
   return windowStartMs + (WORK_TARGET_MINUTES - minutesBeforeDue) * 60 * 1000;
 }
 
-function getBreakCompleteByTime(events: { time: string; type: string }[], nowMs: number): number | null {
+function getBreakCompleteByTime(events: { time: string; type: string }[]): number | null {
   if (events.length === 0) return null;
   const last = events[events.length - 1];
   if (last.type !== "break") return null;
@@ -234,7 +227,7 @@ function getBreakFinishMinutes(events: { time: string; type: string }[], nowMs: 
   const last = events[events.length - 1];
   if (last.type !== "break") return null;
 
-  const completeBy = getBreakCompleteByTime(events, nowMs);
+  const completeBy = getBreakCompleteByTime(events);
   if (completeBy != null) {
     return Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
   }
@@ -263,7 +256,7 @@ type DayData = {
 export default function LogBar({
   days,
   currentDayIndex,
-  weekStarting: _weekStarting,
+  weekStarting,
   onLogEvent,
   onEndShiftRequest,
   workRelevantComplianceMessages,
@@ -316,7 +309,7 @@ export default function LogBar({
   mobileToolsOpen?: boolean;
   onMobileToolsOpenChange?: (open: boolean) => void;
 }) {
-  const router = useRouter();
+  void weekStarting;
   const [pendingType, setPendingType] = useState<string | null>(null);
   const [activeDriver, setActiveDriver] = useState<"primary" | "second">("primary");
   const [workWarning, setWorkWarning] = useState<{ message: string; confirmLabel: string; onConfirm: () => void; onCancel?: () => void; subtext?: string } | null>(null);
@@ -576,10 +569,6 @@ export default function LogBar({
   const primaryActionCountdown = useMemo(() => {
     if (!isLiveNow) return null;
     const nowMs = Date.now();
-    const rolling =
-      driverType === "two_up"
-        ? getEventsInTimeOrder(days).filter((ev) => (ev.driver ?? "primary") === activeDriver)
-        : getEventsInTimeOrder(days);
 
     if (currentType === "work") {
       const dueBy = getBreakDueByTime(eventsForDriver, nowMs);

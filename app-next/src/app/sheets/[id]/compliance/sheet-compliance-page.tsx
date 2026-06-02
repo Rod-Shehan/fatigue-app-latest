@@ -9,7 +9,7 @@ import { PRODUCT_NAME } from "@/lib/branding";
 import CompliancePanel from "@/components/fatigue/CompliancePanel";
 import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { api } from "@/lib/api";
-import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
+import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { formatSheetDisplayDate, getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";

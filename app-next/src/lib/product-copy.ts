@@ -149,7 +149,8 @@ export const SIGNED_CURRENT_WEEK_ARCHIVE_BODY =
   "This week is signed and locked. Review or export here; ask your manager to amend if something needs correcting.";
 
 /** When driver cannot sign until validation passes (e.g. missing kms). */
-export function formatSignBlockedPastWeekMessage(validationError: string, _weekOfLabel: string): string {
+export function formatSignBlockedPastWeekMessage(validationError: string, weekOfLabel: string): string {
+  void weekOfLabel;
   return validationError;
 }
 

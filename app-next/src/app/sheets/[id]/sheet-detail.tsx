@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, XCircle, Square, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Square } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { PageHeader } from "@/components/PageHeader";
@@ -51,7 +51,6 @@ import {
   getRegulatoryTodayYmd,
   getThisWeekSunday,
   isPastRegulatoryWeek,
-  normalizeWeekDateString,
 } from "@/lib/weeks";
 import { canDriverEditSheetContent, canDriverLogOnSheet } from "@/lib/sheet-record";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";

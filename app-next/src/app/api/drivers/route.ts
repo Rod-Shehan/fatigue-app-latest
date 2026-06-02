@@ -23,7 +23,7 @@ export async function GET() {
         is_active: d.isActive,
       }))
     );
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
       cvd_medical_expiry: driver.cvdMedicalExpiry ? driver.cvdMedicalExpiry.toISOString().slice(0, 10) : null,
       is_active: driver.isActive,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

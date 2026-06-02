@@ -14,7 +14,7 @@ import {
   normalizeDayCoverageArrays,
 } from "@/lib/coverage/derive-minute-coverage";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
-import { getEventsForDriverInOrder, getEventsInTimeOrder } from "@/lib/rolling-events";
+import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
   SHIFT_CHANGE_EDUCATION_MESSAGE,
   SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS,
@@ -195,10 +195,7 @@ const MINUTES_24H = 24 * 60;
 const MINUTES_48H = 48 * 60;
 const MINUTES_72H = 72 * 60;
 const MIN_NON_WORK_HRS_24H = 7;
-const MIN_NON_WORK_MINUTES_24H = MIN_NON_WORK_HRS_24H * 60;
-const MIN_RECORDED_HRS_24H = 16;
 const MIN_7H_BLOCK_MINUTES = 7 * 60;
-const MIN_24H_BLOCK_MINUTES = 24 * 60;
 
 /**
  * Flat minute arrays across days for rolling window checks.
@@ -399,8 +396,6 @@ function checkSoloRules(
    * We only evaluate the single 72h window ending at "now" for the segment that contains today.
    * Past segments are skipped so we never warn on historical windows.
    */
-  const weekStarting = soloOptions?.weekStarting ?? "";
-  const prevWeekStarting = soloOptions?.prevWeekStarting ?? "";
   const currentDayIndex = soloOptions?.currentDayIndex;
   const slotOffsetWithinToday = soloOptions?.slotOffsetWithinToday;
   const todayExtended =
@@ -647,9 +642,9 @@ function flattenEventsByTime(days: ComplianceDayData[]): EventWithDay[] {
 function checkRestBreakMovingVehicle(
   days: ComplianceDayData[],
   results: ComplianceCheckResult[],
-  options: { weekStarting?: string; prevWeekStarting?: string; prevCount: number }
+  options: { prevCount: number }
 ): number {
-  const { prevCount, weekStarting = "", prevWeekStarting = "" } = options;
+  const { prevCount } = options;
   const getLabel = (dayIdx: number) => {
     const ci = dayIdx - prevCount;
     return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
@@ -685,9 +680,9 @@ function checkRestBreakMovingVehicle(
 function checkOdometerVsGpsPlausibility(
   days: ComplianceDayData[],
   results: ComplianceCheckResult[],
-  options: { weekStarting?: string; prevWeekStarting?: string; prevCount: number }
+  options: { prevCount: number }
 ) {
-  const { prevCount, weekStarting = "", prevWeekStarting = "" } = options;
+  const { prevCount } = options;
   const getLabel = (dayIdx: number) => {
     const ci = dayIdx - prevCount;
     return ci < 0 ? `prev+${dayIdx + 1}` : DAY_LABELS[ci] ?? `D${dayIdx + 1}`;
@@ -894,8 +889,6 @@ export function runComplianceChecks(
 
   if (driverType === "two_up") {
     const movingDuringBreakCount = checkRestBreakMovingVehicle(extendedDays, results, {
-      weekStarting,
-      prevWeekStarting,
       prevCount,
     });
     checkTwoUpRules(extendedDays, results, prevCount, { movingDuringBreakCount });
@@ -912,11 +905,10 @@ export function runComplianceChecks(
 
   checkShiftChange24hBetweenShifts(extendedDays, results, prevCount);
 
-  checkOdometerVsGpsPlausibility(extendedDays, results, { weekStarting, prevWeekStarting, prevCount });
+  checkOdometerVsGpsPlausibility(extendedDays, results, { prevCount });
   checkLocationEvidenceWarning(extendedDays, results);
 
   const thisWeekWork = normalizedDays.reduce((s, d) => s + getHours(d.work_time), 0);
-  const prevWeekWork = prevDays.reduce((s, d) => s + getHours(d.work_time), 0);
   const has14dayData = prevDays.length > 0;
 
   if (has14dayData) {

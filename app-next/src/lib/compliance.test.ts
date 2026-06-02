@@ -168,23 +168,38 @@ describe("compliance scenarios — what the logic produces", () => {
     const days = emptyWeek();
     // Any work in window, but no non_work at all -> triggers 48h option.
     for (let i = 0; i < 2; i++) {
-      days[i] = { ...dayWorkOnly(6), non_work: Array(MINUTES_PER_DAY).fill(false), breaks: Array(MINUTES_PER_DAY).fill(false), events: [] as any };
+      days[i] = {
+        ...dayWorkOnly(6),
+        non_work: Array(MINUTES_PER_DAY).fill(false),
+        breaks: Array(MINUTES_PER_DAY).fill(false),
+        events: [] as ComplianceDayData["events"],
+      };
     }
-    const results = runComplianceChecks(days as any, { driverType: "two_up" });
+    const results = runComplianceChecks(days, { driverType: "two_up" });
     const w = results.find((r) => r.message.includes("NOT spent in a moving vehicle") && r.type === "warning");
     expect(w).toBeDefined();
   });
 
   it("two-up 48h stationary requirement: violation when movement evidence detected during break", () => {
     const days = emptyWeek();
-    days[0] = { ...dayWorkOnly(6), non_work: Array(MINUTES_PER_DAY).fill(false), breaks: Array(MINUTES_PER_DAY).fill(false), events: [] as any };
-    days[1] = { ...dayWorkOnly(6), non_work: Array(MINUTES_PER_DAY).fill(false), breaks: Array(MINUTES_PER_DAY).fill(false), events: [] as any };
+    days[0] = {
+      ...dayWorkOnly(6),
+      non_work: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      events: [] as ComplianceDayData["events"],
+    };
+    days[1] = {
+      ...dayWorkOnly(6),
+      non_work: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      events: [] as ComplianceDayData["events"],
+    };
     // Inject a break->work with large GPS movement to create positive evidence.
     days[0].events = [
       { time: "2026-01-01T00:00:00.000Z", type: "break", lat: -31.95, lng: 115.86, accuracy: 10 },
       { time: "2026-01-01T01:00:00.000Z", type: "work", lat: -31.50, lng: 115.86, accuracy: 10 },
     ];
-    const results = runComplianceChecks(days as any, { driverType: "two_up" });
+    const results = runComplianceChecks(days, { driverType: "two_up" });
     const v = results.find((r) => r.message.includes("movement evidence detected") && r.type === "violation");
     expect(v).toBeDefined();
   });
@@ -205,7 +220,7 @@ describe("compliance scenarios — what the logic produces", () => {
     // Mon label A, Tue label B shift change; gap is 23h (violation)
     days[2].events = [{ time: "2026-01-03T09:00:00.000Z", type: "work" }]; // 23h after 10:00Z
 
-    const results = runComplianceChecks(days as any, { driverType: "solo" });
+    const results = runComplianceChecks(days, { driverType: "solo" });
     const v = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "violation");
     expect(v).toBeDefined();
     expect(v?.message).toContain("24");
@@ -222,7 +237,7 @@ describe("compliance scenarios — what the logic produces", () => {
     days[2].shift_label = "B";
     days[1].events = []; // missing stop
     days[2].events = []; // missing work
-    const results = runComplianceChecks(days as any, { driverType: "solo" });
+    const results = runComplianceChecks(days, { driverType: "solo" });
     const w = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "warning");
     expect(w).toBeDefined();
     expect(w?.message).toContain("End shift");
@@ -233,7 +248,7 @@ describe("compliance scenarios — what the logic produces", () => {
     for (let i = 0; i < 5; i++) {
       days[i] = { ...dayWorkOnly(1), shift_label: "", events: [] };
     }
-    const results = runComplianceChecks(days as any, { driverType: "solo" });
+    const results = runComplianceChecks(days, { driverType: "solo" });
     const w = results.find((r) => r.ruleId === "shift_change_education");
     expect(w).toBeDefined();
   });
@@ -270,12 +285,12 @@ describe("compliance scenarios — what the logic produces", () => {
     });
 
     const combinedNonWork = [...historyDays, ...days].flatMap((d) => d.non_work || Array(MINUTES_PER_DAY).fill(false));
-    expect(countContinuousBlocksOfAtLeast(combinedNonWork as any, 24)).toBeGreaterThanOrEqual(4);
+    expect(countContinuousBlocksOfAtLeast(combinedNonWork, 24)).toBeGreaterThanOrEqual(4);
 
     const results = runComplianceChecks(days, {
       driverType: "solo",
       historyDays,
-    } as any);
+    });
 
     const v = results.find((r) => r.type === "violation" && r.message.includes("28-day alternative"));
     expect(v).toBeUndefined();

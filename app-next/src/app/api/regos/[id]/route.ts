@@ -24,7 +24,7 @@ export async function PATCH(
       label: rego.label,
       sort_order: rego.sortOrder,
     });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to update rego" }, { status: 500 });
   }
 }
@@ -39,7 +39,7 @@ export async function DELETE(
     const { id } = await params;
     await prisma.truckRego.delete({ where: { id } });
     return new NextResponse(undefined, { status: 204 });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete rego" }, { status: 500 });
   }
 }

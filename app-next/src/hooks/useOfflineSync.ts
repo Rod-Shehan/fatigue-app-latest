@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { runSync, isOnline, getPendingCount } from "@/lib/offline-api";
+import { runSync, getPendingCount } from "@/lib/offline-api";
 
 /** Runs sync when online; exposes online status and pending count for UI. */
 export function useOfflineSync() {

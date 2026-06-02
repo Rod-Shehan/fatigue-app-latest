@@ -8,8 +8,6 @@ import SheetHeader from "./SheetHeader";
 import type { DayData, Rego } from "@/lib/api";
 import { getTodayLocalDateString } from "@/lib/weeks";
 
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
 function formatTime(isoString: string) {
   return new Date(isoString).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
