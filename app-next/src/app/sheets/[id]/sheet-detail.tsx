@@ -927,7 +927,7 @@ export function SheetDetail({
             </div>
           )}
 
-        <div ref={dayCardsRef} className="space-y-4 max-w-4xl">
+        <div ref={dayCardsRef} className="space-y-2 max-w-4xl">
             {!isManager ? (
               <>
                 {sheetData.days?.length > 0 && (
@@ -967,7 +967,7 @@ export function SheetDetail({
                 onSign={canDriverSign ? handleMarkCompleteClick : undefined}
               />
             )}
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5">
+            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-4">
               <SheetHeader
                 sheetData={sheetData}
                 onChange={handleHeaderChange}
@@ -1070,23 +1070,23 @@ export function SheetDetail({
                     setMobileLogToolsOpen(true);
                   }}
                 >
-                  <DayEntry
-                    dayIndex={idx}
-                    dayData={getDayWithCarriedOverCardInfo(sheetData.days, idx, sheetData.week_starting, todayYmd)}
-                    continuedShiftRoute={getContinuedShiftRoutePrompt(
-                      sheetData.days,
-                      idx,
-                      sheetData.week_starting,
-                      todayYmd
-                    )}
-                    onUpdate={handleDayUpdate}
-                    weekStart={sheetData.week_starting}
-                    regos={regos}
-                    readOnly={driverContentLocked}
-                    canEditTimes={canAccessManager && !driverContentLocked}
-                    consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
-                    todayYmd={todayYmd}
-                  />
+                <DayEntry
+                  dayIndex={idx}
+                  dayData={getDayWithCarriedOverCardInfo(sheetData.days, idx, sheetData.week_starting, todayYmd)}
+                  continuedShiftRoute={getContinuedShiftRoutePrompt(
+                    sheetData.days,
+                    idx,
+                    sheetData.week_starting,
+                    todayYmd
+                  )}
+                  onUpdate={handleDayUpdate}
+                  weekStart={sheetData.week_starting}
+                  regos={regos}
+                  readOnly={driverContentLocked || idx !== currentDayIndex}
+                  canEditTimes={canAccessManager && !driverContentLocked && idx === currentDayIndex}
+                  consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
+                  todayYmd={todayYmd}
+                />
                 </div>
               ))}
           {sheetData.signature && (

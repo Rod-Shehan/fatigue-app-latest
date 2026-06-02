@@ -9,6 +9,8 @@ import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
 import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
+import { getHours } from "@/lib/compliance";
+import { formatHoursStatistic } from "@/lib/hours";
 import { SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS } from "@/lib/shift-change";
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
 import { cn } from "@/lib/utils";
@@ -92,6 +94,8 @@ export default function DayEntry({
   canEditTimes = false,
   consecutiveWorkDays = 0,
   todayYmd,
+  /** When true (default), past/future days render as a single summary row. */
+  collapseWhenNotToday = true,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -104,6 +108,7 @@ export default function DayEntry({
   canEditTimes?: boolean;
   consecutiveWorkDays?: number;
   todayYmd: string;
+  collapseWhenNotToday?: boolean;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -116,6 +121,8 @@ export default function DayEntry({
 
   const sheetDayYmd = weekStart ? getSheetDayDateString(weekStart, dayIndex) : todayYmd;
   const isToday = sheetDayYmd === todayYmd;
+  const isPast = sheetDayYmd < todayYmd;
+  const isFuture = sheetDayYmd > todayYmd;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -131,8 +138,8 @@ export default function DayEntry({
   const showShiftPatternEducation =
     consecutiveWorkDays >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS && !dayData.shift_label;
 
-  const canShowEditTimes = canEditTimes && !readOnly;
-  const canEditDetails = !readOnly;
+  const canShowEditTimes = canEditTimes && isToday && !readOnly;
+  const canEditDetails = isToday && !readOnly;
 
   const hasRouteDetails =
     (dayData.start_location ?? "").trim() !== "" ||
@@ -146,6 +153,52 @@ export default function DayEntry({
     (dayData.destination ?? "").trim() !== "" &&
     dayData.start_kms != null &&
     !Number.isNaN(Number(dayData.start_kms));
+
+  const workHours = getHours(dayData.work_time);
+  const collapsedSummary = isFuture
+    ? "Upcoming"
+    : workHours > 0
+      ? `${formatHoursStatistic(workHours)}h work`
+      : (dayData.events?.length ?? 0) > 0
+        ? "Logged"
+        : "No activity";
+
+  if (collapseWhenNotToday && !isToday) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: dayIndex * 0.02 }}
+        className={cn(
+          "flex items-center gap-2 rounded-lg border px-3 py-2 min-h-[44px]",
+          isPast
+            ? "bg-white/60 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-90"
+            : "bg-slate-50/80 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800/80"
+        )}
+        aria-label={`${DAY_NAMES[dayIndex]}, ${getDateStr()}. ${collapsedSummary}. Read only.`}
+      >
+        <div
+          className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold",
+            isPast
+              ? "bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"
+              : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
+          )}
+        >
+          {DAY_NAMES[dayIndex]?.charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 truncate leading-tight">
+            {DAY_NAMES[dayIndex]}
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-500 tabular-nums truncate">{getDateStr()}</p>
+        </div>
+        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">
+          {collapsedSummary}
+        </span>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

@@ -141,6 +141,7 @@ export default function PdfExportView({ sheetData, regos = [], onHeaderChange }:
                   weekStart={weekStarting}
                   regos={regos}
                   readOnly
+                  collapseWhenNotToday={false}
                   todayYmd={getTodayLocalDateString()}
                 />
               </div>
