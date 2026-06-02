@@ -214,8 +214,15 @@ export const api = {
   sheets: {
     list: () => fetchApi<FatigueSheet[]>("/api/sheets"),
     get: (id: string) => fetchApi<FatigueSheet>(`/api/sheets/${id}`),
-    regoMaxEndKms: (rego: string) =>
-      fetchApi<{ maxEndKms: number | null }>(`/api/rego-kms?rego=${encodeURIComponent(rego)}`),
+    regoMaxEndKms: (
+      rego: string,
+      options?: { excludeSheetId?: string; beforeWeekStarting?: string }
+    ) => {
+      const params = new URLSearchParams({ rego });
+      if (options?.excludeSheetId) params.set("excludeSheetId", options.excludeSheetId);
+      if (options?.beforeWeekStarting) params.set("beforeWeekStarting", options.beforeWeekStarting);
+      return fetchApi<{ maxEndKms: number | null }>(`/api/rego-kms?${params.toString()}`);
+    },
     create: (data: Omit<FatigueSheet, "id" | "created_date">) =>
       fetchApi<FatigueSheet>("/api/sheets", { method: "POST", body: data }),
     update: (id: string, data: SheetUpdatePayload) =>

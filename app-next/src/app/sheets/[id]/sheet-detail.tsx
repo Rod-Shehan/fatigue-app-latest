@@ -649,7 +649,10 @@ export function SheetDetail({
     let serverMaxEndKms: number | null = null;
     if (rego) {
       try {
-        const res = await api.sheets.regoMaxEndKms(rego);
+        const res = await api.sheets.regoMaxEndKms(rego, {
+          excludeSheetId: sheetId,
+          beforeWeekStarting: sheetDataRef.current.week_starting || undefined,
+        });
         serverMaxEndKms = res.maxEndKms;
       } catch {
         // Offline: validate with local data only when confirming
@@ -665,7 +668,7 @@ export function SheetDetail({
     setEndShiftError(null);
     setEndShiftEndKms(String(sheetDataRef.current.days[dayIndex]?.end_kms ?? ""));
     setEndShiftDialog({ dayIndex });
-  }, []);
+  }, [sheetId]);
 
   const handleEndShiftConfirm = useCallback(async () => {
     if (endShiftDialog == null) return;
@@ -688,7 +691,10 @@ export function SheetDetail({
     let serverMaxEndKms: number | null = null;
     if (rego) {
       try {
-        const res = await api.sheets.regoMaxEndKms(rego);
+        const res = await api.sheets.regoMaxEndKms(rego, {
+          excludeSheetId: sheetId,
+          beforeWeekStarting: sheetDataRef.current.week_starting || undefined,
+        });
         serverMaxEndKms = res.maxEndKms;
       } catch {
         // Offline or error: validate with local data only
@@ -735,7 +741,7 @@ export function SheetDetail({
         setIsDirty(true);
       })
       .catch(() => {});
-  }, [endShiftDialog, endShiftEndKms]);
+  }, [endShiftDialog, endShiftEndKms, sheetId]);
 
   const handleShiftPatternSave = useCallback(
     (todayShift: ShiftLabel | "", tomorrowShift: ShiftLabel | "") => {
@@ -762,11 +768,15 @@ export function SheetDetail({
 
   const fetchServerMaxByRego = useCallback(async (days: DayData[]) => {
     const regos = collectRegosNeedingKm(days);
+    const weekStarting = sheetDataRef.current.week_starting;
     const serverMaxByRego: Record<string, number | null> = {};
     await Promise.all(
       regos.map(async (rego) => {
         try {
-          const res = await api.sheets.regoMaxEndKms(rego);
+          const res = await api.sheets.regoMaxEndKms(rego, {
+            excludeSheetId: sheetId,
+            beforeWeekStarting: weekStarting || undefined,
+          });
           serverMaxByRego[regoKey(rego)] = res.maxEndKms;
         } catch {
           serverMaxByRego[regoKey(rego)] = null;
@@ -774,7 +784,7 @@ export function SheetDetail({
       })
     );
     return serverMaxByRego;
-  }, []);
+  }, [sheetId]);
 
   const applyDaysAfterKmChange = useCallback(
     (days: DayData[]) => {

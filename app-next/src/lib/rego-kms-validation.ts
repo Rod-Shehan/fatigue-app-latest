@@ -122,6 +122,8 @@ export function describeStartKmFloor(
   return null;
 }
 
+const FLEET_FLOOR_LABEL = "last end km from a previous week";
+
 export type ValidateKmsResult = {
   valid: boolean;
   message?: string;
@@ -173,8 +175,15 @@ export function validateDayKms(
   return { valid: true };
 }
 
+export type RegoKmFleetQuery = {
+  /** Omit this sheet when loading fleet max (same week’s later days must not floor earlier days). */
+  excludeSheetId?: string;
+  /** Only count sheets with weekStarting strictly before this YYYY-MM-DD (omit future weeks). */
+  beforeWeekStarting?: string;
+};
+
 export type ValidateSheetKmsOptions = {
-  /** Fleet-wide max end km per rego (from /api/rego-kms). Keys: normalized rego. */
+  /** Fleet max end km per rego from prior weeks / other sheets. Keys: normalized rego. */
   serverMaxByRego?: Record<string, number | null>;
 };
 
@@ -249,7 +258,7 @@ export function getSheetKmIssues(
       const floor = describeStartKmFloor(days, i, rego, serverMax);
       const floorHint =
         floor?.source === "fleet_record"
-          ? `fleet record (${minStart})`
+          ? `${FLEET_FLOOR_LABEL} (${minStart})`
           : `previous day end km (${minStart})`;
       issues.push({
         dayIndex: i,

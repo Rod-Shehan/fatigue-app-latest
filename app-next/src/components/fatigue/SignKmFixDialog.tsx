@@ -54,7 +54,7 @@ export function SignKmFixDialog({
           <DialogDescription className="text-left space-y-2">
             <span className="block">
               Before you can sign the week of {weekOfLabel}, odometer readings for each day you drove must link
-              together for the same rego (and match the fleet record where one exists).
+              together for the same rego (and match the last reading from a previous week where one exists).
             </span>
             {canAutoFix && (
               <span className="block text-slate-700 dark:text-slate-300">

@@ -56,6 +56,7 @@ export function DayCardDetailsDialog({
   initialEvents = [],
   eventsEditable = false,
   sheetId,
+  weekStarting,
   driverType,
   onConfirm,
   showShiftPatternEducation,
@@ -78,6 +79,7 @@ export function DayCardDetailsDialog({
   /** When true, driver can edit/add/remove events in this dialog. */
   eventsEditable?: boolean;
   sheetId?: string;
+  weekStarting?: string;
   driverType?: string;
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
   showShiftPatternEducation?: boolean;
@@ -141,7 +143,10 @@ export function DayCardDetailsDialog({
     if (rego) {
       setConfirming(true);
       try {
-        const res = await api.sheets.regoMaxEndKms(rego);
+        const res = await api.sheets.regoMaxEndKms(rego, {
+          excludeSheetId: sheetId,
+          beforeWeekStarting: weekStarting,
+        });
         serverMaxEndKms = res.maxEndKms;
       } catch {
         /* offline: validate with this sheet only */

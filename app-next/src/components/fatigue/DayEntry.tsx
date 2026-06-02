@@ -367,6 +367,7 @@ export default function DayEntry({
           initialEvents={events}
           eventsEditable={canEditDetails}
           sheetId={sheetId}
+          weekStarting={weekStart}
           driverType={driverType}
           showShiftPatternEducation={showShiftPatternEducation}
           consecutiveWorkDays={consecutiveWorkDays}
