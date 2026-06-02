@@ -93,16 +93,18 @@ export function DayCardDetailsDialog({
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setDraft(initial);
-      setDraftEvents(
-        normalizeDayEvents(
-          initialEvents.filter((e) => e && typeof e.time === "string" && typeof e.type === "string")
-        )
-      );
-      setKmError(null);
-    }
-  }, [open, initial, initialEvents]);
+    if (!open) return;
+    // Important: keep dialog draft stable while open. The parent sheet can refetch/invalidate
+    // during autosave which would otherwise blow away in-progress typing.
+    setDraft(initial);
+    setDraftEvents(
+      normalizeDayEvents(
+        initialEvents.filter((e) => e && typeof e.time === "string" && typeof e.type === "string")
+      )
+    );
+    setKmError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const set = (field: keyof DayCardFields, value: unknown) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
