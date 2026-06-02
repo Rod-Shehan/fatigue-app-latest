@@ -20,12 +20,10 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
+import { getShiftRestStatusFromWorkGrid } from "@/lib/shift-rest-status";
 import {
   getEventsForDriverInOrder,
   getEventsInTimeOrder,
-  getInsufficientNonWorkMessage,
-  getLastShiftEndTime,
-  getNonWorkHoursSinceLastShiftEnd,
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
@@ -58,10 +56,12 @@ function PrimaryActionCountdownBlock({
   labelPrefix,
   mins,
   kind,
+  detail,
 }: {
   labelPrefix: string;
   mins: number;
   kind: PrimaryCountdownKind;
+  detail?: string | null;
 }) {
   const ready = mins <= 0;
   const timerChipClass =
@@ -79,6 +79,11 @@ function PrimaryActionCountdownBlock({
         <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-white drop-shadow-sm">
           7h rest required
         </span>
+        {detail ? (
+          <span className="text-[11px] sm:text-xs font-semibold text-white/90 drop-shadow-sm">
+            {detail}
+          </span>
+        ) : null}
         <span className="text-sm sm:text-base font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
           {ready ? "You may start shift" : labelPrefix}
         </span>
@@ -147,10 +152,18 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MIN_BREAK_BLOCK_MINUTES = 10;
 /** Minimum non-work time (hours) between shifts. */
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
+const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
 const CONFIRM_RESET_MS = 2500;
 
 function getDurationMinutes(start: string, end: string) {
   return Math.floor((new Date(end).getTime() - new Date(start).getTime()) / 60000);
+}
+
+function formatDurationHoursMinutes(totalMinutes: number): string {
+  const m = Math.max(0, Math.floor(totalMinutes));
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return h > 0 ? `${h}h ${mm}m` : `${mm}m`;
 }
 
 /**
@@ -237,6 +250,9 @@ function getBreakFinishMinutes(events: { time: string; type: string }[], nowMs: 
 
 type DayData = {
   events?: { time: string; type: string }[];
+  work_time?: boolean[];
+  breaks?: boolean[];
+  non_work?: boolean[];
   truck_rego?: string;
   start_location?: string;
   destination?: string;
@@ -549,11 +565,11 @@ export default function LogBar({
   /** Warning when starting work with <7h non-work since last shift (rolling time: last stop on this driver's timeline). */
   const getInsufficientNonWorkWarning = () => {
     if (currentType !== null) return null;
-    const rolling =
-      driverType === "two_up"
-        ? getEventsInTimeOrder(days).filter((ev) => (ev.driver ?? "primary") === activeDriver)
-        : getEventsInTimeOrder(days);
-    return getInsufficientNonWorkMessage(rolling, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
+    // Use derived grids: any minute with no work counts toward the 7h run.
+    const nowMs = Date.now();
+    const rest = getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs);
+    if (rest.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
+    return `Less than ${MIN_NON_WORK_HOURS_BETWEEN_SHIFTS} hours non-work time since last work. Starting work may not meet non-work time requirements.`;
   };
 
   const primaryActionCountdown = useMemo(() => {
@@ -576,18 +592,22 @@ export default function LogBar({
       return { mins, labelPrefix: "Break finish in" as const, kind: "break-finish" as const };
     }
     if (currentType === null) {
-      const lastStopMs = getLastShiftEndTime(rolling, nowMs + 1);
-      const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(rolling, nowMs);
-      if (
-        lastStopMs == null ||
-        nonWorkHours == null ||
-        nonWorkHours >= MIN_NON_WORK_HOURS_BETWEEN_SHIFTS
-      ) {
-        return null;
-      }
-      const safeAt = lastStopMs + MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 3600 * 1000;
-      const mins = Math.max(0, Math.ceil((safeAt - nowMs) / 60000));
-      return { mins, labelPrefix: "Start shift in" as const, kind: "start-shift-wait" as const };
+      const rest = getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs);
+      if (rest.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
+      const mins = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - rest.consecutiveNonWorkMinutes);
+      const endedAt = rest.restRunStartedAtMs
+        ? new Date(rest.restRunStartedAtMs).toLocaleTimeString("en-AU", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+        : "—";
+      return {
+        mins,
+        labelPrefix: "Start shift in" as const,
+        kind: "start-shift-wait" as const,
+        detail: `Non-work run: ${formatDurationHoursMinutes(rest.consecutiveNonWorkMinutes)} (since ${endedAt})`,
+      };
     }
     return null;
   }, [activeDriver, currentType, days, driverType, eventsForDriver, isLiveNow, tick]);
@@ -868,6 +888,7 @@ export default function LogBar({
                     labelPrefix={primaryActionCountdown.labelPrefix}
                     mins={primaryActionCountdown.mins}
                     kind={primaryActionCountdown.kind}
+                    detail={primaryActionCountdown.detail}
                   />
                 ) : (
                   <span className="text-base sm:text-lg">{primaryLabel}</span>
