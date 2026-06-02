@@ -27,7 +27,7 @@ export function ManagerRiskHero({
         </p>
         <p className="mt-1 text-sm text-teal-100/80">{weekLabel}</p>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-300">
-          {MANAGER_EXPERIENCE.PAGE_SUBTITLE}
+          {MANAGER_EXPERIENCE.HERO_WEEK_INTRO}
         </p>
       </div>
 
