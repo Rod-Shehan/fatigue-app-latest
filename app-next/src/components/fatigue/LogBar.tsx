@@ -24,8 +24,8 @@ import {
   getEventsForDriverInOrder,
   getEventsInTimeOrder,
   getInsufficientNonWorkMessage,
-  getLastStopTime,
-  getNonWorkHoursSinceLastStop,
+  getLastShiftEndTime,
+  getNonWorkHoursSinceLastShiftEnd,
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
@@ -576,8 +576,8 @@ export default function LogBar({
       return { mins, labelPrefix: "Break finish in" as const, kind: "break-finish" as const };
     }
     if (currentType === null) {
-      const lastStopMs = getLastStopTime(rolling, nowMs + 1);
-      const nonWorkHours = getNonWorkHoursSinceLastStop(rolling, nowMs);
+      const lastStopMs = getLastShiftEndTime(rolling, nowMs + 1);
+      const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(rolling, nowMs);
       if (
         lastStopMs == null ||
         nonWorkHours == null ||

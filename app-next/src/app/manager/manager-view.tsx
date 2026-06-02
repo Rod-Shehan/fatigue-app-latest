@@ -46,7 +46,7 @@ import {
 } from "@/app/manager/manager-month-calendar";
 import { getPreviousWeekSunday } from "@/lib/weeks";
 import type { ManagerComplianceItem } from "@/lib/api";
-import { getEventsInTimeOrder, getLastStopTime, getNonWorkHoursSinceLastStop } from "@/lib/rolling-events";
+import { getEventsInTimeOrder, getLastShiftEndTime, getNonWorkHoursSinceLastShiftEnd } from "@/lib/rolling-events";
 import { findWorkWindowStartMs, getRestSlotsForBreakRange, getMinutesBeforeDueFromSlots, WORK_WINDOW_MIN } from "@/lib/five-hour-break-rule";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -441,9 +441,9 @@ export function ManagerView() {
 
       // 3) If the last event is a stop and it was recent, driver may still be inside 7h recovery window.
       const rolling = getEventsInTimeOrder(Array.isArray(s.days) ? (s.days as { events?: any[] }[]) : []);
-      const lastStopMs = getLastStopTime(rolling, nowMs + 1);
-      const nonWorkHours = getNonWorkHoursSinceLastStop(rolling, nowMs);
-      if (last.type === "stop" && lastStopMs != null && nonWorkHours != null && nonWorkHours < 7) {
+      const lastStopMs = getLastShiftEndTime(rolling, nowMs + 1);
+      const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(rolling, nowMs);
+      if ((last.type === "stop" || last.type === "non_work") && lastStopMs != null && nonWorkHours != null && nonWorkHours < 7) {
         const safeAt = lastStopMs + 7 * 3600 * 1000;
         out.push({
           sheetId: s.id,

@@ -3,6 +3,8 @@ import {
   getEventsInTimeOrder,
   getLastStopTime,
   getNonWorkHoursSinceLastStop,
+  getLastShiftEndTime,
+  getNonWorkHoursSinceLastShiftEnd,
   getInsufficientNonWorkMessage,
   type RollingEvent,
 } from "./rolling-events";
@@ -154,6 +156,19 @@ describe("rolling-events", () => {
       const asOf = ts("2025-02-18T00:00:00.000Z"); // 6h later
       expect(getInsufficientNonWorkMessage(events, asOf, 5)).toBeNull();
       expect(getInsufficientNonWorkMessage(events, asOf, 7)).not.toBeNull();
+    });
+  });
+
+  describe("shift-end non-work markers", () => {
+    it("treats non_work as a shift end marker for recovery window", () => {
+      const events: RollingEvent[] = [
+        { time: "2025-02-17T10:00:00.000Z", type: "work", dayIndex: 0 },
+        { time: "2025-02-17T18:00:00.000Z", type: "non_work", dayIndex: 0 },
+      ];
+      const asOf = ts("2025-02-18T01:00:00.000Z"); // 7h after non_work
+      expect(getLastShiftEndTime(events)).toBe(ts("2025-02-17T18:00:00.000Z"));
+      expect(getNonWorkHoursSinceLastShiftEnd(events, asOf)).toBe(7);
+      expect(getInsufficientNonWorkMessage(events, asOf)).toBeNull();
     });
   });
 });

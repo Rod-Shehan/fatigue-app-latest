@@ -58,6 +58,21 @@ export function getLastStopTime(events: RollingEvent[], beforeTimeMs?: number): 
 }
 
 /**
+ * Last "shift end marker" time in ms before optional cutoff.
+ * We treat both explicit End shift (stop) and Non-work start as shift-ending markers for the 7h recovery check.
+ * This avoids false blocks when the driver logs non-work between shifts but forgets (or cannot) log End shift.
+ */
+export function getLastShiftEndTime(events: RollingEvent[], beforeTimeMs?: number): number | null {
+  const cutoff = beforeTimeMs ?? Infinity;
+  let last: number | null = null;
+  for (const ev of events) {
+    const t = new Date(ev.time).getTime();
+    if ((ev.type === "stop" || ev.type === "non_work") && t < cutoff && (last === null || t > last)) last = t;
+  }
+  return last;
+}
+
+/**
  * Non-work time (hours) since the last stop event, as of asOfMs.
  * Returns null if there has never been a stop (no "last shift").
  */
@@ -65,6 +80,16 @@ export function getNonWorkHoursSinceLastStop(events: RollingEvent[], asOfMs: num
   const lastStop = getLastStopTime(events, asOfMs + 1);
   if (lastStop === null) return null;
   return (asOfMs - lastStop) / (3600 * 1000);
+}
+
+/**
+ * Non-work time (hours) since the last shift end marker (stop or non_work), as of asOfMs.
+ * Returns null if none exists (no shift end marker recorded).
+ */
+export function getNonWorkHoursSinceLastShiftEnd(events: RollingEvent[], asOfMs: number): number | null {
+  const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
+  if (lastEnd === null) return null;
+  return (asOfMs - lastEnd) / (3600 * 1000);
 }
 
 /** Minimum non-work time (hours) required between shifts (e.g. WA 7h). */
@@ -79,7 +104,7 @@ export function getInsufficientNonWorkMessage(
   asOfMs: number,
   minNonWorkHours: number = DEFAULT_MIN_NON_WORK_HOURS
 ): string | null {
-  const nonWorkHours = getNonWorkHoursSinceLastStop(events, asOfMs);
+  const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(events, asOfMs);
   if (nonWorkHours === null) return null;
   if (nonWorkHours >= minNonWorkHours) return null;
   return `Less than ${minNonWorkHours} hours non-work time since last shift. Starting work may not meet non-work time requirements.`;
