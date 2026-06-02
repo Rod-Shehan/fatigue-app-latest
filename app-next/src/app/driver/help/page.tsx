@@ -31,8 +31,8 @@ export default async function DriverHelpPage() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-10">
         <PageHeader
-          backHref="/driver/more"
-          backLabel="More"
+          backHref="/driver/settings"
+          backLabel="Settings"
           title={PRODUCT_NAME}
           subtitle={TAGLINE_DRIVER}
           icon={<BookOpen className="w-5 h-5" />}

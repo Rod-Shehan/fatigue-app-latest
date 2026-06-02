@@ -34,7 +34,8 @@ import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialo
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
-import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
+import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
+import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
 import { UnsignedPastWeeksNotice } from "@/components/driver/UnsignedPastWeeksNotice";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
@@ -968,17 +969,17 @@ export function SheetDetail({
                         <CheckCircle2 className="w-3 h-3" /> Completed
                       </Badge>
                     )}
-                    <DriverMoreMenu
+                    <DriverSheetActions
                       sheetId={sheetId}
-                      sheetStatus={sheetData.status}
-                      isArchivedWeek={isPastWeek}
-                      canAccessManager={canAccessManager}
                       onSave={driverContentLocked ? undefined : handleSave}
                       savePending={saveMutation.isPending}
                       onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
                       markCompleteLabel={isPastWeek ? "Sign record" : undefined}
                       onExportPdf={handleExportPdf}
                     />
+                    {!isManager && (
+                      <DriverSettingsLink returnHref={`/sheets/${sheetId}`} />
+                    )}
                   </>
                 }
               />

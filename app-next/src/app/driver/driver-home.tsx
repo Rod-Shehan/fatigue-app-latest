@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
+import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { getDriverHomeShiftStatus, type DriverShiftActivity } from "@/lib/driver-home-status";
 import { UnsignedPastWeeksNotice } from "@/components/driver/UnsignedPastWeeksNotice";
@@ -120,7 +120,7 @@ export function DriverHome() {
               {driverName ? `Hi, ${driverName}` : "Drive"}
             </p>
           </div>
-          <DriverMoreMenu canAccessManager={false} />
+          <DriverSettingsLink />
         </div>
       </header>
 

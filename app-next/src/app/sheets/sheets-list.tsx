@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 
 import { PageHeader } from "@/components/PageHeader";
 
-import { DriverMoreMenu } from "@/components/driver/DriverMoreMenu";
+import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
 
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 
@@ -159,7 +159,7 @@ export function SheetsList() {
 
                 </Link>
 
-                <DriverMoreMenu />
+                <DriverSettingsLink returnHref="/sheets" />
 
               </div>
 
