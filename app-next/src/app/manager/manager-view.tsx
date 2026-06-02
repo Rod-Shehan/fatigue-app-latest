@@ -3,7 +3,19 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { PRODUCT_NAME } from "@/lib/branding";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
+import { ManagerRiskHero } from "@/components/manager/ManagerRiskHero";
+import { ManagerReferencePanel } from "@/components/manager/ManagerReferencePanel";
+import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSignals";
+import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
+import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import {
+  buildDriverRegister,
+  buildGlanceBadges,
+  fleetTierCounts,
+  type RiskLineKind,
+} from "@/lib/manager-risk-scoring";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type DayData, type FatigueSheet, type SheetUpdatePayload } from "@/lib/api";
 import { isPastRegulatoryWeek } from "@/lib/weeks";
@@ -21,22 +33,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  LayoutDashboard,
+  Shield,
   Save,
   Loader2,
   CheckCircle2,
   FileEdit,
-  Truck,
-  Users,
   Trash2,
-  UserPlus,
-  AlertTriangle,
-  Map as MapIcon,
   LogOut,
-  MessageSquare,
-  XCircle,
   Calendar,
-  ExternalLink,
+  Compass,
+  ClipboardList,
 } from "lucide-react";
 import {
   ManagerMonthCalendar,
@@ -74,47 +80,13 @@ function formatSheetLabel(sheet: FatigueSheet): string {
   return `${driver} — week of ${week}`;
 }
 
-type ViolationLine = { sheetId: string; driver: string; day: string; message: string };
-type GlanceBadge = { label: string; tone: "neutral" | "warn" | "bad" };
-type ViolationLineWithBadges = ViolationLine & { badges?: GlanceBadge[] };
-
-function buildGlanceBadges(item: ManagerComplianceItem): GlanceBadge[] {
-  const badges: GlanceBadge[] = [];
-  const results = item.results ?? [];
-  const hasShiftChangeViolation = results.some(
-    (r) => r.ruleId === "shift_change_24h" && r.type === "violation"
-  );
-  const hasShiftChangeWarning = results.some(
-    (r) =>
-      r.ruleId === "shift_change_24h" &&
-      r.type === "warning" &&
-      r.message.toLowerCase().includes("end shift")
-  );
-  if (hasShiftChangeViolation) badges.push({ label: "Shift change <24h", tone: "bad" });
-  else if (hasShiftChangeWarning) badges.push({ label: "Shift change time missing", tone: "warn" });
-
-  const movementDetected = results.some((r) => r.message.toLowerCase().includes("movement evidence detected"));
-  const stationaryNotProven = results.some(
-    (r) => r.type === "warning" && r.message.toLowerCase().includes("enable location to prove stationary")
-  );
-  if (movementDetected) badges.push({ label: "Movement during rest", tone: "bad" });
-  else if (stationaryNotProven) badges.push({ label: "Stationary rest not proven", tone: "warn" });
-
-  const total = item.totalEvents ?? 0;
-  const withLoc = item.eventsWithLocation ?? 0;
-  if (total > 0) {
-    const pct = Math.round((withLoc / total) * 100);
-    badges.push({ label: `GPS ${pct}%`, tone: "neutral" });
-  }
-  return badges;
-}
+type AssuranceLine = { sheetId: string; driver: string; day: string; message: string; badges?: ReturnType<typeof buildGlanceBadges> };
 
 type RiskLine = {
   sheetId: string;
   driver: string;
-  kind: "break_due" | "break_overdue" | "no_stop_long" | "insufficient_nonwork";
+  kind: RiskLineKind;
   detail: string;
-  messageTemplate: string;
 };
 
 function formatTimeHm(ms: number): string {
@@ -132,13 +104,13 @@ function getBreakDueByTime(events: { time: string; type: string }[], nowMs: numb
   return windowStartMs + (WORK_WINDOW_MIN - minutesBeforeDue) * 60 * 1000;
 }
 
-function violationLinesForWeek(
+function assuranceLinesForWeek(
   items: ManagerComplianceItem[] | undefined,
   weekStarting: string
-): ViolationLineWithBadges[] {
+): AssuranceLine[] {
   if (!items?.length || !weekStarting) return [];
   const filtered = items.filter((i) => i.week_starting === weekStarting);
-  const lines: ViolationLineWithBadges[] = [];
+  const lines: AssuranceLine[] = [];
   for (const item of filtered) {
     const badges = buildGlanceBadges(item);
     for (const r of item.results) {
@@ -154,64 +126,6 @@ function violationLinesForWeek(
     }
   }
   return lines;
-}
-
-function ViolationListBlock({
-  lines,
-  emptyLabel,
-}: {
-  lines: ViolationLineWithBadges[];
-  emptyLabel: string;
-}) {
-  if (lines.length === 0) {
-    return (
-      <div className="flex items-start gap-2 rounded-lg border border-violet-200/80 bg-white/70 px-3 py-2.5 text-sm text-slate-600 dark:border-violet-800/40 dark:bg-slate-900/50 dark:text-slate-300">
-        <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-        <span>{emptyLabel}</span>
-      </div>
-    );
-  }
-  return (
-    <ul className="divide-y divide-violet-200/70 dark:divide-violet-800/50">
-      {lines.map((line, idx) => (
-        <li
-          key={`${line.sheetId}-${idx}-${line.day}`}
-          className="flex flex-col gap-1 py-3 first:pt-0 sm:flex-row sm:items-start sm:gap-4"
-        >
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:w-[min(100%,14rem)] sm:shrink-0">
-            <Link
-              href={`/sheets/${line.sheetId}`}
-              className="text-sm font-semibold text-violet-950 underline-offset-2 hover:underline dark:text-violet-100"
-            >
-              {line.driver || "—"}
-            </Link>
-            <span className="text-[11px] font-medium uppercase tracking-wide text-violet-700/85 dark:text-violet-400/90">
-              {line.day}
-            </span>
-            {line.badges?.length ? (
-              <span className="flex flex-wrap items-center gap-1.5 mt-1">
-                {line.badges.slice(0, 3).map((b) => (
-                  <span
-                    key={b.label}
-                    className={
-                      b.tone === "bad"
-                        ? "rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-200 px-2 py-0.5 text-[10px] font-semibold"
-                        : b.tone === "warn"
-                          ? "rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 px-2 py-0.5 text-[10px] font-semibold"
-                          : "rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200 px-2 py-0.5 text-[10px] font-semibold"
-                    }
-                  >
-                    {b.label}
-                  </span>
-                ))}
-              </span>
-            ) : null}
-          </div>
-          <p className="min-w-0 flex-1 text-sm leading-snug text-slate-700 dark:text-slate-200">{line.message}</p>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
 function formatDayDateLabel(weekStarting: string, dayIndex: number): string {
@@ -250,11 +164,11 @@ export function ManagerView() {
   const [selectedDriverFilter, setSelectedDriverFilter] = useState("");
   /** Rego filter: exact value from selected day, or "" = all */
   const [selectedRegoFilter, setSelectedRegoFilter] = useState("");
-  const [filterOnlyViolations, setFilterOnlyViolations] = useState(false);
-  const [filterOnlyWarnings, setFilterOnlyWarnings] = useState(false);
-  const [filterOnlyIncomplete, setFilterOnlyIncomplete] = useState(false);
-  const [filterOnlyAtRiskSoon, setFilterOnlyAtRiskSoon] = useState(false);
-  const [managerTab, setManagerTab] = useState<"compliance" | "edit">("compliance");
+  const [filterNeedsAttention, setFilterNeedsAttention] = useState(false);
+  const [filterRecordGaps, setFilterRecordGaps] = useState(false);
+  const [filterUnsigned, setFilterUnsigned] = useState(false);
+  const [filterNext24, setFilterNext24] = useState(false);
+  const [managerTab, setManagerTab] = useState<"identify" | "records">("identify");
   const [calView, setCalView] = useState(() => {
     const n = new Date();
     return { y: n.getFullYear(), m: n.getMonth() };
@@ -421,9 +335,6 @@ export function ManagerView() {
           detail: overdue
             ? `Break overdue (was due by ${formatTimeHm(dueBy)})`
             : `Break due by ${formatTimeHm(dueBy)}`,
-          messageTemplate: overdue
-            ? `Hi ${driver}, break is overdue (20 min rest per 5h). Please pull up safely and start your break now, then confirm once complete.`
-            : `Hi ${driver}, reminder: break due by ${formatTimeHm(dueBy)} (20 min per 5h). Please plan a safe stop.`,
         });
       }
 
@@ -434,7 +345,6 @@ export function ManagerView() {
           driver,
           kind: "no_stop_long",
           detail: `No End shift logged for ${Math.floor(elapsedHrs)}h+ (last: ${last.type})`,
-          messageTemplate: `Hi ${driver}, we haven’t seen an End shift logged for ${Math.floor(elapsedHrs)}h+. If you’ve finished, please log End shift (or mark non-work from when you stopped).`,
         });
       }
 
@@ -455,7 +365,6 @@ export function ManagerView() {
           driver,
           kind: "insufficient_nonwork",
           detail: `Recovery in progress: ${nonWorkHours.toFixed(1)}h since End shift (7h target by ${formatTimeHm(safeAt)})`,
-          messageTemplate: `Hi ${driver}, reminder: minimum 7h non-work between shifts. Earliest safe start is ${formatTimeHm(safeAt)}.`,
         });
       }
     }
@@ -470,18 +379,70 @@ export function ManagerView() {
     });
   }, [sheets, activeWeekStarting, activeDayIndex]);
 
-  const riskLinesFiltered = useMemo(() => {
-    if (!filterOnlyAtRiskSoon) return riskLines;
-    return riskLines;
-  }, [riskLines, filterOnlyAtRiskSoon]);
+  const riskDriverNames = useMemo(
+    () => new Set(riskLines.map((r) => r.driver)),
+    [riskLines]
+  );
 
-  const weekViolationLines = useMemo(
-    () => violationLinesForWeek(managerCompliance?.items, weekForSnapshot),
+  const driverRegister = useMemo(
+    () =>
+      buildDriverRegister(
+        managerCompliance?.items,
+        weekForSnapshot,
+        sheets,
+        riskDriverNames
+      ),
+    [managerCompliance, weekForSnapshot, sheets, riskDriverNames]
+  );
+
+  const fleetCounts = useMemo(() => fleetTierCounts(driverRegister), [driverRegister]);
+
+  const driverRegisterFiltered = useMemo(() => {
+    let rows = driverRegister;
+    if (filterNeedsAttention) rows = rows.filter((r) => r.tier === "attention");
+    if (filterRecordGaps) {
+      rows = rows.filter((r) => r.tier === "elevated" || r.tier === "monitor");
+    }
+    if (filterUnsigned) {
+      const unsignedIds = new Set(
+        sheets.filter((s) => s.week_starting === weekForSnapshot && !s.signature).map((s) => s.id)
+      );
+      rows = rows.filter((r) => unsignedIds.has(r.sheetId));
+    }
+    if (filterNext24) {
+      rows = rows.filter((r) => riskDriverNames.has(r.driver));
+    }
+    return rows;
+  }, [
+    driverRegister,
+    filterNeedsAttention,
+    filterRecordGaps,
+    filterUnsigned,
+    filterNext24,
+    sheets,
+    weekForSnapshot,
+    riskDriverNames,
+  ]);
+
+  const attentionItems = useMemo(() => {
+    if (!filterNext24 && !filterNeedsAttention) return riskLines;
+    if (filterNext24) return riskLines;
+    if (filterNeedsAttention) {
+      const names = new Set(
+        driverRegister.filter((r) => r.tier === "attention").map((r) => r.driver)
+      );
+      return riskLines.filter((r) => names.has(r.driver));
+    }
+    return riskLines;
+  }, [riskLines, filterNext24, filterNeedsAttention, driverRegister]);
+
+  const weekAssuranceLines = useMemo(
+    () => assuranceLinesForWeek(managerCompliance?.items, weekForSnapshot),
     [managerCompliance, weekForSnapshot]
   );
 
-  const prevWeekViolationLines = useMemo(
-    () => violationLinesForWeek(managerCompliance?.items, prevWeekForSnapshot),
+  const prevWeekAssuranceLines = useMemo(
+    () => assuranceLinesForWeek(managerCompliance?.items, prevWeekForSnapshot),
     [managerCompliance, prevWeekForSnapshot]
   );
 
@@ -589,12 +550,12 @@ export function ManagerView() {
     Boolean(selectedSheet?.signature);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
-          title={PRODUCT_NAME}
-          subtitle="Manager dashboard — view sheets, map events, and compliance across drivers"
-          icon={<LayoutDashboard className="w-5 h-5" />}
+          title={MANAGER_EXPERIENCE.PAGE_TITLE}
+          subtitle={MANAGER_EXPERIENCE.PAGE_SUBTITLE}
+          icon={<Shield className="w-5 h-5" />}
           actions={
             <Button
               variant="outline"
@@ -607,141 +568,35 @@ export function ManagerView() {
           }
         />
 
-        <nav
-          className="mb-6 flex flex-col gap-5 md:flex-row md:flex-wrap md:items-stretch md:gap-0"
-          aria-label="Manager shortcuts"
-        >
-          <div className="space-y-2 md:pr-6">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
-              Team &amp; fleet
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/drivers">
-                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-                  <Users className="w-4 h-4" /> Manage Drivers
-                </Button>
-              </Link>
-              <Link href="/manager/add-managers">
-                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-                  <UserPlus className="w-4 h-4" /> Add Managers
-                </Button>
-              </Link>
-              <Link href="/admin/regos">
-                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-                  <Truck className="w-4 h-4" /> Manage Regos
-                </Button>
-              </Link>
-            </div>
-          </div>
+        <ManagerSubnav />
 
-          {/* Solid bar so the divider stays visible in light mode (border-slate-* is overridden in globals.css) */}
-          <div
-            className="hidden md:block w-px shrink-0 self-stretch min-h-[2.75rem] bg-slate-400/90 dark:bg-slate-600"
-            aria-hidden="true"
-          />
+        <ManagerRiskHero
+          weekLabel={formatWeekLabel(weekForSnapshot)}
+          counts={fleetCounts}
+          loading={complianceLoading}
+        />
 
-          <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700 md:border-t-0 md:pt-0 md:px-6">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
-              Map
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/manager/map">
-                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-                  <MapIcon className="w-4 h-4" /> Event map
-                </Button>
-              </Link>
-            </div>
-          </div>
+        <ManagerReferencePanel />
 
-          <div
-            className="hidden md:block w-px shrink-0 self-stretch min-h-[2.75rem] bg-slate-400/90 dark:bg-slate-600"
-            aria-hidden="true"
-          />
+        <ManagerAssuranceSignals
+          currentWeekLabel={formatWeekLabel(weekForSnapshot)}
+          priorWeekLabel={formatWeekLabel(prevWeekForSnapshot)}
+          currentLines={weekAssuranceLines}
+          priorLines={prevWeekAssuranceLines}
+          loading={complianceLoading}
+        />
 
-          <div className="space-y-2 pt-1 border-t border-slate-200 dark:border-slate-700 md:border-t-0 md:pt-0 md:pl-6">
-            <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-slate-500 px-0.5">
-              Messages
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <Link href="/manager/messages">
-                <Button variant="outline" className="gap-2 text-slate-600 dark:text-slate-300">
-                  <MessageSquare className="w-4 h-4" /> Messages
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </nav>
-
-        <section
-          className="mb-5 rounded-2xl border-2 border-violet-300/70 bg-gradient-to-br from-violet-50 via-white to-sky-50 p-4 shadow-sm shadow-violet-200/50 dark:border-violet-500/45 dark:from-violet-950/50 dark:via-slate-900 dark:to-sky-950/40 dark:shadow-violet-900/20 sm:p-5"
-          aria-label="Compliance snapshot — this week and previous week violations"
-        >
-          <div className="mb-4 border-b border-violet-300/70 pb-4 dark:border-violet-700/50">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-700 dark:text-violet-400">
-              Compliance snapshot
-            </p>
-            <p className="mt-1 text-xs text-violet-800/80 dark:text-violet-300/80">
-              Selected work week and the Sunday week immediately before it.
-            </p>
-          </div>
-
-          {complianceLoading ? (
-            <div className="flex items-center gap-2 text-sm text-violet-800/90 dark:text-violet-200/90">
-              <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-              Loading compliance…
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div>
-                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <XCircle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />
-                    <h2 className="text-lg font-bold tracking-tight text-violet-950 dark:text-violet-100">
-                      This week — violations
-                    </h2>
-                  </div>
-                  <span className="text-sm font-medium tabular-nums text-violet-800 dark:text-violet-300">
-                    {formatWeekLabel(weekForSnapshot)}
-                  </span>
-                </div>
-                <ViolationListBlock
-                  lines={weekViolationLines}
-                  emptyLabel="No violations recorded for this week across visible sheets."
-                />
-              </div>
-
-              <div className="border-t border-violet-300/70 pt-4 dark:border-violet-700/50">
-                <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <XCircle className="h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />
-                    <h2 className="text-lg font-bold tracking-tight text-violet-950 dark:text-violet-100">
-                      Previous week — violations
-                    </h2>
-                  </div>
-                  <span className="text-sm font-medium tabular-nums text-violet-800 dark:text-violet-300">
-                    {formatWeekLabel(prevWeekForSnapshot)}
-                  </span>
-                </div>
-                <ViolationListBlock
-                  lines={prevWeekViolationLines}
-                  emptyLabel="No violations recorded for the previous week across visible sheets."
-                />
-              </div>
-            </div>
-          )}
-        </section>
-
-        <div className="overflow-hidden rounded-2xl border-2 border-violet-300/70 bg-white shadow-sm shadow-violet-200/50 dark:border-violet-500/45 dark:bg-slate-900 dark:shadow-violet-900/20">
-          <div className="border-b border-violet-200/80 bg-gradient-to-r from-violet-50/90 via-white to-sky-50/50 px-4 py-4 dark:border-violet-800/50 dark:from-violet-950/40 dark:via-slate-900 dark:to-sky-950/30 sm:px-6">
+        <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+          <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/80 sm:px-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex min-w-0 items-start gap-3">
-                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-violet-600 dark:text-violet-400" aria-hidden />
+                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-700 dark:text-violet-400">
-                    Manager workbench
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-400">
+                    {MANAGER_EXPERIENCE.WORKBENCH_TITLE}
                   </p>
-                  <h2 className="text-lg font-bold tracking-tight text-violet-950 dark:text-violet-100">
-                    Week review &amp; sheets
+                  <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">
+                    {MANAGER_EXPERIENCE.WORKBENCH_SUBTITLE}
                   </h2>
                 </div>
               </div>
@@ -753,34 +608,34 @@ export function ManagerView() {
                 <Button
                   type="button"
                   role="tab"
-                  aria-selected={managerTab === "compliance"}
-                  variant={managerTab === "compliance" ? "default" : "outline"}
+                  aria-selected={managerTab === "identify"}
+                  variant={managerTab === "identify" ? "default" : "outline"}
                   size="sm"
                   className={
-                    managerTab === "compliance"
-                      ? "gap-2"
-                      : "gap-2 border-violet-300/80 bg-white/80 text-slate-700 hover:bg-violet-50 dark:border-violet-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-violet-950/50"
+                    managerTab === "identify"
+                      ? "gap-2 bg-teal-700 hover:bg-teal-800 dark:bg-teal-600"
+                      : "gap-2"
                   }
-                  onClick={() => setManagerTab("compliance")}
+                  onClick={() => setManagerTab("identify")}
                 >
-                  <AlertTriangle className="h-4 w-4 shrink-0" />
-                  Compliance oversight
+                  <Compass className="h-4 w-4 shrink-0" />
+                  {MANAGER_EXPERIENCE.TAB_IDENTIFY}
                 </Button>
                 <Button
                   type="button"
                   role="tab"
-                  aria-selected={managerTab === "edit"}
-                  variant={managerTab === "edit" ? "default" : "outline"}
+                  aria-selected={managerTab === "records"}
+                  variant={managerTab === "records" ? "default" : "outline"}
                   size="sm"
                   className={
-                    managerTab === "edit"
-                      ? "gap-2"
-                      : "gap-2 border-violet-300/80 bg-white/80 text-slate-700 hover:bg-violet-50 dark:border-violet-700 dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-violet-950/50"
+                    managerTab === "records"
+                      ? "gap-2 bg-teal-700 hover:bg-teal-800 dark:bg-teal-600"
+                      : "gap-2"
                   }
-                  onClick={() => setManagerTab("edit")}
+                  onClick={() => setManagerTab("records")}
                 >
-                  <FileEdit className="h-4 w-4 shrink-0" />
-                  Edit sheet inputs
+                  <ClipboardList className="h-4 w-4 shrink-0" />
+                  {MANAGER_EXPERIENCE.TAB_RECORDS}
                 </Button>
               </div>
             </div>
@@ -788,9 +643,9 @@ export function ManagerView() {
 
           <div className="p-6 pt-5">
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            {managerTab === "compliance"
-              ? "Review a work week by day. Use filters to focus on non-compliant or incomplete sheets, then switch to Edit sheet to open or amend a sheet."
-              : "Select a sheet to edit driver-entered fields such as last 24 hour break date, driver type, and week starting."}
+            {managerTab === "identify"
+              ? MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP
+              : MANAGER_EXPERIENCE.TAB_RECORDS_HELP}
           </p>
 
           <div className="space-y-4">
@@ -910,111 +765,54 @@ export function ManagerView() {
               />
             </div>
 
-            {managerTab === "compliance" && (
+            {managerTab === "identify" && (
               <>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
                     size="sm"
-                    variant={filterOnlyViolations ? "default" : "outline"}
-                    onClick={() => setFilterOnlyViolations((v) => !v)}
+                    variant={filterNeedsAttention ? "default" : "outline"}
+                    className={filterNeedsAttention ? "bg-rose-700 hover:bg-rose-800 dark:bg-rose-700" : ""}
+                    onClick={() => setFilterNeedsAttention((v) => !v)}
                   >
-                    Violations only
+                    {MANAGER_EXPERIENCE.FILTER_ATTENTION}
                   </Button>
                   <Button
                     type="button"
                     size="sm"
-                    variant={filterOnlyWarnings ? "default" : "outline"}
-                    onClick={() => setFilterOnlyWarnings((v) => !v)}
+                    variant={filterRecordGaps ? "default" : "outline"}
+                    onClick={() => setFilterRecordGaps((v) => !v)}
                   >
-                    Warnings only
+                    {MANAGER_EXPERIENCE.FILTER_GAPS}
                   </Button>
                   <Button
                     type="button"
                     size="sm"
-                    variant={filterOnlyIncomplete ? "default" : "outline"}
-                    onClick={() => setFilterOnlyIncomplete((v) => !v)}
+                    variant={filterUnsigned ? "default" : "outline"}
+                    onClick={() => setFilterUnsigned((v) => !v)}
                   >
-                    Incomplete only
+                    {MANAGER_EXPERIENCE.FILTER_UNSIGNED}
                   </Button>
                   <Button
                     type="button"
                     size="sm"
-                    variant={filterOnlyAtRiskSoon ? "default" : "outline"}
-                    onClick={() => setFilterOnlyAtRiskSoon((v) => !v)}
+                    variant={filterNext24 ? "default" : "outline"}
+                    className={filterNext24 ? "bg-teal-700 hover:bg-teal-800 dark:bg-teal-600" : ""}
+                    onClick={() => setFilterNext24((v) => !v)}
                   >
-                    At risk soon
+                    {MANAGER_EXPERIENCE.FILTER_NEXT24}
                   </Button>
                 </div>
-                <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Prevention — at risk in next 24h</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                        Based on current sheet events (break due/overdue, long running work without end shift, recovery window).
-                      </p>
-                    </div>
-                    <Link href="/manager/messages">
-                      <Button variant="outline" size="sm" className="gap-2">
-                        <MessageSquare className="h-4 w-4" /> Messages
-                      </Button>
-                    </Link>
-                  </div>
-                  {riskLinesFiltered.length === 0 ? (
-                    <div className="mt-3 flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                      <span>No upcoming risks detected for the selected week/day filters.</span>
-                    </div>
-                  ) : (
-                    <ul className="mt-3 divide-y divide-slate-200 dark:divide-slate-800">
-                      {riskLinesFiltered.slice(0, 12).map((r, idx) => (
-                        <li key={`${r.sheetId}-${r.kind}-${idx}`} className="py-3 first:pt-0">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                            <div className="min-w-0">
-                              <Link
-                                href={`/sheets/${r.sheetId}`}
-                                className="text-sm font-semibold text-violet-950 underline-offset-2 hover:underline dark:text-violet-100"
-                              >
-                                {r.driver}
-                              </Link>
-                              <p className="text-sm text-slate-700 dark:text-slate-200 mt-0.5">{r.detail}</p>
-                            </div>
-                            <div className="flex flex-wrap gap-2 sm:justify-end">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="gap-2"
-                                onClick={async () => {
-                                  try {
-                                    await navigator.clipboard.writeText(r.messageTemplate);
-                                    window.alert("Message copied. Paste it into Messages.");
-                                  } catch {
-                                    window.prompt("Copy message:", r.messageTemplate);
-                                  }
-                                }}
-                              >
-                                Copy message
-                              </Button>
-                              <Link href={`/manager/messages?driver=${encodeURIComponent(r.driver)}`}>
-                                <Button type="button" size="sm" className="gap-2">
-                                  <ExternalLink className="h-4 w-4" /> Open inbox
-                                </Button>
-                              </Link>
-                            </div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {riskLinesFiltered.length > 12 && (
-                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                      Showing first 12 items. Use filters to narrow.
-                    </p>
-                  )}
-                </div>
+
+                <ManagerAttentionPanel items={attentionItems} />
+
+                <ManagerDriverRegister
+                  rows={driverRegisterFiltered}
+                  loading={complianceLoading}
+                />
+
                 <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50/80 dark:bg-slate-800/40 p-4 text-sm text-slate-600 dark:text-slate-300">
-                  <p className="font-medium text-slate-800 dark:text-slate-100 mb-1">Filter context</p>
+                  <p className="font-medium text-slate-800 dark:text-slate-100 mb-1">Review context</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     Week:{" "}
                     <span className="font-medium text-slate-700 dark:text-slate-200">
@@ -1046,14 +844,14 @@ export function ManagerView() {
                         </span>
                       </>
                     ) : null}
-                    {(filterOnlyViolations || filterOnlyWarnings || filterOnlyIncomplete || filterOnlyAtRiskSoon) && (
+                    {(filterNeedsAttention || filterRecordGaps || filterUnsigned || filterNext24) && (
                       <span className="block mt-2 text-slate-500 dark:text-slate-400">
-                        Active:{" "}
+                        Active filters:{" "}
                         {[
-                          filterOnlyViolations && "violations",
-                          filterOnlyWarnings && "warnings",
-                          filterOnlyIncomplete && "incomplete",
-                          filterOnlyAtRiskSoon && "at-risk",
+                          filterNeedsAttention && "needs attention",
+                          filterRecordGaps && "record gaps",
+                          filterUnsigned && "unsigned",
+                          filterNext24 && "next 24h",
                         ]
                           .filter(Boolean)
                           .join(", ")}
@@ -1064,7 +862,7 @@ export function ManagerView() {
               </>
             )}
 
-            {managerTab === "edit" && (
+            {managerTab === "records" && (
               <div className="space-y-4 pt-1 border-t border-slate-100 dark:border-slate-700">
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
@@ -1097,7 +895,7 @@ export function ManagerView() {
                 </Select>
                 {!selectedSheetId && (
                   <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Select a sheet above to edit driver details, last 24h break, and compliance-related fields.
+                    Select a sheet above to edit driver details, last 24h break, and record fields.
                   </p>
                 )}
                 {activeWeekStarting &&
@@ -1326,9 +1124,9 @@ export function ManagerView() {
         <Dialog open={showAmendDialog} onOpenChange={setShowAmendDialog}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Unlock signed sheet for correction</DialogTitle>
+              <DialogTitle>Unlock record for agreed correction</DialogTitle>
               <DialogDescription>
-                Clears the driver&apos;s signature so you can edit with amendment reasons. When you and the driver agree the week is correct, they sign again from Your Sheets.
+                Clears the driver&apos;s signature so you can edit with a reason on file. When you both agree the week is correct, they sign again — document control, not discipline.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">

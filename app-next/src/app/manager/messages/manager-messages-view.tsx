@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
-import { PRODUCT_NAME } from "@/lib/branding";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
 import { resolveDriverBubbleName } from "@/lib/messaging-display";
 import { Button } from "@/components/ui/button";
@@ -95,15 +96,16 @@ export function ManagerMessagesView() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
           backHref="/manager"
-          backLabel="Manager dashboard"
-          title={PRODUCT_NAME}
-          subtitle="Messages — driver questions and sheet edit requests"
+          backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          title={MANAGER_EXPERIENCE.NAV_MESSAGES}
+          subtitle={MANAGER_EXPERIENCE.MESSAGES_PAGE_SUBTITLE}
           icon={<MessageSquare className="w-5 h-5" />}
         />
+        <ManagerSubnav />
 
         <div className="grid gap-4 md:grid-cols-[320px,1fr]">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">

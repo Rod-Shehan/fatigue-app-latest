@@ -3,7 +3,8 @@
 import { useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/PageHeader";
-import { PRODUCT_NAME } from "@/lib/branding";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Label } from "@/components/ui/label";
@@ -76,18 +77,19 @@ export function ManagerMapView() {
   }, [mapEventTypes]);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
           backHref="/manager"
-          backLabel="Manager dashboard"
-          title={PRODUCT_NAME}
-          subtitle="Event map — driver time inputs with location"
+          backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          title={MANAGER_EXPERIENCE.NAV_MAP}
+          subtitle={MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE}
           icon={<Map className="w-5 h-5 sm:w-6 sm:h-6" />}
         />
+        <ManagerSubnav />
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            Filter by week and driver, then click a marker to see details.
+            Filter by week and driver. Use movement context to support assurance conversations — not driver surveillance.
           </p>
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4 items-end">
