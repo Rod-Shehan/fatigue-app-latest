@@ -27,6 +27,9 @@ type SheetData = {
 const dateChipBase =
   "inline-flex items-center gap-1.5 h-10 min-h-10 px-2.5 rounded-lg border text-sm font-medium shrink min-w-0 max-w-[11rem] sm:max-w-none";
 
+/** Regulatory label for last_24h_break (WA fatigue record). */
+const LAST_24H_BREAK_CHIP_LABEL = "Last 24Hr Break";
+
 function HeaderDateChip({
   label,
   value,
@@ -35,6 +38,7 @@ function HeaderDateChip({
   disabled,
   onClick,
   title,
+  className: classNameProp,
 }: {
   label: string;
   value: string;
@@ -43,9 +47,11 @@ function HeaderDateChip({
   disabled?: boolean;
   onClick?: () => void;
   title?: string;
+  className?: string;
 }) {
   const className = cn(
     dateChipBase,
+    classNameProp,
     highlight
       ? "border-2 border-amber-400 dark:border-amber-600 bg-amber-50 hover:bg-amber-100/90 dark:bg-amber-950/50 dark:hover:bg-amber-950/70 text-amber-950 dark:text-amber-50"
       : locked
@@ -240,10 +246,11 @@ export default function SheetHeader({
 
         {last24hSet ? (
           <HeaderDateChip
-            label="Break"
+            label={LAST_24H_BREAK_CHIP_LABEL}
             value={formatSheetDisplayDate(sheetData.last_24h_break!)}
             locked
-            title="Last 24 hour break date (locked)"
+            className="max-w-[min(100%,19rem)] sm:max-w-[20rem]"
+            title={`${LAST_24H_BREAK_CHIP_LABEL} date (locked)`}
           />
         ) : (
           <>
@@ -265,12 +272,13 @@ export default function SheetHeader({
               }}
             />
             <HeaderDateChip
-              label="Break"
+              label={LAST_24H_BREAK_CHIP_LABEL}
               value="Set date"
               highlight
               disabled={readOnly}
+              className="max-w-[min(100%,19rem)] sm:max-w-[20rem]"
               onClick={openLast24hPicker}
-              title="Tap to set last 24 hour break date"
+              title={`Tap to set ${LAST_24H_BREAK_CHIP_LABEL} date`}
             />
           </>
         )}
@@ -351,9 +359,10 @@ export default function SheetHeader({
         >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Confirm last 24 hour break</DialogTitle>
+              <DialogTitle>Confirm {LAST_24H_BREAK_CHIP_LABEL}</DialogTitle>
               <DialogDescription>
-                Set this date as your last 24 hour break? Once set, it will be locked for this sheet (manager amendment required to change).
+                Set this date as your {LAST_24H_BREAK_CHIP_LABEL}? Once set, it will be locked for this sheet (manager
+                amendment required to change).
               </DialogDescription>
             </DialogHeader>
             {pendingLast24hDate && (
