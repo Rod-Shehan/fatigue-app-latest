@@ -1,9 +1,24 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Pen, RotateCcw, CheckCircle2 } from "lucide-react";
+
+const CANVAS_WIDTH = 460;
+const CANVAS_HEIGHT = 160;
+const INK_COLOR = "#0f172a";
+
+function resetCanvasSurface(canvas: HTMLCanvasElement) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = INK_COLOR;
+  ctx.lineWidth = 2.5;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+}
 
 export default function SignatureDialog({
   open,
@@ -17,50 +32,56 @@ export default function SignatureDialog({
   driverName?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [hasSignature, setHasSignature] = useState(false);
+  const isDrawingRef = useRef(false);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+  const [hasSignature, setHasSignature] = useState(false);
+
+  const clearCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    resetCanvasSurface(canvas);
+    setHasSignature(false);
+    isDrawingRef.current = false;
+    lastPos.current = null;
+  }, []);
 
   useEffect(() => {
-    if (open) setHasSignature(false);
-  }, [open]);
+    if (!open) return;
+    clearCanvas();
+  }, [open, clearCanvas]);
 
-  const getPos = (e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) => {
+  const getPos = (clientX: number, clientY: number, canvas: HTMLCanvasElement) => {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    if ("touches" in e) {
-      return {
-        x: (e.touches[0].clientX - rect.left) * scaleX,
-        y: (e.touches[0].clientY - rect.top) * scaleY,
-      };
-    }
     return {
-      x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   };
 
-  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     const canvas = canvasRef.current;
     if (!canvas) return;
-    lastPos.current = getPos(e, canvas);
-    setIsDrawing(true);
+    canvas.setPointerCapture(e.pointerId);
+    lastPos.current = getPos(e.clientX, e.clientY, canvas);
+    isDrawingRef.current = true;
   };
 
-  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current || !lastPos.current) return;
     e.preventDefault();
-    if (!isDrawing || !lastPos.current) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const pos = getPos(e, canvas);
+    const pos = getPos(e.clientX, e.clientY, canvas);
     ctx.beginPath();
     ctx.moveTo(lastPos.current.x, lastPos.current.y);
     ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = "#1e293b";
+    ctx.strokeStyle = INK_COLOR;
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -69,26 +90,21 @@ export default function SignatureDialog({
     setHasSignature(true);
   };
 
-  const stopDraw = (e?: React.MouseEvent | React.TouchEvent) => {
-    e?.preventDefault();
-    setIsDrawing(false);
+  const stopDrawing = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isDrawingRef.current) return;
+    e.preventDefault();
+    isDrawingRef.current = false;
     lastPos.current = null;
-  };
-
-  const clearCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setHasSignature(false);
+    if (canvas?.hasPointerCapture(e.pointerId)) {
+      canvas.releasePointerCapture(e.pointerId);
+    }
   };
 
   const handleConfirm = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dataUrl = canvas.toDataURL("image/png");
-    onConfirm(dataUrl);
+    if (!canvas || !hasSignature) return;
+    onConfirm(canvas.toDataURL("image/png"));
   };
 
   return (
@@ -104,23 +120,23 @@ export default function SignatureDialog({
               : "Please sign below to confirm this weekly record is accurate."}
           </DialogDescription>
         </DialogHeader>
-        <div className="border-2 border-slate-300 dark:border-slate-600 rounded-lg overflow-hidden bg-white dark:bg-slate-800 relative" style={{ touchAction: "none" }}>
+        <div
+          className="border-2 border-slate-300 dark:border-slate-500 rounded-lg overflow-hidden bg-white relative"
+          style={{ touchAction: "none" }}
+        >
           <canvas
             ref={canvasRef}
-            width={460}
-            height={160}
-            className="w-full h-40 cursor-crosshair"
-            onMouseDown={startDraw}
-            onMouseMove={draw}
-            onMouseUp={stopDraw}
-            onMouseLeave={() => stopDraw()}
-            onTouchStart={startDraw}
-            onTouchMove={draw}
-            onTouchEnd={stopDraw}
+            width={CANVAS_WIDTH}
+            height={CANVAS_HEIGHT}
+            className="block w-full h-40 cursor-crosshair touch-none bg-white"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={stopDrawing}
+            onPointerCancel={stopDrawing}
           />
           {!hasSignature && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="text-slate-300 text-sm font-medium select-none">Sign here</span>
+              <span className="text-slate-400 text-sm font-medium select-none">Sign here</span>
             </div>
           )}
           <div className="absolute bottom-8 left-6 right-6 border-b border-dashed border-slate-300 pointer-events-none" />
@@ -133,7 +149,12 @@ export default function SignatureDialog({
             <Button variant="outline" size="sm" onClick={onCancel}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleConfirm} disabled={!hasSignature} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1">
+            <Button
+              size="sm"
+              onClick={handleConfirm}
+              disabled={!hasSignature}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1 disabled:opacity-40"
+            >
               <CheckCircle2 className="w-3.5 h-3.5" />
               Confirm &amp; Complete
             </Button>
