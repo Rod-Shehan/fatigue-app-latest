@@ -112,6 +112,9 @@ export function countContinuousBlocksOfAtLeast(slots: boolean[] | undefined, min
 const NON_WORK_MINUTES_48H = 48 * 60;
 /** 24h continuous no-work in minutes (rolling). */
 const NON_WORK_MINUTES_24H = 24 * 60;
+const MINUTES_14D = 14 * 24 * 60;
+const MINUTES_28D = 28 * 24 * 60;
+const MAX_WORK_MINUTES_14D_ALT = 144 * 60;
 
 /**
  * Continuous "no work" slots spanning the boundary between two consecutive days (end of dayA + start of dayB).
@@ -203,6 +206,42 @@ const MIN_7H_BLOCK_MINUTES = 7 * 60;
  */
 function flatSlots(days: ComplianceDayData[], key: "non_work" | "work_time" | "breaks"): boolean[] {
   return days.flatMap((d) => (d[key] || Array(MINUTES_PER_DAY).fill(false)).slice(0, MINUTES_PER_DAY));
+}
+
+/** Count full non-work periods of length `periodMinutes` within the boolean timeline. */
+function countFullNonWorkPeriods(nonWork: boolean[], periodMinutes: number): number {
+  if (periodMinutes <= 0) return 0;
+  let periods = 0;
+  let run = 0;
+  for (let i = 0; i < nonWork.length; i++) {
+    if (nonWork[i]) {
+      run += 1;
+      continue;
+    }
+    if (run > 0) periods += Math.floor(run / periodMinutes);
+    run = 0;
+  }
+  if (run > 0) periods += Math.floor(run / periodMinutes);
+  return periods;
+}
+
+function workMinutesPrefix(work: boolean[]): number[] {
+  const pref = new Array(work.length + 1);
+  pref[0] = 0;
+  for (let i = 0; i < work.length; i++) pref[i + 1] = pref[i] + (work[i] ? 1 : 0);
+  return pref;
+}
+
+/** True if any rolling `windowMinutes` window exceeds `maxWorkMinutes`. */
+function anyRollingWorkWindowExceeds(work: boolean[], windowMinutes: number, maxWorkMinutes: number): boolean {
+  if (windowMinutes <= 0) return false;
+  if (work.length < windowMinutes) return false;
+  const pref = workMinutesPrefix(work);
+  for (let start = 0; start <= work.length - windowMinutes; start++) {
+    const w = pref[start + windowMinutes] - pref[start];
+    if (w > maxWorkMinutes) return true;
+  }
+  return false;
 }
 
 function fiveHourBreakViolationMessage(): string {
@@ -456,30 +495,24 @@ function checkSoloRules(
    * - 14-day check uses the last 14 days when available.
    * - 28-day alternative is applied only when we have a full 28 days AND the 144h/14-day condition holds.
    */
-  const combined = [...(soloOptions?.historyDays ?? []), ...days];
-  if (combined.length >= 14) {
-    const last14 = combined.slice(-14);
-    const last14NonWork = flatSlots(last14, "non_work");
-    const blocks24h14 = countContinuousBlocksOfAtLeast(last14NonWork, 24);
+  const combined = [...(soloOptions?.historyDays ?? []), ...days].map((d) => normalizeDayCoverageArrays(d));
+  const nonWorkAll = flatSlots(combined, "non_work");
+  const workAll = flatSlots(combined, "work_time");
+  if (nonWorkAll.length >= MINUTES_14D) {
+    const last14NonWork = nonWorkAll.slice(-MINUTES_14D);
+    const blocks24h14 = countFullNonWorkPeriods(last14NonWork, MINUTES_24H);
     const option14Ok = blocks24h14 >= 2;
 
     let option28Ok = false;
-    if (combined.length >= 28) {
-      const last28 = combined.slice(-28);
-      const last28NonWork = flatSlots(last28, "non_work");
-      const blocks24h28 = countContinuousBlocksOfAtLeast(last28NonWork, 24);
+    if (nonWorkAll.length >= MINUTES_28D) {
+      const last28NonWork = nonWorkAll.slice(-MINUTES_28D);
+      const blocks24h28 = countFullNonWorkPeriods(last28NonWork, MINUTES_24H);
 
       if (blocks24h28 >= 4) {
-        // 144h condition: every 14-day period within the 28-day period must have ≤144h work.
-        let workOk = true;
-        for (let startDay = 0; startDay <= 14; startDay++) {
-          const w14 = last28.slice(startDay, startDay + 14).reduce((s, d) => s + getHours(d.work_time), 0);
-          if (w14 > 144) {
-            workOk = false;
-            break;
-          }
-        }
-        option28Ok = workOk;
+        // 144h condition: no rolling 14-day window within this 28-day window exceeds 144h work.
+        const last28Work = workAll.slice(-MINUTES_28D);
+        const exceeds = anyRollingWorkWindowExceeds(last28Work, MINUTES_14D, MAX_WORK_MINUTES_14D_ALT);
+        option28Ok = !exceeds;
       }
     }
 

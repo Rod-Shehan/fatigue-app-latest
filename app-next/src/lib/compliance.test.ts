@@ -296,6 +296,36 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(v).toBeUndefined();
   });
 
+  it("solo 14-day 24h blocks: a 48h continuous non-work run counts as 2×24h", () => {
+    const days = emptyWeek();
+    // Ensure there is some work somewhere so the solo rules run.
+    days[0] = dayWorkOnly(1);
+
+    // Provide 21 prior days so the "last14" window is well-defined.
+    // Make the last 2 history days a continuous 48h non-work run.
+    const historyDays = Array.from({ length: 21 }, (_, idx) => {
+      const base: ComplianceDayData = {
+        work_time: Array(MINUTES_PER_DAY).fill(false),
+        breaks: Array(MINUTES_PER_DAY).fill(false),
+        non_work: Array(MINUTES_PER_DAY).fill(false),
+      };
+      if (idx >= 19) {
+        return { ...base, non_work: Array(MINUTES_PER_DAY).fill(true) };
+      }
+      // Some mixed days earlier.
+      if (idx % 3 === 0) return dayWorkOnly(4);
+      return base;
+    });
+
+    const results = runComplianceChecks(days, {
+      driverType: "solo",
+      historyDays,
+    });
+
+    const v = results.find((r) => r.day === "14-day" && r.type === "violation");
+    expect(v).toBeUndefined();
+  });
+
   it("this week >84h and no prev week: 14-day warning", () => {
     const days = emptyWeek();
     for (let i = 0; i < 7; i++) days[i] = dayWorkOnly(13); // 91h
