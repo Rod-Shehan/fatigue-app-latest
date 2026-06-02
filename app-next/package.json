@@ -10,7 +10,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:compliance": "vitest run src/lib/compliance.test.ts",
@@ -55,17 +55,21 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^22.13.5",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "autoprefixer": "^10.4.20",
+    "eslint": "^10.4.1",
     "firebase-tools": "^13.0.0",
+    "globals": "^17.6.0",
     "postcss": "^8.5.3",
     "prisma": "6.9.0",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.2",
+    "typescript-eslint": "^8.60.1",
     "vitest": "^2.1.0"
   }
 }
