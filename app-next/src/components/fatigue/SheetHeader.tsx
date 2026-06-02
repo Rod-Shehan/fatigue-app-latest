@@ -180,9 +180,13 @@ export default function SheetHeader({
   const driverToggleClass = (active: boolean) =>
     cn(
       "px-3 py-1.5 text-sm font-semibold min-h-[40px] min-w-[4.25rem] transition-colors",
-      active
-        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 dark:shadow-md dark:ring-1 dark:ring-white/30"
-        : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900/40 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
+      readOnly
+        ? active
+          ? "bg-slate-200 text-slate-800 dark:bg-slate-800/80 dark:text-slate-100 cursor-not-allowed"
+          : "bg-slate-100 text-slate-400 dark:bg-slate-900/40 dark:text-slate-500 cursor-not-allowed"
+        : active
+          ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 dark:shadow-md dark:ring-1 dark:ring-white/30"
+          : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900/40 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
     );
 
   return (
