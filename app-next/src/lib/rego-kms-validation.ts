@@ -119,7 +119,7 @@ export function validateSheetKms(days: DayWithKms[]): string | null {
       return `Day ${i + 1}: start km is required when rego is set.`;
     }
     if (endKms == null || (typeof endKms === "number" && Number.isNaN(endKms))) {
-      return `Day ${i + 1}: end km is required when rego is set. Use End shift to record end km.`;
+      return `Day ${i + 1}: end km is required when rego is set. Open Edit route on that day and enter end kilometres.`;
     }
     const result = validateDayKms(days, i, rego, startKms, endKms, null);
     if (!result.valid) return result.message ?? `Day ${i + 1}: invalid km.`;

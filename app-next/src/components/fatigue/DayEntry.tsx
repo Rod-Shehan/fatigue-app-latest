@@ -19,6 +19,7 @@ import {
   formatContinuedShiftRouteBanner,
 } from "@/lib/product-copy";
 import { driverCardBtn } from "@/components/driver/driver-ui-classes";
+import type { DayWithKms } from "@/lib/rego-kms-validation";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -96,6 +97,7 @@ export default function DayEntry({
   todayYmd,
   /** When true (default), past/future days render as a single summary row. */
   collapseWhenNotToday = true,
+  allDays = [],
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -109,6 +111,7 @@ export default function DayEntry({
   consecutiveWorkDays?: number;
   todayYmd: string;
   collapseWhenNotToday?: boolean;
+  allDays?: DayWithKms[];
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -153,7 +156,9 @@ export default function DayEntry({
     (dayData.start_location ?? "").trim() !== "" &&
     (dayData.destination ?? "").trim() !== "" &&
     dayData.start_kms != null &&
-    !Number.isNaN(Number(dayData.start_kms));
+    !Number.isNaN(Number(dayData.start_kms)) &&
+    (!(dayData.truck_rego ?? "").trim() ||
+      (dayData.end_kms != null && !Number.isNaN(Number(dayData.end_kms))));
 
   const workHours = getHours(dayData.work_time);
   const collapsedSummary = isFuture
@@ -348,10 +353,11 @@ export default function DayEntry({
               <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
               <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
               <StatBlock label="Rego" value={(dayData.truck_rego || "").trim() || "—"} mono />
               <StatBlock label="Pattern" value={formatShiftLabel(dayData.shift_label)} />
               <StatBlock label="Start km" value={formatKm(dayData.start_kms)} mono />
+              <StatBlock label="End km" value={formatKm(dayData.end_kms)} mono />
               <StatBlock
                 label="Trip km"
                 value={kmsTotal > 0 ? formatKm(kmsTotal) : dayData.end_kms != null ? formatKm(0) : "—"}
@@ -382,9 +388,12 @@ export default function DayEntry({
             start_location: dayData.start_location,
             destination: dayData.destination,
             start_kms: dayData.start_kms,
+            end_kms: dayData.end_kms,
             shift_label: dayData.shift_label,
           }}
           regos={regos}
+          dayIndex={dayIndex}
+          sheetDays={allDays}
           showShiftPatternEducation={showShiftPatternEducation}
           consecutiveWorkDays={consecutiveWorkDays}
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}

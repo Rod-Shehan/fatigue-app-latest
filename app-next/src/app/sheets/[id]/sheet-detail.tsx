@@ -1092,6 +1092,7 @@ export function SheetDetail({
                   canEditTimes={canAccessManager && !driverContentLocked}
                   consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
                   todayYmd={todayYmd}
+                  allDays={sheetData.days}
                 />
                 </div>
               ))}

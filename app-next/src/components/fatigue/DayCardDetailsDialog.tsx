@@ -19,13 +19,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Rego } from "@/lib/api";
+import { api } from "@/lib/api";
 import { SHIFT_PATTERN_FIELD_HELP } from "@/lib/shift-change";
+import {
+  validateDayKms,
+  type DayWithKms,
+} from "@/lib/rego-kms-validation";
 
 export type DayCardFields = {
   truck_rego?: string;
   start_location?: string;
   destination?: string;
   start_kms?: number | null;
+  end_kms?: number | null;
   shift_label?: "A" | "B" | "";
 };
 
@@ -39,6 +45,8 @@ export function DayCardDetailsDialog({
   dateLabel,
   initial,
   regos,
+  dayIndex,
+  sheetDays,
   onConfirm,
   showShiftPatternEducation,
   consecutiveWorkDays,
@@ -50,6 +58,10 @@ export function DayCardDetailsDialog({
   dateLabel: string;
   initial: DayCardFields;
   regos: Rego[];
+  /** Index of this day in sheetDays (for rolling km validation). */
+  dayIndex: number;
+  /** Full week days — used to validate start/end km against prior days on the same rego. */
+  sheetDays: DayWithKms[];
   onConfirm: (fields: DayCardFields) => void;
   showShiftPatternEducation?: boolean;
   consecutiveWorkDays?: number;
@@ -57,9 +69,14 @@ export function DayCardDetailsDialog({
   continuedFromPreviousDay?: string;
 }) {
   const [draft, setDraft] = useState<DayCardFields>(initial);
+  const [kmError, setKmError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    if (open) setDraft(initial);
+    if (open) {
+      setDraft(initial);
+      setKmError(null);
+    }
   }, [open, initial]);
 
   const set = (field: keyof DayCardFields, value: unknown) => {
@@ -72,6 +89,58 @@ export function DayCardDetailsDialog({
     if (current && !labels.includes(current)) labels.unshift(current);
     return labels;
   })();
+
+  const regoSet = (draft.truck_rego ?? "").trim() !== "";
+
+  const handleConfirm = async () => {
+    setKmError(null);
+    const rego = (draft.truck_rego ?? "").trim();
+    if (rego) {
+      if (draft.start_kms == null || Number.isNaN(Number(draft.start_kms))) {
+        setKmError("Start km is required when rego is set.");
+        return;
+      }
+      if (draft.end_kms == null || Number.isNaN(Number(draft.end_kms))) {
+        setKmError("End km is required when rego is set (odometer at end of shift).");
+        return;
+      }
+    }
+    const daysForValidation: DayWithKms[] = sheetDays.map((d, i) =>
+      i === dayIndex
+        ? {
+            truck_rego: draft.truck_rego,
+            start_kms: draft.start_kms,
+            end_kms: draft.end_kms,
+          }
+        : d
+    );
+    let serverMaxEndKms: number | null = null;
+    if (rego) {
+      setConfirming(true);
+      try {
+        const res = await api.sheets.regoMaxEndKms(rego);
+        serverMaxEndKms = res.maxEndKms;
+      } catch {
+        /* offline: validate with this sheet only */
+      } finally {
+        setConfirming(false);
+      }
+    }
+    const validation = validateDayKms(
+      daysForValidation,
+      dayIndex,
+      rego,
+      draft.start_kms ?? null,
+      draft.end_kms ?? null,
+      serverMaxEndKms
+    );
+    if (!validation.valid) {
+      setKmError(validation.message ?? "Invalid kilometres.");
+      return;
+    }
+    onConfirm(draft);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -176,7 +245,35 @@ export function DayCardDetailsDialog({
               className={`${fieldClass} tabular-nums`}
             />
           </div>
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+              End kilometres
+              {regoSet ? <span className="text-red-600 dark:text-red-400 font-normal"> (required)</span> : null}
+            </Label>
+            <Input
+              type="number"
+              inputMode="numeric"
+              value={draft.end_kms ?? ""}
+              onChange={(e) =>
+                set("end_kms", e.target.value === "" ? null : Number(e.target.value))
+              }
+              placeholder={regoSet ? "Odometer at end of shift" : "Optional until rego is set"}
+              className={`${fieldClass} tabular-nums`}
+            />
+            {regoSet && (
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Required to sign this week. Use the same reading as when you ended shift, or enter it here on past
+                days.
+              </p>
+            )}
+          </div>
         </div>
+
+        {kmError && (
+          <p className="text-sm font-medium text-red-600 dark:text-red-400" role="alert">
+            {kmError}
+          </p>
+        )}
 
         <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
           <Button type="button" variant="outline" className="min-h-11 text-base" onClick={() => onOpenChange(false)}>
@@ -185,12 +282,10 @@ export function DayCardDetailsDialog({
           <Button
             type="button"
             className="min-h-11 text-base bg-emerald-600 hover:bg-emerald-700"
-            onClick={() => {
-              onConfirm(draft);
-              onOpenChange(false);
-            }}
+            disabled={confirming}
+            onClick={() => void handleConfirm()}
           >
-            Confirm
+            {confirming ? "Checking…" : "Confirm"}
           </Button>
         </div>
       </DialogContent>
