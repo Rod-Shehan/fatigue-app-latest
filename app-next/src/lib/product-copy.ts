@@ -140,6 +140,23 @@ export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
   return `Archive · week of ${weekOfLabel}`;
 }
 
+/** Signed past week — informational banner (not a compliance warning). */
+export function formatPastWeekArchiveBannerTitle(weekOfLabel: string): string {
+  return `Past record · week of ${weekOfLabel}`;
+}
+
+export function formatPastWeekArchiveBannerBody(): string {
+  return (
+    "Signed and locked — this is your legal record for that week. Review or export below. " +
+    "Ask your manager only if something needs correcting."
+  );
+}
+
+/** Signed current week — locked, no edits. */
+export const SIGNED_CURRENT_WEEK_ARCHIVE_TITLE = "Signed week — locked record";
+export const SIGNED_CURRENT_WEEK_ARCHIVE_BODY =
+  "This week is signed and locked. Review or export here; ask your manager to amend if something needs correcting.";
+
 /** When driver cannot sign until validation passes (e.g. missing kms). */
 export function formatSignBlockedPastWeekMessage(validationError: string, _weekOfLabel: string): string {
   return validationError;

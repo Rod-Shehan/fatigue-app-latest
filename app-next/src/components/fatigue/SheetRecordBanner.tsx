@@ -1,14 +1,18 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, PenLine } from "lucide-react";
+import { Archive, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
-  formatPastWeekArchiveSubtitle,
+  formatPastWeekArchiveBannerBody,
+  formatPastWeekArchiveBannerTitle,
   formatResignPastWeekBody,
   formatResignPastWeekTitle,
   formatSignPastWeekBody,
   formatSignPastWeekTitle,
+  SIGNED_CURRENT_WEEK_ARCHIVE_BODY,
+  SIGNED_CURRENT_WEEK_ARCHIVE_TITLE,
   SIGN_CURRENT_WEEK_BODY,
   SIGN_CURRENT_WEEK_TITLE,
   SHEET_ATTESTATION_WORKFLOW,
@@ -26,6 +30,8 @@ export function SheetRecordBanner({
   variant: "archive" | "sign" | "resign";
   onSign?: () => void;
 }) {
+  const isArchive = variant === "archive";
+
   const copy =
     variant === "resign"
       ? isPastWeek
@@ -47,33 +53,67 @@ export function SheetRecordBanner({
               title: SIGN_CURRENT_WEEK_TITLE,
               body: SIGN_CURRENT_WEEK_BODY,
             }
-        : {
-            title: isPastWeek
-              ? formatPastWeekArchiveSubtitle(weekOfLabel)
-              : "Signed week — locked record",
-            body: isPastWeek
-              ? "This past week is signed and locked. Export or review here; ask your manager to amend if something needs correcting."
-              : "This week is signed and locked. Review here; ask your manager to amend if something needs correcting.",
-          };
+        : isPastWeek
+          ? {
+              title: formatPastWeekArchiveBannerTitle(weekOfLabel),
+              body: formatPastWeekArchiveBannerBody(),
+            }
+          : {
+              title: SIGNED_CURRENT_WEEK_ARCHIVE_TITLE,
+              body: SIGNED_CURRENT_WEEK_ARCHIVE_BODY,
+            };
 
   return (
     <div
-      className="mb-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30 p-4 flex flex-col sm:flex-row sm:items-start gap-3"
+      className={cn(
+        "mb-4 rounded-xl border p-4 flex flex-col sm:flex-row sm:items-start gap-3",
+        isArchive
+          ? "border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800/60"
+          : "border-emerald-200 dark:border-emerald-800 bg-emerald-50/80 dark:bg-emerald-950/40"
+      )}
       role="status"
     >
-      <AlertCircle className="w-5 h-5 text-amber-700 dark:text-amber-300 shrink-0 mt-0.5" aria-hidden />
+      {isArchive ? (
+        <Archive className="w-5 h-5 text-slate-600 dark:text-slate-300 shrink-0 mt-0.5" aria-hidden />
+      ) : (
+        <PenLine className="w-5 h-5 text-emerald-700 dark:text-emerald-300 shrink-0 mt-0.5" aria-hidden />
+      )}
       <div className="flex-1 min-w-0 space-y-2">
-        {isPastWeek && (
-          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-800/90 dark:text-amber-200/90">
-            Past week · not current week
+        {isPastWeek && isArchive && (
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Not your current logging week
           </p>
         )}
-        <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">{copy.title}</p>
-        <p className="text-sm text-amber-800 dark:text-amber-200">{copy.body}</p>
+        {isPastWeek && !isArchive && (
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-800/90 dark:text-emerald-200/90">
+            Past week · action needed
+          </p>
+        )}
+        <p
+          className={cn(
+            "text-sm font-semibold",
+            isArchive ? "text-slate-900 dark:text-slate-100" : "text-emerald-900 dark:text-emerald-100"
+          )}
+        >
+          {copy.title}
+        </p>
+        <p
+          className={cn(
+            "text-sm leading-snug",
+            isArchive ? "text-slate-600 dark:text-slate-300" : "text-emerald-800 dark:text-emerald-200"
+          )}
+        >
+          {copy.body}
+        </p>
         {isPastWeek && (
           <Link
             href="/driver"
-            className="inline-block text-sm font-semibold text-emerald-800 dark:text-emerald-300 underline underline-offset-2"
+            className={cn(
+              "inline-block text-sm font-semibold underline underline-offset-2",
+              isArchive
+                ? "text-slate-700 dark:text-slate-200"
+                : "text-emerald-800 dark:text-emerald-300"
+            )}
           >
             Go to current week (Drive home)
           </Link>
