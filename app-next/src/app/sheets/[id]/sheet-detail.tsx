@@ -62,15 +62,22 @@ import {
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
-import { validateDayKms, getMinAllowedStartKms, validateSheetKms } from "@/lib/rego-kms-validation";
+import {
+  validateDayKms,
+  getMinAllowedStartKms,
+  validateSheetKms,
+  chainRegoKmsAcrossSheet,
+  collectRegosNeedingKm,
+  getSheetKmIssues,
+  regoKey,
+  type SheetKmIssue,
+} from "@/lib/rego-kms-validation";
+import { SignKmFixDialog } from "@/components/fatigue/SignKmFixDialog";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY, normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { cn } from "@/lib/utils";
-import {
-  formatPastWeekArchiveSubtitle,
-  formatSignBlockedPastWeekMessage,
-} from "@/lib/product-copy";
+import { formatPastWeekArchiveSubtitle } from "@/lib/product-copy";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 
 const EMPTY_DAY = (): DayData => ({
@@ -176,7 +183,8 @@ export function SheetDetail({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showSignatureDialog, setShowSignatureDialog] = useState(false);
   const [showMarkCompleteConfirm, setShowMarkCompleteConfirm] = useState(false);
-  const [signBlockedMessage, setSignBlockedMessage] = useState<string | null>(null);
+  const [signKmFixIssues, setSignKmFixIssues] = useState<SheetKmIssue[] | null>(null);
+  const [signKmServerMax, setSignKmServerMax] = useState<Record<string, number | null>>({});
   const [complianceDialogOpen, setComplianceDialogOpen] = useState(false);
   const [endShiftDialog, setEndShiftDialog] = useState<{ dayIndex: number } | null>(null);
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
@@ -752,6 +760,51 @@ export function SheetDetail({
     [shiftPatternPrompt]
   );
 
+  const fetchServerMaxByRego = useCallback(async (days: DayData[]) => {
+    const regos = collectRegosNeedingKm(days);
+    const serverMaxByRego: Record<string, number | null> = {};
+    await Promise.all(
+      regos.map(async (rego) => {
+        try {
+          const res = await api.sheets.regoMaxEndKms(rego);
+          serverMaxByRego[regoKey(rego)] = res.maxEndKms;
+        } catch {
+          serverMaxByRego[regoKey(rego)] = null;
+        }
+      })
+    );
+    return serverMaxByRego;
+  }, []);
+
+  const applyDaysAfterKmChange = useCallback(
+    (days: DayData[]) => {
+      const withGrids = deriveDaysWithRollover(days, sheetDataRef.current.week_starting, {
+        todayStr: getRegulatoryTodayYmd(sheetDataRef.current.jurisdiction_code),
+      });
+      return applyLast24hBreakNonWorkRule(
+        withGrids,
+        sheetDataRef.current.week_starting,
+        sheetDataRef.current.last_24h_break || undefined
+      );
+    },
+    []
+  );
+
+  const handleAutoFixKmForSign = useCallback(async () => {
+    const prev = sheetDataRef.current;
+    const chained = chainRegoKmsAcrossSheet(prev.days, signKmServerMax);
+    const finalDays = applyDaysAfterKmChange(chained.days);
+    setSheetData((s) => ({ ...s, days: finalDays }));
+    setIsDirty(true);
+    const err = validateSheetKms(finalDays, { serverMaxByRego: signKmServerMax });
+    if (!err) {
+      setSignKmFixIssues(null);
+      setShowMarkCompleteConfirm(true);
+    } else {
+      setSignKmFixIssues(getSheetKmIssues(finalDays, { serverMaxByRego: signKmServerMax }));
+    }
+  }, [applyDaysAfterKmChange, signKmServerMax]);
+
   const handleSave = () => {
     const kmError = validateSheetKms(sheetData.days);
     if (kmError) {
@@ -772,13 +825,14 @@ export function SheetDetail({
     });
   };
 
-  const handleMarkCompleteClick = () => {
-    const kmError = validateSheetKms(sheetData.days);
+  const handleMarkCompleteClick = async () => {
+    const days = sheetDataRef.current.days;
+    const serverMaxByRego = await fetchServerMaxByRego(days);
+    const kmError = validateSheetKms(days, { serverMaxByRego });
     if (kmError) {
-      if (isPastWeek && !isManager) {
-        setSignBlockedMessage(
-          formatSignBlockedPastWeekMessage(kmError, weekOfLabel || "this week")
-        );
+      if (!isManager) {
+        setSignKmServerMax(serverMaxByRego);
+        setSignKmFixIssues(getSheetKmIssues(days, { serverMaxByRego }));
         return;
       }
       window.alert(kmError);
@@ -1140,32 +1194,14 @@ export function SheetDetail({
         onCancel={() => setShowSignatureDialog(false)}
         driverName={sheetData.driver_name}
       />
-      <Dialog open={!!signBlockedMessage} onOpenChange={(open) => !open && setSignBlockedMessage(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-amber-600" />
-              Cannot sign this past week yet
-            </DialogTitle>
-            <DialogDescription className="text-left">{signBlockedMessage}</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-end pt-2">
-            <Button variant="outline" className={driverDialogBtn} onClick={() => setSignBlockedMessage(null)}>
-              Close
-            </Button>
-            <Link href="/sheets" className="w-full sm:w-auto">
-              <Button variant="outline" className={driverDialogBtn}>
-                Your weeks
-              </Button>
-            </Link>
-            <Link href="/driver" className="w-full sm:w-auto">
-              <Button className={cn(driverDialogBtn, "bg-emerald-600 hover:bg-emerald-700")}>
-                Current week
-              </Button>
-            </Link>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <SignKmFixDialog
+        open={signKmFixIssues != null && signKmFixIssues.length > 0}
+        onOpenChange={(open) => !open && setSignKmFixIssues(null)}
+        issues={signKmFixIssues ?? []}
+        weekOfLabel={weekOfLabel || "this week"}
+        onAutoFixStartKm={handleAutoFixKmForSign}
+        onGoToDay={scrollToDayCard}
+      />
       <Dialog open={showMarkCompleteConfirm} onOpenChange={(open) => !open && setShowMarkCompleteConfirm(false)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>

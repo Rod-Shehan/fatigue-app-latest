@@ -9,9 +9,46 @@ export type DayWithKms = {
   end_kms?: number | null;
 };
 
+export type DayKmContext = DayWithKms & {
+  events?: { type: string }[];
+  work_time?: boolean[];
+  breaks?: boolean[];
+};
+
+const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 /** Normalize rego for comparison (trim, case-insensitive). */
+export function regoKey(rego: string): string {
+  return rego.trim().toLowerCase();
+}
+
 function sameRego(a: string | undefined, b: string | undefined): boolean {
-  return (a ?? "").trim().toLowerCase() === (b ?? "").trim().toLowerCase();
+  return regoKey(a ?? "") === regoKey(b ?? "");
+}
+
+function serverMaxForRego(
+  serverMaxByRego: Record<string, number | null> | undefined,
+  rego: string
+): number | null {
+  if (!serverMaxByRego) return null;
+  return serverMaxByRego[regoKey(rego)] ?? serverMaxByRego[rego.trim()] ?? null;
+}
+
+/**
+ * Only days with driving activity (or km already entered) need start/end km at sign-off.
+ * Skips empty days that only inherited rego on the card without a shift.
+ */
+export function dayRequiresKmEntry(day: DayKmContext): boolean {
+  const rego = (day.truck_rego ?? "").trim();
+  if (!rego) return false;
+  if (day.start_kms != null || day.end_kms != null) return true;
+  const events = day.events ?? [];
+  if (events.some((e) => e.type === "work" || e.type === "stop" || e.type === "break" || e.type === "non_work")) {
+    return true;
+  }
+  if ((day.work_time ?? []).some(Boolean)) return true;
+  if ((day.breaks ?? []).some(Boolean)) return true;
+  return false;
 }
 
 /**
@@ -103,26 +140,171 @@ export function validateDayKms(
   return { valid: true };
 }
 
+export type ValidateSheetKmsOptions = {
+  /** Fleet-wide max end km per rego (from /api/rego-kms). Keys: normalized rego. */
+  serverMaxByRego?: Record<string, number | null>;
+};
+
 /**
- * Validates all days in the sheet: for any day with a rego, both start_kms and end_kms
- * are required and must form a non-decreasing sequence for that rego (local only).
+ * Validates driving days in the sheet: start/end km required and non-decreasing per rego.
  * Returns the first error message or null if valid.
  */
-export function validateSheetKms(days: DayWithKms[]): string | null {
+export function validateSheetKms(days: DayKmContext[], options?: ValidateSheetKmsOptions): string | null {
+  const serverMaxByRego = options?.serverMaxByRego;
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
+    if (!dayRequiresKmEntry(d)) continue;
     const rego = (d.truck_rego ?? "").trim();
-    if (rego === "") continue;
     const startKms = d.start_kms;
     const endKms = d.end_kms;
+    const label = DAY_LABELS[i] ?? `Day ${i + 1}`;
     if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
-      return `Day ${i + 1}: start km is required when rego is set.`;
+      return `${label}: start km is required for ${rego}.`;
     }
     if (endKms == null || (typeof endKms === "number" && Number.isNaN(endKms))) {
-      return `Day ${i + 1}: end km is required when rego is set. Open Edit route on that day and enter end kilometres.`;
+      return `${label}: end km is required for ${rego}. Tap Edit day on that day and enter end kilometres.`;
     }
-    const result = validateDayKms(days, i, rego, startKms, endKms, null);
-    if (!result.valid) return result.message ?? `Day ${i + 1}: invalid km.`;
+    const serverMax = serverMaxForRego(serverMaxByRego, rego);
+    const result = validateDayKms(days, i, rego, startKms, endKms, serverMax);
+    if (!result.valid) return `${label}: ${result.message ?? "invalid km."}`;
   }
   return null;
+}
+
+export type SheetKmIssue = {
+  dayIndex: number;
+  dayLabel: string;
+  code: "missing_start" | "missing_end" | "start_too_low" | "end_invalid";
+  message: string;
+  /** Start km can be raised automatically from prior day / fleet record. */
+  canAutoFixStart: boolean;
+  suggestedStartKms?: number;
+};
+
+/** All km issues for sign-off UI (not just the first). */
+export function getSheetKmIssues(
+  days: DayKmContext[],
+  options?: ValidateSheetKmsOptions
+): SheetKmIssue[] {
+  const serverMaxByRego = options?.serverMaxByRego;
+  const issues: SheetKmIssue[] = [];
+
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i];
+    if (!dayRequiresKmEntry(d)) continue;
+    const rego = (d.truck_rego ?? "").trim();
+    const label = DAY_LABELS[i] ?? `Day ${i + 1}`;
+    const serverMax = serverMaxForRego(serverMaxByRego, rego);
+    const minStart = getMinAllowedStartKms(days, i, rego, serverMax);
+
+    const startKms = d.start_kms;
+    const endKms = d.end_kms;
+
+    if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
+      issues.push({
+        dayIndex: i,
+        dayLabel: label,
+        code: "missing_start",
+        message: `Start km required for ${rego}.`,
+        canAutoFixStart: minStart != null,
+        suggestedStartKms: minStart ?? undefined,
+      });
+      continue;
+    }
+
+    if (minStart != null && startKms < minStart) {
+      issues.push({
+        dayIndex: i,
+        dayLabel: label,
+        code: "start_too_low",
+        message: `Start km (${startKms}) is below last end km for this rego (${minStart}).`,
+        canAutoFixStart: true,
+        suggestedStartKms: minStart,
+      });
+    }
+
+    if (endKms == null || (typeof endKms === "number" && Number.isNaN(endKms))) {
+      issues.push({
+        dayIndex: i,
+        dayLabel: label,
+        code: "missing_end",
+        message: `End km required for ${rego}.`,
+        canAutoFixStart: false,
+      });
+      continue;
+    }
+
+    const result = validateDayKms(days, i, rego, startKms, endKms, serverMax);
+    if (!result.valid) {
+      issues.push({
+        dayIndex: i,
+        dayLabel: label,
+        code: "end_invalid",
+        message: result.message ?? "Invalid end km.",
+        canAutoFixStart: false,
+      });
+    }
+  }
+
+  return issues;
+}
+
+export type StartKmsFix = { dayIndex: number; from: number | null; to: number };
+
+/**
+ * Set each driving day's start_kms to the previous end km for that rego (and fleet floor when higher).
+ * Does not invent end km — driver still enters those.
+ */
+export function chainRegoKmsAcrossSheet<T extends DayKmContext>(
+  days: T[],
+  serverMaxByRego: Record<string, number | null> = {}
+): { days: T[]; startKmsFixes: StartKmsFix[] } {
+  const next = days.map((d) => ({ ...d }));
+  const runningEnd: Record<string, number | null> = {};
+  const startKmsFixes: StartKmsFix[] = [];
+
+  for (let i = 0; i < next.length; i++) {
+    const d = next[i]!;
+    const rego = (d.truck_rego ?? "").trim();
+    if (!rego || !dayRequiresKmEntry(d)) continue;
+
+    const key = regoKey(rego);
+    const serverFloor = serverMaxForRego(serverMaxByRego, rego);
+    let floor: number | null = runningEnd[key] ?? null;
+    if (serverFloor != null) {
+      floor = floor == null ? serverFloor : Math.max(floor, serverFloor);
+    }
+
+    if (floor != null) {
+      const cur = d.start_kms;
+      const curNum = cur != null && typeof cur === "number" && !Number.isNaN(cur) ? cur : null;
+      if (curNum == null || curNum < floor) {
+        startKmsFixes.push({ dayIndex: i, from: curNum, to: floor });
+        next[i] = { ...d, start_kms: floor };
+      }
+    }
+
+    const end = next[i]!.end_kms;
+    if (end != null && typeof end === "number" && !Number.isNaN(end)) {
+      const prev = runningEnd[key];
+      runningEnd[key] = prev == null ? end : Math.max(prev, end);
+    }
+  }
+
+  return { days: next, startKmsFixes };
+}
+
+/** Unique regos on days that require km, in week order. */
+export function collectRegosNeedingKm(days: DayKmContext[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const d of days) {
+    if (!dayRequiresKmEntry(d)) continue;
+    const rego = (d.truck_rego ?? "").trim();
+    const key = regoKey(rego);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(rego);
+  }
+  return out;
 }

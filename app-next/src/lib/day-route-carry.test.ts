@@ -77,4 +77,15 @@ describe("getDayWithCarriedOverCardInfo", () => {
     expect(wednesday.start_location).toBe("Perth");
     expect(wednesday.destination).toBe("Kalgoorlie");
   });
+
+  it("carries previous day end km as start km hint when continuing overnight", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      { ...dayWithOpenWork([{ time: "2026-06-03T22:00:00.000Z", type: "work" }]), end_kms: 1325200 },
+      { truck_rego: "" },
+    ];
+    const wednesday = getDayWithCarriedOverCardInfo(days, 3, WEEK_START, "2026-06-04");
+    expect(wednesday.start_kms).toBe(1325200);
+  });
 });

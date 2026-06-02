@@ -142,9 +142,7 @@ export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
 
 /** When driver cannot sign until validation passes (e.g. missing kms). */
 export function formatSignBlockedPastWeekMessage(validationError: string, _weekOfLabel: string): string {
-  return (
-    `${validationError} Open each day that needs it (Edit route), enter end kilometres where rego is set, then try signing again.`
-  );
+  return validationError;
 }
 
 /** Overnight shift rolled into this calendar day — route fields may be carried until confirmed. */
