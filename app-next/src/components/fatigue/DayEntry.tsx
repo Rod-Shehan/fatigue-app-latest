@@ -16,6 +16,7 @@ import {
   CONTINUED_SHIFT_ROUTE_CARD_NOTE,
   formatContinuedShiftRouteBanner,
 } from "@/lib/product-copy";
+import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -182,19 +183,20 @@ export default function DayEntry({
             <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:w-auto">
           {canEditDetails && (
             <Button
               type="button"
               variant={detailsComplete ? "outline" : "default"}
-              size="sm"
+              size="default"
               className={cn(
-                "min-h-9 gap-1.5 text-sm font-semibold",
+                driverCardBtn,
+                "w-full sm:w-auto",
                 !detailsComplete && "bg-amber-600 hover:bg-amber-700 text-white"
               )}
               onClick={() => setDetailsOpen(true)}
             >
-              <Pencil className="w-4 h-4 shrink-0" aria-hidden />
+              <Pencil className="w-5 h-5 shrink-0" aria-hidden />
               {hasRouteDetails ? "Edit route" : "Set route"}
             </Button>
           )}
@@ -202,14 +204,14 @@ export default function DayEntry({
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="min-h-9 gap-1.5 text-sm"
+              size="default"
+              className={cn(driverCardBtn, "w-full sm:w-auto")}
               onClick={() => {
                 setDraftEvents(events.map((e) => ({ ...e })));
                 setEditOpen(true);
               }}
             >
-              <Clock className="w-4 h-4 shrink-0" aria-hidden />
+              <Clock className="w-5 h-5 shrink-0" aria-hidden />
               Edit times
             </Button>
           )}

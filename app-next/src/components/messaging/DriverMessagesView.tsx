@@ -14,6 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MessageSquare, Plus, Send, ExternalLink } from "lucide-react";
 import { MessageBubbleRow } from "@/components/messaging/MessageBubbleRow";
+import { driverDialogBtn, driverSectionLabel, driverSegmentBtn } from "@/components/driver/driver-ui-classes";
+import { cn } from "@/lib/utils";
 
 function formatWhen(iso: string) {
   const d = new Date(iso);
@@ -131,7 +133,7 @@ export function DriverMessagesView() {
           driverDisplayName={headerDriverName ?? undefined}
           icon={<MessageSquare className="w-5 h-5" />}
           actions={
-            <Button className="gap-2" onClick={() => { setNewKind("training"); setNewSubject(""); setNewBody(""); setNewSheetId(""); setNewOpen(true); }}>
+            <Button className={cn(driverDialogBtn, "gap-2 justify-center sm:justify-center")} onClick={() => { setNewKind("training"); setNewSubject(""); setNewBody(""); setNewSheetId(""); setNewOpen(true); }}>
               <Plus className="w-4 h-4" />
               New message
             </Button>
@@ -141,10 +143,10 @@ export function DriverMessagesView() {
         <div className="grid gap-4 md:grid-cols-[320px,1fr]">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+              <p className={driverSectionLabel}>
                 Your conversations
               </p>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">With your manager</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">With your manager</p>
             </div>
             <div className="max-h-[70vh] overflow-auto">
               {threads.length === 0 ? (
@@ -161,12 +163,12 @@ export function DriverMessagesView() {
                         key={t.id}
                         type="button"
                         onClick={() => setActiveThreadId(t.id)}
-                        className={[
-                          "w-full text-left p-3 transition",
+                        className={cn(
+                          "w-full text-left min-h-[56px] p-4 transition",
                           active
                             ? "bg-slate-900 text-white dark:bg-slate-800/90 dark:text-slate-100 dark:ring-1 dark:ring-inset dark:ring-cyan-700/35"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40",
-                        ].join(" ")}
+                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                        )}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div>
@@ -257,15 +259,16 @@ export function DriverMessagesView() {
             </div>
 
             <div className="border-t border-slate-200 dark:border-slate-700 p-3">
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   value={compose}
                   onChange={(e) => setCompose(e.target.value)}
                   placeholder={activeThreadId ? "Type a message…" : "Select a conversation to reply…"}
                   disabled={!activeThreadId || postMutation.isPending}
+                  className="min-h-[48px] text-base"
                 />
                 <Button
-                  className="gap-2"
+                  className={cn(driverDialogBtn, "gap-2 justify-center shrink-0")}
                   disabled={!activeThreadId || compose.trim().length === 0 || postMutation.isPending}
                   onClick={() => postMutation.mutate(compose.trim())}
                 >
@@ -292,10 +295,11 @@ export function DriverMessagesView() {
             </DialogHeader>
 
             <div className="space-y-3">
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   type="button"
                   variant={newKind === "training" ? "default" : "outline"}
+                  className={cn(driverSegmentBtn, "flex-1 rounded-lg")}
                   onClick={() => setNewKind("training")}
                 >
                   Training question
@@ -303,6 +307,7 @@ export function DriverMessagesView() {
                 <Button
                   type="button"
                   variant={newKind === "edit" ? "default" : "outline"}
+                  className={cn(driverSegmentBtn, "flex-1 rounded-lg")}
                   onClick={() => setNewKind("edit")}
                 >
                   Request sheet edit
@@ -317,6 +322,7 @@ export function DriverMessagesView() {
                   value={newSubject}
                   onChange={(e) => setNewSubject(e.target.value)}
                   placeholder={suggestedSubject}
+                  className="h-12 text-base"
                 />
               </div>
 
@@ -328,7 +334,7 @@ export function DriverMessagesView() {
                   <select
                     value={newSheetId}
                     onChange={(e) => setNewSheetId(e.target.value)}
-                    className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    className="w-full min-h-[48px] h-12 rounded-md border border-input bg-background px-3 text-base"
                   >
                     <option value="">No sheet selected</option>
                     {sheetOptions.map(({ week, list }) => (
@@ -352,7 +358,7 @@ export function DriverMessagesView() {
                   value={newBody}
                   onChange={(e) => setNewBody(e.target.value)}
                   placeholder={newKind === "training" ? "What do you need help with?" : "What was entered incorrectly and what should it be?"}
-                  className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-base"
                 />
               </div>
 
@@ -362,11 +368,12 @@ export function DriverMessagesView() {
                 </p>
               ) : null}
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setNewOpen(false)} disabled={createThreadMutation.isPending}>
+              <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
+                <Button variant="outline" className={driverDialogBtn} onClick={() => setNewOpen(false)} disabled={createThreadMutation.isPending}>
                   Cancel
                 </Button>
                 <Button
+                  className={driverDialogBtn}
                   onClick={() => createThreadMutation.mutate()}
                   disabled={(newSubject.trim() || suggestedSubject).trim().length < 3 || newBody.trim().length === 0 || createThreadMutation.isPending}
                 >

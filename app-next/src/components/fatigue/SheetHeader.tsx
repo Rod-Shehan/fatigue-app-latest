@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DEFAULT_JURISDICTION_CODE, getJurisdictionOptions } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
 
 type SheetData = {
   driver_name?: string;
@@ -99,7 +100,7 @@ export default function SheetHeader({
               type="button"
               disabled={readOnly}
               onClick={() => handleChange("driver_type", "solo")}
-              className={`min-w-[4.5rem] px-4 py-1.5 text-xs font-semibold transition-colors rounded-none dark:rounded-md ${
+              className={`min-w-[5rem] ${driverSegmentBtn} rounded-none dark:rounded-md ${
                 driverType === "solo"
                   ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 dark:shadow-md dark:ring-1 dark:ring-white/30"
                   : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900/40 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
@@ -111,7 +112,7 @@ export default function SheetHeader({
               type="button"
               disabled={readOnly}
               onClick={() => handleChange("driver_type", "two_up")}
-              className={`min-w-[4.5rem] px-4 py-1.5 text-xs font-semibold transition-colors border-l border-slate-200 dark:border-0 rounded-none dark:rounded-md ${
+              className={`min-w-[5rem] ${driverSegmentBtn} transition-colors border-l border-slate-200 dark:border-0 rounded-none dark:rounded-md ${
                 driverType === "two_up"
                   ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 dark:shadow-md dark:ring-1 dark:ring-white/30"
                   : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900/40 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"

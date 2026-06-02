@@ -10,11 +10,11 @@ import {
   ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { driverActionBtn } from "@/components/driver/driver-ui-classes";
 
 const inlineBtn =
   "h-9 gap-1.5 text-xs min-h-[44px] sm:min-h-9";
-const stackedBtn =
-  "w-full h-14 min-h-[56px] gap-3 justify-start px-4 text-base font-semibold rounded-xl";
+const stackedBtn = driverActionBtn;
 
 export function DriverSheetActions({
   sheetId,

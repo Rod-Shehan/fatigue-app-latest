@@ -14,6 +14,7 @@ import {
 import { DriverSettingsOptions } from "./driver-settings-options";
 import { DriverSettingsRecordsSection } from "./driver-settings-records";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
+import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 
 const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
 
@@ -56,18 +57,14 @@ export default async function DriverSettingsPage({
 
         <div className="space-y-6">
           <section>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
-              Options
-            </h2>
+            <h2 className={driverSectionLabel}>Options</h2>
             <DriverSettingsOptions />
           </section>
 
           <DriverSettingsRecordsSection />
 
           <section>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
-              Drive
-            </h2>
+            <h2 className={driverSectionLabel}>Drive</h2>
             <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
               <SettingsListRow
                 href="/driver"
@@ -91,9 +88,7 @@ export default async function DriverSettingsPage({
           </section>
 
           <section>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
-              Connect
-            </h2>
+            <h2 className={driverSectionLabel}>Connect</h2>
             <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
               <SettingsListRow
                 href="/driver/messages"
@@ -110,9 +105,7 @@ export default async function DriverSettingsPage({
           </section>
 
           <section>
-            <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
-              Account
-            </h2>
+            <h2 className={driverSectionLabel}>Account</h2>
             <DriverSettingsSignOut />
           </section>
         </div>

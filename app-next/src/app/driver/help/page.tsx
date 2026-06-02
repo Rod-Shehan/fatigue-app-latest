@@ -121,12 +121,14 @@ export default async function DriverHelpPage() {
             operation.
           </p>
 
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Link href="/driver">
-              <Button>Open this week</Button>
+          <div className="flex flex-col gap-2 pt-2">
+            <Link href="/driver" className="block">
+              <Button className="w-full min-h-[56px] h-14 text-base font-semibold">Open this week</Button>
             </Link>
-            <Link href="/sheets">
-              <Button variant="outline">Your weeks</Button>
+            <Link href="/sheets" className="block">
+              <Button variant="outline" className="w-full min-h-[56px] h-14 text-base font-semibold">
+                Your weeks
+              </Button>
             </Link>
           </div>
         </article>

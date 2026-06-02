@@ -4,9 +4,11 @@ import Link from "next/link";
 import { ChevronRight, Loader2 } from "lucide-react";
 import type { ComplianceCheckResult } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const stripBase =
-  "mb-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 min-h-[40px] text-left transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 dark:focus:ring-offset-slate-950";
+import {
+  driverStatusStrip,
+  driverStatusStripDetail,
+  driverStatusStripLabel,
+} from "@/components/driver/driver-ui-classes";
 
 export function DriverComplianceStrip({
   sheetId,
@@ -22,12 +24,12 @@ export function DriverComplianceStrip({
   if (loading) {
     return (
       <div
-        className={cn(stripBase, "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80")}
+        className={cn(driverStatusStrip, "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80")}
         role="status"
       >
-        <Loader2 className="w-4 h-4 animate-spin shrink-0 text-slate-400" aria-hidden />
-        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">Compliance</span>
-        <span className="flex-1 text-xs text-slate-500 truncate">Checking…</span>
+        <Loader2 className="w-5 h-5 animate-spin shrink-0 text-slate-400" aria-hidden />
+        <span className={driverStatusStripLabel}>Compliance</span>
+        <span className={cn(driverStatusStripDetail, "text-slate-500")}>Checking…</span>
       </div>
     );
   }
@@ -50,7 +52,7 @@ export function DriverComplianceStrip({
     <Link
       href={href}
       className={cn(
-        stripBase,
+        driverStatusStrip,
         tone === "issue"
           ? "border-amber-400/80 bg-amber-50/90 hover:bg-amber-100/80 dark:border-amber-700 dark:bg-amber-950/40 focus:ring-amber-400"
           : tone === "warn"
@@ -59,9 +61,9 @@ export function DriverComplianceStrip({
       )}
       aria-label={`Compliance: ${detail}. Open full check.`}
     >
-      <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 shrink-0">Compliance</span>
-      <span className="flex-1 text-xs text-slate-600 dark:text-slate-400 truncate">{detail}</span>
-      <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" aria-hidden />
+      <span className={driverStatusStripLabel}>Compliance</span>
+      <span className={driverStatusStripDetail}>{detail}</span>
+      <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
     </Link>
   );
 }

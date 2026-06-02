@@ -13,13 +13,8 @@ import {
 import type { FatigueSheet } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
+import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components/driver/driver-ui-classes";
 import { DriverSheetActions } from "./DriverSheetActions";
-
-const sectionLabel =
-  "text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-0.5";
-
-const drawerRow =
-  "flex w-full min-h-[56px] items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 px-4 py-3 text-base font-semibold text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 active:bg-slate-200/80 dark:active:bg-slate-800 transition-colors";
 
 export function DriverGearDrawer({
   returnHref,
@@ -109,7 +104,7 @@ export function DriverGearDrawer({
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                className={cn(driverIconBtn, "rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800")}
                 aria-label="Close"
               >
                 <X className="h-6 w-6" />
@@ -119,7 +114,7 @@ export function DriverGearDrawer({
             <div className="p-4 space-y-6">
               {showSheetActions && sheetId && (
                 <section>
-                  <h3 className={sectionLabel}>This week</h3>
+                  <h3 className={driverSectionLabel}>This week</h3>
                   {saveStatus === "saved" && (
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden />
@@ -151,14 +146,14 @@ export function DriverGearDrawer({
 
               {unsignedPastWeeks.length > 0 && (
                 <section>
-                  <h3 className={sectionLabel}>Records to sign</h3>
+                  <h3 className={driverSectionLabel}>Records to sign</h3>
                   <ul className="space-y-2">
                     {unsignedPastWeeks.map((s) => (
                       <li key={s.id}>
                         <Link
                           href={`/sheets/${s.id}`}
                           onClick={() => setOpen(false)}
-                          className={drawerRow}
+                          className={driverDrawerRow}
                         >
                           <FileSignature className="w-5 h-5 shrink-0 text-amber-600" aria-hidden />
                           <span className="flex-1 text-left leading-snug">
@@ -174,7 +169,7 @@ export function DriverGearDrawer({
 
               {optionalNotes.length > 0 && (
                 <section>
-                  <h3 className={sectionLabel}>Optional notes</h3>
+                  <h3 className={driverSectionLabel}>Optional notes</h3>
                   <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 px-4 py-3 space-y-2">
                     {optionalNotes.slice(0, 3).map((msg, i) => (
                       <p key={i} className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
@@ -186,7 +181,7 @@ export function DriverGearDrawer({
                     <Link
                       href={`/sheets/${sheetId}/compliance`}
                       onClick={() => setOpen(false)}
-                      className={cn(drawerRow, "mt-2")}
+                      className={cn(driverDrawerRow, "mt-2")}
                     >
                       <span className="flex-1 text-left">View in compliance</span>
                       <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
@@ -196,7 +191,7 @@ export function DriverGearDrawer({
               )}
 
               <section>
-                <Link href={settingsHref} onClick={() => setOpen(false)} className={drawerRow}>
+                <Link href={settingsHref} onClick={() => setOpen(false)} className={driverDrawerRow}>
                   <Settings className="w-5 h-5 shrink-0" aria-hidden />
                   <span className="flex-1 text-left">All settings</span>
                   <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

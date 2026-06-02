@@ -117,12 +117,12 @@ export function PageHeader({
                 className={cn(
                   "flex items-center justify-center",
                   compact
-                    ? "min-w-9 min-h-9 w-9 h-9"
-                    : "min-w-10 min-h-10 w-10 h-10 sm:min-w-12 sm:min-h-12 sm:w-12 sm:h-12"
+                    ? "min-w-11 min-h-11 w-11 h-11"
+                    : "min-w-11 min-h-11 w-11 h-11 sm:min-w-12 sm:min-h-12 sm:w-12 sm:h-12"
                 )}
               >
                 <ArrowLeft
-                  className={cn(compact ? "w-4 h-4" : "w-5 h-5 sm:w-6 sm:h-6")}
+                  className={cn(compact ? "w-5 h-5" : "w-5 h-5 sm:w-6 sm:h-6")}
                   strokeWidth={2.25}
                 />
               </span>
@@ -144,7 +144,7 @@ export function PageHeader({
                 <h1
                   className={cn(
                     "font-bold text-slate-800 dark:text-slate-100 truncate",
-                    compact ? "text-sm sm:text-base" : "text-base sm:text-lg md:text-xl"
+                    compact ? "text-base sm:text-lg" : "text-base sm:text-lg md:text-xl"
                   )}
                 >
                   {title}

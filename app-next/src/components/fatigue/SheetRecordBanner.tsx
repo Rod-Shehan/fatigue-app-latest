@@ -82,11 +82,10 @@ export function SheetRecordBanner({
       {(variant === "sign" || variant === "resign") && onSign && (
         <Button
           type="button"
-          size="sm"
-          className="shrink-0 gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+          className="shrink-0 w-full sm:w-auto min-h-[48px] h-12 gap-2 text-base font-semibold bg-emerald-600 hover:bg-emerald-700"
           onClick={onSign}
         >
-          <PenLine className="w-3.5 h-3.5" />
+          <PenLine className="w-5 h-5" />
           Sign record
         </Button>
       )}

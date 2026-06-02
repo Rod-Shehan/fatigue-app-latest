@@ -149,7 +149,7 @@ export function SheetsList() {
 
                 <Link href={openThisWeekHref}>
 
-                  <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-2 min-h-[44px] sm:min-h-9">
+                  <Button className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-2 min-h-[48px] h-12 text-base font-semibold">
 
                     <Clock className="w-4 h-4" aria-hidden />
 
@@ -294,7 +294,7 @@ export function SheetsList() {
 
               >
 
-                <Link href={`/sheets/${sheet.id}`} className="flex items-center justify-between p-4 md:p-5">
+                <Link href={`/sheets/${sheet.id}`} className="flex items-center justify-between p-4 md:p-5 min-h-[56px]">
 
                   <div className="flex items-center gap-4 min-w-0">
 
@@ -308,7 +308,7 @@ export function SheetsList() {
 
                       {sheet.week_starting && (
 
-                        <p className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                        <p className="font-semibold text-base text-slate-800 dark:text-slate-200 truncate">
 
                           Week of {format(parseLocalDate(sheet.week_starting), "dd MMM yyyy")}
 

@@ -26,7 +26,7 @@ export function CvdMedicalBanner({
   const role = roleLabel ? `${roleLabel}: ` : "";
 
   const base =
-    "rounded-lg border px-3 py-2.5 text-sm flex gap-2 items-start mb-3";
+    "rounded-xl border px-4 py-3 min-h-[56px] text-sm flex gap-3 items-start mb-3";
   if (kind === "expired") {
     return (
       <div
@@ -36,14 +36,14 @@ export function CvdMedicalBanner({
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
         <div className="min-w-0">
           <p className="font-semibold">CVD medical certificate — expired</p>
-          <p className="text-xs mt-0.5 opacity-95">
+          <p className="text-sm mt-0.5 opacity-95">
             {role}
             {driverLabel}
             {expiryYmd ? ` — was due ${expiryYmd}` : ""}. Arrange a medical assessment and update the roster.
             {Number.isFinite(days) ? ` (${days} day(s) overdue)` : ""}
           </p>
           {canAccessManager && (
-            <p className="text-xs mt-1">
+            <p className="text-sm mt-1">
               <Link href="/drivers" className="font-medium underline underline-offset-2">
                 Edit driver in Approved Drivers
               </Link>
@@ -66,13 +66,13 @@ export function CvdMedicalBanner({
       <Stethoscope className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
       <div className="min-w-0">
         <p className="font-semibold">CVD medical certificate — renew soon</p>
-        <p className="text-xs mt-0.5 opacity-95">
+        <p className="text-sm mt-0.5 opacity-95">
           {role}
           {driverLabel} — expires {expiryYmd}
           {Number.isFinite(days) ? ` (${days} day(s) remaining)` : ""}.
         </p>
         {canAccessManager && (
-          <p className="text-xs mt-1">
+          <p className="text-sm mt-1">
             <Link href="/drivers" className="font-medium underline underline-offset-2">
               Update expiry in Approved Drivers
             </Link>

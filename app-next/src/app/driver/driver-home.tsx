@@ -7,6 +7,8 @@ import { useSession } from "next-auth/react";
 import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
+import { driverListRow, driverSectionLabel } from "@/components/driver/driver-ui-classes";
+import { cn } from "@/lib/utils";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { getDriverHomeShiftStatus, type DriverShiftActivity } from "@/lib/driver-home-status";
 import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
@@ -113,7 +115,7 @@ export function DriverHome() {
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{PRODUCT_NAME}</p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
               {driverName ? `Hi, ${driverName}` : "Drive"}
             </p>
           </div>
@@ -131,7 +133,7 @@ export function DriverHome() {
           <>
             <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-md overflow-hidden">
               <div className="px-4 pt-4 pb-2 border-b border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                <p className={driverSectionLabel}>
                   This week · {weekLabel}
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Today · {todayLabel}</p>
@@ -170,13 +172,12 @@ export function DriverHome() {
               </Button>
             </Link>
 
-            <Link
-              href="/sheets"
-              className="flex items-center justify-between rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80"
-            >
-              Your weeks
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </Link>
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
+              <Link href="/sheets" className={cn(driverListRow, "justify-between")}>
+                Your weeks
+                <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+              </Link>
+            </div>
           </>
         )}
       </main>

@@ -27,6 +27,7 @@ import {
   getNonWorkHoursSinceLastStop,
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
+import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
 import {
   WORK_WINDOW_MIN,
   emptySlots,
@@ -738,26 +739,30 @@ export default function LogBar({
     <div className={cn("space-y-2", complianceBarTextClass)}>
       <div className="flex flex-wrap items-center justify-center gap-3">
         {driverType === "two_up" && (
-          <span className="flex w-full justify-center items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 sm:w-auto sm:justify-start">
-            <span className="uppercase tracking-wider font-semibold">Driver</span>
+          <span className="flex w-full justify-center items-center gap-2 text-sm text-slate-500 dark:text-slate-400 sm:w-auto sm:justify-start">
+            <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
             <button
               type="button"
-              className={`px-1.5 py-0.5 rounded-md border text-[11px] font-medium ${
+              className={cn(
+                driverSegmentBtn,
+                "rounded-lg border",
                 activeDriver === "primary"
                   ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
                   : "bg-transparent text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600"
-              }`}
+              )}
               onClick={() => setActiveDriver("primary")}
             >
               {primaryDriverName || "Driver 1"}
             </button>
             <button
               type="button"
-              className={`px-1.5 py-0.5 rounded-md border text-[11px] font-medium ${
+              className={cn(
+                driverSegmentBtn,
+                "rounded-lg border",
                 activeDriver === "second"
                   ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
                   : "bg-transparent text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600"
-              }`}
+              )}
               onClick={() => setActiveDriver("second")}
             >
               {secondDriverName || "Driver 2"}
@@ -820,9 +825,9 @@ export default function LogBar({
                 <button
                   type="button"
                   onClick={() => handleLog(type)}
-                  className={`flex w-full sm:w-auto items-center justify-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-lg text-white text-xs font-bold transition-all duration-150 active:scale-95 shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
+                  className={`flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-3 sm:py-2.5 rounded-lg text-white text-sm sm:text-base font-bold min-h-[48px] transition-all duration-150 active:scale-95 shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
                 >
-                  {React.createElement(EVENT_ICONS[type], { className: "w-4 h-4" })}
+                  {React.createElement(EVENT_ICONS[type], { className: "w-5 h-5" })}
                   {isPending ? "Tap again to end shift" : EVENT_LABELS[type]}
                 </button>
               );
@@ -1211,21 +1216,21 @@ export default function LogBar({
               {workWarning.subtext && (
                 <p className="text-xs text-slate-500 dark:text-slate-400">{workWarning.subtext}</p>
               )}
-              <div className="flex gap-2 justify-end">
+              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
                 <button
                   type="button"
                   onClick={() => {
                     workWarning.onCancel?.();
                     setWorkWarning(null);
                   }}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500"
+                  className="min-h-[48px] px-4 py-3 rounded-xl text-base font-semibold bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500"
                 >
                   {workWarning.confirmLabel === "Start anyway" ? "Keep resting" : "Cancel"}
                 </button>
                 <button
                   type="button"
                   onClick={() => workWarning.onConfirm()}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 hover:bg-amber-600 text-white"
+                  className="min-h-[48px] px-4 py-3 rounded-xl text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white"
                 >
                   {workWarning.confirmLabel}
                 </button>

@@ -99,7 +99,7 @@ function LoginForm() {
           <div className="space-y-2">
             <Label
               htmlFor="email"
-              className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold"
+              className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold"
             >
               Email
             </Label>
@@ -109,14 +109,14 @@ function LoginForm() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-9"
+              className="h-12 text-base"
               required={true}
             />
           </div>
           <div className="space-y-2">
             <Label
               htmlFor="password"
-              className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold"
+              className="text-xs uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold"
             >
               Password
             </Label>
@@ -125,7 +125,7 @@ function LoginForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="h-9"
+              className="h-12 text-base"
               required={false}
             />
           </div>
@@ -137,7 +137,7 @@ function LoginForm() {
           <div className="space-y-3">
             <Button
               type="submit"
-              className="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+              className="w-full h-12 text-base bg-slate-900 hover:bg-slate-800 text-white font-semibold"
               disabled={loading}
             >
               {loading ? "Signing in…" : "Sign in"}
@@ -145,7 +145,7 @@ function LoginForm() {
             <Button
               type="button"
               variant="outline"
-              className="w-full h-9 border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium gap-2"
+              className="w-full h-12 text-base border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium gap-2"
               disabled={loading}
               onClick={(e) => onSubmit(e, "/manager")}
             >

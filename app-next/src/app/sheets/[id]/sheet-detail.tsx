@@ -38,6 +38,7 @@ import { DriverComplianceStrip } from "@/components/driver/DriverComplianceStrip
 import { DriverRecordsStrip } from "@/components/driver/DriverRecordsStrip";
 import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
 import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
+import { driverDialogBtn } from "@/components/driver/driver-ui-classes";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
   getDayWithCarriedOverCardInfo,
@@ -888,7 +889,7 @@ export function SheetDetail({
                 <div className="w-full basis-full h-0" aria-hidden />
                 <Link
                   href={complianceHref}
-                  className={`inline-flex items-center gap-1.5 shrink-0 h-8 sm:h-9 rounded-md border px-2.5 sm:px-3 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
+                  className={`inline-flex items-center gap-1.5 shrink-0 min-h-[44px] h-11 sm:h-10 rounded-md border px-3 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 ${
                     hasComplianceViolations
                       ? "border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-800/50"
                       : "border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-100 dark:hover:bg-emerald-800/50"
@@ -1141,16 +1142,16 @@ export function SheetDetail({
             <DialogDescription className="text-left">{signBlockedMessage}</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={() => setSignBlockedMessage(null)}>
+            <Button variant="outline" className={driverDialogBtn} onClick={() => setSignBlockedMessage(null)}>
               Close
             </Button>
-            <Link href="/sheets">
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
+            <Link href="/sheets" className="w-full sm:w-auto">
+              <Button variant="outline" className={driverDialogBtn}>
                 Your weeks
               </Button>
             </Link>
-            <Link href="/driver">
-              <Button size="sm" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
+            <Link href="/driver" className="w-full sm:w-auto">
+              <Button className={cn(driverDialogBtn, "bg-emerald-600 hover:bg-emerald-700")}>
                 Current week
               </Button>
             </Link>
@@ -1170,12 +1171,12 @@ export function SheetDetail({
                 : "You will sign to confirm. The sheet will be locked as complete. Make sure all entries are correct before continuing."}
             </DialogDescription>
           </DialogHeader>
-          <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={() => setShowMarkCompleteConfirm(false)}>
+          <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
+            <Button variant="outline" className={driverDialogBtn} onClick={() => setShowMarkCompleteConfirm(false)}>
               Cancel
             </Button>
-            <Button size="sm" onClick={handleMarkCompleteConfirm} className="gap-1.5 bg-emerald-600 hover:bg-emerald-700">
-              <CheckCircle2 className="w-3.5 h-3.5" />
+            <Button onClick={handleMarkCompleteConfirm} className={cn(driverDialogBtn, "gap-2 bg-emerald-600 hover:bg-emerald-700")}>
+              <CheckCircle2 className="w-5 h-5" />
               Continue to sign
             </Button>
           </div>
@@ -1229,12 +1230,12 @@ export function SheetDetail({
                 {endShiftError}
               </p>
             )}
-            <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" size="sm" onClick={() => setEndShiftDialog(null)}>
+            <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
+              <Button variant="outline" className={driverDialogBtn} onClick={() => setEndShiftDialog(null)}>
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleEndShiftConfirm} className="gap-1.5">
-                <Square className="w-3.5 h-3.5" />
+              <Button onClick={handleEndShiftConfirm} className={cn(driverDialogBtn, "gap-2")}>
+                <Square className="w-5 h-5" />
                 End shift
               </Button>
             </div>
