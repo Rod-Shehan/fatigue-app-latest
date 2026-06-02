@@ -8,7 +8,6 @@ import {
   Square,
   ClipboardList,
   X,
-  CircleX,
   Loader2,
   AlertTriangle,
   Clock,
@@ -20,7 +19,6 @@ import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
 import { getShiftRestStatusFromWorkGrid } from "@/lib/shift-rest-status";
-import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import {
   getEventsForDriverInOrder,
 } from "@/lib/rolling-events";
@@ -41,85 +39,6 @@ import {
 
 const WORK_TARGET_MINUTES = WORK_WINDOW_MIN;
 const BREAK_TARGET_MINUTES = 20;
-
-function formatCountdown(mins: number): string {
-  if (mins <= 0) return "now";
-  if (mins >= 60) return `${Math.floor(mins / 60)}h ${mins % 60}m`;
-  return `${mins}m`;
-}
-
-type PrimaryCountdownKind = "break-due" | "break-finish" | "start-shift-wait";
-
-/** High-contrast countdown chip on the primary log button (cab / outdoor legibility). */
-function PrimaryActionCountdownBlock({
-  labelPrefix,
-  mins,
-  kind,
-  detail,
-}: {
-  labelPrefix: string;
-  mins: number;
-  kind: PrimaryCountdownKind;
-  detail?: string | null;
-}) {
-  const ready = mins <= 0;
-  const timerChipClass =
-    kind === "start-shift-wait"
-      ? ready
-        ? "bg-emerald-800 text-white ring-emerald-200/90"
-        : "bg-red-950 text-white ring-white/95"
-      : ready
-        ? "bg-emerald-800 text-white ring-emerald-200/90"
-        : "bg-slate-950 text-white ring-white/90";
-
-  if (kind === "start-shift-wait") {
-    return (
-      <span className="flex flex-col items-start leading-none gap-1 min-w-0 text-left">
-        <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-white drop-shadow-sm">
-          7h rest required
-        </span>
-        {detail ? (
-          <span className="text-[11px] sm:text-xs font-semibold text-white/90 drop-shadow-sm">
-            {detail}
-          </span>
-        ) : null}
-        <span className="text-sm sm:text-base font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
-          {ready ? "You may start shift" : labelPrefix}
-        </span>
-        <span
-          className={cn(
-            "inline-flex items-center rounded-lg px-2.5 py-1 font-mono font-extrabold tabular-nums tracking-tight text-2xl sm:text-3xl ring-2 shadow-md",
-            timerChipClass,
-            !ready && "animate-pulse"
-          )}
-          aria-live="polite"
-        >
-          {formatCountdown(mins)}
-        </span>
-      </span>
-    );
-  }
-
-  const overdue = ready;
-
-  return (
-    <span className="flex flex-col items-start leading-none gap-1 min-w-0">
-      <span className="text-sm sm:text-base font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
-        {overdue ? labelPrefix.replace(/ in$/, " now") : labelPrefix}
-      </span>
-      <span
-        className={cn(
-          "inline-flex items-center rounded-lg px-2.5 py-1 font-mono font-extrabold tabular-nums tracking-tight text-2xl sm:text-3xl ring-2 shadow-md",
-          timerChipClass,
-          overdue && "animate-pulse"
-        )}
-        aria-live="polite"
-      >
-        {formatCountdown(mins)}
-      </span>
-    </span>
-  );
-}
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
@@ -566,41 +485,37 @@ export default function LogBar({
     return `Less than ${MIN_NON_WORK_HOURS_BETWEEN_SHIFTS} hours non-work time since last work. Starting work may not meet non-work time requirements.`;
   };
 
-  const primaryActionCountdown = useMemo(() => {
+  const logBarBanner = useMemo(() => {
     if (!isLiveNow) return null;
     const nowMs = Date.now();
 
     if (currentType === "work") {
       const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
-      if (!dueBy) return null;
-      const mins = Math.max(0, Math.ceil((dueBy - nowMs) / 60000));
-      return { mins, labelPrefix: "Break due in" as const, kind: "break-due" as const };
+      if (dueBy == null) return null;
+      const mins = Math.ceil((dueBy - nowMs) / 60000);
+      // Show only when the driver is at/near the due moment (keeps UI quiet).
+      if (mins > 30) return null;
+      return mins <= 0
+        ? "Break is due now (20 min per 5h work)."
+        : `Break due in ${mins} min (20 min per 5h work).`;
     }
+
     if (currentType === "break") {
       const mins = getBreakFinishMinutes(eventsForDriver, nowMs);
       if (mins == null) return null;
-      return { mins, labelPrefix: "Break finish in" as const, kind: "break-finish" as const };
+      if (mins <= 0) return "Minimum break complete — you may resume work when ready.";
+      return `Minimum break: ${mins} min remaining.`;
     }
+
     if (currentType === null) {
       const rest = getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs);
       if (rest.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
-      const mins = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - rest.consecutiveNonWorkMinutes);
-      const endedAt = rest.restRunStartedAtMs
-        ? new Date(rest.restRunStartedAtMs).toLocaleTimeString("en-AU", {
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: false,
-          })
-        : "—";
-      return {
-        mins,
-        labelPrefix: "Start shift in" as const,
-        kind: "start-shift-wait" as const,
-        detail: `Non-work run: ${formatDurationHoursMinutes(rest.consecutiveNonWorkMinutes)} (since ${endedAt})`,
-      };
+      const remaining = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - rest.consecutiveNonWorkMinutes);
+      return `7h rest required before Start shift — ${formatDurationHoursMinutes(remaining)} remaining.`;
     }
+
     return null;
-  }, [activeDriver, currentType, days, driverType, eventsForDriver, isLiveNow, tick]);
+  }, [currentType, days, currentDayIndex, eventsForDriver, isLiveNow]);
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
@@ -782,6 +697,14 @@ export default function LogBar({
 
   const barContent = (
     <div className={cn("space-y-2", complianceBarTextClass)}>
+      {logBarBanner ? (
+        <div
+          role="status"
+          className="rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
+        >
+          {logBarBanner}
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-center gap-3">
         {driverType === "two_up" && (
           <span className="flex w-full justify-center items-center gap-2 text-sm text-slate-500 dark:text-slate-400 sm:w-auto sm:justify-start">
@@ -820,100 +743,40 @@ export default function LogBar({
             const rest = isLiveNow
               ? getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs)
               : null;
-
-            const idlePrimary =
-              currentType === null && rest
-                ? resolveIdlePrimaryLogAction({
-                    restRunMinutes: rest.consecutiveNonWorkMinutes,
-                    minRestMinutes: MIN_NON_WORK_MIN_BETWEEN_SHIFTS,
-                  })
-                : null;
-
-            const nextWorkBreak =
-              idlePrimary?.type ??
-              (getNextWorkBreakType(currentType) as "work" | "break");
+            const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
 
             const isPending = pendingType === nextWorkBreak;
             const theme = ACTIVITY_THEME[nextWorkBreak];
             const isStartingShift = nextWorkBreak === "work" && currentType === null;
-            const primaryLabel =
-              idlePrimary?.label ?? (isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak]);
-
-            // Phase B1: when primary becomes "Continue rest", suppress the red start-shift countdown;
-            // show the helper line on the button instead.
-            const showCountdown =
-              idlePrimary == null &&
-              primaryActionCountdown != null &&
-              getNextWorkBreakType(currentType) === nextWorkBreak;
-            const countdownKind = showCountdown ? primaryActionCountdown.kind : null;
-            const startShiftBlocked = countdownKind === "start-shift-wait";
-            const breakCountdown =
-              countdownKind === "break-due" || countdownKind === "break-finish";
-            const showRestBlockedStyle = idlePrimary?.type === "non_work";
+            const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
+            const startShiftBlocked =
+              isStartingShift &&
+              rest != null &&
+              rest.consecutiveNonWorkMinutes < MIN_NON_WORK_MIN_BETWEEN_SHIFTS;
             return (
               <button
                 type="button"
                 onClick={() => handleLog(nextWorkBreak)}
                 className={cn(
                   "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
-                  !showCountdown && theme.button,
-                  startShiftBlocked &&
-                    !isPending &&
-                    "bg-red-600 hover:bg-red-700 border-2 border-red-950/50 dark:border-red-300/60 ring-4 ring-red-950/25 dark:ring-red-400/30 shadow-red-950/40",
-                  showRestBlockedStyle &&
-                    !isPending &&
-                    "bg-red-600 hover:bg-red-700 border-2 border-red-950/50 dark:border-red-300/60 ring-4 ring-red-950/25 dark:ring-red-400/30 shadow-red-950/40",
-                  breakCountdown && !isPending && "bg-amber-600 hover:bg-amber-700",
-                  showCountdown &&
-                    !isPending &&
-                    !startShiftBlocked &&
-                    !breakCountdown &&
-                    nextWorkBreak === "work" &&
-                    "bg-blue-600 hover:bg-blue-700",
-                  isPending && "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse"
+                  theme.button,
+                  isPending &&
+                    "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse",
+                  startShiftBlocked && "opacity-60 cursor-not-allowed"
                 )}
-                aria-label={
-                  showCountdown && !isPending
-                    ? startShiftBlocked
-                      ? `7 hour rest required. ${primaryActionCountdown.labelPrefix} ${formatCountdown(primaryActionCountdown.mins)}`
-                      : `${primaryActionCountdown.labelPrefix} ${formatCountdown(primaryActionCountdown.mins)}`
-                    : isPending
-                      ? "Tap again to confirm"
-                      : primaryLabel
-                }
+                aria-label={isPending ? "Tap again to confirm" : primaryLabel}
+                disabled={startShiftBlocked && !isPending}
               >
-                {(startShiftBlocked || showRestBlockedStyle) && !isPending ? (
-                  <span
-                    className="relative flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-red-950/50 ring-2 ring-white/80"
-                    aria-hidden
-                  >
-                    <CircleX className="w-8 h-8 sm:w-9 sm:h-9 text-white stroke-[2.25]" />
-                  </span>
-                ) : (
-                  React.createElement(EVENT_ICONS[nextWorkBreak], {
-                    className: cn(
-                      "shrink-0 text-white drop-shadow-sm",
-                      showCountdown && !isPending ? "w-8 h-8 sm:w-9 sm:h-9" : "w-8 h-8"
-                    ),
-                  })
-                )}
+                {React.createElement(EVENT_ICONS[nextWorkBreak], {
+                  className: "shrink-0 text-white drop-shadow-sm w-8 h-8",
+                })}
                 {isPending ? (
-                  <span className="text-base sm:text-lg">Tap again to log</span>
-                ) : showCountdown ? (
-                  <PrimaryActionCountdownBlock
-                    labelPrefix={primaryActionCountdown.labelPrefix}
-                    mins={primaryActionCountdown.mins}
-                    kind={primaryActionCountdown.kind}
-                    detail={primaryActionCountdown.detail}
-                  />
+                  <span className="flex flex-col items-center leading-tight min-w-0">
+                    <span className="text-base sm:text-lg">Tap again to confirm</span>
+                  </span>
                 ) : (
                   <span className="flex flex-col items-center leading-tight min-w-0">
                     <span className="text-base sm:text-lg">{primaryLabel}</span>
-                    {idlePrimary?.helper ? (
-                      <span className="text-[11px] sm:text-xs font-semibold text-white/90">
-                        {idlePrimary.helper}
-                      </span>
-                    ) : null}
                   </span>
                 )}
               </button>
