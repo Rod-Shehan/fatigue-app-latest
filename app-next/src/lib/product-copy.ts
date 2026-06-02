@@ -5,11 +5,11 @@
 
 /**
  * Canonical record contract (prevention/education + evidence).
- * Implementation should enforce: past weeks read-only for drivers; current week actionable;
- * past edits only via authorised manager with mandatory reason + audit trail.
+ * Implementation should enforce: unsigned weeks editable for drivers until attestation;
+ * signed weeks locked; manager amendments use reason + audit trail.
  */
 export const SHEET_RECORD_CONTRACT =
-  "Any week before the current regulatory week is a read-only archive; only the current week accepts driver actions, while only an authorised manager can edit past records with reasons for doing so.";
+  "While a week is unsigned, you can correct any day on that record. After you sign, it is locked — your manager can amend with a reason on file, then you re-sign if needed.";
 
 /** Design intent behind {@link SHEET_RECORD_CONTRACT} — not shown verbatim to drivers. */
 export const SHEET_RECORD_CONTRACT_NOTES = [
@@ -28,9 +28,9 @@ export const SHEET_RECORD_CONTRACT_NOTES = [
  * - **Attestation**: signature + signed_at = driver attests this slice is their record.
  *
  * Paths:
- * 1. Past week, never signed → archive (read-only). Manager may amend → driver signs (first attestation) → locked archive.
- * 2. Past week, signed → manager amends (reason) → signature cleared, pending driver re-sign → driver signs as if first instance → locked archive.
- * 3. Current week → driver logs; may sign when ready; if manager amends after sign, same re-sign loop before treating as final.
+ * 1. Past week, never signed → driver may edit days and sign; manager may amend → driver signs → locked.
+ * 2. Past week, signed → manager amends (reason) → signature cleared, pending driver re-sign → driver signs → locked.
+ * 3. Current week → driver logs (live bar on today only); may edit any unsigned day; sign when ready; re-sign after manager amend.
  *
  * Manager edit policy (real world / ISO 9001–style document control):
  * - Driver and manager may negotiate corrections over multiple edits; each edit is audited with reason.
@@ -49,7 +49,7 @@ export const SHEET_ATTESTATION_WORKFLOW = {
   /** @deprecated Use formatSignPastWeekTitle — past weeks are not "this week". */
   SIGN_ARCHIVED_WEEK_TITLE: "Sign this week's record",
   SIGN_ARCHIVED_WEEK_BODY:
-    "This week is closed for logging. Sign to confirm the record is yours. Ask your manager first if anything still looks wrong.",
+    "This week is not your current logging week. You can still open each day and fix route or times before you sign. Live Work/Break logging is only on the current week.",
   /** Manager-facing: when corrections are agreed — send for driver attestation. */
   MANAGER_SEND_FOR_DRIVER_SIGN:
     "When you and the driver agree the week is correct, ask them to open it from Your Sheets and sign. Until they sign, this is not their attested record.",
@@ -70,18 +70,18 @@ export const SHEETS_LIST_TAGLINE =
 
 /** Driver help: records, archives, and signing (plain language). */
 export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
-  "The app opens on this week — the only week where you log Work, Break, and End shift.",
-  "Past weeks are closed for logging. Open them from Your weeks to review, export, or sign.",
+  "The app opens on this week — use Work, Break, and End shift on today while the week is unsigned.",
+  "Past weeks that are still unsigned: open the week, expand a day, and fix route or times before you sign.",
   "Your signature means you attest that week is your record. It is not the manager's signature.",
-  "If something in a past week is wrong, your manager corrects it (with a reason on file). When you both agree it is right, open that week and sign — or sign again after a correction.",
-  "Unsigned past weeks show as reminders with links to sign — they do not block logging on the current week.",
+  "After you sign, that week is locked. If something is wrong, your manager amends (with a reason on file); you review and sign again.",
+  "Unsigned past weeks show as reminders — they do not block logging on the current week.",
 ] as const;
 
 /** Bullets: how weeks appear to the driver in the UI. */
 export const USER_VISIBLE_SHEET_STATE_BULLETS = [
-  "Current regulatory week — the slice you open to log work and breaks from now.",
-  "Past weeks — read-only; sign to attest, or re-sign if your manager corrected the record.",
-  "Signed weeks — you have attested that slice; manager edits require your signature again.",
+  "Current regulatory week — log Work/Break/End shift on today; edit any day until you sign.",
+  "Unsigned past weeks — expand a day to fix route or times, then sign when correct.",
+  "Signed weeks — locked for you; manager edits need your signature again.",
 ] as const;
 
 /** Manager UI: why past-week edit exists (amendment flow). */
@@ -116,8 +116,8 @@ export function formatSignPastWeekTitle(weekOfLabel: string): string {
 
 export function formatSignPastWeekBody(weekOfLabel: string): string {
   return (
-    `This is a past week (week of ${weekOfLabel}), not the current week. It is closed for logging. ` +
-    `Sign to confirm that slice of your record is yours. To log work now, use Drive home → Continue logging.`
+    `Week of ${weekOfLabel} is not your current logging week. Expand any day below to fix route or times, then sign. ` +
+    `To log work live now, use Drive home → Continue logging.`
   );
 }
 
@@ -140,11 +140,11 @@ export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
   return `Archive · week of ${weekOfLabel}`;
 }
 
-/** When driver cannot sign a past week until manager fixes data (read-only archive). */
+/** When driver cannot sign until validation passes (e.g. missing kms). */
 export function formatSignBlockedPastWeekMessage(validationError: string, weekOfLabel: string): string {
   return (
-    `${validationError} This past week (week of ${weekOfLabel}) is read-only here. ` +
-    `Ask your manager to correct the record, then return to sign — or go to Drive home to log the current week.`
+    `${validationError} Fix the day cards for week of ${weekOfLabel}, then try signing again. ` +
+    `Your manager can help with compliance questions after you sign.`
   );
 }
 

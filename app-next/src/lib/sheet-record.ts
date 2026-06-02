@@ -7,15 +7,30 @@ import { isPastRegulatoryWeek } from "@/lib/weeks";
 
 export { isPastRegulatoryWeek };
 
-/** Driver may log work/break/edit day content only on the current regulatory week. */
-export function canDriverLogOnSheet(weekStarting: string, status: string): boolean {
-  if (isPastRegulatoryWeek(weekStarting)) return false;
-  return status !== "completed";
+/** True while the driver has not attested this sheet (no signature, not completed). */
+export function sheetIsUnsignedForDriver(status: string, signature?: string | null): boolean {
+  if (signature) return false;
+  if (status === "completed") return false;
+  return true;
 }
 
-/** Driver may edit sheet content (not attestation-only). */
-export function canDriverEditSheetContent(weekStarting: string, status: string): boolean {
-  return canDriverLogOnSheet(weekStarting, status);
+/** Driver may log work/break via the live LogBar on the current regulatory week only. */
+export function canDriverLogOnSheet(
+  weekStarting: string,
+  status: string,
+  signature?: string | null
+): boolean {
+  if (!sheetIsUnsignedForDriver(status, signature)) return false;
+  return !isPastRegulatoryWeek(weekStarting);
+}
+
+/** Driver may edit sheet content (day cards, header fields) while the week is unsigned. */
+export function canDriverEditSheetContent(
+  _weekStarting: string,
+  status: string,
+  signature?: string | null
+): boolean {
+  return sheetIsUnsignedForDriver(status, signature);
 }
 
 /** Driver may sign / complete attestation (current or past week). */

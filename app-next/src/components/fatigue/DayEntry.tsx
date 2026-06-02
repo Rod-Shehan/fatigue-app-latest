@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, Pencil, Trash2, ArrowRight } from "lucide-react";
+import { Clock, Pencil, Trash2, ArrowRight, ChevronDown } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
@@ -126,6 +126,7 @@ export default function DayEntry({
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [expanded, setExpanded] = useState(isToday);
   const [draftEvents, setDraftEvents] = useState<Array<{ type: string; time: string; driver?: "primary" | "second" }>>(
     []
   );
@@ -138,8 +139,8 @@ export default function DayEntry({
   const showShiftPatternEducation =
     consecutiveWorkDays >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS && !dayData.shift_label;
 
-  const canShowEditTimes = canEditTimes && isToday && !readOnly;
-  const canEditDetails = isToday && !readOnly;
+  const canShowEditTimes = canEditTimes && !readOnly;
+  const canEditDetails = !readOnly;
 
   const hasRouteDetails =
     (dayData.start_location ?? "").trim() !== "" ||
@@ -163,20 +164,18 @@ export default function DayEntry({
         ? "Logged"
         : "No activity";
 
-  if (collapseWhenNotToday && !isToday) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: dayIndex * 0.02 }}
-        className={cn(
-          "flex items-center gap-2 rounded-lg border px-3 py-2 min-h-[44px]",
-          isPast
-            ? "bg-white/60 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-90"
-            : "bg-slate-50/80 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800/80"
-        )}
-        aria-label={`${DAY_NAMES[dayIndex]}, ${getDateStr()}. ${collapsedSummary}. Read only.`}
-      >
+  if (collapseWhenNotToday && !isToday && !expanded) {
+    const summaryLabel = readOnly ? `${collapsedSummary}. Read only.` : `${collapsedSummary}. Tap to expand and edit.`;
+    const rowClass = cn(
+      "flex w-full items-center gap-2 rounded-lg border px-3 py-2 min-h-[44px] text-left",
+      readOnly
+        ? isPast
+          ? "bg-white/60 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-90"
+          : "bg-slate-50/80 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800/80"
+        : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/80 active:bg-slate-100 transition-colors"
+    );
+    const inner = (
+      <>
         <div
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-xs font-semibold",
@@ -196,6 +195,30 @@ export default function DayEntry({
         <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">
           {collapsedSummary}
         </span>
+        {!readOnly && <ChevronDown className="w-4 h-4 shrink-0 text-slate-400" aria-hidden />}
+      </>
+    );
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: dayIndex * 0.02 }}
+      >
+        {readOnly ? (
+          <div className={rowClass} aria-label={`${DAY_NAMES[dayIndex]}, ${getDateStr()}. ${summaryLabel}`}>
+            {inner}
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className={rowClass}
+            aria-label={`${DAY_NAMES[dayIndex]}, ${getDateStr()}. ${summaryLabel}`}
+            aria-expanded={false}
+          >
+            {inner}
+          </button>
+        )}
       </motion.div>
     );
   }
@@ -213,10 +236,10 @@ export default function DayEntry({
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
           <div
             className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold",
+              "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold shrink-0",
               isToday
                 ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
                 : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
@@ -224,7 +247,7 @@ export default function DayEntry({
           >
             {DAY_NAMES[dayIndex]?.charAt(0)}
           </div>
-          <div>
+          <div className="min-w-0">
             <p
               className={cn(
                 "text-base font-bold",
@@ -236,7 +259,18 @@ export default function DayEntry({
             <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">{getDateStr()}</p>
           </div>
         </div>
-        <div className="flex flex-col gap-2 w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:w-auto">
+        <div className="flex flex-col gap-2 w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:w-auto sm:ml-auto">
+          {collapseWhenNotToday && !isToday && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-9 text-xs text-slate-500"
+              onClick={() => setExpanded(false)}
+            >
+              Collapse
+            </Button>
+          )}
           {canEditDetails && (
             <Button
               type="button"

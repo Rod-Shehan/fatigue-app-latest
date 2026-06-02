@@ -50,10 +50,10 @@ export function SheetRecordBanner({
         : {
             title: isPastWeek
               ? formatPastWeekArchiveSubtitle(weekOfLabel)
-              : "Past week — read-only record",
+              : "Signed week — locked record",
             body: isPastWeek
-              ? "This past week is closed for logging. You can review it here; corrections go through your manager."
-              : "This week is closed for logging. You can review it here; corrections go through your manager.",
+              ? "This past week is signed and locked. Export or review here; ask your manager to amend if something needs correcting."
+              : "This week is signed and locked. Review here; ask your manager to amend if something needs correcting.",
           };
 
   return (

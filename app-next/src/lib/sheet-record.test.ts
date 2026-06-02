@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { isPastRegulatoryWeek } from "@/lib/weeks";
+import { getThisWeekSunday, isPastRegulatoryWeek } from "@/lib/weeks";
 import {
   canDriverEditSheetContent,
   canDriverLogOnSheet,
   managerRequiresAmendmentReason,
   patchIsAttestationOnly,
   patchTouchesContent,
+  sheetIsUnsignedForDriver,
 } from "./sheet-record";
 
 describe("isPastRegulatoryWeek", () => {
@@ -18,18 +19,30 @@ describe("isPastRegulatoryWeek", () => {
 });
 
 describe("driver capabilities", () => {
-  it("cannot log on past week", () => {
-    expect(canDriverLogOnSheet("2026-03-22", "draft")).toBe(false);
+  const thisWeek = getThisWeekSunday();
+  const pastWeek = "2020-01-05";
+
+  it("unsigned past week is editable", () => {
+    expect(sheetIsUnsignedForDriver("draft", null)).toBe(true);
+    expect(canDriverEditSheetContent(pastWeek, "draft", null)).toBe(true);
   });
-  it("can log on current draft", () => {
-    expect(canDriverLogOnSheet("2026-05-24", "draft")).toBe(true);
+  it("cannot log live on past week even when unsigned", () => {
+    expect(canDriverLogOnSheet(pastWeek, "draft", null)).toBe(false);
   });
-  it("cannot edit completed current week", () => {
-    expect(canDriverEditSheetContent("2026-05-24", "completed")).toBe(false);
+  it("can log live on current unsigned week", () => {
+    expect(canDriverLogOnSheet(thisWeek, "draft", null)).toBe(true);
+  });
+  it("cannot edit signed sheet", () => {
+    expect(canDriverEditSheetContent("2026-05-24", "completed", "data:image/png;base64,x")).toBe(false);
+  });
+  it("cannot edit completed without signature field but status completed", () => {
+    expect(canDriverEditSheetContent("2026-05-24", "completed", null)).toBe(false);
   });
 });
 
 describe("patch classification", () => {
+  const thisWeek = getThisWeekSunday();
+
   it("detects content patch", () => {
     expect(patchTouchesContent({ days: [] })).toBe(true);
     expect(patchTouchesContent({ signature: "x" })).toBe(false);
@@ -46,10 +59,10 @@ describe("patch classification", () => {
   });
   it("manager reason on past content", () => {
     expect(
-      managerRequiresAmendmentReason("2026-03-22", "draft", { days: [] })
+      managerRequiresAmendmentReason("2020-01-05", "draft", { days: [] })
     ).toBe(true);
     expect(
-      managerRequiresAmendmentReason("2026-05-24", "draft", { days: [] })
+      managerRequiresAmendmentReason(thisWeek, "draft", { days: [] })
     ).toBe(false);
   });
 });

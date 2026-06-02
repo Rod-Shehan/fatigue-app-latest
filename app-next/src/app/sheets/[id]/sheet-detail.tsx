@@ -53,7 +53,7 @@ import {
   isPastRegulatoryWeek,
   normalizeWeekDateString,
 } from "@/lib/weeks";
-import { canDriverEditSheetContent } from "@/lib/sheet-record";
+import { canDriverEditSheetContent, canDriverLogOnSheet } from "@/lib/sheet-record";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import {
   consecutiveWorkDaysEndingAt,
@@ -255,12 +255,16 @@ export function SheetDetail({
     [sheetData.week_starting]
   );
   const driverContentLocked = useMemo(
-    () => !isManager && (isPastWeek || sheetData.status === "completed"),
-    [isManager, isPastWeek, sheetData.status]
+    () =>
+      !isManager &&
+      !canDriverEditSheetContent(sheetData.week_starting, sheetData.status, sheetData.signature),
+    [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
   const canShowLogBar = useMemo(
-    () => !isManager && canDriverEditSheetContent(sheetData.week_starting, sheetData.status),
-    [isManager, sheetData.week_starting, sheetData.status]
+    () =>
+      !isManager &&
+      canDriverLogOnSheet(sheetData.week_starting, sheetData.status, sheetData.signature),
+    [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
   const canDriverSign = useMemo(
     () => !isManager && !sheetData.signature,
@@ -277,18 +281,20 @@ export function SheetDetail({
 
   const pageSubtitle = useMemo(() => {
     if (isPastWeek && weekOfLabel) {
-      return formatPastWeekArchiveSubtitle(weekOfLabel);
+      return canDriverEditSheetContent(sheetData.week_starting, sheetData.status, sheetData.signature)
+        ? `Week of ${weekOfLabel} · edit & sign`
+        : formatPastWeekArchiveSubtitle(weekOfLabel);
     }
     if (weekOfLabel) {
       return `Week of ${weekOfLabel}`;
     }
     return TAGLINE_DRIVER;
-  }, [isPastWeek, weekOfLabel]);
+  }, [isPastWeek, weekOfLabel, sheetData.week_starting, sheetData.status, sheetData.signature]);
 
   // Re-derive time grids every minute on the live (current) week only
   useEffect(() => {
     setSheetData((prev) => {
-      if (!canDriverEditSheetContent(prev.week_starting, prev.status) && !isManager) {
+      if (!canDriverEditSheetContent(prev.week_starting, prev.status, prev.signature) && !isManager) {
         return prev;
       }
       const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting, {
@@ -529,7 +535,7 @@ export function SheetDetail({
     const flush = () => {
       if (!isDirtyRef.current) return;
       const d = sheetDataRef.current;
-      if (!canDriverEditSheetContent(d.week_starting, d.status)) return;
+      if (!canDriverEditSheetContent(d.week_starting, d.status, d.signature)) return;
       if (!d.driver_name) return;
       if (saveMutation.isPending) return;
       saveMutation.mutate(buildSavePayload());
@@ -1082,8 +1088,8 @@ export function SheetDetail({
                   onUpdate={handleDayUpdate}
                   weekStart={sheetData.week_starting}
                   regos={regos}
-                  readOnly={driverContentLocked || idx !== currentDayIndex}
-                  canEditTimes={canAccessManager && !driverContentLocked && idx === currentDayIndex}
+                  readOnly={driverContentLocked}
+                  canEditTimes={canAccessManager && !driverContentLocked}
                   consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
                   todayYmd={todayYmd}
                 />

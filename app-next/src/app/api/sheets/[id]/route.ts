@@ -118,22 +118,13 @@ export async function PATCH(
     const attestationOnly = patchIsAttestationOnly(bodyRecord);
 
     if (!isManager) {
-      if (isPastWeek) {
-        if (!attestationOnly) {
-          return NextResponse.json(
-            {
-              error:
-                "This week is a read-only archive. You can review and sign it; ask your manager to correct errors.",
-              code: "ARCHIVED_READ_ONLY",
-            },
-            { status: 409 }
-          );
-        }
-      } else if (isCompleted) {
+      const driverLocked = !!sheet.signature || sheet.status === "completed";
+      if (touchesContent && driverLocked) {
         return NextResponse.json(
           {
-            error: "This sheet is completed and locked. A manager must create an amendment to make changes.",
-            code: "SHEET_COMPLETED",
+            error:
+              "This record is signed and locked. Ask your manager to amend it if something needs correcting.",
+            code: "SHEET_SIGNED_LOCKED",
           },
           { status: 409 }
         );
