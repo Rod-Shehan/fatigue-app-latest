@@ -25,6 +25,11 @@ import {
   validateDayKms,
   type DayWithKms,
 } from "@/lib/rego-kms-validation";
+import {
+  DayEventsEditor,
+  normalizeDayEvents,
+  type DayEventDraft,
+} from "@/components/fatigue/DayEventsEditor";
 
 export type DayCardFields = {
   truck_rego?: string;
@@ -47,6 +52,11 @@ export function DayCardDetailsDialog({
   regos,
   dayIndex,
   sheetDays,
+  sheetDayYmd,
+  initialEvents = [],
+  eventsEditable = false,
+  sheetId,
+  driverType,
   onConfirm,
   showShiftPatternEducation,
   consecutiveWorkDays,
@@ -62,22 +72,35 @@ export function DayCardDetailsDialog({
   dayIndex: number;
   /** Full week days — used to validate start/end km against prior days on the same rego. */
   sheetDays: DayWithKms[];
-  onConfirm: (fields: DayCardFields) => void;
+  /** Calendar day YYYY-MM-DD for time inputs. */
+  sheetDayYmd: string;
+  initialEvents?: DayEventDraft[];
+  /** When true, driver can edit/add/remove events in this dialog. */
+  eventsEditable?: boolean;
+  sheetId?: string;
+  driverType?: string;
+  onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
   showShiftPatternEducation?: boolean;
   consecutiveWorkDays?: number;
   /** When shift continued overnight — pre-filled fields may be carried from the prior day. */
   continuedFromPreviousDay?: string;
 }) {
   const [draft, setDraft] = useState<DayCardFields>(initial);
+  const [draftEvents, setDraftEvents] = useState<DayEventDraft[]>(initialEvents);
   const [kmError, setKmError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (open) {
       setDraft(initial);
+      setDraftEvents(
+        normalizeDayEvents(
+          initialEvents.filter((e) => e && typeof e.time === "string" && typeof e.type === "string")
+        )
+      );
       setKmError(null);
     }
-  }, [open, initial]);
+  }, [open, initial, initialEvents]);
 
   const set = (field: keyof DayCardFields, value: unknown) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -138,17 +161,17 @@ export function DayCardDetailsDialog({
       setKmError(validation.message ?? "Invalid kilometres.");
       return;
     }
-    onConfirm(draft);
+    onConfirm(draft, normalizeDayEvents(draftEvents));
     onOpenChange(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[min(90vh,720px)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg">{dayTitle}</DialogTitle>
           <DialogDescription className="text-base text-slate-600 dark:text-slate-300">
-            {dateLabel} — route and vehicle for this day
+            {dateLabel} — route, kilometres, and work / break / non-work times for this day
           </DialogDescription>
         </DialogHeader>
 
@@ -268,6 +291,17 @@ export function DayCardDetailsDialog({
             )}
           </div>
         </div>
+
+        {(eventsEditable || draftEvents.length > 0) && (
+          <DayEventsEditor
+            sheetDayYmd={sheetDayYmd}
+            events={draftEvents}
+            onChange={setDraftEvents}
+            readOnly={!eventsEditable}
+            sheetId={sheetId}
+            driverType={driverType}
+          />
+        )}
 
         {kmError && (
           <p className="text-sm font-medium text-red-600 dark:text-red-400" role="alert">

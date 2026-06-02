@@ -143,6 +143,7 @@ export function deriveMinuteGridFromEvents(
     for (let m = Math.max(0, startMin); m < Math.min(workBreakMaxMinute, endMin); m++) {
       if (ev.type === "work" || treatBreakAsWork) work_time[m] = true;
       else if (ev.type === "break") breaks[m] = true;
+      else if (ev.type === "non_work") non_work[m] = true;
     }
   }
   for (let m = 0; m < maxMinuteExclusive; m++) {

@@ -75,6 +75,9 @@ function buildSegments(events: { time: string; type: string }[] | undefined, dat
     } else if (ev.type === "break") {
       segments.breaks.push({ startMin, endMin });
       workOrBreakRanges.push({ startMin, endMin });
+    } else if (ev.type === "non_work") {
+      segments.non_work.push({ startMin, endMin });
+      workOrBreakRanges.push({ startMin, endMin });
     }
   }
   if (effectiveEndMin > 0) segments.non_work = rangesToGaps(workOrBreakRanges, effectiveEndMin);

@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, Pencil, Trash2, ArrowRight, ChevronDown } from "lucide-react";
+import { Pencil, ArrowRight, ChevronDown } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
@@ -32,17 +30,6 @@ type DayData = DayCardFields & {
   events?: { time: string; type: string; driver?: "primary" | "second" }[];
   date?: string;
 };
-
-function isoToHHMM(iso: string): string {
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
-
-function hhmmToIsoOnDate(dayYmd: string, hhmm: string): string {
-  return new Date(`${dayYmd}T${hhmm}:00`).toISOString();
-}
 
 function formatShiftLabel(label?: "A" | "B" | ""): string {
   if (label === "A") return "Day (A)";
@@ -92,12 +79,13 @@ export default function DayEntry({
   weekStart,
   regos = [],
   readOnly = false,
-  canEditTimes = false,
   consecutiveWorkDays = 0,
   todayYmd,
   /** When true (default), past/future days render as a single summary row. */
   collapseWhenNotToday = true,
   allDays = [],
+  sheetId,
+  driverType,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -107,11 +95,12 @@ export default function DayEntry({
   weekStart: string;
   regos?: Rego[];
   readOnly?: boolean;
-  canEditTimes?: boolean;
   consecutiveWorkDays?: number;
   todayYmd: string;
   collapseWhenNotToday?: boolean;
   allDays?: DayWithKms[];
+  sheetId?: string;
+  driverType?: string;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -128,11 +117,7 @@ export default function DayEntry({
   const isFuture = sheetDayYmd > todayYmd;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
-  const [draftEvents, setDraftEvents] = useState<Array<{ type: string; time: string; driver?: "primary" | "second" }>>(
-    []
-  );
 
   const events = useMemo(() => {
     const base = (dayData.events ?? []).filter((e) => e && typeof e.time === "string" && typeof e.type === "string");
@@ -142,7 +127,6 @@ export default function DayEntry({
   const showShiftPatternEducation =
     consecutiveWorkDays >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS && !dayData.shift_label;
 
-  const canShowEditTimes = canEditTimes && !readOnly;
   const canEditDetails = !readOnly;
 
   const hasRouteDetails =
@@ -289,22 +273,7 @@ export default function DayEntry({
               onClick={() => setDetailsOpen(true)}
             >
               <Pencil className="w-5 h-5 shrink-0" aria-hidden />
-              {hasRouteDetails ? "Edit route" : "Set route"}
-            </Button>
-          )}
-          {canShowEditTimes && (
-            <Button
-              type="button"
-              variant="outline"
-              size="default"
-              className={cn(driverCardBtn, "w-full sm:w-auto")}
-              onClick={() => {
-                setDraftEvents(events.map((e) => ({ ...e })));
-                setEditOpen(true);
-              }}
-            >
-              <Clock className="w-5 h-5 shrink-0" aria-hidden />
-              Edit times
+              {hasRouteDetails ? "Edit day" : "Set up day"}
             </Button>
           )}
         </div>
@@ -324,7 +293,7 @@ export default function DayEntry({
             className="min-h-10 shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
             onClick={() => setDetailsOpen(true)}
           >
-            Confirm route
+            Confirm route & times
           </Button>
         </div>
       )}
@@ -394,84 +363,18 @@ export default function DayEntry({
           regos={regos}
           dayIndex={dayIndex}
           sheetDays={allDays}
+          sheetDayYmd={sheetDayYmd}
+          initialEvents={events}
+          eventsEditable={canEditDetails}
+          sheetId={sheetId}
+          driverType={driverType}
           showShiftPatternEducation={showShiftPatternEducation}
           consecutiveWorkDays={consecutiveWorkDays}
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
-          onConfirm={(fields) =>
-            onUpdate(dayIndex, { ...dayData, ...fields, route_confirmed: true })
+          onConfirm={(fields, updatedEvents) =>
+            onUpdate(dayIndex, { ...dayData, ...fields, events: updatedEvents, route_confirmed: true })
           }
         />
-      )}
-
-      {canShowEditTimes && (
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Edit event times</DialogTitle>
-              <DialogDescription>
-                Adjust the logged timestamps for this day. Times are saved onto this sheet and will affect compliance
-                calculations.
-              </DialogDescription>
-            </DialogHeader>
-
-            {draftEvents.length === 0 ? (
-              <div className="text-sm text-slate-600 dark:text-slate-300">No events logged for this day yet.</div>
-            ) : (
-              <div className="space-y-2">
-                {draftEvents.map((ev, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="w-24 shrink-0 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                      {ev.type}
-                      {ev.driver ? ` (${ev.driver})` : ""}
-                    </span>
-                    <Input
-                      type="time"
-                      value={isoToHHMM(ev.time)}
-                      onChange={(e) => {
-                        const hhmm = e.target.value;
-                        setDraftEvents((prev) => {
-                          const next = [...prev];
-                          next[i] = { ...next[i]!, time: hhmmToIsoOnDate(sheetDayYmd, hhmm) };
-                          return next;
-                        });
-                      }}
-                      className="h-10 w-36 text-base font-mono"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-10 px-2 text-red-600 dark:text-red-400"
-                      onClick={() => setDraftEvents((prev) => prev.filter((_, idx) => idx !== i))}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="outline" className="min-h-11" onClick={() => setEditOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                className="min-h-11"
-                disabled={draftEvents.length === 0}
-                onClick={() => {
-                  const normalized = [...draftEvents].sort(
-                    (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
-                  );
-                  onUpdate(dayIndex, { ...dayData, events: normalized });
-                  setEditOpen(false);
-                }}
-              >
-                Apply
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       )}
     </motion.div>
   );

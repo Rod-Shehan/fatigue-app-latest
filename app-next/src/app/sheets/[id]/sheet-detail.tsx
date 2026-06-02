@@ -1089,10 +1089,11 @@ export function SheetDetail({
                   weekStart={sheetData.week_starting}
                   regos={regos}
                   readOnly={driverContentLocked}
-                  canEditTimes={canAccessManager && !driverContentLocked}
                   consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
                   todayYmd={todayYmd}
                   allDays={sheetData.days}
+                  sheetId={sheetId}
+                  driverType={sheetData.driver_type}
                 />
                 </div>
               ))}
