@@ -29,6 +29,9 @@ export function getDayWithCarriedOverCardInfo(
 ): DayData {
   const day = days[dayIndex] ?? {};
   if (dayIndex === 0) return day;
+  const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
+  // Do not pre-fill a future calendar day before it has started.
+  if (sheetDayYmd > todayYmd) return day;
   if (!previousDayEndedWithOpenWorkOrBreak(days, dayIndex, weekStarting, todayYmd)) return day;
   const prev = days[dayIndex - 1];
   const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
@@ -54,6 +57,9 @@ export function getContinuedShiftRoutePrompt(
   todayYmd: string
 ): { previousDayName: string } | null {
   const day = days[dayIndex] ?? {};
+  const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
+  // Present tense only: prompt on the calendar day the shift rolled into, not before.
+  if (sheetDayYmd !== todayYmd) return null;
   if (!previousDayEndedWithOpenWorkOrBreak(days, dayIndex, weekStarting, todayYmd)) return null;
   if (day.route_confirmed) return null;
   return { previousDayName: DAY_NAMES[dayIndex - 1] ?? "previous day" };
