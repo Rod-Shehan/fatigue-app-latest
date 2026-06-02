@@ -21,8 +21,6 @@ export function PageHeader({
   icon,
   actions,
   driverDisplayName,
-  /** @deprecated Use driverDisplayName */
-  roleDisplayLabel,
   driverIdentity,
   /** Slim header for sheet + LogBar (mobile-first). Hides driver tile and shrinks title. */
   compact = false,
@@ -42,8 +40,6 @@ export function PageHeader({
    * Manager role: ignored (badge uses logged-in manager name).
    */
   driverDisplayName?: string | null;
-  /** @deprecated Use driverDisplayName */
-  roleDisplayLabel?: string | null;
   driverIdentity?: {
     name: string;
     isManagerView?: boolean;
@@ -54,10 +50,7 @@ export function PageHeader({
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
   const sessionDisplayName = getDisplayNameFromSession(session ?? null);
   const driverSuffix =
-    (driverDisplayName?.trim() ||
-      roleDisplayLabel?.trim() ||
-      sessionDisplayName) ||
-    "";
+    (driverDisplayName?.trim() || sessionDisplayName) || "";
   const roleBadgeText =
     session?.user && role
       ? role === "manager"

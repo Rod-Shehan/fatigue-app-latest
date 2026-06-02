@@ -46,10 +46,6 @@ export const SHEET_ATTESTATION_WORKFLOW = {
   RESIGN_AFTER_AMENDMENT_TITLE: "Your manager corrected this record",
   RESIGN_AFTER_AMENDMENT_BODY:
     "Review the week below. If it is correct, sign again — your signature is the legal record, not the manager's edit.",
-  /** @deprecated Use formatSignPastWeekTitle — past weeks are not "this week". */
-  SIGN_ARCHIVED_WEEK_TITLE: "Sign this week's record",
-  SIGN_ARCHIVED_WEEK_BODY:
-    "This week is not your current logging week. You can still open each day and fix route or times before you sign. Live Work/Break logging is only on the current week.",
   /** Manager-facing: when corrections are agreed — send for driver attestation. */
   MANAGER_SEND_FOR_DRIVER_SIGN:
     "When you and the driver agree the week is correct, ask them to open it from Your Sheets and sign. Until they sign, this is not their attested record.",
@@ -102,11 +98,6 @@ export function formatUnsignedPastWeeksReminderMessage(count: number): string {
   return count === 1
     ? "1 past week still needs your signature. You can keep logging this week — sign when you have a moment."
     : `${count} past weeks still need your signature. You can keep logging this week — sign when you have a moment.`;
-}
-
-/** @deprecated Use formatUnsignedPastWeeksReminderMessage — logging is not blocked. */
-export function formatUnsignedPastWeeksBlockMessage(count: number): string {
-  return formatUnsignedPastWeeksReminderMessage(count);
 }
 
 /** Banner when signing a past (archived) week — weekOfLabel e.g. "22 Mar 2026". */

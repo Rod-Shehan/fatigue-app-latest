@@ -103,7 +103,6 @@ export function DayCardDetailsDialog({
       )
     );
     setKmError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const set = (field: keyof DayCardFields, value: unknown) => {

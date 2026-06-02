@@ -70,10 +70,11 @@ export default async function DriverHelpPage() {
             <div className="mt-4 space-y-3 rounded-lg border border-emerald-200/80 dark:border-emerald-800/80 bg-white/60 dark:bg-slate-900/40 p-3">
               <div>
                 <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">
-                  {SHEET_ATTESTATION_WORKFLOW.SIGN_ARCHIVED_WEEK_TITLE}
+                  Sign a past week
                 </p>
                 <p className="mt-1 text-slate-600 dark:text-slate-400 text-sm">
-                  {SHEET_ATTESTATION_WORKFLOW.SIGN_ARCHIVED_WEEK_BODY}
+                  Past weeks are not your current logging week. You can still open each day and fix route or times
+                  before you sign. Live Work/Break logging is only on the current week.
                 </p>
               </div>
               <div>

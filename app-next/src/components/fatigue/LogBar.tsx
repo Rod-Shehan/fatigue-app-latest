@@ -21,6 +21,7 @@ import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
 import { getShiftRestStatusFromWorkGrid } from "@/lib/shift-rest-status";
+import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import {
   getEventsForDriverInOrder,
   getEventsInTimeOrder,
@@ -826,17 +827,40 @@ export default function LogBar({
         )}
         <div className="flex w-full max-w-md flex-col items-stretch gap-2 sm:inline-flex sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 shrink-0">
           {(() => {
-            const nextWorkBreak = getNextWorkBreakType(currentType);
+            const nowMs = Date.now();
+            const rest = isLiveNow
+              ? getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs)
+              : null;
+
+            const idlePrimary =
+              currentType === null && rest
+                ? resolveIdlePrimaryLogAction({
+                    restRunMinutes: rest.consecutiveNonWorkMinutes,
+                    minRestMinutes: MIN_NON_WORK_MIN_BETWEEN_SHIFTS,
+                  })
+                : null;
+
+            const nextWorkBreak =
+              idlePrimary?.type ??
+              (getNextWorkBreakType(currentType) as "work" | "break");
+
             const isPending = pendingType === nextWorkBreak;
             const theme = ACTIVITY_THEME[nextWorkBreak];
             const isStartingShift = nextWorkBreak === "work" && currentType === null;
-            const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
+            const primaryLabel =
+              idlePrimary?.label ?? (isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak]);
+
+            // Phase B1: when primary becomes "Continue rest", suppress the red start-shift countdown;
+            // show the helper line on the button instead.
             const showCountdown =
-              primaryActionCountdown != null && getNextWorkBreakType(currentType) === nextWorkBreak;
+              idlePrimary == null &&
+              primaryActionCountdown != null &&
+              getNextWorkBreakType(currentType) === nextWorkBreak;
             const countdownKind = showCountdown ? primaryActionCountdown.kind : null;
             const startShiftBlocked = countdownKind === "start-shift-wait";
             const breakCountdown =
               countdownKind === "break-due" || countdownKind === "break-finish";
+            const showRestBlockedStyle = idlePrimary?.type === "non_work";
             return (
               <button
                 type="button"
@@ -845,6 +869,9 @@ export default function LogBar({
                   "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
                   !showCountdown && theme.button,
                   startShiftBlocked &&
+                    !isPending &&
+                    "bg-red-600 hover:bg-red-700 border-2 border-red-950/50 dark:border-red-300/60 ring-4 ring-red-950/25 dark:ring-red-400/30 shadow-red-950/40",
+                  showRestBlockedStyle &&
                     !isPending &&
                     "bg-red-600 hover:bg-red-700 border-2 border-red-950/50 dark:border-red-300/60 ring-4 ring-red-950/25 dark:ring-red-400/30 shadow-red-950/40",
                   breakCountdown && !isPending && "bg-amber-600 hover:bg-amber-700",
@@ -866,7 +893,7 @@ export default function LogBar({
                       : primaryLabel
                 }
               >
-                {startShiftBlocked && !isPending ? (
+                {(startShiftBlocked || showRestBlockedStyle) && !isPending ? (
                   <span
                     className="relative flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-red-950/50 ring-2 ring-white/80"
                     aria-hidden
@@ -891,7 +918,14 @@ export default function LogBar({
                     detail={primaryActionCountdown.detail}
                   />
                 ) : (
-                  <span className="text-base sm:text-lg">{primaryLabel}</span>
+                  <span className="flex flex-col items-center leading-tight min-w-0">
+                    <span className="text-base sm:text-lg">{primaryLabel}</span>
+                    {idlePrimary?.helper ? (
+                      <span className="text-[11px] sm:text-xs font-semibold text-white/90">
+                        {idlePrimary.helper}
+                      </span>
+                    ) : null}
+                  </span>
                 )}
               </button>
             );
