@@ -368,14 +368,30 @@ export default function LogBar({
     return "ok" as const;
   })();
 
-  /** Colored compliance header (amber / lime / emerald): use a dark track + saturated fills so the bar stays visible. */
-  const barOnColoredHeader = complianceTone !== "default";
+  const breakDueTone = useMemo(() => {
+    if (!isLiveNow) return null as null | "amber" | "red";
+    if (currentType !== "work") return null as null | "amber" | "red";
+    const nowMs = Date.now();
+    const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
+    if (dueBy == null) return null as null | "amber" | "red";
+    const mins = Math.ceil((dueBy - nowMs) / 60000);
+    if (mins <= 5) return "red";
+    if (mins <= 10) return "amber";
+    return null;
+  }, [currentType, eventsForDriver, isLiveNow, tick]);
+
+  /** Colored compliance header (amber / red / lime / emerald): use a dark track + saturated fills so the bar stays visible. */
+  const barOnColoredHeader = complianceTone !== "default" || breakDueTone != null;
 
   /** Saturated bands + thick border for single-glance compliance (outdoor / cab visibility). */
   const headerShellClass =
     complianceTone === "violation" || complianceTone === "warning"
       ? "bg-amber-500 dark:bg-amber-600 border-b-4 border-amber-950 dark:border-amber-100 shadow-lg"
-      : complianceTone === "pending"
+      : breakDueTone === "red"
+          ? "bg-red-600 dark:bg-red-700 border-b-4 border-red-950 dark:border-red-100 shadow-lg"
+          : breakDueTone === "amber"
+              ? "bg-amber-500 dark:bg-amber-600 border-b-4 border-amber-950 dark:border-amber-100 shadow-lg"
+              : complianceTone === "pending"
           ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-b-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
           : complianceTone === "ok"
             ? "bg-emerald-500 dark:bg-emerald-600 border-b-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
@@ -385,7 +401,11 @@ export default function LogBar({
   const complianceBarTextClass =
     complianceTone === "violation" || complianceTone === "warning"
       ? "text-amber-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-amber-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
-      : complianceTone === "pending"
+      : breakDueTone === "red"
+          ? "text-white [&_.text-slate-400]:!text-white/85 [&_.text-slate-500]:!text-white/90 [&_.text-slate-600]:!text-white [&_.text-slate-700]:!text-white [&_.text-slate-800]:!text-white [&_.text-slate-300]:!text-white [&_.text-slate-100]:!text-white [&_.text-slate-200]:!text-white"
+          : breakDueTone === "amber"
+              ? "text-amber-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-amber-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
+              : complianceTone === "pending"
           ? "text-emerald-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-lime-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
           : complianceTone === "ok"
             ? "text-emerald-950 dark:text-white [&_.text-slate-400]:!text-emerald-900/75 [&_.text-slate-400]:dark:!text-emerald-50 [&_.text-slate-500]:dark:!text-emerald-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
