@@ -9,6 +9,7 @@ import {
   Square,
   ClipboardList,
   X,
+  CircleX,
   Loader2,
   AlertTriangle,
   Clock,
@@ -50,18 +51,52 @@ function formatCountdown(mins: number): string {
   return `${mins}m`;
 }
 
+type PrimaryCountdownKind = "break-due" | "break-finish" | "start-shift-wait";
+
 /** High-contrast countdown chip on the primary log button (cab / outdoor legibility). */
 function PrimaryActionCountdownBlock({
   labelPrefix,
   mins,
+  kind,
 }: {
   labelPrefix: string;
   mins: number;
+  kind: PrimaryCountdownKind;
 }) {
-  const overdue = mins <= 0;
-  const timerChipClass = overdue
-    ? "bg-red-800 text-white ring-white/90"
-    : "bg-slate-950 text-white ring-white/90";
+  const ready = mins <= 0;
+  const timerChipClass =
+    kind === "start-shift-wait"
+      ? ready
+        ? "bg-emerald-800 text-white ring-emerald-200/90"
+        : "bg-red-950 text-white ring-white/95"
+      : ready
+        ? "bg-emerald-800 text-white ring-emerald-200/90"
+        : "bg-slate-950 text-white ring-white/90";
+
+  if (kind === "start-shift-wait") {
+    return (
+      <span className="flex flex-col items-start leading-none gap-1 min-w-0 text-left">
+        <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-white drop-shadow-sm">
+          7h rest required
+        </span>
+        <span className="text-sm sm:text-base font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]">
+          {ready ? "You may start shift" : labelPrefix}
+        </span>
+        <span
+          className={cn(
+            "inline-flex items-center rounded-lg px-2.5 py-1 font-mono font-extrabold tabular-nums tracking-tight text-2xl sm:text-3xl ring-2 shadow-md",
+            timerChipClass,
+            !ready && "animate-pulse"
+          )}
+          aria-live="polite"
+        >
+          {formatCountdown(mins)}
+        </span>
+      </span>
+    );
+  }
+
+  const overdue = ready;
 
   return (
     <span className="flex flex-col items-start leading-none gap-1 min-w-0">
@@ -533,12 +568,12 @@ export default function LogBar({
       const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
       if (!dueBy) return null;
       const mins = Math.max(0, Math.ceil((dueBy - nowMs) / 60000));
-      return { mins, labelPrefix: "Break due in" as const };
+      return { mins, labelPrefix: "Break due in" as const, kind: "break-due" as const };
     }
     if (currentType === "break") {
       const mins = getBreakFinishMinutes(eventsForDriver, nowMs);
       if (mins == null) return null;
-      return { mins, labelPrefix: "Break finish in" as const };
+      return { mins, labelPrefix: "Break finish in" as const, kind: "break-finish" as const };
     }
     if (currentType === null) {
       const lastStopMs = getLastStopTime(rolling, nowMs + 1);
@@ -552,7 +587,7 @@ export default function LogBar({
       }
       const safeAt = lastStopMs + MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 3600 * 1000;
       const mins = Math.max(0, Math.ceil((safeAt - nowMs) / 60000));
-      return { mins, labelPrefix: "Start shift in" as const };
+      return { mins, labelPrefix: "Start shift in" as const, kind: "start-shift-wait" as const };
     }
     return null;
   }, [activeDriver, currentType, days, driverType, eventsForDriver, isLiveNow, tick]);
@@ -778,34 +813,61 @@ export default function LogBar({
             const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
             const showCountdown =
               primaryActionCountdown != null && getNextWorkBreakType(currentType) === nextWorkBreak;
+            const countdownKind = showCountdown ? primaryActionCountdown.kind : null;
+            const startShiftBlocked = countdownKind === "start-shift-wait";
+            const breakCountdown =
+              countdownKind === "break-due" || countdownKind === "break-finish";
             return (
               <button
                 type="button"
                 onClick={() => handleLog(nextWorkBreak)}
                 className={cn(
                   "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
-                  theme.button,
-                  showCountdown && !isPending && nextWorkBreak === "break" && "bg-amber-600 hover:bg-amber-700",
-                  showCountdown && !isPending && nextWorkBreak === "work" && "bg-blue-600 hover:bg-blue-700",
+                  !showCountdown && theme.button,
+                  startShiftBlocked &&
+                    !isPending &&
+                    "bg-red-600 hover:bg-red-700 border-2 border-red-950/50 dark:border-red-300/60 ring-4 ring-red-950/25 dark:ring-red-400/30 shadow-red-950/40",
+                  breakCountdown && !isPending && "bg-amber-600 hover:bg-amber-700",
+                  showCountdown &&
+                    !isPending &&
+                    !startShiftBlocked &&
+                    !breakCountdown &&
+                    nextWorkBreak === "work" &&
+                    "bg-blue-600 hover:bg-blue-700",
                   isPending && "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse"
                 )}
                 aria-label={
                   showCountdown && !isPending
-                    ? `${primaryActionCountdown.labelPrefix} ${formatCountdown(primaryActionCountdown.mins)}`
+                    ? startShiftBlocked
+                      ? `7 hour rest required. ${primaryActionCountdown.labelPrefix} ${formatCountdown(primaryActionCountdown.mins)}`
+                      : `${primaryActionCountdown.labelPrefix} ${formatCountdown(primaryActionCountdown.mins)}`
                     : isPending
                       ? "Tap again to confirm"
                       : primaryLabel
                 }
               >
-                {React.createElement(EVENT_ICONS[nextWorkBreak], {
-                  className: cn("shrink-0 text-white drop-shadow-sm", showCountdown && !isPending ? "w-8 h-8 sm:w-9 sm:h-9" : "w-8 h-8"),
-                })}
+                {startShiftBlocked && !isPending ? (
+                  <span
+                    className="relative flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-red-950/50 ring-2 ring-white/80"
+                    aria-hidden
+                  >
+                    <CircleX className="w-8 h-8 sm:w-9 sm:h-9 text-white stroke-[2.25]" />
+                  </span>
+                ) : (
+                  React.createElement(EVENT_ICONS[nextWorkBreak], {
+                    className: cn(
+                      "shrink-0 text-white drop-shadow-sm",
+                      showCountdown && !isPending ? "w-8 h-8 sm:w-9 sm:h-9" : "w-8 h-8"
+                    ),
+                  })
+                )}
                 {isPending ? (
                   <span className="text-base sm:text-lg">Tap again to log</span>
                 ) : showCountdown ? (
                   <PrimaryActionCountdownBlock
                     labelPrefix={primaryActionCountdown.labelPrefix}
                     mins={primaryActionCountdown.mins}
+                    kind={primaryActionCountdown.kind}
                   />
                 ) : (
                   <span className="text-base sm:text-lg">{primaryLabel}</span>
