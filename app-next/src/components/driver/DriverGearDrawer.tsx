@@ -4,19 +4,22 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   CheckCircle2,
-  Download,
+  ChevronRight,
   FileSignature,
   Loader2,
-  Save,
-  ScrollText,
   Settings,
   X,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { FatigueSheet } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
 import { DriverSheetActions } from "./DriverSheetActions";
+
+const sectionLabel =
+  "text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-0.5";
+
+const drawerRow =
+  "flex w-full min-h-[56px] items-center gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 px-4 py-3 text-base font-semibold text-slate-900 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/80 active:bg-slate-200/80 dark:active:bg-slate-800 transition-colors";
 
 export function DriverGearDrawer({
   returnHref,
@@ -87,7 +90,7 @@ export function DriverGearDrawer({
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center sm:items-center p-0 sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center sm:items-end p-0"
           role="dialog"
           aria-modal
           aria-labelledby="driver-gear-title"
@@ -98,51 +101,46 @@ export function DriverGearDrawer({
             aria-label="Close"
             onClick={() => setOpen(false)}
           />
-          <div className="relative z-10 w-full max-w-md max-h-[85vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-              <h2 id="driver-gear-title" className="text-base font-bold text-slate-900 dark:text-slate-100">
+          <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-4">
+              <h2 id="driver-gear-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 Settings &amp; tools
               </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
                 aria-label="Close"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
 
-            <div className="p-4 space-y-5">
+            <div className="p-4 space-y-6">
               {showSheetActions && sheetId && (
                 <section>
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                    This week
-                  </h3>
+                  <h3 className={sectionLabel}>This week</h3>
                   {saveStatus === "saved" && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-2 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" aria-hidden />
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" aria-hidden />
                       All changes saved
                     </p>
                   )}
                   {saveStatus === "dirty" && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mb-2 font-medium">Unsaved changes</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mb-3 font-semibold">
+                      Unsaved changes
+                    </p>
                   )}
                   {saveStatus === "saving" && (
-                    <p className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden />
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin shrink-0" aria-hidden />
                       Saving…
                     </p>
                   )}
                   <DriverSheetActions
+                    layout="stacked"
                     sheetId={sheetId}
-                    onSave={
-                      onSave
-                        ? () => {
-                            onSave();
-                          }
-                        : undefined
-                    }
+                    onSave={onSave}
                     savePending={savePending}
                     onMarkComplete={onMarkComplete}
                     markCompleteLabel={markCompleteLabel}
@@ -153,19 +151,20 @@ export function DriverGearDrawer({
 
               {unsignedPastWeeks.length > 0 && (
                 <section>
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                    Records to sign
-                  </h3>
-                  <ul className="rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden">
+                  <h3 className={sectionLabel}>Records to sign</h3>
+                  <ul className="space-y-2">
                     {unsignedPastWeeks.map((s) => (
                       <li key={s.id}>
                         <Link
                           href={`/sheets/${s.id}`}
                           onClick={() => setOpen(false)}
-                          className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                          className={drawerRow}
                         >
-                          <FileSignature className="w-4 h-4 shrink-0 text-amber-600" aria-hidden />
-                          Sign week of {s.week_starting ? formatSheetDisplayDate(s.week_starting) : "—"}
+                          <FileSignature className="w-5 h-5 shrink-0 text-amber-600" aria-hidden />
+                          <span className="flex-1 text-left leading-snug">
+                            Sign week of {s.week_starting ? formatSheetDisplayDate(s.week_starting) : "—"}
+                          </span>
+                          <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
                         </Link>
                       </li>
                     ))}
@@ -175,34 +174,32 @@ export function DriverGearDrawer({
 
               {optionalNotes.length > 0 && (
                 <section>
-                  <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
-                    Optional notes
-                  </h3>
-                  <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-400">
+                  <h3 className={sectionLabel}>Optional notes</h3>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/40 px-4 py-3 space-y-2">
                     {optionalNotes.slice(0, 3).map((msg, i) => (
-                      <li key={i} className="leading-snug">
+                      <p key={i} className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                         {msg}
-                      </li>
+                      </p>
                     ))}
-                  </ul>
+                  </div>
                   {sheetId && (
                     <Link
                       href={`/sheets/${sheetId}/compliance`}
                       onClick={() => setOpen(false)}
-                      className="inline-block mt-2 text-xs font-semibold text-slate-700 dark:text-slate-300 underline underline-offset-2"
+                      className={cn(drawerRow, "mt-2")}
                     >
-                      View in compliance
+                      <span className="flex-1 text-left">View in compliance</span>
+                      <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
                     </Link>
                   )}
                 </section>
               )}
 
               <section>
-                <Link href={settingsHref} onClick={() => setOpen(false)}>
-                  <Button variant="outline" className="w-full justify-start gap-2 min-h-11">
-                    <Settings className="w-4 h-4" />
-                    All settings
-                  </Button>
+                <Link href={settingsHref} onClick={() => setOpen(false)} className={drawerRow}>
+                  <Settings className="w-5 h-5 shrink-0" aria-hidden />
+                  <span className="flex-1 text-left">All settings</span>
+                  <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
                 </Link>
               </section>
             </div>
