@@ -4,11 +4,11 @@ import Link from "next/link";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Gear link to full settings page (driver home, weeks list). */
 export function DriverSettingsLink({
   returnHref,
   className,
 }: {
-  /** Where the settings page back button should return (defaults to /driver). */
   returnHref?: string;
   className?: string;
 }) {

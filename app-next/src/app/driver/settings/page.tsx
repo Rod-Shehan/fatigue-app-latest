@@ -12,6 +12,7 @@ import {
   Settings,
 } from "lucide-react";
 import { DriverSettingsOptions } from "./driver-settings-options";
+import { DriverSettingsRecordsSection } from "./driver-settings-records";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 
 const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
@@ -60,6 +61,8 @@ export default async function DriverSettingsPage({
             </h2>
             <DriverSettingsOptions />
           </section>
+
+          <DriverSettingsRecordsSection />
 
           <section>
             <h2 className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">

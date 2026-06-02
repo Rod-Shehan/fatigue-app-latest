@@ -9,11 +9,9 @@ import { Button } from "@/components/ui/button";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { getDriverHomeShiftStatus, type DriverShiftActivity } from "@/lib/driver-home-status";
-import { UnsignedPastWeeksNotice } from "@/components/driver/UnsignedPastWeeksNotice";
 import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
-import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 import {
   findSheetForWeekStarting,
   formatSheetDisplayDate,
@@ -70,7 +68,6 @@ export function DriverHome() {
     enabled: !!sheetId,
   });
 
-  const unsignedPast = useUnsignedPastWeeks(driverName);
   const currentDayIndex = sheet?.week_starting
     ? getCurrentDayIndex(sheet.week_starting, todayYmd)
     : getCurrentDayIndex(thisSunday, todayYmd);
@@ -163,8 +160,6 @@ export function DriverHome() {
                 </div>
               </div>
             </div>
-
-            <UnsignedPastWeeksNotice sheets={unsignedPast} />
 
             <Link href={continueHref} className="block">
               <Button

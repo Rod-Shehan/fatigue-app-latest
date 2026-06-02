@@ -34,9 +34,10 @@ import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialo
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
-import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
+import { DriverComplianceStrip } from "@/components/driver/DriverComplianceStrip";
+import { DriverRecordsStrip } from "@/components/driver/DriverRecordsStrip";
+import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
 import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
-import { UnsignedPastWeeksNotice } from "@/components/driver/UnsignedPastWeeksNotice";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
   getDayWithCarriedOverCardInfo,
@@ -183,6 +184,7 @@ export function SheetDetail({
   /** LogBar work/break segment open — used to open large mobile tools on day-card tap. */
   const [shiftSegmentOpenForMobile, setShiftSegmentOpenForMobile] = useState(false);
   const [mobileLogToolsOpen, setMobileLogToolsOpen] = useState(false);
+  const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
   const sheetDataRef = useRef(sheetData);
   sheetDataRef.current = sheetData;
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -400,6 +402,10 @@ export function SheetDetail({
   const hasComplianceViolations = complianceResults.some((r) => r.type === "violation");
   const hasComplianceWarnings = complianceResults.some((r) => r.type === "warning");
   const hasComplianceInfo = complianceResults.some((r) => r.type === "info");
+  const complianceInfoNotes = useMemo(
+    () => complianceResults.filter((r) => r.type === "info").map((r) => r.message),
+    [complianceResults]
+  );
 
   const prospectiveWorkWarnings = useMemo(() => {
     if (!sheetData.days?.length || sheetData.status === "completed") return [];
@@ -481,6 +487,14 @@ export function SheetDetail({
       setLastSaved(new Date());
     },
   });
+
+  const saveStatus = saveMutation.isPending
+    ? ("saving" as const)
+    : isDirty
+      ? ("dirty" as const)
+      : lastSaved
+        ? ("saved" as const)
+        : null;
 
   const buildSavePayload = useCallback((): Partial<FatigueSheet> => {
     const d = sheetDataRef.current;
@@ -913,19 +927,36 @@ export function SheetDetail({
           )}
 
         <div ref={dayCardsRef} className="space-y-4 max-w-4xl">
-            {!isManager && !isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
-              <UnsignedPastWeeksNotice sheets={unsignedPastWeeksForDriver} />
-            )}
-            {sheetData.days?.length > 0 &&
-              (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
-                <ComplianceAlertBar
-                  sheetId={sheetId}
-                  loading={complianceLoading}
-                  results={complianceResults}
-                />
-              )}
-            {sheetData.days?.length > 0 && !complianceLoading && hasComplianceInfo && (
-              <ComplianceNoticeBar results={complianceResults} />
+            {!isManager ? (
+              <>
+                {sheetData.days?.length > 0 && (
+                  <DriverComplianceStrip
+                    sheetId={sheetId}
+                    loading={complianceLoading}
+                    results={complianceResults}
+                  />
+                )}
+                {!isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
+                  <DriverRecordsStrip
+                    count={unsignedPastWeeksForDriver.length}
+                    onOpen={() => setGearDrawerOpen(true)}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                {sheetData.days?.length > 0 &&
+                  (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
+                    <ComplianceAlertBar
+                      sheetId={sheetId}
+                      loading={complianceLoading}
+                      results={complianceResults}
+                    />
+                  )}
+                {sheetData.days?.length > 0 && !complianceLoading && hasComplianceInfo && (
+                  <ComplianceNoticeBar results={complianceResults} />
+                )}
+              </>
             )}
             {isPastWeek && !isManager && weekOfLabel && (
               <SheetRecordBanner
@@ -942,45 +973,60 @@ export function SheetDetail({
                 hidePrimaryDriverField
                 readOnly={driverContentLocked}
                 headerActions={
-                  <>
-                    {lastSaved && !isDirty && (
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
-                        <span className="hidden sm:inline">
-                          Saved{" "}
-                          {lastSaved.toLocaleTimeString("en-AU", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                          })}
+                  isManager ? (
+                    <>
+                      {lastSaved && !isDirty && (
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
+                          <span className="hidden sm:inline">
+                            Saved{" "}
+                            {lastSaved.toLocaleTimeString("en-AU", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: false,
+                            })}
+                          </span>
                         </span>
-                      </span>
-                    )}
-                    {isDirty && !saveMutation.isPending && !driverContentLocked && (
-                      <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
-                        Unsaved changes
-                      </span>
-                    )}
-                    {sheetData.status === "completed" && (
-                      <Badge
-                        variant="outline"
-                        className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7"
-                      >
-                        <CheckCircle2 className="w-3 h-3" /> Completed
-                      </Badge>
-                    )}
-                    <DriverSheetActions
+                      )}
+                      {isDirty && !saveMutation.isPending && !driverContentLocked && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium shrink-0">
+                          Unsaved changes
+                        </span>
+                      )}
+                      {sheetData.status === "completed" && (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-300 text-emerald-600 flex items-center gap-1 shrink-0 h-7"
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Completed
+                        </Badge>
+                      )}
+                      <DriverSheetActions
+                        sheetId={sheetId}
+                        onSave={driverContentLocked ? undefined : handleSave}
+                        savePending={saveMutation.isPending}
+                        onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
+                        markCompleteLabel={isPastWeek ? "Sign record" : undefined}
+                        onExportPdf={handleExportPdf}
+                      />
+                    </>
+                  ) : (
+                    <DriverGearDrawer
+                      returnHref={`/sheets/${sheetId}`}
                       sheetId={sheetId}
+                      open={gearDrawerOpen}
+                      onOpenChange={setGearDrawerOpen}
+                      showSheetActions
+                      unsignedPastWeeks={!isPastWeek ? unsignedPastWeeksForDriver : []}
+                      optionalNotes={complianceInfoNotes}
+                      saveStatus={saveStatus}
                       onSave={driverContentLocked ? undefined : handleSave}
                       savePending={saveMutation.isPending}
                       onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
                       markCompleteLabel={isPastWeek ? "Sign record" : undefined}
                       onExportPdf={handleExportPdf}
                     />
-                    {!isManager && (
-                      <DriverSettingsLink returnHref={`/sheets/${sheetId}`} />
-                    )}
-                  </>
+                  )
                 }
               />
               {matchedRosterPrimary && (
