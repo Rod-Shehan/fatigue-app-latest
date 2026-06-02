@@ -20,10 +20,7 @@
     "postinstall": "prisma generate || exit 0",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:studio": "prisma studio",
-    "firebase:login": "firebase login",
-    "firebase:use": "firebase use --add",
-    "firebase:deploy": "firebase deploy"
+    "db:studio": "prisma studio"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
@@ -66,7 +63,6 @@
     "@types/react-dom": "^18.2.22",
     "autoprefixer": "^10.4.20",
     "eslint": "^10.4.1",
-    "firebase-tools": "^13.0.0",
     "globals": "^17.6.0",
     "postcss": "^8.5.3",
     "prisma": "6.9.0",
