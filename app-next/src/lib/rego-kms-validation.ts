@@ -56,7 +56,7 @@ export function dayRequiresKmEntry(day: DayKmContext): boolean {
  * Used to enforce: this day's start_kms must be >= this value.
  */
 export function getLocalMaxEndKmsForRego(
-  days: DayWithKms[],
+  days: DayKmContext[],
   dayIndex: number,
   rego: string
 ): number | null {
@@ -64,6 +64,7 @@ export function getLocalMaxEndKmsForRego(
   for (let i = 0; i < dayIndex && i < days.length; i++) {
     const d = days[i];
     if (!sameRego(d.truck_rego, rego)) continue;
+    if (!dayRequiresKmEntry(d)) continue;
     const end = d.end_kms;
     if (end != null && typeof end === "number" && !Number.isNaN(end)) {
       if (max === null || end > max) max = end;
@@ -73,20 +74,52 @@ export function getLocalMaxEndKmsForRego(
 }
 
 /**
- * Minimum allowed value for start_kms on this day for this rego.
- * Either serverMaxEndKms (from other sheets) or local previous max, whichever is higher.
+ * End km from the most recent earlier day in this week with the same rego (for chaining).
+ */
+export function getImmediatePriorSameRegoEndKms(
+  days: DayKmContext[],
+  dayIndex: number,
+  rego: string
+): number | null {
+  for (let i = dayIndex - 1; i >= 0; i--) {
+    const d = days[i];
+    if (!sameRego(d.truck_rego, rego)) continue;
+    if (!dayRequiresKmEntry(d)) continue;
+    const end = d.end_kms;
+    if (end != null && typeof end === "number" && !Number.isNaN(end)) {
+      return end;
+    }
+  }
+  return null;
+}
+
+/**
+ * Minimum allowed start_kms on this day:
+ * - When this week already has an earlier end km for this rego → that value (link days in order).
+ * - Otherwise → fleet-wide max end km from other sheets (first driving day this week).
  */
 export function getMinAllowedStartKms(
-  days: DayWithKms[],
+  days: DayKmContext[],
   dayIndex: number,
   rego: string,
   serverMaxEndKms: number | null
 ): number | null {
-  const localMax = getLocalMaxEndKmsForRego(days, dayIndex, rego);
-  if (localMax === null && serverMaxEndKms === null) return null;
-  if (localMax === null) return serverMaxEndKms;
-  if (serverMaxEndKms === null) return localMax;
-  return Math.max(localMax, serverMaxEndKms);
+  const priorEndInWeek = getImmediatePriorSameRegoEndKms(days, dayIndex, rego);
+  if (priorEndInWeek != null) return priorEndInWeek;
+  return serverMaxEndKms;
+}
+
+/** Human-readable reason for the start-km floor (sign-fix UI). */
+export function describeStartKmFloor(
+  days: DayKmContext[],
+  dayIndex: number,
+  rego: string,
+  serverMaxEndKms: number | null
+): { value: number; source: "previous_day" | "fleet_record" } | null {
+  const priorEndInWeek = getImmediatePriorSameRegoEndKms(days, dayIndex, rego);
+  if (priorEndInWeek != null) return { value: priorEndInWeek, source: "previous_day" };
+  if (serverMaxEndKms != null) return { value: serverMaxEndKms, source: "fleet_record" };
+  return null;
 }
 
 export type ValidateKmsResult = {
@@ -100,7 +133,7 @@ export type ValidateKmsResult = {
  * - end_kms must be >= start_kms and >= minAllowed.
  */
 export function validateDayKms(
-  days: DayWithKms[],
+  days: DayKmContext[],
   dayIndex: number,
   rego: string,
   startKms: number | null,
@@ -213,14 +246,20 @@ export function getSheetKmIssues(
     }
 
     if (minStart != null && startKms < minStart) {
+      const floor = describeStartKmFloor(days, i, rego, serverMax);
+      const floorHint =
+        floor?.source === "fleet_record"
+          ? `fleet record (${minStart})`
+          : `previous day end km (${minStart})`;
       issues.push({
         dayIndex: i,
         dayLabel: label,
         code: "start_too_low",
-        message: `Start km (${startKms}) is below last end km for this rego (${minStart}).`,
+        message: `Start km (${startKms}) must be at least ${floorHint}.`,
         canAutoFixStart: true,
         suggestedStartKms: minStart,
       });
+      continue;
     }
 
     if (endKms == null || (typeof endKms === "number" && Number.isNaN(endKms))) {
@@ -236,12 +275,15 @@ export function getSheetKmIssues(
 
     const result = validateDayKms(days, i, rego, startKms, endKms, serverMax);
     if (!result.valid) {
+      const msg = result.message ?? "Invalid km.";
+      const isStartProblem = msg.toLowerCase().includes("start km");
       issues.push({
         dayIndex: i,
         dayLabel: label,
-        code: "end_invalid",
-        message: result.message ?? "Invalid end km.",
-        canAutoFixStart: false,
+        code: isStartProblem ? "start_too_low" : "end_invalid",
+        message: msg,
+        canAutoFixStart: isStartProblem,
+        suggestedStartKms: isStartProblem ? minStart ?? undefined : undefined,
       });
     }
   }
@@ -270,9 +312,10 @@ export function chainRegoKmsAcrossSheet<T extends DayKmContext>(
 
     const key = regoKey(rego);
     const serverFloor = serverMaxForRego(serverMaxByRego, rego);
+    // Fleet floor only when this is the first driving day for this rego in the week; otherwise chain from prior end.
     let floor: number | null = runningEnd[key] ?? null;
-    if (serverFloor != null) {
-      floor = floor == null ? serverFloor : Math.max(floor, serverFloor);
+    if (floor == null) {
+      floor = serverFloor;
     }
 
     if (floor != null) {

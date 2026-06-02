@@ -73,7 +73,9 @@ export function SignKmFixDialog({
             >
               <span className="font-semibold text-slate-800 dark:text-slate-100">{issue.dayLabel}</span>
               <span className="text-slate-600 dark:text-slate-400">{issue.message}</span>
-              {issue.code === "missing_end" || issue.code === "end_invalid" ? (
+              {issue.code === "missing_end" ||
+              issue.code === "end_invalid" ||
+              issue.code === "start_too_low" ? (
                 <Button
                   type="button"
                   variant="outline"

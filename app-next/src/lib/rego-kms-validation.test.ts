@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   chainRegoKmsAcrossSheet,
   dayRequiresKmEntry,
+  getMinAllowedStartKms,
   getSheetKmIssues,
   validateSheetKms,
 } from "./rego-kms-validation";
@@ -38,6 +39,27 @@ describe("chainRegoKmsAcrossSheet", () => {
     const { days: fixed, startKmsFixes } = chainRegoKmsAcrossSheet(days, { "1abc": 2000 });
     expect(startKmsFixes[0]!.to).toBe(2000);
     expect(fixed[0]!.start_kms).toBe(2000);
+  });
+
+  it("chains later days from previous end km, not fleet floor again", () => {
+    const days = [
+      { truck_rego: "1ABC", start_kms: 3000, end_kms: 2100, events: [{ type: "work" }] },
+      { truck_rego: "1ABC", start_kms: 2050, end_kms: 2200, events: [{ type: "work" }] },
+    ];
+    const { days: fixed, startKmsFixes } = chainRegoKmsAcrossSheet(days, { "1abc": 3000 });
+    expect(startKmsFixes).toHaveLength(1);
+    expect(startKmsFixes[0]!.dayIndex).toBe(1);
+    expect(fixed[1]!.start_kms).toBe(2100);
+  });
+});
+
+describe("getMinAllowedStartKms", () => {
+  it("uses previous day end in week, not fleet max, when chaining", () => {
+    const days = [
+      { truck_rego: "1ABC", start_kms: 2000, end_kms: 2100, events: [{ type: "work" }] },
+      { truck_rego: "1ABC", start_kms: 2050, end_kms: 2200, events: [{ type: "work" }] },
+    ];
+    expect(getMinAllowedStartKms(days, 1, "1ABC", 3000)).toBe(2100);
   });
 });
 
@@ -79,5 +101,20 @@ describe("getSheetKmIssues", () => {
       },
     ]);
     expect(issues.some((i) => i.code === "missing_end")).toBe(true);
+  });
+
+  it("reports one start issue per day (no duplicate with validateDayKms)", () => {
+    const issues = getSheetKmIssues(
+      [
+        { truck_rego: "1ABC", start_kms: 1325600, end_kms: 1326000, events: [{ type: "work" }] },
+        { truck_rego: "1ABC", start_kms: 1325500, end_kms: 1327000, events: [{ type: "work" }] },
+      ],
+      { serverMaxByRego: { "1abc": 1325600 } }
+    );
+    expect(issues.filter((i) => i.dayIndex === 0)).toHaveLength(0);
+    const monday = issues.filter((i) => i.dayIndex === 1);
+    expect(monday).toHaveLength(1);
+    expect(monday[0]!.code).toBe("start_too_low");
+    expect(monday[0]!.message).toContain("previous day end km");
   });
 });
