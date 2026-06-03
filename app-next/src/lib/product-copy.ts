@@ -163,5 +163,9 @@ export function formatContinuedShiftRouteBanner(previousDayName: string): string
   return `Your shift continued from ${previousDayName}. Confirm today's route details for this day's record.`;
 }
 
+export function formatPriorDayUnclosedShiftBanner(previousDayName: string): string {
+  return `${previousDayName}'s shift wasn't ended on the record. End it at your last log time so rest hours stay continuous — today stays non-work until you log Work.`;
+}
+
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
   "Carried from your previous day — confirm route to save on this day's record.";

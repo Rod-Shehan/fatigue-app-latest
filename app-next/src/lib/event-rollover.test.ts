@@ -52,7 +52,7 @@ describe("deriveDaysWithRollover", () => {
     expect(nonWorkMins).toBe(MINUTES_PER_DAY);
   });
 
-  it("carries work across midnight when last event is open work", () => {
+  it("does not carry work into Wednesday until driver logs work that day", () => {
     const days = [
       {},
       {},
@@ -63,8 +63,20 @@ describe("deriveDaysWithRollover", () => {
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
     const wed = derived[3]!;
+    expect((wed.work_time ?? []).filter(Boolean).length).toBe(0);
+    expect((wed.non_work ?? []).filter(Boolean).length).toBe(MINUTES_PER_DAY);
+  });
+
+  it("carries work across midnight after driver logs work on the new day", () => {
+    const days = [
+      {},
+      {},
+      { events: [{ time: "2026-06-03T22:00:00", type: "work" }] },
+      { events: [{ time: "2026-06-04T06:00:00", type: "work" }] },
+    ];
+    const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
+    const wed = derived[3]!;
     expect((wed.work_time ?? []).filter(Boolean).length).toBeGreaterThan(0);
-    expect((wed.non_work ?? []).slice(0, 60).some(Boolean)).toBe(false);
   });
 
   it("does not fill Wednesday as work when Tuesday ended with non_work and open work grid tail", () => {

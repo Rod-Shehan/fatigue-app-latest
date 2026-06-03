@@ -42,7 +42,10 @@ import { driverDialogBtn } from "@/components/driver/driver-ui-classes";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
   getDayWithCarriedOverCardInfo,
+  closePriorDayShiftAfterLastEvent,
+  suggestedEndShiftTimeAfterLastEvent,
   getContinuedShiftRoutePrompt,
+  getPriorDayUnclosedShiftPrompt,
 } from "@/lib/day-route-carry";
 import {
   formatSheetDisplayDate,
@@ -186,7 +189,10 @@ export function SheetDetail({
   const [signKmFixIssues, setSignKmFixIssues] = useState<SheetKmIssue[] | null>(null);
   const [signKmServerMax, setSignKmServerMax] = useState<Record<string, number | null>>({});
   const [complianceDialogOpen, setComplianceDialogOpen] = useState(false);
-  const [endShiftDialog, setEndShiftDialog] = useState<{ dayIndex: number } | null>(null);
+  const [endShiftDialog, setEndShiftDialog] = useState<{
+    dayIndex: number;
+    stopTimeIso: string;
+  } | null>(null);
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
   const [shiftPatternPrompt, setShiftPatternPrompt] = useState<{ dayIndex: number } | null>(null);
@@ -625,6 +631,24 @@ export function SheetDetail({
     setIsDirty(true);
   }, [driverContentLocked]);
 
+  const handleClosePriorDayAfterLastLog = useCallback(
+    (dayIndex: number) => {
+      if (driverContentLocked) return;
+      setSheetData((prev) => {
+        const newDays = closePriorDayShiftAfterLastEvent(prev.days, dayIndex);
+        const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
+          todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+        });
+        return {
+          ...prev,
+          days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined),
+        };
+      });
+      setIsDirty(true);
+    },
+    [driverContentLocked]
+  );
+
   const handleAssumeIdle = useCallback(() => {
     if (driverContentLocked) return;
     setSheetData((prev) => {
@@ -711,7 +735,9 @@ export function SheetDetail({
     }
     setEndShiftError(null);
     setEndShiftEndKms(String(sheetDataRef.current.days[dayIndex]?.end_kms ?? ""));
-    setEndShiftDialog({ dayIndex });
+    const stopTimeIso =
+      suggestedEndShiftTimeAfterLastEvent(day ?? {}) ?? new Date().toISOString();
+    setEndShiftDialog({ dayIndex, stopTimeIso });
   }, [sheetId]);
 
   const handleEndShiftConfirm = useCallback(async () => {
@@ -754,7 +780,10 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const d = newDays[dayIndex];
       const events = d.events || [];
-      const newEvent = { time: new Date().toISOString(), type: "stop" };
+      const newEvent = {
+        time: endShiftDialog.stopTimeIso,
+        type: "stop",
+      };
       const newEvents = [...events, newEvent];
       newDays[dayIndex] = { ...d, end_kms: endKmsParsed, events: newEvents };
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
@@ -1193,6 +1222,14 @@ export function SheetDetail({
                     sheetData.week_starting,
                     todayYmd
                   )}
+                  unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
+                    sheetData.days,
+                    idx,
+                    sheetData.week_starting,
+                    todayYmd
+                  )}
+                  onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                  onEndShiftOnDay={handleEndShiftRequest}
                   onUpdate={handleDayUpdate}
                   weekStart={sheetData.week_starting}
                   regos={regos}
@@ -1305,7 +1342,7 @@ export function SheetDetail({
               End shift
             </DialogTitle>
             <DialogDescription>
-              Enter end odometer. This will log End shift for today and switch to non-work time. Start km and end km are required; end km must not be lower than any previous entry for this rego.
+              Enter end odometer. End shift is recorded at your last log time on that day when the shift was still open — not at midnight — so rest hours stay continuous. Start km and end km are required.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-1">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin } from "lucide-react";
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
+import { todayHasLoggedWorkOrBreak } from "@/lib/day-route-carry";
 import { getTodayLocalDateString, getSheetDayDateString } from "@/lib/weeks";
 import { deriveMinuteGridFromEvents, MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
@@ -145,8 +146,12 @@ export function deriveDaysWithRollover<T extends { events?: { time: string; type
       : MINUTES_PER_DAY;
 
     const prevDateStr = i > 0 ? getSheetDayDateString(weekStarting, i - 1) : "";
-    const carryOverType =
+    let carryOverType =
       i > 0 ? getEffectiveOpenActivityAtDayEnd(result[i - 1], prevDateStr, todayStr) : null;
+    // Open work/break on the prior day does not roll into today until the driver logs work/break today.
+    if (carryOverType === "work" || carryOverType === "break") {
+      if (!todayHasLoggedWorkOrBreak(result[i])) carryOverType = null;
+    }
     let carryOverEndMinute = 0;
     if (carryOverType) {
       const firstEv = currentEvents[0];

@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import {
   CONTINUED_SHIFT_ROUTE_CARD_NOTE,
   formatContinuedShiftRouteBanner,
+  formatPriorDayUnclosedShiftBanner,
 } from "@/lib/product-copy";
 import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
@@ -80,6 +81,9 @@ export default function DayEntry({
   dayIndex,
   dayData,
   continuedShiftRoute = null,
+  unclosedPriorShift = null,
+  onClosePriorDayAtBoundary,
+  onEndShiftOnDay,
   onUpdate,
   weekStart,
   regos = [],
@@ -96,6 +100,10 @@ export default function DayEntry({
   dayData: DayData;
   /** When set, shift continued overnight — prompt to confirm route on this calendar day. */
   continuedShiftRoute?: { previousDayName: string } | null;
+  /** Prior day missing End shift; today is non-work / idle — not a continuation. */
+  unclosedPriorShift?: { previousDayName: string; previousDayIndex: number } | null;
+  onClosePriorDayAtBoundary?: (dayIndex: number) => void;
+  onEndShiftOnDay?: (dayIndex: number) => void;
   onUpdate: (idx: number, d: DayData) => void;
   weekStart: string;
   regos?: Rego[];
@@ -289,7 +297,41 @@ export default function DayEntry({
         </div>
       </div>
 
-      {continuedShiftRoute && canEditDetails && (
+      {unclosedPriorShift && canEditDetails && (
+        <div
+          className="mb-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-600 px-3 py-3 space-y-3"
+          role="status"
+        >
+          <p className="text-sm font-medium text-amber-950 dark:text-amber-100">
+            {formatPriorDayUnclosedShiftBanner(unclosedPriorShift.previousDayName)}
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2">
+            {onEndShiftOnDay ? (
+              <Button
+                type="button"
+                size="sm"
+                className="min-h-10 flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                onClick={() => onEndShiftOnDay(unclosedPriorShift.previousDayIndex)}
+              >
+                End shift on {unclosedPriorShift.previousDayName}
+              </Button>
+            ) : null}
+            {onClosePriorDayAtBoundary ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="min-h-10 flex-1 border-amber-400 dark:border-amber-600 font-semibold"
+                onClick={() => onClosePriorDayAtBoundary(dayIndex)}
+              >
+                End at last log time
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {continuedShiftRoute && canEditDetails && !unclosedPriorShift && (
         <div
           className="mb-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-600 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
           role="status"
