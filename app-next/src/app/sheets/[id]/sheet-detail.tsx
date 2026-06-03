@@ -60,6 +60,8 @@ import {
   type ShiftLabel,
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
+import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
+import { getRegulatoryTodayYmd } from "@/lib/weeks";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
   validateDayKms,
@@ -460,6 +462,36 @@ export function SheetDetail({
     prevWeekSheet?.days,
     prevWeekSheet?.week_starting,
   ]);
+
+  const prospectiveRouteHint = useMemo(() => {
+    if (!sheetData.days?.length || sheetData.status === "completed") return null;
+    const reg = buildRiskRegisterFromWeek(sheetData.days, {
+      weekStarting: sheetData.week_starting,
+      todayYmd: getRegulatoryTodayYmd(sheetData.jurisdiction_code),
+      historyDays: complianceHistory?.history_days ?? null,
+      prevWeekDays: compliancePayload.prevWeekDays,
+      slotOffsetWithinToday: compliancePayload.slotOffsetWithinToday,
+      currentDayIndex,
+    });
+    return reg.driverHint;
+  }, [
+    sheetData.days,
+    sheetData.week_starting,
+    sheetData.status,
+    sheetData.jurisdiction_code,
+    complianceHistory?.history_days,
+    compliancePayload.prevWeekDays,
+    compliancePayload.slotOffsetWithinToday,
+    currentDayIndex,
+  ]);
+
+  const prospectiveLogMessages = useMemo(() => {
+    const msgs = [...prospectiveWorkWarnings];
+    if (prospectiveRouteHint) {
+      msgs.unshift(prospectiveRouteHint);
+    }
+    return msgs;
+  }, [prospectiveWorkWarnings, prospectiveRouteHint]);
 
   const openComplianceDialog = useCallback(() => {
     setComplianceDialogOpen(true);
@@ -931,7 +963,7 @@ export function SheetDetail({
             weekStarting={sheetData.week_starting}
             onLogEvent={handleLogEvent}
             onEndShiftRequest={handleEndShiftRequest}
-            workRelevantComplianceMessages={prospectiveWorkWarnings}
+            workRelevantComplianceMessages={prospectiveLogMessages}
             onAssumeIdle={handleAssumeIdle}
             onStartShiftBlocked={scrollToCurrentDayCard}
             currentDayDisplay={getDayWithCarriedOverCardInfo(sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd)}

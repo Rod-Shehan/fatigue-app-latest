@@ -73,6 +73,12 @@ export type DayData = {
   }>;
   /** When set (ISO string), work/break is capped at this time on that day; from then to "now" shows as non-work ("forgot to end shift" / assume idle). */
   assume_idle_from?: string;
+  /** Prospective run plan (ADR 0003) — future segments only for risk engine. */
+  route_label?: string;
+  planned_distance_km?: number | null;
+  planned_on_duty_hours?: number | null;
+  route_source?: "adhoc" | "driver_saved" | "org_preset";
+  route_preset_id?: string;
 };
 export type FatigueSheet = {
   id: string;
@@ -118,6 +124,31 @@ export type ComplianceCheckResult = {
 };
 
 /** One sheet's compliance results for manager oversight. */
+export type ProspectiveRiskLevel = "low" | "monitor" | "elevated" | "critical";
+
+export type RiskRegisterEntry = {
+  segmentId: string;
+  dayIndex: number;
+  routeLabel: string;
+  scenario: "planned" | "high" | "low";
+  likelihood: number;
+  consequence: number;
+  riskLevel: ProspectiveRiskLevel;
+  residualRiskLevel: ProspectiveRiskLevel;
+  outcomes: string[];
+  barriers: string[];
+  summary: string;
+  plannedHours: number;
+  plannedKm: number | null;
+};
+
+export type RiskRegisterSummary = {
+  baselineHeadroomHours: number;
+  entries: RiskRegisterEntry[];
+  worstLevel: ProspectiveRiskLevel;
+  driverHint: string | null;
+};
+
 export type ManagerComplianceItem = {
   sheetId: string;
   driver_name: string;
@@ -125,6 +156,8 @@ export type ManagerComplianceItem = {
   results: ComplianceCheckResult[];
   eventsWithLocation?: number;
   totalEvents?: number;
+  /** Prospective risk on future segments with run plans (ADR 0003). */
+  risk_register?: RiskRegisterSummary;
 };
 
 /** Single geo event for manager map (from GET /api/manager/map-events). */

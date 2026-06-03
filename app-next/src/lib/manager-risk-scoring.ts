@@ -34,6 +34,16 @@ export function buildGlanceBadges(item: ManagerComplianceItem): GlanceBadge[] {
     const pct = Math.round((withLoc / total) * 100);
     badges.push({ label: `GPS ${pct}%`, tone: pct < 50 ? "warn" : "neutral" });
   }
+
+  const risk = item.risk_register;
+  if (risk?.worstLevel === "critical") {
+    badges.push({ label: "Prospective: critical", tone: "bad" });
+  } else if (risk?.worstLevel === "elevated") {
+    badges.push({ label: "Prospective: elevated", tone: "warn" });
+  } else if (risk?.worstLevel === "monitor" && risk.entries.length > 0) {
+    badges.push({ label: "Run plan: monitor", tone: "warn" });
+  }
+
   return badges;
 }
 
@@ -93,6 +103,11 @@ export function interventionForKind(kind: RiskLineKind): {
   }
 }
 
+function hasElevatedProspectiveRegister(item: ManagerComplianceItem): boolean {
+  const w = item.risk_register?.worstLevel;
+  return w === "elevated" || w === "critical";
+}
+
 export function tierForComplianceItem(
   item: ManagerComplianceItem,
   opts?: { hasNearTermRisk?: boolean; unsigned?: boolean }
@@ -110,6 +125,7 @@ export function tierForComplianceItem(
   if (results.some((r) => r.type === "warning")) return "elevated";
   if (badges.some((b) => b.tone === "warn")) return "elevated";
   if (opts?.hasNearTermRisk) return "elevated";
+  if (hasElevatedProspectiveRegister(item)) return "elevated";
 
   if (opts?.unsigned) return "monitor";
   const total = item.totalEvents ?? 0;
@@ -148,7 +164,11 @@ export function buildDriverRegister(
     const violations = (item.results ?? []).filter((r) => r.type === "violation");
     const warnings = (item.results ?? []).filter((r) => r.type === "warning");
     let topSignal = "No elevated signals";
+    const topProspective = item.risk_register?.entries.find(
+      (e) => e.scenario === "planned" && e.riskLevel !== "low"
+    );
     if (hasNearTermRisk) topSignal = "Near-term exposure in next 24h";
+    else if (topProspective) topSignal = topProspective.summary.slice(0, 80);
     else if (violations.length) topSignal = violations[0]!.message.slice(0, 80);
     else if (warnings.length) topSignal = warnings[0]!.message.slice(0, 80);
     else if (unsigned) topSignal = "Week not yet signed by driver";

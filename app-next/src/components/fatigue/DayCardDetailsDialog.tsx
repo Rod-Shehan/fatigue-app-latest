@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Rego } from "@/lib/api";
+import { runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
 import { SHIFT_PATTERN_FIELD_HELP } from "@/lib/shift-change";
 import {
@@ -38,6 +39,10 @@ export type DayCardFields = {
   start_kms?: number | null;
   end_kms?: number | null;
   shift_label?: "A" | "B" | "";
+  route_label?: string;
+  planned_distance_km?: number | null;
+  planned_on_duty_hours?: number | null;
+  route_source?: "adhoc" | "driver_saved" | "org_preset";
 };
 
 const fieldClass =
@@ -90,6 +95,7 @@ export function DayCardDetailsDialog({
   const [draft, setDraft] = useState<DayCardFields>(initial);
   const [draftEvents, setDraftEvents] = useState<DayEventDraft[]>(initialEvents);
   const [kmError, setKmError] = useState<string | null>(null);
+  const [planError, setPlanError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
@@ -103,6 +109,7 @@ export function DayCardDetailsDialog({
       )
     );
     setKmError(null);
+    setPlanError(null);
   }, [open]);
 
   const set = (field: keyof DayCardFields, value: unknown) => {
@@ -120,6 +127,12 @@ export function DayCardDetailsDialog({
 
   const handleConfirm = async () => {
     setKmError(null);
+    setPlanError(null);
+    const planErr = runPlanValidationError(draft);
+    if (planErr) {
+      setPlanError(planErr);
+      return;
+    }
     const rego = (draft.truck_rego ?? "").trim();
     if (rego) {
       if (draft.start_kms == null || Number.isNaN(Number(draft.start_kms))) {
@@ -261,6 +274,57 @@ export function DayCardDetailsDialog({
               <p className="text-xs text-slate-500 dark:text-slate-400">Optional — for day ↔ night changes after 5+ work days.</p>
             )}
           </div>
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Run plan (optional)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+              For upcoming days: expected distance and/or on-duty time. Used for forward-looking fatigue exposure
+              (not a compliance violation until work is logged).
+            </p>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Route name</Label>
+              <Input
+                value={draft.route_label || ""}
+                onChange={(e) => set("route_label", e.target.value)}
+                placeholder="e.g. Kalgoorlie return"
+                className={fieldClass}
+                autoComplete="off"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Expected hours</Label>
+                <Input
+                  type="number"
+                  inputMode="decimal"
+                  value={draft.planned_on_duty_hours ?? ""}
+                  onChange={(e) =>
+                    set("planned_on_duty_hours", e.target.value === "" ? null : Number(e.target.value))
+                  }
+                  placeholder="e.g. 9"
+                  className={`${fieldClass} tabular-nums`}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Expected km</Label>
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  value={draft.planned_distance_km ?? ""}
+                  onChange={(e) =>
+                    set("planned_distance_km", e.target.value === "" ? null : Number(e.target.value))
+                  }
+                  placeholder="e.g. 420"
+                  className={`${fieldClass} tabular-nums`}
+                />
+              </div>
+            </div>
+            {planError && (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {planError}
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Start kilometres</Label>
             <Input

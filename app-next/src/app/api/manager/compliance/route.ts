@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
 import type { ComplianceCheckResult } from "@/lib/api";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
+import { buildRiskRegister } from "@/lib/risk-register";
+import { getRegulatoryTodayYmd } from "@/lib/weeks";
 import {
   buildComplianceWeekContextFromMap,
   parseSheetDaysJson,
@@ -75,12 +77,11 @@ export async function GET(request: NextRequest) {
     }
 
     const now = Date.now();
-    const today = new Date(now);
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     const items: ManagerComplianceItem[] = [];
     for (const sheet of snapshotSheets) {
       const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheet.jurisdictionCode);
+      const todayStr = getRegulatoryTodayYmd(sheet.jurisdictionCode);
       const engine = getComplianceEngine(parseJurisdictionCode(sheet.jurisdictionCode));
       const weekMap = byDriverWeek.get(sheet.driverName) ?? new Map<string, { days: string }>();
       const { prevWeekDays, prevWeekStarting, historyDays } = buildComplianceWeekContextFromMap(
@@ -120,6 +121,19 @@ export async function GET(request: NextRequest) {
         });
       });
 
+      const risk_register = buildRiskRegister({
+        days,
+        stateInput: {
+          currentWeekDays: days,
+          weekStarting: sheet.weekStarting,
+          todayYmd: todayStr,
+          historyDays,
+          prevWeekDays,
+          slotOffsetWithinToday,
+          currentDayIndex,
+        },
+      });
+
       items.push({
         sheetId: sheet.id,
         driver_name: sheet.driverName,
@@ -127,6 +141,7 @@ export async function GET(request: NextRequest) {
         results,
         eventsWithLocation,
         totalEvents,
+        risk_register,
       });
     }
 

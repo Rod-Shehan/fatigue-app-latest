@@ -18,12 +18,17 @@ import {
 } from "@/lib/product-copy";
 import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
+import { formatRunPlanSummary, hasRunPlanContent } from "@/lib/route-plan";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type DayData = DayCardFields & {
   end_kms?: number | null;
   route_confirmed?: boolean;
+  route_label?: string;
+  planned_distance_km?: number | null;
+  planned_on_duty_hours?: number | null;
+  route_source?: "adhoc" | "driver_saved" | "org_preset";
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
@@ -117,6 +122,7 @@ export default function DayEntry({
   const isFuture = sheetDayYmd > todayYmd;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
 
   const events = useMemo(() => {
@@ -143,6 +149,9 @@ export default function DayEntry({
     !Number.isNaN(Number(dayData.start_kms)) &&
     (!(dayData.truck_rego ?? "").trim() ||
       (dayData.end_kms != null && !Number.isNaN(Number(dayData.end_kms))));
+
+  const runPlanSummary = formatRunPlanSummary(dayData);
+  const showRunPlanSection = isFuture || !!runPlanSummary;
 
   const workHours = getHours(dayData.work_time);
   const collapsedSummary = isFuture
@@ -337,6 +346,44 @@ export default function DayEntry({
         )}
       </div>
 
+      {showRunPlanSection && (
+        <div className="mb-3 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left bg-slate-100/80 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
+            onClick={() => setRunPlanOpen((o) => !o)}
+            aria-expanded={runPlanOpen}
+          >
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Run plan</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 truncate flex-1 text-right">
+              {runPlanSummary || (isFuture ? "Not set" : "—")}
+            </span>
+            <ChevronDown
+              className={cn("w-4 h-4 shrink-0 text-slate-500 transition-transform", runPlanOpen && "rotate-180")}
+              aria-hidden
+            />
+          </button>
+          {runPlanOpen && (
+            <div className="px-3 pb-3 pt-1 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-sm text-slate-700 dark:text-slate-200">
+                {runPlanSummary || "No run plan — add in Set up day for forward fatigue exposure."}
+              </p>
+              {canEditDetails && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 mt-1 text-teal-700 dark:text-teal-400"
+                  onClick={() => setDetailsOpen(true)}
+                >
+                  Edit in Set up day
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {showShiftPatternEducation && !detailsOpen && (
         <p className="mb-2 text-xs leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
           <span className="font-semibold">Shift pattern:</span> set Day (A) or Night (B) in route details if you swap
@@ -359,6 +406,9 @@ export default function DayEntry({
             start_kms: dayData.start_kms,
             end_kms: dayData.end_kms,
             shift_label: dayData.shift_label,
+            route_label: dayData.route_label,
+            planned_distance_km: dayData.planned_distance_km,
+            planned_on_duty_hours: dayData.planned_on_duty_hours,
           }}
           regos={regos}
           dayIndex={dayIndex}
@@ -372,9 +422,17 @@ export default function DayEntry({
           showShiftPatternEducation={showShiftPatternEducation}
           consecutiveWorkDays={consecutiveWorkDays}
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
-          onConfirm={(fields, updatedEvents) =>
-            onUpdate(dayIndex, { ...dayData, ...fields, events: updatedEvents, route_confirmed: true })
-          }
+          onConfirm={(fields, updatedEvents) => {
+            const planFields = hasRunPlanContent(fields)
+              ? { ...fields, route_source: "adhoc" as const }
+              : fields;
+            onUpdate(dayIndex, {
+              ...dayData,
+              ...planFields,
+              events: updatedEvents,
+              route_confirmed: true,
+            });
+          }}
         />
       )}
     </motion.div>

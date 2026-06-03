@@ -380,10 +380,16 @@ export function ManagerView() {
     });
   }, [sheets, activeWeekStarting, activeDayIndex]);
 
-  const riskDriverNames = useMemo(
-    () => new Set(riskLines.map((r) => r.driver)),
-    [riskLines]
-  );
+  const riskDriverNames = useMemo(() => {
+    const names = new Set(riskLines.map((r) => r.driver));
+    managerCompliance?.items?.forEach((item) => {
+      const w = item.risk_register?.worstLevel;
+      if (w === "elevated" || w === "critical") {
+        names.add(item.driver_name);
+      }
+    });
+    return names;
+  }, [riskLines, managerCompliance?.items]);
 
   const driverRegister = useMemo(
     () =>
