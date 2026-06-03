@@ -326,6 +326,58 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(v).toBeUndefined();
   });
 
+  it("solo rolling audit: warns when a recent 14-day window lacks 2×24h even if 28-day alternative passes at now", () => {
+    const days = emptyWeek();
+    for (let i = 0; i < 7; i++) {
+      const w = workSlots(10);
+      const nw = Array(MINUTES_PER_DAY).fill(false);
+      for (let m = 10 * 60; m < MINUTES_PER_DAY; m++) nw[m] = true;
+      days[i] = { work_time: w, breaks: Array(MINUTES_PER_DAY).fill(false), non_work: nw };
+    }
+    days[6] = {
+      work_time: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      non_work: Array(MINUTES_PER_DAY).fill(true),
+    };
+
+    const historyDays = Array.from({ length: 21 }, (_, idx) => {
+      if (idx === 0 || idx === 6 || idx === 12) {
+        return {
+          work_time: Array(MINUTES_PER_DAY).fill(false),
+          breaks: Array(MINUTES_PER_DAY).fill(false),
+          non_work: Array(MINUTES_PER_DAY).fill(true),
+        };
+      }
+      const w = workSlots(10);
+      const nw = Array(MINUTES_PER_DAY).fill(false);
+      for (let m = 10 * 60; m < MINUTES_PER_DAY; m++) nw[m] = true;
+      return { work_time: w, breaks: Array(MINUTES_PER_DAY).fill(false), non_work: nw };
+    });
+
+    const results = runComplianceChecks(days, { driverType: "solo", historyDays });
+    const violation = results.find(
+      (r) => r.day === "14-day" && r.type === "violation" && r.message.includes("2×24h")
+    );
+    const warning = results.find(
+      (r) => r.day === "14-day" && r.type === "warning" && r.message.includes("Rolling 14-day non-work gap")
+    );
+    expect(violation).toBeUndefined();
+    expect(warning).toBeDefined();
+  });
+
+  it("168h on minute timeline: rolling 14-day window exceeds 168h within one 48h-reset segment", () => {
+    const thisWeek = emptyWeek();
+    const prevWeek = emptyWeek();
+    for (let i = 0; i < 7; i++) {
+      thisWeek[i] = dayWorkOnly(13);
+      prevWeek[i] = dayWorkOnly(13);
+    }
+    const results = runComplianceChecks(thisWeek, { driverType: "solo", prevWeekDays: prevWeek });
+    const violation = results.find((r) => r.day === "14-day" && r.type === "violation");
+    expect(violation).toBeDefined();
+    expect(violation!.message).toContain("168");
+  });
+
   it("this week >84h and no prev week: 14-day warning", () => {
     const days = emptyWeek();
     for (let i = 0; i < 7; i++) days[i] = dayWorkOnly(13); // 91h

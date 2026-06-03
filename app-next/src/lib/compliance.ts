@@ -131,26 +131,6 @@ function continuousNoWorkAcrossBoundary(dayA: ComplianceDayData, dayB: Complianc
 }
 
 /**
- * Split 14 days into segments separated by ≥48h continuous no-work (non-work or no work record; rolling).
- * Returns an array of segments; each segment is an array of day indices (0..13).
- */
-function segmentsSplitBy48hNonWork(all14Days: ComplianceDayData[]): number[][] {
-  if (all14Days.length === 0) return [];
-  if (all14Days.length === 1) return [[0]];
-  const segments: number[][] = [];
-  let start = 0;
-  for (let i = 0; i < all14Days.length - 1; i++) {
-    const across = continuousNoWorkAcrossBoundary(all14Days[i], all14Days[i + 1]);
-    if (across >= NON_WORK_MINUTES_48H) {
-      segments.push(Array.from({ length: i - start + 1 }, (_, j) => start + j));
-      start = i + 1;
-    }
-  }
-  segments.push(Array.from({ length: all14Days.length - start }, (_, j) => start + j));
-  return segments;
-}
-
-/**
  * Date for a day in extendedDays: first prevCount days are from prev week (Fri,Sat), then this week Sun..Sat.
  */
 function getExtendedDayDate(
@@ -242,6 +222,152 @@ function anyRollingWorkWindowExceeds(work: boolean[], windowMinutes: number, max
     if (w > maxWorkMinutes) return true;
   }
   return false;
+}
+
+const MAX_WORK_MINUTES_14D = 168 * 60;
+const WARN_WORK_MINUTES_14D = 140 * 60;
+
+/**
+ * Split a minute timeline at ≥48h continuous no-work (minutes with work_time false).
+ * Matches rolling reset intent of segmentsSplitBy48hNonWork without day-boundary coupling.
+ */
+function minuteSegmentsBetween48hNoWorkResets(noWorkMinutes: boolean[]): Array<{ start: number; end: number }> {
+  if (noWorkMinutes.length === 0) return [];
+  const segments: Array<{ start: number; end: number }> = [];
+  let segStart = 0;
+  let run = 0;
+  let runStart = 0;
+
+  for (let i = 0; i <= noWorkMinutes.length; i++) {
+    const isNoWork = i < noWorkMinutes.length && noWorkMinutes[i];
+    if (isNoWork) {
+      if (run === 0) runStart = i;
+      run += 1;
+      continue;
+    }
+    if (run >= NON_WORK_MINUTES_48H && segStart < runStart) {
+      segments.push({ start: segStart, end: runStart });
+      segStart = i;
+    }
+    run = 0;
+  }
+
+  if (segStart < noWorkMinutes.length) {
+    segments.push({ start: segStart, end: noWorkMinutes.length });
+  }
+  return segments;
+}
+
+/** Max work minutes in any rolling 14-day window inside a segment (or total if shorter than 14 days). */
+function maxRollingWorkMinutesInSegment(work: boolean[]): number {
+  if (work.length === 0) return 0;
+  if (work.length < MINUTES_14D) {
+    return work.filter(Boolean).length;
+  }
+  const pref = workMinutesPrefix(work);
+  let max = 0;
+  for (let start = 0; start <= work.length - MINUTES_14D; start++) {
+    const w = pref[start + MINUTES_14D] - pref[start];
+    if (w > max) max = w;
+  }
+  return max;
+}
+
+function check168hWorkOnMinuteTimeline(work: boolean[], noWorkMinutes: boolean[], results: ComplianceCheckResult[]) {
+  if (work.length === 0) return;
+  const segments = minuteSegmentsBetween48hNoWorkResets(noWorkMinutes);
+  for (const { start, end } of segments) {
+    const slice = work.slice(start, end);
+    const maxWork = maxRollingWorkMinutesInSegment(slice);
+    if (maxWork > MAX_WORK_MINUTES_14D) {
+      results.push({
+        type: "violation",
+        iconKey: "TrendingUp",
+        day: "14-day",
+        message: "14-day work exceeds 168h",
+      });
+      return;
+    }
+    if (maxWork > WARN_WORK_MINUTES_14D) {
+      const hrs = Math.round((maxWork / 60) * 10) / 10;
+      results.push({
+        type: "warning",
+        iconKey: "TrendingUp",
+        day: "14-day",
+        message: `${hrs}h work in a rolling 14-day window — approaching 168h limit (resets after ≥48h continuous no-work)`,
+      });
+    }
+  }
+}
+
+/**
+ * Reg 184E(2)(b) at the current end of the timeline (minute grid).
+ * Option (i): last 14 days contain ≥2×24h non-work. Option (ii): 28-day alternative at now.
+ */
+function checkSolo24hNonWorkAtNow(nonWork: boolean[], work: boolean[], results: ComplianceCheckResult[]) {
+  if (nonWork.length < MINUTES_14D) return;
+
+  const e = nonWork.length;
+  const option14Ok = countFullNonWorkPeriods(nonWork.slice(e - MINUTES_14D, e), MINUTES_24H) >= 2;
+
+  let option28Ok = false;
+  if (e >= MINUTES_28D) {
+    const window28NonWork = nonWork.slice(e - MINUTES_28D, e);
+    const window28Work = work.slice(e - MINUTES_28D, e);
+    if (countFullNonWorkPeriods(window28NonWork, MINUTES_24H) >= 4) {
+      option28Ok = !anyRollingWorkWindowExceeds(window28Work, MINUTES_14D, MAX_WORK_MINUTES_14D_ALT);
+    }
+  }
+
+  if (!option14Ok && !option28Ok) {
+    results.push({
+      type: "violation",
+      iconKey: "Moon",
+      day: "14-day",
+      message:
+        "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative: 4×24h + ≤144h work in any 14 days)",
+    });
+  }
+}
+
+/**
+ * Stricter audit: any rolling 14-day window ending in the last 14 days (hourly) must satisfy
+ * option (i) or, when 28 days of data exist at that endpoint, option (ii).
+ */
+function checkSolo24hNonWorkRollingAudit(nonWork: boolean[], work: boolean[], results: ComplianceCheckResult[]) {
+  if (nonWork.length < MINUTES_14D) return;
+
+  const scanFrom = Math.max(MINUTES_14D, nonWork.length - MINUTES_14D);
+  const endPoints = new Set<number>();
+  for (let e = scanFrom; e <= nonWork.length; e += 60) {
+    endPoints.add(e);
+  }
+  endPoints.add(nonWork.length);
+
+  for (const e of endPoints) {
+    const option14Ok = countFullNonWorkPeriods(nonWork.slice(e - MINUTES_14D, e), MINUTES_24H) >= 2;
+    if (option14Ok) continue;
+
+    let option28Ok = false;
+    if (e >= MINUTES_28D) {
+      const window28NonWork = nonWork.slice(e - MINUTES_28D, e);
+      const window28Work = work.slice(e - MINUTES_28D, e);
+      if (countFullNonWorkPeriods(window28NonWork, MINUTES_24H) >= 4) {
+        option28Ok = !anyRollingWorkWindowExceeds(window28Work, MINUTES_14D, MAX_WORK_MINUTES_14D_ALT);
+      }
+    }
+
+    if (!option28Ok) {
+      results.push({
+        type: "warning",
+        iconKey: "Moon",
+        day: "14-day",
+        message:
+          "Rolling 14-day non-work gap detected in recent timeline — verify rest blocks and 28-day alternative if applicable",
+      });
+      return;
+    }
+  }
 }
 
 function fiveHourBreakViolationMessage(): string {
@@ -498,34 +624,8 @@ function checkSoloRules(
   const combined = [...(soloOptions?.historyDays ?? []), ...days].map((d) => normalizeDayCoverageArrays(d));
   const nonWorkAll = flatSlots(combined, "non_work");
   const workAll = flatSlots(combined, "work_time");
-  if (nonWorkAll.length >= MINUTES_14D) {
-    const last14NonWork = nonWorkAll.slice(-MINUTES_14D);
-    const blocks24h14 = countFullNonWorkPeriods(last14NonWork, MINUTES_24H);
-    const option14Ok = blocks24h14 >= 2;
-
-    let option28Ok = false;
-    if (nonWorkAll.length >= MINUTES_28D) {
-      const last28NonWork = nonWorkAll.slice(-MINUTES_28D);
-      const blocks24h28 = countFullNonWorkPeriods(last28NonWork, MINUTES_24H);
-
-      if (blocks24h28 >= 4) {
-        // 144h condition: no rolling 14-day window within this 28-day window exceeds 144h work.
-        const last28Work = workAll.slice(-MINUTES_28D);
-        const exceeds = anyRollingWorkWindowExceeds(last28Work, MINUTES_14D, MAX_WORK_MINUTES_14D_ALT);
-        option28Ok = !exceeds;
-      }
-    }
-
-    if (!option14Ok && !option28Ok) {
-      results.push({
-        type: "violation",
-        iconKey: "Moon",
-        day: "14-day",
-        message:
-          "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative: 4×24h + ≤144h work in any 14 days)",
-      });
-    }
-  }
+  checkSolo24hNonWorkAtNow(nonWorkAll, workAll, results);
+  checkSolo24hNonWorkRollingAudit(nonWorkAll, workAll, results);
 }
 
 function checkTwoUpRules(
@@ -945,26 +1045,10 @@ export function runComplianceChecks(
   const has14dayData = prevDays.length > 0;
 
   if (has14dayData) {
-    const all14Days = [...prevDays, ...normalizedDays];
-    const segments = segmentsSplitBy48hNonWork(all14Days);
-    for (const segment of segments) {
-      const segmentWork = segment.reduce((s, i) => s + getHours(all14Days[i].work_time), 0);
-      if (segmentWork > 168) {
-        results.push({
-          type: "violation",
-          iconKey: "TrendingUp",
-          day: "14-day",
-          message: "14-day work exceeds 168h",
-        });
-      } else if (segmentWork > 140) {
-        results.push({
-          type: "warning",
-          iconKey: "TrendingUp",
-          day: "14-day",
-          message: `${segmentWork}h work in this period — approaching 168h limit (14-day rule resets after ≥48h continuous non-work)`,
-        });
-      }
-    }
+    const allDays = [...prevDays, ...normalizedDays].map((d) => normalizeDayCoverageArrays(d));
+    const workFlat = flatSlots(allDays, "work_time");
+    const noWorkFlat = workFlat.map((w) => !w);
+    check168hWorkOnMinuteTimeline(workFlat, noWorkFlat, results);
   } else {
     if (thisWeekWork > 168) {
       results.push({
