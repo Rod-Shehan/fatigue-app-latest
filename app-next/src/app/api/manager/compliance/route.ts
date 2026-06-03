@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
@@ -9,6 +9,7 @@ import {
   parseSheetDaysJson,
 } from "@/lib/compliance-history";
 import { getRecordRetentionPolicy } from "@/lib/record-retention";
+import { getPreviousWeekSunday, getThisWeekSunday } from "@/lib/weeks";
 
 export type ManagerComplianceItem = {
   sheetId: string;
@@ -21,28 +22,47 @@ export type ManagerComplianceItem = {
   totalEvents?: number;
 };
 
+const WEEK_YMD = /^\d{4}-\d{2}-\d{2}$/;
+
+function resolveFocusWeek(weekStarting: string | null): string {
+  if (weekStarting && WEEK_YMD.test(weekStarting)) return weekStarting;
+  return getThisWeekSunday();
+}
+
 /**
- * GET /api/manager/compliance
- * Returns all warnings and violations for every sheet the manager can see (all drivers).
- * Manager-only.
+ * GET /api/manager/compliance?weekStarting=YYYY-MM-DD
+ * Compliance for the manager-selected work week (and the week before for assurance).
+ * No global row cap — scoped to those weeks and full per-driver history for rule lookback.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   const manager = await getManagerSession();
   if (!manager) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   try {
-    const sheets = await prisma.fatigueSheet.findMany({
-      where: {},
-      orderBy: [{ weekStarting: "desc" }, { createdAt: "desc" }],
-      take: 100,
+    const { searchParams } = new URL(request.url);
+    const focusWeek = resolveFocusWeek(searchParams.get("weekStarting"));
+    const priorWeek = getPreviousWeekSunday(focusWeek);
+    const weeksEvaluated = [priorWeek, focusWeek];
+
+    const snapshotSheets = await prisma.fatigueSheet.findMany({
+      where: { weekStarting: { in: weeksEvaluated } },
+      orderBy: [{ weekStarting: "desc" }, { driverName: "asc" }],
     });
 
-    const drivers = [...new Set(sheets.map((s) => s.driverName))];
+    const drivers = [...new Set(snapshotSheets.map((s) => s.driverName))];
     const driverSheets = drivers.length
       ? await prisma.fatigueSheet.findMany({
           where: { driverName: { in: drivers } },
-          select: { driverName: true, weekStarting: true, days: true },
+          select: {
+            driverName: true,
+            weekStarting: true,
+            days: true,
+            id: true,
+            driverType: true,
+            last24hBreak: true,
+            jurisdictionCode: true,
+          },
         })
       : [];
 
@@ -59,7 +79,7 @@ export async function GET() {
     const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
     const items: ManagerComplianceItem[] = [];
-    for (const sheet of sheets) {
+    for (const sheet of snapshotSheets) {
       const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheet.jurisdictionCode);
       const engine = getComplianceEngine(parseJurisdictionCode(sheet.jurisdictionCode));
       const weekMap = byDriverWeek.get(sheet.driverName) ?? new Map<string, { days: string }>();
@@ -110,7 +130,12 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ items, policy: getRecordRetentionPolicy() });
+    return NextResponse.json({
+      items,
+      policy: getRecordRetentionPolicy(),
+      focus_week: focusWeek,
+      weeks_evaluated: weeksEvaluated,
+    });
   } catch (e) {
     console.error("Manager compliance error:", e);
     return NextResponse.json(

@@ -253,11 +253,16 @@ export const api = {
       }),
   },
   manager: {
-    /** All drivers' compliance results (manager only). */
-    compliance: () =>
-      fetchApi<{ items: ManagerComplianceItem[]; policy: RecordRetentionPolicy }>(
-        "/api/manager/compliance"
-      ),
+    /** Compliance for manager-selected work week (+ prior week for assurance). */
+    compliance: (params: { weekStarting: string }) => {
+      const q = new URLSearchParams({ weekStarting: params.weekStarting });
+      return fetchApi<{
+        items: ManagerComplianceItem[];
+        policy: RecordRetentionPolicy;
+        focus_week: string;
+        weeks_evaluated: string[];
+      }>(`/api/manager/compliance?${q.toString()}`);
+    },
     /** Geo events for map (manager only). Optional filters: weekStarting, driverName. */
     mapEvents: (params?: { weekStarting?: string; driverName?: string }) => {
       const sp = new URLSearchParams();

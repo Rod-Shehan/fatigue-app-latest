@@ -303,8 +303,9 @@ export function ManagerView() {
   );
 
   const { data: managerCompliance, isLoading: complianceLoading } = useQuery({
-    queryKey: ["manager", "compliance"],
-    queryFn: () => api.manager.compliance(),
+    queryKey: ["manager", "compliance", weekForSnapshot],
+    queryFn: () => api.manager.compliance({ weekStarting: weekForSnapshot }),
+    enabled: !!weekForSnapshot,
   });
 
   const riskLines = useMemo(() => {

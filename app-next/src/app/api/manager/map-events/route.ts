@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
         ...(driverName && { driverName: driverName }),
       },
       orderBy: [{ weekStarting: "desc" }, { createdAt: "desc" }],
-      take: 100,
+      // Week-scoped map: no sheet cap; event count still limited below.
+      ...(!weekStarting ? { take: 100 } : {}),
     });
 
     const events: MapEvent[] = [];

@@ -16,7 +16,7 @@ export const MANAGER_EXPERIENCE = {
   HERO_EYEBROW: "This week at a glance",
   /** Shown only in the risk hero — not repeated under the page title. */
   HERO_WEEK_INTRO:
-    "Tier counts combine rule outcomes, record gaps, and near-term exposure for drivers visible this work week.",
+    "Tier counts combine rule outcomes, record gaps, and near-term exposure for the work week you select below.",
   HERO_DISCLAIMER:
     "Guidance for operational decisions — not legal advice. Your policies and regulators (NHVR, state OSH) remain authoritative.",
 

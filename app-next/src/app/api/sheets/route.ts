@@ -62,7 +62,8 @@ export async function GET() {
     const sheets = await prisma.fatigueSheet.findMany({
       where,
       orderBy: { weekStarting: "desc" },
-      take: 50,
+      // Managers need every work week in the picker; drivers keep a recent window.
+      ...(access.isManager ? {} : { take: 50 }),
     });
     const list = sheets.map((s) => sheetToJson(s));
     return NextResponse.json(list);
