@@ -1,8 +1,39 @@
-import type { ManagerComplianceItem } from "@/lib/api";
+import type { ComplianceCheckResult, ManagerComplianceItem } from "@/lib/api";
 import type { FatigueSheet } from "@/lib/api";
 import type { ManagerRiskTier } from "@/lib/manager-experience";
 
 export type GlanceBadge = { label: string; tone: "neutral" | "warn" | "bad" };
+
+/** Warnings that are record-quality / education — not fatigue exposure for manager tiering. */
+const HOUSEKEEPING_RULE_IDS = new Set([
+  "shift_change_education",
+  "location_evidence",
+  "odometer_gps_plausibility",
+]);
+
+export function isHousekeepingComplianceWarning(r: ComplianceCheckResult): boolean {
+  if (r.type !== "warning") return false;
+  if (r.ruleId && HOUSEKEEPING_RULE_IDS.has(r.ruleId)) return true;
+  // Shift-change gap checks without times — fix the record, not an exposure alert.
+  if (r.ruleId === "shift_change_24h") return true;
+  return false;
+}
+
+export function fatigueExposureWarnings(results: ComplianceCheckResult[]): ComplianceCheckResult[] {
+  return results.filter((r) => r.type === "warning" && !isHousekeepingComplianceWarning(r));
+}
+
+/** Badges that can raise manager tier (GPS coverage alone does not). */
+export function badgeAffectsTier(badge: GlanceBadge, level: "attention" | "elevated"): boolean {
+  if (badge.label.startsWith("GPS ")) return false;
+  if (level === "attention") return badge.tone === "bad";
+  if (level === "elevated") {
+    if (badge.tone !== "warn") return false;
+    if (badge.label.startsWith("Run plan: monitor")) return false;
+    return true;
+  }
+  return false;
+}
 
 export function buildGlanceBadges(item: ManagerComplianceItem): GlanceBadge[] {
   const badges: GlanceBadge[] = [];
@@ -108,6 +139,12 @@ function hasElevatedProspectiveRegister(item: ManagerComplianceItem): boolean {
   return w === "elevated" || w === "critical";
 }
 
+function hasThinGpsEvidence(item: ManagerComplianceItem): boolean {
+  const total = item.totalEvents ?? 0;
+  const withLoc = item.eventsWithLocation ?? 0;
+  return total > 0 && withLoc / total < 0.5;
+}
+
 export function tierForComplianceItem(
   item: ManagerComplianceItem,
   opts?: { hasNearTermRisk?: boolean; unsigned?: boolean }
@@ -120,19 +157,64 @@ export function tierForComplianceItem(
   if (opts?.hasNearTermRisk) return "attention";
 
   const badges = buildGlanceBadges(item);
-  if (badges.some((b) => b.tone === "bad")) return "attention";
+  if (badges.some((b) => badgeAffectsTier(b, "attention"))) return "attention";
 
-  if (results.some((r) => r.type === "warning")) return "elevated";
-  if (badges.some((b) => b.tone === "warn")) return "elevated";
-  if (opts?.hasNearTermRisk) return "elevated";
+  const exposureWarnings = fatigueExposureWarnings(results);
+  if (exposureWarnings.length > 0) return "elevated";
   if (hasElevatedProspectiveRegister(item)) return "elevated";
+  if (badges.some((b) => badgeAffectsTier(b, "elevated"))) return "elevated";
 
   if (opts?.unsigned) return "monitor";
-  const total = item.totalEvents ?? 0;
-  const withLoc = item.eventsWithLocation ?? 0;
-  if (total > 0 && withLoc / total < 0.5) return "monitor";
+  if (results.some((r) => isHousekeepingComplianceWarning(r))) return "monitor";
+  if (hasThinGpsEvidence(item)) return "monitor";
+  const risk = item.risk_register;
+  if (risk?.worstLevel === "monitor" && (risk.entries?.length ?? 0) > 0) return "monitor";
 
   return "clear";
+}
+
+export function deriveTopSignal(
+  item: ManagerComplianceItem,
+  tier: ManagerRiskTier,
+  opts: { hasNearTermRisk?: boolean; unsigned?: boolean },
+  badges: GlanceBadge[]
+): string {
+  const results = item.results ?? [];
+  const violations = results.filter((r) => r.type === "violation");
+  const exposureWarnings = fatigueExposureWarnings(results);
+  const housekeeping = results.filter((r) => isHousekeepingComplianceWarning(r));
+
+  if (tier === "attention") {
+    if (opts.hasNearTermRisk) return "Near-term exposure in next 24h";
+    if (violations.length) return violations[0]!.message.slice(0, 80);
+    if (results.some((r) => r.message.toLowerCase().includes("movement evidence detected"))) {
+      return "Movement during rest detected on the record";
+    }
+    const bad = badges.find((b) => badgeAffectsTier(b, "attention"));
+    if (bad) return bad.label;
+  }
+
+  if (tier === "elevated") {
+    if (exposureWarnings.length) return exposureWarnings[0]!.message.slice(0, 80);
+    const topProspective = item.risk_register?.entries.find(
+      (e) => e.scenario === "planned" && e.riskLevel !== "low"
+    );
+    if (topProspective) return topProspective.summary.slice(0, 80);
+    const warn = badges.find((b) => badgeAffectsTier(b, "elevated"));
+    if (warn) return warn.label;
+  }
+
+  if (tier === "monitor") {
+    if (opts.unsigned) return "Week not yet signed by driver";
+    if (housekeeping.length) return housekeeping[0]!.message.slice(0, 80);
+    const gps = badges.find((b) => b.label.startsWith("GPS ") && b.tone === "warn");
+    if (gps) return `Location on ${gps.label.replace("GPS ", "")} of events — optional GPS`;
+    const runPlan = badges.find((b) => b.label.startsWith("Run plan:"));
+    if (runPlan) return runPlan.label;
+  }
+
+  if (tier === "clear") return "No elevated signals";
+  return "Review driver record";
 }
 
 export type DriverRegisterRow = {
@@ -160,20 +242,7 @@ export function buildDriverRegister(
     const hasNearTermRisk = riskDriverNames.has(driver);
     const tier = tierForComplianceItem(item, { hasNearTermRisk, unsigned });
     const badges = buildGlanceBadges(item);
-
-    const violations = (item.results ?? []).filter((r) => r.type === "violation");
-    const warnings = (item.results ?? []).filter((r) => r.type === "warning");
-    let topSignal = "No elevated signals";
-    const topProspective = item.risk_register?.entries.find(
-      (e) => e.scenario === "planned" && e.riskLevel !== "low"
-    );
-    if (hasNearTermRisk) topSignal = "Near-term exposure in next 24h";
-    else if (topProspective) topSignal = topProspective.summary.slice(0, 80);
-    else if (violations.length) topSignal = violations[0]!.message.slice(0, 80);
-    else if (warnings.length) topSignal = warnings[0]!.message.slice(0, 80);
-    else if (unsigned) topSignal = "Week not yet signed by driver";
-    else if (badges.find((b) => b.tone === "bad")) topSignal = badges.find((b) => b.tone === "bad")!.label;
-    else if (badges.find((b) => b.tone === "warn")) topSignal = badges.find((b) => b.tone === "warn")!.label;
+    const topSignal = deriveTopSignal(item, tier, { hasNearTermRisk, unsigned }, badges);
 
     return { sheetId: item.sheetId, driver, tier, topSignal, badges };
   });
