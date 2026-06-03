@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { saveDriverRouteDefaults, hasRouteExceptKms } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown } from "lucide-react";
 import TimeGrid from "./TimeGrid";
@@ -130,6 +134,9 @@ export default function DayEntry({
   const isPast = sheetDayYmd < todayYmd;
   const isFuture = sheetDayYmd > todayYmd;
 
+  const { data: session } = useSession();
+  const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
+
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
@@ -158,6 +165,9 @@ export default function DayEntry({
     !Number.isNaN(Number(dayData.start_kms)) &&
     (!(dayData.truck_rego ?? "").trim() ||
       (dayData.end_kms != null && !Number.isNaN(Number(dayData.end_kms))));
+
+  const showInlineStartKm =
+    isToday && canEditDetails && hasRouteExceptKms(dayData) && !detailsComplete;
 
   const runPlanSummary = formatRunPlanSummary(dayData);
   const showRunPlanSection = isFuture || !!runPlanSummary;
@@ -360,7 +370,7 @@ export default function DayEntry({
       >
         {!hasRouteDetails ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {readOnly ? "No route details recorded." : "Route and vehicle not set — use Set route before Start shift."}
+            {readOnly ? "No route details recorded." : "Route and vehicle not set — use Set up day before Start shift."}
           </p>
         ) : (
           <>
@@ -386,6 +396,37 @@ export default function DayEntry({
               />
             </div>
           </>
+        )}
+        {showInlineStartKm && (
+          <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
+            <Label
+              htmlFor={`day-${dayIndex}-start-km`}
+              className="text-xs font-semibold text-slate-700 dark:text-slate-200"
+            >
+              Start km (required before Work)
+            </Label>
+            <Input
+              id={`day-${dayIndex}-start-km`}
+              type="number"
+              inputMode="numeric"
+              className="h-12 text-base font-medium tabular-nums"
+              placeholder="Odometer now"
+              value={dayData.start_kms ?? ""}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                const start_kms = raw === "" ? null : Number(raw);
+                const merged = {
+                  ...dayData,
+                  start_kms: start_kms != null && !Number.isNaN(start_kms) ? start_kms : null,
+                };
+                onUpdate(dayIndex, merged);
+                if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
+              }}
+            />
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+              Rego and route are filled from your last trip. Check them, enter start km, then tap Work.
+            </p>
+          </div>
         )}
       </div>
 
@@ -469,12 +510,14 @@ export default function DayEntry({
             const planFields = hasRunPlanContent(fields)
               ? { ...fields, route_source: "adhoc" as const }
               : fields;
-            onUpdate(dayIndex, {
+            const merged = {
               ...dayData,
               ...planFields,
               events: updatedEvents,
               route_confirmed: true,
-            });
+            };
+            onUpdate(dayIndex, merged);
+            if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
           }}
         />
       )}

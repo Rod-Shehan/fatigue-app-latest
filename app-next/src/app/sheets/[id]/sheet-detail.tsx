@@ -41,12 +41,16 @@ import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
 import { driverDialogBtn } from "@/components/driver/driver-ui-classes";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
-  getDayWithCarriedOverCardInfo,
   closePriorDayShiftAfterLastEvent,
   suggestedEndShiftTimeAfterLastEvent,
   getContinuedShiftRoutePrompt,
   getPriorDayUnclosedShiftPrompt,
 } from "@/lib/day-route-carry";
+import {
+  applyRouteDefaultsToWeekDays,
+  getDayWithMergedRouteContext,
+  loadDriverRouteDefaults,
+} from "@/lib/driver-route-defaults";
 import {
   formatSheetDisplayDate,
   getSheetDayDateString,
@@ -263,6 +267,12 @@ export function SheetDetail({
 
   const { data: session, status: sessionStatus } = useSession();
   const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
+  const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
+
+  const storedRouteDefaults = useMemo(() => {
+    if (isManager || !driverUserKey) return null;
+    return loadDriverRouteDefaults(driverUserKey);
+  }, [isManager, driverUserKey]);
 
   const isPastWeek = useMemo(
     () => isPastRegulatoryWeek(sheetData.week_starting),
@@ -349,29 +359,39 @@ export function SheetDetail({
   useEffect(() => {
     if (sheet) {
       const weekStart = sheet.week_starting || getThisWeekSunday();
+      const jurisdiction = sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE;
+      const todayStr = getRegulatoryTodayYmd(jurisdiction);
+      let days = applyLast24hBreakNonWorkRule(
+        deriveDaysWithRollover(
+          (sheet.days || []).map((d) => normalizeDayCoverageArrays({ ...EMPTY_DAY(), ...d })),
+          weekStart,
+          { todayStr }
+        ),
+        weekStart,
+        sheet.last_24h_break || undefined
+      );
+      let defaultsApplied = false;
+      if (!isManager && driverUserKey) {
+        const stored = loadDriverRouteDefaults(driverUserKey);
+        const applied = applyRouteDefaultsToWeekDays(days, weekStart, todayStr, stored);
+        days = applied.days;
+        defaultsApplied = applied.changed;
+      }
       setSheetData({
         driver_name: sheet.driver_name || "",
         second_driver: sheet.second_driver || "",
         driver_type: sheet.driver_type || "solo",
-        jurisdiction_code: sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
+        jurisdiction_code: jurisdiction,
         last_24h_break: sheet.last_24h_break || "",
         week_starting: weekStart,
-        days: applyLast24hBreakNonWorkRule(
-          deriveDaysWithRollover(
-            (sheet.days || []).map((d) => normalizeDayCoverageArrays({ ...EMPTY_DAY(), ...d })),
-            weekStart,
-            { todayStr: getRegulatoryTodayYmd(sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE) }
-          ),
-          weekStart,
-          sheet.last_24h_break || undefined
-        ),
+        days,
         status: sheet.status || "draft",
         signature: sheet.signature,
         signed_at: sheet.signed_at,
       });
-      setIsDirty(false);
+      setIsDirty(defaultsApplied);
     }
-  }, [sheet]);
+  }, [sheet, isManager, driverUserKey]);
 
   const prevWeekSheet = useMemo(() => {
     if (!sheetData.driver_name || !sheetData.week_starting) return null;
@@ -994,7 +1014,13 @@ export function SheetDetail({
             workRelevantComplianceMessages={prospectiveLogMessages}
             onAssumeIdle={handleAssumeIdle}
             onStartShiftBlocked={scrollToCurrentDayCard}
-            currentDayDisplay={getDayWithCarriedOverCardInfo(sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd)}
+            currentDayDisplay={getDayWithMergedRouteContext(
+              sheetData.days,
+              currentDayIndex,
+              sheetData.week_starting,
+              todayYmd,
+              storedRouteDefaults
+            )}
             driverType={sheetData.driver_type}
             primaryDriverName={sheetData.driver_name}
             secondDriverName={sheetData.second_driver}
@@ -1215,7 +1241,13 @@ export function SheetDetail({
                 >
                 <DayEntry
                   dayIndex={idx}
-                  dayData={getDayWithCarriedOverCardInfo(sheetData.days, idx, sheetData.week_starting, todayYmd)}
+                  dayData={getDayWithMergedRouteContext(
+                    sheetData.days,
+                    idx,
+                    sheetData.week_starting,
+                    todayYmd,
+                    storedRouteDefaults
+                  )}
                   continuedShiftRoute={getContinuedShiftRoutePrompt(
                     sheetData.days,
                     idx,
