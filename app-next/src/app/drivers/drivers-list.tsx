@@ -172,7 +172,8 @@ export function DriversList() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             className="flex-1"
-            type="password"
+            type="text"
+            autoComplete="off"
           />
           <Button
             type="submit"
@@ -313,7 +314,8 @@ export function DriversList() {
                 <Input
                   value={editPassword}
                   onChange={(e) => setEditPassword(e.target.value)}
-                  type="password"
+                  type="text"
+                  autoComplete="off"
                   placeholder="Leave blank to keep unchanged"
                 />
                 <p className="text-[11px] text-slate-400">Minimum 6 characters.</p>

@@ -103,7 +103,8 @@ export function AddManagersView() {
             </Label>
             <Input
               id="password"
-              type="password"
+              type="text"
+              autoComplete="off"
               placeholder="Set a password (min 6 chars)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
