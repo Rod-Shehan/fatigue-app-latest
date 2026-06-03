@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  BookOpen,
   CheckCircle2,
   ChevronRight,
   FileSignature,
@@ -54,6 +55,10 @@ export function DriverGearDrawer({
     returnHref && returnHref !== "/driver"
       ? `/driver/settings?from=${encodeURIComponent(returnHref)}`
       : "/driver/settings";
+  const guideHref =
+    returnHref && returnHref.startsWith("/")
+      ? `/driver/guide?from=${encodeURIComponent(returnHref)}`
+      : "/driver/guide";
 
   const badgeCount =
     (unsignedPastWeeks.length > 0 ? 1 : 0) + (saveStatus === "dirty" ? 1 : 0);
@@ -141,6 +146,15 @@ export function DriverGearDrawer({
                     markCompleteLabel={markCompleteLabel}
                     onExportPdf={onExportPdf}
                   />
+                  <Link
+                    href={guideHref}
+                    onClick={() => setOpen(false)}
+                    className={cn(driverDrawerRow, "mt-2")}
+                  >
+                    <BookOpen className="w-5 h-5 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
+                    <span className="flex-1 text-left font-medium">User manual</span>
+                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                  </Link>
                 </section>
               )}
 
