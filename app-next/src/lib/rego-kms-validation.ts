@@ -218,10 +218,11 @@ export function validateDayKms(
 
   if (startKms != null) {
     if (minAllowed != null && startKms < minAllowed) {
-      return {
-        valid: false,
-        message: `Start km (${startKms}) cannot be lower than the last recorded end km for this rego (${minAllowed}).`,
-      };
+      const prior = findPriorSameRegoEndWithLabel(days, dayIndex, rego);
+      const message = prior
+        ? `Start km (${startKms}) must be at least ${minAllowed} — ${prior.dayLabel} end km was ${prior.endKms} for this rego.`
+        : `Start km (${startKms}) cannot be lower than the last recorded end km for this rego (${minAllowed}).`;
+      return { valid: false, message };
     }
   }
 

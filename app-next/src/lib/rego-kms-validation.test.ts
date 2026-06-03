@@ -79,6 +79,17 @@ describe("validateSheetKms", () => {
     expect(validateSheetKms(days)).toBeNull();
   });
 
+  it("names prior day when start km is below previous end in week", () => {
+    const days = [
+      { truck_rego: "1ABC", start_kms: 1000, end_kms: 1100, events: [{ type: "work" }] },
+      { truck_rego: "1ABC", start_kms: 1200, end_kms: 1326500, events: [{ type: "work" }] },
+      { truck_rego: "1ABC", start_kms: 1325100, end_kms: 1327000, events: [{ type: "work" }] },
+    ];
+    const err = validateSheetKms(days);
+    expect(err).toMatch(/Tuesday/);
+    expect(err).toMatch(/Monday end km was 1326500/);
+  });
+
   it("fails when start km is below server record", () => {
     const days = [
       {

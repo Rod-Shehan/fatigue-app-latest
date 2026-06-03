@@ -38,39 +38,52 @@ export function DriverSheetActions({
   const stacked = layout === "stacked";
   const iconSize = stacked ? "w-5 h-5" : "w-3.5 h-3.5";
 
+  const markCompleteButton = onMarkComplete ? (
+    <Button
+      type="button"
+      variant="outline"
+      size={stacked ? "default" : "sm"}
+      className={cn(
+        stacked ? stackedBtn : inlineBtn,
+        "border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200"
+      )}
+      onClick={onMarkComplete}
+    >
+      <CheckCircle2 className={cn(iconSize, "shrink-0")} />
+      {completeLabel}
+    </Button>
+  ) : null;
+
+  const saveButton = onSave ? (
+    <Button
+      type="button"
+      variant="outline"
+      size={stacked ? "default" : "sm"}
+      className={cn(stacked ? stackedBtn : inlineBtn)}
+      disabled={savePending}
+      onClick={onSave}
+    >
+      {savePending ? (
+        <Loader2 className={cn(iconSize, "animate-spin shrink-0")} />
+      ) : (
+        <Save className={cn(iconSize, "shrink-0")} />
+      )}
+      Save
+    </Button>
+  ) : null;
+
   return (
     <div className={cn(stacked ? "flex flex-col gap-2 w-full" : "flex flex-wrap items-center gap-1.5")}>
-      {onSave && (
-        <Button
-          type="button"
-          variant="outline"
-          size={stacked ? "default" : "sm"}
-          className={cn(stacked ? stackedBtn : inlineBtn)}
-          disabled={savePending}
-          onClick={onSave}
-        >
-          {savePending ? (
-            <Loader2 className={cn(iconSize, "animate-spin shrink-0")} />
-          ) : (
-            <Save className={cn(iconSize, "shrink-0")} />
-          )}
-          Save
-        </Button>
-      )}
-      {onMarkComplete && (
-        <Button
-          type="button"
-          variant="outline"
-          size={stacked ? "default" : "sm"}
-          className={cn(
-            stacked ? stackedBtn : inlineBtn,
-            "border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200"
-          )}
-          onClick={onMarkComplete}
-        >
-          <CheckCircle2 className={cn(iconSize, "shrink-0")} />
-          {completeLabel}
-        </Button>
+      {stacked ? (
+        <>
+          {markCompleteButton}
+          {saveButton}
+        </>
+      ) : (
+        <>
+          {saveButton}
+          {markCompleteButton}
+        </>
       )}
       {onExportPdf && (
         <Button

@@ -192,6 +192,7 @@ export function SheetDetail({
   const [showMarkCompleteConfirm, setShowMarkCompleteConfirm] = useState(false);
   const [signKmFixIssues, setSignKmFixIssues] = useState<SheetKmIssue[] | null>(null);
   const [signKmServerMax, setSignKmServerMax] = useState<Record<string, number | null>>({});
+  const [kmFixPurpose, setKmFixPurpose] = useState<"save" | "sign">("sign");
   const [complianceDialogOpen, setComplianceDialogOpen] = useState(false);
   const [endShiftDialog, setEndShiftDialog] = useState<{
     dayIndex: number;
@@ -893,6 +894,15 @@ export function SheetDetail({
     []
   );
 
+  const persistSheetFromRef = useCallback(() => {
+    const data = sheetDataRef.current;
+    saveMutation.mutate({
+      ...buildSavePayload(),
+      signature: data.signature || undefined,
+      signed_at: data.signed_at || undefined,
+    });
+  }, [saveMutation, buildSavePayload]);
+
   const handleAutoFixKmForSign = useCallback(async () => {
     const prev = sheetDataRef.current;
     const chained = chainRegoKmsAcrossSheet(prev.days, signKmServerMax);
@@ -902,31 +912,31 @@ export function SheetDetail({
     const err = validateSheetKms(finalDays, { serverMaxByRego: signKmServerMax });
     if (!err) {
       setSignKmFixIssues(null);
-      setShowMarkCompleteConfirm(true);
+      if (kmFixPurpose === "save") {
+        persistSheetFromRef();
+      } else {
+        setShowMarkCompleteConfirm(true);
+      }
     } else {
       setSignKmFixIssues(getSheetKmIssues(finalDays, { serverMaxByRego: signKmServerMax }));
     }
-  }, [applyDaysAfterKmChange, signKmServerMax]);
+  }, [applyDaysAfterKmChange, signKmServerMax, kmFixPurpose, persistSheetFromRef]);
 
-  const handleSave = () => {
-    const kmError = validateSheetKms(sheetData.days);
-    if (kmError) {
-      window.alert(kmError);
+  const handleSave = useCallback(async () => {
+    const days = sheetDataRef.current.days;
+    const serverMaxByRego = await fetchServerMaxByRego(days);
+    setSignKmServerMax(serverMaxByRego);
+    const issues = getSheetKmIssues(days, { serverMaxByRego });
+    if (issues.length > 0) {
+      setKmFixPurpose("save");
+      setSignKmFixIssues(issues);
+      setGearDrawerOpen(false);
+      scrollToDayCard(issues[0]!.dayIndex);
       return;
     }
-    saveMutation.mutate({
-      driver_name: sheetData.driver_name,
-      second_driver: sheetData.second_driver,
-      driver_type: sheetData.driver_type,
-      destination: null,
-      last_24h_break: sheetData.last_24h_break || undefined,
-      week_starting: sheetData.week_starting,
-      days: sheetData.days,
-      status: sheetData.status,
-      signature: sheetData.signature || undefined,
-      signed_at: sheetData.signed_at || undefined,
-    });
-  };
+    setSignKmFixIssues(null);
+    persistSheetFromRef();
+  }, [fetchServerMaxByRego, persistSheetFromRef, scrollToDayCard]);
 
   const handleMarkCompleteClick = async () => {
     const days = sheetDataRef.current.days;
@@ -934,6 +944,7 @@ export function SheetDetail({
     const kmError = validateSheetKms(days, { serverMaxByRego });
     if (kmError) {
       if (!isManager) {
+        setKmFixPurpose("sign");
         setSignKmServerMax(serverMaxByRego);
         setSignKmFixIssues(getSheetKmIssues(days, { serverMaxByRego }));
         return;
@@ -1322,6 +1333,7 @@ export function SheetDetail({
         onOpenChange={(open) => !open && setSignKmFixIssues(null)}
         issues={signKmFixIssues ?? []}
         weekOfLabel={weekOfLabel || "this week"}
+        purpose={kmFixPurpose}
         onAutoFixStartKm={handleAutoFixKmForSign}
         onGoToDay={scrollToDayCard}
       />

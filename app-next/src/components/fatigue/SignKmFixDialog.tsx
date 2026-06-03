@@ -21,6 +21,7 @@ export function SignKmFixDialog({
   onAutoFixStartKm,
   onGoToDay,
   weekOfLabel,
+  purpose = "sign",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -28,6 +29,8 @@ export function SignKmFixDialog({
   onAutoFixStartKm: () => Promise<void>;
   onGoToDay: (dayIndex: number) => void;
   weekOfLabel: string;
+  /** Why km fix was opened — adjusts helper copy. */
+  purpose?: "save" | "sign";
 }) {
   const [fixing, setFixing] = useState(false);
   const canAutoFix = issues.some((i) => i.canAutoFixStart);
@@ -50,8 +53,9 @@ export function SignKmFixDialog({
             Kilometres need a quick fix
           </DialogTitle>
           <DialogDescription className="text-left">
-            Fix the days below, then sign the week of {weekOfLabel}. Start km must follow the previous end km for
-            each rego.
+            {purpose === "save"
+              ? "Fix the days below, then tap Save again. For the same rego, each day’s start km must be at least the previous day’s end km (or the last fleet reading)."
+              : `Fix the days below, then sign the week of ${weekOfLabel}. Start km must follow the previous end km for each rego.`}
           </DialogDescription>
         </DialogHeader>
 
