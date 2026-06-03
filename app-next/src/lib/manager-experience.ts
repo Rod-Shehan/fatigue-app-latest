@@ -1,6 +1,10 @@
 /**
  * Manager-facing narrative: risk identification and assurance, not enforcement.
  * Paired with driver copy in product-copy.ts — different audience, same record contract.
+ *
+ * Layout: manager UI is **monitor-first, mobile-second** (wide containers, multi-column
+ * defaults, stack below `md` via `max-md:`). Driver sheet UI is **mobile-first** — see
+ * `.cursor/rules/responsive-priority.mdc`.
  */
 
 export const MANAGER_EXPERIENCE = {

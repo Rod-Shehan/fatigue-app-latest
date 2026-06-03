@@ -1,0 +1,25 @@
+---
+description: Manager vs driver responsive layout priority (monitor-first vs mobile-first)
+globs: app-next/src/**
+alwaysApply: false
+---
+
+# Responsive priority
+
+## Manager / fleet admin (`/manager`, `/drivers`, `/manager/add-managers`, `/admin`)
+
+- **Monitor-first, mobile-second** — design for desktop workbench width first; degrade gracefully on phones.
+- Prefer **wide** page shells (`max-w-4xl`–`max-w-5xl`, `md:py-12`).
+- Prefer **multi-column defaults** with collapse on small viewports, e.g. `grid grid-cols-3 max-md:grid-cols-1`, not a single-column default that only widens at `sm:`.
+- Tables, registers, and roster forms should not squeeze fields into one cramped row.
+- Use **labels above fields** on admin forms (placeholders alone truncate easily).
+
+## Driver (`/sheets`, fatigue logging, `src/components/fatigue/**`)
+
+- **Mobile-first, monitor-second** — thumb-friendly controls, single-column default, enhance at `sm`/`md`.
+- Do not apply manager multi-column patterns to LogBar, day cards, or sheet toolbar without explicit approval (`fatigue-ui-approval.mdc`).
+
+## Shared
+
+- Login and public pages follow their own needs (login password stays masked).
+- When a route appears in **ManagerSubnav**, treat it as manager layout unless it is explicitly driver-only content.

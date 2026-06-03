@@ -127,7 +127,7 @@ export function DriversList() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
         <PageHeader
           backHref="/sheets"
           backLabel="Your Sheets"
@@ -137,52 +137,75 @@ export function DriversList() {
         />
         <form
           onSubmit={handleAdd}
-          className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 mb-4 flex flex-col sm:flex-row gap-2"
+          className="mb-4 grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 max-md:grid-cols-1"
         >
-          <Input
-            placeholder="Full name *"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className="flex-1"
-            required
-          />
-          <Input
-            placeholder="Email * (for driver login)"
-            value={newEmail}
-            onChange={(e) => setNewEmail(e.target.value)}
-            className="flex-1"
-            type="email"
-            required
-          />
-          <Input
-            placeholder="Licence no. (optional)"
-            value={newLicence}
-            onChange={(e) => setNewLicence(e.target.value)}
-            className="flex-1"
-          />
-          <Input
-            type="date"
-            value={newCvdMedical}
-            onChange={(e) => setNewCvdMedical(e.target.value)}
-            className="flex-1 min-w-[11rem]"
-            title="WA CVD medical certificate expiry (optional)"
-          />
-          <Input
-            placeholder="Password (optional)"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="flex-1"
-            type="text"
-            autoComplete="off"
-          />
-          <Button
-            type="submit"
-            disabled={createMutation.isPending || !newName.trim() || !newEmail.trim()}
-            className="bg-slate-900 hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 text-white dark:text-slate-100 gap-1.5 shrink-0"
-          >
-            {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-            Add Driver
-          </Button>
+          <div className="min-w-0 space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+              Full name *
+            </Label>
+            <Input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full min-w-0"
+              required
+            />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+              Email * (for driver login)
+            </Label>
+            <Input
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              className="w-full min-w-0"
+              type="email"
+              required
+            />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+              Licence no. (optional)
+            </Label>
+            <Input
+              value={newLicence}
+              onChange={(e) => setNewLicence(e.target.value)}
+              className="w-full min-w-0"
+            />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+              WA CVD medical expiry (optional)
+            </Label>
+            <Input
+              type="date"
+              value={newCvdMedical}
+              onChange={(e) => setNewCvdMedical(e.target.value)}
+              className="w-full min-w-0"
+            />
+          </div>
+          <div className="col-span-2 min-w-0 space-y-1.5 max-md:col-span-1">
+            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+              Password (optional)
+            </Label>
+            <Input
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full min-w-0"
+              type="text"
+              autoComplete="off"
+            />
+            <p className="text-[11px] text-slate-400">Minimum 6 characters if set.</p>
+          </div>
+          <div className="col-span-3 flex justify-end max-md:col-span-1">
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || !newName.trim() || !newEmail.trim()}
+              className="gap-1.5 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 max-md:w-full"
+            >
+              {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Add Driver
+            </Button>
+          </div>
         </form>
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
           {isLoading && (
