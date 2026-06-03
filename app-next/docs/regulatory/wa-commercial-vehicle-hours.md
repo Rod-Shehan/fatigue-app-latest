@@ -78,3 +78,7 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
 
 - Project-specific rule (implemented in UI derivation): **any break >30 minutes is recorded as non‑work time**.
 
+## Prospective risk (separate from compliance)
+
+Retrospective rule checks above apply only to the **attested record**. **Forward-looking** exposure (declared route distance/time on **future** days, projected against rolling state from history) is defined in [ADR 0003: Prospective risk engine](../adr/0003-prospective-risk-engine.md). Risk criteria are aligned with the same Reg 184E thresholds but do not replace violations on logged time.
+
