@@ -12,7 +12,7 @@ Each **major** item below should be **explicitly approved** (reply in chat or PR
 | **S4** | Jurisdiction selector on **sheet** (`jurisdictionCode` + header UI); compliance uses sheet code | Approve **UI** (done 2026-03-18) | **Done 2026-03-18** — WA only in dropdown; org-level deferred |
 | **S5** | NHVR-oriented rule pack (dev/feature-flag) | Approve scope + **no public EWD claim** | **Done 2026-03-18** — `NHVR_PROVISIONAL`; WA math + banner warning; env flags (see `docs/architecture/nhvr-provisional-pack.md`) |
 | **S6** | Roadside: PDF summary + optional QR (substance first) | Approve UX + **legal copy** | **Done 2026-03-18** — summary in export PDF; signed `roadside-snapshot` API; QR when env enabled |
-| **S7** | WA CVD medical expiry tracking | Approve **UI pattern** (banner vs settings) | **Done 2026-03-18** — roster date + sheet banners; see `docs/architecture/wa-cvd-medical-s7.md` |
+| **S7** | WA Commercial Driver's Medical expiry tracking | Approve **UI pattern** (banner vs settings) | **Done 2026-03-18** — roster date + sheet banners; see `docs/architecture/wa-cvd-medical-s7.md` |
 | **S8** | Migrate API routes to `getComplianceEngine()` | Approve **S2** migration | **Done 2026-03-18** — `/api/compliance/check`, `/api/manager/compliance` |
 
 ## Changelog

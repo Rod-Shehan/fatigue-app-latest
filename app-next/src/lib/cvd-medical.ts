@@ -1,7 +1,10 @@
 /**
- * WA CVD medical certificate reminder helpers (S7).
+ * WA Commercial Driver's Medical certificate reminder helpers (S7).
  * Not regulatory advice — managers should confirm requirements with DoT / medical providers.
  */
+
+/** User-facing name (WA Commercial Vehicle Driver certificate). */
+export const COMMERCIAL_DRIVERS_MEDICAL = "Commercial Driver's Medical";
 
 /** YYYY-MM-DD → UTC Date for Prisma; `undefined` = omit field; `null` = clear. */
 export function parseCvdMedicalExpiryInput(input: unknown): Date | null | undefined {

@@ -59,7 +59,7 @@ model Driver {
   name           String
   email          String?  @unique
   licenceNumber  String?
-  /** WA Commercial Vehicle Driver (CVD) medical certificate expiry — optional reminder only (S7). */
+  /** WA Commercial Driver's Medical certificate expiry — optional reminder only (S7). */
   cvdMedicalExpiry DateTime?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())

@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { AlertTriangle, Stethoscope } from "lucide-react";
-import { daysFromTodayToYmd, getCvdMedicalBannerKind } from "@/lib/cvd-medical";
+import { COMMERCIAL_DRIVERS_MEDICAL, daysFromTodayToYmd, getCvdMedicalBannerKind } from "@/lib/cvd-medical";
 
 /**
- * Banner when roster CVD medical date is expired or within 30 days (WA CVD reminder — S7).
+ * Banner when roster Commercial Driver's Medical date is expired or within 30 days (S7).
  */
 export function CvdMedicalBanner({
   driverLabel,
@@ -35,7 +35,7 @@ export function CvdMedicalBanner({
       >
         <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
         <div className="min-w-0">
-          <p className="font-semibold">CVD medical certificate — expired</p>
+          <p className="font-semibold">{COMMERCIAL_DRIVERS_MEDICAL} — expired</p>
           <p className="text-sm mt-0.5 opacity-95">
             {role}
             {driverLabel}
@@ -65,7 +65,7 @@ export function CvdMedicalBanner({
     >
       <Stethoscope className="w-5 h-5 shrink-0 mt-0.5" aria-hidden />
       <div className="min-w-0">
-        <p className="font-semibold">CVD medical certificate — renew soon</p>
+        <p className="font-semibold">{COMMERCIAL_DRIVERS_MEDICAL} — renew soon</p>
         <p className="text-sm mt-0.5 opacity-95">
           {role}
           {driverLabel} — expires {expiryYmd}

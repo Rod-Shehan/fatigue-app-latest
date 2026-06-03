@@ -41,7 +41,7 @@ export type Driver = {
   name: string;
   email?: string | null;
   licence_number?: string;
-  /** WA CVD medical certificate expiry (YYYY-MM-DD), optional. */
+  /** WA Commercial Driver's Medical expiry (YYYY-MM-DD), optional. */
   cvd_medical_expiry?: string | null;
   is_active: boolean;
 };

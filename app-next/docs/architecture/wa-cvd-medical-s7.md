@@ -1,8 +1,10 @@
-# WA CVD medical expiry (S7)
+# WA Commercial Driver's Medical expiry (S7)
 
 ## Purpose
 
-Optional tracking of **Western Australia Commercial Vehicle Driver (CVD) medical certificate** expiry on each **Approved Driver** roster record. Used for **in-app reminders only** — not a substitute for regulatory or medical advice.
+Optional tracking of **Western Australia Commercial Driver's Medical** certificate expiry on each **Approved Driver** roster record. Used for **in-app reminders only** — not a substitute for regulatory or medical advice.
+
+UI copy uses **Commercial Driver's Medical** (WA Commercial Vehicle Driver certificate).
 
 ## Data
 

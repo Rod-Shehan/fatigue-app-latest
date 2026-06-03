@@ -10,7 +10,7 @@ import { PRODUCT_NAME } from "@/lib/branding";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, UserCheck, UserX, Loader2, Users, Pencil } from "lucide-react";
-import { getCvdMedicalBannerKind } from "@/lib/cvd-medical";
+import { COMMERCIAL_DRIVERS_MEDICAL, getCvdMedicalBannerKind } from "@/lib/cvd-medical";
 
 export function DriversList() {
   const queryClient = useQueryClient();
@@ -132,7 +132,7 @@ export function DriversList() {
           backHref="/sheets"
           backLabel="Your Sheets"
           title={PRODUCT_NAME}
-          subtitle="Approved drivers — manage the roster and optional WA CVD medical expiry dates"
+          subtitle={`Approved drivers — manage the roster and optional WA ${COMMERCIAL_DRIVERS_MEDICAL} expiry dates`}
           icon={<Users className="w-5 h-5" />}
         />
         <form
@@ -174,7 +174,7 @@ export function DriversList() {
           </div>
           <div className="min-w-0 space-y-1.5">
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
-              WA CVD medical expiry (optional)
+              WA {COMMERCIAL_DRIVERS_MEDICAL} expiry (optional)
             </Label>
             <Input
               type="date"
@@ -236,14 +236,18 @@ export function DriversList() {
                 )}
                 {driver.cvd_medical_expiry && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    CVD medical: {driver.cvd_medical_expiry}
+                    {COMMERCIAL_DRIVERS_MEDICAL}: {driver.cvd_medical_expiry}
                   </p>
                 )}
                 {getCvdMedicalBannerKind(driver.cvd_medical_expiry) === "expired" && (
-                  <p className="text-[10px] font-semibold text-red-600 dark:text-red-400">CVD medical expired</p>
+                  <p className="text-[10px] font-semibold text-red-600 dark:text-red-400">
+                    {COMMERCIAL_DRIVERS_MEDICAL} expired
+                  </p>
                 )}
                 {getCvdMedicalBannerKind(driver.cvd_medical_expiry) === "soon" && (
-                  <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400">CVD medical renew within 30 days</p>
+                  <p className="text-[10px] font-semibold text-amber-700 dark:text-amber-400">
+                    {COMMERCIAL_DRIVERS_MEDICAL} — renew within 30 days
+                  </p>
                 )}
               </div>
               <span
@@ -327,10 +331,12 @@ export function DriversList() {
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
-                  WA CVD medical expiry (optional)
+                  WA {COMMERCIAL_DRIVERS_MEDICAL} expiry (optional)
                 </Label>
                 <Input type="date" value={editCvdMedical} onChange={(e) => setEditCvdMedical(e.target.value)} />
-                <p className="text-[11px] text-slate-400">Commercial Vehicle Driver medical certificate — for in-app reminders only.</p>
+                <p className="text-[11px] text-slate-400">
+                  {COMMERCIAL_DRIVERS_MEDICAL} — for in-app reminders only.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Set/reset password</Label>
