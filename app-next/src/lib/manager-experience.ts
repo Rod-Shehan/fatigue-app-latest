@@ -32,13 +32,14 @@ export const MANAGER_EXPERIENCE = {
 
   SNAPSHOT_TITLE: "Assurance signals",
   SNAPSHOT_SUBTITLE:
-    "What the record shows for the selected work week and the week before — framed for learning, not blame.",
+    "Compliance rule breaches on weekly sheets for the selected work week and the one before — not a full record audit. Rolling checks may use earlier submitted history; framed for learning, not blame.",
 
   CURRENT_WEEK_LABEL: "Selected week",
   PRIOR_WEEK_LABEL: "Week before",
 
-  EMPTY_ASSURANCE:
-    "No rule breaches flagged for visible drivers this week. Keep monitoring exposure and record quality.",
+  EMPTY_ASSURANCE_CURRENT:
+    "No rule breaches on sheets for this work week. Keep monitoring exposure and record quality.",
+  EMPTY_ASSURANCE_PRIOR: "No rule breaches on sheets for the week before.",
 
   WORKBENCH_TITLE: "Weekly review",
   WORKBENCH_SUBTITLE: "Choose a work week and day, then focus the fleet or open a driver record.",

@@ -110,7 +110,7 @@ export function ManagerAssuranceSignals({
             {currentLines.length === 0 ? (
               <div className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5 text-sm text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                <span>{MANAGER_EXPERIENCE.EMPTY_ASSURANCE}</span>
+                <span>{MANAGER_EXPERIENCE.EMPTY_ASSURANCE_CURRENT}</span>
               </div>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -130,7 +130,7 @@ export function ManagerAssuranceSignals({
             {priorLines.length === 0 ? (
               <div className="flex items-start gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
-                <span>{MANAGER_EXPERIENCE.EMPTY_ASSURANCE}</span>
+                <span>{MANAGER_EXPERIENCE.EMPTY_ASSURANCE_PRIOR}</span>
               </div>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
