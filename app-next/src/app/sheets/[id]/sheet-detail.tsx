@@ -383,15 +383,29 @@ export function SheetDetail({
     isManager ? undefined : sessionDriverName || sheetData.driver_name
   );
 
+  const { data: complianceHistory } = useQuery({
+    queryKey: ["sheet", sheetId, "compliance-history"],
+    queryFn: () => api.sheets.complianceHistory(sheetId),
+    enabled: !!sheetId,
+  });
+
   const compliancePayload = useMemo(() => {
     const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheetData.jurisdiction_code);
+    const prevWeekDays =
+      complianceHistory?.prev_week_days ??
+      prevWeekSheet?.days ??
+      null;
     return {
       days: sheetData.days,
       driverType: sheetData.driver_type,
-      prevWeekDays: prevWeekSheet?.days ?? null,
+      prevWeekDays,
+      historyDays: complianceHistory?.history_days ?? null,
       last24hBreak: sheetData.last_24h_break || undefined,
       weekStarting: sheetData.week_starting || undefined,
-      prevWeekStarting: prevWeekSheet?.week_starting ?? undefined,
+      prevWeekStarting:
+        complianceHistory?.prev_week_starting ??
+        prevWeekSheet?.week_starting ??
+        undefined,
       currentDayIndex,
       slotOffsetWithinToday,
       jurisdiction_code: sheetData.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
@@ -403,9 +417,9 @@ export function SheetDetail({
     sheetData.last_24h_break,
     sheetData.week_starting,
     prevWeekSheet,
+    complianceHistory,
     currentDayIndex,
     now,
-    sheetData.jurisdiction_code,
   ]);
   const { data: complianceData, isLoading: complianceLoading } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],

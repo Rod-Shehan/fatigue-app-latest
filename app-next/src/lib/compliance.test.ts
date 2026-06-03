@@ -123,13 +123,24 @@ describe("compliance scenarios — what the logic produces", () => {
 
   it("14-day work > 168h with prev week: violation", () => {
     const thisWeek = emptyWeek();
-    for (let i = 0; i < 7; i++) thisWeek[i] = dayWorkOnly(14); // 98h this week
+    for (let i = 0; i < 7; i++) thisWeek[i] = dayWorkOnly(15);
     const prevWeek = emptyWeek();
-    for (let i = 0; i < 7; i++) prevWeek[i] = dayWorkOnly(14); // 98h prev = 196h total
+    for (let i = 0; i < 7; i++) prevWeek[i] = dayWorkOnly(15);
+    prevWeek[0] = {
+      work_time: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      non_work: Array(MINUTES_PER_DAY).fill(true),
+    };
+    prevWeek[1] = {
+      work_time: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      non_work: Array(MINUTES_PER_DAY).fill(true),
+    };
     const results = runComplianceChecks(thisWeek, { driverType: "solo", prevWeekDays: prevWeek });
-    const violation = results.find((r) => r.day === "14-day" && r.type === "violation");
+    const violation = results.find(
+      (r) => r.day === "14-day" && r.type === "violation" && r.message.includes("168")
+    );
     expect(violation).toBeDefined();
-    expect(violation!.message).toContain("168");
   });
 
   it("14-day rule resets after ≥48h continuous non-work: no violation when each segment ≤168h", () => {
@@ -369,13 +380,24 @@ describe("compliance scenarios — what the logic produces", () => {
     const thisWeek = emptyWeek();
     const prevWeek = emptyWeek();
     for (let i = 0; i < 7; i++) {
-      thisWeek[i] = dayWorkOnly(13);
-      prevWeek[i] = dayWorkOnly(13);
+      thisWeek[i] = dayWorkOnly(15);
+      prevWeek[i] = dayWorkOnly(15);
     }
+    prevWeek[0] = {
+      work_time: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      non_work: Array(MINUTES_PER_DAY).fill(true),
+    };
+    prevWeek[1] = {
+      work_time: Array(MINUTES_PER_DAY).fill(false),
+      breaks: Array(MINUTES_PER_DAY).fill(false),
+      non_work: Array(MINUTES_PER_DAY).fill(true),
+    };
     const results = runComplianceChecks(thisWeek, { driverType: "solo", prevWeekDays: prevWeek });
-    const violation = results.find((r) => r.day === "14-day" && r.type === "violation");
+    const violation = results.find(
+      (r) => r.day === "14-day" && r.type === "violation" && r.message.includes("168")
+    );
     expect(violation).toBeDefined();
-    expect(violation!.message).toContain("168");
   });
 
   it("this week >84h and no prev week: 14-day warning", () => {

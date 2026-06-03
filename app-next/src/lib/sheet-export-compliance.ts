@@ -1,18 +1,8 @@
 import type { FatigueSheet, PrismaClient } from "@prisma/client";
 import type { ComplianceCheckResult } from "@/lib/api";
-import type { ComplianceDayData } from "@/lib/compliance";
 import { getComplianceEngine, parseJurisdictionCode, type JurisdictionCode } from "@/lib/jurisdiction";
-import { getPreviousWeekSunday } from "@/lib/weeks";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
-
-function parseDays(daysJson: string): ComplianceDayData[] {
-  try {
-    const parsed = JSON.parse(daysJson);
-    return Array.isArray(parsed) ? (parsed as ComplianceDayData[]) : [];
-  } catch {
-    return [];
-  }
-}
+import { loadComplianceWeekContext, parseSheetDaysJson } from "@/lib/compliance-history";
 
 /**
  * Same inputs as manager compliance / sheet API — used for PDF roadside summary.
@@ -24,21 +14,12 @@ export async function computeComplianceForSheetExport(
     "driverName" | "weekStarting" | "driverType" | "last24hBreak" | "days" | "jurisdictionCode"
   >
 ): Promise<{ results: ComplianceCheckResult[]; jurisdictionCode: JurisdictionCode }> {
-  const prevWeekStarting = getPreviousWeekSunday(row.weekStarting);
-  const prev2WeekStarting = getPreviousWeekSunday(prevWeekStarting);
-  const prev3WeekStarting = getPreviousWeekSunday(prev2WeekStarting);
-  const [prevSheet, prev2Sheet, prev3Sheet] = await Promise.all([
-    prisma.fatigueSheet.findFirst({ where: { driverName: row.driverName, weekStarting: prevWeekStarting } }),
-    prisma.fatigueSheet.findFirst({ where: { driverName: row.driverName, weekStarting: prev2WeekStarting } }),
-    prisma.fatigueSheet.findFirst({ where: { driverName: row.driverName, weekStarting: prev3WeekStarting } }),
-  ]);
-  const days = parseDays(row.days);
-  const prevWeekDays = prevSheet ? parseDays(prevSheet.days) : null;
-  const historyDays = [
-    ...(prev3Sheet ? parseDays(prev3Sheet.days) : []),
-    ...(prev2Sheet ? parseDays(prev2Sheet.days) : []),
-    ...(prevSheet ? parseDays(prevSheet.days) : []),
-  ];
+  const { prevWeekDays, prevWeekStarting, historyDays } = await loadComplianceWeekContext(
+    prisma,
+    row.driverName,
+    row.weekStarting
+  );
+  const days = parseSheetDaysJson(row.days);
 
   const now = Date.now();
   const today = new Date(now);
@@ -64,7 +45,7 @@ export async function computeComplianceForSheetExport(
     historyDays,
     last24hBreak: row.last24hBreak ?? undefined,
     weekStarting: row.weekStarting,
-    prevWeekStarting: prevSheet?.weekStarting ?? undefined,
+    prevWeekStarting,
     currentDayIndex,
     slotOffsetWithinToday,
   });

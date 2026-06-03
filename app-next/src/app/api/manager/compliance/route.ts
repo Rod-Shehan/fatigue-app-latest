@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import type { ComplianceDayData } from "@/lib/compliance";
 import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
 import type { ComplianceCheckResult } from "@/lib/api";
-import { getPreviousWeekSunday } from "@/lib/weeks";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
-
-function parseDays(daysJson: string): ComplianceDayData[] {
-  try {
-    const parsed = JSON.parse(daysJson);
-    return Array.isArray(parsed) ? (parsed as ComplianceDayData[]) : [];
-  } catch {
-    return [];
-  }
-}
+import {
+  buildComplianceWeekContextFromMap,
+  parseSheetDaysJson,
+} from "@/lib/compliance-history";
 
 export type ManagerComplianceItem = {
   sheetId: string;
@@ -44,9 +37,20 @@ export async function GET() {
       take: 100,
     });
 
-    const byDriverWeek = new Map<string, (typeof sheets)[0]>();
-    for (const s of sheets) {
-      byDriverWeek.set(`${s.driverName}|${s.weekStarting}`, s);
+    const drivers = [...new Set(sheets.map((s) => s.driverName))];
+    const driverSheets = drivers.length
+      ? await prisma.fatigueSheet.findMany({
+          where: { driverName: { in: drivers } },
+          select: { driverName: true, weekStarting: true, days: true },
+        })
+      : [];
+
+    const byDriverWeek = new Map<string, Map<string, { days: string }>>();
+    for (const row of driverSheets) {
+      if (!byDriverWeek.has(row.driverName)) {
+        byDriverWeek.set(row.driverName, new Map());
+      }
+      byDriverWeek.get(row.driverName)!.set(row.weekStarting, { days: row.days });
     }
 
     const now = Date.now();
@@ -57,19 +61,12 @@ export async function GET() {
     for (const sheet of sheets) {
       const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheet.jurisdictionCode);
       const engine = getComplianceEngine(parseJurisdictionCode(sheet.jurisdictionCode));
-      const prevWeekStarting = getPreviousWeekSunday(sheet.weekStarting);
-      const prev2WeekStarting = getPreviousWeekSunday(prevWeekStarting);
-      const prev3WeekStarting = getPreviousWeekSunday(prev2WeekStarting);
-      const prevSheet = byDriverWeek.get(`${sheet.driverName}|${prevWeekStarting}`) ?? null;
-      const prev2Sheet = byDriverWeek.get(`${sheet.driverName}|${prev2WeekStarting}`) ?? null;
-      const prev3Sheet = byDriverWeek.get(`${sheet.driverName}|${prev3WeekStarting}`) ?? null;
-      const days = parseDays(sheet.days);
-      const prevWeekDays = prevSheet ? parseDays(prevSheet.days) : null;
-      const historyDays = [
-        ...(prev3Sheet ? parseDays(prev3Sheet.days) : []),
-        ...(prev2Sheet ? parseDays(prev2Sheet.days) : []),
-        ...(prevSheet ? parseDays(prevSheet.days) : []),
-      ];
+      const weekMap = byDriverWeek.get(sheet.driverName) ?? new Map<string, { days: string }>();
+      const { prevWeekDays, prevWeekStarting, historyDays } = buildComplianceWeekContextFromMap(
+        sheet.weekStarting,
+        weekMap
+      );
+      const days = parseSheetDaysJson(sheet.days);
 
       const [yw, mw, dw] = sheet.weekStarting.split("-").map(Number);
       let currentDayIndex: number | undefined;
@@ -88,7 +85,7 @@ export async function GET() {
         historyDays,
         last24hBreak: sheet.last24hBreak ?? undefined,
         weekStarting: sheet.weekStarting,
-        prevWeekStarting: prevSheet?.weekStarting ?? undefined,
+        prevWeekStarting,
         currentDayIndex,
         slotOffsetWithinToday,
       });

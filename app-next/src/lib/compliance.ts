@@ -478,6 +478,8 @@ function checkSoloRules(
     slotOffsetWithinToday?: number;
     /** Optional preceding history days (chronological) to allow 28-day checks. */
     historyDays?: ComplianceDayData[] | null;
+    /** Immediate prior week — folded into 14/28 combined timeline after historyDays. */
+    prevWeekDays?: ComplianceDayData[] | null;
   }
 ) {
   const hasAnyWork = days.some(dayHasWork);
@@ -621,7 +623,11 @@ function checkSoloRules(
    * - 14-day check uses the last 14 days when available.
    * - 28-day alternative is applied only when we have a full 28 days AND the 144h/14-day condition holds.
    */
-  const combined = [...(soloOptions?.historyDays ?? []), ...days].map((d) => normalizeDayCoverageArrays(d));
+  const combined = [
+    ...(soloOptions?.historyDays ?? []),
+    ...(soloOptions?.prevWeekDays ?? []),
+    ...days,
+  ].map((d) => normalizeDayCoverageArrays(d));
   const nonWorkAll = flatSlots(combined, "non_work");
   const workAll = flatSlots(combined, "work_time");
   checkSolo24hNonWorkAtNow(nonWorkAll, workAll, results);
@@ -1033,6 +1039,7 @@ export function runComplianceChecks(
       currentDayIndex,
       slotOffsetWithinToday,
       historyDays: (historyDays || []).map((d) => normalizeDayCoverageArrays(d)),
+      prevWeekDays: prevDays.length ? prevDays : null,
     });
   }
 

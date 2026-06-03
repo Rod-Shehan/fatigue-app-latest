@@ -214,6 +214,13 @@ export const api = {
   sheets: {
     list: () => fetchApi<FatigueSheet[]>("/api/sheets"),
     get: (id: string) => fetchApi<FatigueSheet>(`/api/sheets/${id}`),
+    complianceHistory: (id: string) =>
+      fetchApi<{
+        prev_week_starting: string | null;
+        prev_week_days: FatigueSheet["days"] | null;
+        history_days: FatigueSheet["days"];
+        lookback_weeks: number;
+      }>(`/api/sheets/${id}/compliance-history`),
     regoMaxEndKms: (
       rego: string,
       options?: { excludeSheetId?: string; beforeWeekStarting?: string }
