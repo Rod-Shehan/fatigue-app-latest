@@ -113,7 +113,7 @@ export function DriverGuideArticle() {
         <ul className={ulClass}>
           <li>If you do not tap Work or Break, time is non-work (off duty).</li>
           <li>Rest longer than 30 minutes is non-work, not Break.</li>
-          <li>You do not tap anything for sleep at home.</li>
+          <li>When you stop working for the day, tap End shift.</li>
         </ul>
       </section>
 

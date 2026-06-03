@@ -100,7 +100,7 @@ flowchart LR
 - Long rest (**more than 30 minutes**) is **non-work**, not Break.
 - **Break** is for short rest during work.
 
-You do not need to tap anything for sleep at home — that is non-work.
+When you stop working for the day, tap **End shift**. After that, time is non-work until you tap Work again.
 
 ---
 
