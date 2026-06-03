@@ -1,33 +1,44 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, ChevronDown, ChevronUp } from "lucide-react";
+import { BookOpen, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  MANAGER_REFERENCE_CARDS,
-  MANAGER_REFERENCE_LAST_REVIEWED,
-} from "@/lib/manager-risk-reference";
+import type { ManagerReferenceLibrary } from "@/lib/manager-risk-reference";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 
-export function ManagerReferencePanel() {
-  const [open, setOpen] = useState(false);
+const ICON_STYLES = {
+  fatigue: "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200",
+  risk: "bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-200",
+} as const;
+
+export function ManagerReferencePanel({
+  library,
+  variant = "fatigue",
+  defaultOpen = false,
+}: {
+  library: ManagerReferenceLibrary;
+  variant?: keyof typeof ICON_STYLES;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const Icon = variant === "risk" ? Shield : BookOpen;
 
   return (
     <section
       className="mb-6 rounded-2xl border border-slate-200/90 bg-white dark:border-slate-700 dark:bg-slate-900/80"
-      aria-label={MANAGER_EXPERIENCE.REFERENCE_TITLE}
+      aria-label={library.title}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200">
-            <BookOpen className="h-4 w-4" aria-hidden />
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-xl ${ICON_STYLES[variant]}`}
+          >
+            <Icon className="h-4 w-4" aria-hidden />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-              {MANAGER_EXPERIENCE.REFERENCE_TITLE}
-            </h2>
+            <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{library.title}</h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Industry context · last reviewed {MANAGER_REFERENCE_LAST_REVIEWED}
+              Industry context · last reviewed {library.lastReviewed}
             </p>
           </div>
         </div>
@@ -54,7 +65,7 @@ export function ManagerReferencePanel() {
       </div>
       {open ? (
         <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-5">
-          {MANAGER_REFERENCE_CARDS.map((card) => (
+          {library.cards.map((card) => (
             <article
               key={card.id}
               className="rounded-xl border border-slate-100 bg-slate-50/80 p-4 dark:border-slate-800 dark:bg-slate-950/50"

@@ -15,9 +15,20 @@ export type ManagerReferenceCard = {
   relateTo?: string[];
 };
 
+export type ManagerReferenceLibrary = {
+  id: string;
+  title: string;
+  lastReviewed: string;
+  cards: ManagerReferenceCard[];
+};
+
 export const MANAGER_REFERENCE_LAST_REVIEWED = "2026-06";
 
-export const MANAGER_REFERENCE_CARDS: ManagerReferenceCard[] = [
+export const FATIGUE_ASSURANCE_REFERENCE: ManagerReferenceLibrary = {
+  id: "fatigue-assurance",
+  title: "Fatigue & assurance reference",
+  lastReviewed: MANAGER_REFERENCE_LAST_REVIEWED,
+  cards: [
   {
     id: "record-retention-vs-lookback",
     title: "Retention vs rule lookback",
@@ -86,12 +97,16 @@ export const MANAGER_REFERENCE_CARDS: ManagerReferenceCard[] = [
       "Reserve formal discipline for patterns or deliberate falsification, guided by your HR/legal policies.",
     ],
   },
-];
+  ],
+};
+
+/** @deprecated Use FATIGUE_ASSURANCE_REFERENCE.cards */
+export const MANAGER_REFERENCE_CARDS = FATIGUE_ASSURANCE_REFERENCE.cards;
 
 export function referenceCardsForMessage(message: string): ManagerReferenceCard[] {
   const lower = message.toLowerCase();
   const out: ManagerReferenceCard[] = [];
-  for (const card of MANAGER_REFERENCE_CARDS) {
+  for (const card of FATIGUE_ASSURANCE_REFERENCE.cards) {
     if (!card.relateTo?.length) continue;
     const hit =
       (lower.includes("movement") && card.relateTo.includes("movement")) ||
@@ -103,5 +118,5 @@ export function referenceCardsForMessage(message: string): ManagerReferenceCard[
       (lower.includes("lookback") && card.relateTo.includes("lookback"));
     if (hit) out.push(card);
   }
-  return out.length ? out : [MANAGER_REFERENCE_CARDS.find((c) => c.id === "record-corroboration")!];
+  return out.length ? out : [FATIGUE_ASSURANCE_REFERENCE.cards.find((c) => c.id === "record-corroboration")!];
 }

@@ -42,6 +42,8 @@ The risk engine follows the ISO 31000 process; specific techniques are selected 
 
 **Bow-tie** language (threat → top event → consequence; preventive / recovery **barriers**) is used in **manager copy** and treatment hints. Existing logging, compliance checks, and start-shift gates are **barriers**; risk shows where **future threats** may defeat them if the plan proceeds.
 
+**Manager UI:** Fleet risk brief includes a collapsible **Prospective risk reference (ISO 31000 / IEC 31010)** library (`src/lib/manager-prospective-risk-reference.ts`), same card layout as the fatigue & assurance reference.
+
 **Explicitly out of scope for v1:** Monte Carlo, FAIR, full FMEA workshops, NHVR-style biomathematical fatigue scores ([FRMSc-style FRMS](https://developers.frmsc.com/)).
 
 ### 3. Route / run declaration (driver-first)

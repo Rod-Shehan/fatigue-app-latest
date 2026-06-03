@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { ManagerRiskHero } from "@/components/manager/ManagerRiskHero";
 import { ManagerReferencePanel } from "@/components/manager/ManagerReferencePanel";
+import { FATIGUE_ASSURANCE_REFERENCE } from "@/lib/manager-risk-reference";
+import { PROSPECTIVE_RISK_REFERENCE } from "@/lib/manager-prospective-risk-reference";
 import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSignals";
 import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
 import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
@@ -578,7 +580,8 @@ export function ManagerView() {
           loading={complianceLoading}
         />
 
-        <ManagerReferencePanel />
+        <ManagerReferencePanel library={FATIGUE_ASSURANCE_REFERENCE} variant="fatigue" />
+        <ManagerReferencePanel library={PROSPECTIVE_RISK_REFERENCE} variant="risk" />
 
         <ManagerAssuranceSignals
           currentWeekLabel={formatWeekLabel(weekForSnapshot)}
