@@ -43,11 +43,8 @@ export function DriverRoadsideProduceButton({
         )}
       >
         <FileBadge className="w-6 h-6 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
-        <span className="flex-1 text-left">
-          <span className="block text-base font-bold leading-tight">Roadside produce (28 days)</span>
-          <span className="block text-xs font-medium text-amber-800/90 dark:text-amber-200/80 mt-0.5">
-            PDF for regulator inspection
-          </span>
+        <span className="flex-1 text-left text-base font-bold leading-tight">
+          28 day PDF for regulator inspection
         </span>
       </Link>
     );
