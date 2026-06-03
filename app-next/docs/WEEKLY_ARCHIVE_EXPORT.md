@@ -1,70 +1,80 @@
 # Weekly archive export (Azure/SharePoint) — design note
 
-> **Retention policy:** Legal minimum is **≥ 3 years** (WA Reg 184G, HVNL s 341). Short DB retention is allowed only when archive is the verified system of record. See [record-retention-and-compliance-lookback.md](./regulatory/record-retention-and-compliance-lookback.md).
+> **Policy:** [ADR 0002](./adr/0002-managed-postgres-and-data-access.md) — Postgres is the app’s system of record; SharePoint is **publish-only** for PDFs.  
+> **Retention:** Legal minimum **≥ 3 years** (WA Reg 184G, HVNL s 341). See [record-retention-and-compliance-lookback.md](./regulatory/record-retention-and-compliance-lookback.md).
 
-Goal: keep the database small while maintaining a **fully identified**, **human-readable** record archive.
+Goal: produce **human-readable PDF hard copies** of attested weekly sheets in SharePoint (via Power Automate), without making SharePoint or CSV lists a second data source for the Circadia manager app.
 
-## Requirements (as agreed)
+## When to archive (agreed)
 
-- **Endpoint**: SharePoint / Azure
-- **Re-import**: not required
-- **Identification**: records must be fully identified
-- **Operational DB window**: keep ~**1 week** in DB (life of the work week), then purge after week completes **once archive export is verified** — archive must retain **≥ 3 years** (see regulatory reference above)
-- **Security**: secure DB → Azure; records not considered sensitive
-- **Readability at endpoint**: records must be unpackable into a readable record at the destination
+> A fatigue record is archived **30 days after** the driver attests it (including re-attestation after amendment). The app never archives drafts, and never re-archives unless **`signedAt`** changes.
+
+| Rule | Detail |
+|------|--------|
+| **Eligible** | `status = completed`, `signedAt` set, `now >= signedAt + 30 days` |
+| **Skip** | Unsigned / draft weeks |
+| **Re-archive** | Only when `signedAt` changes (manager amendment → driver re-sign) |
+| **Not the same as DB purge** | Postgres may retain structured data longer for manager use and stats |
+
+Implementation constant (when built): `ARCHIVE_DELAY_DAYS = 30`.
+
+## Data access (do not split the manager app)
+
+| Store | Role | Circadia app reads? |
+|-------|------|---------------------|
+| **PostgreSQL** | Structured sheets, events-in-JSON, compliance, future stats | **Yes — only** |
+| **SharePoint** | PDF (+ optional manifest for humans) | **No** |
+| **CSV → SharePoint lists** | Not used for app analytics | **No** |
+
+Power Automate uploads PDFs; managers query history through the **API and Postgres**, not imported lists.
+
+## Requirements
+
+- **Endpoint**: SharePoint document library (via PA; optional Azure Blob staging)
+- **Re-import into app**: not required
+- **Identification**: PDF filenames and manifest include driver, week, sheet id
+- **Security**: authenticated export endpoint; cron secret for scheduled jobs
+- **Readability**: same PDF as manual **Export PDF** in the app (`GET /api/sheets/[id]/export`)
 
 ## Recommended export format
 
-**Weekly ZIP** containing:
+**Per eligible sheet** (or weekly ZIP batch):
 
-- **PDF per sheet** (the readable “record”)
-- **Index file** for quick searching/sorting in SharePoint
-  - `index.csv` (Excel-friendly) and/or `manifest.json` (machine-friendly)
+- **PDF per sheet** — the readable legal record
+- **Optional `manifest.json`** per batch — checksums, `signedAt`, upload status (for ops, not app queries)
 
-Suggested naming to keep files self-identifying:
+Suggested naming:
 
 - ZIP: `fatigue-archive_weekStarting=YYYY-MM-DD_generatedAt=YYYY-MM-DDTHH-mmZ.zip`
-- PDFs: `sheet_weekStarting=YYYY-MM-DD_driver=SAFE-NAME_sheetId=UUID.pdf`
-- Index: `index.csv`
+- PDF: `sheet_weekStarting=YYYY-MM-DD_driver=SAFE-NAME_sheetId=UUID.pdf`
 
-Recommended `index.csv` columns:
+Optional manifest fields for SharePoint browsing (human/ops):
 
-- `sheetId`
-- `weekStarting`
-- `driverName`
-- `secondDriverName`
-- `driverType`
-- `createdAt`
-- `submittedAt`
-- `pdfFileName`
-- `eventsCount`
+- `sheetId`, `weekStarting`, `driverName`, `signedAt`, `pdfFileName`, `exportedAt`, `checksum`
 
-Notes:
+**Note:** A spreadsheet index in the ZIP is fine for **people** opening the archive folder; it must not become a second database the app depends on.
 
-- PDF is the “source of truth” human-readable record at the endpoint.
-- The index provides bulk browsing/search without opening every PDF.
+## Scheduling
 
-## Scheduling (weekly export + purge)
+**Nightly (recommended):** export all sheets where `signedAt + 30 days <= now` and not yet archived for that `signedAt`.
 
-Run on a fixed day/time (e.g. **end-of-week** boundary):
+**Power Automate:** HTTP call to secured app endpoint → receive PDF or ZIP → **Create file** in SharePoint library.
 
-- **Export**: all sheets for the last completed work week
-- **Upload**: ZIP (+ checksum if desired) to Azure Blob and/or SharePoint document library
-- **Purge**: delete DB rows older than the retention window (e.g. older than 7–8 days), or purge only those successfully exported
+Implementation options:
 
-Implementation options (when ready):
+- **Power Automate** recurrence → `POST /api/archive/...` (when implemented)
+- **Azure Function** timer → same endpoint
+- **Vercel Cron** → same endpoint
 
-- **Azure Function** (Timer Trigger) that calls an authenticated app endpoint
-- **Vercel Cron** calling an authenticated app endpoint
-- **Logic Apps / Power Automate** for Blob → SharePoint copy if SharePoint must be the final landing spot
+Process **one sheet PDF at a time** where possible to limit Chromium memory on serverless hosts.
 
-## Azure vs SharePoint landing recommendation
+## Azure vs SharePoint landing
 
-- **Best archival store**: **Azure Blob Storage** (cost + lifecycle rules + scale)
-- **Best browsing location**: **SharePoint** (non-technical access)
+1. App generates PDF → optional Blob staging  
+2. PA copies to **SharePoint** library (final human-facing location)  
+3. App marks `archivedForSignedAt` (or equivalent) after verified upload  
+4. **DB purge** (if ever) only after verified archive — separate business decision; see ADR 0002
 
-Common pattern:
+## Production database
 
-1. App exports ZIP → Blob
-2. Automation copies ZIP (+ index) into the chosen SharePoint library/folder
-
+Dev/local Postgres is fine for pilots. **Managed PostgreSQL** (Azure, Neon, etc.) when customer levels justify backups, SLA, and scale — migration is `DATABASE_URL` + ops, not an app rewrite. See [ADR 0002](./adr/0002-managed-postgres-and-data-access.md).

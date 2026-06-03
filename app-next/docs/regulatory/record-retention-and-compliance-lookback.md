@@ -185,6 +185,7 @@ Before changing purge, export, or lookback constants:
 | [wa-commercial-vehicle-hours.md](./wa-commercial-vehicle-hours.md) | Reg 184E rule mapping → `compliance.ts` |
 | [WEEKLY_ARCHIVE_EXPORT.md](../WEEKLY_ARCHIVE_EXPORT.md) | Export format and scheduling |
 | [0001-multi-jurisdiction-fatigue-architecture.md](../adr/0001-multi-jurisdiction-fatigue-architecture.md) | Jurisdiction / EWD positioning |
+| [0002-managed-postgres-and-data-access.md](../adr/0002-managed-postgres-and-data-access.md) | Managed Postgres SoR; SharePoint publish-only; archive WHEN |
 | [roadside-pdf-s6.md](../architecture/roadside-pdf-s6.md) | Roadside produce |
 | `src/lib/record-retention.ts` | Retention constants |
 | `src/lib/compliance-history.ts` | Rule-engine history loader |
