@@ -79,10 +79,16 @@ export default async function DriverSettingsPage({
                 description="Past and signed weekly records"
               />
               <SettingsListRow
+                href="/driver/guide"
+                icon={<BookOpen className="w-5 h-5" />}
+                title="Driver guide (pictures)"
+                description="Simple English — sign in, log work, sign your week"
+              />
+              <SettingsListRow
                 href="/driver/help"
                 icon={<BookOpen className="w-5 h-5" />}
                 title="How your record works"
-                description="Plain-language guide and rules overview"
+                description="Short help and rules overview"
               />
             </div>
           </section>

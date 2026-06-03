@@ -135,6 +135,11 @@ export default async function DriverHelpPage() {
           </p>
 
           <div className="flex flex-col gap-2 pt-2">
+            <Link href="/driver/guide" className="block">
+              <Button variant="outline" className="w-full min-h-[56px] h-14 text-base font-semibold">
+                Full guide with pictures
+              </Button>
+            </Link>
             <Link href="/driver" className="block">
               <Button className="w-full min-h-[56px] h-14 text-base font-semibold">Open this week</Button>
             </Link>
