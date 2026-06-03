@@ -44,6 +44,7 @@ After sign in you see **Drive home**.
 | Your name | You are signed in |
 | Today / This week | Which day and week you are in |
 | **Continue logging** (green button) | Open **this week** to log work |
+| **Roadside produce (28 days)** (amber button) | One PDF for regulator inspection |
 
 ```
 ┌─────────────────────────────┐
@@ -55,6 +56,7 @@ After sign in you see **Drive home**.
 │  ┌─────────────────────┐    │
 │  │ Continue logging  ▶ │    │
 │  └─────────────────────┘    │
+│  [ Roadside produce 28d ]   │
 │  Your weeks              ▶  │
 └─────────────────────────────┘
 ```
@@ -226,7 +228,22 @@ Menu: **Your weeks** (`/sheets`)
 
 ---
 
-## 11. Messages and settings
+## 11. Roadside produce (28 days)
+
+When a **regulator** asks to see your records:
+
+| Place | Use |
+|-------|-----|
+| **Drive home** — amber **Roadside produce (28 days)** | Opens one PDF with your last 28 calendar days |
+| **This week** — same amber strip under compliance | Same PDF |
+| **Settings** (gear) → **Download 28-day PDF** | Same PDF |
+| **How roadside produce works** | Short help page (`/driver/roadside`) |
+
+The PDF includes each weekly sheet in that period (diary, compliance summary, shift log). Keep signed records for at least **3 years** — this export is for roadside produce only.
+
+---
+
+## 12. Messages and settings
 
 | Place | Use |
 |-------|-----|
@@ -237,7 +254,7 @@ Menu: **Your weeks** (`/sheets`)
 
 ---
 
-## 12. Commercial Driver's Medical (reminder)
+## 13. Commercial Driver's Medical (reminder)
 
 If your manager saved a **medical expiry date** for you:
 
@@ -246,7 +263,7 @@ If your manager saved a **medical expiry date** for you:
 
 ---
 
-## 13. Quick checklist (each day)
+## 14. Quick checklist (each day)
 
 1. **Sign in** (or stay signed in)  
 2. **Continue logging**  
@@ -259,7 +276,7 @@ If your manager saved a **medical expiry date** for you:
 
 ---
 
-## 14. Words you may see (glossary)
+## 15. Words you may see (glossary)
 
 | Word | Simple meaning |
 |------|----------------|
@@ -280,7 +297,7 @@ If your manager saved a **medical expiry date** for you:
 
 ---
 
-## 15. Need help?
+## 16. Need help?
 
 - **Settings → Driver guide (pictures)** in the app.  
 - **Settings → How your record works** for rules overview.  

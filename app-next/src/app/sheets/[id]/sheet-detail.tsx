@@ -37,6 +37,7 @@ import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEnd
 import { DriverComplianceStrip } from "@/components/driver/DriverComplianceStrip";
 import { DriverRecordsStrip } from "@/components/driver/DriverRecordsStrip";
 import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
+import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
 import { driverDialogBtn } from "@/components/driver/driver-ui-classes";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
@@ -1117,6 +1118,7 @@ export function SheetDetail({
                     results={complianceResults}
                   />
                 )}
+                <DriverRoadsideProduceButton variant="strip" />
                 {!isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
                   <DriverRecordsStrip
                     count={unsignedPastWeeksForDriver.length}

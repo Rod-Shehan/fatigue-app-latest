@@ -248,6 +248,9 @@ export const api = {
     delete: (id: string) =>
       fetchApi<void>(`/api/drivers/${id}`, { method: "DELETE" }),
   },
+  driver: {
+    roadsideProducePdfUrl: () => `${base}/api/driver/roadside-produce`,
+  },
   sheets: {
     list: () => fetchApi<FatigueSheet[]>("/api/sheets"),
     get: (id: string) => fetchApi<FatigueSheet>(`/api/sheets/${id}`),

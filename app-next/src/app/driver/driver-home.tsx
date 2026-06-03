@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
+import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { driverListRow, driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
 import { PRODUCT_NAME } from "@/lib/branding";
@@ -171,6 +172,8 @@ export function DriverHome() {
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </Link>
+
+            <DriverRoadsideProduceButton variant="primary" />
 
             <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden">
               <Link href="/sheets" className={cn(driverListRow, "justify-between")}>

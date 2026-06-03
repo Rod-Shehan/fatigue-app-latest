@@ -58,7 +58,7 @@ function getEffectiveDayEndMinutes(dateStr: string, todayStr: string): number {
   return Math.min(TOTAL_MIN, hour * 60 + minute);
 }
 
-function getPerthNowParts(): { ymd: string; hour: number; minute: number } {
+export function getPerthNowParts(): { ymd: string; hour: number; minute: number } {
   // Avoid relying on runtime timezone databases (some server environments fall back to UTC).
   // Perth is always UTC+8 (no daylight saving), so compute it explicitly from UTC.
   const PERTH_OFFSET_MIN = 8 * 60;
@@ -518,7 +518,7 @@ function buildShiftLogHtml(opts: {
   </section>`;
 }
 
-function renderPdfHtml(opts: {
+export function renderPdfHtml(opts: {
   sheet: {
     driver_name: string;
     second_driver: string | null;

@@ -57,6 +57,7 @@ export function DriverGuideArticle() {
 │  ┌─────────────────────┐    │
 │  │ Continue logging  ▶ │    │
 │  └─────────────────────┘    │
+│  [ Roadside produce 28d ]   │
 │  Your weeks              ▶  │
 └─────────────────────────────┘`}
         </GuideDiagram>
@@ -70,8 +71,20 @@ export function DriverGuideArticle() {
               <th className={thClass}>Your weeks</th>
               <td className={tdClass}>Past weeks and signed records</td>
             </tr>
+            <tr>
+              <th className={thClass}>Roadside produce (28 days)</th>
+              <td className={tdClass}>One PDF for regulator inspection</td>
+            </tr>
           </tbody>
         </table>
+      </section>
+
+      <section className={sectionClass}>
+        <h2 className={h2Class}>Roadside produce</h2>
+        <p>
+          Tap the amber <strong className="text-slate-700 dark:text-slate-200">Roadside produce (28 days)</strong> button on
+          Drive home, on your week sheet, or in Settings (gear). It downloads a PDF of your last 28 calendar days.
+        </p>
       </section>
 
       <section className={sectionClass}>

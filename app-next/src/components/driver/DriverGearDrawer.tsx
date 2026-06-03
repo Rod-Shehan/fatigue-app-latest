@@ -16,6 +16,7 @@ import { formatSheetDisplayDate } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
 import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components/driver/driver-ui-classes";
 import { DriverSheetActions } from "./DriverSheetActions";
+import { DriverRoadsideProduceButton } from "./DriverRoadsideProduceButton";
 
 export function DriverGearDrawer({
   returnHref,
@@ -117,6 +118,22 @@ export function DriverGearDrawer({
             </div>
 
             <div className="p-4 space-y-6">
+              <section>
+                <h3 className={driverSectionLabel}>Roadside</h3>
+                <DriverRoadsideProduceButton
+                  variant="stacked"
+                  onNavigate={() => setOpen(false)}
+                />
+                <Link
+                  href="/driver/roadside"
+                  onClick={() => setOpen(false)}
+                  className={cn(driverDrawerRow, "mt-2 text-sm font-medium")}
+                >
+                  <span className="flex-1 text-left">How roadside produce works</span>
+                  <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                </Link>
+              </section>
+
               {showSheetActions && sheetId && (
                 <section>
                   <h3 className={driverSectionLabel}>This week</h3>
