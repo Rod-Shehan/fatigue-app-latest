@@ -34,11 +34,20 @@ export type RiskRegisterResult = {
 
 const SCENARIOS: RiskScenarioKind[] = ["planned", "high"];
 
+/** Sheet JSON may use `shift_label: null`; risk/route types expect A | B | "" | undefined. */
+function asRiskRegisterDays(days: ComplianceDayData[]): DayDataWithPlan[] {
+  return days.map((d) => ({
+    ...d,
+    shift_label: d.shift_label === "A" || d.shift_label === "B" ? d.shift_label : "",
+  }));
+}
+
 export function buildRiskRegister(input: {
   stateInput: ComplianceStateInput;
-  days: DayDataWithPlan[];
+  days: ComplianceDayData[];
 }): RiskRegisterResult {
-  const { stateInput, days } = input;
+  const { stateInput } = input;
+  const days = asRiskRegisterDays(input.days);
   const baseline = complianceStateAt(stateInput);
   const plans = collectFutureRunPlans(days, stateInput.weekStarting, stateInput.todayYmd);
 
@@ -112,7 +121,7 @@ export function buildRiskRegister(input: {
 
 /** Client/server helper for driver sheet. */
 export function buildRiskRegisterFromWeek(
-  days: DayDataWithPlan[],
+  days: ComplianceDayData[],
   options: {
     weekStarting: string;
     todayYmd: string;

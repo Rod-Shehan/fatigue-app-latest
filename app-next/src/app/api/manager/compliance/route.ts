@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getComplianceEngine, parseJurisdictionCode } from "@/lib/jurisdiction";
-import type { ComplianceCheckResult } from "@/lib/api";
+import type { ManagerComplianceItem } from "@/lib/api";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { buildRiskRegister } from "@/lib/risk-register";
 import { getRegulatoryTodayYmd } from "@/lib/weeks";
@@ -12,17 +12,6 @@ import {
 } from "@/lib/compliance-history";
 import { getRecordRetentionPolicy } from "@/lib/record-retention";
 import { getPreviousWeekSunday, getThisWeekSunday } from "@/lib/weeks";
-
-export type ManagerComplianceItem = {
-  sheetId: string;
-  driver_name: string;
-  week_starting: string;
-  results: ComplianceCheckResult[];
-  /** Number of events that have lat/lng (for audit evidence). */
-  eventsWithLocation?: number;
-  /** Total number of events across all days. */
-  totalEvents?: number;
-};
 
 const WEEK_YMD = /^\d{4}-\d{2}-\d{2}$/;
 

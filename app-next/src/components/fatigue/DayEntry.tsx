@@ -371,7 +371,7 @@ export default function DayEntry({
               {canEditDetails && (
                 <Button
                   type="button"
-                  variant="link"
+                  variant="ghost"
                   size="sm"
                   className="h-auto p-0 mt-1 text-teal-700 dark:text-teal-400"
                   onClick={() => setDetailsOpen(true)}

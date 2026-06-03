@@ -61,7 +61,6 @@ import {
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
-import { getRegulatoryTodayYmd } from "@/lib/weeks";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
   validateDayKms,
