@@ -165,14 +165,14 @@ export function dayNeedsRouteAutofill(day: DayData): boolean {
 }
 
 /** Overnight carry, then this-week history, then per-login stored defaults. */
-export function getDayWithMergedRouteContext(
-  days: DayData[],
+export function getDayWithMergedRouteContext<T extends DayData>(
+  days: T[],
   dayIndex: number,
   weekStarting: string,
   todayYmd: string,
   storedDefaults: DriverRouteDefaults | null
-): DayData {
-  const carried = getDayWithCarriedOverCardInfo(days, dayIndex, weekStarting, todayYmd);
+): T {
+  const carried = getDayWithCarriedOverCardInfo(days, dayIndex, weekStarting, todayYmd) as T;
   const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
   if (sheetDayYmd < todayYmd) return carried;
 
@@ -182,12 +182,12 @@ export function getDayWithMergedRouteContext(
 }
 
 /** Apply defaults to today and future days in the week (not past days). */
-export function applyRouteDefaultsToWeekDays(
-  days: DayData[],
+export function applyRouteDefaultsToWeekDays<T extends DayData>(
+  days: T[],
   weekStarting: string,
   todayYmd: string,
   storedDefaults: DriverRouteDefaults | null
-): { days: DayData[]; changed: boolean } {
+): { days: T[]; changed: boolean } {
   let changed = false;
   const next = days.map((day, idx) => {
     const sheetDayYmd = getSheetDayDateString(weekStarting, idx);
