@@ -9,7 +9,7 @@ import type { Rego } from "@/lib/api";
 import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
 import { getHours } from "@/lib/compliance";
 import { formatHoursStatistic } from "@/lib/hours";
-import { SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS } from "@/lib/shift-change";
+import { formatPatternStreakForDisplay, patternStreakThresholdMet } from "@/lib/shift-change";
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
 import { cn } from "@/lib/utils";
 import {
@@ -84,7 +84,7 @@ export default function DayEntry({
   weekStart,
   regos = [],
   readOnly = false,
-  consecutiveWorkDays = 0,
+  patternWorkMinutes = 0,
   todayYmd,
   /** When true (default), past/future days render as a single summary row. */
   collapseWhenNotToday = true,
@@ -100,7 +100,8 @@ export default function DayEntry({
   weekStart: string;
   regos?: Rego[];
   readOnly?: boolean;
-  consecutiveWorkDays?: number;
+  /** Rolling minutes on the same shift pattern ending at this day (not calendar days). */
+  patternWorkMinutes?: number;
   todayYmd: string;
   collapseWhenNotToday?: boolean;
   allDays?: DayWithKms[];
@@ -131,7 +132,7 @@ export default function DayEntry({
   }, [dayData.events]);
 
   const showShiftPatternEducation =
-    consecutiveWorkDays >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS && !dayData.shift_label;
+    patternStreakThresholdMet(patternWorkMinutes) && !dayData.shift_label;
 
   const canEditDetails = !readOnly;
 
@@ -387,7 +388,7 @@ export default function DayEntry({
       {showShiftPatternEducation && !detailsOpen && (
         <p className="mb-2 text-xs leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
           <span className="font-semibold">Shift pattern:</span> set Day (A) or Night (B) in route details if you swap
-          patterns after {consecutiveWorkDays} work days in a row.
+          patterns after {formatPatternStreakForDisplay(patternWorkMinutes)}.
         </p>
       )}
 
@@ -420,7 +421,7 @@ export default function DayEntry({
           weekStarting={weekStart}
           driverType={driverType}
           showShiftPatternEducation={showShiftPatternEducation}
-          consecutiveWorkDays={consecutiveWorkDays}
+          patternWorkMinutes={patternWorkMinutes}
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
           onConfirm={(fields, updatedEvents) => {
             const planFields = hasRunPlanContent(fields)

@@ -15,9 +15,9 @@ import {
 } from "@/lib/product-copy";
 import { DRIVER_HELP_RETENTION_BULLETS } from "@/lib/record-retention";
 import {
-  SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS,
   SHIFT_CHANGE_MIN_GAP_HOURS,
   SHIFT_PATTERN_FIELD_HELP,
+  SHIFT_PATTERN_STREAK_HOURS,
 } from "@/lib/shift-change";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
@@ -122,9 +122,9 @@ export default async function DriverHelpPage() {
                 {SHIFT_PATTERN_FIELD_HELP}
               </li>
               <li>
-                After <strong>{SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS}+ days of work</strong>, changing day ↔ night (A↔B)
-                needs at least <strong>{SHIFT_CHANGE_MIN_GAP_HOURS} hours</strong> off between End shift and your next
-                Work.
+                After <strong>{SHIFT_PATTERN_STREAK_HOURS}h+ on the same pattern</strong> (about five 24-hour stretches),
+                changing day ↔ night (A↔B) needs at least <strong>{SHIFT_CHANGE_MIN_GAP_HOURS} hours</strong> off between
+                End shift and your next Work on your timeline.
               </li>
             </ul>
           </section>

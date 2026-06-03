@@ -215,21 +215,21 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(v).toBeDefined();
   });
 
-  it("shift change (A↔B) in 5+ consecutive worked days: requires 24h between stop and next work", () => {
+  it("shift change (A↔B) after 120h+ same pattern: requires 24h between stop and next work", () => {
     const days = emptyWeek();
-    // 5 consecutive worked days: Sun..Thu
-    for (let i = 0; i < 5; i++) {
-      days[i] = {
-        ...dayWorkOnly(1),
-        shift_label: i < 2 ? "A" : "B",
-        events: [],
-      };
-    }
-    // Sun ends at 08:00Z, Mon starts at 06:00Z (not a shift change yet: A->A)
-    days[0].events = [{ time: "2026-01-01T08:00:00.000Z", type: "stop" }];
-    days[1].events = [{ time: "2026-01-02T06:00:00.000Z", type: "work" }, { time: "2026-01-02T10:00:00.000Z", type: "stop" }];
-    // Mon label A, Tue label B shift change; gap is 23h (violation)
-    days[2].events = [{ time: "2026-01-03T09:00:00.000Z", type: "work" }]; // 23h after 10:00Z
+    days[0] = {
+      ...dayWorkOnly(1),
+      shift_label: "A",
+      events: [
+        { time: "2026-01-01T00:00:00.000Z", type: "work" },
+        { time: "2026-01-06T10:00:00.000Z", type: "stop" },
+      ],
+    };
+    days[1] = {
+      ...dayWorkOnly(1),
+      shift_label: "B",
+      events: [{ time: "2026-01-06T11:00:00.000Z", type: "work" }],
+    };
 
     const results = runComplianceChecks(days, { driverType: "solo" });
     const v = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "violation");
@@ -238,27 +238,36 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(v?.shiftChange?.gapHours).toBeLessThan(24);
   });
 
-  it("shift change marked but missing stop/work times: warning", () => {
+  it("shift change under 120h same pattern: no 24h violation", () => {
     const days = emptyWeek();
-    for (let i = 0; i < 5; i++) {
-      days[i] = { ...dayWorkOnly(1), shift_label: "A", events: [] };
-    }
-    // Create a shift change between day 1 and 2 but omit stop/work events needed.
-    days[1].shift_label = "A";
-    days[2].shift_label = "B";
-    days[1].events = []; // missing stop
-    days[2].events = []; // missing work
+    days[0] = {
+      shift_label: "A",
+      ...dayWorkOnly(1),
+      events: [
+        { time: "2026-01-01T00:00:00.000Z", type: "work" },
+        { time: "2026-01-01T10:00:00.000Z", type: "stop" },
+      ],
+    };
+    days[1] = {
+      shift_label: "B",
+      ...dayWorkOnly(1),
+      events: [{ time: "2026-01-01T11:00:00.000Z", type: "work" }],
+    };
     const results = runComplianceChecks(days, { driverType: "solo" });
-    const w = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "warning");
-    expect(w).toBeDefined();
-    expect(w?.message).toContain("End shift");
+    const v = results.find((r) => r.ruleId === "shift_change_24h" && r.type === "violation");
+    expect(v).toBeUndefined();
   });
 
-  it("5+ work days without shift labels: education warning", () => {
+  it("120h+ unlabeled shifts on timeline: education warning", () => {
     const days = emptyWeek();
-    for (let i = 0; i < 5; i++) {
-      days[i] = { ...dayWorkOnly(1), shift_label: "", events: [] };
-    }
+    days[0] = {
+      ...dayWorkOnly(1),
+      shift_label: "",
+      events: [
+        { time: "2026-01-01T00:00:00.000Z", type: "work" },
+        { time: "2026-01-06T10:00:00.000Z", type: "stop" },
+      ],
+    };
     const results = runComplianceChecks(days, { driverType: "solo" });
     const w = results.find((r) => r.ruleId === "shift_change_education");
     expect(w).toBeDefined();

@@ -72,7 +72,7 @@ Rule engines evaluate **rolling windows** over recent activity. These windows ar
 | Solo 14-day 24h non-work | 14 days | Violation at timeline end; rolling audit → warning |
 | Solo 28-day pattern (4×24h) | 28 days | Not fully implemented |
 | Two-up 24h / 48h / 7-day | 24h–7d rolling | Violation / warning |
-| Shiftwork A↔B | 5+ consecutive days | Violation on pattern change |
+| Shiftwork A↔B | 120h+ same pattern (5×24h rolling) | Violation on pattern change |
 
 These windows need **enough historical data loaded into memory** to evaluate the rule at “now” or at sheet submit time — typically **up to 28 days** for solo 28-day logic, plus **168h / 48h reset context** which may require prior weeks beyond a flat 28-day slice.
 

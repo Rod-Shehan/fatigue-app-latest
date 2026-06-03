@@ -66,7 +66,7 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
 ### Shiftwork ≥5 consecutive days (Reg 184E(4))
 
 - **Reg 184E(4)**: If shiftwork on **5+ consecutive days** — **≥24 continuous hours non‑work between shift changes**.
-  - **App**: Driver sets **Shift pattern (A/B)** on each day card (Day/Night). After **5+ consecutive worked days**, an **A↔B** change between consecutive days triggers a check from **End shift** on day N to first **Work** on day N+1. Proactive education in compliance + prompt after End shift on a 5+ day streak.
+  - **App**: Driver sets **Shift pattern (A/B)** on each day card (Day/Night). Legislation speaks in “days”; the engine treats **5×24h = 120h (7200 minutes)** on the **same pattern** on the rolling **event timeline** (not five calendar days). An **A↔B** change after that threshold is checked as elapsed time from **End shift** to the next **Work** (24h block), which may fall anywhere and need not align with midnight. Day cards are for labels and readable output. Proactive education in compliance + prompt after End shift when the pattern streak crosses 120h.
 
 ## Notes on definitions
 

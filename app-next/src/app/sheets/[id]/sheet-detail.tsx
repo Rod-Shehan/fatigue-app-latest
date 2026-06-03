@@ -55,7 +55,7 @@ import {
 import { canDriverEditSheetContent, canDriverLogOnSheet } from "@/lib/sheet-record";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import {
-  consecutiveWorkDaysEndingAt,
+  samePatternWorkMinutesEndingAt,
   shouldEducateAfterEndShift,
   type ShiftLabel,
 } from "@/lib/shift-change";
@@ -529,9 +529,9 @@ export function SheetDetail({
 
   const prevStreakCount = Math.min(3, (prevWeekSheet?.days ?? []).length);
 
-  const getConsecutiveWorkDaysForCard = useCallback(
+  const getPatternWorkMinutesForCard = useCallback(
     (dayIndex: number) =>
-      consecutiveWorkDaysEndingAt(extendedDaysForShiftStreak, prevStreakCount + dayIndex),
+      samePatternWorkMinutesEndingAt(extendedDaysForShiftStreak, prevStreakCount + dayIndex),
     [extendedDaysForShiftStreak, prevStreakCount]
   );
 
@@ -1197,7 +1197,7 @@ export function SheetDetail({
                   weekStart={sheetData.week_starting}
                   regos={regos}
                   readOnly={driverContentLocked}
-                  consecutiveWorkDays={getConsecutiveWorkDaysForCard(idx)}
+                  patternWorkMinutes={getPatternWorkMinutesForCard(idx)}
                   todayYmd={todayYmd}
                   allDays={sheetData.days}
                   sheetId={sheetId}

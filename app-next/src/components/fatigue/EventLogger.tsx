@@ -39,7 +39,7 @@ export function deriveGridFromEvents(
   events: { time: string; type: string }[] | undefined,
   dateStr: string,
   options?: {
-    carryOverType?: "work" | "break";
+    carryOverType?: OpenActivityAtDayEnd;
     carryOverEndSlot?: number;
     carryOverEndMinute?: number;
     assumeIdleFromMs?: number;
@@ -77,40 +77,53 @@ export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; 
   });
 }
 
+/** Open segment at calendar day end — continues across midnight until the next event (End shift clears). */
+export type OpenActivityAtDayEnd = "work" | "break" | "non_work";
+
 /**
- * Open work/break at end of a calendar day for rollover: past days use derived grid tail;
- * "today" uses last event (open segment). End shift clears carry.
+ * Activity still open at end of this calendar day (for rollover into the next day view).
+ * Driven by the last non–End shift event; End shift means nothing carries forward.
  */
 export function getEffectiveOpenActivityAtDayEnd(
-  day: { work_time?: boolean[]; breaks?: boolean[]; events?: { time: string; type: string }[] },
-  dateStr: string,
-  todayStr: string
-): "work" | "break" | null {
+  day: {
+    work_time?: boolean[];
+    breaks?: boolean[];
+    non_work?: boolean[];
+    events?: { time: string; type: string }[];
+  },
+  _dateStr: string,
+  _todayStr: string
+): OpenActivityAtDayEnd | null {
   const evs = day.events ?? [];
   const lastEv = evs[evs.length - 1];
   if (lastEv?.type === "stop") return null;
-  if (dateStr < todayStr) {
-    const w = day.work_time ?? [];
-    const b = day.breaks ?? [];
-    const len = w.length === 48 ? 48 : Math.min(w.length || MINUTES_PER_DAY, MINUTES_PER_DAY);
-    for (let s = len - 1; s >= 0; s--) {
-      if (w[s]) return "work";
-      if (b[s]) return "break";
-    }
-    if (lastEv?.type === "work" || lastEv?.type === "break") return lastEv.type;
-    return null;
+  if (
+    lastEv?.type === "work" ||
+    lastEv?.type === "break" ||
+    lastEv?.type === "non_work"
+  ) {
+    return lastEv.type;
   }
-  if (dateStr === todayStr) {
-    if (lastEv?.type === "work" || lastEv?.type === "break") return lastEv.type;
-    return null;
+
+  const w = day.work_time ?? [];
+  const b = day.breaks ?? [];
+  const nw = day.non_work ?? [];
+  const len =
+    w.length === 48
+      ? 48
+      : Math.min(Math.max(w.length, b.length, nw.length) || MINUTES_PER_DAY, MINUTES_PER_DAY);
+  for (let s = len - 1; s >= 0; s--) {
+    if (w[s]) return "work";
+    if (b[s]) return "break";
+    if (nw[s]) return "non_work";
   }
   return null;
 }
 
 /**
  * Derive work_time, breaks, non_work for all days with rollover: when the previous
- * day ended with work or break (no End shift), that activity rolls into the next
- * day from 00:00 until the first event on that day.
+ * day ended with an open segment (work, break, or non-work — no End shift), that
+ * activity rolls into the next day from 00:00 until the first event on that day.
  */
 export function deriveDaysWithRollover<T extends { events?: { time: string; type: string }[] }>(
   days: T[],

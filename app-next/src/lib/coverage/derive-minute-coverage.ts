@@ -64,8 +64,10 @@ function reclassifyLongBreaksAsNonWork(
   return { work_time, breaks, non_work };
 }
 
+export type CarryOverActivity = "work" | "break" | "non_work";
+
 export type DeriveMinuteGridOptions = {
-  carryOverType?: "work" | "break";
+  carryOverType?: CarryOverActivity;
   /** Minutes from midnight [0,1440) to fill carry; exclusive end index. */
   carryOverEndMinute?: number;
   assumeIdleFromMs?: number;
@@ -109,7 +111,8 @@ export function deriveMinuteGridFromEvents(
     const end = Math.min(carryOverEndMinute, workBreakMaxMinute);
     for (let m = 0; m < end; m++) {
       if (carryOverType === "work") work_time[m] = true;
-      else breaks[m] = true;
+      else if (carryOverType === "break") breaks[m] = true;
+      else non_work[m] = true;
     }
   }
 

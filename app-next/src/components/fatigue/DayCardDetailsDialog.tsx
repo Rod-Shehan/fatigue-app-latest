@@ -21,7 +21,10 @@ import {
 import type { Rego } from "@/lib/api";
 import { runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
-import { SHIFT_PATTERN_FIELD_HELP } from "@/lib/shift-change";
+import {
+  SHIFT_PATTERN_FIELD_HELP,
+  formatPatternStreakForDisplay,
+} from "@/lib/shift-change";
 import {
   validateDayKms,
   type DayWithKms,
@@ -65,7 +68,7 @@ export function DayCardDetailsDialog({
   driverType,
   onConfirm,
   showShiftPatternEducation,
-  consecutiveWorkDays,
+  patternWorkMinutes = 0,
   continuedFromPreviousDay,
 }: {
   open: boolean;
@@ -88,7 +91,8 @@ export function DayCardDetailsDialog({
   driverType?: string;
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
   showShiftPatternEducation?: boolean;
-  consecutiveWorkDays?: number;
+  /** Rolling minutes on same shift pattern ending at this day. */
+  patternWorkMinutes?: number;
   /** When shift continued overnight — pre-filled fields may be carried from the prior day. */
   continuedFromPreviousDay?: string;
 }) {
@@ -196,8 +200,9 @@ export function DayCardDetailsDialog({
 
         {showShiftPatternEducation && (
           <p className="text-sm leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-            <span className="font-semibold">Shift pattern:</span> you&apos;ve worked {consecutiveWorkDays} days in
-            a row. If you swap day ↔ night, set pattern below and plan 24 hours off at the change.
+            <span className="font-semibold">Shift pattern:</span> you&apos;ve reached{" "}
+            {formatPatternStreakForDisplay(patternWorkMinutes)}. If you swap day ↔ night, set pattern below and
+            plan 24 hours off between End shift and your next Work at the change.
           </p>
         )}
 

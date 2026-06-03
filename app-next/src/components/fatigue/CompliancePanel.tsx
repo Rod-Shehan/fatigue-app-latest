@@ -10,8 +10,8 @@ import { formatHoursStatistic } from "@/lib/hours";
 import { getSheetDayDateString } from "@/lib/weeks";
 import { ACTIVITY_THEME } from "@/lib/theme";
 import {
-  SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS,
   SHIFT_CHANGE_MIN_GAP_HOURS,
+  SHIFT_PATTERN_STREAK_HOURS,
   formatShiftChangeGapHours,
   shiftLabelDisplay,
 } from "@/lib/shift-change";
@@ -355,8 +355,8 @@ export default function CompliancePanel({
             <li>• Two periods of non-work time (each longer than 7h) cannot be separated by more than 17h of work and break combined (24h non-work resets)</li>
             <li>• ≥27 hrs non-work in any rolling 72 hrs (incl. 3× ≥7hr blocks; 24h non-work resets)</li>
             <li>
-              • After {SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS}+ consecutive work days, changing shift pattern (Day A ↔ Night B on the day card) needs ≥
-              {SHIFT_CHANGE_MIN_GAP_HOURS}h off between End shift and next Work
+              • After {SHIFT_PATTERN_STREAK_HOURS}h+ on the same shift pattern (5×24h rolling), changing pattern (Day A ↔ Night B) needs ≥
+              {SHIFT_CHANGE_MIN_GAP_HOURS}h off between End shift and next Work on the timeline (not at midnight)
             </li>
             <li>• Max 168 hrs work in any 14-day period (rolling; resets after ≥48h continuous non-work)</li>
           </ul>

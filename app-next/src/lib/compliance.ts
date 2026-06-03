@@ -17,12 +17,12 @@ import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
   SHIFT_CHANGE_EDUCATION_MESSAGE,
-  SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS,
   SHIFT_CHANGE_MIN_GAP_HOURS,
-  formatShiftChangeMissingTimesMessage,
+  findShiftPatternTransitionsOnTimeline,
   formatShiftChangeViolationMessage,
+  shiftPatternChangeRequires24hBreak,
+  shouldShowShiftPatternEducation,
   type ShiftChangeGapDetail,
-  type ShiftLabel,
 } from "@/lib/shift-change";
 
 export type ComplianceDayData = {
@@ -897,91 +897,47 @@ function checkShiftChange24hBetweenShifts(
   results: ComplianceCheckResult[],
   prevCount: number
 ) {
-  // Reg 184E(4): if shiftwork on 5+ consecutive days, require ≥24h continuous non-work between shift changes.
-  const didWork = days.map(dayHasWork);
+  // Reg 184E(4): ≥7200 min same pattern (5×24h rolling); 24h gap End shift → next Work on timeline.
+  if (shouldShowShiftPatternEducation(days)) {
+    const anchor = days.length > 0 ? days.length - 1 : 0;
+    results.push({
+      type: "warning",
+      ruleId: "shift_change_education",
+      iconKey: "Clock",
+      day: shiftChangeDayLabel(anchor, prevCount),
+      message: SHIFT_CHANGE_EDUCATION_MESSAGE,
+      scrollDayIndex: scrollDayIndexForExtended(anchor, prevCount),
+    });
+  }
 
-  let runStart = 0;
-  while (runStart < didWork.length) {
-    while (runStart < didWork.length && !didWork[runStart]) runStart++;
-    if (runStart >= didWork.length) break;
-    let runEnd = runStart;
-    while (runEnd < didWork.length && didWork[runEnd]) runEnd++;
-    const runLen = runEnd - runStart;
+  const transitions = findShiftPatternTransitionsOnTimeline(days);
 
-    if (runLen >= SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS) {
-      const runHasAnyLabel = Array.from({ length: runLen }, (_, k) => runStart + k).some((i) => {
-        const l = days[i]?.shift_label;
-        return l === "A" || l === "B";
+  for (const tr of transitions) {
+    if (!shiftPatternChangeRequires24hBreak(days, tr)) continue;
+
+    const toDay = tr.toSegment.startDayIndex;
+    const fromDay = tr.fromSegment.startDayIndex;
+    const detailBase: ShiftChangeGapDetail = {
+      fromDayIndex: fromDay,
+      toDayIndex: toDay,
+      fromLabel: tr.fromLabel,
+      toLabel: tr.toLabel,
+      gapHours: tr.gapHours,
+      stopTimeIso: new Date(tr.stopTimeMs).toISOString(),
+      workTimeIso: new Date(tr.workTimeMs).toISOString(),
+    };
+
+    if (tr.gapHours < SHIFT_CHANGE_MIN_GAP_HOURS) {
+      results.push({
+        type: "violation",
+        ruleId: "shift_change_24h",
+        iconKey: "Clock",
+        day: shiftChangeDayLabel(toDay, prevCount),
+        message: formatShiftChangeViolationMessage(detailBase),
+        scrollDayIndex: scrollDayIndexForExtended(toDay, prevCount),
+        shiftChange: detailBase,
       });
-      if (!runHasAnyLabel) {
-        const anchor = runEnd - 1;
-        results.push({
-          type: "warning",
-          ruleId: "shift_change_education",
-          iconKey: "Clock",
-          day: shiftChangeDayLabel(anchor, prevCount),
-          message: SHIFT_CHANGE_EDUCATION_MESSAGE,
-          scrollDayIndex: scrollDayIndexForExtended(anchor, prevCount),
-        });
-      }
-
-      for (let i = runStart; i < runEnd - 1; i++) {
-        const a = (days[i]?.shift_label ?? "") as ShiftLabel | "";
-        const b = (days[i + 1]?.shift_label ?? "") as ShiftLabel | "";
-        if (!a || !b || a === b) continue;
-
-        const aEvents = days[i].events ?? [];
-        const bEvents = days[i + 1].events ?? [];
-        const stopMs = [...aEvents]
-          .filter((e) => e.type === "stop")
-          .map((e) => new Date(e.time).getTime())
-          .filter((t) => Number.isFinite(t))
-          .sort((x, y) => y - x)[0];
-        const workMs = [...bEvents]
-          .filter((e) => e.type === "work")
-          .map((e) => new Date(e.time).getTime())
-          .filter((t) => Number.isFinite(t))
-          .sort((x, y) => x - y)[0];
-
-        const detailBase: ShiftChangeGapDetail = {
-          fromDayIndex: i,
-          toDayIndex: i + 1,
-          fromLabel: a,
-          toLabel: b,
-          gapHours: 0,
-          stopTimeIso: Number.isFinite(stopMs) ? new Date(stopMs!).toISOString() : undefined,
-          workTimeIso: Number.isFinite(workMs) ? new Date(workMs!).toISOString() : undefined,
-        };
-
-        if (!Number.isFinite(stopMs) || !Number.isFinite(workMs)) {
-          results.push({
-            type: "warning",
-            ruleId: "shift_change_24h",
-            iconKey: "Clock",
-            day: shiftChangeDayLabel(i + 1, prevCount),
-            message: formatShiftChangeMissingTimesMessage(a, b),
-            scrollDayIndex: scrollDayIndexForExtended(i + 1, prevCount),
-            shiftChange: detailBase,
-          });
-          continue;
-        }
-
-        const gapHrs = (workMs! - stopMs!) / (3600 * 1000);
-        detailBase.gapHours = gapHrs;
-        if (gapHrs < SHIFT_CHANGE_MIN_GAP_HOURS) {
-          results.push({
-            type: "violation",
-            ruleId: "shift_change_24h",
-            iconKey: "Clock",
-            day: shiftChangeDayLabel(i + 1, prevCount),
-            message: formatShiftChangeViolationMessage(detailBase),
-            scrollDayIndex: scrollDayIndexForExtended(i, prevCount),
-            shiftChange: detailBase,
-          });
-        }
-      }
     }
-    runStart = runEnd;
   }
 }
 
