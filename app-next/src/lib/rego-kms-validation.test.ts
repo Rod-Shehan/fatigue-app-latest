@@ -3,6 +3,8 @@ import {
   chainRegoKmsAcrossSheet,
   dayRequiresKmEntry,
   getMinAllowedStartKms,
+  formatOdometerGuideLine,
+  getOdometerGuideForDay,
   getSheetKmIssues,
   validateSheetKms,
 } from "./rego-kms-validation";
@@ -116,5 +118,36 @@ describe("getSheetKmIssues", () => {
     expect(monday).toHaveLength(1);
     expect(monday[0]!.code).toBe("start_too_low");
     expect(monday[0]!.message).toContain("previous day end km");
+  });
+});
+
+describe("getOdometerGuideForDay", () => {
+  it("surfaces prior day end and fleet record separately", () => {
+    const days = [
+      { truck_rego: "1ABC", start_kms: 1000, end_kms: 1100, events: [{ type: "work" }] },
+      { truck_rego: "1ABC", events: [{ type: "work" }] },
+    ];
+    const guide = getOdometerGuideForDay(days, 1, "1ABC", 5000);
+    expect(guide?.priorEndKms).toBe(1100);
+    expect(guide?.priorDayLabel).toBe("Sunday");
+    expect(guide?.fleetEndKms).toBeNull();
+    expect(guide?.minAllowed).toBe(1100);
+  });
+
+  it("uses fleet record when no prior day this week", () => {
+    const days = [{ truck_rego: "1ABC", events: [{ type: "work" }] }];
+    const guide = getOdometerGuideForDay(days, 0, "1ABC", 1325100);
+    expect(guide?.fleetEndKms).toBe(1325100);
+    expect(guide?.priorEndKms).toBeNull();
+  });
+
+  it("formatOdometerGuideLine is one short sentence", () => {
+    const guide = getOdometerGuideForDay(
+      [{ truck_rego: "1ABC", start_kms: 1, end_kms: 1100, events: [{ type: "work" }] }, { truck_rego: "1ABC", events: [{ type: "work" }] }],
+      1,
+      "1ABC",
+      null
+    );
+    expect(formatOdometerGuideLine(guide)).toBe("Previous end 1,100 (Sunday)");
   });
 });

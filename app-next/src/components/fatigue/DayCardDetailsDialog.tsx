@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -26,6 +26,8 @@ import {
   formatPatternStreakForDisplay,
 } from "@/lib/shift-change";
 import {
+  formatOdometerGuideLine,
+  getOdometerGuideForDay,
   validateDayKms,
   type DayWithKms,
 } from "@/lib/rego-kms-validation";
@@ -101,6 +103,7 @@ export function DayCardDetailsDialog({
   const [kmError, setKmError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -114,7 +117,43 @@ export function DayCardDetailsDialog({
     );
     setKmError(null);
     setPlanError(null);
+    setServerMaxEndKms(null);
   }, [open]);
+
+  const regoForGuide = (draft.truck_rego ?? "").trim();
+
+  useEffect(() => {
+    if (!open || !regoForGuide) {
+      setServerMaxEndKms(null);
+      return;
+    }
+    let cancelled = false;
+    api.sheets
+      .regoMaxEndKms(regoForGuide, {
+        excludeSheetId: sheetId,
+        beforeWeekStarting: weekStarting,
+      })
+      .then((res) => {
+        if (!cancelled) setServerMaxEndKms(res.maxEndKms);
+      })
+      .catch(() => {
+        if (!cancelled) setServerMaxEndKms(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, regoForGuide, sheetId, weekStarting]);
+
+  const odometerGuide = useMemo(() => {
+    if (!regoForGuide) return null;
+    return getOdometerGuideForDay(sheetDays, dayIndex, regoForGuide, serverMaxEndKms);
+  }, [regoForGuide, sheetDays, dayIndex, serverMaxEndKms]);
+
+  const odometerGuideLine = formatOdometerGuideLine(odometerGuide);
+  const startPlaceholder =
+    odometerGuide?.minAllowed != null
+      ? String(odometerGuide.minAllowed)
+      : "Odometer at start";
 
   const set = (field: keyof DayCardFields, value: unknown) => {
     setDraft((prev) => ({ ...prev, [field]: value }));
@@ -330,41 +369,66 @@ export function DayCardDetailsDialog({
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Start kilometres</Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={draft.start_kms ?? ""}
-              onChange={(e) =>
-                set("start_kms", e.target.value === "" ? null : Number(e.target.value))
-              }
-              placeholder="Odometer at start"
-              className={`${fieldClass} tabular-nums`}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                Start km{regoSet ? <span className="text-red-600 dark:text-red-400 font-normal"> *</span> : null}
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={draft.start_kms ?? ""}
+                onChange={(e) =>
+                  set("start_kms", e.target.value === "" ? null : Number(e.target.value))
+                }
+                placeholder={startPlaceholder}
+                className={`${fieldClass} tabular-nums`}
+              />
+              {regoSet && odometerGuideLine ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                  {odometerGuideLine}
+                  {odometerGuide?.minAllowed != null &&
+                  (draft.start_kms == null || Number.isNaN(Number(draft.start_kms))) ? (
+                    <>
+                      {" · "}
+                      <button
+                        type="button"
+                        className="font-semibold text-teal-700 dark:text-teal-400 underline-offset-2 hover:underline"
+                        onClick={() => set("start_kms", odometerGuide.minAllowed)}
+                      >
+                        Fill
+                      </button>
+                    </>
+                  ) : null}
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                End km{regoSet ? <span className="text-red-600 dark:text-red-400 font-normal"> *</span> : null}
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={draft.end_kms ?? ""}
+                onChange={(e) =>
+                  set("end_kms", e.target.value === "" ? null : Number(e.target.value))
+                }
+                placeholder="At end of shift"
+                className={`${fieldClass} tabular-nums`}
+              />
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-              End kilometres
-              {regoSet ? <span className="text-red-600 dark:text-red-400 font-normal"> (required)</span> : null}
-            </Label>
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={draft.end_kms ?? ""}
-              onChange={(e) =>
-                set("end_kms", e.target.value === "" ? null : Number(e.target.value))
-              }
-              placeholder={regoSet ? "Odometer at end of shift" : "Optional until rego is set"}
-              className={`${fieldClass} tabular-nums`}
-            />
-            {regoSet && (
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Required to sign this week. Use the same reading as when you ended shift, or enter it here on past
-                days.
-              </p>
-            )}
-          </div>
+          {kmError ? (
+            <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+              {kmError}
+            </p>
+          ) : null}
+          {regoSet ? (
+            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
+              Both readings required to sign the week. End shift can capture end km on the day you finish.
+            </p>
+          ) : null}
         </div>
 
         {(eventsEditable || draftEvents.length > 0) && (
@@ -376,12 +440,6 @@ export function DayCardDetailsDialog({
             sheetId={sheetId}
             driverType={driverType}
           />
-        )}
-
-        {kmError && (
-          <p className="text-sm font-medium text-red-600 dark:text-red-400" role="alert">
-            {kmError}
-          </p>
         )}
 
         <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">

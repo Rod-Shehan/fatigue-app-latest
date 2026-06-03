@@ -38,13 +38,6 @@ export function getDayWithCarriedOverCardInfo(
   const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
   const hasOwnStartLocation = (day.start_location ?? "").toString().trim() !== "";
   const hasOwnDestination = (day.destination ?? "").toString().trim() !== "";
-  const hasOwnStartKms = day.start_kms != null && !Number.isNaN(Number(day.start_kms));
-  const carriedStartKms =
-    prev?.end_kms != null && !Number.isNaN(Number(prev.end_kms))
-      ? prev.end_kms
-      : prev?.start_kms != null && !Number.isNaN(Number(prev.start_kms))
-        ? prev.start_kms
-        : day.start_kms;
   return {
     ...day,
     truck_rego: hasOwnRego ? day.truck_rego : (prev?.truck_rego ?? day.truck_rego ?? ""),
@@ -52,7 +45,7 @@ export function getDayWithCarriedOverCardInfo(
       ? day.start_location
       : (prev?.start_location ?? day.start_location ?? ""),
     destination: hasOwnDestination ? day.destination : (prev?.destination ?? day.destination ?? ""),
-    start_kms: hasOwnStartKms ? day.start_kms : carriedStartKms,
+    // Odometer is never auto-filled — driver enters start/end km; see odometer guide in Set up day.
   };
 }
 

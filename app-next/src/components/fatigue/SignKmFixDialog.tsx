@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
 import { AlertCircle, Loader2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +31,6 @@ export function SignKmFixDialog({
 }) {
   const [fixing, setFixing] = useState(false);
   const canAutoFix = issues.some((i) => i.canAutoFixStart);
-  const endKmOnly = issues.length > 0 && issues.every((i) => i.code === "missing_end");
 
   const handleAutoFix = async () => {
     setFixing(true);
@@ -51,17 +49,9 @@ export function SignKmFixDialog({
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
             Kilometres need a quick fix
           </DialogTitle>
-          <DialogDescription className="text-left space-y-2">
-            <span className="block">
-              Before you can sign the week of {weekOfLabel}, odometer readings for each day you drove must link
-              together for the same rego (and match the last reading from a previous week where one exists).
-            </span>
-            {canAutoFix && (
-              <span className="block text-slate-700 dark:text-slate-300">
-                Tap <span className="font-semibold">Fix start km automatically</span> to set each day&apos;s start km
-                from the previous end km — you only need to enter any missing end km.
-              </span>
-            )}
+          <DialogDescription className="text-left">
+            Fix the days below, then sign the week of {weekOfLabel}. Start km must follow the previous end km for
+            each rego.
           </DialogDescription>
         </DialogHeader>
 
@@ -106,26 +96,12 @@ export function SignKmFixDialog({
               ) : (
                 <Wrench className="w-5 h-5 shrink-0" />
               )}
-              Fix start km automatically
+              Fill missing start km
             </Button>
           )}
-          <div className="flex flex-col sm:flex-row flex-wrap gap-2 justify-end">
-            <Button variant="outline" className={driverDialogBtn} onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
-            <Link href="/sheets" className="w-full sm:w-auto">
-              <Button variant="outline" className={cn(driverDialogBtn, "w-full")}>
-                Your weeks
-              </Button>
-            </Link>
-            {!endKmOnly && (
-              <Link href="/driver" className="w-full sm:w-auto">
-                <Button variant="outline" className={cn(driverDialogBtn, "w-full")}>
-                  Current week
-                </Button>
-              </Link>
-            )}
-          </div>
+          <Button variant="outline" className={cn(driverDialogBtn, "w-full")} onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

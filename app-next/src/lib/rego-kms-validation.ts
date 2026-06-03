@@ -122,6 +122,74 @@ export function describeStartKmFloor(
   return null;
 }
 
+export function formatKmReading(km: number): string {
+  return Number(km).toLocaleString("en-AU");
+}
+
+/** Most recent earlier day in this week with an end km for the same rego. */
+export function findPriorSameRegoEndWithLabel(
+  days: DayKmContext[],
+  dayIndex: number,
+  rego: string
+): { endKms: number; dayLabel: string } | null {
+  for (let i = dayIndex - 1; i >= 0; i--) {
+    const d = days[i];
+    if (!sameRego(d.truck_rego, rego)) continue;
+    if (!dayRequiresKmEntry(d)) continue;
+    const end = d.end_kms;
+    if (end != null && typeof end === "number" && !Number.isNaN(end)) {
+      return { endKms: end, dayLabel: DAY_LABELS[i] ?? `Day ${i + 1}` };
+    }
+  }
+  return null;
+}
+
+export type OdometerGuide = {
+  /** Minimum start km allowed (same as validation floor). */
+  minAllowed: number | null;
+  /** End km from the previous driving day this week (same rego), if any. */
+  priorEndKms: number | null;
+  priorDayLabel: string | null;
+  /** Last end km for this rego from earlier weeks / other sheets (when no prior day this week). */
+  fleetEndKms: number | null;
+};
+
+/** Reference readings for the driver — not written into the form automatically. */
+export function getOdometerGuideForDay(
+  days: DayKmContext[],
+  dayIndex: number,
+  rego: string,
+  serverMaxEndKms: number | null
+): OdometerGuide | null {
+  const trimmed = rego.trim();
+  if (!trimmed) return null;
+
+  const prior = findPriorSameRegoEndWithLabel(days, dayIndex, trimmed);
+  const floor = describeStartKmFloor(days, dayIndex, trimmed, serverMaxEndKms);
+
+  return {
+    minAllowed: floor?.value ?? null,
+    priorEndKms: prior?.endKms ?? null,
+    priorDayLabel: prior?.dayLabel ?? null,
+    fleetEndKms:
+      prior == null && serverMaxEndKms != null && !Number.isNaN(serverMaxEndKms)
+        ? serverMaxEndKms
+        : null,
+  };
+}
+
+/** One-line hint for under the start km field. */
+export function formatOdometerGuideLine(guide: OdometerGuide | null): string | null {
+  if (!guide) return null;
+  if (guide.priorEndKms != null && guide.priorDayLabel) {
+    return `Previous end ${formatKmReading(guide.priorEndKms)} (${guide.priorDayLabel})`;
+  }
+  if (guide.fleetEndKms != null) {
+    return `Last recorded ${formatKmReading(guide.fleetEndKms)}`;
+  }
+  return null;
+}
+
 const FLEET_FLOOR_LABEL = "last end km from a previous week";
 
 export type ValidateKmsResult = {

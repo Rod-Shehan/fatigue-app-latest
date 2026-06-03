@@ -78,7 +78,7 @@ describe("getDayWithCarriedOverCardInfo", () => {
     expect(wednesday.destination).toBe("Kalgoorlie");
   });
 
-  it("carries previous day end km as start km hint when continuing overnight", () => {
+  it("does not auto-fill start km when continuing overnight (driver enters odometer)", () => {
     const days: DayData[] = [
       {},
       {},
@@ -86,6 +86,6 @@ describe("getDayWithCarriedOverCardInfo", () => {
       { truck_rego: "" },
     ];
     const wednesday = getDayWithCarriedOverCardInfo(days, 3, WEEK_START, "2026-06-04");
-    expect(wednesday.start_kms).toBe(1325200);
+    expect(wednesday.start_kms).toBeUndefined();
   });
 });
