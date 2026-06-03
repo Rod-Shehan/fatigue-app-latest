@@ -7,13 +7,15 @@ import {
   selectSheetsForRoadsideProduce,
 } from "@/lib/roadside-produce";
 import {
+  buildRoadsideProducePdfBytes,
   buildWeekPdfBodyForSheet,
-  htmlToPdfBytes,
   renderRoadsideProduceDocumentHtml,
 } from "@/lib/roadside-produce-pdf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Multi-week PDF + compliance per sheet can exceed default serverless limit. */
+export const maxDuration = 60;
 
 export async function GET() {
   const access = await getSessionForSheetAccess();
@@ -58,10 +60,16 @@ export async function GET() {
     weekBodies,
   });
 
-  const pdfBytes = await htmlToPdfBytes(html);
+  const pdfBytes = await buildRoadsideProducePdfBytes(prisma, inWindow, html, {
+    driverName,
+    fromYmd,
+    toYmd: todayStr,
+    todayStr,
+    generatedAtLabel,
+  });
   if (!pdfBytes) {
     return NextResponse.json(
-      { error: "PDF generation is unavailable on this server. Try again later or export each week from Settings." },
+      { error: "PDF generation failed. Try again or export each week from Settings." },
       { status: 503 }
     );
   }

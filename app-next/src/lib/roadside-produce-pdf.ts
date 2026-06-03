@@ -5,7 +5,11 @@ import { jurisdictionDisplayLabel, parseJurisdictionCode } from "@/lib/jurisdict
 import { formatProduceWindowLabel } from "@/lib/roadside-produce";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
-import { renderPdfHtml } from "@/app/api/sheets/[id]/export/route";
+import {
+  buildSingleSheetJsPdfBuffer,
+  renderPdfHtml,
+  type RoadsidePdfPayload,
+} from "@/app/api/sheets/[id]/export/route";
 
 export function extractPdfHtmlBody(fullHtml: string): string {
   const m = fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
@@ -162,39 +166,55 @@ export function renderRoadsideProduceDocumentHtml(opts: {
 </html>`;
 }
 
-export async function buildWeekPdfBodyForSheet(
-  prisma: PrismaClient,
-  row: FatigueSheet,
-  sheetId: string,
-  todayStr: string,
-  generatedAtLabel: string
-): Promise<string> {
-  let days: Array<{
-    work_time?: boolean[];
-    breaks?: boolean[];
-    non_work?: boolean[];
-    date?: string;
-    truck_rego?: string;
-    destination?: string;
-    start_kms?: number;
-    end_kms?: number;
-    assume_idle_from?: string;
-    events?: Array<{ time: string; type: string }>;
-  }>;
+type SheetDays = Array<{
+  work_time?: boolean[];
+  breaks?: boolean[];
+  non_work?: boolean[];
+  date?: string;
+  truck_rego?: string;
+  destination?: string;
+  start_kms?: number;
+  end_kms?: number;
+  assume_idle_from?: string;
+  events?: Array<{ time: string; type: string }>;
+}>;
+
+function parseSheetDays(row: FatigueSheet): SheetDays {
   try {
     const parsed = row.days ? JSON.parse(row.days) : [];
-    days = Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    days = [];
+    return [];
   }
+}
 
+export async function buildRoadsideSheetExportInput(
+  prisma: PrismaClient,
+  row: FatigueSheet,
+  sheetId: string
+): Promise<{
+  sheet: {
+    driver_name: string;
+    second_driver: string | null;
+    driver_type: string;
+    week_starting: string;
+    days: SheetDays;
+    jurisdiction_label: string;
+    last_24h_break: string | null;
+    status: string;
+    signed_at: string | null;
+    signature: string | null;
+  };
+  roadsidePayload: RoadsidePdfPayload;
+}> {
+  const days = parseSheetDays(row);
   const jurisdictionLabel = jurisdictionDisplayLabel(parseJurisdictionCode(row.jurisdictionCode));
   const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, sheetId);
   const rv = roadsideExtras.results.filter((r) => r.type === "violation");
   const rw = roadsideExtras.results.filter((r) => r.type === "warning");
   const ev = computeEvidenceSummary(days);
 
-  const full = renderPdfHtml({
+  return {
     sheet: {
       driver_name: row.driverName,
       second_driver: row.secondDriver,
@@ -205,10 +225,9 @@ export async function buildWeekPdfBodyForSheet(
       last_24h_break: row.last24hBreak,
       status: row.status,
       signed_at: row.signedAt?.toISOString() ?? null,
+      signature: row.signature,
     },
-    todayStr,
-    generatedAtLabel,
-    roadside: {
+    roadsidePayload: {
       driverName: row.driverName,
       weekStarting: row.weekStarting,
       jurisdictionLabel: roadsideExtras.jurisdictionLabel,
@@ -224,9 +243,151 @@ export async function buildWeekPdfBodyForSheet(
       disclaimer: ROADSIDE_PDF_DISCLAIMER,
       qrDataUrl: roadsideExtras.qrDataUrl,
     },
+  };
+}
+
+export async function buildWeekPdfBodyForSheet(
+  prisma: PrismaClient,
+  row: FatigueSheet,
+  sheetId: string,
+  todayStr: string,
+  generatedAtLabel: string
+): Promise<string> {
+  const { sheet, roadsidePayload } = await buildRoadsideSheetExportInput(prisma, row, sheetId);
+
+  const full = renderPdfHtml({
+    sheet: {
+      driver_name: sheet.driver_name,
+      second_driver: sheet.second_driver,
+      driver_type: sheet.driver_type,
+      week_starting: sheet.week_starting,
+      days: sheet.days,
+      jurisdiction_label: sheet.jurisdiction_label,
+      last_24h_break: sheet.last_24h_break,
+      status: sheet.status,
+      signed_at: sheet.signed_at,
+    },
+    todayStr,
+    generatedAtLabel,
+    roadside: roadsidePayload,
   });
 
   return extractPdfHtmlBody(full);
+}
+
+export async function buildProduceCoverPdfBytes(opts: {
+  driverName: string;
+  fromYmd: string;
+  toYmd: string;
+  weekCount: number;
+  generatedAtLabel: string;
+}): Promise<ArrayBuffer> {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const margin = 14;
+  const colW = 210 - margin * 2;
+  let y = 24;
+
+  doc.setFillColor(255, 251, 235);
+  doc.setDrawColor(180, 83, 9);
+  doc.setLineWidth(0.6);
+  doc.rect(margin, y - 6, colW, 72, "FD");
+
+  doc.setTextColor(120, 53, 15);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("Roadside produce — driver record", margin + 4, y + 4);
+  y += 12;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(80, 50, 20);
+  const lead = doc.splitTextToSize(
+    `Last 28 calendar days of weekly fatigue records for inspection (${formatProduceWindowLabel(opts.fromYmd, opts.toYmd)}). Times in Australia/Perth.`,
+    colW - 8
+  );
+  doc.text(lead, margin + 4, y);
+  y += lead.length * 4 + 4;
+
+  doc.setFontSize(9);
+  doc.text(`Driver: ${opts.driverName}`, margin + 4, y);
+  y += 5;
+  doc.text(`Weeks included: ${opts.weekCount}`, margin + 4, y);
+  y += 5;
+  doc.text(`Generated: ${opts.generatedAtLabel}`, margin + 4, y);
+  y += 8;
+
+  doc.setFontSize(7);
+  const disc = doc.splitTextToSize(ROADSIDE_PDF_DISCLAIMER, colW - 8);
+  doc.text(disc, margin + 4, y);
+
+  return doc.output("arraybuffer");
+}
+
+/** Merge per-week jsPDF exports when Chromium HTML print is unavailable (Vercel). */
+export async function buildRoadsideProducePdfMergedJsPdf(
+  prisma: PrismaClient,
+  rows: FatigueSheet[],
+  opts: {
+    driverName: string;
+    fromYmd: string;
+    toYmd: string;
+    todayStr: string;
+    generatedAtLabel: string;
+  }
+): Promise<Buffer | null> {
+  try {
+    const { PDFDocument } = await import("pdf-lib");
+    const merged = await PDFDocument.create();
+
+    const coverBytes = await buildProduceCoverPdfBytes({
+      driverName: opts.driverName,
+      fromYmd: opts.fromYmd,
+      toYmd: opts.toYmd,
+      weekCount: rows.length,
+      generatedAtLabel: opts.generatedAtLabel,
+    });
+    const coverDoc = await PDFDocument.load(coverBytes);
+    const coverPages = await merged.copyPages(coverDoc, coverDoc.getPageIndices());
+    coverPages.forEach((p) => merged.addPage(p));
+
+    for (const row of rows) {
+      const { sheet, roadsidePayload } = await buildRoadsideSheetExportInput(prisma, row, row.id);
+      const weekBytes = await buildSingleSheetJsPdfBuffer({
+        sheet: {
+          ...sheet,
+          days: sheet.days as Array<Record<string, unknown>>,
+        },
+        roadsidePayload,
+        todayStr: opts.todayStr,
+        generatedAtLabel: opts.generatedAtLabel,
+      });
+      const weekDoc = await PDFDocument.load(weekBytes);
+      const weekPages = await merged.copyPages(weekDoc, weekDoc.getPageIndices());
+      weekPages.forEach((p) => merged.addPage(p));
+    }
+
+    return Buffer.from(await merged.save());
+  } catch {
+    return null;
+  }
+}
+
+export async function buildRoadsideProducePdfBytes(
+  prisma: PrismaClient,
+  rows: FatigueSheet[],
+  html: string,
+  opts: {
+    driverName: string;
+    fromYmd: string;
+    toYmd: string;
+    todayStr: string;
+    generatedAtLabel: string;
+  }
+): Promise<Buffer | null> {
+  const chromium = await htmlToPdfBytes(html);
+  if (chromium) return chromium;
+  return buildRoadsideProducePdfMergedJsPdf(prisma, rows, opts);
 }
 
 export async function htmlToPdfBytes(html: string): Promise<Buffer | null> {
