@@ -92,7 +92,7 @@ Defined in `src/lib/compliance-history.ts`:
 - Manager compliance snapshot (per-driver history from DB)
 - `runComplianceChecks` minute-timeline paths
 
-**Known gap (parked):** A **full lifetime scanner** — evaluating every possible 14/28-day window across the entire **3-year retained record** — is not implemented. It is computationally heavy and depends on retention + archive being in place first.
+**Known gap (parked):** A **full lifetime scanner** — evaluating every possible 14/28-day window across the entire **3-year retained record** — is not implemented. It is computationally heavy and depends on retention + archive being in place first. **168h / 48h reset** uses the same 12-week `historyDays` loader as solo 14/28-day rules.
 
 ---
 

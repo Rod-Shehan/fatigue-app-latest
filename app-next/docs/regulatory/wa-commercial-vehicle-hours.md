@@ -25,8 +25,8 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
   - Code: `checkBreakFromDriving()` + `five-hour-break-rule.ts`
 
 - **Reg 184E(1)(b)**: **In any 14‑day period** — **≤168 hours of work time**.
-  - **App**: enforced as **14‑day work ≤168h**, with reset segmentation after **≥48h continuous no‑work** (app warning threshold at 140h).
-  - Code: `segmentsSplitBy48hNonWork()` + 14‑day section in `runComplianceChecks()`
+  - **App**: enforced as **14‑day work ≤168h**, with reset segmentation after **≥48h continuous no‑work** (app warning threshold at 140h). Uses the same **historyDays + prev week + current week** minute timeline as solo 14/28-day checks.
+  - Code: `check168hWorkOnMinuteTimeline()` in `runComplianceChecks()`
 
 ### Solo driving (no relief driver) — additional requirements (Reg 184E(2))
 

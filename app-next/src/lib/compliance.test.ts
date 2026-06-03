@@ -376,6 +376,28 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(warning).toBeDefined();
   });
 
+  it("168h on minute timeline: uses historyDays beyond prev week for rolling 14-day work", () => {
+    const days = emptyWeek();
+    for (let i = 0; i < 7; i++) {
+      days[i] = {
+        work_time: Array(MINUTES_PER_DAY).fill(false),
+        breaks: Array(MINUTES_PER_DAY).fill(false),
+        non_work: Array(MINUTES_PER_DAY).fill(true),
+      };
+    }
+    const historyDays = Array.from({ length: 14 }, () => dayWorkOnly(13));
+    const resultsWithout = runComplianceChecks(days, { driverType: "solo" });
+    const resultsWith = runComplianceChecks(days, { driverType: "solo", historyDays });
+    const violationWithout = resultsWithout.find(
+      (r) => r.day === "14-day" && r.type === "violation" && r.message.includes("168")
+    );
+    const violationWith = resultsWith.find(
+      (r) => r.day === "14-day" && r.type === "violation" && r.message.includes("168")
+    );
+    expect(violationWithout).toBeUndefined();
+    expect(violationWith).toBeDefined();
+  });
+
   it("168h on minute timeline: rolling 14-day window exceeds 168h within one 48h-reset segment", () => {
     const thisWeek = emptyWeek();
     const prevWeek = emptyWeek();

@@ -228,7 +228,7 @@ const MAX_WORK_MINUTES_14D = 168 * 60;
 const WARN_WORK_MINUTES_14D = 140 * 60;
 
 /**
- * Split a minute timeline at ≥48h continuous no-work (minutes with work_time false).
+ * Split a minute timeline at ≥48h continuous non-work (non_work minute grid).
  * Matches rolling reset intent of segmentsSplitBy48hNonWork without day-boundary coupling.
  */
 function minuteSegmentsBetween48hNoWorkResets(noWorkMinutes: boolean[]): Array<{ start: number; end: number }> {
@@ -1049,29 +1049,28 @@ export function runComplianceChecks(
   checkLocationEvidenceWarning(extendedDays, results);
 
   const thisWeekWork = normalizedDays.reduce((s, d) => s + getHours(d.work_time), 0);
-  const has14dayData = prevDays.length > 0;
+  const historyNorm = (historyDays || []).map((d) => normalizeDayCoverageArrays(d));
+  const allDaysFor168 = [...historyNorm, ...prevDays, ...normalizedDays];
+  const hasPriorTimeline = historyNorm.length > 0 || prevDays.length > 0;
 
-  if (has14dayData) {
-    const allDays = [...prevDays, ...normalizedDays].map((d) => normalizeDayCoverageArrays(d));
-    const workFlat = flatSlots(allDays, "work_time");
-    const noWorkFlat = workFlat.map((w) => !w);
+  if (hasPriorTimeline) {
+    const workFlat = flatSlots(allDaysFor168, "work_time");
+    const noWorkFlat = flatSlots(allDaysFor168, "non_work");
     check168hWorkOnMinuteTimeline(workFlat, noWorkFlat, results);
-  } else {
-    if (thisWeekWork > 168) {
-      results.push({
-        type: "violation",
-        iconKey: "TrendingUp",
-        day: "14-day",
-        message: "14-day work exceeds 168h",
-      });
-    } else if (thisWeekWork > 84) {
-      results.push({
-        type: "warning",
-        iconKey: "TrendingUp",
-        day: "14-day",
-        message: `${thisWeekWork}h this week — no previous sheet found to check full 14-day total`,
-      });
-    }
+  } else if (thisWeekWork > 168) {
+    results.push({
+      type: "violation",
+      iconKey: "TrendingUp",
+      day: "14-day",
+      message: "14-day work exceeds 168h",
+    });
+  } else if (thisWeekWork > 84) {
+    results.push({
+      type: "warning",
+      iconKey: "TrendingUp",
+      day: "14-day",
+      message: `${thisWeekWork}h this week — no previous sheet found to check full 14-day total`,
+    });
   }
 
   return results;
