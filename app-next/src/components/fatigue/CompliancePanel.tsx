@@ -16,6 +16,7 @@ import {
   shiftLabelDisplay,
 } from "@/lib/shift-change";
 import { Button } from "@/components/ui/button";
+import { CompliancePolicyFootnote } from "@/components/fatigue/CompliancePolicyFootnote";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -361,6 +362,7 @@ export default function CompliancePanel({
           </ul>
         )}
       </div>
+      <CompliancePolicyFootnote className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed" />
     </div>
   );
 }

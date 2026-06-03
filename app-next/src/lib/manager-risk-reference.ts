@@ -3,6 +3,9 @@
  * Not legal advice; review periodically and align with your safety management system.
  */
 
+import { COMPLIANCE_PRIOR_WEEKS_LOOKBACK } from "@/lib/compliance-history";
+import { RECORD_RETENTION_YEARS } from "@/lib/record-retention";
+
 export type ManagerReferenceCard = {
   id: string;
   title: string;
@@ -15,6 +18,18 @@ export type ManagerReferenceCard = {
 export const MANAGER_REFERENCE_LAST_REVIEWED = "2026-06";
 
 export const MANAGER_REFERENCE_CARDS: ManagerReferenceCard[] = [
+  {
+    id: "record-retention-vs-lookback",
+    title: "Retention vs rule lookback",
+    summary:
+      "How long you must keep records is not the same as how far back the app scans for 14–28 day fatigue rules.",
+    bullets: [
+      `Legal retention: at least ${RECORD_RETENTION_YEARS} years from the last entry (WA Reg 184G) or from when the record was made (HVNL s 341).`,
+      `Rule lookback: Circadia loads about ${COMPLIANCE_PRIOR_WEEKS_LOOKBACK} prior weeks of submitted sheets when evaluating rolling limits — an engineering window, not a retention standard.`,
+      "Roadside produce (~28 days in a work diary) is a third horizon: what a driver carries, not how long the operator archives records.",
+    ],
+    relateTo: ["14-day", "28-day", "168", "lookback"],
+  },
   {
     id: "cor-assurance",
     title: "Chain of responsibility & assurance",
@@ -81,8 +96,12 @@ export function referenceCardsForMessage(message: string): ManagerReferenceCard[
     const hit =
       (lower.includes("movement") && card.relateTo.includes("movement")) ||
       (lower.includes("gps") && card.relateTo.includes("gps")) ||
-      (lower.includes("stationary") && card.relateTo.includes("stationary"));
+      (lower.includes("stationary") && card.relateTo.includes("stationary")) ||
+      (lower.includes("14-day") && card.relateTo.includes("14-day")) ||
+      (lower.includes("28-day") && card.relateTo.includes("28-day")) ||
+      (lower.includes("168") && card.relateTo.includes("168")) ||
+      (lower.includes("lookback") && card.relateTo.includes("lookback"));
     if (hit) out.push(card);
   }
-  return out.length ? out : [MANAGER_REFERENCE_CARDS[2]];
+  return out.length ? out : [MANAGER_REFERENCE_CARDS.find((c) => c.id === "record-corroboration")!];
 }

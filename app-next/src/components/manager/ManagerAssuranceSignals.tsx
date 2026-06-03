@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CheckCircle2, Info } from "lucide-react";
 import { referenceCardsForMessage } from "@/lib/manager-risk-reference";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { CompliancePolicyFootnote } from "@/components/fatigue/CompliancePolicyFootnote";
 import type { GlanceBadge } from "@/lib/manager-risk-scoring";
 
 export type AssuranceLine = {
@@ -141,6 +142,11 @@ export function ManagerAssuranceSignals({
           </div>
         </div>
       )}
+      {!loading ? (
+        <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+          <CompliancePolicyFootnote variant="manager" />
+        </div>
+      ) : null}
     </section>
   );
 }

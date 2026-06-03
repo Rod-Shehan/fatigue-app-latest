@@ -3,6 +3,9 @@
  * Used for disclaimers and driver-facing copy (not legal advice).
  */
 
+import { COMPLIANCE_PRIOR_WEEKS_LOOKBACK } from "@/lib/compliance-history";
+import { RECORD_RETENTION_YEARS } from "@/lib/record-retention";
+
 /**
  * Canonical record contract (prevention/education + evidence).
  * Implementation should enforce: unsigned weeks editable for drivers until attestation;
@@ -16,7 +19,8 @@ export const SHEET_RECORD_CONTRACT_NOTES = [
   "Drivers cannot rewrite history; they review, sign, and act in the present week.",
   "Incorrect past data is corrected through manager amendment (reason required), not silent edits — avoiding both tampering and unfixable wrong records.",
   "The legal record is the named driver's attestation (signature), not the manager's edit — manager changes always return to the driver to sign.",
-  "Rolling compliance may read prior weeks for calculations; that is not the same as editing or operating on a past sheet.",
+  "Rolling compliance may read up to prior weeks for calculations; that is not the same as editing or operating on a past sheet.",
+  `Rule checks load about ${COMPLIANCE_PRIOR_WEEKS_LOOKBACK} prior weeks for 14–28 day limits. Signed records must be kept for at least ${RECORD_RETENTION_YEARS} years (WA Reg 184G; HVNL s 341).`,
 ] as const;
 
 /**

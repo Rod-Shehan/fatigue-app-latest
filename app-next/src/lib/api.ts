@@ -3,6 +3,10 @@
  * All routes require an active session (cookie).
  */
 
+import type { RecordRetentionPolicy } from "@/lib/record-retention";
+
+export type { RecordRetentionPolicy };
+
 // In the browser we use relative URLs so the request goes to the same origin (and sends cookies).
 const base = typeof window !== "undefined" ? "" : process.env.NEXTAUTH_URL ?? "";
 
@@ -220,6 +224,7 @@ export const api = {
         prev_week_days: FatigueSheet["days"] | null;
         history_days: FatigueSheet["days"];
         lookback_weeks: number;
+        policy: RecordRetentionPolicy;
       }>(`/api/sheets/${id}/compliance-history`),
     regoMaxEndKms: (
       rego: string,
@@ -250,7 +255,9 @@ export const api = {
   manager: {
     /** All drivers' compliance results (manager only). */
     compliance: () =>
-      fetchApi<{ items: ManagerComplianceItem[] }>("/api/manager/compliance"),
+      fetchApi<{ items: ManagerComplianceItem[]; policy: RecordRetentionPolicy }>(
+        "/api/manager/compliance"
+      ),
     /** Geo events for map (manager only). Optional filters: weekStarting, driverName. */
     mapEvents: (params?: { weekStarting?: string; driverName?: string }) => {
       const sp = new URLSearchParams();

@@ -50,6 +50,12 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
     queryFn: () => listSheetsOfflineFirst(),
   });
 
+  const { data: complianceHistory } = useQuery({
+    queryKey: ["sheet", sheetId, "compliance-history"],
+    queryFn: () => api.sheets.complianceHistory(sheetId),
+    enabled: !!sheetId,
+  });
+
   const prevWeekSheet = useMemo(() => {
     if (!sheet?.week_starting || !sheet.driver_name) return null;
     const prevDateStr = getPreviousWeekSunday(sheet.week_starting);
@@ -68,20 +74,26 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
     ? getCurrentDayIndex(sheet.week_starting, todayYmd)
     : 0;
 
+  const prevWeekDays =
+    complianceHistory?.prev_week_days ?? prevWeekSheet?.days ?? null;
+  const prevWeekStarting =
+    complianceHistory?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined;
+
   const compliancePayload = useMemo(() => {
     if (!sheet?.days?.length) return null;
     return {
       days: sheet.days,
       driverType: sheet.driver_type,
-      prevWeekDays: prevWeekSheet?.days ?? null,
+      prevWeekDays,
+      historyDays: complianceHistory?.history_days ?? null,
       last24hBreak: sheet.last_24h_break || undefined,
       weekStarting: sheet.week_starting || undefined,
-      prevWeekStarting: prevWeekSheet?.week_starting ?? undefined,
+      prevWeekStarting,
       currentDayIndex,
       slotOffsetWithinToday: getSlotOffsetWithinTodayLocal(Date.now(), sheet.jurisdiction_code),
       jurisdiction_code: sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
     };
-  }, [sheet, prevWeekSheet, currentDayIndex]);
+  }, [sheet, prevWeekDays, prevWeekStarting, complianceHistory, currentDayIndex]);
 
   const { data: complianceData, isLoading: complianceLoading } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],
@@ -138,10 +150,10 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
           <CompliancePanel
             days={sheet.days ?? []}
             driverType={sheet.driver_type}
-            prevWeekDays={prevWeekSheet?.days ?? null}
+            prevWeekDays={prevWeekDays}
             last24hBreak={sheet.last_24h_break || undefined}
             weekStarting={sheet.week_starting || undefined}
-            prevWeekStarting={prevWeekSheet?.week_starting ?? undefined}
+            prevWeekStarting={prevWeekStarting}
             complianceResults={complianceData?.results ?? null}
             complianceLoading={complianceLoading}
             onScrollToDay={onScrollToDay}

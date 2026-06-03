@@ -2,6 +2,8 @@
 
 This document is the **source of truth** for the app’s **time-based** fatigue checks for **Western Australia**.
 
+For **how long records must be kept** vs **how much history the rule engine loads**, see [record-retention-and-compliance-lookback.md](./record-retention-and-compliance-lookback.md).
+
 ## Primary source
 
 The implemented time requirements are taken directly from the WA **Work Health and Safety (General) Regulations 2022**:

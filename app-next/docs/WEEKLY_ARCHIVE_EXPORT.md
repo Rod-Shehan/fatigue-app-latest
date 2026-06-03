@@ -1,5 +1,7 @@
 # Weekly archive export (Azure/SharePoint) — design note
 
+> **Retention policy:** Legal minimum is **≥ 3 years** (WA Reg 184G, HVNL s 341). Short DB retention is allowed only when archive is the verified system of record. See [record-retention-and-compliance-lookback.md](./regulatory/record-retention-and-compliance-lookback.md).
+
 Goal: keep the database small while maintaining a **fully identified**, **human-readable** record archive.
 
 ## Requirements (as agreed)
@@ -7,7 +9,7 @@ Goal: keep the database small while maintaining a **fully identified**, **human-
 - **Endpoint**: SharePoint / Azure
 - **Re-import**: not required
 - **Identification**: records must be fully identified
-- **Retention**: keep ~**1 week** in DB (life of the work week), then purge after week completes
+- **Operational DB window**: keep ~**1 week** in DB (life of the work week), then purge after week completes **once archive export is verified** — archive must retain **≥ 3 years** (see regulatory reference above)
 - **Security**: secure DB → Azure; records not considered sensitive
 - **Readability at endpoint**: records must be unpackable into a readable record at the destination
 

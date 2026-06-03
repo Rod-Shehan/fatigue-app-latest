@@ -8,6 +8,7 @@ import {
   buildComplianceWeekContextFromMap,
   parseSheetDaysJson,
 } from "@/lib/compliance-history";
+import { getRecordRetentionPolicy } from "@/lib/record-retention";
 
 export type ManagerComplianceItem = {
   sheetId: string;
@@ -109,7 +110,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ items });
+    return NextResponse.json({ items, policy: getRecordRetentionPolicy() });
   } catch (e) {
     console.error("Manager compliance error:", e);
     return NextResponse.json(

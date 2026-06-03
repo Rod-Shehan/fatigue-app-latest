@@ -13,6 +13,7 @@ import {
   UNSIGNED_WEEKS_GATE_HINT,
   USER_VISIBLE_SHEET_STATE_BULLETS,
 } from "@/lib/product-copy";
+import { DRIVER_HELP_RETENTION_BULLETS } from "@/lib/record-retention";
 import {
   SHIFT_CHANGE_MIN_CONSECUTIVE_WORK_DAYS,
   SHIFT_CHANGE_MIN_GAP_HOURS,
@@ -86,6 +87,17 @@ export default async function DriverHelpPage() {
                 </p>
               </div>
             </div>
+          </section>
+
+          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5">
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-2">
+              How long records are kept
+            </h2>
+            <ul className="list-disc pl-5 space-y-1.5">
+              {DRIVER_HELP_RETENTION_BULLETS.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
           </section>
 
           <section className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 p-5">

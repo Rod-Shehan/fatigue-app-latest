@@ -2,7 +2,12 @@ import type { PrismaClient } from "@prisma/client";
 import type { ComplianceDayData } from "@/lib/compliance";
 import { getPreviousWeekSunday } from "@/lib/weeks";
 
-/** Prior weeks loaded for 28-day rules, rolling audit, and 168h context (excludes current week). */
+/**
+ * Prior weeks loaded for 28-day rules, rolling audit, and 168h context (excludes current week).
+ * Rule-engine lookback only — not legal record retention (see RECORD_RETENTION_YEARS).
+ *
+ * @see docs/regulatory/record-retention-and-compliance-lookback.md
+ */
 export const COMPLIANCE_PRIOR_WEEKS_LOOKBACK = 12;
 
 export type ComplianceWeekContext = {

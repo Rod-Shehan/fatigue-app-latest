@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { canAccessSheet, getSessionForSheetAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { loadComplianceWeekContext, COMPLIANCE_PRIOR_WEEKS_LOOKBACK } from "@/lib/compliance-history";
+import { getRecordRetentionPolicy } from "@/lib/record-retention";
 import { normalizeSheetDaysForApi } from "@/lib/coverage/derive-minute-coverage";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       prev_week_days: ctx.prevWeekDays ? normalizeSheetDaysForApi(ctx.prevWeekDays) : null,
       history_days: normalizeSheetDaysForApi(ctx.historyDays),
       lookback_weeks: COMPLIANCE_PRIOR_WEEKS_LOOKBACK,
+      policy: getRecordRetentionPolicy(),
     });
   } catch (e) {
     console.error("compliance-history error:", e);
