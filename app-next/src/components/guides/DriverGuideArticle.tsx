@@ -21,6 +21,11 @@ export function DriverGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>What this app does</h2>
         <p>{PRODUCT_RECORD_PROMISE}</p>
+        <p className="mt-3">
+          Same route every day? The app fills <strong className="text-slate-700 dark:text-slate-200">rego, from, to,</strong>{" "}
+          and run plan from your last trip. You always enter <strong className="text-slate-700 dark:text-slate-200">start km</strong>{" "}
+          and <strong className="text-slate-700 dark:text-slate-200">end km</strong> yourself.
+        </p>
       </section>
 
       <section className={sectionClass}>
@@ -81,7 +86,7 @@ export function DriverGuideArticle() {
           <tbody>
             <tr>
               <th className={thClass}>Work / Start shift</th>
-              <td className={tdClass}>You start driving or working</td>
+              <td className={tdClass}>You start driving or working (needs start km first)</td>
             </tr>
             <tr>
               <th className={thClass}>Break</th>
@@ -89,19 +94,19 @@ export function DriverGuideArticle() {
             </tr>
             <tr>
               <th className={thClass}>End shift</th>
-              <td className={tdClass}>You finish work — enter end km if asked</td>
+              <td className={tdClass}>You finish work — enter end km when asked</td>
             </tr>
           </tbody>
         </table>
         <GuideDiagram title="Activity flow (read left to right)">
           {`  OFF / Non-work
        │
-       ▼ Tap Work
+       ▼ Tap Work (after start km)
      WORK ──────► Tap Break ──► BREAK
        │                           │
        │◄──── Tap Work again ──────┘
        │
-       ▼ Tap End shift (+ km)
+       ▼ Tap End shift (+ end km)
   OFF / Non-work`}
         </GuideDiagram>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Simple rule:</p>
@@ -109,36 +114,46 @@ export function DriverGuideArticle() {
       </section>
 
       <section className={sectionClass}>
-        <h2 className={h2Class}>4. Non-work time</h2>
+        <h2 className={h2Class}>4. Non-work and End shift</h2>
         <ul className={ulClass}>
           <li>If you do not tap Work or Break, time is non-work (off duty).</li>
           <li>Rest longer than 30 minutes is non-work, not Break.</li>
-          <li>When you stop working for the day, tap End shift.</li>
+          <li>When you stop working for the day, tap End shift and enter end km if asked.</li>
         </ul>
       </section>
 
       <section className={sectionClass}>
-        <h2 className={h2Class}>5. Day card (truck details)</h2>
-        <GuideDiagram title="Day card">
+        <h2 className={h2Class}>5. Today&apos;s card — repeat routes</h2>
+        <p className="mb-3">Most days you only check the route and type start km.</p>
+        <GuideDiagram title="Today with autofill">
           {`┌─────────────────────────────┐
 │  Wednesday                  │
-│  Rego: [ 1ABC123 ]          │
-│  To:   [ Perth depot ]      │
-│  Start km: [ 125400 ]       │
-│  Events: Work 06:00 …       │
+│  From: Perth depot          │
+│  To:   Kalgoorlie           │
+│  Rego: 1ABC123              │
+│                             │
+│  Start km (required):       │
+│  [ _________ ]  ← you type  │
 └─────────────────────────────┘`}
         </GuideDiagram>
-        <ul className={ulClass}>
-          <li>
-            <strong className="text-slate-700 dark:text-slate-200">Rego</strong> — number plate
-          </li>
-          <li>
-            <strong className="text-slate-700 dark:text-slate-200">Destination</strong> — where you go
-          </li>
-          <li>
-            <strong className="text-slate-700 dark:text-slate-200">Start km</strong> — odometer at start
-          </li>
-        </ul>
+        <table className={tableClass}>
+          <tbody>
+            {[
+              ["Rego, From, To, run plan", "Filled from your last trip"],
+              ["Start km", "You enter every day — never auto-filled"],
+              ["End km", "You enter when you End shift"],
+            ].map(([field, note]) => (
+              <tr key={field}>
+                <th className={thClass}>{field}</th>
+                <td className={tdClass}>{note}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-3 text-slate-500 dark:text-slate-400 leading-snug">
+          New route or new truck? Tap <strong className="text-slate-700 dark:text-slate-200">Set up day</strong> once.
+          Next days are faster.
+        </p>
       </section>
 
       <section className={sectionClass}>
@@ -161,12 +176,13 @@ export function DriverGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>7. Each day checklist</h2>
         <ol className="list-decimal pl-5 space-y-1">
-          <li>Sign in</li>
+          <li>Sign in (or stay signed in)</li>
           <li>Continue logging</li>
-          <li>Fill rego / destination / km if needed</li>
+          <li>Check rego, from, and to on today&apos;s card</li>
+          <li>Enter start km on the card</li>
           <li>Tap Work when you start</li>
           <li>Tap Break for short rest</li>
-          <li>Tap End shift when finished</li>
+          <li>Tap End shift when finished — enter end km</li>
           <li>At end of week — Sign</li>
         </ol>
       </section>
@@ -180,9 +196,11 @@ export function DriverGuideArticle() {
               ["Break", "Short rest during work"],
               ["Non-work", "Off duty / long rest"],
               ["End shift", "Finished work for this shift"],
+              ["From / To", "Start place and destination"],
+              ["Start km", "Odometer at start — you type this"],
+              ["End km", "Odometer at end shift — you type this"],
+              ["Set up day", "Change route or truck details"],
               ["Sign", "You agree the week is correct"],
-              ["Rego", "Number plate"],
-              ["km", "Kilometres on the odometer"],
             ].map(([word, meaning]) => (
               <tr key={word}>
                 <th className={thClass}>{word}</th>

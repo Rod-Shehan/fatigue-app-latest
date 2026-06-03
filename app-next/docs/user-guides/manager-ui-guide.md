@@ -129,6 +129,8 @@ Roster maintenance:
 
 Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 
+**Driver day cards:** For repeat runs (e.g. MTS), the driver app autofills **rego, start location, destination, and run plan** from the driver’s last saved trip or yesterday on the same week. **Odometer (start/end km) is never autofilled** — drivers enter km on the day card, then tap Work. Expect faster logging; first trip on a new device still needs **Set up day** once.
+
 ---
 
 ## 7. Movement map

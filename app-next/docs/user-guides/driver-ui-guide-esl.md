@@ -12,6 +12,7 @@ Circadia 24 keeps your **weekly fatigue record**.
 - You tap buttons when you **work**, **break**, or **end shift**.
 - Time you do not log is shown as **non-work** (rest / off duty).
 - Each **week** (Sunday to Saturday) is one record. You **sign** the week when it is correct.
+- If you drive the **same route often**, the app **fills in rego, from, to, and run plan** from your last trip. You still enter **truck km yourself** every time.
 
 This guide is **not** legal advice. Your company and WA rules still apply.
 
@@ -92,6 +93,8 @@ flowchart LR
 
 **Simple rule:** Tap the button that matches **what you are doing now**.
 
+You cannot tap **Work / Start shift** until **start km** is on today’s card (see section 7).
+
 ---
 
 ## 5. Non-work time
@@ -99,8 +102,7 @@ flowchart LR
 - If you do **not** tap Work or Break, the app shows **non-work**.
 - Long rest (**more than 30 minutes**) is **non-work**, not Break.
 - **Break** is for short rest during work.
-
-When you stop working for the day, tap **End shift**. After that, time is non-work until you tap Work again.
+- When you stop working for the day, tap **End shift**. After that, time is non-work until you tap Work again.
 
 ---
 
@@ -109,40 +111,69 @@ When you stop working for the day, tap **End shift**. After that, time is non-wo
 When you tap **End shift**:
 
 1. The app may ask for **end km** on the odometer.
-2. Enter the number if you can.
+2. Enter the number from the truck.
 3. Confirm.
 
-**Why:** Your record matches the truck’s distance.
+**Important:** The app **never** fills in start km or end km for you. You read the odometer and type it.
 
 If you **forget** End shift:
 
 - The app may show a reminder.
-- You may see **Mark non-work from now** or ask your manager.
-- If **yesterday** was not ended, a banner may say to **end yesterday at last log time**.
+- You may see **Mark non-work from now**.
+- If **yesterday** was not ended, a banner may say **End shift on [day]** or **End at last log time**.
 
 ---
 
-## 7. Day card (route details)
+## 7. Day card — repeat routes (most days)
 
-Scroll down to **today’s day card**. You may need:
+Many drivers use the **same rego and route** every day. The app remembers your last trip.
 
-| Field | What to enter |
+### What fills in automatically
+
+| Field | Auto-filled? |
 |-------|----------------|
-| **Rego** | Truck number plate |
-| **Destination** | Where you are going |
-| **Start km** | Odometer at start (if asked) |
+| **Rego** (number plate) | Yes — from last trip or yesterday this week |
+| **From** (start location) | Yes |
+| **To** (destination) | Yes |
+| **Run plan** (route name, hours, distance) | Yes, if you used it before |
+| **Start km** | **No — you always enter this** |
+| **End km** | **No — you enter when you End shift** |
 
-Fill these **before** or when you **Start shift** if the app asks.
+After you **sign in** and open **this week**, today’s card often looks like this:
 
 ```
 ┌─────────────────────────────┐
-│  Wednesday 3 Jun            │
-│  Rego: [ 1ABC123 ]            │
-│  To:   [ Perth depot ]        │
-│  Start km: [ 125400 ]         │
-│  Events: Work 06:00 …         │
+│  Wednesday                  │
+│  From: Perth depot          │
+│  To:   Kalgoorlie           │
+│  Rego: 1ABC123               │
+│                             │
+│  Start km (required):       │
+│  [ _________ ]  ← you type  │
+│                             │
+│  Rego and route are filled  │
+│  from your last trip.       │
 └─────────────────────────────┘
 ```
+
+### What you do (normal day)
+
+1. Open **Continue logging**.
+2. **Check** From, To, and Rego are correct (change with **Edit day** if not).
+3. Type **start km** in the box on the card (or in **Set up day**).
+4. Tap **Work** or **Start shift**.
+
+**First time** on a new phone, or a **new route**: tap **Set up day**, fill all fields once, then save. The next days are faster.
+
+### Set up day (when route changes)
+
+Use **Set up day** / **Edit day** when:
+
+- New truck (rego)
+- New run (from / to)
+- Run plan changes (hours or km distance)
+
+Do **not** expect the app to guess odometer readings.
 
 ---
 
@@ -200,8 +231,8 @@ Menu: **Your weeks** (`/sheets`)
 | Place | Use |
 |-------|-----|
 | **Settings** (gear icon) | Help, messages, sign out |
-| **How your record works** | Short help inside the app |
-| **Full guide with pictures** | This guide in the app |
+| **Driver guide (pictures)** | Full guide in the app |
+| **How your record works** | Short help |
 | **Messages** | Talk to your manager |
 
 ---
@@ -217,13 +248,14 @@ If your manager saved a **medical expiry date** for you:
 
 ## 13. Quick checklist (each day)
 
-1. Sign in  
+1. **Sign in** (or stay signed in)  
 2. **Continue logging**  
-3. Fill **rego / destination / km** if needed  
-4. Tap **Work** when you start  
-5. Tap **Break** for short rest  
-6. Tap **End shift** when you finish (+ end km)  
-7. At end of week: **Sign**
+3. **Check** rego, from, and to on today’s card (already filled most days)  
+4. Enter **start km** on the card  
+5. Tap **Work** when you start  
+6. Tap **Break** for short rest  
+7. Tap **End shift** when finished — enter **end km**  
+8. At end of week: **Sign**
 
 ---
 
@@ -238,13 +270,19 @@ If your manager saved a **medical expiry date** for you:
 | **Week** | Sunday–Saturday record |
 | **Sign** | You agree the week is correct |
 | **Rego** | Number plate |
-| **km** | Kilometres on the odometer |
+| **From** | Where the shift / route started |
+| **To** | Destination |
+| **Start km** | Odometer when you start (you type this) |
+| **End km** | Odometer when you end shift (you type this) |
+| **Set up day** | Form to change route or truck details |
+| **Run plan** | Optional future route (name, hours, km) |
 | **Sheet** | One week’s record |
 
 ---
 
 ## 15. Need help?
 
-- Read **Settings → How your record works** in the app.  
+- **Settings → Driver guide (pictures)** in the app.  
+- **Settings → How your record works** for rules overview.  
 - Ask your **manager**.  
 - This file: `docs/user-guides/driver-ui-guide-esl.md`

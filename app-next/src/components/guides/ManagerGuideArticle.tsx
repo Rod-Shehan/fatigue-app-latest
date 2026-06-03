@@ -87,6 +87,14 @@ export function ManagerGuideArticle() {
       </section>
 
       <section className={sectionClass}>
+        <h2 className={h2Class}>What drivers see (repeat routes)</h2>
+        <p>
+          The driver app autofills rego, from, to, and run plan from their last trip. They always enter start km and
+          end km on the odometer. Coaching: check the card matches the real run, then start km, then Work.
+        </p>
+      </section>
+
+      <section className={sectionClass}>
         <h2 className={h2Class}>Suggested weekly workflow</h2>
         <ol className="list-decimal pl-5 space-y-1">
           <li>Open Risk brief for the current work week.</li>
