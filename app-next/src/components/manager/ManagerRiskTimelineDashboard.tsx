@@ -27,6 +27,7 @@ import {
   nextDemoLiveBlocks,
   riskPercentToColor,
   RISK_COLOR_THRESHOLDS,
+  RISK_TIMELINE_CHART_HELP,
   synthesizeRiskNarrative,
   type QueuedLiveBlock,
   type RiskTimelineBlock,
@@ -392,8 +393,9 @@ export function ManagerRiskTimelineDashboard({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-3 px-2 text-[10px] text-slate-500 dark:text-slate-400">
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1" title={RISK_TIMELINE_CHART_HELP.baseline.summary}>
             <span className="h-0.5 w-4 bg-slate-400" aria-hidden /> Expected baseline
+            <span className="text-slate-400 dark:text-slate-500">(diary-only expected %)</span>
           </span>
           <span className="inline-flex items-center gap-1">
             <span className="h-0.5 w-4 bg-emerald-600" aria-hidden /> Live &lt; {RISK_COLOR_THRESHOLDS.amber}%
@@ -412,6 +414,47 @@ export function ManagerRiskTimelineDashboard({
             Live above baseline
           </span>
         </div>
+
+        <details className="mx-2 mt-3 rounded-lg border border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/50">
+          <summary className="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+            How this chart is calculated
+          </summary>
+          <div className="space-y-3 border-t border-slate-200 px-3 py-3 text-xs leading-relaxed text-slate-600 dark:border-slate-700 dark:text-slate-300">
+            <p>{RISK_TIMELINE_CHART_HELP.intro}</p>
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">
+                {RISK_TIMELINE_CHART_HELP.baseline.title}
+              </p>
+              <p className="mt-1">{RISK_TIMELINE_CHART_HELP.baseline.summary}</p>
+              <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+                {RISK_TIMELINE_CHART_HELP.baseline.factors.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <p className="mt-1.5">{RISK_TIMELINE_CHART_HELP.baseline.mapping}</p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.baseline.horizon}</p>
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">
+                {RISK_TIMELINE_CHART_HELP.live.title}
+              </p>
+              <p className="mt-1">{RISK_TIMELINE_CHART_HELP.live.summary}</p>
+              <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
+                {RISK_TIMELINE_CHART_HELP.live.factors.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.live.horizon}</p>
+            </div>
+            <p className="text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.shaded}</p>
+            {useDemoData ? (
+              <p className="rounded-md border border-dashed border-slate-300 bg-white/60 px-2 py-1.5 text-slate-500 dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
+                <strong className="font-semibold text-slate-600 dark:text-slate-300">Demo preview:</strong> sample
+                diary patterns until real camera blocks are stored on the server.
+              </p>
+            ) : null}
+          </div>
+        </details>
       </div>
 
       <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">

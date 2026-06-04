@@ -23,7 +23,7 @@ export type RiskTimelineBlock = {
   blockStartMs: number;
   /** Short label for axis (Perth HH:mm). */
   label: string;
-  /** Expected trajectory (plan / smoothed prior). */
+  /** Expected trajectory from diary-only inputs (no camera); see RISK_TIMELINE_CHART_HELP. */
   baselinePct: number;
   /** Observed risk at this block — undefined until the block is received. */
   livePct?: number;
@@ -137,6 +137,39 @@ export function blockInputsToRiskPercent(
 }
 
 export const DEFAULT_RISK_INDEX_STATS = { mean: 0.42, stdDev: 0.18 };
+
+/** In-app explanation for manager risk timeline (keep aligned with scoring functions). */
+export const RISK_TIMELINE_CHART_HELP = {
+  intro:
+    "Each 15-minute block gets a 0–100% fatigue glance score. This is prospective assurance only — not a compliance breach score or fleet average.",
+  baseline: {
+    title: "Expected baseline (grey line)",
+    summary:
+      "What we would expect for that block from the driver’s logged diary alone — no cab camera in this curve.",
+    factors: [
+      "Work minutes in the 15-minute block",
+      "Minutes since the last qualifying break",
+      "Rolling work hours in the prior 14 days",
+      "Time of day (circadian pressure)",
+      "Plan deviation treated as zero (expected plan, not extra overrun)",
+    ],
+    mapping:
+      "Those factors are combined into one fatigue index, standardised (z-score), then mapped through a logistic curve to 0–100%.",
+    horizon:
+      "Drawn for past and future blocks so you can see the expected trajectory; future segments use diary context where the app has it.",
+  },
+  live: {
+    title: "Live risk (coloured line and dots)",
+    summary: "Observed risk when a 15-minute block is received from the driver device.",
+    factors: [
+      "Same diary factors as the baseline, including actual plan deviation",
+      "Cab camera metrics when connected (drowsiness, distraction, eyes-off-road, coverage-weighted)",
+    ],
+    horizon: "Filled for blocks up to right now; later blocks appear as data arrives (or in demo controls).",
+  },
+  shaded:
+    "Amber shading marks intervals where live risk sits above the expected baseline for that block.",
+} as const;
 
 export function riskPercentToColor(pct: number): string {
   if (pct >= RISK_COLOR_THRESHOLDS.red) return "#dc2626";
