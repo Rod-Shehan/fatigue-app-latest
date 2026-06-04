@@ -67,10 +67,15 @@ export function ManagerGuideArticle() {
         <h2 className={h2Class}>{MANAGER_EXPERIENCE.REGISTER_TITLE}</h2>
         <p>{MANAGER_EXPERIENCE.REGISTER_SUBTITLE}</p>
         <p className="mt-2">{MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP}</p>
+        <p className="mt-2 text-slate-500 dark:text-slate-400">
+          On the risk brief page, open section <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong>{" "}
+          for timeline charts and live exposure — separate from{" "}
+          <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong>.
+        </p>
       </section>
 
       <section className={sectionClass}>
-        <h2 className={h2Class}>Records and amendments</h2>
+        <h2 className={h2Class}>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</h2>
         <p>{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
         <p className="mt-3">{SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}</p>
         <p className="mt-2 font-medium text-slate-700 dark:text-slate-200">

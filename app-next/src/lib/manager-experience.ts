@@ -10,7 +10,29 @@
 export const MANAGER_EXPERIENCE = {
   PAGE_TITLE: "Fleet risk brief",
   PAGE_SUBTITLE:
-    "Identify fatigue exposure early, strengthen record assurance, and support drivers before small gaps become harm.",
+    "Two views on one page: prospective risk analysis for coaching, and attested compliance records for regulators and auditors.",
+
+  DOMAIN_RISK_TITLE: "1. Risk analysis",
+  DOMAIN_RISK_BLURB:
+    "Future timeline modelling, live exposure, and 15-minute glance scores — assurance only, not a signed violation.",
+  DOMAIN_COMPLIANCE_TITLE: "2. Compliance records",
+  DOMAIN_COMPLIANCE_BLURB:
+    "Attested work diary, rule outcomes on signed weeks, amendments, and sheet exports auditors expect.",
+
+  SECTION_RISK_TITLE: "Risk analysis",
+  SECTION_RISK_SUBTITLE:
+    "Prospective fatigue exposure across past, now, and planned time — for early conversations before harm.",
+  SECTION_RISK_BOUNDARY:
+    "Legal boundary: this section does not decide breaches. It models relative fatigue risk from diary patterns, camera blocks (when connected), and declared plans. Use it to prioritise supportive check-ins.",
+
+  SECTION_COMPLIANCE_TITLE: "Compliance records",
+  SECTION_COMPLIANCE_SUBTITLE:
+    "What was logged, attested, and evaluated against WA commercial vehicle hours rules on weekly sheets.",
+  SECTION_COMPLIANCE_BOUNDARY:
+    "Legal boundary: this section reflects the attested record and rule engine outcomes — what regulators and auditors review. Risk bands above do not replace signed compliance results.",
+
+  SCOPE_TITLE: "Review scope",
+  SCOPE_SUBTITLE: "Work week, day, driver, and rego apply to both sections below.",
 
   NAV_RISK_BRIEF: "Risk brief",
   NAV_TEAM: "Team & fleet",
@@ -20,7 +42,7 @@ export const MANAGER_EXPERIENCE = {
   HERO_EYEBROW: "This week at a glance",
   /** Shown only in the risk hero — not repeated under the page title. */
   HERO_WEEK_INTRO:
-    "Tier counts combine rule outcomes, record gaps, and near-term exposure for the work week you select below.",
+    "Tier counts in this risk section combine near-term exposure signals with record-quality hints — open Compliance records below for attested rule outcomes.",
   HERO_DISCLAIMER:
     "Guidance for operational decisions — not legal advice. Your policies and regulators (NHVR, state OSH) remain authoritative.",
 
@@ -34,9 +56,9 @@ export const MANAGER_EXPERIENCE = {
   TIER_MONITOR_HINT: "Unsigned week, thin GPS, or minor gaps — verify before relying on the record.",
   TIER_CLEAR_HINT: "No elevated signals for this week in the data we can see.",
 
-  SNAPSHOT_TITLE: "Assurance signals",
+  SNAPSHOT_TITLE: "Compliance rule outcomes",
   SNAPSHOT_SUBTITLE:
-    "Compliance rule breaches on weekly sheets for the selected work week and the one before — not a full record audit. Rolling checks may use earlier submitted history; framed for learning, not blame.",
+    "Violations and material warnings from the attested weekly sheets for the selected work week and the week before — the hard compliance view. Rolling checks may use earlier submitted history.",
 
   CURRENT_WEEK_LABEL: "Selected week",
   PRIOR_WEEK_LABEL: "Week before",

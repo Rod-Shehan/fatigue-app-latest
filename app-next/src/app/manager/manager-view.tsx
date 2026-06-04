@@ -12,6 +12,8 @@ import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSi
 import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
 import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
 import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
+import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
+import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildDriverRegister,
@@ -44,8 +46,6 @@ import {
   Trash2,
   LogOut,
   Calendar,
-  Compass,
-  ClipboardList,
 } from "lucide-react";
 import {
   ManagerMonthCalendar,
@@ -171,7 +171,6 @@ export function ManagerView() {
   const [filterRecordGaps, setFilterRecordGaps] = useState(false);
   const [filterUnsigned, setFilterUnsigned] = useState(false);
   const [filterNext24, setFilterNext24] = useState(false);
-  const [managerTab, setManagerTab] = useState<"identify" | "records">("identify");
   const [calView, setCalView] = useState(() => {
     const n = new Date();
     return { y: n.getFullYear(), m: n.getMonth() };
@@ -402,31 +401,42 @@ export function ManagerView() {
 
   const fleetCounts = useMemo(() => fleetTierCounts(driverRegister), [driverRegister]);
 
-  const driverRegisterFiltered = useMemo(() => {
+  const riskRegisterFiltered = useMemo(() => {
     let rows = driverRegister;
     if (filterNeedsAttention) rows = rows.filter((r) => r.tier === "attention");
-    if (filterRecordGaps) {
-      rows = rows.filter((r) => r.tier === "elevated" || r.tier === "monitor");
-    }
-    if (filterUnsigned) {
-      const unsignedIds = new Set(
-        sheets.filter((s) => s.week_starting === weekForSnapshot && !s.signature).map((s) => s.id)
-      );
-      rows = rows.filter((r) => unsignedIds.has(r.sheetId));
-    }
     if (filterNext24) {
       rows = rows.filter((r) => riskDriverNames.has(r.driver));
     }
     return rows;
+  }, [driverRegister, filterNeedsAttention, filterNext24, riskDriverNames]);
+
+  const complianceSheetsForPicker = useMemo(() => {
+    let list = filteredSheetsForPicker;
+    if (filterUnsigned) {
+      list = list.filter((s) => !s.signature);
+    }
+    if (filterRecordGaps && managerCompliance?.items) {
+      const gapSheetIds = new Set(
+        managerCompliance.items
+          .filter((item) => item.week_starting === weekForSnapshot)
+          .filter((item) =>
+            (item.results ?? []).some(
+              (r) =>
+                r.type === "warning" &&
+                !r.message.toLowerCase().includes("run plan")
+            )
+          )
+          .map((item) => item.sheetId)
+      );
+      list = list.filter((s) => gapSheetIds.has(s.id));
+    }
+    return list;
   }, [
-    driverRegister,
-    filterNeedsAttention,
-    filterRecordGaps,
+    filteredSheetsForPicker,
     filterUnsigned,
-    filterNext24,
-    sheets,
+    filterRecordGaps,
+    managerCompliance,
     weekForSnapshot,
-    riskDriverNames,
   ]);
 
   const attentionItems = useMemo(() => {
@@ -450,6 +460,17 @@ export function ManagerView() {
     () => assuranceLinesForWeek(managerCompliance?.items, prevWeekForSnapshot),
     [managerCompliance, prevWeekForSnapshot]
   );
+
+  const assuranceLinesFiltered = useMemo(() => {
+    const filterByDriver = (lines: AssuranceLine[]) => {
+      if (!selectedDriverFilter) return lines;
+      return lines.filter((l) => l.driver === selectedDriverFilter);
+    };
+    return {
+      current: filterByDriver(weekAssuranceLines),
+      prior: filterByDriver(prevWeekAssuranceLines),
+    };
+  }, [weekAssuranceLines, prevWeekAssuranceLines, selectedDriverFilter]);
 
   const { data: selectedSheet, isLoading: sheetLoading } = useQuery({
     queryKey: ["sheet", selectedSheetId],
@@ -575,86 +596,24 @@ export function ManagerView() {
 
         <ManagerSubnav />
 
-        <ManagerRiskHero
-          weekLabel={formatWeekLabel(weekForSnapshot)}
-          counts={fleetCounts}
-          loading={complianceLoading}
-        />
+        <ManagerDomainsOverview />
 
-        <ManagerReferencePanel library={FATIGUE_ASSURANCE_REFERENCE} variant="fatigue" />
-        <ManagerReferencePanel library={PROSPECTIVE_RISK_REFERENCE} variant="risk" />
-
-        <ManagerAssuranceSignals
-          currentWeekLabel={formatWeekLabel(weekForSnapshot)}
-          priorWeekLabel={formatWeekLabel(prevWeekForSnapshot)}
-          currentLines={weekAssuranceLines}
-          priorLines={prevWeekAssuranceLines}
-          loading={complianceLoading}
-        />
-
-        <div className="overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
           <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/80 sm:px-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="flex min-w-0 items-start gap-3">
-                <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-400">
-                    {MANAGER_EXPERIENCE.WORKBENCH_TITLE}
-                  </p>
-                  <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">
-                    {MANAGER_EXPERIENCE.WORKBENCH_SUBTITLE}
-                  </h2>
-                </div>
-              </div>
-              <div
-                role="tablist"
-                aria-label="Manager workbench"
-                className="flex flex-shrink-0 flex-wrap gap-2"
-              >
-                <Button
-                  type="button"
-                  role="tab"
-                  aria-selected={managerTab === "identify"}
-                  variant={managerTab === "identify" ? "default" : "outline"}
-                  size="sm"
-                  className={
-                    managerTab === "identify"
-                      ? "gap-2 bg-teal-700 hover:bg-teal-800 dark:bg-teal-600"
-                      : "gap-2"
-                  }
-                  onClick={() => setManagerTab("identify")}
-                >
-                  <Compass className="h-4 w-4 shrink-0" />
-                  {MANAGER_EXPERIENCE.TAB_IDENTIFY}
-                </Button>
-                <Button
-                  type="button"
-                  role="tab"
-                  aria-selected={managerTab === "records"}
-                  variant={managerTab === "records" ? "default" : "outline"}
-                  size="sm"
-                  className={
-                    managerTab === "records"
-                      ? "gap-2 bg-teal-700 hover:bg-teal-800 dark:bg-teal-600"
-                      : "gap-2"
-                  }
-                  onClick={() => setManagerTab("records")}
-                >
-                  <ClipboardList className="h-4 w-4 shrink-0" />
-                  {MANAGER_EXPERIENCE.TAB_RECORDS}
-                </Button>
+            <div className="flex min-w-0 items-start gap-3">
+              <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-400">
+                  {MANAGER_EXPERIENCE.SCOPE_TITLE}
+                </p>
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">
+                  {MANAGER_EXPERIENCE.SCOPE_SUBTITLE}
+                </h2>
               </div>
             </div>
           </div>
 
-          <div className="p-6 pt-5">
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            {managerTab === "identify"
-              ? MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP
-              : MANAGER_EXPERIENCE.TAB_RECORDS_HELP}
-          </p>
-
-          <div className="space-y-4">
+          <div className="space-y-4 p-6 pt-5">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-start sm:gap-x-4">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -771,118 +730,107 @@ export function ManagerView() {
               />
             </div>
 
-            {managerTab === "identify" && (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={filterNeedsAttention ? "default" : "outline"}
-                    className={filterNeedsAttention ? "bg-rose-700 hover:bg-rose-800 dark:bg-rose-700" : ""}
-                    onClick={() => setFilterNeedsAttention((v) => !v)}
-                  >
-                    {MANAGER_EXPERIENCE.FILTER_ATTENTION}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={filterRecordGaps ? "default" : "outline"}
-                    onClick={() => setFilterRecordGaps((v) => !v)}
-                  >
-                    {MANAGER_EXPERIENCE.FILTER_GAPS}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={filterUnsigned ? "default" : "outline"}
-                    onClick={() => setFilterUnsigned((v) => !v)}
-                  >
-                    {MANAGER_EXPERIENCE.FILTER_UNSIGNED}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={filterNext24 ? "default" : "outline"}
-                    className={filterNext24 ? "bg-teal-700 hover:bg-teal-800 dark:bg-teal-600" : ""}
-                    onClick={() => setFilterNext24((v) => !v)}
-                  >
-                    {MANAGER_EXPERIENCE.FILTER_NEXT24}
-                  </Button>
-                </div>
+          </div>
+        </div>
 
-                <ManagerAttentionPanel items={attentionItems} />
+        <ManagerDomainSection
+          id="risk-analysis"
+          variant="risk"
+          title={MANAGER_EXPERIENCE.SECTION_RISK_TITLE}
+          subtitle={MANAGER_EXPERIENCE.SECTION_RISK_SUBTITLE}
+          boundary={MANAGER_EXPERIENCE.SECTION_RISK_BOUNDARY}
+        >
+          <ManagerRiskHero
+            weekLabel={formatWeekLabel(weekForSnapshot)}
+            counts={fleetCounts}
+            loading={complianceLoading}
+          />
 
-                {selectedDriverFilter ? (
-                  <ManagerRiskTimelineDashboard driverName={selectedDriverFilter} demo />
-                ) : (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-300">
-                    <p className="font-medium text-slate-800 dark:text-slate-100">
-                      {MANAGER_EXPERIENCE.TIMELINE_TITLE}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {MANAGER_EXPERIENCE.TIMELINE_PICK_DRIVER}
-                    </p>
-                  </div>
-                )}
+          <ManagerReferencePanel library={PROSPECTIVE_RISK_REFERENCE} variant="risk" />
 
-                <ManagerDriverRegister
-                  rows={driverRegisterFiltered}
-                  loading={complianceLoading}
-                />
+          <p className="text-sm text-slate-500 dark:text-slate-400">{MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP}</p>
 
-                <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-600 bg-slate-50/80 dark:bg-slate-800/40 p-4 text-sm text-slate-600 dark:text-slate-300">
-                  <p className="font-medium text-slate-800 dark:text-slate-100 mb-1">Review context</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Week:{" "}
-                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {activeWeekStarting ? formatWeekLabel(activeWeekStarting) : "All weeks"}
-                    </span>
-                    {" · "}
-                    Day:{" "}
-                    <span className="font-medium text-slate-700 dark:text-slate-200">
-                      {formatDayDateLabel(
-                        activeWeekStarting || calendarWeekAnchor,
-                        activeDayIndex
-                      )}
-                    </span>
-                    {selectedDriverFilter ? (
-                      <>
-                        {" · "}
-                        Driver:{" "}
-                        <span className="font-medium text-slate-700 dark:text-slate-200">
-                          {selectedDriverFilter}
-                        </span>
-                      </>
-                    ) : null}
-                    {selectedRegoFilter ? (
-                      <>
-                        {" · "}
-                        Rego:{" "}
-                        <span className="font-medium text-slate-700 dark:text-slate-200">
-                          {selectedRegoFilter}
-                        </span>
-                      </>
-                    ) : null}
-                    {(filterNeedsAttention || filterRecordGaps || filterUnsigned || filterNext24) && (
-                      <span className="block mt-2 text-slate-500 dark:text-slate-400">
-                        Active filters:{" "}
-                        {[
-                          filterNeedsAttention && "needs attention",
-                          filterRecordGaps && "record gaps",
-                          filterUnsigned && "unsigned",
-                          filterNext24 && "next 24h",
-                        ]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </>
-            )}
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={filterNeedsAttention ? "default" : "outline"}
+              className={filterNeedsAttention ? "bg-rose-700 hover:bg-rose-800 dark:bg-rose-700" : ""}
+              onClick={() => setFilterNeedsAttention((v) => !v)}
+            >
+              {MANAGER_EXPERIENCE.FILTER_ATTENTION}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={filterNext24 ? "default" : "outline"}
+              className={filterNext24 ? "bg-violet-700 hover:bg-violet-800 dark:bg-violet-600" : ""}
+              onClick={() => setFilterNext24((v) => !v)}
+            >
+              {MANAGER_EXPERIENCE.FILTER_NEXT24}
+            </Button>
+          </div>
 
-            {managerTab === "records" && (
-              <div className="space-y-4 pt-1 border-t border-slate-100 dark:border-slate-700">
+          <ManagerAttentionPanel items={attentionItems} />
+
+          {selectedDriverFilter ? (
+            <ManagerRiskTimelineDashboard driverName={selectedDriverFilter} demo />
+          ) : (
+            <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-sm text-slate-600 dark:border-violet-800 dark:bg-violet-950/20 dark:text-slate-300">
+              <p className="font-medium text-slate-800 dark:text-slate-100">
+                {MANAGER_EXPERIENCE.TIMELINE_TITLE}
+              </p>
+              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {MANAGER_EXPERIENCE.TIMELINE_PICK_DRIVER}
+              </p>
+            </div>
+          )}
+
+          <ManagerDriverRegister rows={riskRegisterFiltered} loading={complianceLoading} />
+        </ManagerDomainSection>
+
+        <ManagerDomainSection
+          id="compliance-records"
+          variant="compliance"
+          title={MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}
+          subtitle={MANAGER_EXPERIENCE.SECTION_COMPLIANCE_SUBTITLE}
+          boundary={MANAGER_EXPERIENCE.SECTION_COMPLIANCE_BOUNDARY}
+        >
+          <ManagerAssuranceSignals
+            currentWeekLabel={formatWeekLabel(weekForSnapshot)}
+            priorWeekLabel={formatWeekLabel(prevWeekForSnapshot)}
+            currentLines={assuranceLinesFiltered.current}
+            priorLines={assuranceLinesFiltered.prior}
+            loading={complianceLoading}
+          />
+
+          <ManagerReferencePanel library={FATIGUE_ASSURANCE_REFERENCE} variant="fatigue" />
+
+          <p className="text-sm text-slate-500 dark:text-slate-400">{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={filterRecordGaps ? "default" : "outline"}
+              onClick={() => setFilterRecordGaps((v) => !v)}
+            >
+              {MANAGER_EXPERIENCE.FILTER_GAPS}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={filterUnsigned ? "default" : "outline"}
+              onClick={() => setFilterUnsigned((v) => !v)}
+            >
+              {MANAGER_EXPERIENCE.FILTER_UNSIGNED}
+            </Button>
+          </div>
+
+          <div className="space-y-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/30">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-400">
+              {MANAGER_EXPERIENCE.TAB_RECORDS}
+            </p>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                   Sheet
@@ -895,7 +843,7 @@ export function ManagerView() {
                   <SelectTrigger className="w-full max-w-md">
                     <SelectValue
                       placeholder={
-                        filteredSheetsForPicker.length === 0 && activeWeekStarting
+                        complianceSheetsForPicker.length === 0 && activeWeekStarting
                           ? "No matching sheets for this day / filters"
                           : sheets.length === 0
                             ? "No sheets yet"
@@ -905,7 +853,7 @@ export function ManagerView() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none__">— Select a sheet —</SelectItem>
-                    {filteredSheetsForPicker.map((s) => (
+                    {complianceSheetsForPicker.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {formatSheetLabel(s)}
                       </SelectItem>
@@ -918,7 +866,7 @@ export function ManagerView() {
                   </p>
                 )}
                 {activeWeekStarting &&
-                  filteredSheetsForPicker.length === 0 &&
+                  complianceSheetsForPicker.length === 0 &&
                   sheets.length > 0 &&
                   !sheetsLoading && (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
@@ -1134,11 +1082,8 @@ export function ManagerView() {
                   )}
                 </>
               )}
-            </div>
-            )}
           </div>
-          </div>
-        </div>
+        </ManagerDomainSection>
 
         <Dialog open={showAmendDialog} onOpenChange={setShowAmendDialog}>
           <DialogContent>
