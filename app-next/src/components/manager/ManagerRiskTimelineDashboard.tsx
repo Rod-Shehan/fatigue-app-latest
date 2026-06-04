@@ -320,7 +320,7 @@ export function ManagerRiskTimelineDashboard({
                     cy?: number;
                     payload?: { livePct?: number | null; isNow?: boolean };
                   };
-                  if (cx == null || cy == null || payload?.livePct == null) return null;
+                  if (cx == null || cy == null || payload?.livePct == null) return <g />;
                   const fill = riskPercentToColor(payload.livePct);
                   return (
                     <circle
