@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { ChevronLeft, FileBadge } from "lucide-react";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
-import { ROADSIDE_PRODUCE_DAYS, ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
+import {
+  ROADSIDE_PRODUCE_BUTTON_LABEL,
+  ROADSIDE_PRODUCE_DAYS,
+  ROADSIDE_PDF_DISCLAIMER,
+} from "@/lib/roadside-pdf";
 import { driverIconBtn } from "@/components/driver/driver-ui-classes";
 
 export function DriverRoadsideProducePage() {
@@ -20,7 +24,7 @@ export function DriverRoadsideProducePage() {
           </Link>
           <div className="min-w-0 flex-1">
             <h1 className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
-              Roadside produce
+              {ROADSIDE_PRODUCE_BUTTON_LABEL}
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">For regulator inspection</p>
           </div>

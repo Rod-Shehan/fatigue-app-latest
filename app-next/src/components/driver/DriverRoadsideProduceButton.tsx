@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { driverActionBtn } from "@/components/driver/driver-ui-classes";
+import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 
 type Variant = "primary" | "strip" | "stacked";
 
@@ -44,7 +45,7 @@ export function DriverRoadsideProduceButton({
       >
         <FileBadge className="w-6 h-6 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden />
         <span className="flex-1 text-left text-base font-bold leading-tight">
-          28 day PDF for regulator inspection
+          {ROADSIDE_PRODUCE_BUTTON_LABEL}
         </span>
       </Link>
     );
@@ -74,7 +75,7 @@ export function DriverRoadsideProduceButton({
       ) : (
         <FileBadge className="w-5 h-5 shrink-0" />
       )}
-      {stacked ? "Download 28-day PDF" : "Roadside produce (28 days)"}
+      {ROADSIDE_PRODUCE_BUTTON_LABEL}
     </Button>
   );
 }

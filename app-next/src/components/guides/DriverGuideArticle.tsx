@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { PRODUCT_RECORD_PROMISE } from "@/lib/product-copy";
+import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -57,7 +58,7 @@ export function DriverGuideArticle() {
 │  ┌─────────────────────┐    │
 │  │ Continue logging  ▶ │    │
 │  └─────────────────────┘    │
-│  [ Roadside produce 28d ]   │
+│  [ ${ROADSIDE_PRODUCE_BUTTON_LABEL} ]   │
 │  Your weeks              ▶  │
 └─────────────────────────────┘`}
         </GuideDiagram>
@@ -72,7 +73,7 @@ export function DriverGuideArticle() {
               <td className={tdClass}>Past weeks and signed records</td>
             </tr>
             <tr>
-              <th className={thClass}>Roadside produce (28 days)</th>
+              <th className={thClass}>{ROADSIDE_PRODUCE_BUTTON_LABEL}</th>
               <td className={tdClass}>One PDF for regulator inspection</td>
             </tr>
           </tbody>
@@ -80,9 +81,10 @@ export function DriverGuideArticle() {
       </section>
 
       <section className={sectionClass}>
-        <h2 className={h2Class}>Roadside produce</h2>
+        <h2 className={h2Class}>{ROADSIDE_PRODUCE_BUTTON_LABEL}</h2>
         <p>
-          Tap the amber <strong className="text-slate-700 dark:text-slate-200">Roadside produce (28 days)</strong> button on
+          Tap the amber{" "}
+          <strong className="text-slate-700 dark:text-slate-200">{ROADSIDE_PRODUCE_BUTTON_LABEL}</strong> button on
           Drive home, on your week sheet, or in Settings (gear). It downloads a PDF of your last 28 calendar days.
         </p>
       </section>

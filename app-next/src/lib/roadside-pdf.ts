@@ -4,3 +4,6 @@ export const ROADSIDE_PDF_DISCLAIMER =
 
 /** Typical roadside / work-diary produce window (calendar days, inclusive). */
 export const ROADSIDE_PRODUCE_DAYS = 28;
+
+/** Driver-facing label for the 28-day roadside PDF action (buttons, help page title). */
+export const ROADSIDE_PRODUCE_BUTTON_LABEL = "Produce 28 day roadside PDF";

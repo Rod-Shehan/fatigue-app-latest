@@ -44,7 +44,7 @@ After sign in you see **Drive home**.
 | Your name | You are signed in |
 | Today / This week | Which day and week you are in |
 | **Continue logging** (green button) | Open **this week** to log work |
-| **Roadside produce (28 days)** (amber button) | One PDF for regulator inspection |
+| **Produce 28 day roadside PDF** (amber button) | One PDF for regulator inspection |
 
 ```
 ┌─────────────────────────────┐
@@ -56,7 +56,7 @@ After sign in you see **Drive home**.
 │  ┌─────────────────────┐    │
 │  │ Continue logging  ▶ │    │
 │  └─────────────────────┘    │
-│  [ Roadside produce 28d ]   │
+│  [ Produce 28 day roadside PDF ]   │
 │  Your weeks              ▶  │
 └─────────────────────────────┘
 ```
@@ -228,15 +228,15 @@ Menu: **Your weeks** (`/sheets`)
 
 ---
 
-## 11. Roadside produce (28 days)
+## 11. Produce 28 day roadside PDF
 
 When a **regulator** asks to see your records:
 
 | Place | Use |
 |-------|-----|
-| **Drive home** — amber **Roadside produce (28 days)** | Opens one PDF with your last 28 calendar days |
+| **Drive home** — amber **Produce 28 day roadside PDF** | Opens one PDF with your last 28 calendar days |
 | **This week** — same amber strip under compliance | Same PDF |
-| **Settings** (gear) → **Download 28-day PDF** | Same PDF |
+| **Settings** (gear) → **Produce 28 day roadside PDF** | Same PDF |
 | **How roadside produce works** | Short help page (`/driver/roadside`) |
 
 The PDF includes each weekly sheet in that period (diary, compliance summary, shift log). Keep signed records for at least **3 years** — this export is for roadside produce only.
