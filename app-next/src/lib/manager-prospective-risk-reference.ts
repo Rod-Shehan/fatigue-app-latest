@@ -84,7 +84,7 @@ const CARDS: ManagerReferenceCard[] = [
 
 export const PROSPECTIVE_RISK_REFERENCE: ManagerReferenceLibrary = {
   id: "prospective-risk",
-  title: "Prospective risk reference (ISO 31000 / IEC 31010)",
+  title: "Risk Reference",
   lastReviewed: PROSPECTIVE_RISK_REFERENCE_LAST_REVIEWED,
   cards: CARDS,
 };

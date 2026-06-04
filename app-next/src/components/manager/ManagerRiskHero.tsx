@@ -19,7 +19,7 @@ export function ManagerRiskHero({
   return (
     <section
       className="mb-6 overflow-hidden rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-950 via-slate-900 to-slate-950 text-white shadow-lg dark:border-teal-800/50"
-      aria-label="Fleet risk summary"
+      aria-label="Driver overview summary"
     >
       <div className="border-b border-white/10 px-5 py-4 sm:px-6">
         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300/90">

@@ -29,6 +29,7 @@ export function ManagerReferencePanel({
   variant = "regulatory",
   defaultOpen = false,
   subtitle,
+  toggleOpenLabel,
   className,
 }: {
   library: ManagerReferenceLibrary;
@@ -36,6 +37,8 @@ export function ManagerReferencePanel({
   defaultOpen?: boolean;
   /** Override default variant subtitle. */
   subtitle?: string;
+  /** Override collapsed toggle label (e.g. "Open Risk Reference"). */
+  toggleOpenLabel?: string;
   className?: string;
 }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -80,7 +83,7 @@ export function ManagerReferencePanel({
           ) : (
             <>
               <ChevronDown className="h-4 w-4" />
-              {MANAGER_EXPERIENCE.REFERENCE_TOGGLE}
+              {toggleOpenLabel ?? MANAGER_EXPERIENCE.REFERENCE_TOGGLE}
             </>
           )}
         </Button>

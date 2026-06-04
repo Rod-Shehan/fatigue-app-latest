@@ -14,6 +14,7 @@ import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegiste
 import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
+import { ManagerDayPicker } from "@/components/manager/ManagerDayPicker";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildDriverRegister,
@@ -45,7 +46,6 @@ import {
   FileEdit,
   Trash2,
   LogOut,
-  Calendar,
 } from "lucide-react";
 import {
   ManagerMonthCalendar,
@@ -303,6 +303,19 @@ export function ManagerView() {
     () => (weekForSnapshot ? getPreviousWeekSunday(weekForSnapshot) : ""),
     [weekForSnapshot]
   );
+
+  const dayPickerSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (activeWeekStarting) {
+      parts.push(`Week of ${formatWeekLabel(activeWeekStarting)}`);
+      parts.push(formatDayDateLabel(activeWeekStarting, activeDayIndex));
+    } else {
+      parts.push("All weeks");
+    }
+    parts.push(selectedDriverFilter || "All drivers");
+    parts.push(selectedRegoFilter || "All regos");
+    return parts.join(" · ");
+  }, [activeWeekStarting, activeDayIndex, selectedDriverFilter, selectedRegoFilter]);
 
   const { data: managerCompliance, isLoading: complianceLoading } = useQuery({
     queryKey: ["manager", "compliance", weekForSnapshot],
@@ -598,22 +611,7 @@ export function ManagerView() {
 
         <ManagerDomainsOverview />
 
-        <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/80 sm:px-6">
-            <div className="flex min-w-0 items-start gap-3">
-              <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-400">
-                  {MANAGER_EXPERIENCE.SCOPE_TITLE}
-                </p>
-                <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50">
-                  {MANAGER_EXPERIENCE.SCOPE_SUBTITLE}
-                </h2>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4 p-6 pt-5">
+        <ManagerDayPicker summary={dayPickerSummary}>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-start sm:gap-x-4">
               <div className="flex min-w-0 flex-col gap-1.5">
                 <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -729,9 +727,7 @@ export function ManagerView() {
                 }}
               />
             </div>
-
-          </div>
-        </div>
+        </ManagerDayPicker>
 
         <ManagerDomainSection
           id="risk-analysis"
@@ -746,7 +742,11 @@ export function ManagerView() {
             loading={complianceLoading}
           />
 
-          <ManagerReferencePanel library={PROSPECTIVE_RISK_REFERENCE} variant="risk" />
+          <ManagerReferencePanel
+            library={PROSPECTIVE_RISK_REFERENCE}
+            variant="risk"
+            toggleOpenLabel={MANAGER_EXPERIENCE.RISK_REFERENCE_TOGGLE}
+          />
 
           <p className="text-sm text-slate-500 dark:text-slate-400">{MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP}</p>
 

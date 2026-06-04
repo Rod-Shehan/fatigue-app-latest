@@ -8,7 +8,7 @@
  */
 
 export const MANAGER_EXPERIENCE = {
-  PAGE_TITLE: "Fleet risk brief",
+  PAGE_TITLE: "Driver Overview",
   PAGE_SUBTITLE:
     "Two views on one page: prospective risk analysis for coaching, and attested compliance records for regulators and auditors.",
 
@@ -33,10 +33,12 @@ export const MANAGER_EXPERIENCE = {
   COMPLIANCE_REGULATORY_INTRO:
     "The rules your fleet must meet — WA Reg 184E hours, record retention, NHVR chain of responsibility, codes of practice, and industry guidance. Open the library to read what each outcome is measured against.",
 
-  SCOPE_TITLE: "Review scope",
-  SCOPE_SUBTITLE: "Work week, day, driver, and rego apply to both sections below.",
+  SCOPE_TITLE: "Day picker",
+  SCOPE_SUBTITLE: "Week, day, driver, and rego apply to both sections below.",
+  SCOPE_TOGGLE_OPEN: "Show day picker",
+  SCOPE_TOGGLE_CLOSE: "Hide day picker",
 
-  NAV_RISK_BRIEF: "Risk brief",
+  NAV_RISK_BRIEF: "Driver Overview",
   NAV_TEAM: "Team & fleet",
   NAV_MAP: "Movement map",
   NAV_MESSAGES: "Conversations",
@@ -102,6 +104,7 @@ export const MANAGER_EXPERIENCE = {
   REFERENCE_TITLE: "Regulatory requirements & references",
   REGULATORY_SECTION_TITLE: "Regulatory requirements & references",
   REFERENCE_TOGGLE: "Open reference library",
+  RISK_REFERENCE_TOGGLE: "Open Risk Reference",
   REFERENCE_CLOSE: "Close",
 
   CIRCADIAN_TITLE: "Circadian context (industry guidance)",
