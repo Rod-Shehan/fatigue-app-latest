@@ -5,17 +5,25 @@ import { Compass, Scale } from "lucide-react";
 
 const STYLES = {
   risk: {
-    border: "border-violet-200/90 dark:border-violet-800/60",
-    headerBg: "bg-gradient-to-r from-violet-50/90 to-slate-50/80 dark:from-violet-950/40 dark:to-slate-900/80",
-    iconWrap: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200",
-    boundary: "border-violet-200/80 bg-violet-50/50 text-violet-950 dark:border-violet-800/50 dark:bg-violet-950/25 dark:text-violet-100",
+    border: "border-2 border-violet-300/90 dark:border-violet-600/70",
+    ring: "ring-1 ring-violet-200/60 dark:ring-violet-500/25",
+    headerBg:
+      "bg-gradient-to-br from-violet-100 via-violet-50/90 to-white dark:from-violet-950/80 dark:via-violet-950/40 dark:to-slate-950",
+    bodyBg: "bg-violet-50/40 dark:bg-violet-950/25",
+    iconWrap: "bg-violet-600 text-white dark:bg-violet-500",
+    boundary:
+      "border-violet-300/80 bg-violet-100/80 text-violet-950 dark:border-violet-700/60 dark:bg-violet-950/50 dark:text-violet-100",
     Icon: Compass,
   },
   compliance: {
-    border: "border-slate-200/90 dark:border-slate-700",
-    headerBg: "bg-gradient-to-r from-slate-50 to-slate-100/80 dark:from-slate-900/80 dark:to-slate-950",
-    iconWrap: "bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-200",
-    boundary: "border-teal-200/80 bg-teal-50/40 text-teal-950 dark:border-teal-800/50 dark:bg-teal-950/20 dark:text-teal-100",
+    border: "border-2 border-amber-300/90 dark:border-amber-600/60",
+    ring: "ring-1 ring-amber-200/70 dark:ring-amber-500/20",
+    headerBg:
+      "bg-gradient-to-br from-amber-100 via-amber-50/90 to-stone-50 dark:from-amber-950/70 dark:via-amber-950/35 dark:to-slate-950",
+    bodyBg: "bg-amber-50/35 dark:bg-amber-950/20",
+    iconWrap: "bg-amber-700 text-white dark:bg-amber-600",
+    boundary:
+      "border-amber-300/80 bg-amber-100/70 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-50",
     Icon: Scale,
   },
 } as const;
@@ -41,21 +49,24 @@ export function ManagerDomainSection({
   return (
     <section
       id={id}
-      className={`mb-10 scroll-mt-24 overflow-hidden rounded-2xl border shadow-sm ${style.border}`}
+      className={`mb-12 scroll-mt-24 overflow-hidden rounded-2xl shadow-md ${style.border} ${style.ring}`}
       aria-labelledby={`${id}-heading`}
     >
-      <header className={`border-b px-4 py-4 sm:px-6 ${style.headerBg} border-inherit`}>
+      <header className={`border-b border-inherit px-4 py-5 sm:px-6 ${style.headerBg}`}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
           <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${style.iconWrap}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-sm ${style.iconWrap}`}
             aria-hidden
           >
             <Icon className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {variant === "risk" ? "Prospective · coaching" : "Attested · regulatory"}
+            </p>
             <h2
               id={`${id}-heading`}
-              className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50"
+              className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50"
             >
               {title}
             </h2>
@@ -68,7 +79,7 @@ export function ManagerDomainSection({
           </div>
         </div>
       </header>
-      <div className="space-y-6 bg-white p-4 dark:bg-slate-900 sm:p-6">{children}</div>
+      <div className={`space-y-6 p-4 sm:p-6 ${style.bodyBg}`}>{children}</div>
     </section>
   );
 }

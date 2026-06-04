@@ -43,8 +43,8 @@ export function formatComplianceLookbackFootnote(): string {
 /** Manager assurance / risk brief surfaces. */
 export function formatAssuranceLookbackFootnote(): string {
   return (
-    `Assurance signals use compliance math on roughly the last ${COMPLIANCE_PRIOR_WEEKS_LOOKBACK} weeks of history per driver. ` +
-    `Your organisation must still retain signed records for at least ${RECORD_RETENTION_YEARS} years.`
+    `Compliance outcomes above use rule checks on submitted weekly sheets (about ${COMPLIANCE_PRIOR_WEEKS_LOOKBACK} weeks of lookback per driver). ` +
+    `Your organisation must still retain signed records for at least ${RECORD_RETENTION_YEARS} years under WA Reg 184G / HVNL s 341.`
   );
 }
 

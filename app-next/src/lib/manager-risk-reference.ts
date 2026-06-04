@@ -24,89 +24,93 @@ export type ManagerReferenceLibrary = {
 
 export const MANAGER_REFERENCE_LAST_REVIEWED = "2026-06";
 
-export const FATIGUE_ASSURANCE_REFERENCE: ManagerReferenceLibrary = {
-  id: "fatigue-assurance",
-  title: "Fatigue & assurance reference",
+/** Regulations, codes of practice, and industry context — separate from live compliance outcomes. */
+export const REGULATORY_REQUIREMENTS_REFERENCE: ManagerReferenceLibrary = {
+  id: "regulatory-requirements",
+  title: "Regulatory requirements & references",
   lastReviewed: MANAGER_REFERENCE_LAST_REVIEWED,
   cards: [
-  {
-    id: "record-retention-vs-lookback",
-    title: "Retention vs rule lookback",
-    summary:
-      "How long you must keep records is not the same as how far back the app scans for 14–28 day fatigue rules.",
-    bullets: [
-      `Legal retention: at least ${RECORD_RETENTION_YEARS} years from the last entry (WA Reg 184G) or from when the record was made (HVNL s 341).`,
-      `Rule lookback: Circadia loads about ${COMPLIANCE_PRIOR_WEEKS_LOOKBACK} prior weeks of submitted sheets when evaluating rolling limits — an engineering window, not a retention standard.`,
-      "Roadside produce (~28 days in a work diary) is a third horizon: what a driver carries, not how long the operator archives records.",
-    ],
-    relateTo: ["14-day", "28-day", "168", "lookback"],
-  },
-  {
-    id: "cor-assurance",
-    title: "Chain of responsibility & assurance",
-    summary:
-      "Under Australia's heavy vehicle framework, parties in the supply chain can have duties beyond the driver. Good records support due diligence — they do not replace it.",
-    bullets: [
-      "Focus on whether your organisation took reasonable steps to manage fatigue risk, not only whether a box was ticked.",
-      "Unsigned or weakly corroborated weeks are assurance gaps: you may not be able to rely on them after an incident.",
-      "Conversations and roster changes are controls; the app surfaces exposure so you can act early.",
-    ],
-  },
-  {
-    id: "circadian-science",
-    title: "When fatigue likelihood rises",
-    summary:
-      "Sleep science and transport incident patterns align on certain windows — use them to prioritise conversations, not to blame individuals.",
-    bullets: [
-      "Highest general risk: roughly 02:00–06:00 and extended night driving.",
-      "Cumulative factors: hours awake, short non-work between shifts, consecutive long days.",
-      "Your rolling work/rest timeline in Circadia reflects exposure; weekly sheets are the attestation slice.",
-    ],
-  },
-  {
-    id: "record-corroboration",
-    title: "Record strength & investigators",
-    summary:
-      "After serious incidents, investigators often compare stated rest with movement, odometer, and witness accounts.",
-    bullets: [
-      "GPS coverage and movement during alleged rest are corroboration signals — gaps invite questions.",
-      "Missing End shift or long open work segments create uncertainty in both compliance and safety reviews.",
-      "Treat weak records as a risk to fix collaboratively with the driver, not as automatic guilt.",
-    ],
-    relateTo: ["movement", "gps", "stationary"],
-  },
-  {
-    id: "enforcement-context",
-    title: "Enforcement & prosecutions (context only)",
-    summary:
-      "Regulators and courts have pursued fatigue-related breaches where records were false, incomplete, or systemic pressure ignored rest.",
-    bullets: [
-      "Examples in public reports often involve falsified diaries, pressure to drive tired, or repeat systemic breaches — not a single honest mistake.",
-      "This app helps you see exposure early; it does not predict enforcement outcomes for any person.",
-      "Use reference material for leadership education and SMS design — escalate to legal counsel for specific matters.",
-    ],
-  },
-  {
-    id: "just-culture",
-    title: "Just culture conversations",
-    summary:
-      "Modern safety programs separate honest human error from reckless or wilful disregard.",
-    bullets: [
-      "Ask what blocked rest: traffic, roster, equipment, life events — before assuming non-compliance.",
-      "Document manager outreach and agreed actions; the record supports learning loops.",
-      "Reserve formal discipline for patterns or deliberate falsification, guided by your HR/legal policies.",
-    ],
-  },
+    {
+      id: "wa-184e-hours",
+      title: "WA commercial vehicle hours (Reg 184E)",
+      summary:
+        "Primary time-based rules implemented in Circadia for Western Australia — work diary and break structure.",
+      bullets: [
+        "Reg 184E(1)(a): breaks per 5 hours work (≥20 min total, incl. ≥10 min after 5 h).",
+        "Reg 184E(1)(b): ≤168 h work in any 14-day period (48 h continuous non-work resets segmentation in app).",
+        "Solo Reg 184E(2): 72 h / 27 h non-work, 14-day 24 h blocks, 17 h separation — see in-app compliance detail.",
+        "Source mapping: docs/regulatory/wa-commercial-vehicle-hours.md in this product.",
+      ],
+      relateTo: ["14-day", "28-day", "168", "5-hour", "break"],
+    },
+    {
+      id: "record-retention-hvnl",
+      title: "Record retention (WA Reg 184G · HVNL s 341)",
+      summary: "How long attested records must be kept — distinct from how far back rule checks load.",
+      bullets: [
+        `Retention: at least ${RECORD_RETENTION_YEARS} years (WA Reg 184G; HVNL s 341).`,
+        `Rule lookback in Circadia: about ${COMPLIANCE_PRIOR_WEEKS_LOOKBACK} prior submitted weeks for rolling 14/28-day math — not a retention standard.`,
+        "Roadside produce (~28 days, NHVR work diary context) is what drivers carry; archive retention is separate.",
+      ],
+      relateTo: ["lookback", "retention"],
+    },
+    {
+      id: "nhvr-cor",
+      title: "NHVR · chain of responsibility",
+      summary:
+        "Heavy Vehicle National Law and CoR — parties in the supply chain may owe duties beyond the driver.",
+      bullets: [
+        "Reasonable steps to manage fatigue risk; records support due diligence but do not replace it.",
+        "Operators should align SMS procedures with NHVR guidance and state regulators (e.g. WA WorkSafe).",
+        "Circadia compliance outcomes reflect the attested diary; legal interpretation stays with your counsel.",
+      ],
+    },
+    {
+      id: "codes-of-practice-industry",
+      title: "Codes of practice & industry guidance",
+      summary:
+        "Non-statutory material commonly used in fatigue programs — coaching context, not automatic breach.",
+      bullets: [
+        "WorkSafe WA / industry fatigue management guidance on rest, roster design, and verification.",
+        "Sleep science: elevated crash risk in early-morning and extended night windows (use for conversation, not blame).",
+        "ISO 31000 / IEC 31010: structure for prospective risk (see Risk analysis section) — separate from compliance math.",
+      ],
+    },
+    {
+      id: "record-corroboration",
+      title: "Record corroboration expectations",
+      summary:
+        "What investigators and auditors commonly compare to the attested diary.",
+      bullets: [
+        "Movement during alleged rest, odometer continuity, GPS coverage, witness accounts.",
+        "Missing End shift or long open work segments weaken both compliance and incident reviews.",
+        "Fix gaps collaboratively; weak records are an assurance problem, not proof of intent.",
+      ],
+      relateTo: ["movement", "gps", "stationary"],
+    },
+    {
+      id: "enforcement-context",
+      title: "Enforcement context (not legal advice)",
+      summary:
+        "Public prosecution patterns — for leadership education only.",
+      bullets: [
+        "Cases often involve falsified diaries, systemic pressure to drive tired, or repeat breaches — not isolated honest error.",
+        "Use this library for SMS design and manager education; escalate specific matters to legal counsel.",
+      ],
+    },
   ],
 };
 
-/** @deprecated Use FATIGUE_ASSURANCE_REFERENCE.cards */
-export const MANAGER_REFERENCE_CARDS = FATIGUE_ASSURANCE_REFERENCE.cards;
+/** @deprecated Use REGULATORY_REQUIREMENTS_REFERENCE */
+export const FATIGUE_ASSURANCE_REFERENCE = REGULATORY_REQUIREMENTS_REFERENCE;
+
+/** @deprecated Use REGULATORY_REQUIREMENTS_REFERENCE.cards */
+export const MANAGER_REFERENCE_CARDS = REGULATORY_REQUIREMENTS_REFERENCE.cards;
 
 export function referenceCardsForMessage(message: string): ManagerReferenceCard[] {
   const lower = message.toLowerCase();
   const out: ManagerReferenceCard[] = [];
-  for (const card of FATIGUE_ASSURANCE_REFERENCE.cards) {
+  for (const card of REGULATORY_REQUIREMENTS_REFERENCE.cards) {
     if (!card.relateTo?.length) continue;
     const hit =
       (lower.includes("movement") && card.relateTo.includes("movement")) ||
@@ -118,5 +122,5 @@ export function referenceCardsForMessage(message: string): ManagerReferenceCard[
       (lower.includes("lookback") && card.relateTo.includes("lookback"));
     if (hit) out.push(card);
   }
-  return out.length ? out : [FATIGUE_ASSURANCE_REFERENCE.cards.find((c) => c.id === "record-corroboration")!];
+  return out.length ? out : [REGULATORY_REQUIREMENTS_REFERENCE.cards.find((c) => c.id === "record-corroboration")!];
 }

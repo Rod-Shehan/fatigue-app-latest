@@ -17,7 +17,7 @@ export const MANAGER_EXPERIENCE = {
     "Future timeline modelling, live exposure, and 15-minute glance scores — assurance only, not a signed violation.",
   DOMAIN_COMPLIANCE_TITLE: "2. Compliance records",
   DOMAIN_COMPLIANCE_BLURB:
-    "Attested work diary, rule outcomes on signed weeks, amendments, and sheet exports auditors expect.",
+    "Attested diary, rule outcomes, regulatory references (the laws), and amendments auditors expect.",
 
   SECTION_RISK_TITLE: "Risk analysis",
   SECTION_RISK_SUBTITLE:
@@ -27,9 +27,11 @@ export const MANAGER_EXPERIENCE = {
 
   SECTION_COMPLIANCE_TITLE: "Compliance records",
   SECTION_COMPLIANCE_SUBTITLE:
-    "What was logged, attested, and evaluated against WA commercial vehicle hours rules on weekly sheets.",
+    "Complying with the law: attested work diary, live rule outcomes on signed weeks, the regulations that define those rules, and record amendments.",
   SECTION_COMPLIANCE_BOUNDARY:
-    "Legal boundary: this section reflects the attested record and rule engine outcomes — what regulators and auditors review. Risk bands above do not replace signed compliance results.",
+    "Legal boundary: this section is the hard compliance view — attested records, rule engine results, and statutory references. Risk analysis above does not replace signed outcomes or legal duties.",
+  COMPLIANCE_REGULATORY_INTRO:
+    "The rules your fleet must meet — WA Reg 184E hours, record retention, NHVR chain of responsibility, codes of practice, and industry guidance. Open the library to read what each outcome is measured against.",
 
   SCOPE_TITLE: "Review scope",
   SCOPE_SUBTITLE: "Work week, day, driver, and rego apply to both sections below.",
@@ -97,7 +99,8 @@ export const MANAGER_EXPERIENCE = {
   TIMELINE_TITLE: "Risk at a glance",
   TIMELINE_PICK_DRIVER: "Select a driver above to see their 15-minute risk chart for this week and day.",
 
-  REFERENCE_TITLE: "Fatigue & assurance reference",
+  REFERENCE_TITLE: "Regulatory requirements & references",
+  REGULATORY_SECTION_TITLE: "Regulatory requirements & references",
   REFERENCE_TOGGLE: "Open reference library",
   REFERENCE_CLOSE: "Close",
 

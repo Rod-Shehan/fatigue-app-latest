@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { ManagerRiskHero } from "@/components/manager/ManagerRiskHero";
 import { ManagerReferencePanel } from "@/components/manager/ManagerReferencePanel";
-import { FATIGUE_ASSURANCE_REFERENCE } from "@/lib/manager-risk-reference";
+import { REGULATORY_REQUIREMENTS_REFERENCE } from "@/lib/manager-risk-reference";
 import { PROSPECTIVE_RISK_REFERENCE } from "@/lib/manager-prospective-risk-reference";
 import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSignals";
 import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
@@ -802,9 +802,19 @@ export function ManagerView() {
             currentLines={assuranceLinesFiltered.current}
             priorLines={assuranceLinesFiltered.prior}
             loading={complianceLoading}
+            embedded
           />
 
-          <ManagerReferencePanel library={FATIGUE_ASSURANCE_REFERENCE} variant="fatigue" />
+          <div className="space-y-3">
+            <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+              {MANAGER_EXPERIENCE.COMPLIANCE_REGULATORY_INTRO}
+            </p>
+            <ManagerReferencePanel
+              library={REGULATORY_REQUIREMENTS_REFERENCE}
+              variant="regulatory"
+              className="mb-0 border-2 border-amber-200/90 bg-white/90 dark:border-amber-800/50 dark:bg-slate-950/50"
+            />
+          </div>
 
           <p className="text-sm text-slate-500 dark:text-slate-400">{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
 

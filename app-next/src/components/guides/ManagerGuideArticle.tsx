@@ -86,8 +86,10 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Reference libraries</h2>
         <p>
-          On the risk brief, open <strong>{MANAGER_EXPERIENCE.REFERENCE_TITLE}</strong> and{" "}
-          <strong>Prospective risk reference (ISO 31000 / IEC 31010)</strong> for coaching context.
+          <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong> holds prospective risk tools.{" "}
+          <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong> holds rule outcomes,{" "}
+          <strong>{MANAGER_EXPERIENCE.REGULATORY_SECTION_TITLE}</strong> (WA Reg 184E, retention, NHVR CoR), and
+          record amendments.
         </p>
       </section>
 

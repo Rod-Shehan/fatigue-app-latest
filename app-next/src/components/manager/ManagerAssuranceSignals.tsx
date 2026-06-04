@@ -75,16 +75,23 @@ export function ManagerAssuranceSignals({
   currentLines,
   priorLines,
   loading,
+  embedded = false,
 }: {
   currentWeekLabel: string;
   priorWeekLabel: string;
   currentLines: AssuranceLine[];
   priorLines: AssuranceLine[];
   loading?: boolean;
+  /** Inside compliance domain section — match amber palette, no extra outer margin. */
+  embedded?: boolean;
 }) {
   return (
     <section
-      className="mb-6 rounded-2xl border border-slate-200/90 bg-white dark:border-slate-700 dark:bg-slate-900/80"
+      className={
+        embedded
+          ? "rounded-xl border-2 border-amber-200/90 bg-white/90 dark:border-amber-800/50 dark:bg-slate-950/50"
+          : "mb-6 rounded-2xl border border-slate-200/90 bg-white dark:border-slate-700 dark:bg-slate-900/80"
+      }
       aria-label={MANAGER_EXPERIENCE.SNAPSHOT_TITLE}
     >
       <div className="border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
