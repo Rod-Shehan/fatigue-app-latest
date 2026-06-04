@@ -72,6 +72,9 @@ export const MANAGER_EXPERIENCE = {
   REGISTER_TITLE: "Driver exposure register",
   REGISTER_SUBTITLE: "One row per driver for the selected work week — tier is a composite, not a single rule.",
 
+  TIMELINE_TITLE: "Risk at a glance",
+  TIMELINE_PICK_DRIVER: "Select a driver above to see their 15-minute risk chart for this week and day.",
+
   REFERENCE_TITLE: "Fatigue & assurance reference",
   REFERENCE_TOGGLE: "Open reference library",
   REFERENCE_CLOSE: "Close",

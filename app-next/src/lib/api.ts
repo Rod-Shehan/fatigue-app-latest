@@ -250,6 +250,20 @@ export const api = {
   },
   driver: {
     roadsideProducePdfUrl: () => `${base}/api/driver/roadside-produce`,
+    uploadRiskBlocks: (data: {
+      blocks: Array<{
+        upload_id: string;
+        block_start_ms: number;
+        camera: import("@/lib/camera-risk-packet").CameraRiskPacketV1;
+        diary?: import("@/lib/camera-risk-packet").RiskBlockDiaryContext;
+      }>;
+    }) =>
+      fetchApi<{
+        ok: boolean;
+        accepted: number;
+        skipped: number;
+        results: { upload_id: string; created: boolean; live_pct: number }[];
+      }>("/api/driver/risk-blocks", { method: "POST", body: data }),
   },
   sheets: {
     list: () => fetchApi<FatigueSheet[]>("/api/sheets"),
@@ -308,6 +322,17 @@ export const api = {
       return fetchApi<{ events: MapEvent[] }>(
         `/api/manager/map-events${q ? `?${q}` : ""}`
       );
+    },
+    riskTimeline: (params: { driverName: string; fromMs?: number; toMs?: number }) => {
+      const sp = new URLSearchParams({ driverName: params.driverName });
+      if (params.fromMs != null) sp.set("fromMs", String(params.fromMs));
+      if (params.toMs != null) sp.set("toMs", String(params.toMs));
+      return fetchApi<{
+        series: import("@/lib/manager-risk-timeline").RiskTimelineSeries;
+        block_count: number;
+        latest_camera: import("@/lib/camera-risk-packet").CameraBlockFeatures | null;
+        disclaimer: string;
+      }>(`/api/manager/risk-timeline?${sp.toString()}`);
     },
   },
   messages: {

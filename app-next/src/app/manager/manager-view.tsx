@@ -11,6 +11,7 @@ import { PROSPECTIVE_RISK_REFERENCE } from "@/lib/manager-prospective-risk-refer
 import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSignals";
 import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
 import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
+import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildDriverRegister,
@@ -810,6 +811,19 @@ export function ManagerView() {
                 </div>
 
                 <ManagerAttentionPanel items={attentionItems} />
+
+                {selectedDriverFilter ? (
+                  <ManagerRiskTimelineDashboard driverName={selectedDriverFilter} demo />
+                ) : (
+                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-300">
+                    <p className="font-medium text-slate-800 dark:text-slate-100">
+                      {MANAGER_EXPERIENCE.TIMELINE_TITLE}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {MANAGER_EXPERIENCE.TIMELINE_PICK_DRIVER}
+                    </p>
+                  </div>
+                )}
 
                 <ManagerDriverRegister
                   rows={driverRegisterFiltered}

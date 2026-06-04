@@ -22,6 +22,7 @@ model User {
   auditEvents   AuditEvent[]
   messageThreads MessageThread[]
   messagesSent   Message[]
+  driverRiskBlocks DriverRiskBlock[]
 }
 
 model Account {
@@ -138,4 +139,29 @@ model Message {
 
   @@index([threadId, createdAt])
   @@index([senderId, createdAt])
+}
+
+/** 15-minute fused risk blocks (camera BT stream + optional diary context). Assurance only — not compliance. */
+model DriverRiskBlock {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  driverName    String
+  blockStartMs  BigInt
+  blockMinutes  Int      @default(15)
+  timezone      String   @default("Australia/Perth")
+  uploadId      String
+  deviceId      String?
+  packetVersion Int      @default(1)
+  cameraPayload Json
+  diaryContext  Json?
+  baselinePct   Int
+  livePct       Int
+  fusionSources String[] @default([])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, uploadId])
+  @@index([driverName, blockStartMs])
+  @@index([userId, blockStartMs])
 }

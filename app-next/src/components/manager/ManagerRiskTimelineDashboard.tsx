@@ -1,0 +1,422 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ReferenceArea,
+  ReferenceDot,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { Activity, Radio, Wifi, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
+import type { CameraBlockFeatures } from "@/lib/camera-risk-packet";
+import {
+  applyQueuedLiveBlocks,
+  buildDemoRiskTimelineSeries,
+  findCrossoverIntervals,
+  findNowBlockStartMs,
+  nextDemoLiveBlocks,
+  riskPercentToColor,
+  RISK_COLOR_THRESHOLDS,
+  synthesizeRiskNarrative,
+  type QueuedLiveBlock,
+  type RiskTimelineBlock,
+  type RiskTimelineSeries,
+} from "@/lib/manager-risk-timeline";
+
+type FeedState = {
+  blocks: RiskTimelineBlock[];
+  queue: QueuedLiveBlock[];
+  online: boolean;
+  nowBlockStartMs: number;
+};
+
+type FeedAction =
+  | { type: "RESET"; series: RiskTimelineSeries }
+  | { type: "SET_ONLINE"; online: boolean }
+  | { type: "ENQUEUE"; items: QueuedLiveBlock[] }
+  | { type: "FLUSH_QUEUE" }
+  | { type: "ADVANCE_ONE"; item: QueuedLiveBlock };
+
+function feedReducer(state: FeedState, action: FeedAction): FeedState {
+  switch (action.type) {
+    case "RESET":
+      return {
+        blocks: action.series.blocks,
+        queue: [],
+        online: true,
+        nowBlockStartMs: action.series.nowBlockStartMs,
+      };
+    case "SET_ONLINE":
+      return { ...state, online: action.online };
+    case "ENQUEUE":
+      return { ...state, queue: [...state.queue, ...action.items] };
+    case "FLUSH_QUEUE": {
+      if (state.queue.length === 0) return state;
+      return {
+        ...state,
+        blocks: applyQueuedLiveBlocks(state.blocks, state.queue),
+        queue: [],
+      };
+    }
+    case "ADVANCE_ONE":
+      return {
+        ...state,
+        blocks: applyQueuedLiveBlocks(state.blocks, [action.item]),
+      };
+    default:
+      return state;
+  }
+}
+
+function chartRows(blocks: RiskTimelineBlock[]) {
+  return blocks.map((b) => ({
+    ...b,
+    time: b.label,
+    livePct: b.livePct ?? null,
+  }));
+}
+
+export function ManagerRiskTimelineDashboard({
+  driverName,
+  demo = true,
+}: {
+  driverName: string;
+  /** Show demo controls when no server blocks exist yet. */
+  demo?: boolean;
+}) {
+  const { data: apiData, isLoading: apiLoading } = useQuery({
+    queryKey: ["manager", "risk-timeline", driverName],
+    queryFn: () => api.manager.riskTimeline({ driverName }),
+    enabled: !!driverName,
+  });
+
+  const hasServerBlocks = (apiData?.block_count ?? 0) > 0;
+  const useDemoData = demo && !hasServerBlocks && !apiLoading;
+
+  const initialSeries = useMemo(
+    () => buildDemoRiskTimelineSeries(driverName),
+    [driverName]
+  );
+
+  const [feed, dispatch] = useReducer(feedReducer, initialSeries, (series) => ({
+    blocks: series.blocks,
+    queue: [],
+    online: true,
+    nowBlockStartMs: series.nowBlockStartMs,
+  }));
+
+  const [latestCamera, setLatestCamera] = useState<CameraBlockFeatures | undefined>();
+
+  useEffect(() => {
+    if (hasServerBlocks && apiData?.series) {
+      dispatch({ type: "RESET", series: apiData.series });
+      setLatestCamera(apiData.latest_camera ?? undefined);
+    } else if (!apiLoading) {
+      dispatch({ type: "RESET", series: buildDemoRiskTimelineSeries(driverName) });
+      setLatestCamera(undefined);
+    }
+  }, [driverName, hasServerBlocks, apiData, apiLoading]);
+
+  const rows = useMemo(() => chartRows(feed.blocks), [feed.blocks]);
+  const crossovers = useMemo(() => findCrossoverIntervals(feed.blocks), [feed.blocks]);
+
+  const crossoverBands = useMemo(() => {
+    return crossovers
+      .map((c) => {
+        const inRange = feed.blocks.filter(
+          (b) => b.blockStartMs >= c.startMs && b.blockStartMs < c.endMs && b.livePct != null
+        );
+        if (inRange.length === 0) return null;
+        return { key: `${c.startMs}`, x1: inRange[0].label, x2: inRange[inRange.length - 1].label };
+      })
+      .filter(Boolean) as { key: string; x1: string; x2: string }[];
+  }, [crossovers, feed.blocks]);
+
+  const latestLiveBlock = useMemo(() => {
+    const withLive = feed.blocks.filter((b) => b.livePct != null);
+    return withLive[withLive.length - 1] ?? null;
+  }, [feed.blocks]);
+
+  const narrative = useMemo(
+    () =>
+      latestLiveBlock
+        ? synthesizeRiskNarrative(latestLiveBlock, { driverName, camera: latestCamera })
+        : "Live risk narrative will appear as 15-minute blocks arrive.",
+    [latestLiveBlock, driverName, latestCamera]
+  );
+
+  const liveStroke = latestLiveBlock?.livePct != null
+    ? riskPercentToColor(latestLiveBlock.livePct)
+    : "#16a34a";
+
+  const nowLabel = useMemo(() => {
+    const now = feed.blocks.find((b) => b.isNow);
+    return now?.label ?? formatNowPerth();
+  }, [feed.blocks]);
+
+  const deliverBlock = useCallback(
+    (item: QueuedLiveBlock) => {
+      if (feed.online) {
+        dispatch({ type: "ADVANCE_ONE", item });
+      } else {
+        dispatch({ type: "ENQUEUE", items: [item] });
+      }
+    },
+    [feed.online]
+  );
+
+  const advanceOneBlock = useCallback(() => {
+    const pending = feed.blocks.filter(
+      (b) => b.blockStartMs > feed.nowBlockStartMs && b.livePct == null
+    );
+    if (pending.length === 0) return;
+    const block = pending[0];
+    const idx = feed.blocks.indexOf(block);
+    const batch = nextDemoLiveBlocks(
+      { driverName, timezone: "Australia/Perth", blocks: feed.blocks, nowBlockStartMs: feed.nowBlockStartMs },
+      1
+    );
+    const item = batch[0] ?? {
+      blockStartMs: block.blockStartMs,
+      livePct: Math.min(100, block.baselinePct + 8 + (idx % 4) * 3),
+    };
+    deliverBlock(item);
+  }, [feed.blocks, feed.nowBlockStartMs, driverName, deliverBlock]);
+
+  const simulateBlackspot = () => {
+    dispatch({ type: "SET_ONLINE", online: false });
+    const batch = nextDemoLiveBlocks(buildDemoRiskTimelineSeries(driverName), 4);
+    dispatch({ type: "ENQUEUE", items: batch });
+  };
+
+  const restoreConnection = () => {
+    dispatch({ type: "SET_ONLINE", online: true });
+    dispatch({ type: "FLUSH_QUEUE" });
+  };
+
+  return (
+    <section
+      className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      aria-label={`Risk timeline for ${driverName}`}
+    >
+      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                Risk at a glance — {driverName}
+              </h3>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              15-minute blocks across past and planned time. Shows fatigue risk{" "}
+              <strong className="font-semibold text-slate-700 dark:text-slate-200">in each block</strong>, centred on{" "}
+              <strong className="font-semibold text-slate-700 dark:text-slate-200">right now ({nowLabel} AWST)</strong>.
+              Not a compliance score or fleet average.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 shrink-0 items-center">
+            <span
+              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                hasServerBlocks
+                  ? "bg-teal-50 text-teal-800 dark:bg-teal-950/50 dark:text-teal-200"
+                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              }`}
+            >
+              {apiLoading ? "Loading…" : hasServerBlocks ? "Camera + server" : "Demo preview"}
+            </span>
+            {useDemoData ? (
+              <>
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                    feed.online
+                      ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                      : "bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-100"
+                  }`}
+                >
+                  {feed.online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+                  {feed.online ? "Online" : "Blackspot — buffering"}
+                </span>
+                {feed.queue.length > 0 ? (
+                  <span className="text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                    {feed.queue.length} block(s) queued
+                  </span>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-2 py-4 sm:px-4">
+        <div className="h-[280px] w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis
+                dataKey="time"
+                tick={{ fontSize: 10, fill: "#64748b" }}
+                interval="preserveStartEnd"
+                minTickGap={28}
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: 10, fill: "#64748b" }}
+                tickFormatter={(v) => `${v}%`}
+                width={36}
+              />
+              <Tooltip
+                formatter={(value: number, name: string) => [
+                  value == null ? "—" : `${value}%`,
+                  name === "baselinePct" ? "Expected (baseline)" : "Live risk",
+                ]}
+                labelFormatter={(label) => `Block ${label} AWST`}
+                contentStyle={{ fontSize: 12 }}
+              />
+              {crossoverBands.map((band) => (
+                <ReferenceArea
+                  key={band.key}
+                  x1={band.x1}
+                  x2={band.x2}
+                  fill="#fef3c7"
+                  fillOpacity={0.45}
+                  strokeOpacity={0}
+                />
+              ))}
+              <ReferenceLine
+                x={nowLabel}
+                stroke="#0d9488"
+                strokeDasharray="4 4"
+                label={{ value: "Now", position: "top", fill: "#0d9488", fontSize: 10 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="baselinePct"
+                name="baselinePct"
+                stroke="#94a3b8"
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+              />
+              <Line
+                type="monotone"
+                dataKey="livePct"
+                name="livePct"
+                stroke={liveStroke}
+                strokeWidth={2.5}
+                connectNulls={false}
+                dot={(props) => {
+                  const { cx, cy, payload } = props as {
+                    cx?: number;
+                    cy?: number;
+                    payload?: { livePct?: number | null; isNow?: boolean };
+                  };
+                  if (cx == null || cy == null || payload?.livePct == null) return null;
+                  const fill = riskPercentToColor(payload.livePct);
+                  return (
+                    <circle
+                      key={`${cx}-${cy}`}
+                      cx={cx}
+                      cy={cy}
+                      r={payload.isNow ? 5 : 3}
+                      fill={fill}
+                      stroke={payload.isNow ? "#0d9488" : "#fff"}
+                      strokeWidth={payload.isNow ? 2 : 1}
+                    />
+                  );
+                }}
+                isAnimationActive={false}
+              />
+              {latestLiveBlock && latestLiveBlock.livePct != null &&
+              latestLiveBlock.livePct > latestLiveBlock.baselinePct ? (
+                <ReferenceDot
+                  x={latestLiveBlock.label}
+                  y={latestLiveBlock.livePct}
+                  r={6}
+                  fill="#d97706"
+                  stroke="#fff"
+                  strokeWidth={2}
+                />
+              ) : null}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-3 px-2 text-[10px] text-slate-500 dark:text-slate-400">
+          <span className="inline-flex items-center gap-1">
+            <span className="h-0.5 w-4 bg-slate-400" aria-hidden /> Expected baseline
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-0.5 w-4 bg-emerald-600" aria-hidden /> Live &lt; {RISK_COLOR_THRESHOLDS.amber}%
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-0.5 w-4 bg-amber-600" aria-hidden /> {RISK_COLOR_THRESHOLDS.amber}–{RISK_COLOR_THRESHOLDS.red - 1}%
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-0.5 w-4 bg-red-600" aria-hidden /> ≥ {RISK_COLOR_THRESHOLDS.red}%
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-3 w-3 rounded-sm bg-amber-100 border border-amber-200" aria-hidden /> Live above baseline
+          </span>
+        </div>
+      </div>
+
+      <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+        <div className="flex items-start gap-2">
+          <Radio className="mt-0.5 h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Live readout
+            </p>
+            <p className="mt-1 text-sm leading-relaxed text-slate-800 dark:text-slate-100">{narrative}</p>
+          </div>
+        </div>
+      </div>
+
+      {useDemoData ? (
+        <div className="border-t border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/40 sm:px-5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+            Demo controls (hidden when camera blocks exist on server)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={advanceOneBlock}>
+              Add next 15-min block
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={simulateBlackspot} disabled={!feed.online}>
+              Simulate blackspot
+            </Button>
+            <Button type="button" size="sm" variant="outline" onClick={restoreConnection} disabled={feed.online}>
+              Restore link &amp; flush
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => dispatch({ type: "RESET", series: buildDemoRiskTimelineSeries(driverName) })}
+            >
+              Reset demo
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function formatNowPerth(): string {
+  return new Date(findNowBlockStartMs()).toLocaleTimeString("en-AU", {
+    timeZone: "Australia/Perth",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
