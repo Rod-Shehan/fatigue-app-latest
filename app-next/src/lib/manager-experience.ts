@@ -27,7 +27,7 @@ export const MANAGER_EXPERIENCE = {
   SECTION_EDIT_SUBTITLE:
     "Edit attested weekly sheets when you and the driver agree a correction is needed.",
   SECTION_EDIT_BOUNDARY:
-    "Legal boundary: this is operational record maintenance — not risk coaching and not a substitute for compliance rule outcomes above. Every change needs a reason; signed weeks must be unlocked before edit.",
+    "Legal boundary: this is operational record maintenance — not risk coaching and not a substitute for compliance rule outcomes above. Every change needs a reason; signed weeks must be unlocked before edit. Only the driver named on the record can legally sign the record; the manager is involved for oversight of the process.",
 
   SECTION_RISK_TITLE: "Risk analysis",
   SECTION_RISK_SUBTITLE:
