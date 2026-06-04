@@ -38,10 +38,17 @@ export const MANAGER_EXPERIENCE = {
   SCOPE_TOGGLE_OPEN: "Show day picker",
   SCOPE_TOGGLE_CLOSE: "Hide day picker",
 
+  /** Page title and back-link label for /manager. */
   NAV_RISK_BRIEF: "Driver Overview",
-  NAV_TEAM: "Team & fleet",
+  /** Short subnav label — avoids repeating the page title in the nav bar. */
+  NAV_OVERVIEW: "Overview",
   NAV_MAP: "Movement map",
   NAV_MESSAGES: "Conversations",
+  NAV_DRIVERS: "Drivers",
+  NAV_MANAGERS: "Managers",
+  NAV_REGOS: "Rego",
+  NAV_ROUTES: "Routes",
+  NAV_GUIDE: "User guide",
 
   HERO_EYEBROW: "This week at a glance",
   /** Shown only in the risk hero — not repeated under the page title. */
