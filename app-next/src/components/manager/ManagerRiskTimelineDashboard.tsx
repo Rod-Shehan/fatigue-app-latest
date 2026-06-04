@@ -27,6 +27,7 @@ import {
   nextDemoLiveBlocks,
   riskPercentToColor,
   RISK_COLOR_THRESHOLDS,
+  FATIGUE_RISK_REFERENCES,
   RISK_TIMELINE_CHART_HELP,
   synthesizeRiskNarrative,
   type QueuedLiveBlock,
@@ -447,6 +448,15 @@ export function ManagerRiskTimelineDashboard({
               <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.live.horizon}</p>
             </div>
             <p className="text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.shaded}</p>
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">References (model v1)</p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.referencesNote}</p>
+              <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] text-slate-500 dark:text-slate-400">
+                {FATIGUE_RISK_REFERENCES.map((ref) => (
+                  <li key={ref.id}>{ref.citation}</li>
+                ))}
+              </ul>
+            </div>
             {useDemoData ? (
               <p className="rounded-md border border-dashed border-slate-300 bg-white/60 px-2 py-1.5 text-slate-500 dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
                 <strong className="font-semibold text-slate-600 dark:text-slate-300">Demo preview:</strong> sample

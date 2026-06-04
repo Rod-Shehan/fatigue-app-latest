@@ -40,13 +40,21 @@ export function diaryContextToBlockInput(
       ) /
         60;
 
+  const workMinutes = Math.min(15, Math.max(0, diary?.work_minutes ?? 0));
+  const minutesSinceBreak = Math.max(0, diary?.minutes_since_break ?? 0);
+  const recoveryMinutesInBlock =
+    workMinutes === 0 && minutesSinceBreak < 20 ? 15 : 0;
+  const nonWorkBlock = workMinutes === 0 && minutesSinceBreak < 5;
+
   return {
     blockStartMs,
-    workMinutes: Math.min(15, Math.max(0, diary?.work_minutes ?? 0)),
-    minutesSinceBreak: Math.max(0, diary?.minutes_since_break ?? 0),
+    workMinutes,
+    minutesSinceBreak,
     rollingWorkHours14d: diary?.rolling_work_hours_14d ?? 120,
     localHour,
     planDeviationMinutes: Math.max(0, diary?.plan_deviation_minutes ?? 0),
+    recoveryMinutesInBlock,
+    nonWorkBlock,
     camera,
   };
 }
@@ -60,7 +68,6 @@ export function computeFusedRiskPercents(
   const liveInput = diaryContextToBlockInput(alignedMs, diary, camera);
   const baselineInput = diaryContextToBlockInput(alignedMs, diary, undefined);
   baselineInput.planDeviationMinutes = 0;
-  baselineInput.workMinutes = Math.max(0, baselineInput.workMinutes - 1);
 
   const fusionSources = ["camera"];
   if (diary) fusionSources.push("diary");

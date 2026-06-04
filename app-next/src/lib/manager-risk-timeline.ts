@@ -2,7 +2,8 @@
  * Manager risk timeline — 15-minute blocks, 0–100% glance score (prospective assurance).
  * Not compliance. Not fleet aggregate. Wired for demo now; API adapter later.
  *
- * Score mapping uses a composite latent index → z-score → logistic CDF to [0, 100].
+ * Score mapping: time-on-task carry (sawtooth with break recovery) + circadian + rolling load
+ * → z-score → logistic CDF to [0, 100]. See fatigue-risk-carry.ts and docs/architecture/fatigue-risk-sawtooth-model.md.
  */
 
 export const RISK_BLOCK_MINUTES = 15;
@@ -42,6 +43,12 @@ export type RiskTimelineSeries = {
 };
 
 import type { CameraBlockFeatures } from "@/lib/camera-risk-packet";
+import {
+  advanceFatigueCarryState,
+  buildDemoFatigueWalk,
+  inferCarryFromDiaryProxies,
+  type FatigueCarryState,
+} from "@/lib/fatigue-risk-carry";
 
 export type RiskTimelineBlockInput = {
   blockStartMs: number;
@@ -55,9 +62,29 @@ export type RiskTimelineBlockInput = {
   localHour: number;
   /** Plan deviation: extra work vs baseline expectation in this block. */
   planDeviationMinutes: number;
+  /** 0–1 time-on-task carry (sawtooth); set when walking block history. */
+  timeOnTaskCarry?: number;
+  /** Rest/break minutes completed in this block (drops carry). */
+  recoveryMinutesInBlock?: number;
+  /** True when block is non-work / off duty. */
+  nonWorkBlock?: boolean;
   /** Cab camera features for this block (optional until device connected). */
   camera?: CameraBlockFeatures;
 };
+
+export function resolveTimeOnTaskCarry(input: RiskTimelineBlockInput): number {
+  if (input.timeOnTaskCarry != null) {
+    return Math.max(0, Math.min(1, input.timeOnTaskCarry));
+  }
+  return inferCarryFromDiaryProxies(
+    input.minutesSinceBreak,
+    input.workMinutes,
+    input.recoveryMinutesInBlock ?? 0,
+    input.nonWorkBlock ?? false
+  );
+}
+
+export { advanceFatigueCarryState, type FatigueCarryState };
 
 export type QueuedLiveBlock = {
   blockStartMs: number;
@@ -92,37 +119,37 @@ export function cameraFatigueContribution(camera?: CameraBlockFeatures): number 
 }
 
 /**
- * Composite latent fatigue index (demo / v1).
- * Weights align with IEC 31010 semi-quantitative factors; coefficients tunable.
- * When camera present, diary weights shrink slightly so streams fuse without double-counting.
+ * Composite latent fatigue index (v1).
+ * Primary driver: time-on-task carry (sawtooth) — rises during work, drops after mandated breaks/rest.
  */
 export function compositeFatigueIndex(input: RiskTimelineBlockInput): number {
+  const timeOnTask = resolveTimeOnTaskCarry(input);
   const circadian =
     0.55 * Math.sin(((input.localHour - 6) / 24) * 2 * Math.PI) +
     0.35 * Math.max(0, Math.sin(((input.localHour - 1) / 12) * Math.PI));
+  const circadianNorm = Math.max(0, Math.min(1, (circadian + 0.35) / 1.35));
   const workLoad = input.workMinutes / RISK_BLOCK_MINUTES;
-  const breakDebt = Math.min(1, input.minutesSinceBreak / 300);
   const accumulation = Math.min(1, input.rollingWorkHours14d / 168);
   const deviation = Math.min(1, Math.max(0, input.planDeviationMinutes / RISK_BLOCK_MINUTES));
   const cameraTerm = cameraFatigueContribution(input.camera);
 
   if (input.camera && cameraTerm > 0) {
     return (
-      0.22 * circadian +
-      0.18 * workLoad +
-      0.2 * breakDebt +
-      0.14 * accumulation +
-      0.06 * deviation +
-      0.2 * cameraTerm
+      0.36 * timeOnTask +
+      0.14 * circadianNorm +
+      0.08 * workLoad +
+      0.1 * accumulation +
+      0.04 * deviation +
+      0.28 * cameraTerm
     );
   }
 
   return (
-    0.28 * circadian +
-    0.22 * workLoad +
-    0.24 * breakDebt +
-    0.18 * accumulation +
-    0.08 * deviation
+    0.42 * timeOnTask +
+    0.18 * circadianNorm +
+    0.1 * workLoad +
+    0.14 * accumulation +
+    0.06 * deviation
   );
 }
 
@@ -136,7 +163,7 @@ export function blockInputsToRiskPercent(
   return logisticRiskPercentile(z);
 }
 
-export const DEFAULT_RISK_INDEX_STATS = { mean: 0.42, stdDev: 0.18 };
+export const DEFAULT_RISK_INDEX_STATS = { mean: 0.38, stdDev: 0.2 };
 
 /** In-app explanation for manager risk timeline (keep aligned with scoring functions). */
 export const RISK_TIMELINE_CHART_HELP = {
@@ -147,14 +174,14 @@ export const RISK_TIMELINE_CHART_HELP = {
     summary:
       "What we would expect for that block from the driver’s logged diary alone — no cab camera in this curve.",
     factors: [
-      "Work minutes in the 15-minute block",
-      "Minutes since the last qualifying break",
-      "Rolling work hours in the prior 14 days",
-      "Time of day (circadian pressure)",
-      "Plan deviation treated as zero (expected plan, not extra overrun)",
+      "Sawtooth time-on-task carry: rises while driving/working, drops sharply after 15+ min breaks and after longer non-work rest (WA-style break pattern in demo)",
+      "Work minutes in the current 15-minute block",
+      "Rolling work hours in the prior 14 days (slow background load)",
+      "Time of day — circadian modulation (Borbély two-process model)",
+      "Plan deviation treated as zero on the baseline curve",
     ],
     mapping:
-      "Those factors are combined into one fatigue index, standardised (z-score), then mapped through a logistic curve to 0–100%.",
+      "Carry and other factors form a composite index → z-score → logistic curve to 0–100%. Breaks are a recovery barrier, not just a compliance checkbox.",
     horizon:
       "Drawn for past and future blocks so you can see the expected trajectory; future segments use diary context where the app has it.",
   },
@@ -169,7 +196,11 @@ export const RISK_TIMELINE_CHART_HELP = {
   },
   shaded:
     "Amber shading marks intervals where live risk sits above the expected baseline for that block.",
+  referencesNote:
+    "Sawtooth carry is informed by time-on-task and break-recovery literature (not NHVR biomathematical FRMS).",
 } as const;
+
+export { FATIGUE_RISK_REFERENCES } from "@/lib/fatigue-risk-carry";
 
 export function riskPercentToColor(pct: number): string {
   if (pct >= RISK_COLOR_THRESHOLDS.red) return "#dc2626";
@@ -281,9 +312,16 @@ export function buildDemoRiskTimelineSeries(
   const future = opts?.futureBlocks ?? 12;
   const startMs = nowBlock - past * blockMs;
 
+  const totalBlocks = past + future + 1;
+  const fatigueWalk = buildDemoFatigueWalk(totalBlocks, (idx) => {
+    const blockStartMs = startMs + idx * blockMs;
+    return blockStartMs <= nowBlock;
+  });
+
   const blocks: RiskTimelineBlock[] = [];
   for (let i = 0; i <= past + future; i++) {
     const blockStartMs = startMs + i * blockMs;
+    const walk = fatigueWalk[i];
     const localHour =
       Number(
         new Date(blockStartMs).toLocaleString("en-AU", {
@@ -300,29 +338,29 @@ export function buildDemoRiskTimelineSeries(
       ) /
         60;
 
-    const t = i / (past + future);
-    const workMinutes = blockStartMs <= nowBlock ? 8 + Math.round(7 * Math.sin(t * Math.PI)) : 0;
-    const minutesSinceBreak = blockStartMs <= nowBlock ? 40 + i * 8 : 0;
-    const rollingWorkHours14d = 118 + t * 28;
-    const planDeviation = blockStartMs <= nowBlock ? Math.max(0, (i % 5) - 2) * 3 : 0;
+    const isPastOrNow = blockStartMs <= nowBlock;
+    const rollingWorkHours14d = 112 + (i / totalBlocks) * 22;
+    const planDeviation = isPastOrNow ? Math.max(0, (i % 5) - 2) * 3 : 0;
 
     const input: RiskTimelineBlockInput = {
       blockStartMs,
-      workMinutes,
-      minutesSinceBreak,
+      workMinutes: walk.workMinutes,
+      minutesSinceBreak: walk.minutesSinceBreak,
       rollingWorkHours14d,
       localHour,
       planDeviationMinutes: Math.max(0, planDeviation - 1),
+      timeOnTaskCarry: walk.carry,
+      recoveryMinutesInBlock: walk.recoveryMinutes,
+      nonWorkBlock: walk.nonWork,
     };
 
     const baselineInput: RiskTimelineBlockInput = {
       ...input,
       planDeviationMinutes: 0,
-      workMinutes: Math.max(0, workMinutes - 2),
     };
 
     const baselinePct = blockInputsToRiskPercent(baselineInput);
-    const livePct = blockStartMs <= nowBlock ? blockInputsToRiskPercent(input) : undefined;
+    const livePct = isPastOrNow ? blockInputsToRiskPercent(input) : undefined;
 
     blocks.push({
       blockStartMs,
@@ -350,14 +388,18 @@ export function nextDemoLiveBlocks(
   const pending = series.blocks.filter(
     (b) => b.blockStartMs > series.nowBlockStartMs && b.livePct == null
   );
+  let state: FatigueCarryState = { carry: 0.55 };
   return pending.slice(0, count).map((b, idx) => {
+    const event = { workMinutes: 12, recoveryMinutes: 0, nonWork: false };
+    state = advanceFatigueCarryState(state, event);
     const input: RiskTimelineBlockInput = {
       blockStartMs: b.blockStartMs,
-      workMinutes: 10 + idx,
-      minutesSinceBreak: 60 + idx * 12,
+      workMinutes: event.workMinutes,
+      minutesSinceBreak: 30 + idx * 15,
       rollingWorkHours14d: 125 + idx * 2,
       localHour: 14 + idx * 0.25,
       planDeviationMinutes: idx * 2,
+      timeOnTaskCarry: state.carry,
     };
     return { blockStartMs: b.blockStartMs, livePct: blockInputsToRiskPercent(input) };
   });

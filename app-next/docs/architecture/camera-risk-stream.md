@@ -34,7 +34,7 @@ Each upload includes client `upload_id` (UUID). Server unique key: `(userId, upl
 
 ## Scoring
 
-`compositeFatigueIndex()` in `manager-risk-timeline.ts` fuses diary + camera weights → z-score → logistic 0–100%. Camera term uses coverage-weighted drowsiness/distraction/eyes-off.
+`compositeFatigueIndex()` in `manager-risk-timeline.ts` fuses **time-on-task carry (sawtooth with break recovery)** + diary + camera → z-score → logistic 0–100%. See [fatigue-risk-sawtooth-model.md](./fatigue-risk-sawtooth-model.md). Camera term uses coverage-weighted drowsiness/distraction/eyes-off.
 
 ## Driver client
 
