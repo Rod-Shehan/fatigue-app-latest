@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { Activity, Radio, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTheme } from "@/components/theme-provider";
 import { api } from "@/lib/api";
 import type { CameraBlockFeatures } from "@/lib/camera-risk-packet";
 import {
@@ -85,6 +86,37 @@ function chartRows(blocks: RiskTimelineBlock[]) {
   }));
 }
 
+const CHART_THEME = {
+  light: {
+    grid: "#e2e8f0",
+    axis: "#64748b",
+    crossoverFill: "#fef3c7",
+    crossoverOpacity: 0.4,
+    baselineStroke: "#94a3b8",
+    nowLine: "#0d9488",
+    nowLabel: "#0d9488",
+    dotStroke: "#ffffff",
+    refDotStroke: "#ffffff",
+    tooltipBg: "#ffffff",
+    tooltipBorder: "#e2e8f0",
+    tooltipColor: "#0f172a",
+  },
+  dark: {
+    grid: "#334155",
+    axis: "#94a3b8",
+    crossoverFill: "#f59e0b",
+    crossoverOpacity: 0.12,
+    baselineStroke: "#94a3b8",
+    nowLine: "#2dd4bf",
+    nowLabel: "#5eead4",
+    dotStroke: "#0f172a",
+    refDotStroke: "#0f172a",
+    tooltipBg: "#1e293b",
+    tooltipBorder: "#475569",
+    tooltipColor: "#f1f5f9",
+  },
+} as const;
+
 export function ManagerRiskTimelineDashboard({
   driverName,
   demo = true,
@@ -93,6 +125,9 @@ export function ManagerRiskTimelineDashboard({
   /** Show demo controls when no server blocks exist yet. */
   demo?: boolean;
 }) {
+  const { resolved: colorMode } = useTheme();
+  const chart = CHART_THEME[colorMode];
+
   const { data: apiData, isLoading: apiLoading } = useQuery({
     queryKey: ["manager", "risk-timeline", driverName],
     queryFn: () => api.manager.riskTimeline({ driverName }),
@@ -261,16 +296,16 @@ export function ManagerRiskTimelineDashboard({
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
               <XAxis
                 dataKey="time"
-                tick={{ fontSize: 10, fill: "#64748b" }}
+                tick={{ fontSize: 10, fill: chart.axis }}
                 interval="preserveStartEnd"
                 minTickGap={28}
               />
               <YAxis
                 domain={[0, 100]}
-                tick={{ fontSize: 10, fill: "#64748b" }}
+                tick={{ fontSize: 10, fill: chart.axis }}
                 tickFormatter={(v) => `${v}%`}
                 width={36}
               />
@@ -280,29 +315,34 @@ export function ManagerRiskTimelineDashboard({
                   name === "baselinePct" ? "Expected (baseline)" : "Live risk",
                 ]}
                 labelFormatter={(label) => `Block ${label} AWST`}
-                contentStyle={{ fontSize: 12 }}
+                contentStyle={{
+                  fontSize: 12,
+                  backgroundColor: chart.tooltipBg,
+                  borderColor: chart.tooltipBorder,
+                  color: chart.tooltipColor,
+                }}
               />
               {crossoverBands.map((band) => (
                 <ReferenceArea
                   key={band.key}
                   x1={band.x1}
                   x2={band.x2}
-                  fill="#fef3c7"
-                  fillOpacity={0.45}
+                  fill={chart.crossoverFill}
+                  fillOpacity={chart.crossoverOpacity}
                   strokeOpacity={0}
                 />
               ))}
               <ReferenceLine
                 x={nowLabel}
-                stroke="#0d9488"
+                stroke={chart.nowLine}
                 strokeDasharray="4 4"
-                label={{ value: "Now", position: "top", fill: "#0d9488", fontSize: 10 }}
+                label={{ value: "Now", position: "top", fill: chart.nowLabel, fontSize: 10 }}
               />
               <Line
                 type="monotone"
                 dataKey="baselinePct"
                 name="baselinePct"
-                stroke="#94a3b8"
+                stroke={chart.baselineStroke}
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
@@ -329,7 +369,7 @@ export function ManagerRiskTimelineDashboard({
                       cy={cy}
                       r={payload.isNow ? 5 : 3}
                       fill={fill}
-                      stroke={payload.isNow ? "#0d9488" : "#fff"}
+                      stroke={payload.isNow ? chart.nowLine : chart.dotStroke}
                       strokeWidth={payload.isNow ? 2 : 1}
                     />
                   );
@@ -343,7 +383,7 @@ export function ManagerRiskTimelineDashboard({
                   y={latestLiveBlock.livePct}
                   r={6}
                   fill="#d97706"
-                  stroke="#fff"
+                  stroke={chart.refDotStroke}
                   strokeWidth={2}
                 />
               ) : null}
@@ -365,7 +405,11 @@ export function ManagerRiskTimelineDashboard({
             <span className="h-0.5 w-4 bg-red-600" aria-hidden /> ≥ {RISK_COLOR_THRESHOLDS.red}%
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm bg-amber-100 border border-amber-200" aria-hidden /> Live above baseline
+            <span
+              className="h-3 w-3 rounded-sm bg-amber-100 border border-amber-200 dark:bg-amber-500/20 dark:border-amber-600/40"
+              aria-hidden
+            />{" "}
+            Live above baseline
           </span>
         </div>
       </div>
@@ -384,7 +428,7 @@ export function ManagerRiskTimelineDashboard({
 
       {useDemoData ? (
         <div className="border-t border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/40 sm:px-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
             Demo controls (hidden when camera blocks exist on server)
           </p>
           <div className="flex flex-wrap gap-2">
