@@ -60,7 +60,7 @@ Stored on **day JSON** (snapshot at confirm):
 
 **Validation:** `route_label` required when declaring a run; **at least one** of `planned_distance_km` or `planned_on_duty_hours` must be set.
 
-**Optional later:** `RoutePreset` (org), `DriverRouteFavorite`, “recent routes” from prior sheets. **Never** block start shift because the org list is empty.
+**Route catalogue (shipped):** `RoutePreset` in Postgres — fleet (manager) and driver entries; day setup dropdown + custom adhoc. **Never** block start shift because the catalogue is empty.
 
 **UI (driver):** Run plan fields live in **Set up day** dialog. Day card shows **record** (rego, from/to, kms) plus at most **one collapsed “Run plan”** summary line — not a second row of stat blocks (see `.cursor/rules/fatigue-ui-approval.mdc` for material UI changes).
 
@@ -158,7 +158,7 @@ Scales must be **anchored** (IEC 31010 / practitioner guidance — avoid undefin
 2. `complianceStateAt` + unit tests against known sheets.  
 3. Day JSON fields + driver dialog (adhoc route; collapsed summary on card).  
 4. `risk-scenarios` / `risk-evaluate` + manager API merge.  
-5. Optional `RoutePreset` admin + driver favourites.
+5. ~~Optional `RoutePreset` admin~~ — `/admin/routes` catalogue + day-setup picker; driver favourites from prior sheets remain optional.
 
 ## Related
 

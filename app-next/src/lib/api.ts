@@ -46,6 +46,16 @@ export type Driver = {
   is_active: boolean;
 };
 export type Rego = { id: string; label: string; sort_order: number };
+
+export type RoutePreset = {
+  id: string;
+  label: string;
+  planned_distance_km: number | null;
+  planned_on_duty_hours: number | null;
+  catalogue_source: "fleet" | "driver";
+  created_by_name: string | null;
+  sort_order: number;
+};
 export type DayData = {
   day_label?: string;
   date?: string;
@@ -223,6 +233,27 @@ export const api = {
     update: (id: string, data: { label?: string; sort_order?: number }) =>
       fetchApi<Rego>(`/api/regos/${id}`, { method: "PATCH", body: data }),
     delete: (id: string) => fetchApi<void>(`/api/regos/${id}`, { method: "DELETE" }),
+  },
+  routePresets: {
+    list: () => fetchApi<RoutePreset[]>("/api/route-presets"),
+    create: (data: {
+      label: string;
+      planned_distance_km?: number | null;
+      planned_on_duty_hours?: number | null;
+      catalogue_source?: "fleet" | "driver";
+      sort_order?: number;
+    }) => fetchApi<RoutePreset>("/api/route-presets", { method: "POST", body: data }),
+    update: (
+      id: string,
+      data: {
+        label?: string;
+        planned_distance_km?: number | null;
+        planned_on_duty_hours?: number | null;
+        sort_order?: number;
+        is_active?: boolean;
+      }
+    ) => fetchApi<RoutePreset>(`/api/route-presets/${id}`, { method: "PATCH", body: data }),
+    delete: (id: string) => fetchApi<void>(`/api/route-presets/${id}`, { method: "DELETE" }),
   },
   drivers: {
     list: () => fetchApi<Driver[]>("/api/drivers"),

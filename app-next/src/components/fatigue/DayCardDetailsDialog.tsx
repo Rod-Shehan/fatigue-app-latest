@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,8 +20,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Rego } from "@/lib/api";
-import { runPlanValidationError } from "@/lib/route-plan";
+import { hasRunPlanContent, runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
+import {
+  formatRoutePresetOption,
+  runPlanFieldsFromPreset,
+  validateRoutePresetCreateInput,
+} from "@/lib/route-preset";
+import { Loader2 } from "lucide-react";
 import {
   SHIFT_PATTERN_FIELD_HELP,
   formatPatternStreakForDisplay,
@@ -48,6 +55,7 @@ export type DayCardFields = {
   planned_distance_km?: number | null;
   planned_on_duty_hours?: number | null;
   route_source?: "adhoc" | "driver_saved" | "org_preset";
+  route_preset_id?: string;
 };
 
 const fieldClass =
@@ -102,8 +110,36 @@ export function DayCardDetailsDialog({
   const [draftEvents, setDraftEvents] = useState<DayEventDraft[]>(initialEvents);
   const [kmError, setKmError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
+  const [saveCatalogueError, setSaveCatalogueError] = useState<string | null>(null);
+  const [presetPick, setPresetPick] = useState<string>("__none__");
   const [confirming, setConfirming] = useState(false);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: routePresets = [], isLoading: presetsLoading } = useQuery({
+    queryKey: ["route-presets"],
+    queryFn: () => api.routePresets.list(),
+    enabled: open,
+  });
+
+  const saveToCatalogueMutation = useMutation({
+    mutationFn: () =>
+      api.routePresets.create({
+        label: (draft.route_label ?? "").trim(),
+        planned_on_duty_hours: draft.planned_on_duty_hours ?? null,
+        planned_distance_km: draft.planned_distance_km ?? null,
+      }),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ["route-presets"] });
+      setSaveCatalogueError(null);
+      setPresetPick(created.id);
+      setDraft((prev) => ({
+        ...prev,
+        ...runPlanFieldsFromPreset(created),
+      }));
+    },
+    onError: () => setSaveCatalogueError("Could not save to catalogue. Try again."),
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -117,8 +153,21 @@ export function DayCardDetailsDialog({
     );
     setKmError(null);
     setPlanError(null);
+    setSaveCatalogueError(null);
     setServerMaxEndKms(null);
+    const pid = initial.route_preset_id?.trim();
+    if (!pid && !hasRunPlanContent(initial)) setPresetPick("__none__");
+    else if (pid) setPresetPick(pid);
+    else setPresetPick("__custom__");
   }, [open]);
+
+  useEffect(() => {
+    if (!open || presetsLoading) return;
+    const pid = initial.route_preset_id?.trim();
+    if (pid && routePresets.some((p) => p.id === pid)) setPresetPick(pid);
+    else if (hasRunPlanContent(initial)) setPresetPick("__custom__");
+    else setPresetPick("__none__");
+  }, [open, presetsLoading, routePresets]);
 
   const regoForGuide = (draft.truck_rego ?? "").trim();
 
@@ -156,7 +205,69 @@ export function DayCardDetailsDialog({
       : "Odometer at start";
 
   const set = (field: keyof DayCardFields, value: unknown) => {
-    setDraft((prev) => ({ ...prev, [field]: value }));
+    setDraft((prev) => {
+      const next = { ...prev, [field]: value };
+      if (
+        field === "route_label" ||
+        field === "planned_distance_km" ||
+        field === "planned_on_duty_hours"
+      ) {
+        if (presetPick !== "__none__" && presetPick !== "__custom__") {
+          setPresetPick("__custom__");
+        }
+        return {
+          ...next,
+          route_preset_id: undefined,
+          route_source: hasRunPlanContent(next) ? ("adhoc" as const) : undefined,
+        };
+      }
+      return next;
+    });
+  };
+
+  const applyPresetSelection = (value: string) => {
+    setPresetPick(value);
+    setPlanError(null);
+    setSaveCatalogueError(null);
+    if (value === "__none__") {
+      setDraft((prev) => ({
+        ...prev,
+        route_label: "",
+        planned_distance_km: null,
+        planned_on_duty_hours: null,
+        route_preset_id: undefined,
+        route_source: undefined,
+      }));
+      return;
+    }
+    if (value === "__custom__") {
+      setDraft((prev) => ({
+        ...prev,
+        route_preset_id: undefined,
+        route_source: hasRunPlanContent(prev) ? ("adhoc" as const) : undefined,
+      }));
+      return;
+    }
+    const preset = routePresets.find((p) => p.id === value);
+    if (!preset) return;
+    setDraft((prev) => ({
+      ...prev,
+      ...runPlanFieldsFromPreset(preset),
+    }));
+  };
+
+  const handleSaveToCatalogue = () => {
+    setSaveCatalogueError(null);
+    const err = validateRoutePresetCreateInput({
+      label: draft.route_label ?? "",
+      planned_distance_km: draft.planned_distance_km ?? null,
+      planned_on_duty_hours: draft.planned_on_duty_hours ?? null,
+    });
+    if (err) {
+      setSaveCatalogueError(err);
+      return;
+    }
+    saveToCatalogueMutation.mutate();
   };
 
   const regoLabels = (() => {
@@ -322,8 +433,27 @@ export function DayCardDetailsDialog({
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Run plan (optional)</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
               For upcoming days: expected distance and/or on-duty time. Used for forward-looking fatigue exposure
-              (not a compliance violation until work is logged).
+              (not a compliance violation until work is logged). Pick from the catalogue or enter a custom route.
             </p>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">From catalogue</Label>
+              <Select value={presetPick} onValueChange={applyPresetSelection} disabled={presetsLoading}>
+                <SelectTrigger className={`${fieldClass} w-full`}>
+                  <SelectValue
+                    placeholder={presetsLoading ? "Loading routes…" : "Pick a saved route (optional)"}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— No run plan —</SelectItem>
+                  {routePresets.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {formatRoutePresetOption(p)}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="__custom__">Custom (type below)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Route name</Label>
               <Input
@@ -362,6 +492,26 @@ export function DayCardDetailsDialog({
                 />
               </div>
             </div>
+            {hasRunPlanContent(draft) && presetPick === "__custom__" && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={saveToCatalogueMutation.isPending}
+                onClick={handleSaveToCatalogue}
+              >
+                {saveToCatalogueMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : null}
+                Save to route catalogue
+              </Button>
+            )}
+            {saveCatalogueError && (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {saveCatalogueError}
+              </p>
+            )}
             {planError && (
               <p className="text-sm text-red-600 dark:text-red-400" role="alert">
                 {planError}

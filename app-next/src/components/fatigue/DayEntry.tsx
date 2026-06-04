@@ -493,6 +493,8 @@ export default function DayEntry({
             route_label: dayData.route_label,
             planned_distance_km: dayData.planned_distance_km,
             planned_on_duty_hours: dayData.planned_on_duty_hours,
+            route_source: dayData.route_source,
+            route_preset_id: dayData.route_preset_id,
           }}
           regos={regos}
           dayIndex={dayIndex}
@@ -508,8 +510,18 @@ export default function DayEntry({
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
           onConfirm={(fields, updatedEvents) => {
             const planFields = hasRunPlanContent(fields)
-              ? { ...fields, route_source: "adhoc" as const }
-              : fields;
+              ? {
+                  ...fields,
+                  route_source: fields.route_preset_id
+                    ? fields.route_source
+                    : ("adhoc" as const),
+                  route_preset_id: fields.route_preset_id,
+                }
+              : {
+                  ...fields,
+                  route_source: undefined,
+                  route_preset_id: undefined,
+                };
             const merged = {
               ...dayData,
               ...planFields,

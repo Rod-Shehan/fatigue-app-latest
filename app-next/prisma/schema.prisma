@@ -23,6 +23,7 @@ model User {
   messageThreads MessageThread[]
   messagesSent   Message[]
   driverRiskBlocks DriverRiskBlock[]
+  routePresetsCreated RoutePreset[]
 }
 
 model Account {
@@ -71,6 +72,21 @@ model TruckRego {
   label     String   // e.g. "1ABC 234"
   sortOrder Int      @default(0)
   createdAt DateTime @default(now())
+}
+
+/** Shared run-plan catalogue — managers (fleet) and drivers can add entries (ADR 0003). */
+model RoutePreset {
+  id                 String   @id @default(cuid())
+  label              String
+  plannedDistanceKm  Float?
+  plannedOnDutyHours Float?
+  /** "fleet" = org catalogue (org_preset); "driver" = driver-added (driver_saved). */
+  catalogueSource    String   @default("fleet")
+  isActive           Boolean  @default(true)
+  sortOrder          Int      @default(0)
+  createdById        String?
+  createdBy          User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime @default(now())
 }
 
 model FatigueSheet {

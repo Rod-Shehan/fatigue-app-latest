@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
-import { BookOpen, LayoutDashboard, Map as MapIcon, MessageSquare, Users, UserPlus, Truck } from "lucide-react";
+import { BookOpen, LayoutDashboard, Map as MapIcon, MapPin, MessageSquare, Users, UserPlus, Truck } from "lucide-react";
 
 const PRIMARY = [
   { href: "/manager", label: MANAGER_EXPERIENCE.NAV_RISK_BRIEF, icon: LayoutDashboard, exact: true as const },
@@ -16,6 +16,7 @@ const TEAM = [
   { href: "/drivers", label: "Drivers", icon: Users },
   { href: "/manager/add-managers", label: "Managers", icon: UserPlus },
   { href: "/admin/regos", label: "Rego", icon: Truck },
+  { href: "/admin/routes", label: "Routes", icon: MapPin },
   { href: "/manager/help", label: "User guide", icon: BookOpen },
 ] as const;
 

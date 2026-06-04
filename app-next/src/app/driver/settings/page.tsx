@@ -8,6 +8,7 @@ import {
   BookOpen,
   FileText,
   LayoutDashboard,
+  MapPin,
   MessageSquare,
   Settings,
 } from "lucide-react";
@@ -89,6 +90,12 @@ export default async function DriverSettingsPage({
                 icon={<BookOpen className="w-5 h-5" />}
                 title="How your record works"
                 description="Short help and rules overview"
+              />
+              <SettingsListRow
+                href="/admin/routes"
+                icon={<MapPin className="w-5 h-5" />}
+                title="Route catalogue"
+                description="Saved run plans — pick on day setup or add your own"
               />
             </div>
           </section>
