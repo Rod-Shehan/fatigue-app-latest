@@ -18,7 +18,7 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Navigation</h2>
         <GuideDiagram title="Manager menu">
-          {`  Risk brief ── Movement map ── Conversations
+          {`  Driver Overview ── Movement map ── Conversations
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
@@ -26,7 +26,7 @@ export function ManagerGuideArticle() {
         </GuideDiagram>
         <ul className={ulClass}>
           <li>
-            <strong className="text-slate-700 dark:text-slate-200">Risk brief</strong> — weekly fleet
+            <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.PAGE_TITLE}</strong> — weekly fleet
             view, tiers, register, sheet workbench
           </li>
           <li>
@@ -68,7 +68,7 @@ export function ManagerGuideArticle() {
         <p>{MANAGER_EXPERIENCE.REGISTER_SUBTITLE}</p>
         <p className="mt-2">{MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP}</p>
         <p className="mt-2 text-slate-500 dark:text-slate-400">
-          On the risk brief page, open section <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong>{" "}
+          On the {MANAGER_EXPERIENCE.PAGE_TITLE} page, open section <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong>{" "}
           for timeline charts and live exposure — separate from{" "}
           <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong>.
         </p>
@@ -104,7 +104,7 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Suggested weekly workflow</h2>
         <ol className="list-decimal pl-5 space-y-1">
-          <li>Open Risk brief for the current work week.</li>
+          <li>Open {MANAGER_EXPERIENCE.PAGE_TITLE} for the current work week.</li>
           <li>Review tier counts and assurance signals.</li>
           <li>Work the driver register — Needs attention and Elevated first.</li>
           <li>Amend sheets only with a clear reason; ask drivers to sign when agreed.</li>
@@ -115,7 +115,7 @@ export function ManagerGuideArticle() {
 
       <div className="flex flex-col gap-2 sm:flex-row sm:justify-end pt-2">
         <Link href="/manager">
-          <Button className="w-full sm:w-auto">Open risk brief</Button>
+          <Button className="w-full sm:w-auto">{MANAGER_EXPERIENCE.PAGE_TITLE}</Button>
         </Link>
         <Link href="/drivers">
           <Button variant="outline" className="w-full sm:w-auto">
