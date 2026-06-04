@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Circadia24 — FRMS Python Integration (print)</title>
+  <style>
+    :root { font-size: 11pt; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, Helvetica, Arial, sans-serif;
+      line-height: 1.45;
+      color: #111;
+      background: #fff;
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 12mm 15mm;
+    }
+    .print-banner {
+      border: 1px solid #ccc;
+      padding: 10px 14px;
+      margin-bottom: 1.5rem;
+      font-size: 10pt;
+      background: #f8f8f8;
+    }
+    .print-banner strong { display: block; margin-bottom: 4px; }
+    h1 { font-size: 1.6rem; margin-top: 0; page-break-after: avoid; }
+    h2 { font-size: 1.2rem; margin-top: 1.4rem; border-bottom: 1px solid #ddd; padding-bottom: 4px; page-break-after: avoid; }
+    h3 { font-size: 1.05rem; page-break-after: avoid; }
+    p, li { orphans: 3; widows: 3; }
+    table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 9.5pt; page-break-inside: avoid; }
+    th, td { border: 1px solid #bbb; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #eee; font-weight: 600; }
+    code { font-family: Consolas, "Courier New", monospace; font-size: 0.88em; background: #f3f3f3; padding: 1px 4px; }
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 10px 12px;
+      overflow-x: auto;
+      font-size: 8pt;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-break: break-word;
+      page-break-inside: auto;
+    }
+    pre code { background: none; padding: 0; font-size: inherit; }
+    hr { border: none; border-top: 1px solid #ccc; margin: 1.5rem 0; }
+    a { color: #111; text-decoration: underline; }
+    @media print {
+      body { padding: 0; max-width: none; }
+      .no-print { display: none !important; }
+      h2 { page-break-before: auto; }
+      pre { border-color: #999; }
+    }
+  </style>
+</head>
+<body>
+  <div class="print-banner no-print">
+    <strong>Print this document</strong>
+    Press <kbd>Ctrl+P</kbd> (Windows) or <kbd>Cmd+P</kbd> (Mac), then choose &quot;Save as PDF&quot; or your printer.
+    Source: app-next/docs/architecture/frms-python-integration.md
+  </div>
+  <article class="doc">
+<h1>FRMS Python integration — architecture &amp; implementation plan</h1>
+<p><strong>Circadia24 (<code>app-next</code>)</strong> — upgrade path to an AI-driven, predictive Fatigue Risk Management System (FRMS).</p>
+<p><strong>Status:</strong> Proposed — <code>build-timeline-payload.ts</code> implemented; Python service and Neon models pending<br><strong>Last updated:</strong> 2026-06<br><strong>Related:</strong> <a href="../adr/0003-prospective-risk-engine.md">ADR 0003</a>, <a href="./camera-risk-stream.md">camera-risk-stream</a>, <a href="./fatigue-risk-sawtooth-model.md">fatigue-risk-sawtooth-model</a></p>
+<hr>
+<h2>Executive summary</h2>
+<p>The new risk engine will combine <strong>biomathematical models of fatigue</strong> (Process S and Process C) with a <strong>machine learning regressor</strong> (e.g. XGBoost) and <strong>external time-series enrichment</strong>. It must run <strong>entirely server-side</strong> via an external <strong>Python (FastAPI) microservice</strong> because of:</p>
+<ul>
+<li>Vercel serverless compute limits</li>
+<li>Server-side data enrichment (roster, weather, etc.)</li>
+<li>IP protection for models and features</li>
+</ul>
+<p>This document is tailored to the <strong>current repository</strong>: Next.js 16 App Router, Prisma + Neon, no Server Actions, ADR 0003 compliance vs risk split, existing <code>DriverRiskBlock</code> ingest, and in-process TypeScript risk modules.</p>
+<hr>
+<h2>Current stack (baseline)</h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Location</th>
+<th>Role today</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Compliance (retrospective)</td>
+<td><code>src/lib/compliance.ts</code>, jurisdiction engines</td>
+<td>Rule breaches on attested record</td>
+</tr>
+<tr>
+<td>Prospective register</td>
+<td><code>src/lib/risk-register.ts</code>, <code>risk-scenarios.ts</code>, <code>risk-evaluate.ts</code></td>
+<td>Future legs with run plans only (ADR 0003)</td>
+</tr>
+<tr>
+<td>Rolling state input</td>
+<td><code>src/lib/compliance-state.ts</code></td>
+<td><code>complianceStateAt()</code> from logged data</td>
+</tr>
+<tr>
+<td>Manager week API</td>
+<td><code>GET /api/manager/compliance</code></td>
+<td>Runs compliance + <code>buildRiskRegister()</code> per sheet</td>
+</tr>
+<tr>
+<td>15-min timeline (chart)</td>
+<td><code>GET /api/manager/risk-timeline</code>, <code>src/lib/manager-risk-timeline.ts</code></td>
+<td>Sawtooth carry + camera fusion</td>
+</tr>
+<tr>
+<td>Camera ingest</td>
+<td><code>POST /api/driver/risk-blocks</code>, <code>DriverRiskBlock</code> (Prisma)</td>
+<td>Idempotent 15-min blocks</td>
+</tr>
+<tr>
+<td>Sheet writes</td>
+<td><code>PATCH /api/sheets/[id]</code></td>
+<td><code>days</code> JSON including run plans</td>
+</tr>
+<tr>
+<td>Client API</td>
+<td><code>src/lib/api.ts</code> (React Query)</td>
+<td>No Server Actions</td>
+</tr>
+<tr>
+<td>Timeline payload (FRMS input)</td>
+<td><code>src/lib/frms/build-timeline-payload.ts</code></td>
+<td>Flattens sheet weeks → 15-min <code>timeline_blocks</code> + SHA256 <code>inputHash</code></td>
+</tr>
+</tbody></table>
+<p><strong>Explicitly out of scope for v1 FRMS (per ADR 0003):</strong> replacing compliance math, NHVR biomathematical certification claims, blocking drivers when catalogue/roster is empty.</p>
+<hr>
+<h2>1. Where to intercept timeline data</h2>
+<h3>Principle</h3>
+<ul>
+<li><strong>Do not</strong> call Python from the browser.</li>
+<li><strong>Do not</strong> use Server Actions (none exist today; keep Route Handlers + <code>api.ts</code>).</li>
+<li><strong>Do not</strong> replace <code>compliance.ts</code> — FRMS is assurance/coaching; compliance stays retrospective.</li>
+<li>Introduce a <strong>single orchestrator</strong> (<code>src/lib/frms/orchestrator.ts</code>) invoked at existing API boundaries.</li>
+</ul>
+<h3>Data flow (target)</h3>
+<pre><code class="language-text">Client (React Query)
+  manager-view → GET /api/manager/compliance
+  ManagerRiskTimelineDashboard → GET /api/manager/risk-timeline
+  sheet-detail → PATCH /api/sheets/[id]
+
+Write paths → orchestrator (invalidate + enqueue)
+  POST /api/driver/risk-blocks
+
+Read paths → serve FrmsProfileRun cache first
+  → src/lib/frms/orchestrator.ts
+  → src/lib/frms/build-timeline-payload.ts
+  → src/lib/frms/python-client.ts → FastAPI
+
+Async: POST /api/internal/frms/recompute
+       POST /api/internal/frms/callback (optional)
+       Vercel Cron → fleet recompute
+</code></pre>
+<h3>Interception points (priority order)</h3>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Existing route</th>
+<th>What it does today</th>
+<th>FRMS hook</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A</strong></td>
+<td><code>src/app/api/manager/compliance/route.ts</code></td>
+<td>Loads <code>FatigueSheet</code>, <code>engine.run()</code> + <strong><code>buildRiskRegister()</code></strong> per sheet</td>
+<td><strong>Best fleet/week orchestration.</strong> Build canonical timeline payload per driver (history + focus/prior weeks + future run plans). Serve cached FRMS output; if <code>inputHash</code> stale, enqueue recompute; return legacy register until <code>status=ready</code>.</td>
+</tr>
+<tr>
+<td><strong>B</strong></td>
+<td><code>src/app/api/manager/risk-timeline/route.ts</code></td>
+<td>Reads <strong><code>DriverRiskBlock</code></strong>, <code>buildRiskTimelineFromStoredBlocks()</code></td>
+<td><strong>Best 15-min series.</strong> Persist Python Process S/C + model scores in <strong><code>FrmsRiskSnapshot</code></strong>; route reads snapshots (optionally merge camera <code>livePct</code> from <code>DriverRiskBlock</code>).</td>
+</tr>
+<tr>
+<td><strong>C</strong></td>
+<td><code>src/app/api/sheets/[id]/route.ts</code> <strong><code>PATCH</code></strong></td>
+<td>Persists <code>days</code> JSON (run plans, grids)</td>
+<td>On <code>days</code> / run-plan change: <code>invalidateAndEnqueue({ driverName, weekStarting, trigger: &quot;sheet_patch&quot; })</code>. <strong>Do not</strong> block PATCH on Python latency.</td>
+</tr>
+<tr>
+<td><strong>D</strong></td>
+<td><code>src/app/api/driver/risk-blocks/route.ts</code> <strong><code>POST</code></strong></td>
+<td><code>ingestDriverRiskBlockBatch()</code> → TS <code>computeFusedRiskPercents()</code></td>
+<td>Keep ingest fast. Enqueue FRMS recompute for rolling window <strong>or</strong> send new blocks only to Python for live refinement; <strong>(1) enqueue</strong> scales better on Vercel.</td>
+</tr>
+</tbody></table>
+<h3>New internal routes (not exposed in UI)</h3>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>POST /api/internal/frms/recompute</code></td>
+<td>Build payload → call FastAPI → persist snapshots. Guard: <code>Authorization: Bearer ${FRMS_INTERNAL_SECRET}</code> or Vercel Cron secret.</td>
+</tr>
+<tr>
+<td><code>POST /api/internal/frms/callback</code></td>
+<td>Optional: FastAPI pushes results if compute exceeds serverless timeout (HMAC on body).</td>
+</tr>
+<tr>
+<td><code>GET /api/internal/frms/health</code></td>
+<td>Ops: ping Python + DB.</td>
+</tr>
+</tbody></table>
+<p><strong>Route handler settings</strong> (match existing risk routes):</p>
+<pre><code class="language-ts">export const runtime = &quot;nodejs&quot;;
+export const dynamic = &quot;force-dynamic&quot;;
+export const maxDuration = 60; // Vercel Pro — tune to Python SLA
+</code></pre>
+<h3>Vercel latency pattern</h3>
+<p><strong>Do not</strong> hold <code>GET /api/manager/compliance</code> open for XGBoost.</p>
+<ol>
+<li>Read path returns <strong>last good</strong> <code>FrmsProfileRun</code> + snapshots.</li>
+<li>Feature flag: <code>FRMS_ENGINE=legacy | hybrid | python</code>.</li>
+<li>If cache miss/stale: return TypeScript <code>buildRiskRegister()</code> (hybrid) and <strong>enqueue</strong> recompute.</li>
+<li>For fleet-wide jobs use <strong>QStash / Inngest / Trigger.dev</strong> (recommended before hourly cron at scale).</li>
+</ol>
+<h3>Environment variables (Vercel only)</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>FRMS_PYTHON_URL</code></td>
+<td>FastAPI base URL</td>
+</tr>
+<tr>
+<td><code>FRMS_PYTHON_API_KEY</code></td>
+<td>Bearer token to Python</td>
+</tr>
+<tr>
+<td><code>FRMS_INTERNAL_SECRET</code></td>
+<td>Protect internal recompute/callback</td>
+</tr>
+<tr>
+<td><code>FRMS_ENGINE</code></td>
+<td><code>legacy</code> | <code>hybrid</code> | <code>python</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. Neon schema — Risk Profiles without bloat</h2>
+<h3>Do not overload <code>DriverRiskBlock</code></h3>
+<p><code>DriverRiskBlock</code> is optimized for <strong>high-volume camera ingest</strong> (<code>uploadId</code> idempotency, <code>cameraPayload</code> JSON). Do not store XGBoost feature vectors or full roster payloads per block.</p>
+<h3>Proposed Prisma models</h3>
+<pre><code class="language-prisma">/// One FRMS computation for a driver + horizon (deduped by input hash).
+model FrmsProfileRun {
+  id              String    @id @default(cuid())
+  driverName      String
+  userId          String?   /// sheet owner when known
+  weekStarting    String?   /// manager focus week, optional
+  horizonFromMs   BigInt
+  horizonToMs     BigInt
+  timezone        String    @default(&quot;Australia/Perth&quot;)
+  engineVersion   String    /// e.g. &quot;frms-py-1&quot;
+  modelVersion    String?   /// xgboost artifact id
+  inputHash       String    /// sha256(canonical payload)
+  status          String    @default(&quot;pending&quot;) // pending | ready | failed
+  errorMessage    String?
+  sources         String[]  @default([])       // diary, roster, weather, camera
+  /// ADR 0003 segment register (future legs only) — mirrors RiskRegisterResult JSON
+  prospectiveRegister Json?
+  requestedAt     DateTime  @default(now())
+  completedAt     DateTime?
+  snapshots       FrmsRiskSnapshot[]
+
+  @@unique([driverName, inputHash, engineVersion])
+  @@index([driverName, weekStarting, status])
+  @@index([status, requestedAt])
+}
+
+/// 15-minute FRMS profile points (aligned with RISK_BLOCK_MINUTES).
+model FrmsRiskSnapshot {
+  id             String   @id @default(cuid())
+  runId          String
+  run            FrmsProfileRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  blockStartMs   BigInt
+  blockMinutes   Int      @default(15)
+  processSPct    Float?   /// biomathematical S
+  processCPct    Float?   /// biomathematical C
+  modelPct       Float?   /// ML regressor output
+  combinedPct    Int      /// 0-100 manager glance
+  band           String?  /// low | monitor | elevated | critical
+  createdAt      DateTime @default(now())
+
+  @@unique([runId, blockStartMs])
+  @@index([runId, blockStartMs])
+}
+</code></pre>
+<h3>Anti-bloat rules</h3>
+<ol>
+<li><strong>Never store the full timeline payload</strong> in Postgres — only <code>inputHash</code> + compact <code>sources</code>. Rebuild from <code>FatigueSheet</code> + <code>DriverRiskBlock</code> when recomputing.</li>
+<li><strong>Upsert snapshots</strong> on <code>(runId, blockStartMs)</code>; do not append unbounded rows per request.</li>
+<li><strong>Dedupe runs</strong> via <code>@@unique([driverName, inputHash, engineVersion])</code>.</li>
+<li><strong>Retention cron:</strong> delete runs where <code>completedAt &lt; now() - 90d</code> (align with assurance surfaces in <code>record-retention.ts</code>). Cascade deletes snapshots.</li>
+<li><strong>Keep <code>DriverRiskBlock</code></strong> for camera provenance; FRMS reads it when building payload but stores <strong>derived</strong> scores in <code>FrmsRiskSnapshot</code>.</li>
+<li><strong>Partitioning</strong> on <code>blockStartMs</code> — optional later on Neon if snapshot volume exceeds ~1M rows.</li>
+</ol>
+<h3>Mapping to current types</h3>
+<table>
+<thead>
+<tr>
+<th>Today</th>
+<th>FRMS storage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>buildRiskRegister()</code> → <code>ManagerComplianceItem.risk_register</code></td>
+<td><code>FrmsProfileRun.prospectiveRegister</code> (JSON)</td>
+</tr>
+<tr>
+<td><code>RiskTimelineBlock.baselinePct</code> / <code>livePct</code></td>
+<td><code>FrmsRiskSnapshot.processSPct</code>, <code>processCPct</code>, <code>modelPct</code>, <code>combinedPct</code></td>
+</tr>
+<tr>
+<td><code>DriverRiskBlock.livePct</code></td>
+<td>Overlay “observed” in hybrid chart mode</td>
+</tr>
+</tbody></table>
+<h3>Driver identity</h3>
+<p>Sheets use <strong><code>driverName</code> string</strong> (not always <code>Driver.id</code> FK). FRMS runs should key on <code>driverName</code> consistently with <code>DriverRiskBlock</code> and manager APIs.</p>
+<hr>
+<h2>3. Timeline payload builder (implemented)</h2>
+<p><strong>Module:</strong> <code>src/lib/frms/build-timeline-payload.ts</code><br><strong>Tests:</strong> <code>src/lib/frms/build-timeline-payload.test.ts</code></p>
+<h3>Purpose</h3>
+<p>Flatten <strong>historical and prospective</strong> driver fatigue sheets (all weeks in <code>weekMap</code>) into a single <strong>chronological, 15-minute time-series</strong> array for the Python FRMS engine. Compute a stable <strong>SHA256 <code>inputHash</code></strong> so <code>FrmsProfileRun</code> can skip duplicate Neon writes when nothing changed.</p>
+<h3>Payload shape (<code>FrmsTimelinePayload</code>)</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>schema_version</code></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>driver_name</code>, <code>jurisdiction_code</code>, <code>driver_type</code></td>
+<td>Driver context</td>
+</tr>
+<tr>
+<td><code>timezone</code></td>
+<td><code>&quot;Australia/Perth&quot;</code> (aligned with manager timeline)</td>
+</tr>
+<tr>
+<td><code>as_of_ms</code></td>
+<td>Current block start (<code>findNowBlockStartMs</code>)</td>
+</tr>
+<tr>
+<td><code>horizon_from_ms</code></td>
+<td>14 days before <code>as_of_ms</code>, block-aligned</td>
+</tr>
+<tr>
+<td><code>horizon_to_ms</code></td>
+<td>7 days after <code>as_of_ms</code>, block-aligned</td>
+</tr>
+<tr>
+<td><code>week_starting</code></td>
+<td>Manager focus week (YYYY-MM-DD Sunday)</td>
+</tr>
+<tr>
+<td><code>timeline_blocks</code></td>
+<td>Dense array: one row per 15-min slot in the horizon</td>
+</tr>
+<tr>
+<td><code>enrichment</code></td>
+<td>Optional external series (e.g. <code>weather_hourly</code>)</td>
+</tr>
+</tbody></table>
+<p>Each <code>timeline_blocks</code> entry:</p>
+<pre><code class="language-typescript">{
+  start_ms: number;   // UTC ms, 15-min aligned (RISK_BLOCK_MINUTES)
+  is_work: boolean;   // work/driving dominates the block
+  is_rest: boolean;   // break/rest/non-work dominates (no work)
+}
+</code></pre>
+<h3>How sheets are flattened</h3>
+<ol>
+<li>Sort all keys in <code>weekMap</code> (chronological weeks).</li>
+<li>For each week, <code>parseSheetDaysJson(days)</code> → 7 day objects.</li>
+<li>Per day, accumulate minute activity into 15-minute buckets:<ul>
+<li><strong>Primary:</strong> <code>work_time</code> / <code>breaks</code> / <code>non_work</code> minute grids (<code>normalizeDayCoverageArrays</code>).</li>
+<li><strong>Optional:</strong> <code>day.intervals[]</code> with <code>{ startMs, type }</code> when present on day JSON (<code>work</code>/<code>driving</code> vs <code>rest</code>/<code>sleep</code>/<code>break</code>).</li>
+</ul>
+</li>
+<li>Walk <code>horizon_from_ms</code> … <code>horizon_to_ms</code> in 15-minute steps; emit one block per step (empty slots → both flags <code>false</code>).</li>
+</ol>
+<h3>Hashing</h3>
+<pre><code class="language-typescript">export function hashFrmsPayload(payload: FrmsTimelinePayload): string {
+  return createHash(&quot;sha256&quot;).update(JSON.stringify(payload)).digest(&quot;hex&quot;);
+}
+</code></pre>
+<p>Use as <code>FrmsProfileRun.inputHash</code> — <strong>do not</strong> persist the full payload in Postgres (rebuild from sheets when recomputing).</p>
+<h3>API (reference)</h3>
+<pre><code class="language-typescript">export function buildFrmsTimelinePayload(input: {
+  driverName: string;
+  jurisdictionCode: string;
+  driverType: string;
+  weekStarting: string;
+  weekMap: Map&lt;string, { days: string }&gt;;
+  enrichment?: FrmsTimelinePayload[&quot;enrichment&quot;];
+}): FrmsTimelinePayload;
+</code></pre>
+<hr>
+<h2>4. TypeScript boilerplate (pending modules)</h2>
+<h3>File layout</h3>
+<pre><code class="language-text">src/lib/frms/
+  build-timeline-payload.ts   # ✅ Implemented — timeline_blocks + inputHash
+  build-timeline-payload.test.ts
+  python-client.ts            # fetch() to FastAPI
+  orchestrator.ts             # runFrmsAndPersist, enqueueFrmsRecompute
+
+src/app/api/internal/frms/
+  recompute/route.ts          # Worker entry
+  callback/route.ts           # Optional async completion
+  health/route.ts             # Ops
+</code></pre>
+<h3><code>src/lib/frms/python-client.ts</code> (planned)</h3>
+<pre><code class="language-typescript">import type { FrmsTimelinePayload } from &quot;@/lib/frms/build-timeline-payload&quot;;
+
+export type FrmsPythonResponse = {
+  engine_version: string;
+  model_version?: string;
+  prospective_register?: unknown;
+  snapshots: Array&lt;{
+    block_start_ms: number;
+    process_s_pct?: number;
+    process_c_pct?: number;
+    model_pct?: number;
+    combined_pct: number;
+    band?: string;
+  }&gt;;
+};
+
+export async function callFrmsPython(
+  payload: FrmsTimelinePayload,
+  signal?: AbortSignal
+): Promise&lt;FrmsPythonResponse&gt; {
+  const base = process.env.FRMS_PYTHON_URL;
+  const key = process.env.FRMS_PYTHON_API_KEY;
+  if (!base || !key) throw new Error(&quot;FRMS_PYTHON_URL / FRMS_PYTHON_API_KEY not configured&quot;);
+
+  const res = await fetch(`${base.replace(/\/$/, &quot;&quot;)}/v1/risk-profile`, {
+    method: &quot;POST&quot;,
+    headers: {
+      &quot;Content-Type&quot;: &quot;application/json&quot;,
+      Authorization: `Bearer ${key}`,
+    },
+    body: JSON.stringify(payload),
+    signal,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() =&gt; &quot;&quot;);
+    throw new Error(`FRMS Python ${res.status}: ${text.slice(0, 500)}`);
+  }
+
+  return (await res.json()) as FrmsPythonResponse;
+}
+</code></pre>
+<h3><code>src/lib/frms/orchestrator.ts</code></h3>
+<pre><code class="language-typescript">import type { PrismaClient } from &quot;@prisma/client&quot;;
+import {
+  buildFrmsTimelinePayload,
+  hashFrmsPayload,
+} from &quot;@/lib/frms/build-timeline-payload&quot;;
+import { callFrmsPython } from &quot;@/lib/frms/python-client&quot;;
+
+const ENGINE_VERSION = &quot;frms-py-1&quot;;
+
+export async function runFrmsAndPersist(
+  prisma: PrismaClient,
+  args: {
+    driverName: string;
+    weekStarting: string;
+    weekMap: Map&lt;string, { days: string }&gt;;
+    jurisdictionCode: string;
+    driverType: string;
+    userId?: string;
+  }
+): Promise&lt;{ runId: string; status: &quot;ready&quot; | &quot;failed&quot; }&gt; {
+  const payload = buildFrmsTimelinePayload({
+    driverName: args.driverName,
+    weekStarting: args.weekStarting,
+    weekMap: args.weekMap,
+    jurisdictionCode: args.jurisdictionCode,
+    driverType: args.driverType,
+  });
+  const inputHash = hashFrmsPayload(payload);
+
+  const run = await prisma.frmsProfileRun.upsert({
+    where: {
+      driverName_inputHash_engineVersion: {
+        driverName: args.driverName,
+        inputHash,
+        engineVersion: ENGINE_VERSION,
+      },
+    },
+    create: {
+      driverName: args.driverName,
+      userId: args.userId,
+      weekStarting: args.weekStarting,
+      horizonFromMs: BigInt(payload.horizon_from_ms),
+      horizonToMs: BigInt(payload.horizon_to_ms),
+      inputHash,
+      engineVersion: ENGINE_VERSION,
+      status: &quot;pending&quot;,
+      sources: [&quot;diary&quot;],
+    },
+    update: { status: &quot;pending&quot;, errorMessage: null, requestedAt: new Date() },
+  });
+
+  try {
+    const result = await callFrmsPython(payload);
+    await prisma.$transaction([
+      prisma.frmsRiskSnapshot.deleteMany({ where: { runId: run.id } }),
+      prisma.frmsRiskSnapshot.createMany({
+        data: result.snapshots.map((s) =&gt; ({
+          runId: run.id,
+          blockStartMs: BigInt(s.block_start_ms),
+          processSPct: s.process_s_pct ?? null,
+          processCPct: s.process_c_pct ?? null,
+          modelPct: s.model_pct ?? null,
+          combinedPct: Math.round(s.combined_pct),
+          band: s.band ?? null,
+        })),
+      }),
+      prisma.frmsProfileRun.update({
+        where: { id: run.id },
+        data: {
+          status: &quot;ready&quot;,
+          modelVersion: result.model_version ?? null,
+          prospectiveRegister: result.prospective_register ?? undefined,
+          completedAt: new Date(),
+        },
+      }),
+    ]);
+    return { runId: run.id, status: &quot;ready&quot; };
+  } catch (e) {
+    await prisma.frmsProfileRun.update({
+      where: { id: run.id },
+      data: {
+        status: &quot;failed&quot;,
+        errorMessage: e instanceof Error ? e.message : &quot;FRMS failed&quot;,
+      },
+    });
+    return { runId: run.id, status: &quot;failed&quot; };
+  }
+}
+
+export function enqueueFrmsRecompute(
+  args: Parameters&lt;typeof runFrmsAndPersist&gt;[1]
+): void {
+  const secret = process.env.FRMS_INTERNAL_SECRET;
+  const base =
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXTAUTH_URL ?? &quot;http://localhost:3000&quot;;
+  if (!secret) return;
+
+  void fetch(`${base}/api/internal/frms/recompute`, {
+    method: &quot;POST&quot;,
+    headers: {
+      &quot;Content-Type&quot;: &quot;application/json&quot;,
+      Authorization: `Bearer ${secret}`,
+    },
+    body: JSON.stringify(args),
+  }).catch(() =&gt; {});
+}
+</code></pre>
+<h3><code>src/app/api/internal/frms/recompute/route.ts</code></h3>
+<pre><code class="language-typescript">import { NextRequest, NextResponse } from &quot;next/server&quot;;
+import { prisma } from &quot;@/lib/prisma&quot;;
+import { runFrmsAndPersist } from &quot;@/lib/frms/orchestrator&quot;;
+
+export const runtime = &quot;nodejs&quot;;
+export const dynamic = &quot;force-dynamic&quot;;
+export const maxDuration = 60;
+
+function authorize(req: NextRequest): boolean {
+  const secret = process.env.FRMS_INTERNAL_SECRET;
+  if (!secret) return false;
+  return (req.headers.get(&quot;authorization&quot;) ?? &quot;&quot;) === `Bearer ${secret}`;
+}
+
+export async function POST(req: NextRequest) {
+  if (!authorize(req)) {
+    return NextResponse.json({ error: &quot;Unauthorized&quot; }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { driverName, weekStarting } = body as {
+    driverName?: string;
+    weekStarting?: string;
+  };
+  if (!driverName || !weekStarting) {
+    return NextResponse.json(
+      { error: &quot;driverName and weekStarting required&quot; },
+      { status: 400 }
+    );
+  }
+
+  const driverSheets = await prisma.fatigueSheet.findMany({
+    where: { driverName },
+    select: {
+      weekStarting: true,
+      days: true,
+      jurisdictionCode: true,
+      driverType: true,
+      createdById: true,
+    },
+  });
+
+  const weekMap = new Map(driverSheets.map((s) =&gt; [s.weekStarting, { days: s.days }]));
+  const focus = driverSheets.find((s) =&gt; s.weekStarting === weekStarting) ?? driverSheets[0];
+  if (!focus) {
+    return NextResponse.json({ error: &quot;No sheets for driver&quot; }, { status: 404 });
+  }
+
+  const result = await runFrmsAndPersist(prisma, {
+    driverName,
+    weekStarting,
+    weekMap,
+    jurisdictionCode: focus.jurisdictionCode,
+    driverType: focus.driverType,
+    userId: focus.createdById ?? undefined,
+  });
+
+  return NextResponse.json(result);
+}
+</code></pre>
+<h3>Integration: <code>GET /api/manager/compliance</code> (hybrid)</h3>
+<pre><code class="language-typescript">import { buildRiskRegister } from &quot;@/lib/risk-register&quot;;
+import { enqueueFrmsRecompute } from &quot;@/lib/frms/orchestrator&quot;;
+
+const engineMode = process.env.FRMS_ENGINE ?? &quot;legacy&quot;;
+
+// Inside per-sheet loop:
+let risk_register = buildRiskRegister({ days, stateInput: { /* ... */ } });
+
+if (engineMode !== &quot;legacy&quot;) {
+  const latest = await prisma.frmsProfileRun.findFirst({
+    where: {
+      driverName: sheet.driverName,
+      weekStarting: sheet.weekStarting,
+      status: &quot;ready&quot;,
+    },
+    orderBy: { completedAt: &quot;desc&quot; },
+  });
+  if (latest?.prospectiveRegister) {
+    risk_register = latest.prospectiveRegister as typeof risk_register;
+  } else {
+    enqueueFrmsRecompute({
+      driverName: sheet.driverName,
+      weekStarting: sheet.weekStarting,
+      weekMap: byDriverWeek.get(sheet.driverName)!,
+      jurisdictionCode: sheet.jurisdictionCode,
+      driverType: sheet.driverType ?? &quot;solo&quot;,
+    });
+  }
+}
+</code></pre>
+<h3>Integration: <code>PATCH /api/sheets/[id]</code></h3>
+<p>After successful <code>prisma.fatigueSheet.update</code> when <code>days</code> changed:</p>
+<pre><code class="language-typescript">if (days !== undefined) {
+  enqueueFrmsRecompute({
+    driverName: updated.driverName,
+    weekStarting: updated.weekStarting,
+    weekMap /* same pattern as compliance route */,
+    jurisdictionCode: updated.jurisdictionCode,
+    driverType: updated.driverType,
+  });
+}
+</code></pre>
+<hr>
+<h2>5. FastAPI contract (minimal)</h2>
+<p><strong>Endpoint:</strong> <code>POST /v1/risk-profile</code></p>
+<p><strong>Request:</strong> <code>FrmsTimelinePayload</code> with <code>timeline_blocks</code> (see §3).</p>
+<p><strong>Response:</strong> <code>FrmsPythonResponse</code></p>
+<p><strong>Python responsibilities:</strong></p>
+<ul>
+<li>Ingest dense <code>timeline_blocks</code> (and optional <code>enrichment</code>) — not raw sheet JSON.</li>
+<li>Process S / Process C (biomathematical layer) per 15-minute slot.</li>
+<li>Feature engineering for XGBoost (or successor regressor).</li>
+<li>External series from <code>enrichment.weather_hourly</code> (roster fields can be added to <code>enrichment</code> later).</li>
+<li><strong>Prospective register</strong> for <strong>future</strong> segments only (ADR 0003 non-overlap with compliance minutes).</li>
+<li>Return 15-minute <code>snapshots</code> aligned to <code>RISK_BLOCK_MINUTES</code> (15), keyed by <code>block_start_ms</code>.</li>
+</ul>
+<hr>
+<h2>6. Implementation sequence (low risk)</h2>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Deliverable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>ADR 0004 (decision record) + this doc; feature flag <code>FRMS_ENGINE=legacy</code> default</td>
+</tr>
+<tr>
+<td>1b</td>
+<td>✅ <code>build-timeline-payload.ts</code> + unit tests</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Prisma <code>FrmsProfileRun</code> / <code>FrmsRiskSnapshot</code> + <code>db:push</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>python-client.ts</code>, <code>orchestrator.ts</code>, <code>POST /api/internal/frms/recompute</code> (manual staging tests)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Hybrid <code>GET /api/manager/compliance</code> (Python register when ready, else TS fallback)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>GET /api/manager/risk-timeline</code> reads <code>FrmsRiskSnapshot</code>; optional camera overlay</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>PATCH</code> invalidation + Vercel Cron / queue for active drivers</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Retire TS sawtooth for manager <strong>glance</strong> only after parity testing — <strong>not</strong> compliance</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. Guardrails (product &amp; legal)</h2>
+<ul>
+<li>FRMS outputs are <strong>assurance and coaching</strong> — not automatic violations (ADR 0003).</li>
+<li>Compliance API and <code>compliance.ts</code> remain authoritative for attested rule outcomes.</li>
+<li>Manager copy must not imply NHVR FRMS certification or EWD approval.</li>
+<li>Camera stream remains optional; empty catalogue / empty roster must not block driver workflows.</li>
+</ul>
+<hr>
+<h2>8. Related code index</h2>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>src/lib/frms/build-timeline-payload.ts</code></td>
+<td>✅ Sheet → <code>timeline_blocks</code> + <code>hashFrmsPayload</code></td>
+</tr>
+<tr>
+<td><code>src/lib/frms/build-timeline-payload.test.ts</code></td>
+<td>Unit tests</td>
+</tr>
+<tr>
+<td><code>src/app/api/manager/compliance/route.ts</code></td>
+<td>Primary week orchestration</td>
+</tr>
+<tr>
+<td><code>src/app/api/manager/risk-timeline/route.ts</code></td>
+<td>15-min chart read path</td>
+</tr>
+<tr>
+<td><code>src/app/api/sheets/[id]/route.ts</code></td>
+<td>Sheet PATCH</td>
+</tr>
+<tr>
+<td><code>src/app/api/driver/risk-blocks/route.ts</code></td>
+<td>Camera ingest</td>
+</tr>
+<tr>
+<td><code>src/lib/risk-register.ts</code></td>
+<td>TS prospective register (fallback)</td>
+</tr>
+<tr>
+<td><code>src/lib/compliance-state.ts</code></td>
+<td>Rolling snapshot input</td>
+</tr>
+<tr>
+<td><code>src/lib/manager-risk-timeline.ts</code></td>
+<td>TS scoring / chart</td>
+</tr>
+<tr>
+<td><code>src/lib/fatigue-risk-carry.ts</code></td>
+<td>Sawtooth carry</td>
+</tr>
+<tr>
+<td><code>src/lib/risk-block-ingest.ts</code></td>
+<td>Block persist + TS fuse</td>
+</tr>
+<tr>
+<td><code>prisma/schema.prisma</code></td>
+<td><code>DriverRiskBlock</code>, <code>FatigueSheet</code></td>
+</tr>
+<tr>
+<td><code>docs/adr/0003-prospective-risk-engine.md</code></td>
+<td>Domain split</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Changelog</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>2026-06</td>
+<td>Initial architecture outline (proposed)</td>
+</tr>
+<tr>
+<td>2026-06</td>
+<td><code>build-timeline-payload.ts</code> shipped — <code>timeline_blocks</code> payload (replaces nested <code>weeks</code> in docs)</td>
+</tr>
+</tbody></table>
+
+  </article>
+  <footer style="margin-top:2rem;font-size:9pt;color:#666;border-top:1px solid #ccc;padding-top:8px;">
+    Circadia24 · FRMS Python integration · Proposed 2026-06 · fatigue-app-latest
+  </footer>
+</body>
+</html>

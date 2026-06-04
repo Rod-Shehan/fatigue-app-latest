@@ -1,0 +1,27 @@
+Circadia24 — FRMS Python integration (print copy)
+================================================
+
+OPEN FOR PRINTING
+  Double-click this file in the same folder:
+
+    frms-python-integration-print.html
+
+  Or open in Chrome / Edge, then press Ctrl+P (Windows) or Cmd+P (Mac).
+
+SAVE AS PDF
+  In the print dialog, choose "Save as PDF" or "Microsoft Print to PDF".
+
+SOURCE (Markdown, for editing)
+  frms-python-integration.md
+
+REGENERATE HTML (after editing the Markdown)
+  From app-next folder:
+    npm install marked@15 --no-save
+    node docs/architecture/build-frms-print-html.mjs
+
+IMPLEMENTED IN REPO (not yet wired to Python)
+  src/lib/frms/build-timeline-payload.ts
+  src/lib/frms/build-timeline-payload.test.ts
+
+ADR summary
+  docs/adr/0004-frms-python-microservice.md
