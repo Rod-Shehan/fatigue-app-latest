@@ -10,14 +10,24 @@
 export const MANAGER_EXPERIENCE = {
   PAGE_TITLE: "Driver Overview",
   PAGE_SUBTITLE:
-    "Two views on one page: prospective risk analysis for coaching, and attested compliance records for regulators and auditors.",
+    "Three areas on one page: risk analysis for coaching, compliance records for regulators, and sheet amendments for document control.",
 
   DOMAIN_RISK_TITLE: "1. Risk analysis",
   DOMAIN_RISK_BLURB:
     "Future timeline modelling, live exposure, and 15-minute glance scores — assurance only, not a signed violation.",
   DOMAIN_COMPLIANCE_TITLE: "2. Compliance records",
   DOMAIN_COMPLIANCE_BLURB:
-    "Attested diary, rule outcomes, regulatory references (the laws), and amendments auditors expect.",
+    "Attested diary, rule outcomes, and regulatory references (the laws) auditors expect.",
+
+  DOMAIN_EDIT_TITLE: "3. Records & amendments",
+  DOMAIN_EDIT_BLURB:
+    "Select a sheet to correct errors with a reason on file, then ask the driver to sign again — document control, not discipline.",
+
+  SECTION_EDIT_TITLE: "Records & amendments",
+  SECTION_EDIT_SUBTITLE:
+    "Edit attested weekly sheets when you and the driver agree a correction is needed.",
+  SECTION_EDIT_BOUNDARY:
+    "Legal boundary: this is operational record maintenance — not risk coaching and not a substitute for compliance rule outcomes above. Every change needs a reason; signed weeks must be unlocked before edit.",
 
   SECTION_RISK_TITLE: "Risk analysis",
   SECTION_RISK_SUBTITLE:

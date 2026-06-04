@@ -76,6 +76,11 @@ export function ManagerGuideArticle() {
 
       <section className={sectionClass}>
         <h2 className={h2Class}>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</h2>
+        <p>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_SUBTITLE}</p>
+      </section>
+
+      <section className={sectionClass}>
+        <h2 className={h2Class}>{MANAGER_EXPERIENCE.SECTION_EDIT_TITLE}</h2>
         <p>{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
         <p className="mt-3">{SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}</p>
         <p className="mt-2 font-medium text-slate-700 dark:text-slate-200">
@@ -87,9 +92,9 @@ export function ManagerGuideArticle() {
         <h2 className={h2Class}>Reference libraries</h2>
         <p>
           <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong> holds prospective risk tools.{" "}
-          <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong> holds rule outcomes,{" "}
-          <strong>{MANAGER_EXPERIENCE.REGULATORY_SECTION_TITLE}</strong> (WA Reg 184E, retention, NHVR CoR), and
-          record amendments.
+          <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong> holds rule outcomes and{" "}
+          <strong>{MANAGER_EXPERIENCE.REGULATORY_SECTION_TITLE}</strong> (WA Reg 184E, retention, NHVR CoR).{" "}
+          <strong>{MANAGER_EXPERIENCE.SECTION_EDIT_TITLE}</strong> is for sheet corrections and re-signing.
         </p>
       </section>
 

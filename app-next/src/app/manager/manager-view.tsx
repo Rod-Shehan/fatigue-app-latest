@@ -815,8 +815,16 @@ export function ManagerView() {
               className="mb-0 border-2 border-amber-200/90 bg-white/90 dark:border-amber-800/50 dark:bg-slate-950/50"
             />
           </div>
+        </ManagerDomainSection>
 
-          <p className="text-sm text-slate-500 dark:text-slate-400">{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
+        <ManagerDomainSection
+          id="record-edits"
+          variant="edit"
+          title={MANAGER_EXPERIENCE.SECTION_EDIT_TITLE}
+          subtitle={MANAGER_EXPERIENCE.SECTION_EDIT_SUBTITLE}
+          boundary={MANAGER_EXPERIENCE.SECTION_EDIT_BOUNDARY}
+        >
+          <p className="text-sm text-slate-600 dark:text-slate-300">{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
 
           <div className="flex flex-wrap gap-2">
             <Button
@@ -837,10 +845,7 @@ export function ManagerView() {
             </Button>
           </div>
 
-          <div className="space-y-4 rounded-xl border border-slate-200/80 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-800/30">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-400">
-              {MANAGER_EXPERIENCE.TAB_RECORDS}
-            </p>
+          <div className="space-y-4 rounded-xl border border-teal-200/90 bg-white/80 p-4 dark:border-teal-800/50 dark:bg-slate-950/60">
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                   Sheet

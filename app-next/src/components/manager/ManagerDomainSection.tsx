@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Compass, Scale } from "lucide-react";
+import { Compass, FileEdit, Scale } from "lucide-react";
 
 const STYLES = {
   risk: {
@@ -14,6 +14,7 @@ const STYLES = {
     boundary:
       "border-violet-300/80 bg-violet-100/80 text-violet-950 dark:border-violet-700/60 dark:bg-violet-950/50 dark:text-violet-100",
     Icon: Compass,
+    eyebrow: "Prospective · coaching",
   },
   compliance: {
     border: "border-2 border-amber-300/90 dark:border-amber-600/60",
@@ -25,6 +26,19 @@ const STYLES = {
     boundary:
       "border-amber-300/80 bg-amber-100/70 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-50",
     Icon: Scale,
+    eyebrow: "Attested · regulatory",
+  },
+  edit: {
+    border: "border-2 border-teal-400/90 dark:border-teal-500/55",
+    ring: "ring-1 ring-teal-200/80 dark:ring-teal-500/30",
+    headerBg:
+      "bg-gradient-to-br from-teal-100 via-slate-50 to-white dark:from-teal-950/75 dark:via-slate-900/90 dark:to-slate-950",
+    bodyBg: "bg-slate-100/70 dark:bg-slate-900/50",
+    iconWrap: "bg-teal-800 text-white dark:bg-teal-600",
+    boundary:
+      "border-teal-300/90 bg-teal-50/90 text-teal-950 dark:border-teal-700/55 dark:bg-teal-950/45 dark:text-teal-50",
+    Icon: FileEdit,
+    eyebrow: "Document control · editing",
   },
 } as const;
 
@@ -62,7 +76,7 @@ export function ManagerDomainSection({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-              {variant === "risk" ? "Prospective · coaching" : "Attested · regulatory"}
+              {style.eyebrow}
             </p>
             <h2
               id={`${id}-heading`}
