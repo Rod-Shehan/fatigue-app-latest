@@ -4,6 +4,6 @@ import { AddManagersView } from "./add-managers-view";
 
 export default async function AddManagersPage() {
   const owner = await getOwnerSession();
-  if (!owner) redirect("/?branch=organisation&callbackUrl=%2Fmanager%2Fadd-managers");
+  if (!owner) redirect("/?branch=owner&callbackUrl=%2Fmanager%2Fadd-managers");
   return <AddManagersView />;
 }

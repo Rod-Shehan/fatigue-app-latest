@@ -54,22 +54,23 @@ const BRANCHES: BranchConfig[] = [
     signInHint: "Manager sign-in — fleet compliance and driver overview.",
   },
   {
-    id: "organisation",
+    id: "owner",
     href: "/admin/security",
     callbackUrl: "/admin/security",
-    title: "Organisation",
-    description: "IT and governance — lockdown, users, audit export, and manager appointment.",
+    title: "Owner",
+    description: "Fleet security — lockdown controls, user access, audit export, and appointing managers.",
     icon: Shield,
     iconClass: "bg-violet-800 dark:bg-violet-700",
     cardClass: "hover:border-violet-300 dark:hover:border-violet-700",
-    signInHint: "Organisation sign-in — security, lockdown, and governance.",
+    signInHint: "Owner sign-in — security, lockdown, and fleet governance.",
   },
 ];
 
 function resolveBranchFromParams(searchParams: URLSearchParams): LobbyBranch {
   const branch = searchParams.get("branch");
-  if (branch === "manager" || branch === "organisation" || branch === "driver") return branch;
-  if (searchParams.get("ownerLogin") === "1") return "organisation";
+  if (branch === "owner" || branch === "organisation") return "owner";
+  if (branch === "manager" || branch === "driver") return branch;
+  if (searchParams.get("ownerLogin") === "1") return "owner";
   if (searchParams.get("managerLogin") === "1") return "manager";
   const rawCallback = searchParams.get("callbackUrl");
   const callbackUrl =

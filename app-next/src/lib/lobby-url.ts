@@ -1,4 +1,4 @@
-export type LobbyBranch = "driver" | "manager" | "organisation";
+export type LobbyBranch = "driver" | "manager" | "owner";
 
 /** Single landing page sign-in URL at `/`. */
 export function lobbySignInUrl(opts: { branch?: LobbyBranch; callbackUrl?: string }): string {
@@ -11,7 +11,7 @@ export function lobbySignInUrl(opts: { branch?: LobbyBranch; callbackUrl?: strin
 
 export function lobbyBranchFromCallback(callbackUrl: string | null): LobbyBranch {
   if (!callbackUrl) return "driver";
-  if (callbackUrl.startsWith("/admin")) return "organisation";
+  if (callbackUrl.startsWith("/admin")) return "owner";
   if (callbackUrl.startsWith("/manager") || callbackUrl === "/drivers") return "manager";
   return "driver";
 }
