@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed** — 2026-06 (`src/lib/frms/build-timeline-payload.ts` implemented)
+**Accepted (Phase 3–4 shipped)** — 2026-06 — see [frms-milestone-phase-3-4.md](../architecture/frms-milestone-phase-3-4.md)
 
 ## Context
 

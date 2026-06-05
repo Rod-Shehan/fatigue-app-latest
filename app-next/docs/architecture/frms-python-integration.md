@@ -646,3 +646,4 @@ if (days !== undefined) {
 |------|--------|
 | 2026-06 | Initial architecture outline (proposed) |
 | 2026-06 | `build-timeline-payload.ts` shipped — `timeline_blocks` payload (replaces nested `weeks` in docs) |
+| 2026-06 | **Milestone (Phase 3–4):** Next.js orchestrator + Neon cache + internal recompute; `frms-engine` TPMA Python service — see [frms-milestone-phase-3-4.md](./frms-milestone-phase-3-4.md) |
