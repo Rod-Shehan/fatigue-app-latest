@@ -18,7 +18,7 @@ export function DriverSettingsSignOut() {
       )}
       onClick={() => {
         clearOfflineAuth();
-        signOut({ callbackUrl: "/login" });
+        signOut({ callbackUrl: "/" });
       }}
     >
       <LogOut className="w-5 h-5" />

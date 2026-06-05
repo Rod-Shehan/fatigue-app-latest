@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionForSheetAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 type DayRow = {
@@ -16,8 +15,8 @@ type DayRow = {
  * - beforeWeekStarting: only sheets with weekStarting strictly before that date (omit future weeks).
  */
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const access = await getSessionForSheetAccess();
+  if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const rego = searchParams.get("rego")?.trim();
@@ -29,6 +28,7 @@ export async function GET(request: Request) {
 
   try {
     const sheets = await prisma.fatigueSheet.findMany({
+      where: access.isManager ? {} : { createdById: access.userId },
       select: { id: true, weekStarting: true, days: true },
     });
 

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getManagerSession } from "@/lib/auth";
+import { getManagerBootstrapSession } from "@/lib/auth";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerGuideArticle } from "@/components/guides/ManagerGuideArticle";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
@@ -8,7 +8,7 @@ import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { BookOpen } from "lucide-react";
 
 export default async function ManagerHelpPage() {
-  const manager = await getManagerSession();
+  const manager = await getManagerBootstrapSession();
   if (!manager) redirect("/login?managerLogin=1&callbackUrl=%2Fmanager%2Fhelp");
 
   return (

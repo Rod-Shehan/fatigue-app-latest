@@ -599,7 +599,7 @@ export function ManagerView() {
             <Button
               variant="outline"
               className="gap-2 text-slate-600 dark:text-slate-300"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: "/" })}
             >
               <LogOut className="w-4 h-4" />
               Log out

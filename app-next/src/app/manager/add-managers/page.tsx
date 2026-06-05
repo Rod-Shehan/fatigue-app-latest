@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
-import { getManagerSession } from "@/lib/auth";
+import { getManagerBootstrapSession } from "@/lib/auth";
 import { AddManagersView } from "./add-managers-view";
 
 export default async function AddManagersPage() {
-  const manager = await getManagerSession();
+  const manager = await getManagerBootstrapSession();
   if (!manager) redirect("/sheets");
   return <AddManagersView />;
 }

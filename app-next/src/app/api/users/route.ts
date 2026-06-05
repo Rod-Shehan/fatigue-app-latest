@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getManagerSession } from "@/lib/auth";
+import { getManagerOrBootstrapSession, getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
@@ -16,7 +16,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const manager = await getManagerSession();
+  const manager = await getManagerOrBootstrapSession();
   if (!manager) return NextResponse.json({ error: "Manager access required" }, { status: 403 });
   try {
     const body = await req.json();

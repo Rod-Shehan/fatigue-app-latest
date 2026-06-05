@@ -1,8 +1,5 @@
 import { api } from "@/lib/api";
-import {
-  buildRoadsideProducePdfFromCache,
-  downloadRoadsidePdfBlob,
-} from "@/lib/roadside-produce-client";
+import { downloadRoadsidePdfBlob } from "@/lib/roadside-produce-download";
 import { isOnline } from "@/lib/offline-api";
 
 async function probeReachable(): Promise<boolean> {
@@ -33,14 +30,19 @@ export function resolveRoadsideDriverName(
   return partial ?? trimmed;
 }
 
+async function produceFromDeviceCache(driverName: string): Promise<{ error?: string }> {
+  const { buildRoadsideProducePdfFromCache } = await import("@/lib/roadside-produce-client");
+  const result = await buildRoadsideProducePdfFromCache(driverName);
+  if (!result.ok) return { error: result.error };
+  downloadRoadsidePdfBlob(result.blob, result.filename);
+  return {};
+}
+
 export async function produceRoadsidePdf(driverName: string): Promise<{ error?: string }> {
   const online = await probeReachable();
 
   if (!online) {
-    const result = await buildRoadsideProducePdfFromCache(driverName);
-    if (!result.ok) return { error: result.error };
-    downloadRoadsidePdfBlob(result.blob, result.filename);
-    return {};
+    return produceFromDeviceCache(driverName);
   }
 
   try {
@@ -57,8 +59,5 @@ export async function produceRoadsidePdf(driverName: string): Promise<{ error?: 
     /* fall through to cache */
   }
 
-  const cached = await buildRoadsideProducePdfFromCache(driverName);
-  if (!cached.ok) return { error: cached.error };
-  downloadRoadsidePdfBlob(cached.blob, cached.filename);
-  return {};
+  return produceFromDeviceCache(driverName);
 }

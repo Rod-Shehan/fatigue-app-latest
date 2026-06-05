@@ -1,11 +1,6 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getManagerSession } from "@/lib/auth";
+import { AppLobby } from "@/components/lobby/AppLobby";
 
-export default async function HomePage() {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
-  const manager = await getManagerSession();
-  redirect(manager ? "/manager" : "/driver");
+/** App lobby — pick Driver or Manager; each branch handles its own auth gate. */
+export default function HomePage() {
+  return <AppLobby />;
 }

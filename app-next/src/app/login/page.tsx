@@ -18,15 +18,15 @@ import { PRODUCT_NAME, TAGLINE_VEHICLE } from "@/lib/branding";
 
 function LoginForm() {
   const searchParams = useSearchParams();
-  // Default to "/" so the app can route drivers vs managers automatically.
-  const rawCallback = searchParams.get("callbackUrl") ?? "/";
+  // Default to driver home; manager sign-in uses ?callbackUrl=/manager&managerLogin=1
+  const rawCallback = searchParams.get("callbackUrl") ?? "/driver";
   // Prevent open redirect: only allow same-origin paths (start with /, not // or protocol)
   const callbackUrl =
     typeof rawCallback === "string" &&
     rawCallback.startsWith("/") &&
     !rawCallback.startsWith("//")
       ? rawCallback
-      : "/";
+      : "/driver";
   const managerLoginHint = searchParams.get("managerLogin") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -75,7 +75,7 @@ function LoginForm() {
       redirectTo.startsWith("/") &&
       !redirectTo.startsWith("//")
         ? redirectTo
-        : "/";
+        : "/driver";
     try {
       // Let NextAuth perform the redirect after setting cookies to avoid race conditions
       // where a client-side push happens before the session is available.
@@ -120,7 +120,9 @@ function LoginForm() {
             {TAGLINE_VEHICLE}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            Drivers log shifts. Managers review compliance and event maps.
+            {managerLoginHint
+              ? "Manager sign-in — fleet compliance and driver overview."
+              : "Driver sign-in — log shifts and keep your weekly record on this device."}
           </p>
         </div>
         {managerLoginHint && (
@@ -197,15 +199,24 @@ function LoginForm() {
             >
               {loading ? "Signing in…" : "Sign in"}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 text-base border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium gap-2"
-              disabled={loading}
-              onClick={(e) => onSubmit(e, "/manager")}
-            >
-              <LayoutDashboard className="w-4 h-4" /> Sign in as Manager
-            </Button>
+            {managerLoginHint ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 text-base border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium gap-2"
+                disabled={loading}
+                onClick={(e) => onSubmit(e, "/manager")}
+              >
+                <LayoutDashboard className="w-4 h-4" /> Sign in to Manager
+              </Button>
+            ) : (
+              <a
+                href={`/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`}
+                className="block text-center text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pt-1"
+              >
+                Manager sign-in
+              </a>
+            )}
           </div>
         </form>
         <p className="text-xs text-center text-slate-400 dark:text-slate-500 max-w-sm mx-auto leading-snug">

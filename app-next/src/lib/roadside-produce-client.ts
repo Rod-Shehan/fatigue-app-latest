@@ -4,14 +4,9 @@ import { jurisdictionDisplayLabel } from "@/lib/jurisdiction";
 import { listSheetsOfflineFirst } from "@/lib/offline-api";
 import { getPerthNowParts } from "@/lib/perth-now";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
-import { buildProduceCoverPdfBytes } from "@/lib/roadside-cover-jspdf";
 import { getRoadsideProduceFromYmd, selectSheetsForRoadsideProduce } from "@/lib/roadside-produce";
 import { computeComplianceForCachedSheets } from "@/lib/sheet-export-compliance-cache";
-import {
-  buildSingleSheetJsPdfBuffer,
-  type RoadsidePdfPayload,
-  type SheetJsPdfInput,
-} from "@/lib/sheet-jspdf-export";
+import type { RoadsidePdfPayload, SheetJsPdfInput } from "@/lib/sheet-jspdf-export";
 
 export type RoadsideProduceClientResult =
   | { ok: true; blob: Blob; filename: string; weekCount: number }
@@ -100,7 +95,12 @@ export async function buildRoadsideProducePdfFromCache(
   const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
 
   try {
-    const { PDFDocument } = await import("pdf-lib");
+    const [{ buildProduceCoverPdfBytes }, { buildSingleSheetJsPdfBuffer }, { PDFDocument }] =
+      await Promise.all([
+        import("@/lib/roadside-cover-jspdf"),
+        import("@/lib/sheet-jspdf-export"),
+        import("pdf-lib"),
+      ]);
     const merged = await PDFDocument.create();
 
     const coverBytes = await buildProduceCoverPdfBytes({
@@ -135,14 +135,4 @@ export async function buildRoadsideProducePdfFromCache(
   }
 }
 
-export function downloadRoadsidePdfBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.rel = "noopener";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
+export { downloadRoadsidePdfBlob } from "@/lib/roadside-produce-download";

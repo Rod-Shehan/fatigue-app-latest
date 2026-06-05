@@ -177,19 +177,44 @@ export function canAccessSheet(
   return sheet.createdById === access.userId;
 }
 
-/** Returns session and DB user if the current user has manager role (was added by a manager). Otherwise null. */
-export async function getManagerSession() {
+type ManagerSessionResult = {
+  session: NonNullable<Awaited<ReturnType<typeof getServerSession>>>;
+  user: { id: string; email: string | null; name: string | null; role: string | null };
+};
+
+async function loadManagerSessionUser(): Promise<ManagerSessionResult | null> {
   const session = await getServerSession(authOptions);
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
-  if (!userId) return null;
+  if (!userId || !session) return null;
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, email: true, name: true, role: true },
   });
   if (!user) return null;
-  if (user.role === "manager") return { session, user };
-  // Bootstrap: if no manager exists yet, allow this user to access manager area to add the first manager
+  return { session, user };
+}
+
+/** Strict manager role from DB — use for API data access and manager-only pages. */
+export async function getManagerSession(): Promise<ManagerSessionResult | null> {
+  const loaded = await loadManagerSessionUser();
+  if (!loaded || loaded.user.role !== "manager") return null;
+  return loaded;
+}
+
+/**
+ * Manager UI bootstrap: allows any signed-in user when no manager exists yet.
+ * Use only for /manager pages and POST /api/users (first manager). Never for sheet/driver APIs.
+ */
+export async function getManagerBootstrapSession(): Promise<ManagerSessionResult | null> {
+  const loaded = await loadManagerSessionUser();
+  if (!loaded) return null;
+  if (loaded.user.role === "manager") return loaded;
   const anyManager = await prisma.user.findFirst({ where: { role: "manager" }, select: { id: true } });
-  if (!anyManager) return { session, user };
+  if (!anyManager) return loaded;
   return null;
+}
+
+/** Manager session or bootstrap — for creating the first manager account only. */
+export async function getManagerOrBootstrapSession(): Promise<ManagerSessionResult | null> {
+  return (await getManagerSession()) ?? (await getManagerBootstrapSession());
 }

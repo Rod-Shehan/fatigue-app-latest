@@ -12,6 +12,7 @@ export function OfflineAuthSync() {
     if (status !== "authenticated" || !session?.user) return;
     const u = session.user as { id?: string; email?: string | null; name?: string | null; role?: string | null };
     if (!u.id || !u.email) return;
+    if (u.role === "manager") return;
     saveOfflineAuth({
       id: u.id,
       email: u.email,

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineBar } from "@/components/OfflineBar";
 import { OfflineAuthSync } from "@/components/auth/OfflineAuthSync";
+import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <SessionProvider>
         <OfflineAuthSync />
+        <ServiceWorkerRegister />
         <QueryClientProvider client={queryClient}>
           {children}
           <OfflineBar />
