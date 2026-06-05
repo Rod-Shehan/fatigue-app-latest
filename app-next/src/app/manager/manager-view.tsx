@@ -280,13 +280,17 @@ export function ManagerView() {
     }
   }, [selectedSheetId, filteredSheetsForPicker]);
 
+  /** Open the calendar on the month that contains the selected work day (not just week Sunday). */
   useEffect(() => {
-    const w = activeWeekStarting || firstWeekOption;
-    if (w) {
-      const d = parseYMD(w);
-      setCalView({ y: d.getFullYear(), m: d.getMonth() });
+    if (activeWeekStarting) {
+      const workDay = parseYMD(activeWeekStarting);
+      workDay.setDate(workDay.getDate() + activeDayIndex);
+      setCalView({ y: workDay.getFullYear(), m: workDay.getMonth() });
+      return;
     }
-  }, [activeWeekStarting, firstWeekOption]);
+    const n = new Date();
+    setCalView({ y: n.getFullYear(), m: n.getMonth() });
+  }, [activeWeekStarting, activeDayIndex]);
 
   const calendarWeekAnchor = useMemo(() => {
     return (
@@ -725,6 +729,9 @@ export function ManagerView() {
                 onSelectDate={(weekStartingYmd, dayIndex) => {
                   setActiveWeekStarting(weekStartingYmd);
                   setActiveDayIndex(dayIndex);
+                  const workDay = parseYMD(weekStartingYmd);
+                  workDay.setDate(workDay.getDate() + dayIndex);
+                  setCalView({ y: workDay.getFullYear(), m: workDay.getMonth() });
                 }}
               />
             </div>
