@@ -12,6 +12,7 @@ import {
 } from "@/lib/compliance-history";
 import { getRecordRetentionPolicy } from "@/lib/record-retention";
 import { getPreviousWeekSunday, getThisWeekSunday } from "@/lib/weeks";
+import { isFrmsEngineEnabled, resolveFrmsProspectiveRegister } from "@/lib/frms/orchestrator";
 
 const WEEK_YMD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -110,7 +111,7 @@ export async function GET(request: NextRequest) {
         });
       });
 
-      const risk_register = buildRiskRegister({
+      let risk_register = buildRiskRegister({
         days,
         stateInput: {
           currentWeekDays: days,
@@ -122,6 +123,19 @@ export async function GET(request: NextRequest) {
           currentDayIndex,
         },
       });
+
+      if (isFrmsEngineEnabled()) {
+        const frms = await resolveFrmsProspectiveRegister(prisma, {
+          driverName: sheet.driverName,
+          weekStarting: sheet.weekStarting,
+          weekMap,
+          jurisdictionCode: sheet.jurisdictionCode,
+          driverType: sheet.driverType ?? "solo",
+        });
+        if (frms.register) {
+          risk_register = frms.register;
+        }
+      }
 
       items.push({
         sheetId: sheet.id,

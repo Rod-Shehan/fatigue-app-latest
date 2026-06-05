@@ -197,3 +197,46 @@ model DriverRiskBlock {
   @@index([driverName, blockStartMs])
   @@index([userId, blockStartMs])
 }
+
+/// One FRMS computation for a driver + horizon (deduped by input hash).
+model FrmsProfileRun {
+  id                  String   @id @default(cuid())
+  driverName          String
+  userId              String?
+  weekStarting        String?
+  horizonFromMs       BigInt
+  horizonToMs         BigInt
+  timezone            String   @default("Australia/Perth")
+  engineVersion       String
+  modelVersion        String?
+  inputHash           String
+  status              String   @default("pending")
+  errorMessage        String?
+  sources             String[] @default([])
+  prospectiveRegister Json?
+  requestedAt         DateTime @default(now())
+  completedAt         DateTime?
+  snapshots           FrmsRiskSnapshot[]
+
+  @@unique([driverName, inputHash, engineVersion])
+  @@index([driverName, weekStarting, status])
+  @@index([status, requestedAt])
+}
+
+/// 15-minute FRMS profile points (aligned with RISK_BLOCK_MINUTES).
+model FrmsRiskSnapshot {
+  id           String         @id @default(cuid())
+  runId        String
+  run          FrmsProfileRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  blockStartMs BigInt
+  blockMinutes Int            @default(15)
+  processSPct  Float?
+  processCPct  Float?
+  modelPct     Float?
+  combinedPct  Int
+  band         String?
+  createdAt    DateTime       @default(now())
+
+  @@unique([runId, blockStartMs])
+  @@index([runId, blockStartMs])
+}

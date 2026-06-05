@@ -11,6 +11,12 @@ import {
   patchIsAttestationOnly,
   patchTouchesContent,
 } from "@/lib/sheet-record";
+import {
+  enqueueFrmsRecompute,
+  isFrmsEngineEnabled,
+  loadDriverWeekMap,
+  resolveFrmsProspectiveRegister,
+} from "@/lib/frms/orchestrator";
 
 function parseDays(daysJson: string): unknown[] {
   try {
@@ -73,7 +79,29 @@ export async function GET(
       sheet = await prisma.fatigueSheet.findUnique({ where: { id } });
       if (!sheet) return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    return NextResponse.json(sheetToJson(sheet));
+
+    const body = sheetToJson(sheet) as ReturnType<typeof sheetToJson> & {
+      risk_register?: unknown;
+      frms_cache_status?: string;
+      frms_run_id?: string | null;
+    };
+
+    if (isFrmsEngineEnabled()) {
+      const weekMap = await loadDriverWeekMap(prisma, sheet.driverName);
+      const frms = await resolveFrmsProspectiveRegister(prisma, {
+        driverName: sheet.driverName,
+        weekStarting: sheet.weekStarting,
+        weekMap,
+        jurisdictionCode: sheet.jurisdictionCode,
+        driverType: sheet.driverType,
+        userId: sheet.createdById ?? access.userId,
+      });
+      if (frms.register) body.risk_register = frms.register;
+      body.frms_cache_status = frms.cacheStatus;
+      body.frms_run_id = frms.runId;
+    }
+
+    return NextResponse.json(body);
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
@@ -246,6 +274,14 @@ export async function PATCH(
         },
       },
     });
+
+    if (isFrmsEngineEnabled() && days !== undefined) {
+      enqueueFrmsRecompute({
+        driverName: updated.driverName,
+        weekStarting: updated.weekStarting,
+        userId: updated.createdById ?? access.userId,
+      });
+    }
 
     return NextResponse.json(sheetToJson(updated));
   } catch {
