@@ -50,8 +50,8 @@ export const MANAGER_EXPERIENCE = {
 
   /** Page title and back-link label for /manager. */
   NAV_RISK_BRIEF: "Driver Overview",
-  /** App landing — switch between Driver, Manager, and Owner. */
-  NAV_LOBBY: "Lobby" as const,
+  /** App sign-in page — switch between Driver, Manager, and Owner. */
+  NAV_LOBBY: "Log-in Page" as const,
   /** Short subnav label — avoids repeating the page title in the nav bar. */
   NAV_OVERVIEW: "Overview",
   NAV_MAP: "Movement map",

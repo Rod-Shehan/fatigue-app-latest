@@ -8,6 +8,7 @@ import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
+import { LOBBY_NAV_LABEL } from "@/lib/lobby-url";
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
 
@@ -119,7 +120,7 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
         <div className="max-w-md mx-auto px-4 py-10 space-y-6">
           <PageHeader
             backHref="/"
-            backLabel="Lobby"
+            backLabel={LOBBY_NAV_LABEL}
             title={PRODUCT_NAME}
             subtitle="Organisation security setup"
             icon={<Shield className="w-5 h-5" />}
@@ -154,7 +155,7 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12 space-y-8">
         <PageHeader
           backHref="/"
-          backLabel="Lobby"
+          backLabel={LOBBY_NAV_LABEL}
           title={PRODUCT_NAME}
           subtitle="Organisation security — lockdown, users, audit"
           icon={<Shield className="w-5 h-5" />}

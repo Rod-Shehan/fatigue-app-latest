@@ -1,7 +1,7 @@
 export type LobbyBranch = "driver" | "manager" | "owner";
 
-/** Shared nav label for return to app landing (`/`). */
-export const LOBBY_NAV_LABEL = "Lobby";
+/** Shared nav label for return to the sign-in landing page (`/`). */
+export const LOBBY_NAV_LABEL = "Log-in Page";
 
 /** Single landing page sign-in URL at `/`. */
 export function lobbySignInUrl(opts: { branch?: LobbyBranch; callbackUrl?: string }): string {
