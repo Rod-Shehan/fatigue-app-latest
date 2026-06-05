@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Activity,
   Shield,
   Save,
   Loader2,
@@ -592,6 +593,125 @@ export function ManagerView() {
     (selectedSheet?.status ?? "") === "completed" &&
     Boolean(selectedSheet?.signature);
 
+  const riskScopeDayPicker = (
+    <ManagerDayPicker variant="embedded" summary={dayPickerSummary}>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-start sm:gap-x-4">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Work week
+          </Label>
+          <Select
+            value={activeWeekStarting || "all"}
+            onValueChange={(v) => setActiveWeekStarting(v === "all" ? "" : v)}
+            disabled={sheetsLoading}
+          >
+            <SelectTrigger className="h-9 w-full border-slate-200 bg-transparent text-sm font-medium dark:border-slate-600">
+              <SelectValue placeholder="Select week…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All weeks</SelectItem>
+              {weekSelectOptions.map((w) => (
+                <SelectItem key={w} value={w}>
+                  Week of {formatWeekLabel(w)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Driver
+          </Label>
+          <Select
+            value={selectedDriverFilter || "__all__"}
+            onValueChange={(v) => setSelectedDriverFilter(v === "__all__" ? "" : v)}
+            disabled={sheetsLoading || !activeWeekStarting}
+          >
+            <SelectTrigger className="h-9 w-full border-slate-200 bg-transparent text-sm font-medium dark:border-slate-600">
+              <SelectValue
+                placeholder={!activeWeekStarting ? "Choose a work week first" : "All drivers"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All drivers</SelectItem>
+              {driverOptions.map((d) => (
+                <SelectItem key={d} value={d}>
+                  {d}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Rego
+          </Label>
+          <Select
+            value={selectedRegoFilter || "__all__"}
+            onValueChange={(v) => setSelectedRegoFilter(v === "__all__" ? "" : v)}
+            disabled={sheetsLoading || !activeWeekStarting}
+          >
+            <SelectTrigger className="h-9 w-full border-slate-200 bg-transparent text-sm font-medium dark:border-slate-600">
+              <SelectValue
+                placeholder={!activeWeekStarting ? "Choose a work week first" : "All regos"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All regos</SelectItem>
+              {regoOptions.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {activeWeekStarting && !sheetsLoading ? (
+        <div className="flex flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400">
+          {driverOptions.length === 0 ? (
+            <p>
+              No driver data on {formatDayDateLabel(activeWeekStarting, activeDayIndex)} for this week.
+            </p>
+          ) : null}
+          {regoOptions.length === 0 ? (
+            <p>
+              No rego on {formatDayDateLabel(activeWeekStarting, activeDayIndex)} for this week.
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <div className="space-y-1.5">
+        <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+          Work day
+        </Label>
+        <ManagerMonthCalendar
+          viewYear={calView.y}
+          viewMonth={calView.m}
+          onViewPrev={() =>
+            setCalView(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }))
+          }
+          onViewNext={() =>
+            setCalView(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }))
+          }
+          weekStartingYmd={calendarWeekAnchor}
+          activeDayIndex={activeDayIndex}
+          onSelectDate={(weekStartingYmd, dayIndex) => {
+            setActiveWeekStarting(weekStartingYmd);
+            setActiveDayIndex(dayIndex);
+            const workDay = parseYMD(weekStartingYmd);
+            workDay.setDate(workDay.getDate() + dayIndex);
+            setCalView({ y: workDay.getFullYear(), m: workDay.getMonth() });
+          }}
+        />
+      </div>
+    </ManagerDayPicker>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
@@ -615,127 +735,6 @@ export function ManagerView() {
         <ManagerSubnav />
 
         <ManagerDomainsOverview />
-
-        <ManagerDayPicker summary={dayPickerSummary}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-start sm:gap-x-4">
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Work week
-                </Label>
-                <Select
-                  value={activeWeekStarting || "all"}
-                  onValueChange={(v) => setActiveWeekStarting(v === "all" ? "" : v)}
-                  disabled={sheetsLoading}
-                >
-                  <SelectTrigger className="h-9 w-full border-slate-200 bg-transparent text-sm font-medium dark:border-slate-600">
-                    <SelectValue placeholder="Select week…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All weeks</SelectItem>
-                    {weekSelectOptions.map((w) => (
-                      <SelectItem key={w} value={w}>
-                        Week of {formatWeekLabel(w)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Driver
-                </Label>
-                <Select
-                  value={selectedDriverFilter || "__all__"}
-                  onValueChange={(v) => setSelectedDriverFilter(v === "__all__" ? "" : v)}
-                  disabled={sheetsLoading || !activeWeekStarting}
-                >
-                  <SelectTrigger className="h-9 w-full border-slate-200 bg-transparent text-sm font-medium dark:border-slate-600">
-                    <SelectValue
-                      placeholder={
-                        !activeWeekStarting ? "Choose a work week first" : "All drivers"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All drivers</SelectItem>
-                    {driverOptions.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex min-w-0 flex-col gap-1.5">
-                <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Rego
-                </Label>
-                <Select
-                  value={selectedRegoFilter || "__all__"}
-                  onValueChange={(v) => setSelectedRegoFilter(v === "__all__" ? "" : v)}
-                  disabled={sheetsLoading || !activeWeekStarting}
-                >
-                  <SelectTrigger className="h-9 w-full border-slate-200 bg-transparent text-sm font-medium dark:border-slate-600">
-                    <SelectValue
-                      placeholder={
-                        !activeWeekStarting ? "Choose a work week first" : "All regos"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="__all__">All regos</SelectItem>
-                    {regoOptions.map((r) => (
-                      <SelectItem key={r} value={r}>
-                        {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {activeWeekStarting && !sheetsLoading ? (
-              <div className="flex flex-col gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                {driverOptions.length === 0 ? (
-                  <p>
-                    No driver data on {formatDayDateLabel(activeWeekStarting, activeDayIndex)} for this week.
-                  </p>
-                ) : null}
-                {regoOptions.length === 0 ? (
-                  <p>
-                    No rego on {formatDayDateLabel(activeWeekStarting, activeDayIndex)} for this week.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div className="space-y-1.5">
-              <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                Work day
-              </Label>
-              <ManagerMonthCalendar
-                viewYear={calView.y}
-                viewMonth={calView.m}
-                onViewPrev={() =>
-                  setCalView(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }))
-                }
-                onViewNext={() =>
-                  setCalView(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }))
-                }
-                weekStartingYmd={calendarWeekAnchor}
-                activeDayIndex={activeDayIndex}
-                onSelectDate={(weekStartingYmd, dayIndex) => {
-                  setActiveWeekStarting(weekStartingYmd);
-                  setActiveDayIndex(dayIndex);
-                  const workDay = parseYMD(weekStartingYmd);
-                  workDay.setDate(workDay.getDate() + dayIndex);
-                  setCalView({ y: workDay.getFullYear(), m: workDay.getMonth() });
-                }}
-              />
-            </div>
-        </ManagerDayPicker>
 
         <ManagerDomainSection
           id="risk-analysis"
@@ -782,16 +781,38 @@ export function ManagerView() {
           <ManagerAttentionPanel items={attentionItems} />
 
           {selectedDriverFilter ? (
-            <ManagerRiskTimelineDashboard driverName={selectedDriverFilter} demo />
+            <ManagerRiskTimelineDashboard
+              driverName={selectedDriverFilter}
+              demo
+              aboveChart={riskScopeDayPicker}
+            />
           ) : (
-            <div className="rounded-xl border border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-sm text-slate-600 dark:border-violet-800 dark:bg-violet-950/20 dark:text-slate-300">
-              <p className="font-medium text-slate-800 dark:text-slate-100">
-                {MANAGER_EXPERIENCE.TIMELINE_TITLE}
-              </p>
-              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {MANAGER_EXPERIENCE.TIMELINE_PICK_DRIVER}
-              </p>
-            </div>
+            <section
+              className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+              aria-label="Risk at a glance"
+            >
+              <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+                <div className="flex items-center gap-2">
+                  <Activity
+                    className="h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400"
+                    aria-hidden
+                  />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+                    {MANAGER_EXPERIENCE.TIMELINE_TITLE}
+                  </h3>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+                  15-minute blocks across past and planned time. Choose week, day, and driver below to
+                  view fatigue risk in each block.
+                </p>
+              </div>
+              <div className="border-b border-slate-100 dark:border-slate-800">{riskScopeDayPicker}</div>
+              <div className="rounded-b-xl border-t border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-sm text-slate-600 dark:border-violet-800 dark:bg-violet-950/20 dark:text-slate-300 sm:px-5">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {MANAGER_EXPERIENCE.TIMELINE_PICK_DRIVER}
+                </p>
+              </div>
+            </section>
           )}
 
           <ManagerDriverRegister rows={riskRegisterFiltered} loading={complianceLoading} />

@@ -9,17 +9,35 @@ export function ManagerDayPicker({
   summary,
   children,
   defaultOpen = false,
+  variant = "standalone",
 }: {
   /** One-line selection when collapsed (week · day · driver · rego). */
   summary: string;
   children: ReactNode;
   defaultOpen?: boolean;
+  /** `embedded` — nested inside another card (e.g. risk timeline). */
+  variant?: "standalone" | "embedded";
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  const embedded = variant === "embedded";
 
   return (
-    <div className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/80 sm:px-5">
+    <div
+      className={
+        embedded
+          ? "overflow-hidden"
+          : "mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+      }
+    >
+      <div
+        className={
+          embedded
+            ? `flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5${
+                open ? " border-b border-slate-100 dark:border-slate-800" : ""
+              }`
+            : "flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/80 sm:px-5"
+        }
+      >
         <div className="flex min-w-0 flex-1 items-start gap-3">
           <Calendar className="mt-0.5 h-5 w-5 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
           <div className="min-w-0">

@@ -118,7 +118,8 @@ export const MANAGER_EXPERIENCE = {
   REGISTER_SUBTITLE: "One row per driver for the selected work week — tier is a composite, not a single rule.",
 
   TIMELINE_TITLE: "Risk at a glance",
-  TIMELINE_PICK_DRIVER: "Select a driver above to see their 15-minute risk chart for this week and day.",
+  TIMELINE_PICK_DRIVER:
+    "Select a driver in the day picker to see their 15-minute risk chart for this week and day.",
 
   REFERENCE_TITLE: "Regulatory requirements & references",
   REGULATORY_SECTION_TITLE: "Regulatory requirements & references",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   CartesianGrid,
@@ -122,10 +122,13 @@ const CHART_THEME = {
 export function ManagerRiskTimelineDashboard({
   driverName,
   demo = true,
+  aboveChart,
 }: {
   driverName: string;
   /** Show demo controls when no server blocks exist yet. */
   demo?: boolean;
+  /** Scope controls (day picker) rendered directly above the chart. */
+  aboveChart?: ReactNode;
 }) {
   const { resolved: colorMode } = useTheme();
   const chart = CHART_THEME[colorMode];
@@ -293,6 +296,10 @@ export function ManagerRiskTimelineDashboard({
           </div>
         </div>
       </div>
+
+      {aboveChart ? (
+        <div className="border-b border-slate-100 dark:border-slate-800">{aboveChart}</div>
+      ) : null}
 
       <div className="px-2 py-4 sm:px-4">
         <div className="h-[280px] w-full">
