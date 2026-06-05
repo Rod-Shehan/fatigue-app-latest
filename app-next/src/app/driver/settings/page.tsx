@@ -16,7 +16,7 @@ import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { DriverSettingsDeviceSection } from "@/components/pwa/DriverSettingsDeviceSection";
 
-const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
+const MANAGER_LOGIN_HREF = `/?branch=manager&callbackUrl=${encodeURIComponent("/manager")}`;
 
 function safeReturnPath(from: string | undefined): string {
   if (!from || !from.startsWith("/") || from.startsWith("//")) return "/driver";

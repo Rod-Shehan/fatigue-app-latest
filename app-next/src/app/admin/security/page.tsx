@@ -4,7 +4,7 @@ import { OwnerSecurityView } from "./owner-security-view";
 
 export default async function OwnerSecurityPage() {
   const access = await getOwnerOrBootstrapSession();
-  if (!access) redirect("/login?ownerLogin=1&callbackUrl=%2Fadmin%2Fsecurity");
+  if (!access) redirect("/?branch=organisation&callbackUrl=%2Fadmin%2Fsecurity");
   const isOwner = access.user.role === "owner";
   return <OwnerSecurityView isOwner={isOwner} userEmail={access.user.email ?? ""} />;
 }

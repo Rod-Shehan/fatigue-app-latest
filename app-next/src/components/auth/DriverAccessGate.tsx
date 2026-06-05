@@ -35,7 +35,7 @@ export function DriverAccessGate({ children, callbackUrl, allowManager = false }
   useEffect(() => {
     if (status !== "unauthenticated") return;
     const q = encodeURIComponent(callbackUrl);
-    router.replace(`/login?callbackUrl=${q}`);
+    router.replace(`/?branch=driver&callbackUrl=${q}`);
   }, [status, callbackUrl, router]);
 
   if (status === "loading") {

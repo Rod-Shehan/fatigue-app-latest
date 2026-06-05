@@ -7,7 +7,7 @@ import { authOptions, getManagerSession } from "@/lib/auth";
  */
 export default async function MessagesPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login?callbackUrl=%2Fmessages");
+  if (!session) redirect("/?branch=driver&callbackUrl=%2Fmessages");
   const manager = await getManagerSession();
   if (manager) redirect("/manager/messages");
   redirect("/driver/messages");

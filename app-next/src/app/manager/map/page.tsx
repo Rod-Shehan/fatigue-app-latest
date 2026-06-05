@@ -4,6 +4,6 @@ import { ManagerMapView } from "./manager-map-view";
 
 export default async function ManagerMapPage() {
   const manager = await getManagerBootstrapSession();
-  if (!manager) redirect("/login?managerLogin=1&callbackUrl=%2Fmanager%2Fmap");
+  if (!manager) redirect("/?branch=manager&callbackUrl=%2Fmanager%2Fmap");
   return <ManagerMapView />;
 }

@@ -27,7 +27,7 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" as const, maxAge: 30 * 24 * 60 * 60 },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/" },
   providers: [
     CredentialsProvider({
       name: "Email and password",

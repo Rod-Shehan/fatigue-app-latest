@@ -9,7 +9,7 @@ import { BookOpen } from "lucide-react";
 
 export default async function ManagerHelpPage() {
   const manager = await getManagerBootstrapSession();
-  if (!manager) redirect("/login?managerLogin=1&callbackUrl=%2Fmanager%2Fhelp");
+  if (!manager) redirect("/?branch=manager&callbackUrl=%2Fmanager%2Fhelp");
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">

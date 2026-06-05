@@ -1,6 +1,17 @@
-import { AppLobby } from "@/components/lobby/AppLobby";
+import { Suspense } from "react";
+import { AppLanding } from "@/components/lobby/AppLanding";
 
-/** App lobby — pick Driver or Manager; each branch handles its own auth gate. */
+/** Single app landing — Driver, Manager, Organisation branches + sign-in. */
 export default function HomePage() {
-  return <AppLobby />;
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+          Loading…
+        </div>
+      }
+    >
+      <AppLanding />
+    </Suspense>
+  );
 }
