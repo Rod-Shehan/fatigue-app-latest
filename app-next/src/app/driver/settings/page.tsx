@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions, getManagerSession } from "@/lib/auth";
+import { DriverAccessGate } from "@/components/auth/DriverAccessGate";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { SettingsListRow } from "@/components/driver/SettingsListRow";
@@ -16,6 +14,7 @@ import { DriverSettingsOptions } from "./driver-settings-options";
 import { DriverSettingsRecordsSection } from "./driver-settings-records";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
+import { DriverDeviceSetupPanel } from "@/components/pwa/DriverDeviceSetupPanel";
 
 const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
 
@@ -29,11 +28,6 @@ export default async function DriverSettingsPage({
 }: {
   searchParams: Promise<{ from?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login?callbackUrl=%2Fdriver%2Fsettings");
-  const manager = await getManagerSession();
-  if (manager) redirect("/manager");
-
   const { from } = await searchParams;
   const returnHref = safeReturnPath(from);
   const backLabel =
@@ -46,6 +40,7 @@ export default async function DriverSettingsPage({
           : "Back";
 
   return (
+    <DriverAccessGate callbackUrl="/driver/settings">
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       <div className="max-w-lg mx-auto px-4 py-8 md:py-10">
         <PageHeader
@@ -61,6 +56,8 @@ export default async function DriverSettingsPage({
             <h2 className={driverSectionLabel}>Options</h2>
             <DriverSettingsOptions />
           </section>
+
+          <DriverDeviceSetupPanel />
 
           <DriverSettingsRecordsSection />
 
@@ -124,5 +121,6 @@ export default async function DriverSettingsPage({
         </div>
       </div>
     </div>
+    </DriverAccessGate>
   );
 }

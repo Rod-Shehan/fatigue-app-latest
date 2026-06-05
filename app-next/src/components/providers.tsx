@@ -5,12 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineBar } from "@/components/OfflineBar";
+import { OfflineAuthSync } from "@/components/auth/OfflineAuthSync";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   return (
     <ThemeProvider>
       <SessionProvider>
+        <OfflineAuthSync />
         <QueryClientProvider client={queryClient}>
           {children}
           <OfflineBar />

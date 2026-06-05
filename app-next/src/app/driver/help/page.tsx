@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions, getManagerSession } from "@/lib/auth";
+import { DriverAccessGate } from "@/components/auth/DriverAccessGate";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 import {
@@ -23,12 +21,8 @@ import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
 
 export default async function DriverHelpPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login?callbackUrl=%2Fdriver%2Fhelp");
-  const manager = await getManagerSession();
-  if (manager) redirect("/manager");
-
   return (
+    <DriverAccessGate callbackUrl="/driver/help">
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-10">
         <PageHeader
@@ -158,5 +152,6 @@ export default async function DriverHelpPage() {
         </article>
       </div>
     </div>
+    </DriverAccessGate>
   );
 }

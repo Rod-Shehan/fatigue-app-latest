@@ -1,7 +1,14 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
+import {
+  activateOfflineSession,
+  deactivateOfflineSession,
+  getOfflineAuth,
+  isDriverOfflineSnapshot,
+} from "@/lib/offline-auth";
+import { isOnline } from "@/lib/offline-api";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +32,39 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [offlineContinue, setOfflineContinue] = useState(false);
+  const offlineSnapshot = getOfflineAuth();
+
+  useEffect(() => {
+    let cancelled = false;
+    const check = async () => {
+      if (!isDriverOfflineSnapshot(offlineSnapshot)) {
+        if (!cancelled) setOfflineContinue(false);
+        return;
+      }
+      if (!isOnline()) {
+        if (!cancelled) setOfflineContinue(true);
+        return;
+      }
+      try {
+        const res = await fetch("/api/ping", { method: "HEAD", cache: "no-store" });
+        if (!cancelled) setOfflineContinue(!res.ok);
+      } catch {
+        if (!cancelled) setOfflineContinue(true);
+      }
+    };
+    void check();
+    return () => {
+      cancelled = true;
+    };
+  }, [offlineSnapshot?.userId]);
+
+  function continueOffline() {
+    activateOfflineSession();
+    const target =
+      callbackUrl.startsWith("/manager") || managerLoginHint ? "/driver" : callbackUrl;
+    window.location.replace(target);
+  }
 
   async function onSubmit(e: React.FormEvent, redirectTo: string = callbackUrl) {
     e.preventDefault();
@@ -58,8 +98,7 @@ function LoginForm() {
         setLoading(false);
         return;
       }
-      // Navigate via full reload so middleware/server sees the new session immediately.
-      // Use replace so Back doesn't return to a different login state.
+      deactivateOfflineSession();
       window.location.replace(res?.url || safeRedirect);
     } catch {
       setError("Something went wrong.");
@@ -90,6 +129,22 @@ function LoginForm() {
             <p className="text-xs mt-1 text-amber-800 dark:text-amber-200/90">
               Use a <strong>manager</strong> account below (or tap &quot;Sign in as Manager&quot; after entering email). You will be taken to the manager dashboard after signing in.
             </p>
+          </div>
+        )}
+        {offlineContinue && offlineSnapshot && (
+          <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 p-4 space-y-3">
+            <p className="text-sm text-teal-950 dark:text-teal-100 leading-relaxed">
+              You are offline. Continue on this device as{" "}
+              <strong>{offlineSnapshot.name || offlineSnapshot.email}</strong> to log work and produce
+              your roadside PDF from saved weeks.
+            </p>
+            <Button
+              type="button"
+              className="w-full h-12 text-base font-semibold bg-teal-700 hover:bg-teal-800 text-white"
+              onClick={continueOffline}
+            >
+              Continue offline
+            </Button>
           </div>
         )}
         <form

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionForSheetAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getPerthNowParts } from "@/app/api/sheets/[id]/export/route";
+import { getPerthNowParts } from "@/lib/perth-now";
 import {
   getRoadsideProduceFromYmd,
   selectSheetsForRoadsideProduce,

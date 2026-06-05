@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions, getManagerSession } from "@/lib/auth";
+import { DriverAccessGate } from "@/components/auth/DriverAccessGate";
 import { PageHeader } from "@/components/PageHeader";
 import { DriverGuideArticle } from "@/components/guides/DriverGuideArticle";
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
@@ -23,27 +21,24 @@ export default async function DriverGuidePage({
 }: {
   searchParams: Promise<{ from?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login?callbackUrl=%2Fdriver%2Fguide");
-  const manager = await getManagerSession();
-  if (manager) redirect("/manager");
-
   const { from } = await searchParams;
   const backHref = safeReturnPath(from);
   const backLabel = backLabelFor(backHref);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-2xl mx-auto px-4 py-8 md:py-10">
-        <PageHeader
-          backHref={backHref}
-          backLabel={backLabel}
-          title={PRODUCT_NAME}
-          subtitle="User manual — simple English with pictures"
-          icon={<BookOpen className="w-5 h-5" />}
-        />
-        <DriverGuideArticle />
+    <DriverAccessGate callbackUrl="/driver/guide">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-2xl mx-auto px-4 py-8 md:py-10">
+          <PageHeader
+            backHref={backHref}
+            backLabel={backLabel}
+            title={PRODUCT_NAME}
+            subtitle="User manual — simple English with pictures"
+            icon={<BookOpen className="w-5 h-5" />}
+          />
+          <DriverGuideArticle />
+        </div>
       </div>
-    </div>
+    </DriverAccessGate>
   );
 }

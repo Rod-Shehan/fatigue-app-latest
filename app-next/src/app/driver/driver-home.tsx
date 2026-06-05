@@ -3,18 +3,18 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
+import { useDriverAuth } from "@/hooks/use-driver-auth";
 import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
+import { InstallAndSetupCard } from "@/components/pwa/InstallAndSetupCard";
 import { driverListRow, driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { getDriverHomeShiftStatus, type DriverShiftActivity } from "@/lib/driver-home-status";
 import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
-import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import {
   findSheetForWeekStarting,
   formatSheetDisplayDate,
@@ -41,8 +41,8 @@ function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
 }
 
 export function DriverHome() {
-  const { data: session } = useSession();
-  const driverName = getDisplayNameFromSession(session ?? null);
+  const { user, isOfflineSession } = useDriverAuth();
+  const driverName = user?.name?.trim() || (user?.email?.includes("@") ? user.email.split("@")[0] : "") || "";
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -118,6 +118,7 @@ export function DriverHome() {
             <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{PRODUCT_NAME}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
               {driverName ? `Hi, ${driverName}` : "Drive"}
+              {isOfflineSession ? " · offline" : ""}
             </p>
           </div>
           <DriverSettingsLink />
@@ -132,6 +133,8 @@ export function DriverHome() {
           </div>
         ) : (
           <>
+            <InstallAndSetupCard />
+
             <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-md overflow-hidden">
               <div className="px-4 pt-4 pb-2 border-b border-slate-100 dark:border-slate-800">
                 <p className={driverSectionLabel}>

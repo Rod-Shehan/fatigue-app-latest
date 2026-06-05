@@ -1,16 +1,11 @@
-import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions, getManagerSession } from "@/lib/auth";
+import { DriverAccessGate } from "@/components/auth/DriverAccessGate";
 import SheetCompliancePage from "./sheet-compliance-page";
 
-export default async function SheetComplianceRoute({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
-  await getManagerSession();
+export default async function CompliancePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <SheetCompliancePage sheetId={id} />;
+  return (
+    <DriverAccessGate callbackUrl={`/sheets/${id}/compliance`} allowManager>
+      <SheetCompliancePage sheetId={id} />
+    </DriverAccessGate>
+  );
 }

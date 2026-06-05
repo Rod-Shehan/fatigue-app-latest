@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Maskable icons should fill the full canvas to allow safe cropping -->
+  <rect width="512" height="512" fill="#0f172a"/>
+  <circle cx="256" cy="256" r="180" fill="#0ea5a4" opacity="0.22"/>
+  <circle cx="256" cy="256" r="152" fill="#0ea5a4" opacity="0.18"/>
+  <path d="M256 124a132 132 0 1 1 0 264a132 132 0 0 1 0-264Z" fill="none" stroke="#e2e8f0" stroke-width="22"/>
+  <path d="M256 188v84l70 40" fill="none" stroke="#e2e8f0" stroke-linecap="round" stroke-linejoin="round" stroke-width="28"/>
+</svg>
+

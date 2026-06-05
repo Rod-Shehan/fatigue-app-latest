@@ -40,7 +40,7 @@ export function DriverRoadsideProducePage() {
             compliance summary, and shift log for each week in that period.
           </p>
           <ol className="text-sm text-slate-700 dark:text-slate-300 space-y-2 list-decimal list-inside">
-            <li>Tap the button below (works offline after your weeks are saved).</li>
+            <li>Tap the button below — builds a PDF on this device from saved weeks (works offline).</li>
             <li>Share or show the PDF on your phone.</li>
             <li>Keep signed records for at least 3 years — this export is produce only.</li>
           </ol>

@@ -25,6 +25,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <meta name="theme-color" content="#0f172a" />
+        <meta name="application-name" content={PRODUCT_NAME} />
+        <meta name="apple-mobile-web-app-title" content={PRODUCT_NAME} />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icons/icon-512.svg" />
       </head>
       <body>
         <Providers>

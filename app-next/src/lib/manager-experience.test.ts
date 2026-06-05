@@ -11,6 +11,7 @@ describe("manager experience copy", () => {
     expect(MANAGER_EXPERIENCE.EMPTY_ASSURANCE_PRIOR).not.toContain("this week");
     expect(MANAGER_EXPERIENCE.EMPTY_ASSURANCE_PRIOR).toContain("week before");
     expect(MANAGER_EXPERIENCE.SNAPSHOT_SUBTITLE).not.toContain("What the record shows");
-    expect(MANAGER_EXPERIENCE.SNAPSHOT_SUBTITLE).toContain("rule breaches");
+    expect(MANAGER_EXPERIENCE.SNAPSHOT_SUBTITLE).toContain("Violations");
+    expect(MANAGER_EXPERIENCE.SNAPSHOT_SUBTITLE).toContain("hard compliance");
   });
 });

@@ -27,15 +27,22 @@ export function weekOverlapsProduceWindow(
   return false;
 }
 
-export function selectSheetsForRoadsideProduce<T extends { weekStarting: string }>(
-  sheets: T[],
-  fromYmd: string,
-  toYmd: string
-): T[] {
+function sheetWeekStarting(s: { weekStarting?: string; week_starting?: string }): string {
+  return (s.weekStarting ?? s.week_starting ?? "").trim();
+}
+
+export function selectSheetsForRoadsideProduce<
+  T extends { weekStarting?: string; week_starting?: string },
+>(sheets: T[], fromYmd: string, toYmd: string): T[] {
   return sheets
-    .filter((s) => s.weekStarting && weekOverlapsProduceWindow(s.weekStarting, fromYmd, toYmd))
+    .filter((s) => {
+      const w = sheetWeekStarting(s);
+      return w && weekOverlapsProduceWindow(w, fromYmd, toYmd);
+    })
     .sort((a, b) =>
-      normalizeWeekDateString(a.weekStarting).localeCompare(normalizeWeekDateString(b.weekStarting))
+      normalizeWeekDateString(sheetWeekStarting(a)).localeCompare(
+        normalizeWeekDateString(sheetWeekStarting(b))
+      )
     );
 }
 
