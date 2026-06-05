@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { isOwnerRole } from "@/lib/roles";
 import {
   BookOpen,
   LayoutDashboard,
   Map as MapIcon,
   MapPin,
   MessageSquare,
+  Shield,
   Truck,
   UserPlus,
   Users,
@@ -31,10 +34,14 @@ const WORKSPACE: NavItem[] = [
 
 const FLEET_ADMIN: NavItem[] = [
   { href: "/drivers", label: MANAGER_EXPERIENCE.NAV_DRIVERS, icon: Users },
-  { href: "/manager/add-managers", label: MANAGER_EXPERIENCE.NAV_MANAGERS, icon: UserPlus },
   { href: "/admin/regos", label: MANAGER_EXPERIENCE.NAV_REGOS, icon: Truck },
   { href: "/admin/routes", label: MANAGER_EXPERIENCE.NAV_ROUTES, icon: MapPin },
   { href: "/manager/help", label: MANAGER_EXPERIENCE.NAV_GUIDE, icon: BookOpen },
+];
+
+const OWNER_ONLY: NavItem[] = [
+  { href: "/manager/add-managers", label: MANAGER_EXPERIENCE.NAV_MANAGERS, icon: UserPlus },
+  { href: "/admin/security", label: "Organisation security", icon: Shield },
 ];
 
 const linkClass = (active: boolean) =>
@@ -68,6 +75,9 @@ function NavGroup({ items, pathname }: { items: NavItem[]; pathname: string }) {
 
 export function ManagerSubnav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const role = (session?.user as { role?: string | null } | undefined)?.role;
+  const isOwner = isOwnerRole(role);
 
   return (
     <nav
@@ -82,6 +92,15 @@ export function ManagerSubnav() {
         />
         <div className="h-px w-full bg-slate-100 sm:hidden dark:bg-slate-800" aria-hidden />
         <NavGroup items={FLEET_ADMIN} pathname={pathname} />
+        {isOwner ? (
+          <>
+            <div
+              className="hidden h-8 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-700"
+              aria-hidden
+            />
+            <NavGroup items={OWNER_ONLY} pathname={pathname} />
+          </>
+        ) : null}
       </div>
     </nav>
   );

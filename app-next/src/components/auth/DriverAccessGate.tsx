@@ -26,9 +26,9 @@ export function DriverAccessGate({ children, callbackUrl, allowManager = false }
       return;
     }
     if (allowManager) return;
-    if (user.role === "manager") {
+    if (user.role === "manager" || user.role === "owner") {
       setManagerBlocked(true);
-      router.replace("/manager");
+      router.replace(user.role === "owner" ? "/admin/security" : "/manager");
     }
   }, [status, user, isOfflineSession, allowManager, router]);
 

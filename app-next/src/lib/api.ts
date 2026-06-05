@@ -374,4 +374,36 @@ export const api = {
     postMessage: (threadId: string, data: { body: string }) =>
       fetchApi<{ message: MessageItem }>(`/api/messages/threads/${threadId}/messages`, { method: "POST", body: data }),
   },
+  admin: {
+    getPolicy: () =>
+      fetchApi<{ policy: import("@/lib/system-policy").SystemPolicySnapshot }>("/api/admin/policy"),
+    updatePolicy: (patch: Partial<import("@/lib/system-policy").SystemPolicySnapshot>) =>
+      fetchApi<{ policy: import("@/lib/system-policy").SystemPolicySnapshot }>("/api/admin/policy", {
+        method: "PATCH",
+        body: patch,
+      }),
+    claimOwner: () => fetchApi<{ ok: boolean }>("/api/admin/claim-owner", { method: "POST" }),
+    listUsers: () =>
+      fetchApi<{
+        users: {
+          id: string;
+          email: string | null;
+          name: string | null;
+          role: string;
+          disabled: boolean;
+        }[];
+      }>("/api/admin/users"),
+    patchUser: (id: string, data: { disabled?: boolean; role?: "driver" | "manager" }) =>
+      fetchApi<{ user: { id: string; email: string | null; name: string | null; role: string; disabled: boolean } }>(
+        `/api/admin/users/${id}`,
+        { method: "PATCH", body: data }
+      ),
+    auditExportUrl: (params?: { from?: string; to?: string }) => {
+      const sp = new URLSearchParams();
+      if (params?.from) sp.set("from", params.from);
+      if (params?.to) sp.set("to", params.to);
+      const q = sp.toString();
+      return `${base}/api/admin/audit-export${q ? `?${q}` : ""}`;
+    },
+  },
 };

@@ -13,7 +13,10 @@ model User {
   email         String?   @unique
   name          String?
   passwordHash  String?
-  role          String?   // "manager" = can access manager area (must be added by a manager first)
+  /** driver (null) | manager | owner — owner is org/IT governance above fleet managers */
+  role          String?
+  /** When set, sign-in is blocked until cleared by an owner */
+  disabledAt    DateTime?
   emailVerified DateTime?
   image         String?
   accounts      Account[]
@@ -24,6 +27,19 @@ model User {
   messagesSent   Message[]
   driverRiskBlocks DriverRiskBlock[]
   routePresetsCreated RoutePreset[]
+  systemPoliciesUpdated SystemPolicy[]
+}
+
+/** Singleton org lockdown flags — owner-controlled (Phase A governance). */
+model SystemPolicy {
+  id                    String   @id @default("default")
+  loginDisabled         Boolean  @default(false)
+  driverWritesDisabled  Boolean  @default(false)
+  managerWritesDisabled Boolean  @default(false)
+  maintenanceMessage    String?
+  updatedAt             DateTime @updatedAt
+  updatedById           String?
+  updatedBy               User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
 }
 
 model Account {

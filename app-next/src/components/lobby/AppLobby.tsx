@@ -136,6 +136,15 @@ export function AppLobby() {
             );
           })}
         </div>
+
+        <p className="text-center text-sm">
+          <a
+            href={`/login?callbackUrl=${encodeURIComponent("/admin/security")}&ownerLogin=1`}
+            className="font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+          >
+            Organisation / IT sign-in
+          </a>
+        </p>
       </div>
     </div>
   );

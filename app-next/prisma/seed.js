@@ -79,6 +79,27 @@ async function main() {
   });
   console.log("Regos:", rego1.label, rego2.label);
 
+  const ownerEmail = (process.env.OWNER_SEED_EMAIL || "owner@test.local").trim().toLowerCase();
+  const ownerUser = await prisma.user.upsert({
+    where: { email: ownerEmail },
+    update: {
+      role: "owner",
+      ...(passwordHash ? { passwordHash } : {}),
+    },
+    create: {
+      email: ownerEmail,
+      name: "Organisation Owner",
+      role: "owner",
+      ...(passwordHash ? { passwordHash } : {}),
+    },
+  });
+  await prisma.systemPolicy.upsert({
+    where: { id: "default" },
+    create: { id: "default" },
+    update: {},
+  });
+  console.log("Owner:", ownerUser.email);
+
   // Test users: one manager, one driver
   const managerUser = await prisma.user.upsert({
     where: { email: "manager@test.local" },
@@ -153,7 +174,7 @@ async function main() {
   });
   console.log("Sheet:", sheet.driverName, "week", sheet.weekStarting, "status", sheet.status);
 
-  console.log("\nSeed done. Sign in as manager@test.local or driver@test.local.");
+  console.log("\nSeed done. Sign in as owner@test.local, manager@test.local, or driver@test.local.");
   if (passwordHash) {
     console.log(
       "Password: same as SEED_USER_PASSWORD or NEXTAUTH_CREDENTIALS_PASSWORD when this seed ran (stored as bcrypt hash)."

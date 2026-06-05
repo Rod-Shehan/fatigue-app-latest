@@ -1,0 +1,273 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Shield, Loader2, Download, UserPlus, LogOut } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/PageHeader";
+import { PRODUCT_NAME } from "@/lib/branding";
+import { api } from "@/lib/api";
+import type { SystemPolicySnapshot } from "@/lib/system-policy";
+
+const POLICY_KEY = ["admin", "policy"] as const;
+const USERS_KEY = ["admin", "users"] as const;
+
+function PolicyToggle({
+  label,
+  description,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 cursor-pointer">
+      <input
+        type="checkbox"
+        className="mt-1 h-4 w-4 rounded border-slate-300"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>
+        <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">{label}</span>
+        <span className="block text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{description}</span>
+      </span>
+    </label>
+  );
+}
+
+export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; userEmail: string }) {
+  const queryClient = useQueryClient();
+  const [claimError, setClaimError] = useState<string | null>(null);
+
+  const policyQuery = useQuery({
+    queryKey: POLICY_KEY,
+    queryFn: () => api.admin.getPolicy(),
+    enabled: isOwner,
+  });
+
+  const usersQuery = useQuery({
+    queryKey: USERS_KEY,
+    queryFn: () => api.admin.listUsers(),
+    enabled: isOwner,
+  });
+
+  const policyMutation = useMutation({
+    mutationFn: (patch: Partial<SystemPolicySnapshot>) => api.admin.updatePolicy(patch),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: POLICY_KEY }),
+  });
+
+  const userPatchMutation = useMutation({
+    mutationFn: (args: { id: string; disabled?: boolean; role?: "driver" | "manager" }) =>
+      api.admin.patchUser(args.id, { disabled: args.disabled, role: args.role }),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: USERS_KEY }),
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: () => api.admin.claimOwner(),
+    onSuccess: () => {
+      window.location.reload();
+    },
+    onError: () => setClaimError("Could not claim owner role. Check OWNER_SEED_EMAIL matches your account."),
+  });
+
+  const policy = policyQuery.data?.policy;
+
+  if (!isOwner) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-md mx-auto px-4 py-10 space-y-6">
+          <PageHeader
+            backHref="/"
+            backLabel="Lobby"
+            title={PRODUCT_NAME}
+            subtitle="Organisation security setup"
+            icon={<Shield className="w-5 h-5" />}
+          />
+          <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-5 space-y-4">
+            <p className="text-sm text-amber-950 dark:text-amber-100 leading-relaxed">
+              No organisation owner exists yet. If you are IT / fleet governance, claim owner access for{" "}
+              <strong>{userEmail}</strong> (must match <code className="text-xs">OWNER_SEED_EMAIL</code> on the
+              server).
+            </p>
+            {claimError ? (
+              <p className="text-sm text-red-600 dark:text-red-400 font-medium" role="alert">
+                {claimError}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              className="w-full"
+              disabled={claimMutation.isPending}
+              onClick={() => claimMutation.mutate()}
+            >
+              {claimMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Claim owner access"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12 space-y-8">
+        <PageHeader
+          backHref="/"
+          backLabel="Lobby"
+          title={PRODUCT_NAME}
+          subtitle="Organisation security — lockdown, users, audit"
+          icon={<Shield className="w-5 h-5" />}
+        />
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            System lockdown
+          </h2>
+          {policyQuery.isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          ) : policy ? (
+            <div className="space-y-3">
+              <PolicyToggle
+                label="Disable new sign-ins"
+                description="Blocks driver and manager login. Owners can still sign in for break-glass access."
+                checked={policy.loginDisabled}
+                disabled={policyMutation.isPending}
+                onChange={(loginDisabled) => policyMutation.mutate({ loginDisabled })}
+              />
+              <PolicyToggle
+                label="Freeze driver record updates"
+                description="Drivers can read and produce PDFs but cannot save sheet changes."
+                checked={policy.driverWritesDisabled}
+                disabled={policyMutation.isPending}
+                onChange={(driverWritesDisabled) => policyMutation.mutate({ driverWritesDisabled })}
+              />
+              <PolicyToggle
+                label="Freeze manager record updates"
+                description="Managers can view compliance but cannot amend sheets."
+                checked={policy.managerWritesDisabled}
+                disabled={policyMutation.isPending}
+                onChange={(managerWritesDisabled) => policyMutation.mutate({ managerWritesDisabled })}
+              />
+            </div>
+          ) : null}
+        </section>
+
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Fleet managers
+            </h2>
+            <Link
+              href="/manager/add-managers"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 dark:text-teal-400 hover:underline"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add manager
+            </Link>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Only owners can create manager accounts. Managers cannot appoint other managers.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Users</h2>
+          {usersQuery.isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          ) : (
+            <ul className="rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
+              {(usersQuery.data?.users ?? []).map((u) => (
+                <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
+                      {u.name || u.email || u.id}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {u.email} · {u.role}
+                      {u.disabled ? " · disabled" : ""}
+                    </p>
+                  </div>
+                  {u.role !== "owner" ? (
+                    <div className="flex gap-2">
+                      {u.role === "manager" ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={userPatchMutation.isPending}
+                          onClick={() => userPatchMutation.mutate({ id: u.id, role: "driver" })}
+                        >
+                          Demote
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={userPatchMutation.isPending}
+                          onClick={() => userPatchMutation.mutate({ id: u.id, role: "manager" })}
+                        >
+                          Make manager
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={userPatchMutation.isPending}
+                        onClick={() => userPatchMutation.mutate({ id: u.id, disabled: !u.disabled })}
+                      >
+                        {u.disabled ? "Enable" : "Disable"}
+                      </Button>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Audit export
+          </h2>
+          <a
+            href={api.admin.auditExportUrl()}
+            download
+            className="inline-flex items-center gap-2 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            <Download className="w-4 h-4" />
+            Download audit JSON
+          </a>
+        </section>
+
+        <section className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-3">
+          <Link
+            href="/manager"
+            className="inline-flex items-center justify-center rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+          >
+            Manager dashboard
+          </Link>
+          <Button
+            type="button"
+            variant="outline"
+            className="gap-2 text-red-600 dark:text-red-400"
+            onClick={() => signOut({ callbackUrl: "/" })}
+          >
+            <LogOut className="w-4 h-4" />
+            Sign out
+          </Button>
+        </section>
+      </div>
+    </div>
+  );
+}

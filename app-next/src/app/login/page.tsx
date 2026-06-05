@@ -13,7 +13,7 @@ import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LogIn, LayoutDashboard } from "lucide-react";
+import { LogIn, LayoutDashboard, Shield } from "lucide-react";
 import { PRODUCT_NAME, TAGLINE_VEHICLE } from "@/lib/branding";
 
 function LoginForm() {
@@ -28,6 +28,7 @@ function LoginForm() {
       ? rawCallback
       : "/driver";
   const managerLoginHint = searchParams.get("managerLogin") === "1";
+  const ownerLoginHint = searchParams.get("ownerLogin") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -62,7 +63,12 @@ function LoginForm() {
   function continueOffline() {
     activateOfflineSession();
     const target =
-      callbackUrl.startsWith("/manager") || managerLoginHint ? "/driver" : callbackUrl;
+      callbackUrl.startsWith("/manager") ||
+      callbackUrl.startsWith("/admin") ||
+      managerLoginHint ||
+      ownerLoginHint
+        ? "/driver"
+        : callbackUrl;
     window.location.replace(target);
   }
 
@@ -120,9 +126,11 @@ function LoginForm() {
             {TAGLINE_VEHICLE}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-            {managerLoginHint
-              ? "Manager sign-in — fleet compliance and driver overview."
-              : "Driver sign-in — log shifts and keep your weekly record on this device."}
+            {ownerLoginHint
+              ? "Organisation sign-in — security, lockdown, and governance."
+              : managerLoginHint
+                ? "Manager sign-in — fleet compliance and driver overview."
+                : "Driver sign-in — log shifts and keep your weekly record on this device."}
           </p>
         </div>
         {managerLoginHint && (
@@ -199,7 +207,17 @@ function LoginForm() {
             >
               {loading ? "Signing in…" : "Sign in"}
             </Button>
-            {managerLoginHint ? (
+            {ownerLoginHint ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full h-12 text-base border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-medium gap-2"
+                disabled={loading}
+                onClick={(e) => onSubmit(e, "/admin/security")}
+              >
+                <Shield className="w-4 h-4" /> Sign in to Organisation security
+              </Button>
+            ) : managerLoginHint ? (
               <Button
                 type="button"
                 variant="outline"
@@ -210,12 +228,20 @@ function LoginForm() {
                 <LayoutDashboard className="w-4 h-4" /> Sign in to Manager
               </Button>
             ) : (
-              <a
-                href={`/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`}
-                className="block text-center text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 pt-1"
-              >
-                Manager sign-in
-              </a>
+              <div className="space-y-1 pt-1">
+                <a
+                  href={`/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`}
+                  className="block text-center text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                >
+                  Manager sign-in
+                </a>
+                <a
+                  href={`/login?callbackUrl=${encodeURIComponent("/admin/security")}&ownerLogin=1`}
+                  className="block text-center text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                >
+                  Organisation / IT sign-in
+                </a>
+              </div>
             )}
           </div>
         </form>

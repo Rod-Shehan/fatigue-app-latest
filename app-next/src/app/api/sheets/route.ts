@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionForSheetAccess } from "@/lib/auth";
+import { getSystemPolicy, sheetWritesBlocked } from "@/lib/system-policy";
 import { prisma } from "@/lib/prisma";
 import { autoCloseStaleDraftSheetsForUser } from "@/lib/sheet-auto-close-db";
 import { getThisWeekSunday, isNextWeekOrLater } from "@/lib/weeks";
@@ -75,6 +76,11 @@ export async function GET() {
 export async function POST(req: Request) {
   const access = await getSessionForSheetAccess();
   if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const writeBlock = sheetWritesBlocked(await getSystemPolicy(), {
+    isManager: access.isManager,
+    isOwner: access.isOwner,
+  });
+  if (writeBlock) return NextResponse.json({ error: writeBlock, code: "WRITES_DISABLED" }, { status: 403 });
   try {
     await autoCloseStaleDraftSheetsForUser(access.userId);
 

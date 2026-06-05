@@ -8,6 +8,8 @@ import {
   tryLocalDevelopmentLogin,
   tryPasswordlessStagingLogin,
 } from "./auth-dev-login";
+import { isFleetManagerRole, isOwnerRole } from "./roles";
+import { getSystemPolicy, loginBlockedForRole } from "./system-policy";
 
 /**
  * Production sign-in:
@@ -39,42 +41,76 @@ export const authOptions: NextAuthOptions = {
         const sharedPassRaw = process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
         const sharedPass =
           typeof sharedPassRaw === "string" && sharedPassRaw.trim().length > 0 ? sharedPassRaw.trim() : "";
-        // Default true (fleet password first). Opt out with NEXTAUTH_SHARED_PASSWORD_PRIORITY=false or 0.
         const sharedPasswordPriority =
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "false" &&
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "0";
 
         const localDev = await tryLocalDevelopmentLogin(email, password);
-        if (localDev) return localDev;
+        if (localDev) {
+          const devUser = await prisma.user.findUnique({
+            where: { id: localDev.id },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true },
+          });
+          if (!devUser || devUser.disabledAt || loginBlockedForRole(await getSystemPolicy(), devUser.role)) {
+            return null;
+          }
+          return { id: devUser.id, email: devUser.email, name: devUser.name };
+        }
 
         const bypass = await tryDevBypassSecretLogin(email, password);
-        if (bypass) return bypass;
+        if (bypass) {
+          const bypassUser = await prisma.user.findUnique({
+            where: { id: bypass.id },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true },
+          });
+          if (!bypassUser || bypassUser.disabledAt || loginBlockedForRole(await getSystemPolicy(), bypassUser.role)) {
+            return null;
+          }
+          return { id: bypassUser.id, email: bypassUser.email, name: bypassUser.name };
+        }
 
         const passwordlessStaging = await tryPasswordlessStagingLogin(email, password);
-        if (passwordlessStaging) return passwordlessStaging;
+        if (passwordlessStaging) {
+          const stagingUser = await prisma.user.findUnique({
+            where: { id: passwordlessStaging.id },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true },
+          });
+          if (
+            !stagingUser ||
+            stagingUser.disabledAt ||
+            loginBlockedForRole(await getSystemPolicy(), stagingUser.role)
+          ) {
+            return null;
+          }
+          return { id: stagingUser.id, email: stagingUser.email, name: stagingUser.name };
+        }
 
         if (!email) return null;
 
         const existing = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, email: true, name: true, passwordHash: true },
+          select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
         });
+
+        if (existing?.disabledAt) return null;
+
+        const policy = await getSystemPolicy();
+        if (loginBlockedForRole(policy, existing?.role)) return null;
 
         const sharedPasswordMatches = sharedPass.length > 0 && password.trim() === sharedPass;
 
-        // Optional: fleet shared password wins over per-user hash (forgotten passwords, rotated shared secret).
         if (sharedPasswordPriority && sharedPasswordMatches) {
           let user = existing;
           if (!user) {
             user = await prisma.user.create({
               data: { email, name: email.split("@")[0] },
-              select: { id: true, email: true, name: true, passwordHash: true },
+              select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
             });
           }
+          if (loginBlockedForRole(policy, user.role)) return null;
           return { id: user.id, email: user.email, name: user.name };
         }
 
-        // If the user has a manager-set password, require it (unless shared priority handled above).
         if (existing?.passwordHash) {
           if (!password) return null;
           const ok = await bcrypt.compare(password, existing.passwordHash);
@@ -82,16 +118,15 @@ export const authOptions: NextAuthOptions = {
           return { id: existing.id, email: existing.email, name: existing.name };
         }
 
-        // (Dev blank-password handling is done above, before shared/passwordHash logic.)
-
-        // Shared password when user has no passwordHash (or hash path skipped). Trimmed match.
         if (sharedPasswordMatches) {
           let user = existing;
           if (!user) {
             user = await prisma.user.create({
               data: { email, name: email.split("@")[0] },
+              select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
             });
           }
+          if (loginBlockedForRole(policy, user.role)) return null;
           return { id: user.id, email: user.email, name: user.name };
         }
         return null;
@@ -110,17 +145,15 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { role: true },
-        });
-        token.role = dbUser?.role ?? null;
       }
-      if (token.role === undefined && token.id) {
+      if (token.id) {
         const dbUser = await prisma.user.findUnique({
-          where: { id: token.id },
-          select: { role: true },
+          where: { id: token.id as string },
+          select: { role: true, disabledAt: true },
         });
+        if (dbUser?.disabledAt) {
+          return {};
+        }
         token.role = dbUser?.role ?? null;
       }
       return token;
@@ -132,6 +165,7 @@ export const authOptions: NextAuthOptions = {
       session: import("next-auth").Session;
       token: Record<string, unknown> & { id?: string; name?: string | null; email?: string | null; role?: string | null };
     }) {
+      if (!token.id) return session;
       if (session.user) {
         (session.user as { id?: string; role?: string | null }).id = token.id as string;
         if ("name" in token) session.user.name = (token.name as string | null) ?? session.user.name ?? null;
@@ -147,28 +181,22 @@ export type SheetAccess = {
   session: { user?: { id?: string; email?: string | null; name?: string | null } };
   userId: string;
   isManager: boolean;
+  isOwner: boolean;
 };
 
-/**
- * Returns session and sheet-access context: drivers can only access their own sheets
- * (createdById === userId); managers can access all. Use with canAccessSheet.
- */
 export async function getSessionForSheetAccess(): Promise<SheetAccess | null> {
   const session = await getServerSession(authOptions);
   const userId = session?.user && "id" in session.user ? (session.user as { id: string }).id : undefined;
   if (!userId) return null;
-  const manager = await getManagerSession();
+  const role = (session?.user as { role?: string | null } | undefined)?.role;
   return {
     session: session!,
     userId,
-    isManager: !!manager,
+    isManager: isFleetManagerRole(role),
+    isOwner: isOwnerRole(role),
   };
 }
 
-/**
- * True if the given access can read/update this sheet. Drivers: only own sheets (createdById match).
- * Managers: all sheets.
- */
 export function canAccessSheet(
   sheet: { createdById: string | null },
   access: SheetAccess
@@ -177,44 +205,74 @@ export function canAccessSheet(
   return sheet.createdById === access.userId;
 }
 
-type ManagerSessionResult = {
+type AuthSessionResult = {
   session: NonNullable<Awaited<ReturnType<typeof getServerSession>>>;
   user: { id: string; email: string | null; name: string | null; role: string | null };
 };
 
-async function loadManagerSessionUser(): Promise<ManagerSessionResult | null> {
+export async function loadAuthUser(): Promise<AuthSessionResult | null> {
   const session = await getServerSession(authOptions);
   const userId = session?.user ? (session.user as { id?: string }).id : undefined;
   if (!userId || !session) return null;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true },
+    select: { id: true, email: true, name: true, role: true, disabledAt: true },
   });
-  if (!user) return null;
+  if (!user || user.disabledAt) return null;
   return { session, user };
 }
 
-/** Strict manager role from DB — use for API data access and manager-only pages. */
-export async function getManagerSession(): Promise<ManagerSessionResult | null> {
-  const loaded = await loadManagerSessionUser();
-  if (!loaded || loaded.user.role !== "manager") return null;
+/** Fleet manager or owner — manager-area pages and fleet APIs. */
+export async function getManagerSession(): Promise<AuthSessionResult | null> {
+  const loaded = await loadAuthUser();
+  if (!loaded || !isFleetManagerRole(loaded.user.role)) return null;
   return loaded;
 }
 
+/** Organisation owner / IT admin — governance and security only. */
+export async function getOwnerSession(): Promise<AuthSessionResult | null> {
+  const loaded = await loadAuthUser();
+  if (!loaded || !isOwnerRole(loaded.user.role)) return null;
+  return loaded;
+}
+
+function getOwnerSeedEmail(): string | null {
+  const raw = process.env.OWNER_SEED_EMAIL;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim().toLowerCase();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 /**
- * Manager UI bootstrap: allows any signed-in user when no manager exists yet.
- * Use only for /manager pages and POST /api/users (first manager). Never for sheet/driver APIs.
+ * First owner setup: signed-in user matches OWNER_SEED_EMAIL when no owner exists yet.
+ * Use only for /admin/security and POST /api/admin/claim-owner.
  */
-export async function getManagerBootstrapSession(): Promise<ManagerSessionResult | null> {
-  const loaded = await loadManagerSessionUser();
+export async function getOwnerBootstrapSession(): Promise<AuthSessionResult | null> {
+  const loaded = await loadAuthUser();
   if (!loaded) return null;
-  if (loaded.user.role === "manager") return loaded;
+  if (isOwnerRole(loaded.user.role)) return loaded;
+  const anyOwner = await prisma.user.findFirst({ where: { role: "owner" }, select: { id: true } });
+  if (anyOwner) return null;
+  const seedEmail = getOwnerSeedEmail();
+  if (!seedEmail || loaded.user.email?.toLowerCase() !== seedEmail) return null;
+  return loaded;
+}
+
+export async function getOwnerOrBootstrapSession(): Promise<AuthSessionResult | null> {
+  return (await getOwnerSession()) ?? (await getOwnerBootstrapSession());
+}
+
+/**
+ * Manager UI bootstrap when no owner and no manager exist (legacy greenfield only).
+ * Once an owner exists, managers must be appointed by the owner.
+ */
+export async function getManagerBootstrapSession(): Promise<AuthSessionResult | null> {
+  const loaded = await loadAuthUser();
+  if (!loaded) return null;
+  if (isFleetManagerRole(loaded.user.role)) return loaded;
+  const anyOwner = await prisma.user.findFirst({ where: { role: "owner" }, select: { id: true } });
+  if (anyOwner) return null;
   const anyManager = await prisma.user.findFirst({ where: { role: "manager" }, select: { id: true } });
   if (!anyManager) return loaded;
   return null;
-}
-
-/** Manager session or bootstrap — for creating the first manager account only. */
-export async function getManagerOrBootstrapSession(): Promise<ManagerSessionResult | null> {
-  return (await getManagerSession()) ?? (await getManagerBootstrapSession());
 }

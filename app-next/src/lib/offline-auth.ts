@@ -59,7 +59,8 @@ export function getOfflineAuth(): OfflineAuthSnapshot | null {
 }
 
 export function isDriverOfflineSnapshot(snapshot: OfflineAuthSnapshot | null): boolean {
-  return !!snapshot && snapshot.role !== "manager";
+  if (!snapshot) return false;
+  return snapshot.role !== "manager" && snapshot.role !== "owner";
 }
 
 export function activateOfflineSession(): void {

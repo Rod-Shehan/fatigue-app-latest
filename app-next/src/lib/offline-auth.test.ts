@@ -48,6 +48,16 @@ describe("offline-auth", () => {
     expect(isDriverOfflineSnapshot(getOfflineAuth())).toBe(false);
   });
 
+  it("rejects owner snapshot for driver offline", () => {
+    saveOfflineAuth({
+      id: "o1",
+      email: "owner@fleet.com",
+      name: "IT",
+      role: "owner",
+    });
+    expect(isDriverOfflineSnapshot(getOfflineAuth())).toBe(false);
+  });
+
   it("expires old snapshots", () => {
     saveOfflineAuth({ id: "u1", email: "a@b.com", name: "A", role: null });
     const raw = localStorage.getItem("fatigue-offline-auth");
