@@ -9,6 +9,7 @@ import {
   ROADSIDE_PDF_DISCLAIMER,
 } from "@/lib/roadside-pdf";
 import { driverIconBtn } from "@/components/driver/driver-ui-classes";
+import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 
 export function DriverRoadsideProducePage() {
   return (
@@ -28,7 +29,10 @@ export function DriverRoadsideProducePage() {
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">For regulator inspection</p>
           </div>
-          <FileBadge className="w-7 h-7 text-amber-600 shrink-0" aria-hidden />
+          <div className="flex items-center gap-2 shrink-0">
+            <LobbyNavLink iconOnly />
+            <FileBadge className="w-7 h-7 text-amber-600 shrink-0" aria-hidden />
+          </div>
         </div>
       </header>
 

@@ -7,6 +7,7 @@ import { useDriverAuth } from "@/hooks/use-driver-auth";
 import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
+import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { InstallAndSetupCard } from "@/components/pwa/InstallAndSetupCard";
 import { DeviceBackupRestoreBanner } from "@/components/pwa/DeviceBackupRestoreBanner";
@@ -124,7 +125,10 @@ export function DriverHome() {
               {isOfflineSession ? " · offline" : ""}
             </p>
           </div>
-          <DriverSettingsLink />
+          <div className="flex items-center gap-2 shrink-0">
+            <LobbyNavLink iconOnly />
+            <DriverSettingsLink />
+          </div>
         </div>
       </header>
 

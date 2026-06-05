@@ -6,6 +6,7 @@ import { ArrowLeft, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { formatRoleBadge, getDisplayNameFromSession } from "@/lib/session-display-name";
+import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 
 /**
  * Consistent page header across the app.
@@ -24,6 +25,8 @@ export function PageHeader({
   driverIdentity,
   /** Slim header for sheet + LogBar (mobile-first). Hides driver tile and shrinks title. */
   compact = false,
+  /** Set false when a page subnav already includes Lobby (e.g. ManagerSubnav). */
+  showLobbyLink = true,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
   backHref?: string;
@@ -45,6 +48,7 @@ export function PageHeader({
     isManagerView?: boolean;
   } | null;
   compact?: boolean;
+  showLobbyLink?: boolean;
 }) {
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
@@ -62,6 +66,7 @@ export function PageHeader({
   const di =
     driverIdentity != null && driverIdentity.name.trim() !== "" ? driverIdentity : null;
   const hasDriverTile = di != null && !compact;
+  const showRightColumn = hasDriverTile || showLobbyLink || actions != null;
 
   const driverTile = di ? (
     <div
@@ -169,7 +174,7 @@ export function PageHeader({
           </div>
         </div>
 
-        {(driverTile != null || actions != null) && (
+        {showRightColumn ? (
           <div
             className={cn(
               "flex min-w-0 w-full shrink-0 gap-2",
@@ -179,18 +184,19 @@ export function PageHeader({
             )}
           >
             {driverTile}
-            {actions != null && (
+            {showLobbyLink || actions != null ? (
               <div
                 className={cn(
                   "flex flex-wrap items-center gap-2",
                   hasDriverTile ? "justify-start lg:justify-end" : "min-w-0 justify-start sm:justify-end"
                 )}
               >
+                {showLobbyLink ? <LobbyNavLink /> : null}
                 {actions}
               </div>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
     </header>
   );

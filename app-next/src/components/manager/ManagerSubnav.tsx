@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { isOwnerRole } from "@/lib/roles";
+import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 import {
   BookOpen,
   LayoutDashboard,
@@ -85,6 +86,12 @@ export function ManagerSubnav() {
       aria-label="Manager navigation"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
+        <LobbyNavLink />
+        <div
+          className="hidden h-8 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-700"
+          aria-hidden
+        />
+        <div className="h-px w-full bg-slate-100 sm:hidden dark:bg-slate-800" aria-hidden />
         <NavGroup items={WORKSPACE} pathname={pathname} />
         <div
           className="hidden h-8 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-700"

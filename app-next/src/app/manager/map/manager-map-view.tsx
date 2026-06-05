@@ -85,6 +85,7 @@ export function ManagerMapView() {
           title={MANAGER_EXPERIENCE.NAV_MAP}
           subtitle={MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE}
           icon={<Map className="w-5 h-5 sm:w-6 sm:h-6" />}
+          showLobbyLink={false}
         />
         <ManagerSubnav />
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">

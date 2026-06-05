@@ -104,6 +104,7 @@ export function ManagerMessagesView() {
           title={MANAGER_EXPERIENCE.NAV_MESSAGES}
           subtitle={MANAGER_EXPERIENCE.MESSAGES_PAGE_SUBTITLE}
           icon={<MessageSquare className="w-5 h-5" />}
+          showLobbyLink={false}
         />
         <ManagerSubnav />
 
