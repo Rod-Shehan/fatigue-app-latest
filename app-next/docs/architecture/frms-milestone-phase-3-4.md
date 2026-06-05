@@ -13,7 +13,7 @@ This document records a critical juncture: the app moves from TypeScript-only pr
 | Commit | Scope | Summary |
 |--------|--------|---------|
 | `53408ca` | `app-next/` | Phase 3–4 wiring: Prisma cache, orchestrator, internal worker, API hooks |
-| `a73df02` | `frms-engine/` | Production TPMA math engine + FastAPI `/v1/risk-profile` + this record |
+| `23f60bf` | `frms-engine/` | Production TPMA math engine + FastAPI `/v1/risk-profile` + this record |
 
 ---
 
