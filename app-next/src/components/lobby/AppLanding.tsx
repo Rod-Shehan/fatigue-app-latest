@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { signIn, useSession } from "next-auth/react";
-import { Briefcase, ChevronRight, LayoutDashboard, Shield } from "lucide-react";
+import { signIn, signOut, useSession } from "next-auth/react";
+import { Briefcase, ChevronRight, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,8 @@ import {
 } from "@/lib/offline-auth";
 import { isOnline } from "@/lib/offline-api";
 import { lobbyBranchFromCallback, type LobbyBranch } from "@/lib/lobby-url";
+import { canEnterLobbyBranch, normalizeUserRole } from "@/lib/roles";
+import { clearOfflineAuth } from "@/lib/offline-auth";
 import { cn } from "@/lib/utils";
 
 type BranchConfig = {
@@ -80,6 +82,26 @@ function resolveBranchFromParams(searchParams: URLSearchParams): LobbyBranch {
   return lobbyBranchFromCallback(callbackUrl);
 }
 
+const LOBBY_ERROR_MESSAGES: Record<string, string> = {
+  owner_required:
+    "Owner access needs an owner account. Sign out and sign in as owner, or choose Driver or Manager.",
+  manager_required:
+    "Manager access needs a manager or owner account. Sign out and sign in with the right account, or choose Driver.",
+};
+
+function lobbyErrorMessage(searchParams: URLSearchParams): string | null {
+  const code = searchParams.get("error");
+  if (!code) return null;
+  return LOBBY_ERROR_MESSAGES[code] ?? null;
+}
+
+function roleAccountLabel(role: string | null | undefined): string {
+  const normalized = normalizeUserRole(role);
+  if (normalized === "owner") return "Owner account";
+  if (normalized === "manager") return "Manager account";
+  return "Driver account";
+}
+
 function safeCallbackUrl(searchParams: URLSearchParams, branch: BranchConfig): string {
   const raw = searchParams.get("callbackUrl");
   if (
@@ -103,7 +125,9 @@ export function AppLanding() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [branchError, setBranchError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [offlineContinue, setOfflineContinue] = useState(false);
   const offlineSnapshot = getOfflineAuth();
 
@@ -112,6 +136,8 @@ export function AppLanding() {
 
   useEffect(() => {
     setActiveBranch(resolveBranchFromParams(searchParams));
+    const urlError = lobbyErrorMessage(searchParams);
+    if (urlError) setBranchError(urlError);
     if (searchParams.has("callbackUrl") || searchParams.has("branch")) {
       setShowSignIn(true);
     }
@@ -148,12 +174,26 @@ export function AppLanding() {
 
   function onBranchSelect(next: BranchConfig) {
     setActiveBranch(next.id);
+    setBranchError("");
     if (status === "authenticated") {
+      const role = (session?.user as { role?: string | null } | undefined)?.role;
+      if (!canEnterLobbyBranch(next.id, role)) {
+        setBranchError(
+          `${next.title} access needs a ${next.title.toLowerCase()} account. Sign out and sign in with the right account, or choose another branch.`
+        );
+        return;
+      }
       window.location.href = next.href;
       return;
     }
     setShowSignIn(true);
     setError("");
+  }
+
+  function onSignOut() {
+    setSigningOut(true);
+    clearOfflineAuth();
+    void signOut({ callbackUrl: "/" });
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -186,10 +226,9 @@ export function AppLanding() {
     setLoading(false);
   }
 
-  const signedInLabel =
-    status === "authenticated" && session?.user?.email
-      ? session.user.name?.trim() || session.user.email
-      : null;
+  const signedInEmail =
+    status === "authenticated" && session?.user?.email ? session.user.email : null;
+  const signedInRole = (session?.user as { role?: string | null } | undefined)?.role;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-10">
@@ -200,14 +239,35 @@ export function AppLanding() {
           </h1>
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">{TAGLINE_VEHICLE}</p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-            Choose how you are using the app — sign in on this page when prompted.
+            {signedInEmail
+              ? "Choose how you want to use the app — your branch choice decides where you go."
+              : "Choose how you are using the app — sign in on this page when prompted."}
           </p>
-          {signedInLabel ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Signed in as <span className="font-semibold text-slate-700 dark:text-slate-200">{signedInLabel}</span>
-            </p>
+          {signedInEmail ? (
+            <div className="mt-3 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Signed in as{" "}
+                <span className="font-semibold text-slate-700 dark:text-slate-200">{signedInEmail}</span>
+                <span className="text-slate-400 dark:text-slate-500"> · {roleAccountLabel(signedInRole)}</span>
+              </p>
+              <button
+                type="button"
+                onClick={onSignOut}
+                disabled={signingOut}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-60"
+              >
+                <LogOut className="w-3.5 h-3.5" aria-hidden />
+                {signingOut ? "Signing out…" : "Sign out"}
+              </button>
+            </div>
           ) : null}
         </div>
+
+        {branchError ? (
+          <p className="text-sm text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-center" role="alert">
+            {branchError}
+          </p>
+        ) : null}
 
         {offlineContinue && offlineSnapshot && activeBranch === "driver" ? (
           <div className="rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 p-4 space-y-3">
@@ -229,6 +289,8 @@ export function AppLanding() {
           {BRANCHES.map((b) => {
             const Icon = b.icon;
             const selected = activeBranch === b.id;
+            const branchAllowed =
+              status !== "authenticated" || canEnterLobbyBranch(b.id, signedInRole);
             return (
               <button
                 key={b.id}
@@ -252,8 +314,15 @@ export function AppLanding() {
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed flex-1">
                   {b.description}
                 </p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100">
-                  {status === "authenticated" ? "Enter" : "Sign in"}
+                <span
+                  className={cn(
+                    "mt-4 inline-flex items-center gap-1 text-sm font-semibold",
+                    branchAllowed
+                      ? "text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-slate-100"
+                      : "text-slate-400 dark:text-slate-500"
+                  )}
+                >
+                  {status === "authenticated" ? (branchAllowed ? "Enter" : "Not available") : "Sign in"}
                   <ChevronRight className="w-4 h-4" aria-hidden />
                 </span>
               </button>

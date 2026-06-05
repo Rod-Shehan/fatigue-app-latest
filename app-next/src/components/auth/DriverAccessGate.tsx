@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useDriverAuth } from "@/hooks/use-driver-auth";
@@ -8,29 +8,15 @@ import { useDriverAuth } from "@/hooks/use-driver-auth";
 type Props = {
   children: React.ReactNode;
   callbackUrl: string;
-  /** When true, managers with a live session may access (e.g. sheet detail). */
-  allowManager?: boolean;
 };
 
 /**
- * Client auth gate for driver routes — allows device offline session without server redirect.
+ * Client auth gate for driver routes — allows any signed-in account (managers often drive too).
+ * Device offline session works without server redirect.
  */
-export function DriverAccessGate({ children, callbackUrl, allowManager = false }: Props) {
+export function DriverAccessGate({ children, callbackUrl }: Props) {
   const router = useRouter();
-  const { user, status, isOfflineSession } = useDriverAuth();
-  const [managerBlocked, setManagerBlocked] = useState(false);
-
-  useEffect(() => {
-    if (status !== "authenticated" || !user || isOfflineSession) {
-      setManagerBlocked(false);
-      return;
-    }
-    if (allowManager) return;
-    if (user.role === "manager" || user.role === "owner") {
-      setManagerBlocked(true);
-      router.replace(user.role === "owner" ? "/admin/security" : "/manager");
-    }
-  }, [status, user, isOfflineSession, allowManager, router]);
+  const { user, status } = useDriverAuth();
 
   useEffect(() => {
     if (status !== "unauthenticated") return;
@@ -46,7 +32,7 @@ export function DriverAccessGate({ children, callbackUrl, allowManager = false }
     );
   }
 
-  if (status !== "authenticated" || !user || managerBlocked) {
+  if (status !== "authenticated" || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
         <Loader2 className="w-8 h-8 animate-spin text-slate-400" aria-label="Loading" />

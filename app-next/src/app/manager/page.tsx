@@ -4,6 +4,6 @@ import { ManagerView } from "./manager-view";
 
 export default async function ManagerPage() {
   const manager = await getManagerBootstrapSession();
-  if (!manager) redirect("/?branch=manager&callbackUrl=%2Fmanager");
+  if (!manager) redirect("/?branch=manager&callbackUrl=%2Fmanager&error=manager_required");
   return <ManagerView />;
 }

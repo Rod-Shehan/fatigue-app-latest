@@ -6,7 +6,7 @@ export default async function SheetPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const managerSession = await getManagerSession();
   return (
-    <DriverAccessGate callbackUrl={`/sheets/${id}`} allowManager>
+    <DriverAccessGate callbackUrl={`/sheets/${id}`}>
       <SheetDetail sheetId={id} canAccessManager={!!managerSession} />
     </DriverAccessGate>
   );

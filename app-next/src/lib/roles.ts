@@ -41,3 +41,13 @@ export function isFleetManagerRole(role: string | null | undefined): boolean {
 export function isDriverFieldRole(role: string | null | undefined): boolean {
   return !hasMinRole(role, "manager");
 }
+
+/** Lobby branch entry for a signed-in account (bootstrap owner is server-only). */
+export function canEnterLobbyBranch(
+  branch: "driver" | "manager" | "owner",
+  role: string | null | undefined
+): boolean {
+  if (branch === "driver") return true;
+  if (branch === "manager") return hasMinRole(role, "manager");
+  return isOwnerRole(role);
+}

@@ -4,7 +4,7 @@ import ShiftLogPage from "./shift-log-page";
 export default async function ShiftLogRoutePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   return (
-    <DriverAccessGate callbackUrl={`/sheets/${id}/shift-log`} allowManager>
+    <DriverAccessGate callbackUrl={`/sheets/${id}/shift-log`}>
       <ShiftLogPage sheetId={id} />
     </DriverAccessGate>
   );
