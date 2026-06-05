@@ -12,6 +12,7 @@ import {
   requestPersistentStorage,
   setDeviceSetupComplete,
 } from "@/lib/device-setup";
+import { writeDeviceSnapshot } from "@/lib/device-backup";
 
 export function DeviceSetupDialog({
   open,
@@ -51,6 +52,7 @@ export function DeviceSetupDialog({
     else if (res.persisted) setPersistResult("Storage protection: enabled.");
     else setPersistResult("Storage protection: requested (not guaranteed).");
     setDeviceSetupComplete();
+    await writeDeviceSnapshot({ force: true }).catch(() => {});
     setWorking(false);
     onCompleted?.();
     onOpenChange(false);

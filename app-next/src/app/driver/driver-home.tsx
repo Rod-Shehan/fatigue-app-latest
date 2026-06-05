@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { InstallAndSetupCard } from "@/components/pwa/InstallAndSetupCard";
+import { DeviceBackupRestoreBanner } from "@/components/pwa/DeviceBackupRestoreBanner";
+import { useDeviceBackup } from "@/hooks/use-device-backup";
 import { driverListRow, driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
 import { PRODUCT_NAME } from "@/lib/branding";
@@ -42,6 +44,7 @@ function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
 
 export function DriverHome() {
   const { user, isOfflineSession } = useDriverAuth();
+  const { restoreNotice, dismissRestoreNotice } = useDeviceBackup(user?.email);
   const driverName = user?.name?.trim() || (user?.email?.includes("@") ? user.email.split("@")[0] : "") || "";
   const [now, setNow] = useState(() => Date.now());
 
@@ -134,6 +137,13 @@ export function DriverHome() {
         ) : (
           <>
             <InstallAndSetupCard />
+
+            {restoreNotice && (
+              <DeviceBackupRestoreBanner
+                weekCount={restoreNotice.weekCount}
+                onDismiss={dismissRestoreNotice}
+              />
+            )}
 
             <div className="rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-md overflow-hidden">
               <div className="px-4 pt-4 pb-2 border-b border-slate-100 dark:border-slate-800">

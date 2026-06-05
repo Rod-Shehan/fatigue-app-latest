@@ -7,12 +7,15 @@
 import type { FatigueSheet } from "./api";
 import type { Rego } from "./api";
 
-const DB_NAME = "fatigue-offline";
-const DB_VERSION = 1;
+export const OFFLINE_DB_NAME = "fatigue-offline";
+export const OFFLINE_DB_VERSION = 2;
+const DB_NAME = OFFLINE_DB_NAME;
+const DB_VERSION = OFFLINE_DB_VERSION;
 const STORE_SHEETS = "sheets";
 const STORE_LIST = "sheetsList";
 const STORE_REGOS = "regos";
 const STORE_PENDING = "pending";
+export const STORE_SNAPSHOTS = "snapshots";
 
 export type PendingWrite =
   | { id: number; type: "update"; sheetId: string; data: Partial<FatigueSheet>; at: number }
@@ -38,7 +41,38 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_LIST)) db.createObjectStore(STORE_LIST, { keyPath: "key" });
       if (!db.objectStoreNames.contains(STORE_REGOS)) db.createObjectStore(STORE_REGOS, { keyPath: "key" });
       if (!db.objectStoreNames.contains(STORE_PENDING)) db.createObjectStore(STORE_PENDING, { keyPath: "id", autoIncrement: true });
+      if (!db.objectStoreNames.contains(STORE_SNAPSHOTS)) {
+        db.createObjectStore(STORE_SNAPSHOTS, { keyPath: "id", autoIncrement: true });
+      }
     };
+  });
+}
+
+/** All cached sheets (by id). */
+export async function offlineGetAllSheets(): Promise<FatigueSheet[]> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const req = getStore(db, STORE_SHEETS).getAll();
+    req.onsuccess = () => resolve((req.result as FatigueSheet[]) ?? []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+/** Replace the full pending sync queue (used when restoring a snapshot). */
+export async function offlineReplacePending(items: PendingWriteEnqueue[]): Promise<void> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_PENDING, "readwrite");
+    const store = tx.objectStore(STORE_PENDING);
+    const clearReq = store.clear();
+    clearReq.onerror = () => reject(clearReq.error);
+    clearReq.onsuccess = () => {
+      for (const item of items) {
+        store.add({ ...item, at: Date.now() } as Omit<PendingWrite, "id">);
+      }
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
   });
 }
 

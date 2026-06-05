@@ -19,6 +19,7 @@ import {
   offlineRemovePending,
   offlineDeleteSheet,
 } from "./offline";
+import { scheduleDeviceBackupAfterWrite, writeDeviceSnapshot } from "./device-backup";
 
 export { isOnline };
 
@@ -66,6 +67,9 @@ export async function runSync(): Promise<{ synced: number; error?: string; repla
       const msg = e instanceof Error ? e.message : "Sync failed";
       return { synced, error: msg, replacedTempId };
     }
+  }
+  if (synced > 0) {
+    void writeDeviceSnapshot({ force: false }).catch(() => {});
   }
   return { synced, replacedTempId };
 }
@@ -120,6 +124,7 @@ export async function updateSheetOfflineFirst(sheetId: string, data: Partial<Fat
 
   // Try sync opportunistically; some devices misreport navigator.onLine.
   if (!isLocalTemp) await runSync().catch(() => {});
+  scheduleDeviceBackupAfterWrite();
   return merged;
 }
 
@@ -130,6 +135,7 @@ export async function createSheetOfflineFirst(data: Omit<FatigueSheet, "id" | "c
     await offlineSetSheet(created);
     const list = await offlineGetSheetsList();
     await offlineSetSheetsList([...list, created]);
+    scheduleDeviceBackupAfterWrite();
     return created;
   }
   const tempId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -141,6 +147,7 @@ export async function createSheetOfflineFirst(data: Omit<FatigueSheet, "id" | "c
   const list = await offlineGetSheetsList();
   await offlineSetSheetsList([...list, local]);
   await offlineEnqueue({ type: "create", tempId, data });
+  scheduleDeviceBackupAfterWrite();
   return local;
 }
 

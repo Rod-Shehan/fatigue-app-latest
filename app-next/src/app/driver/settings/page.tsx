@@ -14,7 +14,7 @@ import { DriverSettingsOptions } from "./driver-settings-options";
 import { DriverSettingsRecordsSection } from "./driver-settings-records";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
-import { DriverDeviceSetupPanel } from "@/components/pwa/DriverDeviceSetupPanel";
+import { DriverSettingsDeviceSection } from "@/components/pwa/DriverSettingsDeviceSection";
 
 const MANAGER_LOGIN_HREF = `/login?callbackUrl=${encodeURIComponent("/manager")}&managerLogin=1`;
 
@@ -57,7 +57,7 @@ export default async function DriverSettingsPage({
             <DriverSettingsOptions />
           </section>
 
-          <DriverDeviceSetupPanel />
+          <DriverSettingsDeviceSection />
 
           <DriverSettingsRecordsSection />
 

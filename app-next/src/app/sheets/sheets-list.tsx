@@ -33,6 +33,9 @@ import { format } from "date-fns";
 import { useSession } from "next-auth/react";
 
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { useDriverAuth } from "@/hooks/use-driver-auth";
+import { useDeviceBackup } from "@/hooks/use-device-backup";
+import { DeviceBackupRestoreBanner } from "@/components/pwa/DeviceBackupRestoreBanner";
 
 import { FileText, Loader2, ChevronRight, Truck, Clock, BookOpen } from "lucide-react";
 
@@ -55,6 +58,8 @@ function getTotalWorkHours(sheet: FatigueSheet) {
 export function SheetsList() {
 
   const { data: session } = useSession();
+  const { user } = useDriverAuth();
+  const { restoreNotice, dismissRestoreNotice } = useDeviceBackup(user?.email);
 
   const driverDisplayName = getDisplayNameFromSession(session ?? null) || undefined;
 
@@ -170,6 +175,15 @@ export function SheetsList() {
         </div>
 
 
+
+        {restoreNotice && (
+          <div className="mb-4">
+            <DeviceBackupRestoreBanner
+              weekCount={restoreNotice.weekCount}
+              onDismiss={dismissRestoreNotice}
+            />
+          </div>
+        )}
 
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">
 
