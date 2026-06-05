@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Shield, Loader2, Download, UserPlus, LogOut } from "lucide-react";
@@ -13,6 +13,34 @@ import type { SystemPolicySnapshot } from "@/lib/system-policy";
 
 const POLICY_KEY = ["admin", "policy"] as const;
 const USERS_KEY = ["admin", "users"] as const;
+
+function AccountList({ children }: { children: ReactNode }) {
+  return (
+    <ul className="rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
+      {children}
+    </ul>
+  );
+}
+
+function AccountRow({
+  name,
+  detail,
+  actions,
+}: {
+  name: string;
+  detail: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">{name}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">{detail}</p>
+      </div>
+      {actions ? <div className="flex gap-2">{actions}</div> : null}
+    </li>
+  );
+}
 
 function PolicyToggle({
   label,
@@ -80,6 +108,10 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
   });
 
   const policy = policyQuery.data?.policy;
+  const allUsers = usersQuery.data?.users ?? [];
+  const owners = allUsers.filter((u) => u.role === "owner");
+  const managers = allUsers.filter((u) => u.role === "manager");
+  const drivers = allUsers.filter((u) => u.role === "driver");
 
   if (!isOwner) {
     return (
@@ -161,64 +193,61 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
           ) : null}
         </section>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
+        {owners.length > 0 ? (
+          <section className="space-y-3">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Fleet managers
+              Organisation owner
             </h2>
-            <Link
-              href="/manager/add-managers"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 dark:text-teal-400 hover:underline"
-            >
-              <UserPlus className="w-4 h-4" />
-              Add manager
-            </Link>
-          </div>
+            <AccountList>
+              {owners.map((u) => (
+                <AccountRow
+                  key={u.id}
+                  name={u.name || u.email || u.id}
+                  detail={`${u.email ?? ""} · owner`}
+                />
+              ))}
+            </AccountList>
+          </section>
+        ) : null}
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Fleet managers
+          </h2>
+          <Link
+            href="/manager/add-managers"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 dark:text-teal-400 hover:underline"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add manager
+          </Link>
           <p className="text-xs text-slate-500 dark:text-slate-400">
             Only owners can create manager accounts. Managers cannot appoint other managers.
           </p>
-        </section>
-
-        <section className="space-y-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Users</h2>
           {usersQuery.isLoading ? (
             <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          ) : managers.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-4 py-6 text-center">
+              No fleet managers yet. Add one to open the manager dashboard.
+            </p>
           ) : (
-            <ul className="rounded-xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700 bg-white dark:bg-slate-900">
-              {(usersQuery.data?.users ?? []).map((u) => (
-                <li key={u.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 truncate">
-                      {u.name || u.email || u.id}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {u.email} · {u.role}
-                      {u.disabled ? " · disabled" : ""}
-                    </p>
-                  </div>
-                  {u.role !== "owner" ? (
-                    <div className="flex gap-2">
-                      {u.role === "manager" ? (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={userPatchMutation.isPending}
-                          onClick={() => userPatchMutation.mutate({ id: u.id, role: "driver" })}
-                        >
-                          Demote
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          disabled={userPatchMutation.isPending}
-                          onClick={() => userPatchMutation.mutate({ id: u.id, role: "manager" })}
-                        >
-                          Make manager
-                        </Button>
-                      )}
+            <AccountList>
+              {managers.map((u) => (
+                <AccountRow
+                  key={u.id}
+                  name={u.name || u.email || u.id}
+                  detail={`${u.email ?? ""} · manager${u.disabled ? " · disabled" : ""}`}
+                  actions={
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={userPatchMutation.isPending}
+                        onClick={() => userPatchMutation.mutate({ id: u.id, role: "driver" })}
+                      >
+                        Demote
+                      </Button>
                       <Button
                         type="button"
                         size="sm"
@@ -228,11 +257,55 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
                       >
                         {u.disabled ? "Enable" : "Disable"}
                       </Button>
-                    </div>
-                  ) : null}
-                </li>
+                    </>
+                  }
+                />
               ))}
-            </ul>
+            </AccountList>
+          )}
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Users</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Driver accounts — field sign-in and weekly records.</p>
+          {usersQuery.isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          ) : drivers.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 px-4 py-6 text-center">
+              No driver accounts yet.
+            </p>
+          ) : (
+            <AccountList>
+              {drivers.map((u) => (
+                <AccountRow
+                  key={u.id}
+                  name={u.name || u.email || u.id}
+                  detail={`${u.email ?? ""} · driver${u.disabled ? " · disabled" : ""}`}
+                  actions={
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={userPatchMutation.isPending}
+                        onClick={() => userPatchMutation.mutate({ id: u.id, role: "manager" })}
+                      >
+                        Make manager
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={userPatchMutation.isPending}
+                        onClick={() => userPatchMutation.mutate({ id: u.id, disabled: !u.disabled })}
+                      >
+                        {u.disabled ? "Enable" : "Disable"}
+                      </Button>
+                    </>
+                  }
+                />
+              ))}
+            </AccountList>
           )}
         </section>
 
