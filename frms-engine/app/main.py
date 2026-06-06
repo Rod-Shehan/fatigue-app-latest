@@ -44,8 +44,12 @@ def verify_api_key(authorization: str | None = Header(default=None)) -> None:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "engine": "frms-py-1"}
+def health() -> dict[str, str | bool]:
+    return {
+        "status": "ok",
+        "engine": "frms-py-1",
+        "auth_configured": bool(os.environ.get("FRMS_PYTHON_API_KEY", "")),
+    }
 
 
 @app.post("/v1/risk-profile")

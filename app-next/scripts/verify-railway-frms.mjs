@@ -26,6 +26,18 @@ async function main() {
     process.exit(1);
   }
 
+  let authConfigured;
+  try {
+    const health = JSON.parse(healthText);
+    authConfigured = health.auth_configured;
+    if (authConfigured === false) {
+      console.error("\nFAIL: Railway FRMS_PYTHON_API_KEY is not set. Add it under Variables and redeploy.");
+      process.exit(1);
+    }
+  } catch {
+    /* older engine without auth_configured — fall through to POST test */
+  }
+
   if (!key) {
     console.warn("\nSKIP: FRMS_TEST_KEY not set — skipping POST /v1/risk-profile");
     process.exit(0);
