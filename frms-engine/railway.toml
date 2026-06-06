@@ -1,0 +1,11 @@
+# Deploy from repo root with Railway service "Root Directory" = frms-engine
+# https://docs.railway.com/guides/monorepo
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
