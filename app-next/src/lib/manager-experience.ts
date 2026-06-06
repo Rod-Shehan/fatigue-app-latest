@@ -45,6 +45,9 @@ export const MANAGER_EXPERIENCE = {
 
   SCOPE_TITLE: "Day picker",
   SCOPE_SUBTITLE: "Week, day, driver, and rego apply to both sections below.",
+  SCOPE_DRIVER_AUTO: "Highest current risk (auto)",
+  SCOPE_DAY_DIALOG_TITLE: "Choose work day",
+  SCOPE_DAY_DIALOG_HINT: "Fleet heatmap and driver chart use this day within the work week.",
   SCOPE_TOGGLE_OPEN: "Show day picker",
   SCOPE_TOGGLE_CLOSE: "Hide day picker",
 
@@ -117,9 +120,10 @@ export const MANAGER_EXPERIENCE = {
   REGISTER_TITLE: "Driver exposure register",
   REGISTER_SUBTITLE: "One row per driver for the selected work week — tier is a composite, not a single rule.",
 
-  TIMELINE_TITLE: "Risk at a glance",
+  TIMELINE_TITLE: "Individual risk",
   TIMELINE_PICK_DRIVER:
-    "Select a driver in the day picker to see their 15-minute risk chart for this week and day.",
+    "Click a fleet row or change Chart driver in Scope.",
+  TIMELINE_AUTO_HINT: "Highest current risk",
 
   FLEET_PULSE_EYEBROW: "Live fleet tracking",
   FLEET_PULSE_TITLE: "Fleet risk pulse",

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   fleetHeatmapLabelIndices,
   findFleetNowIndex,
+  pickHighestCurrentRiskDriver,
   type FleetRiskCell,
 } from "@/lib/frms/fleet-risk-timeline";
 
@@ -15,6 +16,22 @@ describe("fleetHeatmapLabelIndices", () => {
     expect(indices[0]).toBe(0);
     expect(indices[indices.length - 1]).toBe(44);
     expect(indices.length).toBeGreaterThan(3);
+  });
+});
+
+describe("pickHighestCurrentRiskDriver", () => {
+  it("picks driver with highest nowPct", () => {
+    expect(
+      pickHighestCurrentRiskDriver([
+        { driverName: "A", nowPct: 40 },
+        { driverName: "B", nowPct: 72 },
+        { driverName: "C", nowPct: 55 },
+      ])
+    ).toBe("B");
+  });
+
+  it("returns null for empty list", () => {
+    expect(pickHighestCurrentRiskDriver([])).toBeNull();
   });
 });
 

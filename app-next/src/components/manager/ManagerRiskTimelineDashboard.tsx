@@ -18,6 +18,7 @@ import { Activity, Radio, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { api } from "@/lib/api";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import type { CameraBlockFeatures } from "@/lib/camera-risk-packet";
 import {
   applyQueuedLiveBlocks,
@@ -128,6 +129,7 @@ export function ManagerRiskTimelineDashboard({
   weekStarting,
   demo = true,
   aboveChart,
+  autoSelected = false,
 }: {
   driverName: string;
   /** Manager focus week — aligns FRMS cache hash with day picker. */
@@ -136,6 +138,8 @@ export function ManagerRiskTimelineDashboard({
   demo?: boolean;
   /** Scope controls (day picker) rendered directly above the chart. */
   aboveChart?: ReactNode;
+  /** Chart driver was picked automatically (highest current fleet risk). */
+  autoSelected?: boolean;
 }) {
   const { resolved: colorMode } = useTheme();
   const chart = CHART_THEME[colorMode];
@@ -269,8 +273,13 @@ export function ManagerRiskTimelineDashboard({
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                Risk at a glance — {driverName}
+                {MANAGER_EXPERIENCE.TIMELINE_TITLE} — {driverName}
               </h3>
+              {autoSelected ? (
+                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-800 dark:bg-violet-950/60 dark:text-violet-200">
+                  Auto
+                </span>
+              ) : null}
             </div>
             <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
               15-minute blocks across past and planned time. Shows fatigue risk{" "}

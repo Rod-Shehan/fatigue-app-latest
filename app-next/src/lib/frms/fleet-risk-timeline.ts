@@ -203,6 +203,14 @@ export function fleetBlockMs(): number {
   return RISK_BLOCK_MINUTES * 60 * 1000;
 }
 
+export function pickHighestCurrentRiskDriver(
+  drivers: { driverName: string; nowPct: number | null }[]
+): string | null {
+  if (drivers.length === 0) return null;
+  const sorted = [...drivers].sort((a, b) => (b.nowPct ?? -1) - (a.nowPct ?? -1));
+  return sorted[0]?.driverName ?? null;
+}
+
 export function findFleetNowIndex(cells: FleetRiskCell[], nowBlock: number): number {
   return cells.findIndex((c) => c.blockStartMs === nowBlock);
 }
