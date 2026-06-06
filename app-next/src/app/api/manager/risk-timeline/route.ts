@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isFrmsEngineEnabled } from "@/lib/frms/orchestrator";
+import { isFrmsEngineEnabled, getFrmsEngineMode } from "@/lib/frms/orchestrator";
 import { defaultTimelineWindow, resolveFrmsRiskTimeline } from "@/lib/frms/risk-timeline";
 import {
   buildRiskTimelineFromStoredBlocks,
@@ -10,6 +10,7 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /**
  * GET /api/manager/risk-timeline?driverName=...&fromMs=...&toMs=...&weekStarting=...
@@ -89,6 +90,7 @@ export async function GET(request: NextRequest) {
       snapshot_count,
       latest_camera: latestCamera ?? null,
       scoring_engine,
+      frms_engine_mode: getFrmsEngineMode(),
       frms_cache_status,
       frms_run_id,
       disclaimer:

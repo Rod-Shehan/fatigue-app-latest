@@ -17,7 +17,9 @@ import {
   FRMS_ENGINE_VERSION,
   isFrmsEngineEnabled,
   loadDriverWeekMap,
+  runFrmsAndPersist,
   type FrmsCacheStatus,
+  type FrmsRunArgs,
 } from "@/lib/frms/orchestrator";
 import type { StoredRiskBlockRow } from "@/lib/risk-block-timeline";
 import { getThisWeekSunday } from "@/lib/weeks";
@@ -196,6 +198,37 @@ export async function resolveFrmsRiskTimeline(
       exact && latest.id === exact.id ? "miss" : "stale";
     const built = await tryBuild(latest.id, cacheStatus);
     if (built) return built;
+  }
+
+  // Fire-and-forget enqueue often dies when the serverless function returns.
+  // Run once inline so the first manager chart load can populate Neon + TPMA series.
+  const runArgs: FrmsRunArgs = {
+    driverName: args.driverName,
+    weekStarting,
+    weekMap,
+    jurisdictionCode: focusSheet.jurisdictionCode,
+    driverType: focusSheet.driverType ?? "solo",
+    userId: args.userId,
+  };
+
+  try {
+    await runFrmsAndPersist(prisma, runArgs);
+    const fresh = await prisma.frmsProfileRun.findFirst({
+      where: {
+        driverName: args.driverName,
+        inputHash,
+        engineVersion: FRMS_ENGINE_VERSION,
+        status: "ready",
+      },
+      orderBy: { completedAt: "desc" },
+      select: { id: true },
+    });
+    if (fresh) {
+      const built = await tryBuild(fresh.id, "hit");
+      if (built) return built;
+    }
+  } catch (e) {
+    console.error("FRMS sync recompute for timeline failed:", e);
   }
 
   return null;
