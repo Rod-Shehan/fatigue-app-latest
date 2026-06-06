@@ -12,6 +12,7 @@ import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSi
 import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
 import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
 import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
+import { ManagerFleetRiskPulse } from "@/components/manager/ManagerFleetRiskPulse";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { ManagerDayPicker } from "@/components/manager/ManagerDayPicker";
@@ -714,7 +715,7 @@ export function ManagerView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
+      <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
           title={MANAGER_EXPERIENCE.PAGE_TITLE}
           subtitle={MANAGER_EXPERIENCE.PAGE_SUBTITLE}
@@ -743,6 +744,15 @@ export function ManagerView() {
           subtitle={MANAGER_EXPERIENCE.SECTION_RISK_SUBTITLE}
           boundary={MANAGER_EXPERIENCE.SECTION_RISK_BOUNDARY}
         >
+          {activeWeekStarting ? (
+            <ManagerFleetRiskPulse
+              weekStarting={weekForSnapshot}
+              driverNames={driverOptions}
+              selectedDriver={selectedDriverFilter || undefined}
+              onSelectDriver={setSelectedDriverFilter}
+            />
+          ) : null}
+
           <ManagerRiskHero
             weekLabel={formatWeekLabel(weekForSnapshot)}
             counts={fleetCounts}

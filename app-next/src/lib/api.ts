@@ -370,6 +370,15 @@ export const api = {
         disclaimer: string;
       }>(`/api/manager/risk-timeline?${sp.toString()}`);
     },
+    fleetRiskTimeline: (params: { weekStarting?: string; driverNames?: string[] }) => {
+      const sp = new URLSearchParams();
+      if (params.weekStarting) sp.set("weekStarting", params.weekStarting);
+      if (params.driverNames?.length) sp.set("driverNames", params.driverNames.join(","));
+      const q = sp.toString();
+      return fetchApi<import("@/lib/frms/fleet-risk-timeline").FleetRiskTimelineResult & {
+        frms_engine_mode: string;
+      }>(`/api/manager/fleet-risk-timeline${q ? `?${q}` : ""}`);
+    },
   },
   messages: {
     threads: () => fetchApi<{ threads: MessageThreadSummary[] }>("/api/messages/threads"),

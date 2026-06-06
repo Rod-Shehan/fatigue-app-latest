@@ -120,6 +120,8 @@ export async function resolveFrmsRiskTimeline(
     weekStarting?: string;
     userId?: string;
     nowMs?: number;
+    /** Fleet overview should not block on N sequential Python runs. */
+    allowSyncRecompute?: boolean;
   }
 ): Promise<FrmsTimelineBuildResult | null> {
   if (!isFrmsEngineEnabled()) return null;
@@ -212,7 +214,9 @@ export async function resolveFrmsRiskTimeline(
   };
 
   try {
-    await runFrmsAndPersist(prisma, runArgs);
+    if (args.allowSyncRecompute !== false) {
+      await runFrmsAndPersist(prisma, runArgs);
+    }
     const fresh = await prisma.frmsProfileRun.findFirst({
       where: {
         driverName: args.driverName,

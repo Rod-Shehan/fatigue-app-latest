@@ -121,6 +121,12 @@ export const MANAGER_EXPERIENCE = {
   TIMELINE_PICK_DRIVER:
     "Select a driver in the day picker to see their 15-minute risk chart for this week and day.",
 
+  FLEET_PULSE_EYEBROW: "Live fleet tracking",
+  FLEET_PULSE_TITLE: "Fleet risk pulse",
+  FLEET_PULSE_SUBTITLE:
+    "TPMA combined risk across every active driver — past, now, and planned 15-minute blocks. Highest exposure at the top.",
+  FLEET_PULSE_EMPTY: "Choose a work week with driver activity to see the fleet heatmap.",
+
   REFERENCE_TITLE: "Regulatory requirements & references",
   REGULATORY_SECTION_TITLE: "Regulatory requirements & references",
   REFERENCE_TOGGLE: "Open reference library",
