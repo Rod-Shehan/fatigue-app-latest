@@ -3,7 +3,6 @@ import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isFrmsEngineEnabled } from "@/lib/frms/orchestrator";
 import { defaultTimelineWindow, resolveFrmsRiskTimeline } from "@/lib/frms/risk-timeline";
-import type { RiskTimelineSeries } from "@/lib/manager-risk-timeline";
 import {
   buildRiskTimelineFromStoredBlocks,
   latestStoredBlockCamera,
@@ -57,14 +56,10 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    let scoring_engine: "frms" | "legacy" = "legacy";
-    let frms_cache_status: string | null = null;
-    let frms_run_id: string | null = null;
-    let snapshot_count = 0;
-    let series: RiskTimelineSeries;
+    let frmsResult = null as Awaited<ReturnType<typeof resolveFrmsRiskTimeline>>;
 
     if (isFrmsEngineEnabled()) {
-      const frms = await resolveFrmsRiskTimeline(prisma, {
+      frmsResult = await resolveFrmsRiskTimeline(prisma, {
         driverName,
         fromMs,
         toMs,
@@ -72,22 +67,19 @@ export async function GET(request: NextRequest) {
         weekStarting,
         userId: manager.user.id,
       });
-
-      if (frms) {
-        series = frms.series;
-        scoring_engine = "frms";
-        frms_cache_status = frms.cacheStatus;
-        frms_run_id = frms.runId;
-        snapshot_count = frms.snapshotCount;
-      }
     }
 
-    if (!series) {
-      series = buildRiskTimelineFromStoredBlocks(driverName, rows, {
+    const series =
+      frmsResult?.series ??
+      buildRiskTimelineFromStoredBlocks(driverName, rows, {
         pastBlocks: 32,
         futureBlocks: 12,
       });
-    }
+
+    const scoring_engine: "frms" | "legacy" = frmsResult ? "frms" : "legacy";
+    const frms_cache_status = frmsResult?.cacheStatus ?? null;
+    const frms_run_id = frmsResult?.runId ?? null;
+    const snapshot_count = frmsResult?.snapshotCount ?? 0;
 
     const latestCamera = latestStoredBlockCamera(rows);
 
