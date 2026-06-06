@@ -783,6 +783,7 @@ export function ManagerView() {
           {selectedDriverFilter ? (
             <ManagerRiskTimelineDashboard
               driverName={selectedDriverFilter}
+              weekStarting={weekForSnapshot}
               demo
               aboveChart={riskScopeDayPicker}
             />

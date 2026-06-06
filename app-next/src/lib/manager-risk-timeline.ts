@@ -165,7 +165,7 @@ export function blockInputsToRiskPercent(
 
 export const DEFAULT_RISK_INDEX_STATS = { mean: 0.38, stdDev: 0.2 };
 
-/** In-app explanation for manager risk timeline (keep aligned with scoring functions). */
+/** Legacy sawtooth in-app explanation (used when FRMS_ENGINE=legacy or cache miss). See FRMS_RISK_TIMELINE_CHART_HELP. */
 export const RISK_TIMELINE_CHART_HELP = {
   intro:
     "Each 15-minute block gets a 0–100% fatigue glance score. This is prospective assurance only — not a compliance breach score or fleet average.",

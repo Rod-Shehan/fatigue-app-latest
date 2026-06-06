@@ -354,14 +354,19 @@ export const api = {
         `/api/manager/map-events${q ? `?${q}` : ""}`
       );
     },
-    riskTimeline: (params: { driverName: string; fromMs?: number; toMs?: number }) => {
+    riskTimeline: (params: { driverName: string; fromMs?: number; toMs?: number; weekStarting?: string }) => {
       const sp = new URLSearchParams({ driverName: params.driverName });
       if (params.fromMs != null) sp.set("fromMs", String(params.fromMs));
       if (params.toMs != null) sp.set("toMs", String(params.toMs));
+      if (params.weekStarting) sp.set("weekStarting", params.weekStarting);
       return fetchApi<{
         series: import("@/lib/manager-risk-timeline").RiskTimelineSeries;
         block_count: number;
+        snapshot_count: number;
         latest_camera: import("@/lib/camera-risk-packet").CameraBlockFeatures | null;
+        scoring_engine: "frms" | "legacy";
+        frms_cache_status: string | null;
+        frms_run_id: string | null;
         disclaimer: string;
       }>(`/api/manager/risk-timeline?${sp.toString()}`);
     },

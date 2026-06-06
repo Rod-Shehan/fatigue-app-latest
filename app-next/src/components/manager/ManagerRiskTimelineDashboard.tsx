@@ -34,6 +34,10 @@ import {
   type RiskTimelineBlock,
   type RiskTimelineSeries,
 } from "@/lib/manager-risk-timeline";
+import {
+  FRMS_RISK_TIMELINE_CHART_HELP,
+  FRMS_TPMA_REFERENCES,
+} from "@/lib/frms/tpma-references";
 
 type FeedState = {
   blocks: RiskTimelineBlock[];
@@ -121,10 +125,13 @@ const CHART_THEME = {
 
 export function ManagerRiskTimelineDashboard({
   driverName,
+  weekStarting,
   demo = true,
   aboveChart,
 }: {
   driverName: string;
+  /** Manager focus week — aligns FRMS cache hash with day picker. */
+  weekStarting?: string;
   /** Show demo controls when no server blocks exist yet. */
   demo?: boolean;
   /** Scope controls (day picker) rendered directly above the chart. */
@@ -134,13 +141,21 @@ export function ManagerRiskTimelineDashboard({
   const chart = CHART_THEME[colorMode];
 
   const { data: apiData, isLoading: apiLoading } = useQuery({
-    queryKey: ["manager", "risk-timeline", driverName],
-    queryFn: () => api.manager.riskTimeline({ driverName }),
+    queryKey: ["manager", "risk-timeline", driverName, weekStarting ?? ""],
+    queryFn: () => api.manager.riskTimeline({ driverName, weekStarting }),
     enabled: !!driverName,
   });
 
-  const hasServerBlocks = (apiData?.block_count ?? 0) > 0;
-  const useDemoData = demo && !hasServerBlocks && !apiLoading;
+  const scoringEngine = apiData?.scoring_engine ?? "legacy";
+  const usesFrmsHelp = scoringEngine === "frms";
+  const chartHelp = usesFrmsHelp ? FRMS_RISK_TIMELINE_CHART_HELP : RISK_TIMELINE_CHART_HELP;
+  const chartReferences = usesFrmsHelp ? FRMS_TPMA_REFERENCES : FATIGUE_RISK_REFERENCES;
+
+  const hasServerData =
+    (apiData?.block_count ?? 0) > 0 ||
+    (apiData?.snapshot_count ?? 0) > 0 ||
+    apiData?.scoring_engine === "frms";
+  const useDemoData = demo && !hasServerData && !apiLoading;
 
   const initialSeries = useMemo(
     () => buildDemoRiskTimelineSeries(driverName),
@@ -157,14 +172,14 @@ export function ManagerRiskTimelineDashboard({
   const [latestCamera, setLatestCamera] = useState<CameraBlockFeatures | undefined>();
 
   useEffect(() => {
-    if (hasServerBlocks && apiData?.series) {
+    if (hasServerData && apiData?.series) {
       dispatch({ type: "RESET", series: apiData.series });
       setLatestCamera(apiData.latest_camera ?? undefined);
     } else if (!apiLoading) {
       dispatch({ type: "RESET", series: buildDemoRiskTimelineSeries(driverName) });
       setLatestCamera(undefined);
     }
-  }, [driverName, hasServerBlocks, apiData, apiLoading]);
+  }, [driverName, hasServerData, apiData, apiLoading]);
 
   const rows = useMemo(() => chartRows(feed.blocks), [feed.blocks]);
   const crossovers = useMemo(() => findCrossoverIntervals(feed.blocks), [feed.blocks]);
@@ -267,12 +282,20 @@ export function ManagerRiskTimelineDashboard({
           <div className="flex flex-wrap gap-2 shrink-0 items-center">
             <span
               className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                hasServerBlocks
+                hasServerData
                   ? "bg-teal-50 text-teal-800 dark:bg-teal-950/50 dark:text-teal-200"
                   : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
               }`}
             >
-              {apiLoading ? "Loading…" : hasServerBlocks ? "Camera + server" : "Demo preview"}
+              {apiLoading
+                ? "Loading…"
+                : usesFrmsHelp
+                  ? apiData?.frms_cache_status === "stale"
+                    ? "TPMA · updating"
+                    : "TPMA · server"
+                  : hasServerData
+                    ? "Camera + server"
+                    : "Demo preview"}
             </span>
             {useDemoData ? (
               <>
@@ -401,7 +424,7 @@ export function ManagerRiskTimelineDashboard({
         </div>
 
         <div className="mt-2 flex flex-wrap gap-3 px-2 text-[10px] text-slate-500 dark:text-slate-400">
-          <span className="inline-flex items-center gap-1" title={RISK_TIMELINE_CHART_HELP.baseline.summary}>
+          <span className="inline-flex items-center gap-1" title={chartHelp.baseline.summary}>
             <span className="h-0.5 w-4 bg-slate-400" aria-hidden /> Expected baseline
             <span className="text-slate-400 dark:text-slate-500">(diary-only expected %)</span>
           </span>
@@ -428,46 +451,50 @@ export function ManagerRiskTimelineDashboard({
             How this chart is calculated
           </summary>
           <div className="space-y-3 border-t border-slate-200 px-3 py-3 text-xs leading-relaxed text-slate-600 dark:border-slate-700 dark:text-slate-300">
-            <p>{RISK_TIMELINE_CHART_HELP.intro}</p>
+            <p>{chartHelp.intro}</p>
             <div>
               <p className="font-semibold text-slate-800 dark:text-slate-100">
-                {RISK_TIMELINE_CHART_HELP.baseline.title}
+                {chartHelp.baseline.title}
               </p>
-              <p className="mt-1">{RISK_TIMELINE_CHART_HELP.baseline.summary}</p>
+              <p className="mt-1">{chartHelp.baseline.summary}</p>
               <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
-                {RISK_TIMELINE_CHART_HELP.baseline.factors.map((item) => (
+                {chartHelp.baseline.factors.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-              <p className="mt-1.5">{RISK_TIMELINE_CHART_HELP.baseline.mapping}</p>
-              <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.baseline.horizon}</p>
+              <p className="mt-1.5">{chartHelp.baseline.mapping}</p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">{chartHelp.baseline.horizon}</p>
             </div>
             <div>
               <p className="font-semibold text-slate-800 dark:text-slate-100">
-                {RISK_TIMELINE_CHART_HELP.live.title}
+                {chartHelp.live.title}
               </p>
-              <p className="mt-1">{RISK_TIMELINE_CHART_HELP.live.summary}</p>
+              <p className="mt-1">{chartHelp.live.summary}</p>
               <ul className="mt-1.5 list-disc space-y-0.5 pl-4">
-                {RISK_TIMELINE_CHART_HELP.live.factors.map((item) => (
+                {chartHelp.live.factors.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
-              <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.live.horizon}</p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">{chartHelp.live.horizon}</p>
             </div>
-            <p className="text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.shaded}</p>
+            <p className="text-slate-500 dark:text-slate-400">{chartHelp.shaded}</p>
             <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-100">References (model v1)</p>
-              <p className="mt-1 text-slate-500 dark:text-slate-400">{RISK_TIMELINE_CHART_HELP.referencesNote}</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">
+                References ({usesFrmsHelp ? "TPMA · frms-py-1" : "model v1"})
+              </p>
+              <p className="mt-1 text-slate-500 dark:text-slate-400">{chartHelp.referencesNote}</p>
               <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] text-slate-500 dark:text-slate-400">
-                {FATIGUE_RISK_REFERENCES.map((ref) => (
+                {chartReferences.map((ref) => (
                   <li key={ref.id}>{ref.citation}</li>
                 ))}
               </ul>
             </div>
             {useDemoData ? (
               <p className="rounded-md border border-dashed border-slate-300 bg-white/60 px-2 py-1.5 text-slate-500 dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
-                <strong className="font-semibold text-slate-600 dark:text-slate-300">Demo preview:</strong> sample
-                diary patterns until real camera blocks are stored on the server.
+                <strong className="font-semibold text-slate-600 dark:text-slate-300">Demo preview:</strong>{" "}
+                {usesFrmsHelp
+                  ? "legacy sawtooth demo until FRMS snapshots are cached for this driver."
+                  : "sample diary patterns until real camera blocks are stored on the server."}
               </p>
             ) : null}
           </div>

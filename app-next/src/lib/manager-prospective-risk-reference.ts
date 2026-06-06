@@ -60,9 +60,9 @@ const CARDS: ManagerReferenceCard[] = [
     id: "out-of-scope",
     title: "What this engine is not",
     summary:
-      "Circadia’s risk brief is deterministic and rule-anchored. It does not replace biomathematical FRMS, legal advice, or regulator approval.",
+      "Circadia’s FRMS glance (Python TPMA when enabled) and legacy sawtooth chart are assurance and coaching — not NHVR FRMSc certification, legal advice, or regulator approval.",
     bullets: [
-      "Not NHVR FRMSc-style fatigue scores or Monte Carlo / FAIR workshops in v1.",
+      "With FRMS enabled, the register and risk chart use the peer-reviewed Three-Process Model (S/C/W); legacy sawtooth applies only when FRMS is off or the cache is empty.",
       "Not an EWD or NHVR product approval claim — see ADR 0001 for jurisdiction architecture.",
       "Elevated exposure on the brief is a composite glance; violations on the record still dominate “needs attention”.",
     ],
