@@ -1,11 +1,21 @@
-# Deploy from repo root with Railway service "Root Directory" = frms-engine
-# https://docs.railway.com/guides/monorepo
+# Railway config-as-code for the FRMS Python service ONLY.
+#
+# IMPORTANT (monorepo):
+# 1. Service Settings → Root Directory = frms-engine
+# 2. Service Settings → Config file path = /frms-engine/railway.toml
+#    (Railway does NOT auto-discover this file from Root Directory alone.)
+# 3. Variables → FRMS_PYTHON_API_KEY = <long random string>
+# 4. Networking → Generate Domain → Public
+#
+# See TROUBLESHOOTING-RAILWAY.md if deploy fails.
 
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+watchPatterns = ["frms-engine/**"]
 
 [deploy]
+startCommand = "./start.sh"
 healthcheckPath = "/health"
-healthcheckTimeout = 30
+healthcheckTimeout = 60
 restartPolicyType = "ON_FAILURE"
