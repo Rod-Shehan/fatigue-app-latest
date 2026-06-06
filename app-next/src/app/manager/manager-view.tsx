@@ -13,9 +13,9 @@ import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPane
 import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
 import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
 import { ManagerFleetRiskPulse } from "@/components/manager/ManagerFleetRiskPulse";
+import { ManagerRiskScopeToolbar } from "@/components/manager/ManagerRiskScopeToolbar";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
-import { ManagerDayPicker } from "@/components/manager/ManagerDayPicker";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildDriverRegister,
@@ -594,8 +594,8 @@ export function ManagerView() {
     (selectedSheet?.status ?? "") === "completed" &&
     Boolean(selectedSheet?.signature);
 
-  const riskScopeDayPicker = (
-    <ManagerDayPicker variant="embedded" summary={dayPickerSummary}>
+  const riskScopeControls = (
+    <>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-start sm:gap-x-4">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -710,7 +710,11 @@ export function ManagerView() {
           }}
         />
       </div>
-    </ManagerDayPicker>
+    </>
+  );
+
+  const riskScopeToolbar = (
+    <ManagerRiskScopeToolbar summary={dayPickerSummary}>{riskScopeControls}</ManagerRiskScopeToolbar>
   );
 
   return (
@@ -744,6 +748,8 @@ export function ManagerView() {
           subtitle={MANAGER_EXPERIENCE.SECTION_RISK_SUBTITLE}
           boundary={MANAGER_EXPERIENCE.SECTION_RISK_BOUNDARY}
         >
+          {riskScopeToolbar}
+
           {activeWeekStarting ? (
             <ManagerFleetRiskPulse
               weekStarting={weekForSnapshot}
@@ -751,7 +757,11 @@ export function ManagerView() {
               selectedDriver={selectedDriverFilter || undefined}
               onSelectDriver={setSelectedDriverFilter}
             />
-          ) : null}
+          ) : (
+            <p className="-mt-2 mb-6 rounded-xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-100">
+              {MANAGER_EXPERIENCE.FLEET_PULSE_EMPTY}
+            </p>
+          )}
 
           <ManagerRiskHero
             weekLabel={formatWeekLabel(weekForSnapshot)}
@@ -795,7 +805,6 @@ export function ManagerView() {
               driverName={selectedDriverFilter}
               weekStarting={weekForSnapshot}
               demo
-              aboveChart={riskScopeDayPicker}
             />
           ) : (
             <section
@@ -813,13 +822,6 @@ export function ManagerView() {
                   </h3>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                  15-minute blocks across past and planned time. Choose week, day, and driver below to
-                  view fatigue risk in each block.
-                </p>
-              </div>
-              <div className="border-b border-slate-100 dark:border-slate-800">{riskScopeDayPicker}</div>
-              <div className="rounded-b-xl border-t border-dashed border-violet-200 bg-violet-50/30 px-4 py-5 text-sm text-slate-600 dark:border-violet-800 dark:bg-violet-950/20 dark:text-slate-300 sm:px-5">
-                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {MANAGER_EXPERIENCE.TIMELINE_PICK_DRIVER}
                 </p>
               </div>
