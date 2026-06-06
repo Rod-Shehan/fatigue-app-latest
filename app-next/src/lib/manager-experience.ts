@@ -45,8 +45,6 @@ export const MANAGER_EXPERIENCE = {
 
   SCOPE_TITLE: "Day picker",
   SCOPE_SUBTITLE: "Week, day, driver, and rego apply to both sections below.",
-  SCOPE_RISK_INTRO:
-    "Sets the fleet heatmap and driver charts. Pick a work week first, then day and optional filters.",
   SCOPE_TOGGLE_OPEN: "Show day picker",
   SCOPE_TOGGLE_CLOSE: "Hide day picker",
 
@@ -121,7 +119,7 @@ export const MANAGER_EXPERIENCE = {
 
   TIMELINE_TITLE: "Risk at a glance",
   TIMELINE_PICK_DRIVER:
-    "Click a row in the fleet heatmap above, or choose a driver in Scope.",
+    "Select a driver in the day picker to see their 15-minute risk chart for this week and day.",
 
   FLEET_PULSE_EYEBROW: "Live fleet tracking",
   FLEET_PULSE_TITLE: "Fleet risk pulse",
