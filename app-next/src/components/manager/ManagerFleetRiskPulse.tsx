@@ -204,19 +204,20 @@ export function ManagerFleetRiskPulse({
     refetchInterval: 5 * 60 * 1000,
   });
 
+  const allDrivers = data?.all_drivers ?? data?.drivers ?? [];
+  const actionableDrivers = data?.drivers ?? [];
+  const columnLabels = data?.columnLabels ?? [];
+  const summary = data?.fleet_summary;
+
   const labelIndices = useMemo(
-    () => fleetHeatmapLabelIndices(data?.columnLabels.length ?? 0),
-    [data?.columnLabels.length]
+    () => fleetHeatmapLabelIndices(columnLabels.length),
+    [columnLabels.length]
   );
 
   const nowIndex = useMemo(() => {
-    const first = data?.drivers[0]?.cells ?? [];
+    const first = actionableDrivers[0]?.cells ?? [];
     return findFleetNowIndex(first, data?.nowBlockStartMs ?? 0);
-  }, [data?.drivers, data?.nowBlockStartMs]);
-
-  const allDrivers = data?.all_drivers ?? data?.drivers ?? [];
-  const actionableDrivers = data?.drivers ?? [];
-  const summary = data?.fleet_summary;
+  }, [actionableDrivers, data?.nowBlockStartMs]);
 
   const priorityQueue = useMemo(
     () => buildFleetPriorityQueue(actionableDrivers),
@@ -379,7 +380,7 @@ export function ManagerFleetRiskPulse({
                 </span>
               </div>
               <div className="flex min-w-0 flex-1">
-                {data.columnLabels.map((label, i) => (
+                {columnLabels.map((label, i) => (
                   <div
                     key={`${label}-${i}`}
                     className={cn(
