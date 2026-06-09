@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildFleetPriorityQueue,
   fleetHeatmapLabelIndices,
+  fleetWorstNowDriver,
   findFleetNowIndex,
   pickHighestCurrentRiskDriver,
   type FleetRiskCell,
@@ -16,6 +18,46 @@ describe("fleetHeatmapLabelIndices", () => {
     expect(indices[0]).toBe(0);
     expect(indices[indices.length - 1]).toBe(44);
     expect(indices.length).toBeGreaterThan(3);
+  });
+});
+
+describe("buildFleetPriorityQueue", () => {
+  it("sorts by nowPct and assigns reasons", () => {
+    const queue = buildFleetPriorityQueue([
+      {
+        driverName: "A",
+        scoring_engine: "frms",
+        nowPct: 40,
+        peakNext24Pct: 50,
+        cells: [],
+      },
+      {
+        driverName: "B",
+        scoring_engine: "frms",
+        nowPct: 72,
+        peakNext24Pct: 80,
+        cells: [],
+      },
+    ]);
+    expect(queue[0].driverName).toBe("B");
+    expect(queue[0].severity).toBe("critical");
+    expect(queue[1].reason).toContain("24h");
+  });
+});
+
+describe("fleetWorstNowDriver", () => {
+  it("returns top now driver", () => {
+    expect(
+      fleetWorstNowDriver([
+        {
+          driverName: "X",
+          scoring_engine: "frms",
+          nowPct: 55,
+          peakNext24Pct: 60,
+          cells: [],
+        },
+      ])
+    ).toEqual({ driverName: "X", nowPct: 55 });
   });
 });
 

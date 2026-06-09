@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
-import { ManagerRiskHero } from "@/components/manager/ManagerRiskHero";
 import { ManagerReferencePanel } from "@/components/manager/ManagerReferencePanel";
 import { REGULATORY_REQUIREMENTS_REFERENCE } from "@/lib/manager-risk-reference";
 import { PROSPECTIVE_RISK_REFERENCE } from "@/lib/manager-prospective-risk-reference";
@@ -21,7 +20,6 @@ import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildDriverRegister,
   buildGlanceBadges,
-  fleetTierCounts,
   type RiskLineKind,
 } from "@/lib/manager-risk-scoring";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -359,6 +357,10 @@ export function ManagerView() {
     setDriverPickManual(true);
   };
 
+  const scrollToCheckIns = () => {
+    document.getElementById("manager-check-ins")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const { data: managerCompliance, isLoading: complianceLoading } = useQuery({
     queryKey: ["manager", "compliance", weekForSnapshot],
     queryFn: () => api.manager.compliance({ weekStarting: weekForSnapshot }),
@@ -453,8 +455,6 @@ export function ManagerView() {
       ),
     [managerCompliance, weekForSnapshot, sheets, riskDriverNames]
   );
-
-  const fleetCounts = useMemo(() => fleetTierCounts(driverRegister), [driverRegister]);
 
   const riskRegisterFiltered = useMemo(() => {
     let rows = driverRegister;
@@ -706,6 +706,8 @@ export function ManagerView() {
               driverNames={driverOptions}
               selectedDriver={chartDriverName || undefined}
               onSelectDriver={handleFleetSelectDriver}
+              checkInCount={attentionItems.length}
+              onScrollToCheckIns={scrollToCheckIns}
             />
           ) : (
             <p className="mb-6 rounded-xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-100">
@@ -723,12 +725,6 @@ export function ManagerView() {
               />
             </div>
           ) : null}
-
-          <ManagerRiskHero
-            weekLabel={formatWeekLabel(weekForSnapshot)}
-            counts={fleetCounts}
-            loading={complianceLoading}
-          />
 
           <ManagerReferencePanel
             library={PROSPECTIVE_RISK_REFERENCE}
@@ -759,7 +755,9 @@ export function ManagerView() {
             </Button>
           </div>
 
-          <ManagerAttentionPanel items={attentionItems} />
+          <div id="manager-check-ins">
+            <ManagerAttentionPanel items={attentionItems} />
+          </div>
 
           <ManagerDriverRegister rows={riskRegisterFiltered} loading={complianceLoading} />
         </ManagerDomainSection>

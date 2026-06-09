@@ -10,6 +10,7 @@ import {
 import { isFrmsEngineEnabled, getFrmsEngineMode } from "@/lib/frms/orchestrator";
 import {
   RISK_BLOCK_MINUTES,
+  RISK_COLOR_THRESHOLDS,
   type RiskTimelineBlock,
 } from "@/lib/manager-risk-timeline";
 import { buildRiskTimelineFromStoredBlocks } from "@/lib/risk-block-timeline";
@@ -213,4 +214,59 @@ export function pickHighestCurrentRiskDriver(
 
 export function findFleetNowIndex(cells: FleetRiskCell[], nowBlock: number): number {
   return cells.findIndex((c) => c.blockStartMs === nowBlock);
+}
+
+export type FleetPrioritySeverity = "critical" | "elevated" | "monitor" | "clear";
+
+export type FleetPriorityItem = {
+  driverName: string;
+  nowPct: number | null;
+  peakNext24Pct: number | null;
+  reason: string;
+  severity: FleetPrioritySeverity;
+};
+
+export function fleetPriorityReason(row: FleetDriverRiskRow): string {
+  const now = row.nowPct ?? 0;
+  const peak = row.peakNext24Pct ?? 0;
+  if (now >= RISK_COLOR_THRESHOLDS.red) return "Critical fatigue now";
+  if (now >= RISK_COLOR_THRESHOLDS.amber) return "Elevated fatigue now";
+  if (peak >= RISK_COLOR_THRESHOLDS.red) return "Peak risk in next 24h";
+  if (peak >= RISK_COLOR_THRESHOLDS.amber) return "Rising exposure next 24h";
+  return "Steady — monitor plan";
+}
+
+export function fleetPrioritySeverity(row: FleetDriverRiskRow): FleetPrioritySeverity {
+  const now = row.nowPct ?? 0;
+  const peak = row.peakNext24Pct ?? 0;
+  if (now >= RISK_COLOR_THRESHOLDS.red || peak >= RISK_COLOR_THRESHOLDS.red) return "critical";
+  if (now >= RISK_COLOR_THRESHOLDS.amber || peak >= RISK_COLOR_THRESHOLDS.amber) return "elevated";
+  if (now > 0 || peak > 0) return "monitor";
+  return "clear";
+}
+
+/** Priority queue sorted by current block risk (manager action order). */
+export function buildFleetPriorityQueue(drivers: FleetDriverRiskRow[]): FleetPriorityItem[] {
+  return [...drivers]
+    .sort((a, b) => (b.nowPct ?? -1) - (a.nowPct ?? -1))
+    .map((row) => ({
+      driverName: row.driverName,
+      nowPct: row.nowPct,
+      peakNext24Pct: row.peakNext24Pct,
+      reason: fleetPriorityReason(row),
+      severity: fleetPrioritySeverity(row),
+    }));
+}
+
+export function fleetWorstNowDriver(
+  drivers: FleetDriverRiskRow[]
+): { driverName: string; nowPct: number } | null {
+  const queue = buildFleetPriorityQueue(drivers);
+  const top = queue[0];
+  if (!top || top.nowPct == null) return null;
+  return { driverName: top.driverName, nowPct: top.nowPct };
+}
+
+export function fleetElevatedNowCount(drivers: FleetDriverRiskRow[]): number {
+  return drivers.filter((d) => (d.nowPct ?? 0) >= RISK_COLOR_THRESHOLDS.amber).length;
 }

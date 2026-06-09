@@ -130,6 +130,13 @@ export const MANAGER_EXPERIENCE = {
   FLEET_PULSE_SUBTITLE:
     "TPMA combined risk across every active driver — past, now, and planned 15-minute blocks. Highest exposure at the top.",
   FLEET_PULSE_EMPTY: "Choose a work week with driver activity to see the fleet heatmap.",
+  FLEET_KPI_WORST_NOW: "Worst now",
+  FLEET_KPI_ELEVATED_NOW: "Elevated now",
+  FLEET_KPI_TPMA_LIVE: "TPMA live",
+  FLEET_KPI_CHECK_INS: "Check-ins",
+  FLEET_PRIORITY_TITLE: "Priority queue",
+  FLEET_PRIORITY_HINT: "Ranked by current TPMA risk — tap to open individual chart.",
+  FLEET_PRIORITY_EMPTY: "No drivers in scope for this day.",
 
   REFERENCE_TITLE: "Regulatory requirements & references",
   REGULATORY_SECTION_TITLE: "Regulatory requirements & references",
