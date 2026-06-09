@@ -42,6 +42,13 @@ export async function GET(request: NextRequest) {
         nowBlockStartMs: 0,
         columnLabels: [],
         drivers: [],
+        all_drivers: [],
+        fleet_summary: {
+          total_in_scope: 0,
+          actionable_count: 0,
+          below_threshold_count: 0,
+          action_threshold_pct: 55,
+        },
         scoring_engine: "legacy" as const,
         frms_driver_count: 0,
         frms_engine_mode: getFrmsEngineMode(),

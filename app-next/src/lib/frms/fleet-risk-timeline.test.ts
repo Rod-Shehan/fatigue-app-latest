@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   buildFleetPriorityQueue,
+  fleetDriverNeedsManagerAttention,
   fleetHeatmapLabelIndices,
   fleetWorstNowDriver,
   findFleetNowIndex,
+  partitionFleetDrivers,
   pickHighestCurrentRiskDriver,
+  type FleetDriverRiskRow,
   type FleetRiskCell,
 } from "@/lib/frms/fleet-risk-timeline";
 
@@ -21,6 +24,48 @@ describe("fleetHeatmapLabelIndices", () => {
   });
 });
 
+describe("fleetDriverNeedsManagerAttention", () => {
+  const row = (now: number | null, peak: number | null): FleetDriverRiskRow => ({
+    driverName: "T",
+    scoring_engine: "frms",
+    nowPct: now,
+    peakNext24Pct: peak,
+    cells: [],
+  });
+
+  it("flags when now or peak meets TPMA elevated threshold (55%)", () => {
+    expect(fleetDriverNeedsManagerAttention(row(54, 10))).toBe(false);
+    expect(fleetDriverNeedsManagerAttention(row(55, 10))).toBe(true);
+    expect(fleetDriverNeedsManagerAttention(row(10, 55))).toBe(true);
+  });
+});
+
+describe("partitionFleetDrivers", () => {
+  it("splits actionable vs below threshold", () => {
+    const { actionable, belowThreshold, summary } = partitionFleetDrivers([
+      {
+        driverName: "Low",
+        scoring_engine: "frms",
+        nowPct: 20,
+        peakNext24Pct: 30,
+        cells: [],
+      },
+      {
+        driverName: "High",
+        scoring_engine: "frms",
+        nowPct: 50,
+        peakNext24Pct: 55,
+        cells: [],
+      },
+    ]);
+    expect(actionable).toHaveLength(1);
+    expect(actionable[0].driverName).toBe("High");
+    expect(belowThreshold).toHaveLength(1);
+    expect(summary.actionable_count).toBe(1);
+    expect(summary.below_threshold_count).toBe(1);
+  });
+});
+
 describe("buildFleetPriorityQueue", () => {
   it("sorts by nowPct and assigns reasons", () => {
     const queue = buildFleetPriorityQueue([
@@ -28,7 +73,7 @@ describe("buildFleetPriorityQueue", () => {
         driverName: "A",
         scoring_engine: "frms",
         nowPct: 40,
-        peakNext24Pct: 50,
+        peakNext24Pct: 30,
         cells: [],
       },
       {
@@ -41,7 +86,8 @@ describe("buildFleetPriorityQueue", () => {
     ]);
     expect(queue[0].driverName).toBe("B");
     expect(queue[0].severity).toBe("critical");
-    expect(queue[1].reason).toContain("24h");
+    expect(queue).toHaveLength(1);
+    expect(queue[0].driverName).toBe("B");
   });
 });
 

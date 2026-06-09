@@ -327,8 +327,8 @@ export function ManagerView() {
   });
 
   const autoChartDriver = useMemo(
-    () => pickHighestCurrentRiskDriver(fleetRiskData?.drivers ?? []),
-    [fleetRiskData?.drivers]
+    () => pickHighestCurrentRiskDriver(fleetRiskData?.all_drivers ?? fleetRiskData?.drivers ?? []),
+    [fleetRiskData?.all_drivers, fleetRiskData?.drivers]
   );
 
   const chartDriverName = useMemo(() => {

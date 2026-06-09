@@ -130,13 +130,21 @@ export const MANAGER_EXPERIENCE = {
   FLEET_PULSE_SUBTITLE:
     "TPMA combined risk across every active driver — past, now, and planned 15-minute blocks. Highest exposure at the top.",
   FLEET_PULSE_EMPTY: "Choose a work week with driver activity to see the fleet heatmap.",
+  FLEET_ALL_CLEAR:
+    "All drivers in scope are below the elevated threshold — no heatmap rows to show. Individual chart still tracks highest current risk.",
+  FLEET_ACTIONABLE_SUMMARY: (actionable: number, total: number, threshold: number) =>
+    `${actionable} of ${total} driver${total === 1 ? "" : "s"} at or above ${threshold}% (now or next 24h)`,
+  FLEET_KPI_IN_SCOPE: "In scope",
+  FLEET_KPI_ACTIONABLE: "Need attention",
   FLEET_KPI_WORST_NOW: "Worst now",
   FLEET_KPI_ELEVATED_NOW: "Elevated now",
   FLEET_KPI_TPMA_LIVE: "TPMA live",
   FLEET_KPI_CHECK_INS: "Check-ins",
   FLEET_PRIORITY_TITLE: "Priority queue",
-  FLEET_PRIORITY_HINT: "Ranked by current TPMA risk — tap to open individual chart.",
-  FLEET_PRIORITY_EMPTY: "No drivers in scope for this day.",
+  FLEET_PRIORITY_HINT:
+    "Only drivers at or above the elevated threshold — ranked by current TPMA risk.",
+  FLEET_PRIORITY_EMPTY: "No drivers above the elevated threshold right now.",
+  FLEET_PRIORITY_ALL_CLEAR: "Fleet looks steady for this scope.",
 
   REFERENCE_TITLE: "Regulatory requirements & references",
   REGULATORY_SECTION_TITLE: "Regulatory requirements & references",

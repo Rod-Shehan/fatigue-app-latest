@@ -5,15 +5,18 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   AlertTriangle,
+  CheckCircle2,
   ChevronRight,
   HeartHandshake,
   Radio,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildFleetPriorityQueue,
+  FLEET_ACTION_THRESHOLD_PCT,
   fleetElevatedNowCount,
   fleetHeatmapLabelIndices,
   fleetWorstNowDriver,
@@ -211,13 +214,22 @@ export function ManagerFleetRiskPulse({
     return findFleetNowIndex(first, data?.nowBlockStartMs ?? 0);
   }, [data?.drivers, data?.nowBlockStartMs]);
 
+  const allDrivers = data?.all_drivers ?? data?.drivers ?? [];
+  const actionableDrivers = data?.drivers ?? [];
+  const summary = data?.fleet_summary;
+
   const priorityQueue = useMemo(
-    () => buildFleetPriorityQueue(data?.drivers ?? []),
-    [data?.drivers]
+    () => buildFleetPriorityQueue(actionableDrivers),
+    [actionableDrivers]
   );
 
-  const worstNow = useMemo(() => fleetWorstNowDriver(data?.drivers ?? []), [data?.drivers]);
-  const elevatedNow = useMemo(() => fleetElevatedNowCount(data?.drivers ?? []), [data?.drivers]);
+  const worstNow = useMemo(() => fleetWorstNowDriver(allDrivers), [allDrivers]);
+  const elevatedNow = useMemo(() => fleetElevatedNowCount(allDrivers), [allDrivers]);
+  const totalInScope = summary?.total_in_scope ?? allDrivers.length;
+  const actionableCount = summary?.actionable_count ?? actionableDrivers.length;
+  const thresholdPct = summary?.action_threshold_pct ?? FLEET_ACTION_THRESHOLD_PCT;
+  const allBelowThreshold =
+    totalInScope > 0 && actionableCount === 0 && !isLoading;
 
   const scoringBadge =
     data?.scoring_engine === "frms"
@@ -264,18 +276,29 @@ export function ManagerFleetRiskPulse({
 
         <div className="mt-4 flex flex-wrap gap-2">
           <KpiChip
+            label={MANAGER_EXPERIENCE.FLEET_KPI_IN_SCOPE}
+            value={`${totalInScope} driver${totalInScope === 1 ? "" : "s"}`}
+            icon={<Users className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />}
+          />
+          <KpiChip
+            label={MANAGER_EXPERIENCE.FLEET_KPI_ACTIONABLE}
+            value={`${actionableCount} above ${thresholdPct}%`}
+            icon={<AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />}
+            highlight={actionableCount > 0}
+          />
+          <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_WORST_NOW}
             value={
               worstNow ? `${worstNow.driverName} · ${worstNow.nowPct}%` : "—"
             }
             icon={<TrendingUp className="h-4 w-4 shrink-0 text-rose-400" aria-hidden />}
-            highlight={!!worstNow && worstNow.nowPct >= RISK_COLOR_THRESHOLDS.amber}
+            highlight={!!worstNow && worstNow.nowPct >= FLEET_ACTION_THRESHOLD_PCT}
             onClick={worstNow ? () => onSelectDriver(worstNow.driverName) : undefined}
           />
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_ELEVATED_NOW}
-            value={`${elevatedNow} driver${elevatedNow === 1 ? "" : "s"}`}
-            icon={<AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />}
+            value={`${elevatedNow} elevated now`}
+            icon={<TrendingUp className="h-4 w-4 shrink-0 text-rose-400" aria-hidden />}
             highlight={elevatedNow > 0}
           />
           <KpiChip
@@ -295,11 +318,41 @@ export function ManagerFleetRiskPulse({
 
       {isLoading ? (
         <div className="px-6 py-12 text-center text-sm text-slate-400">Loading fleet pulse…</div>
-      ) : !data?.drivers.length ? (
+      ) : totalInScope === 0 ? (
         <div className="px-6 py-12 text-center text-sm text-slate-400">
           {MANAGER_EXPERIENCE.FLEET_PULSE_EMPTY}
         </div>
+      ) : allBelowThreshold ? (
+        <div className="flex flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:gap-6">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="mt-0.5 h-8 w-8 shrink-0 text-emerald-400" aria-hidden />
+            <div>
+              <p className="text-sm font-semibold text-emerald-100">
+                {MANAGER_EXPERIENCE.FLEET_PRIORITY_ALL_CLEAR}
+              </p>
+              <p className="mt-1 text-sm text-slate-400">
+                {MANAGER_EXPERIENCE.FLEET_ALL_CLEAR}
+              </p>
+              <p className="mt-2 text-xs text-slate-500">
+                {MANAGER_EXPERIENCE.FLEET_ACTIONABLE_SUMMARY(0, totalInScope, thresholdPct)}
+              </p>
+            </div>
+          </div>
+        </div>
       ) : (
+        <>
+          {summary ? (
+            <p className="border-b border-white/10 px-4 py-2 text-[11px] text-slate-400 sm:px-6">
+              {MANAGER_EXPERIENCE.FLEET_ACTIONABLE_SUMMARY(
+                summary.actionable_count,
+                summary.total_in_scope,
+                summary.action_threshold_pct
+              )}
+              {summary.below_threshold_count > 0
+                ? ` · ${summary.below_threshold_count} below threshold (hidden)`
+                : ""}
+            </p>
+          ) : null}
         <div className="flex flex-col lg:flex-row">
           <div className="min-w-0 flex-[7] overflow-x-auto border-b border-white/10 lg:border-b-0 lg:border-r">
             <div className="border-b border-white/10 bg-slate-900/60 px-3 py-2 sm:px-4">
@@ -341,7 +394,7 @@ export function ManagerFleetRiskPulse({
               </div>
             </div>
 
-            {data.drivers.map((row, index) => (
+            {actionableDrivers.map((row, index) => (
               <DriverHeatmapRow
                 key={row.driverName}
                 row={row}
@@ -376,6 +429,7 @@ export function ManagerFleetRiskPulse({
             </div>
           </aside>
         </div>
+        </>
       )}
 
       {data?.disclaimer ? (

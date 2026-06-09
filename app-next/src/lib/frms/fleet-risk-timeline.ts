@@ -10,13 +10,19 @@ import {
 import { isFrmsEngineEnabled, getFrmsEngineMode } from "@/lib/frms/orchestrator";
 import {
   RISK_BLOCK_MINUTES,
-  RISK_COLOR_THRESHOLDS,
   type RiskTimelineBlock,
 } from "@/lib/manager-risk-timeline";
 import { buildRiskTimelineFromStoredBlocks } from "@/lib/risk-block-timeline";
 import { getThisWeekSunday } from "@/lib/weeks";
 
-export const FLEET_RISK_MAX_DRIVERS = 20;
+/** Safety cap for scoring workload per request (not a display limit). */
+export const FLEET_SCORE_MAX_DRIVERS = 80;
+
+/** TPMA elevated band floor — matches frms-engine `_risk_band()` (55–74% elevated). */
+export const FLEET_ACTION_THRESHOLD_PCT = 55;
+
+/** TPMA critical band floor — matches frms-engine `_risk_band()` (≥75% critical). */
+export const FLEET_CRITICAL_THRESHOLD_PCT = 75;
 
 export type FleetRiskCell = {
   blockStartMs: number;
@@ -33,6 +39,13 @@ export type FleetDriverRiskRow = {
   cells: FleetRiskCell[];
 };
 
+export type FleetRiskSummary = {
+  total_in_scope: number;
+  actionable_count: number;
+  below_threshold_count: number;
+  action_threshold_pct: number;
+};
+
 export type FleetRiskTimelineResult = {
   weekStarting: string;
   timezone: string;
@@ -40,7 +53,11 @@ export type FleetRiskTimelineResult = {
   toMs: number;
   nowBlockStartMs: number;
   columnLabels: string[];
+  /** Drivers above action threshold — heatmap + priority queue. */
   drivers: FleetDriverRiskRow[];
+  /** Full scoped fleet for auto-chart and KPI denominators. */
+  all_drivers: FleetDriverRiskRow[];
+  fleet_summary: FleetRiskSummary;
   scoring_engine: "frms" | "legacy" | "mixed";
   frms_driver_count: number;
   disclaimer: string;
@@ -83,7 +100,10 @@ export async function loadFleetDriverNames(
   requested?: string[]
 ): Promise<string[]> {
   if (requested?.length) {
-    return [...new Set(requested.map((n) => n.trim()).filter(Boolean))].slice(0, FLEET_RISK_MAX_DRIVERS);
+    return [...new Set(requested.map((n) => n.trim()).filter(Boolean))].slice(
+      0,
+      FLEET_SCORE_MAX_DRIVERS
+    );
   }
 
   const sheets = await prisma.fatigueSheet.findMany({
@@ -96,7 +116,46 @@ export async function loadFleetDriverNames(
     if (s.driverName?.trim()) names.add(s.driverName.trim());
     if (s.secondDriver?.trim()) names.add(s.secondDriver.trim());
   }
-  return [...names].sort((a, b) => a.localeCompare(b)).slice(0, FLEET_RISK_MAX_DRIVERS);
+  return [...names].sort((a, b) => a.localeCompare(b)).slice(0, FLEET_SCORE_MAX_DRIVERS);
+}
+
+/** True when current or next-24h peak risk warrants manager attention. */
+export function fleetDriverNeedsManagerAttention(row: FleetDriverRiskRow): boolean {
+  const now = row.nowPct ?? 0;
+  const peak = row.peakNext24Pct ?? 0;
+  return now >= FLEET_ACTION_THRESHOLD_PCT || peak >= FLEET_ACTION_THRESHOLD_PCT;
+}
+
+export function partitionFleetDrivers(rows: FleetDriverRiskRow[]): {
+  actionable: FleetDriverRiskRow[];
+  belowThreshold: FleetDriverRiskRow[];
+  summary: FleetRiskSummary;
+} {
+  const actionable = rows.filter(fleetDriverNeedsManagerAttention);
+  const belowThreshold = rows.filter((r) => !fleetDriverNeedsManagerAttention(r));
+  return {
+    actionable,
+    belowThreshold,
+    summary: {
+      total_in_scope: rows.length,
+      actionable_count: actionable.length,
+      below_threshold_count: belowThreshold.length,
+      action_threshold_pct: FLEET_ACTION_THRESHOLD_PCT,
+    },
+  };
+}
+
+async function mapInBatches<T, R>(
+  items: T[],
+  batchSize: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    results.push(...(await Promise.all(batch.map(fn))));
+  }
+  return results;
 }
 
 export async function resolveFleetRiskTimeline(
@@ -114,10 +173,9 @@ export async function resolveFleetRiskTimeline(
 
   if (driverNames.length === 0) return null;
 
-  const rows: FleetDriverRiskRow[] = [];
   let frmsCount = 0;
 
-  for (const driverName of driverNames) {
+  const rows = await mapInBatches(driverNames, 6, async (driverName) => {
     const storedBlocks = await prisma.driverRiskBlock.findMany({
       where: {
         driverName,
@@ -162,16 +220,26 @@ export async function resolveFleetRiskTimeline(
       }).blocks;
     }
 
-    rows.push(summarizeRow(driverName, blocks, scoring_engine, nowBlock));
-  }
+    return summarizeRow(driverName, blocks, scoring_engine, nowBlock);
+  });
 
-  rows.sort((a, b) => (b.peakNext24Pct ?? 0) - (a.peakNext24Pct ?? 0));
+  const sortByExposure = (a: FleetDriverRiskRow, b: FleetDriverRiskRow) => {
+    const aKey = Math.max(a.nowPct ?? 0, a.peakNext24Pct ?? 0);
+    const bKey = Math.max(b.nowPct ?? 0, b.peakNext24Pct ?? 0);
+    return bKey - aKey;
+  };
 
-  const referenceCells = rows[0]?.cells ?? [];
+  const allDrivers = [...rows].sort(sortByExposure);
+  const { actionable, summary } = partitionFleetDrivers(allDrivers);
+  const actionableSorted = [...actionable].sort(sortByExposure);
+
+  const referenceCells = allDrivers[0]?.cells ?? [];
   const columnLabels = referenceCells.map((c) => c.label);
 
   const scoring_engine: FleetRiskTimelineResult["scoring_engine"] =
-    frmsCount === 0 ? "legacy" : frmsCount === rows.length ? "frms" : "mixed";
+    frmsCount === 0 ? "legacy" : frmsCount === allDrivers.length ? "frms" : "mixed";
+
+  const thresholdNote = `Showing drivers at or above ${FLEET_ACTION_THRESHOLD_PCT}% combined risk (now or next 24h).`;
 
   return {
     weekStarting,
@@ -180,13 +248,15 @@ export async function resolveFleetRiskTimeline(
     toMs,
     nowBlockStartMs: nowBlock,
     columnLabels,
-    drivers: rows,
+    drivers: actionableSorted,
+    all_drivers: allDrivers,
+    fleet_summary: summary,
     scoring_engine,
     frms_driver_count: frmsCount,
     disclaimer:
       scoring_engine !== "legacy"
-        ? "TPMA fleet pulse — per-driver combined risk, not a fleet average or NHVR FRMSc certification."
-        : "Fleet risk glance — diary-based assurance, not compliance or fleet average.",
+        ? `TPMA fleet pulse — ${thresholdNote} Not a fleet average or NHVR FRMSc certification.`
+        : `Fleet risk glance — ${thresholdNote} Diary-based assurance, not compliance.`,
   };
 }
 
@@ -229,25 +299,26 @@ export type FleetPriorityItem = {
 export function fleetPriorityReason(row: FleetDriverRiskRow): string {
   const now = row.nowPct ?? 0;
   const peak = row.peakNext24Pct ?? 0;
-  if (now >= RISK_COLOR_THRESHOLDS.red) return "Critical fatigue now";
-  if (now >= RISK_COLOR_THRESHOLDS.amber) return "Elevated fatigue now";
-  if (peak >= RISK_COLOR_THRESHOLDS.red) return "Peak risk in next 24h";
-  if (peak >= RISK_COLOR_THRESHOLDS.amber) return "Rising exposure next 24h";
+  if (now >= FLEET_CRITICAL_THRESHOLD_PCT) return "Critical fatigue now";
+  if (now >= FLEET_ACTION_THRESHOLD_PCT) return "Elevated fatigue now";
+  if (peak >= FLEET_CRITICAL_THRESHOLD_PCT) return "Peak risk in next 24h";
+  if (peak >= FLEET_ACTION_THRESHOLD_PCT) return "Rising exposure next 24h";
   return "Steady — monitor plan";
 }
 
 export function fleetPrioritySeverity(row: FleetDriverRiskRow): FleetPrioritySeverity {
   const now = row.nowPct ?? 0;
   const peak = row.peakNext24Pct ?? 0;
-  if (now >= RISK_COLOR_THRESHOLDS.red || peak >= RISK_COLOR_THRESHOLDS.red) return "critical";
-  if (now >= RISK_COLOR_THRESHOLDS.amber || peak >= RISK_COLOR_THRESHOLDS.amber) return "elevated";
+  if (now >= FLEET_CRITICAL_THRESHOLD_PCT || peak >= FLEET_CRITICAL_THRESHOLD_PCT) return "critical";
+  if (now >= FLEET_ACTION_THRESHOLD_PCT || peak >= FLEET_ACTION_THRESHOLD_PCT) return "elevated";
   if (now > 0 || peak > 0) return "monitor";
   return "clear";
 }
 
-/** Priority queue sorted by current block risk (manager action order). */
+/** Priority queue — actionable drivers only, sorted by current block risk. */
 export function buildFleetPriorityQueue(drivers: FleetDriverRiskRow[]): FleetPriorityItem[] {
   return [...drivers]
+    .filter(fleetDriverNeedsManagerAttention)
     .sort((a, b) => (b.nowPct ?? -1) - (a.nowPct ?? -1))
     .map((row) => ({
       driverName: row.driverName,
@@ -261,12 +332,17 @@ export function buildFleetPriorityQueue(drivers: FleetDriverRiskRow[]): FleetPri
 export function fleetWorstNowDriver(
   drivers: FleetDriverRiskRow[]
 ): { driverName: string; nowPct: number } | null {
-  const queue = buildFleetPriorityQueue(drivers);
-  const top = queue[0];
+  if (drivers.length === 0) return null;
+  const sorted = [...drivers].sort((a, b) => (b.nowPct ?? -1) - (a.nowPct ?? -1));
+  const top = sorted[0];
   if (!top || top.nowPct == null) return null;
   return { driverName: top.driverName, nowPct: top.nowPct };
 }
 
 export function fleetElevatedNowCount(drivers: FleetDriverRiskRow[]): number {
-  return drivers.filter((d) => (d.nowPct ?? 0) >= RISK_COLOR_THRESHOLDS.amber).length;
+  return drivers.filter((d) => (d.nowPct ?? 0) >= FLEET_ACTION_THRESHOLD_PCT).length;
+}
+
+export function fleetActionableCount(drivers: FleetDriverRiskRow[]): number {
+  return drivers.filter(fleetDriverNeedsManagerAttention).length;
 }
