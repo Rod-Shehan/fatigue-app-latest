@@ -177,8 +177,10 @@ export async function runFrmsAndPersist(
   try {
     const result = await callFrmsPython(payload);
 
+    // Append-only record: never delete snapshot rows. Same inputs (hash) are
+    // deterministic, so duplicate blocks from a retry/race are skipped, not rewritten.
+    // See docs/FRMS_PRE_ROLLOUT_HARDENING.md before customer rollout.
     await prisma.$transaction([
-      prisma.frmsRiskSnapshot.deleteMany({ where: { runId: run.id } }),
       prisma.frmsRiskSnapshot.createMany({
         data: result.snapshots.map((s) => ({
           runId: run.id,
@@ -189,6 +191,7 @@ export async function runFrmsAndPersist(
           combinedPct: Math.round(s.combined_pct),
           band: s.band ?? null,
         })),
+        skipDuplicates: true,
       }),
       prisma.frmsProfileRun.update({
         where: { id: run.id },
