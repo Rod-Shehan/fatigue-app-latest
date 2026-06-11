@@ -110,9 +110,24 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
 
   const weekLabel = sheet?.week_starting ? formatSheetDisplayDate(sheet.week_starting) : "";
 
+  const sheetDriverName = (sheet?.driver_name || "").trim();
+
+  const driverPageIdentity = useMemo(() => {
+    if (!isManager || !sheetDriverName) return null;
+    return { name: sheetDriverName, isManagerView: true as const };
+  }, [isManager, sheetDriverName]);
+
   const driverDisplayName = isManager
     ? undefined
-    : getDisplayNameFromSession(session ?? null) || (sheet?.driver_name || "").trim() || undefined;
+    : getDisplayNameFromSession(session ?? null) || sheetDriverName || undefined;
+
+  const pageSubtitle = useMemo(() => {
+    const parts: string[] = [];
+    if (isManager && sheetDriverName) parts.push(sheetDriverName);
+    parts.push(PRODUCT_NAME);
+    if (weekLabel) parts.push(`Week of ${weekLabel}`);
+    return parts.join(" · ");
+  }, [isManager, sheetDriverName, weekLabel]);
 
   if (isLoading || !sheet) {
     return (
@@ -122,8 +137,9 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
             backHref={`/sheets/${sheetId}`}
             backLabel="Back to sheet"
             title="Compliance check"
-            subtitle="Loading…"
+            subtitle={pageSubtitle || "Loading…"}
             driverDisplayName={driverDisplayName}
+            driverIdentity={driverPageIdentity ?? undefined}
             icon={<ShieldCheck className="w-5 h-5" />}
           />
           <div className="flex flex-col items-center justify-center py-16 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
@@ -142,8 +158,9 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
           backHref={`/sheets/${sheetId}`}
           backLabel="Back to sheet"
           title="Compliance check"
-          subtitle={[PRODUCT_NAME, weekLabel && `Week of ${weekLabel}`].filter(Boolean).join(" · ")}
+          subtitle={pageSubtitle}
           driverDisplayName={driverDisplayName}
+          driverIdentity={driverPageIdentity ?? undefined}
           icon={<ShieldCheck className="w-5 h-5" />}
         />
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm p-4 md:p-5">
