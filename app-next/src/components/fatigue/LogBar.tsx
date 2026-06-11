@@ -24,6 +24,7 @@ import {
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
+import { driverAlertnessMustStop } from "@/lib/driver-alertness";
 import {
   WORK_WINDOW_MIN,
   emptySlots,
@@ -564,6 +565,20 @@ export default function LogBar({
           message: `Please complete today's card before starting shift: ${missing.join(", ")}.`,
           confirmLabel: "Go to today's card",
           subtext: "Fill in the fields above, then tap Start shift again.",
+          onConfirm: () => {
+            setWorkWarning(null);
+            onStartShiftBlocked?.();
+          },
+          onCancel: () => setWorkWarning(null),
+        });
+        return;
+      }
+      if (driverAlertnessMustStop(dayForCardFields?.alertness_level)) {
+        setWorkWarning({
+          message:
+            "You selected Danger (Stop) for alertness. Do not start driving — rest first, then update Set up day when you are safe.",
+          confirmLabel: "Go to today's card",
+          subtext: "This is not a fitness-for-work sign-off — update how you feel after resting.",
           onConfirm: () => {
             setWorkWarning(null);
             onStartShiftBlocked?.();

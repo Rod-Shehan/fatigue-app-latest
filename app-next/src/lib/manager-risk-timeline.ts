@@ -68,6 +68,8 @@ export type RiskTimelineBlockInput = {
   recoveryMinutesInBlock?: number;
   /** True when block is non-work / off duty. */
   nonWorkBlock?: boolean;
+  /** 0–1 self-reported alertness impairment from day setup. */
+  selfReportedAlertness?: number;
   /** Cab camera features for this block (optional until device connected). */
   camera?: CameraBlockFeatures;
 };
@@ -131,25 +133,28 @@ export function compositeFatigueIndex(input: RiskTimelineBlockInput): number {
   const workLoad = input.workMinutes / RISK_BLOCK_MINUTES;
   const accumulation = Math.min(1, input.rollingWorkHours14d / 168);
   const deviation = Math.min(1, Math.max(0, input.planDeviationMinutes / RISK_BLOCK_MINUTES));
+  const selfReport = Math.min(1, Math.max(0, input.selfReportedAlertness ?? 0));
   const cameraTerm = cameraFatigueContribution(input.camera);
 
   if (input.camera && cameraTerm > 0) {
     return (
-      0.36 * timeOnTask +
+      0.34 * timeOnTask +
       0.14 * circadianNorm +
       0.08 * workLoad +
       0.1 * accumulation +
       0.04 * deviation +
+      0.06 * selfReport +
       0.28 * cameraTerm
     );
   }
 
   return (
-    0.42 * timeOnTask +
+    0.4 * timeOnTask +
     0.18 * circadianNorm +
     0.1 * workLoad +
     0.14 * accumulation +
-    0.06 * deviation
+    0.06 * deviation +
+    0.08 * selfReport
   );
 }
 

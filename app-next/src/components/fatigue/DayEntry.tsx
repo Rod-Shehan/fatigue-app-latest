@@ -24,6 +24,7 @@ import {
 import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
 import { formatRunPlanSummary, hasRunPlanContent } from "@/lib/route-plan";
+import { formatDriverAlertnessCompact, getDriverAlertnessOption } from "@/lib/driver-alertness";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -382,6 +383,24 @@ export default function DayEntry({
               <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
               <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
             </div>
+            {getDriverAlertnessOption(dayData.alertness_level) ? (
+              <div
+                className={cn(
+                  "mb-3 rounded-md border px-2.5 py-2 text-sm font-medium",
+                  dayData.alertness_level === 5
+                    ? "border-red-700 bg-red-950/90 text-red-50"
+                    : dayData.alertness_level === 4
+                      ? "border-red-400 bg-red-50 text-red-900 dark:bg-red-950/50 dark:text-red-100"
+                      : dayData.alertness_level === 3
+                        ? "border-orange-400 bg-orange-50 text-orange-950 dark:bg-orange-950/40 dark:text-orange-100"
+                        : dayData.alertness_level === 2
+                          ? "border-amber-400 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100"
+                          : "border-emerald-400 bg-emerald-50 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-100"
+                )}
+              >
+                Alertness: {formatDriverAlertnessCompact(dayData.alertness_level)}
+              </div>
+            ) : null}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
               <StatBlock label="Rego" value={(dayData.truck_rego || "").trim() || "—"} mono />
               <StatBlock label="Pattern" value={formatShiftLabel(dayData.shift_label)} />
@@ -493,6 +512,7 @@ export default function DayEntry({
             planned_on_duty_hours: dayData.planned_on_duty_hours,
             route_source: dayData.route_source,
             route_preset_id: dayData.route_preset_id,
+            alertness_level: dayData.alertness_level,
           }}
           regos={regos}
           dayIndex={dayIndex}

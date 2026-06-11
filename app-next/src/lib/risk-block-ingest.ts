@@ -10,6 +10,7 @@ import {
   blockInputsToRiskPercent,
   type RiskTimelineBlockInput,
 } from "@/lib/manager-risk-timeline";
+import { driverAlertnessRiskFactor } from "@/lib/driver-alertness";
 
 export type IngestRiskBlockParams = {
   userId: string;
@@ -55,6 +56,7 @@ export function diaryContextToBlockInput(
     planDeviationMinutes: Math.max(0, diary?.plan_deviation_minutes ?? 0),
     recoveryMinutesInBlock,
     nonWorkBlock,
+    selfReportedAlertness: driverAlertnessRiskFactor(diary?.alertness_level),
     camera,
   };
 }

@@ -144,6 +144,8 @@ export type RiskBlockDiaryContext = {
   rolling_work_hours_14d?: number;
   local_hour?: number;
   plan_deviation_minutes?: number;
+  /** Driver self-report 1–5 from day setup (risk fusion only). */
+  alertness_level?: 1 | 2 | 3 | 4 | 5;
 };
 
 export type RiskBlockUploadItem = {

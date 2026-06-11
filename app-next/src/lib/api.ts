@@ -91,6 +91,8 @@ export type DayData = {
   planned_on_duty_hours?: number | null;
   route_source?: "adhoc" | "driver_saved" | "org_preset";
   route_preset_id?: string;
+  /** Self-reported alertness 1–5 at day/shift setup (risk context only — not FFW). */
+  alertness_level?: 1 | 2 | 3 | 4 | 5;
 };
 export type FatigueSheet = {
   id: string;
