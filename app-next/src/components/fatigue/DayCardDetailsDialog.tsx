@@ -27,6 +27,7 @@ import {
   formatRoutePresetOption,
   validateRoutePresetCreateInput,
 } from "@/lib/route-preset";
+import { ROUTE_CATALOGUE_EMPTY_HINT, ROUTE_CATALOGUE_LOAD_ERROR_HINT } from "@/lib/product-copy";
 import { Loader2 } from "lucide-react";
 import {
   SHIFT_PATTERN_FIELD_HELP,
@@ -119,7 +120,11 @@ export function DayCardDetailsDialog({
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: routePresets = [], isLoading: presetsLoading } = useQuery({
+  const {
+    data: routePresets = [],
+    isLoading: presetsLoading,
+    isError: presetsError,
+  } = useQuery({
     queryKey: ["route-presets"],
     queryFn: () => api.routePresets.list(),
     enabled: open,
@@ -187,8 +192,11 @@ export function DayCardDetailsDialog({
     } else if (hasRunPlanContent(initial)) {
       setRouteMode("custom");
       setPresetPick("");
+    } else if (routePresets.length === 0 || presetsError) {
+      setRouteMode("custom");
+      setPresetPick("");
     }
-  }, [open, presetsLoading, routePresets, initial]);
+  }, [open, presetsLoading, routePresets, presetsError, initial]);
 
   const regoForGuide = (draft.truck_rego ?? "").trim();
 
@@ -454,6 +462,16 @@ export function DayCardDetailsDialog({
                 {catalogueFilledRoute ? (
                   <p className="text-xs text-teal-700 dark:text-teal-300">
                     From, To, and run plan filled from catalogue — check below and adjust if needed.
+                  </p>
+                ) : null}
+                {presetsError ? (
+                  <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                    {ROUTE_CATALOGUE_LOAD_ERROR_HINT}
+                  </p>
+                ) : null}
+                {!presetsLoading && !presetsError && routePresets.length === 0 ? (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 leading-snug">
+                    {ROUTE_CATALOGUE_EMPTY_HINT}
                   </p>
                 ) : null}
               </div>

@@ -20,7 +20,8 @@ export async function GET() {
       include: { createdBy: { select: { name: true } } },
     });
     return NextResponse.json(list.map(serializeRoutePreset));
-  } catch {
+  } catch (e) {
+    console.error("route-presets GET failed", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

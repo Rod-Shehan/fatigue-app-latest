@@ -79,6 +79,31 @@ async function main() {
   });
   console.log("Regos:", rego1.label, rego2.label);
 
+  const fleetRoutes = [
+    { label: "Perth – Kalgoorlie", startLocation: "Perth", destination: "Kalgoorlie", plannedDistanceKm: 600, plannedOnDutyHours: 10 },
+    { label: "Perth – Albany", startLocation: "Perth", destination: "Albany", plannedDistanceKm: 420, plannedOnDutyHours: 9 },
+    { label: "Perth – Geraldton", startLocation: "Perth", destination: "Geraldton", plannedDistanceKm: 420, plannedOnDutyHours: 8 },
+    { label: "Perth – Bunbury", startLocation: "Perth", destination: "Bunbury", plannedDistanceKm: 180, plannedOnDutyHours: 4 },
+  ];
+  let routeOrder = await prisma.routePreset.aggregate({ _max: { sortOrder: true } }).then((r) => r._max.sortOrder ?? -1);
+  for (const route of fleetRoutes) {
+    const existing = await prisma.routePreset.findFirst({
+      where: { label: route.label, catalogueSource: "fleet" },
+    });
+    if (existing) {
+      await prisma.routePreset.update({
+        where: { id: existing.id },
+        data: { ...route, isActive: true },
+      });
+    } else {
+      routeOrder += 1;
+      await prisma.routePreset.create({
+        data: { ...route, catalogueSource: "fleet", sortOrder: routeOrder, isActive: true },
+      });
+    }
+  }
+  console.log("Fleet route presets:", fleetRoutes.length);
+
   const ownerEmail = (process.env.OWNER_SEED_EMAIL || "owner@test.local").trim().toLowerCase();
   const ownerUser = await prisma.user.upsert({
     where: { email: ownerEmail },

@@ -140,6 +140,12 @@ export const DRIVER_SIGN_WEEK_NOT_ENDED_ERROR =
 export const CURRENT_WEEK_SIGN_UNAVAILABLE_HINT =
   "Sign unlocks after this week ends — from the following Sunday. Use Start shift and Set up day while the week is open.";
 
+export const ROUTE_CATALOGUE_EMPTY_HINT =
+  "No saved run plans yet. Use Custom trip to enter today's route, or ask your manager to add fleet routes in the route catalogue.";
+
+export const ROUTE_CATALOGUE_LOAD_ERROR_HINT =
+  "Could not load saved run plans. Use Custom trip for now — if this persists, your manager may need to update the database schema.";
+
 export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
   return `Archive · week of ${weekOfLabel}`;
 }
