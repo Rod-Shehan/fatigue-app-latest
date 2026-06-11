@@ -11,6 +11,10 @@ import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api"
 import { api } from "@/lib/api";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
+import {
+  buildDriverComplianceWeekContext,
+  runLocalSheetComplianceCheck,
+} from "@/lib/sheet-compliance-local";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { formatSheetDisplayDate, getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";
 import { useSession } from "next-auth/react";
@@ -43,18 +47,27 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
   const { data: sheet, isLoading } = useQuery({
     queryKey: ["sheet", sheetId],
     queryFn: () => getSheetOfflineFirst(sheetId),
+    refetchOnMount: isManager ? "always" : false,
+    staleTime: isManager ? 0 : Number.POSITIVE_INFINITY,
   });
 
   const { data: allSheets = [] } = useQuery({
     queryKey: ["sheets"],
     queryFn: () => listSheetsOfflineFirst(),
+    refetchOnMount: isManager ? "always" : false,
+    staleTime: isManager ? 0 : Number.POSITIVE_INFINITY,
   });
 
-  const { data: complianceHistory } = useQuery({
+  const { data: complianceHistoryRemote } = useQuery({
     queryKey: ["sheet", sheetId, "compliance-history"],
     queryFn: () => api.sheets.complianceHistory(sheetId),
-    enabled: !!sheetId,
+    enabled: isManager && !!sheetId,
   });
+
+  const complianceHistoryLocal = useMemo(() => {
+    if (isManager || !sheet?.driver_name || !sheet.week_starting) return null;
+    return buildDriverComplianceWeekContext(sheet.driver_name, sheet.week_starting, allSheets);
+  }, [isManager, sheet?.driver_name, sheet?.week_starting, allSheets]);
 
   const prevWeekSheet = useMemo(() => {
     if (!sheet?.week_starting || !sheet.driver_name) return null;
@@ -74,10 +87,12 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
     ? getCurrentDayIndex(sheet.week_starting, todayYmd)
     : 0;
 
-  const prevWeekDays =
-    complianceHistory?.prev_week_days ?? prevWeekSheet?.days ?? null;
-  const prevWeekStarting =
-    complianceHistory?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined;
+  const prevWeekDays = isManager
+    ? (complianceHistoryRemote?.prev_week_days ?? prevWeekSheet?.days ?? null)
+    : (complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null);
+  const prevWeekStarting = isManager
+    ? (complianceHistoryRemote?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined)
+    : (complianceHistoryLocal?.prevWeekStarting ?? prevWeekSheet?.week_starting ?? undefined);
 
   const compliancePayload = useMemo(() => {
     if (!sheet?.days?.length) return null;
@@ -85,7 +100,9 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
       days: sheet.days,
       driverType: sheet.driver_type,
       prevWeekDays,
-      historyDays: complianceHistory?.history_days ?? null,
+      historyDays: isManager
+        ? (complianceHistoryRemote?.history_days ?? null)
+        : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheet.last_24h_break || undefined,
       weekStarting: sheet.week_starting || undefined,
       prevWeekStarting,
@@ -93,13 +110,29 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
       slotOffsetWithinToday: getSlotOffsetWithinTodayLocal(Date.now(), sheet.jurisdiction_code),
       jurisdiction_code: sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
     };
-  }, [sheet, prevWeekDays, prevWeekStarting, complianceHistory, currentDayIndex]);
+  }, [
+    sheet,
+    prevWeekDays,
+    prevWeekStarting,
+    complianceHistoryRemote,
+    complianceHistoryLocal,
+    currentDayIndex,
+    isManager,
+  ]);
 
-  const { data: complianceData, isLoading: complianceLoading } = useQuery({
+  const localComplianceResults = useMemo(() => {
+    if (!compliancePayload || isManager) return null;
+    return runLocalSheetComplianceCheck(compliancePayload);
+  }, [compliancePayload, isManager]);
+
+  const { data: complianceDataRemote, isLoading: complianceLoadingRemote } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],
     queryFn: () => api.compliance.check(compliancePayload!),
-    enabled: !!compliancePayload,
+    enabled: isManager && !!compliancePayload,
   });
+
+  const complianceResults = isManager ? (complianceDataRemote?.results ?? null) : localComplianceResults;
+  const complianceLoading = isManager ? complianceLoadingRemote : false;
 
   const onScrollToDay = useCallback(
     (dayIndex: number) => {
@@ -171,7 +204,7 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
             last24hBreak={sheet.last_24h_break || undefined}
             weekStarting={sheet.week_starting || undefined}
             prevWeekStarting={prevWeekStarting}
-            complianceResults={complianceData?.results ?? null}
+            complianceResults={complianceResults}
             complianceLoading={complianceLoading}
             onScrollToDay={onScrollToDay}
           />

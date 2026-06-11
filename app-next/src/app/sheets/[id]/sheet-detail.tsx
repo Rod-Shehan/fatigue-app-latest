@@ -77,6 +77,10 @@ import {
   type ShiftLabel,
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
+import {
+  buildDriverComplianceWeekContext,
+  runLocalSheetComplianceCheck,
+} from "@/lib/sheet-compliance-local";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
@@ -174,6 +178,12 @@ export function SheetDetail({
   canAccessManager: boolean;
 }) {
   const queryClient = useQueryClient();
+  const { data: session, status: sessionStatus } = useSession();
+  const isManager =
+    canAccessManager ||
+    (session?.user as { role?: string | null } | undefined)?.role === "manager";
+  const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
+
   const [sheetData, setSheetData] = useState<{
     driver_name: string;
     second_driver: string;
@@ -259,30 +269,37 @@ export function SheetDetail({
     [sheetData.days, currentDayIndex, sheetData.week_starting, todayYmd, now]
   );
 
+  const slotMinute = useMemo(
+    () => getSlotOffsetWithinTodayLocal(now, sheetData.jurisdiction_code),
+    [now, sheetData.jurisdiction_code]
+  );
+
   const { data: sheet, isLoading } = useQuery({
     queryKey: ["sheet", sheetId],
     queryFn: () => getSheetOfflineFirst(sheetId),
-    refetchOnMount: "always",
+    refetchOnMount: isManager ? "always" : false,
+    staleTime: isManager ? 0 : Number.POSITIVE_INFINITY,
   });
 
   const { data: allSheets = [] } = useQuery({
     queryKey: ["sheets"],
     queryFn: () => listSheetsOfflineFirst(),
+    refetchOnMount: isManager ? "always" : false,
+    staleTime: isManager ? 0 : Number.POSITIVE_INFINITY,
   });
 
   const { data: regos = [] } = useQuery({
     queryKey: ["regos"],
     queryFn: () => listRegosOfflineFirst(),
+    refetchOnMount: isManager ? "always" : false,
+    staleTime: isManager ? 0 : Number.POSITIVE_INFINITY,
   });
 
   const { data: rosterDrivers = [] } = useQuery({
     queryKey: ["drivers"],
     queryFn: () => api.drivers.list(),
+    enabled: isManager,
   });
-
-  const { data: session, status: sessionStatus } = useSession();
-  const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
-  const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
 
   const storedRouteDefaults = useMemo(() => {
     if (isManager || !driverUserKey) return null;
@@ -383,7 +400,7 @@ export function SheetDetail({
       });
       return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
     });
-  }, [now, isManager]);
+  }, [slotMinute, isManager]);
 
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
   const driverPageIdentity = useMemo(() => {
@@ -475,31 +492,35 @@ export function SheetDetail({
     isManager ? undefined : sessionDriverName || sheetData.driver_name
   );
 
-  const { data: complianceHistory } = useQuery({
+  const { data: complianceHistoryRemote } = useQuery({
     queryKey: ["sheet", sheetId, "compliance-history"],
     queryFn: () => api.sheets.complianceHistory(sheetId),
-    enabled: !!sheetId,
+    enabled: isManager && !!sheetId,
   });
 
+  const complianceHistoryLocal = useMemo(() => {
+    if (isManager || !sheetData.driver_name || !sheetData.week_starting) return null;
+    return buildDriverComplianceWeekContext(sheetData.driver_name, sheetData.week_starting, allSheets);
+  }, [isManager, sheetData.driver_name, sheetData.week_starting, allSheets]);
+
   const compliancePayload = useMemo(() => {
-    const slotOffsetWithinToday = getSlotOffsetWithinTodayLocal(now, sheetData.jurisdiction_code);
-    const prevWeekDays =
-      complianceHistory?.prev_week_days ??
-      prevWeekSheet?.days ??
-      null;
+    const prevWeekDays = isManager
+      ? (complianceHistoryRemote?.prev_week_days ?? prevWeekSheet?.days ?? null)
+      : (complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null);
     return {
       days: sheetData.days,
       driverType: sheetData.driver_type,
       prevWeekDays,
-      historyDays: complianceHistory?.history_days ?? null,
+      historyDays: isManager
+        ? (complianceHistoryRemote?.history_days ?? null)
+        : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheetData.last_24h_break || undefined,
       weekStarting: sheetData.week_starting || undefined,
-      prevWeekStarting:
-        complianceHistory?.prev_week_starting ??
-        prevWeekSheet?.week_starting ??
-        undefined,
+      prevWeekStarting: isManager
+        ? (complianceHistoryRemote?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined)
+        : (complianceHistoryLocal?.prevWeekStarting ?? prevWeekSheet?.week_starting ?? undefined),
       currentDayIndex,
-      slotOffsetWithinToday,
+      slotOffsetWithinToday: slotMinute,
       jurisdiction_code: sheetData.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
     };
   }, [
@@ -509,16 +530,28 @@ export function SheetDetail({
     sheetData.last_24h_break,
     sheetData.week_starting,
     prevWeekSheet,
-    complianceHistory,
+    complianceHistoryRemote,
+    complianceHistoryLocal,
     currentDayIndex,
-    now,
+    slotMinute,
+    isManager,
   ]);
-  const { data: complianceData, isLoading: complianceLoading } = useQuery({
+
+  const localComplianceResults = useMemo(() => {
+    if (!sheetData.days?.length || isManager) return [];
+    return runLocalSheetComplianceCheck(compliancePayload);
+  }, [isManager, sheetData.days?.length, compliancePayload]);
+
+  const { data: complianceDataRemote, isLoading: complianceLoadingRemote } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],
     queryFn: () => api.compliance.check(compliancePayload),
-    enabled: !!sheetData.days?.length,
+    enabled: isManager && !!sheetData.days?.length,
   });
-  const complianceResults: ComplianceCheckResult[] = complianceData?.results ?? [];
+
+  const complianceResults: ComplianceCheckResult[] = isManager
+    ? (complianceDataRemote?.results ?? [])
+    : localComplianceResults;
+  const complianceLoading = isManager ? complianceLoadingRemote : false;
   const hasComplianceViolations = complianceResults.some((r) => r.type === "violation");
   const hasComplianceWarnings = complianceResults.some((r) => r.type === "warning");
   const hasComplianceInfo = complianceResults.some((r) => r.type === "info");
