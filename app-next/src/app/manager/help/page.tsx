@@ -17,6 +17,7 @@ export default async function ManagerHelpPage() {
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
           title={PRODUCT_NAME}
           subtitle="Manager user guide"
           icon={<BookOpen className="w-5 h-5" />}

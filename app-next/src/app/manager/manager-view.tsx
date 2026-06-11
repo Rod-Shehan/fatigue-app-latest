@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
@@ -187,6 +187,38 @@ export function ManagerView() {
     }
   }, []);
 
+  /** Set when scope was just restored from the URL — skips one auto-reset of the manual driver pick. */
+  const restoredScopeRef = useRef(false);
+
+  // Restore scope from URL (?week=&day=&driver=) so a round trip to the
+  // Logbook map (or a shared link) lands back on the same context.
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    const week = sp.get("week");
+    const day = sp.get("day");
+    const driver = sp.get("driver");
+    if (week && /^\d{4}-\d{2}-\d{2}$/.test(week)) setActiveWeekStarting(week);
+    if (day != null) {
+      const idx = Number(day);
+      if (Number.isInteger(idx) && idx >= 0 && idx <= 6) setActiveDayIndex(idx);
+    }
+    if (driver?.trim()) {
+      setSelectedDriverFilter(driver.trim());
+      setDriverPickManual(true);
+      restoredScopeRef.current = true;
+    }
+  }, []);
+
+  // Reflect scope in the URL (replace, no history spam) so back-navigation
+  // and map deep links can restore exactly what the manager was looking at.
+  useEffect(() => {
+    const sp = new URLSearchParams();
+    if (activeWeekStarting) sp.set("week", activeWeekStarting);
+    sp.set("day", String(activeDayIndex));
+    if (driverPickManual && selectedDriverFilter) sp.set("driver", selectedDriverFilter);
+    window.history.replaceState(null, "", `${window.location.pathname}?${sp.toString()}`);
+  }, [activeWeekStarting, activeDayIndex, driverPickManual, selectedDriverFilter]);
+
   const [form, setForm] = useState<{
     last_24h_break: string;
     driver_type: string;
@@ -245,10 +277,12 @@ export function ManagerView() {
   }, [sheets, activeWeekStarting, activeDayIndex]);
 
   useEffect(() => {
+    // Wait for sheets before validating, or a URL-restored driver gets cleared.
+    if (sheetsLoading) return;
     if (selectedDriverFilter && !driverOptions.includes(selectedDriverFilter)) {
       setSelectedDriverFilter("");
     }
-  }, [selectedDriverFilter, driverOptions]);
+  }, [selectedDriverFilter, driverOptions, sheetsLoading]);
 
   useEffect(() => {
     if (selectedRegoFilter && !regoOptions.includes(selectedRegoFilter)) {
@@ -310,7 +344,18 @@ export function ManagerView() {
     [weekForSnapshot]
   );
 
+  const scopeResetReadyRef = useRef(false);
   useEffect(() => {
+    // Skip the mount run, and skip the run caused by a URL scope restore —
+    // otherwise the restored driver pick would immediately flip back to auto.
+    if (!scopeResetReadyRef.current) {
+      scopeResetReadyRef.current = true;
+      return;
+    }
+    if (restoredScopeRef.current) {
+      restoredScopeRef.current = false;
+      return;
+    }
     setDriverPickManual(false);
   }, [activeWeekStarting, activeDayIndex, selectedRegoFilter]);
 
@@ -708,6 +753,7 @@ export function ManagerView() {
               onSelectDriver={handleFleetSelectDriver}
               checkInCount={attentionItems.length}
               onScrollToCheckIns={scrollToCheckIns}
+              mapDayIndex={activeDayIndex}
             />
           ) : (
             <p className="mb-6 rounded-xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-100">
@@ -722,6 +768,7 @@ export function ManagerView() {
                 weekStarting={weekForSnapshot}
                 demo
                 autoSelected={!driverPickManual}
+                mapDayIndex={activeDayIndex}
               />
             </div>
           ) : null}

@@ -132,6 +132,7 @@ export function ManagerRiskTimelineDashboard({
   demo = true,
   aboveChart,
   autoSelected = false,
+  mapDayIndex,
 }: {
   driverName: string;
   /** Manager focus week — aligns FRMS cache hash with day picker. */
@@ -142,6 +143,8 @@ export function ManagerRiskTimelineDashboard({
   aboveChart?: ReactNode;
   /** Chart driver was picked automatically (highest current fleet risk). */
   autoSelected?: boolean;
+  /** Selected day (0=Sun) — rides along on the map link so Back restores it. */
+  mapDayIndex?: number;
 }) {
   const { resolved: colorMode } = useTheme();
   const chart = CHART_THEME[colorMode];
@@ -292,7 +295,7 @@ export function ManagerRiskTimelineDashboard({
           </div>
           <div className="flex flex-wrap gap-2 shrink-0 items-center">
             <Link
-              href={managerMapHref({ weekStarting, driverName })}
+              href={managerMapHref({ weekStarting, driverName, dayIndex: mapDayIndex })}
               className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-teal-600 dark:hover:text-teal-300"
               title={MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER}
             >

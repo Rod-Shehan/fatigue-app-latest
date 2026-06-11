@@ -101,6 +101,7 @@ export function ManagerMessagesView() {
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
           title={MANAGER_EXPERIENCE.NAV_MESSAGES}
           subtitle={MANAGER_EXPERIENCE.MESSAGES_PAGE_SUBTITLE}
           icon={<MessageSquare className="w-5 h-5" />}

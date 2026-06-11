@@ -103,11 +103,13 @@ function DriverHeatmapRow({
 function PriorityQueueItem({
   item,
   weekStarting,
+  mapDayIndex,
   selected,
   onSelect,
 }: {
   item: FleetPriorityItem;
   weekStarting: string;
+  mapDayIndex?: number;
   selected: boolean;
   onSelect: (name: string) => void;
 }) {
@@ -138,7 +140,7 @@ function PriorityQueueItem({
         <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-600" aria-hidden />
       </button>
       <Link
-        href={managerMapHref({ weekStarting, driverName: item.driverName })}
+        href={managerMapHref({ weekStarting, driverName: item.driverName, dayIndex: mapDayIndex })}
         className="flex shrink-0 items-center rounded-r-lg border-l border-white/5 px-2 text-slate-500 transition-colors hover:bg-teal-950/50 hover:text-teal-300"
         title={`${MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER} — ${item.driverName}`}
         aria-label={`${MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER} — ${item.driverName}`}
@@ -200,6 +202,7 @@ export function ManagerFleetRiskPulse({
   onSelectDriver,
   checkInCount = 0,
   onScrollToCheckIns,
+  mapDayIndex,
 }: {
   weekStarting: string;
   driverNames: string[];
@@ -207,6 +210,8 @@ export function ManagerFleetRiskPulse({
   onSelectDriver: (name: string) => void;
   checkInCount?: number;
   onScrollToCheckIns?: () => void;
+  /** Selected day (0=Sun) — rides along on map links so Back restores it. */
+  mapDayIndex?: number;
 }) {
   const namesKey = driverNames.join("\0");
 
@@ -440,6 +445,7 @@ export function ManagerFleetRiskPulse({
                     key={item.driverName}
                     item={item}
                     weekStarting={weekStarting}
+                    mapDayIndex={mapDayIndex}
                     selected={selectedDriver === item.driverName}
                     onSelect={onSelectDriver}
                   />

@@ -17,6 +17,7 @@ import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 export function PageHeader({
   backHref,
   backLabel = "Your Sheets",
+  backText,
   title,
   subtitle,
   icon,
@@ -32,6 +33,8 @@ export function PageHeader({
   backHref?: string;
   /** Accessible label for the back link (e.g. "Your Sheets" or "Circadia 24"). */
   backLabel?: string;
+  /** Visible text next to the back arrow (e.g. "Overview") so its destination is obvious. */
+  backText?: string;
   title: string;
   subtitle?: string;
   /** Optional icon shown in a rounded box next to the title. */
@@ -107,7 +110,7 @@ export function PageHeader({
           {backHref != null ? (
             <Link
               href={backHref}
-              className="flex shrink-0 rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+              className="flex shrink-0 items-center rounded-md text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
               aria-label={backLabel}
               title={backLabel}
             >
@@ -124,6 +127,11 @@ export function PageHeader({
                   strokeWidth={2.25}
                 />
               </span>
+              {backText ? (
+                <span className="-ml-1 pr-3 text-sm font-medium whitespace-nowrap">
+                  {backText}
+                </span>
+              ) : null}
             </Link>
           ) : (
             <span

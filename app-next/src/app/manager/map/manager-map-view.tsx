@@ -42,6 +42,19 @@ function ManagerMapViewInner() {
   const [mapDriverName, setMapDriverName] = useState<string>(
     () => searchParams.get("driver") ?? ""
   );
+  /** Day index from the Overview deep link — not used by the map, returned on Back. */
+  const backDayIndex = searchParams.get("day");
+
+  // Contextual back link: returns the manager to the Overview with the same
+  // week / day / driver they were inspecting, so no inputs need re-entering.
+  const overviewBackHref = useMemo(() => {
+    const sp = new URLSearchParams();
+    if (mapWeekStarting) sp.set("week", mapWeekStarting);
+    if (backDayIndex != null) sp.set("day", backDayIndex);
+    if (mapDriverName) sp.set("driver", mapDriverName);
+    const q = sp.toString();
+    return `/manager${q ? `?${q}` : ""}`;
+  }, [mapWeekStarting, mapDriverName, backDayIndex]);
   const [mapEventTypes, setMapEventTypes] = useState({
     work: true,
     break: true,
@@ -88,8 +101,9 @@ function ManagerMapViewInner() {
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="max-w-4xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
-          backHref="/manager"
+          backHref={overviewBackHref}
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
           title={MANAGER_EXPERIENCE.NAV_MAP}
           subtitle={MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE}
           icon={<Map className="w-5 h-5 sm:w-6 sm:h-6" />}
