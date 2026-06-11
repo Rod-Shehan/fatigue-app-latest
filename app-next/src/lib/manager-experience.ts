@@ -57,7 +57,7 @@ export const MANAGER_EXPERIENCE = {
   NAV_LOBBY: "Log-in Page" as const,
   /** Short subnav label — avoids repeating the page title in the nav bar. */
   NAV_OVERVIEW: "Overview",
-  NAV_MAP: "Movement map",
+  NAV_MAP: "Logbook map",
   NAV_MESSAGES: "Conversations",
   NAV_DRIVERS: "Drivers",
   NAV_MANAGERS: "Managers",
@@ -125,7 +125,7 @@ export const MANAGER_EXPERIENCE = {
     "Click a fleet row or change Chart driver in Scope.",
   TIMELINE_AUTO_HINT: "Highest current risk",
   TIMELINE_VIEW_ON_MAP: "View on map",
-  MAP_LOCATE_DRIVER: "Locate on movement map",
+  MAP_LOCATE_DRIVER: "Locate on logbook map",
 
   FLEET_PULSE_EYEBROW: "Live fleet tracking",
   FLEET_PULSE_TITLE: "Fleet risk pulse",
@@ -162,7 +162,7 @@ export const MANAGER_EXPERIENCE = {
   ACTION_OPEN_SHEET: "Open record",
   ACTION_OPEN_INBOX: "Start conversation",
 
-  MAP_PAGE_SUBTITLE: "See where work, breaks, and stops were logged — context for assurance, not surveillance.",
+  MAP_PAGE_SUBTITLE: "Logbook entries placed on the map — where work, breaks, and shift ends were logged. The record, not a tracker.",
   MESSAGES_PAGE_SUBTITLE: "Check in with drivers when exposure rises — coaching tone, not compliance orders.",
 } as const;
 

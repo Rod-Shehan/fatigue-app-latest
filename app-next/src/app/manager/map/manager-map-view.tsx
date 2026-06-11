@@ -98,7 +98,7 @@ function ManagerMapViewInner() {
         <ManagerSubnav />
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6">
           <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-            Filter by week and driver. Use movement context to support assurance conversations — not driver surveillance.
+            Filter by week and driver. Each marker is a logbook entry with a location — use it to support assurance conversations, not driver surveillance.
           </p>
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4 items-end">

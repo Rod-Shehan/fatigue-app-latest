@@ -1,4 +1,4 @@
-/** Deep-link into the Movement map with the risk card's current scope. */
+/** Deep-link into the Logbook map with the risk card's current scope. */
 export function managerMapHref(params: {
   weekStarting?: string;
   driverName?: string;
