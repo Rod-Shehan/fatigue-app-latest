@@ -13,6 +13,7 @@ import {
   sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
 import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
+import { reopenPrematureCurrentWeekAttestationIfNeeded } from "@/lib/sheet-premature-attestation-db";
 import {
   enqueueFrmsRecompute,
   isFrmsEngineEnabled,
@@ -81,6 +82,8 @@ export async function GET(
       sheet = await prisma.fatigueSheet.findUnique({ where: { id } });
       if (!sheet) return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+
+    sheet = await reopenPrematureCurrentWeekAttestationIfNeeded(prisma, sheet, access.userId);
 
     const body = sheetToJson(sheet) as ReturnType<typeof sheetToJson> & {
       risk_register?: unknown;
@@ -173,8 +176,11 @@ export async function PATCH(
           { status: 400 }
         );
       }
+      const attemptingSign =
+        status === "completed" ||
+        (signature !== undefined && signature !== null && String(signature).trim() !== "");
       if (
-        (status === "completed" || signature !== undefined) &&
+        attemptingSign &&
         sheetIsUnsignedForDriver(sheet.status, sheet.signature) &&
         !isPastRegulatoryWeek(sheet.weekStarting)
       ) {

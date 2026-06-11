@@ -6,6 +6,7 @@ import { autoCloseStaleDraftSheetsForUser } from "@/lib/sheet-auto-close-db";
 import { getThisWeekSunday, isNextWeekOrLater } from "@/lib/weeks";
 import { parseJurisdictionCode } from "@/lib/jurisdiction";
 import { normalizeSheetDaysForApi } from "@/lib/coverage/derive-minute-coverage";
+import { reopenPrematureCurrentWeekAttestationIfNeeded } from "@/lib/sheet-premature-attestation-db";
 
 function parseDays(daysJson: string): unknown[] {
   try {
@@ -60,12 +61,15 @@ export async function GET() {
     const where = access.isManager
       ? {}
       : { createdById: access.userId };
-    const sheets = await prisma.fatigueSheet.findMany({
+    let sheets = await prisma.fatigueSheet.findMany({
       where,
       orderBy: { weekStarting: "desc" },
       // Managers need every work week in the picker; drivers keep a recent window.
       ...(access.isManager ? {} : { take: 50 }),
     });
+    sheets = await Promise.all(
+      sheets.map((s) => reopenPrematureCurrentWeekAttestationIfNeeded(prisma, s, access.userId))
+    );
     const list = sheets.map((s) => sheetToJson(s));
     return NextResponse.json(list);
   } catch {

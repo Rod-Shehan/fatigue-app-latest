@@ -89,3 +89,19 @@ export function managerRequiresAmendmentReason(
 export function sheetNeedsDriverSignature(signature?: string | null): boolean {
   return !signature;
 }
+
+/** Signed or completed while still the in-progress regulatory week (invalid — locks logging). */
+export function isPrematureCurrentWeekAttestation(
+  weekStarting: string,
+  status: string,
+  signature?: string | null
+): boolean {
+  if (isPastRegulatoryWeek(weekStarting)) return false;
+  return status === "completed" || !!signature;
+}
+
+export const PREMATURE_ATTESTATION_REOPEN = {
+  status: "draft" as const,
+  signature: null,
+  signedAt: null,
+};

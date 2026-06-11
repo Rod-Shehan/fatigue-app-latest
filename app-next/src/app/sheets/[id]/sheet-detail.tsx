@@ -64,6 +64,8 @@ import {
   canDriverAttestSheet,
   canDriverEditSheetContent,
   canDriverLogOnSheet,
+  isPrematureCurrentWeekAttestation,
+  PREMATURE_ATTESTATION_REOPEN,
 } from "@/lib/sheet-record";
 import { CURRENT_WEEK_SIGN_UNAVAILABLE_HINT, DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
@@ -255,6 +257,7 @@ export function SheetDetail({
   const { data: sheet, isLoading } = useQuery({
     queryKey: ["sheet", sheetId],
     queryFn: () => getSheetOfflineFirst(sheetId),
+    refetchOnMount: "always",
   });
 
   const { data: allSheets = [] } = useQuery({
@@ -386,6 +389,14 @@ export function SheetDetail({
         days = applied.days;
         defaultsApplied = applied.changed;
       }
+      let status = sheet.status || "draft";
+      let signature = sheet.signature;
+      let signed_at = sheet.signed_at;
+      if (isPrematureCurrentWeekAttestation(weekStart, status, signature)) {
+        status = PREMATURE_ATTESTATION_REOPEN.status;
+        signature = undefined;
+        signed_at = undefined;
+      }
       setSheetData({
         driver_name: sheet.driver_name || "",
         second_driver: sheet.second_driver || "",
@@ -394,9 +405,9 @@ export function SheetDetail({
         last_24h_break: sheet.last_24h_break || "",
         week_starting: weekStart,
         days,
-        status: sheet.status || "draft",
-        signature: sheet.signature,
-        signed_at: sheet.signed_at,
+        status,
+        signature,
+        signed_at,
       });
       setIsDirty(defaultsApplied);
     }

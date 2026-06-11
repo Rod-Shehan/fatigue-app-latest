@@ -4,6 +4,7 @@ import {
   canDriverAttestSheet,
   canDriverEditSheetContent,
   canDriverLogOnSheet,
+  isPrematureCurrentWeekAttestation,
   managerRequiresAmendmentReason,
   patchIsAttestationOnly,
   patchTouchesContent,
@@ -41,6 +42,12 @@ describe("driver capabilities", () => {
   });
   it("cannot attest when already signed", () => {
     expect(canDriverAttestSheet(pastWeek, "completed", "data:image/png;base64,x")).toBe(false);
+  });
+  it("detects premature attestation on current week", () => {
+    expect(isPrematureCurrentWeekAttestation(thisWeek, "completed", null)).toBe(true);
+    expect(isPrematureCurrentWeekAttestation(thisWeek, "draft", "data:image/png;base64,x")).toBe(true);
+    expect(isPrematureCurrentWeekAttestation(thisWeek, "draft", null)).toBe(false);
+    expect(isPrematureCurrentWeekAttestation(pastWeek, "completed", "sig")).toBe(false);
   });
   it("cannot edit signed sheet", () => {
     expect(canDriverEditSheetContent("2026-05-24", "completed", "data:image/png;base64,x")).toBe(false);
