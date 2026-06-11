@@ -60,7 +60,12 @@ import {
   getThisWeekSunday,
   isPastRegulatoryWeek,
 } from "@/lib/weeks";
-import { canDriverEditSheetContent, canDriverLogOnSheet } from "@/lib/sheet-record";
+import {
+  canDriverAttestSheet,
+  canDriverEditSheetContent,
+  canDriverLogOnSheet,
+} from "@/lib/sheet-record";
+import { CURRENT_WEEK_SIGN_UNAVAILABLE_HINT, DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import {
   samePatternWorkMinutesEndingAt,
@@ -293,8 +298,10 @@ export function SheetDetail({
     [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
   const canDriverSign = useMemo(
-    () => !isManager && !sheetData.signature,
-    [isManager, sheetData.signature]
+    () =>
+      !isManager &&
+      canDriverAttestSheet(sheetData.week_starting, sheetData.status, sheetData.signature),
+    [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
 
   const weekOfLabel = useMemo(
@@ -940,6 +947,16 @@ export function SheetDetail({
   }, [fetchServerMaxByRego, persistSheetFromRef, scrollToDayCard]);
 
   const handleMarkCompleteClick = async () => {
+    if (
+      !canDriverAttestSheet(
+        sheetDataRef.current.week_starting,
+        sheetDataRef.current.status,
+        sheetDataRef.current.signature
+      )
+    ) {
+      window.alert(DRIVER_SIGN_WEEK_NOT_ENDED_ERROR);
+      return;
+    }
     const days = sheetDataRef.current.days;
     const serverMaxByRego = await fetchServerMaxByRego(days);
     const kmError = validateSheetKms(days, { serverMaxByRego });
@@ -1124,6 +1141,14 @@ export function SheetDetail({
                     count={unsignedPastWeeksForDriver.length}
                     onOpen={() => setGearDrawerOpen(true)}
                   />
+                )}
+                {!isPastWeek && canShowLogBar && (
+                  <p
+                    className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/50 px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300 leading-snug"
+                    role="status"
+                  >
+                    {CURRENT_WEEK_SIGN_UNAVAILABLE_HINT}
+                  </p>
                 )}
               </>
             ) : (

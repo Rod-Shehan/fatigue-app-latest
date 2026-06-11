@@ -10,7 +10,9 @@ import {
   managerRequiresAmendmentReason,
   patchIsAttestationOnly,
   patchTouchesContent,
+  sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
+import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
 import {
   enqueueFrmsRecompute,
   isFrmsEngineEnabled,
@@ -168,6 +170,16 @@ export async function PATCH(
       if (attestationOnly && status === "completed" && !signature) {
         return NextResponse.json(
           { error: "A signature is required to complete this record.", code: "SIGNATURE_REQUIRED" },
+          { status: 400 }
+        );
+      }
+      if (
+        (status === "completed" || signature !== undefined) &&
+        sheetIsUnsignedForDriver(sheet.status, sheet.signature) &&
+        !isPastRegulatoryWeek(sheet.weekStarting)
+      ) {
+        return NextResponse.json(
+          { error: DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, code: "WEEK_NOT_ENDED" },
           { status: 400 }
         );
       }

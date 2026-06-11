@@ -34,7 +34,7 @@ export const SHEET_RECORD_CONTRACT_NOTES = [
  * Paths:
  * 1. Past week, never signed → driver may edit days and sign; manager may amend → driver signs → locked.
  * 2. Past week, signed → manager amends (reason) → signature cleared, pending driver re-sign → driver signs → locked.
- * 3. Current week → driver logs (live bar on today only); may edit any unsigned day; sign when ready; re-sign after manager amend.
+ * 3. Current week → driver logs (live bar on today only); may edit any unsigned day; sign only after the week ends (past week); re-sign after manager amend.
  *
  * Manager edit policy (real world / ISO 9001–style document control):
  * - Driver and manager may negotiate corrections over multiple edits; each edit is audited with reason.
@@ -73,13 +73,14 @@ export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
   "The app opens on this week — use Work, Break, and End shift on today while the week is unsigned.",
   "Past weeks that are still unsigned: open the week, expand a day, and fix route or times before you sign.",
   "Your signature means you attest that week is your record. It is not the manager's signature.",
+  "Sign a week only after it has ended (from the following Sunday) — not while you are still logging that week.",
   "After you sign, that week is locked. If something is wrong, your manager amends (with a reason on file); you review and sign again.",
   "Unsigned past weeks show as reminders — they do not block logging on the current week.",
 ] as const;
 
 /** Bullets: how weeks appear to the driver in the UI. */
 export const USER_VISIBLE_SHEET_STATE_BULLETS = [
-  "Current regulatory week — log Work/Break/End shift on today; edit any day until you sign.",
+  "Current regulatory week — log Work/Break/End shift on today; edit any day until the week ends; sign from the following Sunday.",
   "Unsigned past weeks — expand a day to fix route or times, then sign when correct.",
   "Signed weeks — locked for you; manager edits need your signature again.",
 ] as const;
@@ -130,6 +131,14 @@ export function formatResignPastWeekBody(weekOfLabel: string): string {
 export const SIGN_CURRENT_WEEK_TITLE = "Sign this week's record";
 export const SIGN_CURRENT_WEEK_BODY =
   "Review this week below. When it is correct, sign to confirm the record is yours.";
+
+/** Driver tried to sign before the regulatory week ended. */
+export const DRIVER_SIGN_WEEK_NOT_ENDED_ERROR =
+  "You can only sign a week after it has ended (from the following Sunday). Keep logging on this week until then.";
+
+/** Shown on the in-progress current week instead of a Sign button. */
+export const CURRENT_WEEK_SIGN_UNAVAILABLE_HINT =
+  "Sign unlocks after this week ends — from the following Sunday. Use Start shift and Set up day while the week is open.";
 
 export function formatPastWeekArchiveSubtitle(weekOfLabel: string): string {
   return `Archive · week of ${weekOfLabel}`;

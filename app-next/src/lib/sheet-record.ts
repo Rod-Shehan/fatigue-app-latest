@@ -33,10 +33,17 @@ export function canDriverEditSheetContent(
   return sheetIsUnsignedForDriver(status, signature);
 }
 
-/** Driver may sign / complete attestation (current or past week). */
-export function canDriverAttestSheet(status: string, signature?: string | null): boolean {
-  if (signature) return false;
-  return true;
+/**
+ * Driver may sign only after the regulatory week has ended (next Sunday onward).
+ * Prevents signing the in-progress current week and locking out Start shift / day setup.
+ */
+export function canDriverAttestSheet(
+  weekStarting: string,
+  status: string,
+  signature?: string | null
+): boolean {
+  if (!sheetIsUnsignedForDriver(status, signature)) return false;
+  return isPastRegulatoryWeek(weekStarting);
 }
 
 export const SHEET_CONTENT_PATCH_KEYS = [

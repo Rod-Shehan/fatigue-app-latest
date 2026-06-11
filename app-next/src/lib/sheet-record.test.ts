@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getThisWeekSunday, isPastRegulatoryWeek } from "@/lib/weeks";
 import {
+  canDriverAttestSheet,
   canDriverEditSheetContent,
   canDriverLogOnSheet,
   managerRequiresAmendmentReason,
@@ -31,6 +32,15 @@ describe("driver capabilities", () => {
   });
   it("can log live on current unsigned week", () => {
     expect(canDriverLogOnSheet(thisWeek, "draft", null)).toBe(true);
+  });
+  it("cannot sign current regulatory week until it ends", () => {
+    expect(canDriverAttestSheet(thisWeek, "draft", null)).toBe(false);
+  });
+  it("can sign unsigned past week", () => {
+    expect(canDriverAttestSheet(pastWeek, "draft", null)).toBe(true);
+  });
+  it("cannot attest when already signed", () => {
+    expect(canDriverAttestSheet(pastWeek, "completed", "data:image/png;base64,x")).toBe(false);
   });
   it("cannot edit signed sheet", () => {
     expect(canDriverEditSheetContent("2026-05-24", "completed", "data:image/png;base64,x")).toBe(false);
