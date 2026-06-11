@@ -18,9 +18,13 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
-import { getShiftRestStatusFromWorkGrid } from "@/lib/shift-rest-status";
 import {
+  concatenateTimelineSlices,
   getEventsForDriverInOrder,
+  getEventsInTimeOrder,
+  getInsufficientNonWorkMessage,
+  getShiftRestStatusFromTimeline,
+  type TimelineSlice,
 } from "@/lib/rolling-events";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
@@ -195,6 +199,7 @@ export default function LogBar({
   onShiftSegmentChange,
   mobileToolsOpen: mobileToolsOpenProp,
   onMobileToolsOpenChange,
+  priorTimelineSlices,
 }: {
   days: DayData[];
   currentDayIndex: number;
@@ -229,6 +234,8 @@ export default function LogBar({
   onShiftSegmentChange?: (shiftSegmentOpen: boolean) => void;
   mobileToolsOpen?: boolean;
   onMobileToolsOpenChange?: (open: boolean) => void;
+  /** Older record slices before this sheet (chronological). Rules use event timestamps only. */
+  priorTimelineSlices?: TimelineSlice[];
 }) {
   void weekStarting;
   const [pendingType, setPendingType] = useState<string | null>(null);
@@ -254,13 +261,35 @@ export default function LogBar({
 
   const day = days[currentDayIndex];
   const dayForCardFields = currentDayDisplay ?? day;
-  /** Chronological events for this driver across all sheet days — open work/break survives calendar midnight. */
+  const timelineSlices = useMemo(
+    () => concatenateTimelineSlices(priorTimelineSlices ?? [], days),
+    [priorTimelineSlices, days]
+  );
+
+  /** Rolling event timeline for this driver (all loaded record slices, sorted by time). */
   const eventsForDriver = useMemo(
-    () => getEventsForDriverInOrder(days, driverType === "two_up" ? activeDriver : undefined),
-    [days, driverType, activeDriver]
+    () =>
+      getEventsForDriverInOrder(
+        timelineSlices,
+        driverType === "two_up" ? activeDriver : undefined
+      ),
+    [timelineSlices, driverType, activeDriver]
+  );
+  const timelineEvents = useMemo(
+    () => getEventsInTimeOrder(timelineSlices),
+    [timelineSlices]
   );
   const lastEvent = eventsForDriver.length ? eventsForDriver[eventsForDriver.length - 1] : undefined;
   const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
+
+  const shiftRestStatus = useMemo(() => {
+    if (!isLiveNow) return null;
+    const driverEvents =
+      driverType === "two_up"
+        ? timelineEvents.filter((ev) => (ev.driver ?? "primary") === activeDriver)
+        : timelineEvents;
+    return getShiftRestStatusFromTimeline(driverEvents, Date.now());
+  }, [isLiveNow, timelineEvents, driverType, activeDriver, tick]);
   /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
   const shiftSegmentOpen = currentType === "work" || currentType === "break";
 
@@ -497,14 +526,14 @@ export default function LogBar({
     return "Break under 10 minutes is automatically counted as work time.";
   };
 
-  /** Warning when starting work with <7h non-work since last shift (rolling time: last stop on this driver's timeline). */
+  /** Warning when starting work with <7h non-work since last shift end (rolling event time). */
   const getInsufficientNonWorkWarning = () => {
     if (currentType !== null) return null;
-    // Use derived grids: any minute with no work counts toward the 7h run.
-    const nowMs = Date.now();
-    const rest = getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs);
-    if (rest.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
-    return `Less than ${MIN_NON_WORK_HOURS_BETWEEN_SHIFTS} hours non-work time since last work. Starting work may not meet non-work time requirements.`;
+    const driverEvents =
+      driverType === "two_up"
+        ? timelineEvents.filter((ev) => (ev.driver ?? "primary") === activeDriver)
+        : timelineEvents;
+    return getInsufficientNonWorkMessage(driverEvents, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
   };
 
   const logBarBanner = useMemo(() => {
@@ -529,15 +558,14 @@ export default function LogBar({
       return `Minimum break: ${mins} min remaining.`;
     }
 
-    if (currentType === null) {
-      const rest = getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs);
-      if (rest.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
-      const remaining = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - rest.consecutiveNonWorkMinutes);
-      return `7h rest required before Start shift — ${formatDurationHoursMinutes(remaining)} remaining.`;
+    if (currentType === null && shiftRestStatus) {
+      if (shiftRestStatus.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
+      const remaining = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRestStatus.consecutiveNonWorkMinutes);
+      return `7h rest since last shift ended — ${formatDurationHoursMinutes(remaining)} remaining (rolling time; earlier non-work before that shift does not count).`;
     }
 
     return null;
-  }, [currentType, days, currentDayIndex, eventsForDriver, isLiveNow]);
+  }, [currentType, eventsForDriver, isLiveNow, shiftRestStatus]);
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
@@ -775,20 +803,12 @@ export default function LogBar({
         )}
         <div className="flex w-full max-w-md flex-col items-stretch gap-2 sm:inline-flex sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 shrink-0">
           {(() => {
-            const nowMs = Date.now();
-            const rest = isLiveNow
-              ? getShiftRestStatusFromWorkGrid(days, currentDayIndex, nowMs)
-              : null;
             const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
 
             const isPending = pendingType === nextWorkBreak;
             const theme = ACTIVITY_THEME[nextWorkBreak];
             const isStartingShift = nextWorkBreak === "work" && currentType === null;
             const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
-            const startShiftBlocked =
-              isStartingShift &&
-              rest != null &&
-              rest.consecutiveNonWorkMinutes < MIN_NON_WORK_MIN_BETWEEN_SHIFTS;
             return (
               <button
                 type="button"
@@ -797,11 +817,9 @@ export default function LogBar({
                   "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
                   theme.button,
                   isPending &&
-                    "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse",
-                  startShiftBlocked && "opacity-60 cursor-not-allowed"
+                    "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse"
                 )}
                 aria-label={isPending ? "Tap again to confirm" : primaryLabel}
-                disabled={startShiftBlocked && !isPending}
               >
                 {React.createElement(EVENT_ICONS[nextWorkBreak], {
                   className: "shrink-0 text-white drop-shadow-sm w-8 h-8",

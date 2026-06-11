@@ -1,14 +1,16 @@
 "use client";
 
+/**
+ * Legacy grid-only rest walkback (no event timestamps).
+ * Prefer getShiftRestStatusFromTimeline in rolling-events.ts for the 7h Start-shift gate.
+ */
+
 export type ShiftRestDay = {
-  /** 1440-minute grid OR legacy 48 half-hour slots. */
   work_time?: boolean[];
 };
 
 export type ShiftRestStatus = {
-  /** Consecutive minutes with NO work immediately before now. */
   consecutiveNonWorkMinutes: number;
-  /** Approx local timestamp (ms) when this non-work run started, or null if unknown. */
   restRunStartedAtMs: number | null;
 };
 
@@ -19,27 +21,26 @@ function minutesSinceMidnightLocal(nowMs: number): number {
 
 function isWorkMinute(work: boolean[] | undefined, minuteIndex: number): boolean {
   if (!work || work.length === 0) return false;
-  // Support both 48-slot legacy and 1440-minute grids.
   if (work.length === 48) return !!work[Math.floor(minuteIndex / 30)];
   return !!work[minuteIndex];
 }
 
 /**
- * Phase A core: derive the current "rest run" purely from the work_time grid.
- * Rule: any minute that is not work counts toward the run (break and non-work are both "not work").
+ * Walk work_time grids backward through consecutive record slices (legacy fallback).
+ * Slices must already be in chronological order; index is the slice containing asOfMs.
  */
 export function getShiftRestStatusFromWorkGrid(
-  days: ShiftRestDay[],
-  currentDayIndex: number,
+  slices: ShiftRestDay[],
+  sliceIndexContainingNow: number,
   nowMs: number
 ): ShiftRestStatus {
   const endMinuteToday = Math.max(0, Math.min(1440, minutesSinceMidnightLocal(nowMs) + 1));
   let count = 0;
 
-  for (let dayIdx = currentDayIndex; dayIdx >= 0; dayIdx--) {
-    const day = days[dayIdx] ?? {};
+  for (let dayIdx = sliceIndexContainingNow; dayIdx >= 0; dayIdx--) {
+    const day = slices[dayIdx] ?? {};
     const wt = day.work_time ?? [];
-    const limit = dayIdx === currentDayIndex ? endMinuteToday : 1440;
+    const limit = dayIdx === sliceIndexContainingNow ? endMinuteToday : 1440;
     const maxMinute =
       wt.length === 48 ? Math.min(limit, 48 * 30) : wt.length ? Math.min(limit, wt.length) : limit;
 
@@ -57,4 +58,3 @@ export function getShiftRestStatusFromWorkGrid(
     restRunStartedAtMs: count > 0 ? nowMs - count * 60 * 1000 : null,
   };
 }
-

@@ -507,18 +507,15 @@ function checkSoloRules(
   for (const segment of segments24) {
     const segmentDays = segment.map((i) => days[i]);
     const nonWork = flatSlots(segmentDays, "non_work");
-    let separationRun = 0; // minutes since end of last qualifying ≥7h non-work period
+    const work = flatSlots(segmentDays, "work_time");
+    const breaks = flatSlots(segmentDays, "breaks");
+    let separationRun = 0; // work+break minutes since last qualifying ≥7h non-work period
     let nonWorkRun = 0; // minutes in current non-work run
     let lastNonWorkQualified = false;
     for (let s = 0; s < nonWork.length; s++) {
       const dayIndexInSegment = Math.min(Math.floor(s / MINUTES_PER_DAY), segmentDays.length - 1);
-      const segmentDayHasWork = dayHasWork(segmentDays[dayIndexInSegment] ?? {});
-      if (!segmentDayHasWork) {
-        separationRun = 0;
-        nonWorkRun = 0;
-        lastNonWorkQualified = false;
-        continue;
-      }
+      const hasMinuteData = work[s] || breaks[s] || nonWork[s];
+      if (!hasMinuteData) continue;
       if (nonWork[s]) {
         nonWorkRun++;
         // Once we reach a qualifying ≥7h in this run, it "anchors" the separation.
@@ -1097,6 +1094,7 @@ export function getProspectiveWorkWarnings(
   options: {
     driverType?: string;
     prevWeekDays?: ComplianceDayData[] | null;
+    historyDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
     prevWeekStarting?: string;
     jurisdictionCode?: string | null;

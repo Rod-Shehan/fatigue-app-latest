@@ -81,6 +81,7 @@ import {
   buildDriverComplianceWeekContext,
   runLocalSheetComplianceCheck,
 } from "@/lib/sheet-compliance-local";
+import type { TimelineSlice } from "@/lib/rolling-events";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
@@ -552,6 +553,19 @@ export function SheetDetail({
     ? (complianceDataRemote?.results ?? [])
     : localComplianceResults;
   const complianceLoading = isManager ? complianceLoadingRemote : false;
+
+  /** Chronological record slices before this sheet — for rolling event timeline (7h gate, open segment). */
+  const priorTimelineSlices = useMemo((): TimelineSlice[] => {
+    const slices: TimelineSlice[] = [];
+    if (compliancePayload.historyDays?.length) {
+      slices.push(...compliancePayload.historyDays);
+    }
+    if (compliancePayload.prevWeekDays?.length) {
+      slices.push(...compliancePayload.prevWeekDays);
+    }
+    return slices;
+  }, [compliancePayload.historyDays, compliancePayload.prevWeekDays]);
+
   const hasComplianceViolations = complianceResults.some((r) => r.type === "violation");
   const hasComplianceWarnings = complianceResults.some((r) => r.type === "warning");
   const hasComplianceInfo = complianceResults.some((r) => r.type === "info");
@@ -568,9 +582,10 @@ export function SheetDetail({
       sheetData.week_starting,
       {
         driverType: sheetData.driver_type,
-        prevWeekDays: prevWeekSheet?.days ?? null,
+        prevWeekDays: compliancePayload.prevWeekDays ?? null,
+        historyDays: compliancePayload.historyDays ?? null,
         last24hBreak: sheetData.last_24h_break || undefined,
-        prevWeekStarting: prevWeekSheet?.week_starting ?? undefined,
+        prevWeekStarting: compliancePayload.prevWeekStarting,
         jurisdictionCode: sheetData.jurisdiction_code,
       }
     );
@@ -582,8 +597,9 @@ export function SheetDetail({
     sheetData.status,
     sheetData.jurisdiction_code,
     currentDayIndex,
-    prevWeekSheet?.days,
-    prevWeekSheet?.week_starting,
+    compliancePayload.prevWeekDays,
+    compliancePayload.historyDays,
+    compliancePayload.prevWeekStarting,
   ]);
 
   const prospectiveRouteHint = useMemo(() => {
@@ -1134,6 +1150,7 @@ export function SheetDetail({
             days={sheetData.days}
             currentDayIndex={currentDayIndex}
             weekStarting={sheetData.week_starting}
+            priorTimelineSlices={priorTimelineSlices}
             onLogEvent={handleLogEvent}
             onEndShiftRequest={handleEndShiftRequest}
             workRelevantComplianceMessages={prospectiveLogMessages}

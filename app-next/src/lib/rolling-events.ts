@@ -10,13 +10,20 @@ export type RollingEvent = {
   driver?: "primary" | "second";
 };
 
-type DayWithEvents = { events?: { time: string; type: string; driver?: "primary" | "second" }[] };
+export type TimelineSlice = {
+  events?: { time: string; type: string; driver?: "primary" | "second" }[];
+};
+
+/** Concatenate record slices in chronological order (storage layout only; rules use event timestamps). */
+export function concatenateTimelineSlices(...parts: TimelineSlice[][]): TimelineSlice[] {
+  return parts.flat();
+}
 
 /**
  * Flatten all events from all days and sort by time (ascending).
  * Each event gets dayIndex so callers can still attribute to a day for display.
  */
-export function getEventsInTimeOrder(days: DayWithEvents[]): RollingEvent[] {
+export function getEventsInTimeOrder(days: TimelineSlice[]): RollingEvent[] {
   const withDay = days.flatMap((day, dayIndex) =>
     (day.events ?? []).map((ev) => {
       const row: RollingEvent = { time: ev.time, type: ev.type, dayIndex };
@@ -33,7 +40,7 @@ export function getEventsInTimeOrder(days: DayWithEvents[]): RollingEvent[] {
  * Missing driver on an event is treated as primary.
  */
 export function getEventsForDriverInOrder(
-  days: DayWithEvents[],
+  days: TimelineSlice[],
   activeDriver?: "primary" | "second"
 ): { time: string; type: string }[] {
   const ordered = getEventsInTimeOrder(days);
@@ -90,6 +97,37 @@ export function getNonWorkHoursSinceLastShiftEnd(events: RollingEvent[], asOfMs:
   const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
   if (lastEnd === null) return null;
   return (asOfMs - lastEnd) / (3600 * 1000);
+}
+
+/** Non-work minutes since the last shift end marker (stop or non_work), rolling from event time. */
+export function getNonWorkMinutesSinceLastShiftEnd(
+  events: RollingEvent[],
+  asOfMs: number
+): number | null {
+  const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
+  if (lastEnd === null) return null;
+  return Math.max(0, Math.floor((asOfMs - lastEnd) / 60000));
+}
+
+export type ShiftRestStatus = {
+  consecutiveNonWorkMinutes: number;
+  restRunStartedAtMs: number;
+};
+
+/**
+ * 7h-before-Start-shift gate: rolling non-work since last shift end on the event timeline.
+ * Returns null when no shift end exists yet (no gate).
+ */
+export function getShiftRestStatusFromTimeline(
+  events: RollingEvent[],
+  asOfMs: number
+): ShiftRestStatus | null {
+  const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
+  if (lastEnd === null) return null;
+  return {
+    consecutiveNonWorkMinutes: Math.max(0, Math.floor((asOfMs - lastEnd) / 60000)),
+    restRunStartedAtMs: lastEnd,
+  };
 }
 
 /** Minimum non-work time (hours) required between shifts (e.g. WA 7h). */

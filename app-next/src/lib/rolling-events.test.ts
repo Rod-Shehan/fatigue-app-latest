@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
+  concatenateTimelineSlices,
   getEventsInTimeOrder,
   getLastStopTime,
   getNonWorkHoursSinceLastStop,
   getLastShiftEndTime,
   getNonWorkHoursSinceLastShiftEnd,
+  getNonWorkMinutesSinceLastShiftEnd,
+  getShiftRestStatusFromTimeline,
   getInsufficientNonWorkMessage,
   type RollingEvent,
 } from "./rolling-events";
@@ -156,6 +159,39 @@ describe("rolling-events", () => {
       const asOf = ts("2025-02-18T00:00:00.000Z"); // 6h later
       expect(getInsufficientNonWorkMessage(events, asOf, 5)).toBeNull();
       expect(getInsufficientNonWorkMessage(events, asOf, 7)).not.toBeNull();
+    });
+  });
+
+  describe("getShiftRestStatusFromTimeline", () => {
+    it("returns null when no shift end on the timeline", () => {
+      const events: RollingEvent[] = [
+        { time: "2026-06-11T14:00:00", type: "work", dayIndex: 0 },
+      ];
+      expect(getShiftRestStatusFromTimeline(events, ts("2026-06-11T19:00:00"))).toBeNull();
+    });
+
+    it("measures rolling minutes since last stop only", () => {
+      const events: RollingEvent[] = [
+        { time: "2026-06-11T14:00:00", type: "work", dayIndex: 0 },
+        { time: "2026-06-11T16:08:00", type: "stop", dayIndex: 0 },
+      ];
+      const out = getShiftRestStatusFromTimeline(events, ts("2026-06-11T19:40:00"));
+      expect(out).not.toBeNull();
+      expect(out!.consecutiveNonWorkMinutes).toBeGreaterThanOrEqual(200);
+      expect(out!.consecutiveNonWorkMinutes).toBeLessThan(240);
+      expect(out!.restRunStartedAtMs).toBe(ts("2026-06-11T16:08:00"));
+    });
+
+    it("finds shift end across older record slices (not current slice only)", () => {
+      const prior = [
+        {
+          events: [{ time: "2026-06-10T18:00:00", type: "stop" }],
+        },
+      ];
+      const current = [{ events: [] }];
+      const events = getEventsInTimeOrder(concatenateTimelineSlices(prior, current));
+      const mins = getNonWorkMinutesSinceLastShiftEnd(events, ts("2026-06-11T10:00:00"));
+      expect(mins).toBe(16 * 60);
     });
   });
 
