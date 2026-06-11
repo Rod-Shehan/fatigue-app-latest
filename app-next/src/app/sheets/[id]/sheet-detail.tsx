@@ -591,7 +591,7 @@ export function SheetDetail({
     const reg = buildRiskRegisterFromWeek(sheetData.days, {
       weekStarting: sheetData.week_starting,
       todayYmd: getRegulatoryTodayYmd(sheetData.jurisdiction_code),
-      historyDays: complianceHistory?.history_days ?? null,
+      historyDays: compliancePayload.historyDays ?? null,
       prevWeekDays: compliancePayload.prevWeekDays,
       slotOffsetWithinToday: compliancePayload.slotOffsetWithinToday,
       currentDayIndex,
@@ -602,7 +602,7 @@ export function SheetDetail({
     sheetData.week_starting,
     sheetData.status,
     sheetData.jurisdiction_code,
-    complianceHistory?.history_days,
+    compliancePayload.historyDays,
     compliancePayload.prevWeekDays,
     compliancePayload.slotOffsetWithinToday,
     currentDayIndex,
