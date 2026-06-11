@@ -171,6 +171,7 @@ type DayData = {
   start_location?: string;
   destination?: string;
   start_kms?: number | null;
+  alertness_level?: 1 | 2 | 3 | 4 | 5;
 };
 
 export default function LogBar({
