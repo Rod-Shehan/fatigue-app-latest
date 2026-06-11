@@ -42,3 +42,7 @@ render time. This document tracks the remaining gaps between "persisted" and
 6. **Engine version bumps** — when `frms-engine` maths changes, bump
    `FRMS_ENGINE_VERSION` so old snapshots stay attributable to the engine that
    produced them. Never reuse a version string after maths changes.
+7. **Remove demo fleet data** — `scripts/seed-demo-drivers.ts` seeds 5
+   fictional drivers (sheets + FRMS runs) for showcase purposes (see
+   `DEMO_FLEET_SEED.md`). Run `npx tsx scripts/seed-demo-drivers.ts --clean`
+   against the production database before any customer sees real data.
