@@ -40,7 +40,7 @@ export default async function DriverSettingsPage({
           : "Back";
 
   return (
-    <DriverAccessGate callbackUrl="/driver/settings">
+    <DriverAccessGate callbackUrl="/driver/settings" fieldDriverOnly>
     <div className="min-h-screen bg-slate-100 dark:bg-slate-950">
       <div className="max-w-lg mx-auto px-4 py-8 md:py-10">
         <PageHeader

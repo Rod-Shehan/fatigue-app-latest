@@ -22,7 +22,7 @@ import { BookOpen } from "lucide-react";
 
 export default async function DriverHelpPage() {
   return (
-    <DriverAccessGate callbackUrl="/driver/help">
+    <DriverAccessGate callbackUrl="/driver/help" fieldDriverOnly>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-10">
         <PageHeader

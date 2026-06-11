@@ -3,7 +3,7 @@ import { NewSheetRedirect } from "./new-sheet-redirect";
 
 export default function NewSheetPage() {
   return (
-    <DriverAccessGate callbackUrl="/sheets/new">
+    <DriverAccessGate callbackUrl="/sheets/new" fieldDriverOnly>
       <NewSheetRedirect />
     </DriverAccessGate>
   );

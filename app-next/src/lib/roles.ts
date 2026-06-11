@@ -47,7 +47,7 @@ export function canEnterLobbyBranch(
   branch: "driver" | "manager" | "owner",
   role: string | null | undefined
 ): boolean {
-  if (branch === "driver") return true;
+  if (branch === "driver") return isDriverFieldRole(role);
   if (branch === "manager") return hasMinRole(role, "manager");
   return isOwnerRole(role);
 }

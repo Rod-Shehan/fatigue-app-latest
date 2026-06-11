@@ -26,7 +26,7 @@ export default async function DriverGuidePage({
   const backLabel = backLabelFor(backHref);
 
   return (
-    <DriverAccessGate callbackUrl="/driver/guide">
+    <DriverAccessGate callbackUrl="/driver/guide" fieldDriverOnly>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="max-w-2xl mx-auto px-4 py-8 md:py-10">
           <PageHeader

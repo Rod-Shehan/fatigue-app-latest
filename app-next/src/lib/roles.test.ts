@@ -35,10 +35,10 @@ describe("roles", () => {
     expect(isOwnerRole("manager")).toBe(false);
   });
 
-  it("lobby driver branch is open to every signed-in account", () => {
+  it("lobby driver branch is for field-driver accounts only", () => {
     expect(canEnterLobbyBranch("driver", null)).toBe(true);
-    expect(canEnterLobbyBranch("driver", "manager")).toBe(true);
-    expect(canEnterLobbyBranch("driver", "owner")).toBe(true);
+    expect(canEnterLobbyBranch("driver", "manager")).toBe(false);
+    expect(canEnterLobbyBranch("driver", "owner")).toBe(false);
   });
 
   it("lobby manager branch requires manager or owner", () => {

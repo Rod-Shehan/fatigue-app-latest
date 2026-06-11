@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { getSession, signIn, signOut, useSession } from "next-auth/react";
 import { Briefcase, ChevronRight, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -87,6 +87,8 @@ const LOBBY_ERROR_MESSAGES: Record<string, string> = {
     "Owner access needs an owner account. Sign out and sign in as owner, or choose Driver or Manager.",
   manager_required:
     "Manager access needs a manager or owner account. Sign out and sign in with the right account, or choose Driver.",
+  driver_role_required:
+    "Driver sign-in needs a driver account (not manager or owner). Sign out and sign in with your driver email, or use the Manager card for fleet overview.",
 };
 
 function lobbyErrorMessage(searchParams: URLSearchParams): string | null {
@@ -178,9 +180,13 @@ export function AppLanding() {
     if (status === "authenticated") {
       const role = (session?.user as { role?: string | null } | undefined)?.role;
       if (!canEnterLobbyBranch(next.id, role)) {
-        setBranchError(
-          `${next.title} access needs a ${next.title.toLowerCase()} account. Sign out and sign in with the right account, or choose another branch.`
-        );
+        if (next.id === "driver") {
+          setBranchError(LOBBY_ERROR_MESSAGES.driver_role_required);
+        } else {
+          setBranchError(
+            `${next.title} access needs a ${next.title.toLowerCase()} account. Sign out and sign in with the right account, or choose another branch.`
+          );
+        }
         return;
       }
       window.location.href = next.href;
@@ -215,6 +221,20 @@ export function AppLanding() {
             ? "Sign-in is misconfigured on the server (check NEXTAUTH_SECRET and NEXTAUTH_URL)."
             : "Invalid email or password."
         );
+        setLoading(false);
+        return;
+      }
+      const freshSession = await getSession();
+      const signedInRole = (freshSession?.user as { role?: string | null } | undefined)?.role;
+      if (!canEnterLobbyBranch(activeBranch, signedInRole)) {
+        await signOut({ redirect: false });
+        if (activeBranch === "driver") {
+          setError(LOBBY_ERROR_MESSAGES.driver_role_required);
+        } else if (activeBranch === "manager") {
+          setError(LOBBY_ERROR_MESSAGES.manager_required);
+        } else {
+          setError(LOBBY_ERROR_MESSAGES.owner_required);
+        }
         setLoading(false);
         return;
       }

@@ -3,7 +3,7 @@ import { DriverRoadsideProducePage } from "./driver-roadside-produce";
 
 export default function DriverRoadsidePage() {
   return (
-    <DriverAccessGate callbackUrl="/driver/roadside">
+    <DriverAccessGate callbackUrl="/driver/roadside" fieldDriverOnly>
       <DriverRoadsideProducePage />
     </DriverAccessGate>
   );
