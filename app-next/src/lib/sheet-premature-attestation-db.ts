@@ -1,22 +1,13 @@
-import type { PrismaClient } from "@prisma/client";
+import type { FatigueSheet, PrismaClient } from "@prisma/client";
 import { isPrematureCurrentWeekAttestation, PREMATURE_ATTESTATION_REOPEN } from "@/lib/sheet-record";
 
-type SheetAttestationRow = {
-  id: string;
-  weekStarting: string;
-  status: string;
-  signature: string | null;
-};
-
 /** Reopen a current-week sheet that was signed before the week ended. */
-export async function reopenPrematureCurrentWeekAttestationIfNeeded<T extends SheetAttestationRow>(
+export async function reopenPrematureCurrentWeekAttestationIfNeeded(
   prisma: PrismaClient,
-  sheet: T,
+  sheet: FatigueSheet,
   actorId: string | null
-): Promise<T> {
-  if (
-    !isPrematureCurrentWeekAttestation(sheet.weekStarting, sheet.status, sheet.signature)
-  ) {
+): Promise<FatigueSheet> {
+  if (!isPrematureCurrentWeekAttestation(sheet.weekStarting, sheet.status, sheet.signature)) {
     return sheet;
   }
 
@@ -40,5 +31,5 @@ export async function reopenPrematureCurrentWeekAttestationIfNeeded<T extends Sh
     },
   });
 
-  return updated as T;
+  return updated;
 }
