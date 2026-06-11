@@ -67,8 +67,10 @@ import {
   isPrematureCurrentWeekAttestation,
   PREMATURE_ATTESTATION_REOPEN,
 } from "@/lib/sheet-record";
-import { CURRENT_WEEK_SIGN_UNAVAILABLE_HINT, DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
+import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
+import { DayEntryWeekGroup } from "@/components/fatigue/DayEntryWeekGroup";
+import { dayIndexRangeLabels, summarizeDayIndices } from "@/lib/day-entry-week-summary";
 import {
   samePatternWorkMinutesEndingAt,
   shouldEducateAfterEndShift,
@@ -213,6 +215,8 @@ export function SheetDetail({
   const [shiftSegmentOpenForMobile, setShiftSegmentOpenForMobile] = useState(false);
   const [mobileLogToolsOpen, setMobileLogToolsOpen] = useState(false);
   const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
+  const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
+  const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
   const sheetDataRef = useRef(sheetData);
   sheetDataRef.current = sheetData;
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -287,6 +291,34 @@ export function SheetDetail({
   const isPastWeek = useMemo(
     () => isPastRegulatoryWeek(sheetData.week_starting),
     [sheetData.week_starting]
+  );
+  const groupDaysAroundToday = !isManager && !isPastWeek;
+  const priorDayIndices = useMemo(
+    () => (groupDaysAroundToday ? Array.from({ length: currentDayIndex }, (_, i) => i) : []),
+    [groupDaysAroundToday, currentDayIndex]
+  );
+  const futureDayIndices = useMemo(
+    () =>
+      groupDaysAroundToday
+        ? Array.from({ length: Math.max(0, 6 - currentDayIndex) }, (_, i) => currentDayIndex + 1 + i)
+        : [],
+    [groupDaysAroundToday, currentDayIndex]
+  );
+  const priorDaysGroupLabels = useMemo(
+    () => dayIndexRangeLabels(sheetData.week_starting, priorDayIndices, "past"),
+    [sheetData.week_starting, priorDayIndices]
+  );
+  const futureDaysGroupLabels = useMemo(
+    () => dayIndexRangeLabels(sheetData.week_starting, futureDayIndices, "future"),
+    [sheetData.week_starting, futureDayIndices]
+  );
+  const priorDaysSummary = useMemo(
+    () => summarizeDayIndices(sheetData.days, priorDayIndices, "past"),
+    [sheetData.days, priorDayIndices]
+  );
+  const futureDaysSummary = useMemo(
+    () => summarizeDayIndices(sheetData.days, futureDayIndices, "future"),
+    [sheetData.days, futureDayIndices]
   );
   const driverContentLocked = useMemo(
     () =>
@@ -555,12 +587,19 @@ export function SheetDetail({
     window.setTimeout(run, 120);
   }, [currentDayIndex]);
 
-  const scrollToDayCard = useCallback((dayIndex: number) => {
-    const run = () => {
-      dayCardElsRef.current[dayIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
-    };
-    window.setTimeout(run, 80);
-  }, []);
+  const scrollToDayCard = useCallback(
+    (dayIndex: number) => {
+      if (groupDaysAroundToday) {
+        if (dayIndex < currentDayIndex) setPriorWeekDaysExpanded(true);
+        if (dayIndex > currentDayIndex) setFutureWeekDaysExpanded(true);
+      }
+      const run = () => {
+        dayCardElsRef.current[dayIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+      window.setTimeout(run, groupDaysAroundToday && dayIndex !== currentDayIndex ? 150 : 80);
+    },
+    [groupDaysAroundToday, currentDayIndex]
+  );
 
   useEffect(() => {
     if (!sheetData?.days?.length || typeof window === "undefined") return;
@@ -1153,14 +1192,6 @@ export function SheetDetail({
                     onOpen={() => setGearDrawerOpen(true)}
                   />
                 )}
-                {!isPastWeek && canShowLogBar && (
-                  <p
-                    className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/90 dark:bg-slate-900/50 px-3 py-2.5 text-sm text-slate-600 dark:text-slate-300 leading-snug"
-                    role="status"
-                  >
-                    {CURRENT_WEEK_SIGN_UNAVAILABLE_HINT}
-                  </p>
-                )}
               </>
             ) : (
               <>
@@ -1265,7 +1296,134 @@ export function SheetDetail({
                 />
               )}
             </motion.div>
-            {sheetData.days.map((day, idx) => (
+            {(groupDaysAroundToday
+              ? [
+                  ...(priorDayIndices.length > 0 ? (["prior-group"] as const) : []),
+                  currentDayIndex,
+                  ...(futureDayIndices.length > 0 ? (["future-group"] as const) : []),
+                ]
+              : sheetData.days.map((_, idx) => idx)
+            ).map((item) => {
+              if (item === "prior-group") {
+                return (
+                  <DayEntryWeekGroup
+                    key="prior-group"
+                    title={priorDaysGroupLabels.title}
+                    subtitle={priorDaysGroupLabels.subtitle}
+                    summary={priorDaysSummary}
+                    expanded={priorWeekDaysExpanded}
+                    onExpandedChange={setPriorWeekDaysExpanded}
+                    readOnly={driverContentLocked}
+                    variant="past"
+                  >
+                    {priorDayIndices.map((idx) => (
+                      <div
+                        key={idx}
+                        id={`fatigue-day-${idx}`}
+                        ref={(el) => {
+                          dayCardElsRef.current[idx] = el;
+                        }}
+                        className={canShowLogBar ? "scroll-mt-48" : "scroll-mt-6"}
+                      >
+                        <DayEntry
+                          dayIndex={idx}
+                          dayData={getDayWithMergedRouteContext(
+                            sheetData.days,
+                            idx,
+                            sheetData.week_starting,
+                            todayYmd,
+                            storedRouteDefaults
+                          )}
+                          continuedShiftRoute={getContinuedShiftRoutePrompt(
+                            sheetData.days,
+                            idx,
+                            sheetData.week_starting,
+                            todayYmd
+                          )}
+                          unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
+                            sheetData.days,
+                            idx,
+                            sheetData.week_starting,
+                            todayYmd
+                          )}
+                          onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                          onEndShiftOnDay={handleEndShiftRequest}
+                          onUpdate={handleDayUpdate}
+                          weekStart={sheetData.week_starting}
+                          regos={regos}
+                          readOnly={driverContentLocked}
+                          patternWorkMinutes={getPatternWorkMinutesForCard(idx)}
+                          todayYmd={todayYmd}
+                          allDays={sheetData.days}
+                          sheetId={sheetId}
+                          driverType={sheetData.driver_type}
+                        />
+                      </div>
+                    ))}
+                  </DayEntryWeekGroup>
+                );
+              }
+              if (item === "future-group") {
+                return (
+                  <DayEntryWeekGroup
+                    key="future-group"
+                    title={futureDaysGroupLabels.title}
+                    subtitle={futureDaysGroupLabels.subtitle}
+                    summary={futureDaysSummary}
+                    expanded={futureWeekDaysExpanded}
+                    onExpandedChange={setFutureWeekDaysExpanded}
+                    readOnly={driverContentLocked}
+                    variant="future"
+                  >
+                    {futureDayIndices.map((idx) => (
+                      <div
+                        key={idx}
+                        id={`fatigue-day-${idx}`}
+                        ref={(el) => {
+                          dayCardElsRef.current[idx] = el;
+                        }}
+                        className={canShowLogBar ? "scroll-mt-48" : "scroll-mt-6"}
+                      >
+                        <DayEntry
+                          dayIndex={idx}
+                          dayData={getDayWithMergedRouteContext(
+                            sheetData.days,
+                            idx,
+                            sheetData.week_starting,
+                            todayYmd,
+                            storedRouteDefaults
+                          )}
+                          continuedShiftRoute={getContinuedShiftRoutePrompt(
+                            sheetData.days,
+                            idx,
+                            sheetData.week_starting,
+                            todayYmd
+                          )}
+                          unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
+                            sheetData.days,
+                            idx,
+                            sheetData.week_starting,
+                            todayYmd
+                          )}
+                          onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                          onEndShiftOnDay={handleEndShiftRequest}
+                          onUpdate={handleDayUpdate}
+                          weekStart={sheetData.week_starting}
+                          regos={regos}
+                          readOnly={driverContentLocked}
+                          patternWorkMinutes={getPatternWorkMinutesForCard(idx)}
+                          todayYmd={todayYmd}
+                          allDays={sheetData.days}
+                          sheetId={sheetId}
+                          driverType={sheetData.driver_type}
+                        />
+                      </div>
+                    ))}
+                  </DayEntryWeekGroup>
+                );
+              }
+              const idx = item as number;
+              return (
                 <div
                   key={idx}
                   id={`fatigue-day-${idx}`}
@@ -1288,41 +1446,43 @@ export function SheetDetail({
                     setMobileLogToolsOpen(true);
                   }}
                 >
-                <DayEntry
-                  dayIndex={idx}
-                  dayData={getDayWithMergedRouteContext(
-                    sheetData.days,
-                    idx,
-                    sheetData.week_starting,
-                    todayYmd,
-                    storedRouteDefaults
-                  )}
-                  continuedShiftRoute={getContinuedShiftRoutePrompt(
-                    sheetData.days,
-                    idx,
-                    sheetData.week_starting,
-                    todayYmd
-                  )}
-                  unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
-                    sheetData.days,
-                    idx,
-                    sheetData.week_starting,
-                    todayYmd
-                  )}
-                  onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
-                  onEndShiftOnDay={handleEndShiftRequest}
-                  onUpdate={handleDayUpdate}
-                  weekStart={sheetData.week_starting}
-                  regos={regos}
-                  readOnly={driverContentLocked}
-                  patternWorkMinutes={getPatternWorkMinutesForCard(idx)}
-                  todayYmd={todayYmd}
-                  allDays={sheetData.days}
-                  sheetId={sheetId}
-                  driverType={sheetData.driver_type}
-                />
+                  <DayEntry
+                    dayIndex={idx}
+                    dayData={getDayWithMergedRouteContext(
+                      sheetData.days,
+                      idx,
+                      sheetData.week_starting,
+                      todayYmd,
+                      storedRouteDefaults
+                    )}
+                    continuedShiftRoute={getContinuedShiftRoutePrompt(
+                      sheetData.days,
+                      idx,
+                      sheetData.week_starting,
+                      todayYmd
+                    )}
+                    unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
+                      sheetData.days,
+                      idx,
+                      sheetData.week_starting,
+                      todayYmd
+                    )}
+                    onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                    onEndShiftOnDay={handleEndShiftRequest}
+                    onUpdate={handleDayUpdate}
+                    weekStart={sheetData.week_starting}
+                    regos={regos}
+                    readOnly={driverContentLocked}
+                    patternWorkMinutes={getPatternWorkMinutesForCard(idx)}
+                    todayYmd={todayYmd}
+                    collapseWhenNotToday={!groupDaysAroundToday}
+                    allDays={sheetData.days}
+                    sheetId={sheetId}
+                    driverType={sheetData.driver_type}
+                  />
                 </div>
-              ))}
+              );
+            })}
           {sheetData.signature && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
