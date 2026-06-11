@@ -73,10 +73,14 @@ const DAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Fri
 
 type Segment = { type: "work" | "break" | "non_work"; durMin: number };
 
+type LatLng = [number, number];
+
 type DemoDriver = {
   name: string;
   rego: string;
   route: [string, string]; // [home base, destination]
+  /** Approximate highway polyline home base -> destination (for GPS on events). */
+  waypoints: LatLng[];
   shiftLabel: "A" | "B";
   /** Day index (0=Sun) with a full 24h non-work day — Reg 184E(2)(b)(i). */
   restDayIdx: number;
@@ -93,6 +97,17 @@ const ROSTER: DemoDriver[] = [
     name: "Mick Harland",
     rego: "1GVL 482",
     route: ["Perth", "Kalgoorlie"],
+    // Great Eastern Hwy: Midland, Northam, Cunderdin, Merredin, Southern Cross, Coolgardie.
+    waypoints: [
+      [-31.95, 115.86],
+      [-31.89, 116.01],
+      [-31.65, 116.66],
+      [-31.65, 117.23],
+      [-31.48, 118.28],
+      [-31.23, 119.33],
+      [-30.95, 121.16],
+      [-30.75, 121.47],
+    ],
     shiftLabel: "A",
     restDayIdx: 6,
     startMin: 4 * 60 + 30,
@@ -109,6 +124,16 @@ const ROSTER: DemoDriver[] = [
     name: "Priya Nathan",
     rego: "1HTQ 903",
     route: ["Perth", "Geraldton"],
+    // Brand Hwy: Muchea, Regans Ford, Badgingarra, Eneabba, Dongara.
+    waypoints: [
+      [-31.95, 115.86],
+      [-31.58, 115.98],
+      [-30.98, 115.7],
+      [-30.39, 115.49],
+      [-29.82, 115.27],
+      [-29.25, 114.93],
+      [-28.77, 114.61],
+    ],
     shiftLabel: "A",
     restDayIdx: 0,
     startMin: 6 * 60 + 30,
@@ -126,6 +151,18 @@ const ROSTER: DemoDriver[] = [
     name: "Wayne Corrigan",
     rego: "1KCD 117",
     route: ["Perth", "Meekatharra"],
+    // Great Northern Hwy: Bullsbrook, New Norcia, Dalwallinu, Wubin, Paynes Find, Mt Magnet, Cue.
+    waypoints: [
+      [-31.95, 115.86],
+      [-31.67, 116.03],
+      [-30.97, 116.21],
+      [-30.28, 116.66],
+      [-30.11, 116.63],
+      [-29.27, 117.68],
+      [-28.06, 117.85],
+      [-27.42, 117.9],
+      [-26.59, 118.5],
+    ],
     shiftLabel: "B",
     restDayIdx: 3,
     startMin: 12 * 60 + 30,
@@ -142,6 +179,18 @@ const ROSTER: DemoDriver[] = [
     name: "Sofia Reiner",
     rego: "1MPW 264",
     route: ["Perth", "Bunbury"],
+    // Kwinana Fwy / Forrest Hwy: Kwinana, Pinjarra, Harvey — out and back (split shift).
+    waypoints: [
+      [-31.95, 115.86],
+      [-32.25, 115.81],
+      [-32.63, 115.87],
+      [-33.08, 115.9],
+      [-33.33, 115.64],
+      [-33.08, 115.9],
+      [-32.63, 115.87],
+      [-32.25, 115.81],
+      [-31.95, 115.86],
+    ],
     shiftLabel: "A",
     restDayIdx: 4,
     startMin: 5 * 60,
@@ -160,6 +209,15 @@ const ROSTER: DemoDriver[] = [
     name: "Dean Okafor",
     rego: "1PRX 558",
     route: ["Perth", "Newman"],
+    // Great Northern Hwy: Wubin, Mt Magnet, Meekatharra, Kumarina.
+    waypoints: [
+      [-31.95, 115.86],
+      [-30.11, 116.63],
+      [-28.06, 117.85],
+      [-26.59, 118.5],
+      [-24.72, 119.6],
+      [-23.36, 119.73],
+    ],
     shiftLabel: "A",
     restDayIdx: 1,
     startMin: 5 * 60 + 15,
@@ -201,6 +259,44 @@ function jitter(rng: () => number, range: number): number {
   return Math.round((rng() * 2 - 1) * range);
 }
 
+/* ------------------------------ GPS helpers ------------------------------ */
+
+function haversineKm(a: LatLng, b: LatLng): number {
+  const R = 6371;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const lat1 = (a[0] * Math.PI) / 180;
+  const lat2 = (b[0] * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Cumulative km at each waypoint. */
+function cumulativeKm(points: LatLng[]): number[] {
+  const cum = [0];
+  for (let i = 1; i < points.length; i++) {
+    cum.push(cum[i - 1] + haversineKm(points[i - 1], points[i]));
+  }
+  return cum;
+}
+
+/** Point at `fraction` (0..1) of the polyline's total length. */
+function pointAlongRoute(points: LatLng[], cum: number[], fraction: number): LatLng {
+  const target = Math.min(1, Math.max(0, fraction)) * cum[cum.length - 1];
+  for (let i = 1; i < points.length; i++) {
+    if (target <= cum[i]) {
+      const segLen = cum[i] - cum[i - 1];
+      const t = segLen > 0 ? (target - cum[i - 1]) / segLen : 0;
+      return [
+        points[i - 1][0] + (points[i][0] - points[i - 1][0]) * t,
+        points[i - 1][1] + (points[i][1] - points[i - 1][1]) * t,
+      ];
+    }
+  }
+  return points[points.length - 1];
+}
+
 /* ------------------------------ day building ------------------------------ */
 
 function minToIso(dateStr: string, minute: number): string {
@@ -222,7 +318,7 @@ type SeededDay = {
   work_time: boolean[];
   breaks: boolean[];
   non_work: boolean[];
-  events: Array<{ time: string; type: string }>;
+  events: Array<{ time: string; type: string; lat?: number; lng?: number; accuracy?: number }>;
 };
 
 function restDay(dateStr: string, dayIdx: number): SeededDay {
@@ -262,12 +358,31 @@ function workDay(driver: DemoDriver, dateStr: string, dayIdx: number): SeededDay
   const work_time = Array(MINUTES_PER_DAY).fill(false);
   const breaks = Array(MINUTES_PER_DAY).fill(false);
   const non_work = Array(MINUTES_PER_DAY).fill(false);
-  const events: Array<{ time: string; type: string }> = [];
+  const events: SeededDay["events"] = [];
+
+  // GPS: place each event along the route polyline by fraction of work time
+  // completed. Outbound runs home->dest, return days run the polyline in
+  // reverse. Only events logged in the past get coordinates (a planned future
+  // event has no GPS fix yet) — re-run the seed to extend map coverage.
+  const totalWorkMin = segments.reduce((s, seg) => s + (seg.type === "work" ? seg.durMin : 0), 0);
+  const routePoints = dayIdx % 2 === 0 ? driver.waypoints : [...driver.waypoints].reverse();
+  const routeCum = cumulativeKm(routePoints);
+  const nowMs = Date.now();
+  const geoFor = (iso: string, workMinSoFar: number) => {
+    if (Date.parse(iso) > nowMs) return {};
+    const [lat, lng] = pointAlongRoute(routePoints, routeCum, workMinSoFar / totalWorkMin);
+    return {
+      lat: Number((lat + (rng() - 0.5) * 0.006).toFixed(5)),
+      lng: Number((lng + (rng() - 0.5) * 0.006).toFixed(5)),
+      accuracy: Math.round(8 + rng() * 22),
+    };
+  };
 
   let cursor = startMin;
   let workMinutes = 0;
   for (const seg of segments) {
-    events.push({ time: minToIso(dateStr, cursor), type: seg.type });
+    const iso = minToIso(dateStr, cursor);
+    events.push({ time: iso, type: seg.type, ...geoFor(iso, workMinutes) });
     for (let m = cursor; m < Math.min(cursor + seg.durMin, MINUTES_PER_DAY); m++) {
       if (seg.type === "work") work_time[m] = true;
       else if (seg.type === "break") breaks[m] = true;
@@ -276,7 +391,8 @@ function workDay(driver: DemoDriver, dateStr: string, dayIdx: number): SeededDay
     if (seg.type === "work") workMinutes += seg.durMin;
     cursor += seg.durMin;
   }
-  events.push({ time: minToIso(dateStr, Math.min(cursor, LATEST_END_MIN)), type: "stop" });
+  const stopIso = minToIso(dateStr, Math.min(cursor, LATEST_END_MIN));
+  events.push({ time: stopIso, type: "stop", ...geoFor(stopIso, workMinutes) });
 
   // Everything outside the shift is non-work (overnight rest).
   for (let m = 0; m < MINUTES_PER_DAY; m++) {

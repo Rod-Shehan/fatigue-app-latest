@@ -124,6 +124,8 @@ export const MANAGER_EXPERIENCE = {
   TIMELINE_PICK_DRIVER:
     "Click a fleet row or change Chart driver in Scope.",
   TIMELINE_AUTO_HINT: "Highest current risk",
+  TIMELINE_VIEW_ON_MAP: "View on map",
+  MAP_LOCATE_DRIVER: "Locate on movement map",
 
   FLEET_PULSE_EYEBROW: "Live fleet tracking",
   FLEET_PULSE_TITLE: "Fleet risk pulse",

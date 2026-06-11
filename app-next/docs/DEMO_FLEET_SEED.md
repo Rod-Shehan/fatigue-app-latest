@@ -45,6 +45,11 @@ To run the engine locally: `cd frms-engine`, set `FRMS_PYTHON_API_KEY`, then
 - Each day carries `events` plus the 1440-minute `work_time`/`breaks`/`non_work`
   grids, regos, start/destination, start/end kms and shift labels — the same
   shape the driver UI writes.
+- Events logged in the past also carry `lat`/`lng`/`accuracy`, interpolated
+  along each driver's real highway polyline (Great Eastern / Brand / Great
+  Northern / Forrest Hwy) by fraction of work time completed, so the Movement
+  map shows the fleet spread across WA. Future planned events have no GPS fix —
+  **re-run the seed periodically to extend map coverage** through the week.
 - Optionally one ready `FrmsProfileRun` + snapshots per driver (when FRMS env
   vars are set).
 

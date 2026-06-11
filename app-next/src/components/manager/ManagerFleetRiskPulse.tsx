@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
@@ -8,6 +9,7 @@ import {
   CheckCircle2,
   ChevronRight,
   HeartHandshake,
+  MapPin,
   Radio,
   TrendingUp,
   Users,
@@ -25,6 +27,7 @@ import {
   type FleetPriorityItem,
 } from "@/lib/frms/fleet-risk-timeline";
 import { RISK_COLOR_THRESHOLDS, riskPercentToColor } from "@/lib/manager-risk-timeline";
+import { managerMapHref } from "@/lib/manager-map-link";
 import { cn } from "@/lib/utils";
 
 function cellBackground(pct: number): string {
@@ -99,36 +102,50 @@ function DriverHeatmapRow({
 
 function PriorityQueueItem({
   item,
+  weekStarting,
   selected,
   onSelect,
 }: {
   item: FleetPriorityItem;
+  weekStarting: string;
   selected: boolean;
   onSelect: (name: string) => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.driverName)}
+    <div
       className={cn(
-        "flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors",
+        "flex w-full items-stretch gap-1 rounded-lg border transition-colors",
         selected
           ? "border-teal-500/50 bg-teal-950/40"
           : "border-white/5 bg-white/5 hover:border-white/15 hover:bg-white/10"
       )}
     >
-      <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[item.severity])} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="truncate text-xs font-semibold text-white">{item.driverName}</p>
-          <span className="shrink-0 text-xs font-bold tabular-nums text-teal-200">
-            {item.nowPct ?? "—"}%
-          </span>
+      <button
+        type="button"
+        onClick={() => onSelect(item.driverName)}
+        className="flex min-w-0 flex-1 items-start gap-2 px-2.5 py-2 text-left"
+      >
+        <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[item.severity])} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="truncate text-xs font-semibold text-white">{item.driverName}</p>
+            <span className="shrink-0 text-xs font-bold tabular-nums text-teal-200">
+              {item.nowPct ?? "—"}%
+            </span>
+          </div>
+          <p className="mt-0.5 text-[10px] leading-snug text-slate-400">{item.reason}</p>
         </div>
-        <p className="mt-0.5 text-[10px] leading-snug text-slate-400">{item.reason}</p>
-      </div>
-      <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-600" aria-hidden />
-    </button>
+        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-600" aria-hidden />
+      </button>
+      <Link
+        href={managerMapHref({ weekStarting, driverName: item.driverName })}
+        className="flex shrink-0 items-center rounded-r-lg border-l border-white/5 px-2 text-slate-500 transition-colors hover:bg-teal-950/50 hover:text-teal-300"
+        title={`${MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER} — ${item.driverName}`}
+        aria-label={`${MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER} — ${item.driverName}`}
+      >
+        <MapPin className="h-3.5 w-3.5" aria-hidden />
+      </Link>
+    </div>
   );
 }
 
@@ -422,6 +439,7 @@ export function ManagerFleetRiskPulse({
                   <PriorityQueueItem
                     key={item.driverName}
                     item={item}
+                    weekStarting={weekStarting}
                     selected={selectedDriver === item.driverName}
                     onSelect={onSelectDriver}
                   />

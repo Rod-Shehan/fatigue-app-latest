@@ -14,11 +14,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Activity, Radio, Wifi, WifiOff } from "lucide-react";
+import Link from "next/link";
+import { Activity, MapPin, Radio, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { api } from "@/lib/api";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { managerMapHref } from "@/lib/manager-map-link";
 import type { CameraBlockFeatures } from "@/lib/camera-risk-packet";
 import {
   applyQueuedLiveBlocks,
@@ -289,6 +291,14 @@ export function ManagerRiskTimelineDashboard({
             </p>
           </div>
           <div className="flex flex-wrap gap-2 shrink-0 items-center">
+            <Link
+              href={managerMapHref({ weekStarting, driverName })}
+              className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-teal-600 dark:hover:text-teal-300"
+              title={MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER}
+            >
+              <MapPin className="h-3 w-3" aria-hidden />
+              {MANAGER_EXPERIENCE.TIMELINE_VIEW_ON_MAP}
+            </Link>
             <span
               className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
                 hasServerData

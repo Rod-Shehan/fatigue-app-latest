@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
@@ -31,9 +32,16 @@ function formatWeekLabel(weekStarting: string): string {
   });
 }
 
-export function ManagerMapView() {
-  const [mapWeekStarting, setMapWeekStarting] = useState<string>("");
-  const [mapDriverName, setMapDriverName] = useState<string>("");
+function ManagerMapViewInner() {
+  // Deep-link support: the risk analysis card links here with its current
+  // scope (e.g. /manager/map?week=2026-06-07&driver=Mick+Harland).
+  const searchParams = useSearchParams();
+  const [mapWeekStarting, setMapWeekStarting] = useState<string>(
+    () => searchParams.get("week") ?? ""
+  );
+  const [mapDriverName, setMapDriverName] = useState<string>(
+    () => searchParams.get("driver") ?? ""
+  );
   const [mapEventTypes, setMapEventTypes] = useState({
     work: true,
     break: true,
@@ -188,5 +196,14 @@ export function ManagerMapView() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function ManagerMapView() {
+  // useSearchParams requires a Suspense boundary during prerender.
+  return (
+    <Suspense fallback={null}>
+      <ManagerMapViewInner />
+    </Suspense>
   );
 }
