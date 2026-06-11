@@ -23,7 +23,6 @@ import {
   getEventsForDriverInOrder,
   getEventsInTimeOrder,
   getInsufficientNonWorkMessage,
-  getShiftRestStatusFromTimeline,
   type TimelineSlice,
 } from "@/lib/rolling-events";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
@@ -293,20 +292,11 @@ export default function LogBar({
 
   const soloEpisodeResume = driverType !== "two_up";
 
-  const seventeenHourEpisode = useMemo(() => {
-    if (!isLiveNow || !soloEpisodeResume) return null;
-    return getSeventeenHourEpisodeStatus(driverTimelineEvents, Date.now());
+  const canResumeWithinSeventeenHourEpisode = useMemo(() => {
+    if (!isLiveNow || !soloEpisodeResume) return false;
+    return getSeventeenHourEpisodeStatus(driverTimelineEvents, Date.now())
+      .canResumeWithoutSevenHourRest;
   }, [isLiveNow, soloEpisodeResume, driverTimelineEvents, tick]);
-
-  const shiftRestStatus = useMemo(() => {
-    if (!isLiveNow) return null;
-    return getShiftRestStatusFromTimeline(driverTimelineEvents, Date.now(), {
-      allowSeventeenHourEpisodeResume: soloEpisodeResume,
-    });
-  }, [isLiveNow, driverTimelineEvents, soloEpisodeResume, tick]);
-
-  const canResumeWithinSeventeenHourEpisode =
-    soloEpisodeResume && seventeenHourEpisode?.canResumeWithoutSevenHourRest === true;
   /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
   const shiftSegmentOpen = currentType === "work" || currentType === "break";
 
@@ -576,27 +566,8 @@ export default function LogBar({
       return `Minimum break: ${mins} min remaining.`;
     }
 
-    if (currentType === null && canResumeWithinSeventeenHourEpisode && seventeenHourEpisode) {
-      const used = formatDurationHoursMinutes(seventeenHourEpisode.workBreakMinutesSinceAnchor);
-      const left = formatDurationHoursMinutes(seventeenHourEpisode.workBreakMinutesRemaining);
-      return `Resume allowed — ${used} of 17h work period used since last 7h rest (${left} left in this period).`;
-    }
-
-    if (currentType === null && shiftRestStatus) {
-      if (shiftRestStatus.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
-      const remaining = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRestStatus.consecutiveNonWorkMinutes);
-      return `7h rest since last shift ended — ${formatDurationHoursMinutes(remaining)} remaining (rolling time).`;
-    }
-
     return null;
-  }, [
-    currentType,
-    eventsForDriver,
-    isLiveNow,
-    shiftRestStatus,
-    canResumeWithinSeventeenHourEpisode,
-    seventeenHourEpisode,
-  ]);
+  }, [currentType, eventsForDriver, isLiveNow]);
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
