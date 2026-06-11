@@ -20,7 +20,7 @@
     "postinstall": "prisma generate || exit 0",
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
-    "db:seed-fleet-routes": "tsx scripts/seed-fleet-routes.ts",
+    "db:seed-fleet-routes": "npx tsx scripts/seed-fleet-routes.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
