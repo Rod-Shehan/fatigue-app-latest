@@ -26,6 +26,7 @@ import {
   getShiftRestStatusFromTimeline,
   type TimelineSlice,
 } from "@/lib/rolling-events";
+import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
 import { driverAlertnessMustStop } from "@/lib/driver-alertness";
@@ -282,14 +283,30 @@ export default function LogBar({
   const lastEvent = eventsForDriver.length ? eventsForDriver[eventsForDriver.length - 1] : undefined;
   const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
 
-  const shiftRestStatus = useMemo(() => {
-    if (!isLiveNow) return null;
-    const driverEvents =
+  const driverTimelineEvents = useMemo(
+    () =>
       driverType === "two_up"
         ? timelineEvents.filter((ev) => (ev.driver ?? "primary") === activeDriver)
-        : timelineEvents;
-    return getShiftRestStatusFromTimeline(driverEvents, Date.now());
-  }, [isLiveNow, timelineEvents, driverType, activeDriver, tick]);
+        : timelineEvents,
+    [timelineEvents, driverType, activeDriver]
+  );
+
+  const soloEpisodeResume = driverType !== "two_up";
+
+  const seventeenHourEpisode = useMemo(() => {
+    if (!isLiveNow || !soloEpisodeResume) return null;
+    return getSeventeenHourEpisodeStatus(driverTimelineEvents, Date.now());
+  }, [isLiveNow, soloEpisodeResume, driverTimelineEvents, tick]);
+
+  const shiftRestStatus = useMemo(() => {
+    if (!isLiveNow) return null;
+    return getShiftRestStatusFromTimeline(driverTimelineEvents, Date.now(), {
+      allowSeventeenHourEpisodeResume: soloEpisodeResume,
+    });
+  }, [isLiveNow, driverTimelineEvents, soloEpisodeResume, tick]);
+
+  const canResumeWithinSeventeenHourEpisode =
+    soloEpisodeResume && seventeenHourEpisode?.canResumeWithoutSevenHourRest === true;
   /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
   const shiftSegmentOpen = currentType === "work" || currentType === "break";
 
@@ -529,11 +546,12 @@ export default function LogBar({
   /** Warning when starting work with <7h non-work since last shift end (rolling event time). */
   const getInsufficientNonWorkWarning = () => {
     if (currentType !== null) return null;
-    const driverEvents =
-      driverType === "two_up"
-        ? timelineEvents.filter((ev) => (ev.driver ?? "primary") === activeDriver)
-        : timelineEvents;
-    return getInsufficientNonWorkMessage(driverEvents, Date.now(), MIN_NON_WORK_HOURS_BETWEEN_SHIFTS);
+    return getInsufficientNonWorkMessage(
+      driverTimelineEvents,
+      Date.now(),
+      MIN_NON_WORK_HOURS_BETWEEN_SHIFTS,
+      { allowSeventeenHourEpisodeResume: soloEpisodeResume }
+    );
   };
 
   const logBarBanner = useMemo(() => {
@@ -558,14 +576,27 @@ export default function LogBar({
       return `Minimum break: ${mins} min remaining.`;
     }
 
+    if (currentType === null && canResumeWithinSeventeenHourEpisode && seventeenHourEpisode) {
+      const used = formatDurationHoursMinutes(seventeenHourEpisode.workBreakMinutesSinceAnchor);
+      const left = formatDurationHoursMinutes(seventeenHourEpisode.workBreakMinutesRemaining);
+      return `Resume allowed — ${used} of 17h work period used since last 7h rest (${left} left in this period).`;
+    }
+
     if (currentType === null && shiftRestStatus) {
       if (shiftRestStatus.consecutiveNonWorkMinutes >= MIN_NON_WORK_MIN_BETWEEN_SHIFTS) return null;
       const remaining = Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRestStatus.consecutiveNonWorkMinutes);
-      return `7h rest since last shift ended — ${formatDurationHoursMinutes(remaining)} remaining (rolling time; earlier non-work before that shift does not count).`;
+      return `7h rest since last shift ended — ${formatDurationHoursMinutes(remaining)} remaining (rolling time).`;
     }
 
     return null;
-  }, [currentType, eventsForDriver, isLiveNow, shiftRestStatus]);
+  }, [
+    currentType,
+    eventsForDriver,
+    isLiveNow,
+    shiftRestStatus,
+    canResumeWithinSeventeenHourEpisode,
+    seventeenHourEpisode,
+  ]);
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
@@ -808,7 +839,11 @@ export default function LogBar({
             const isPending = pendingType === nextWorkBreak;
             const theme = ACTIVITY_THEME[nextWorkBreak];
             const isStartingShift = nextWorkBreak === "work" && currentType === null;
-            const primaryLabel = isStartingShift ? "Start shift" : EVENT_LABELS[nextWorkBreak];
+            const primaryLabel = isStartingShift
+              ? canResumeWithinSeventeenHourEpisode
+                ? "Resume shift"
+                : "Start shift"
+              : EVENT_LABELS[nextWorkBreak];
             return (
               <button
                 type="button"

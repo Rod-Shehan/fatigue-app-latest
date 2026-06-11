@@ -3,6 +3,8 @@
  * Days are only used to know "where" events came from (for display); rules use time only.
  */
 
+import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
+
 export type RollingEvent = {
   time: string;
   type: string;
@@ -116,12 +118,17 @@ export type ShiftRestStatus = {
 
 /**
  * 7h-before-Start-shift gate: rolling non-work since last shift end on the event timeline.
- * Returns null when no shift end exists yet (no gate).
+ * Returns null when no gate applies (no prior shift end, or solo resume inside active 17h episode).
  */
 export function getShiftRestStatusFromTimeline(
   events: RollingEvent[],
-  asOfMs: number
+  asOfMs: number,
+  options?: { allowSeventeenHourEpisodeResume?: boolean }
 ): ShiftRestStatus | null {
+  if (options?.allowSeventeenHourEpisodeResume !== false) {
+    const episode = getSeventeenHourEpisodeStatus(events, asOfMs);
+    if (episode.canResumeWithoutSevenHourRest) return null;
+  }
   const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
   if (lastEnd === null) return null;
   return {
@@ -140,8 +147,13 @@ const DEFAULT_MIN_NON_WORK_HOURS = 7;
 export function getInsufficientNonWorkMessage(
   events: RollingEvent[],
   asOfMs: number,
-  minNonWorkHours: number = DEFAULT_MIN_NON_WORK_HOURS
+  minNonWorkHours: number = DEFAULT_MIN_NON_WORK_HOURS,
+  options?: { allowSeventeenHourEpisodeResume?: boolean }
 ): string | null {
+  if (options?.allowSeventeenHourEpisodeResume !== false) {
+    const episode = getSeventeenHourEpisodeStatus(events, asOfMs);
+    if (episode.canResumeWithoutSevenHourRest) return null;
+  }
   const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(events, asOfMs);
   if (nonWorkHours === null) return null;
   if (nonWorkHours >= minNonWorkHours) return null;

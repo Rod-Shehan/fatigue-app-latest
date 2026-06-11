@@ -175,11 +175,22 @@ describe("rolling-events", () => {
         { time: "2026-06-11T14:00:00", type: "work", dayIndex: 0 },
         { time: "2026-06-11T16:08:00", type: "stop", dayIndex: 0 },
       ];
-      const out = getShiftRestStatusFromTimeline(events, ts("2026-06-11T19:40:00"));
+      const out = getShiftRestStatusFromTimeline(events, ts("2026-06-11T19:40:00"), {
+        allowSeventeenHourEpisodeResume: false,
+      });
       expect(out).not.toBeNull();
       expect(out!.consecutiveNonWorkMinutes).toBeGreaterThanOrEqual(200);
       expect(out!.consecutiveNonWorkMinutes).toBeLessThan(240);
       expect(out!.restRunStartedAtMs).toBe(ts("2026-06-11T16:08:00"));
+    });
+
+    it("skips 7h gate when solo resume is inside active 17h episode", () => {
+      const events: RollingEvent[] = [
+        { time: "2026-06-10T18:00:00", type: "stop", dayIndex: 0 },
+        { time: "2026-06-11T06:00:00", type: "work", dayIndex: 1 },
+        { time: "2026-06-11T18:08:00", type: "stop", dayIndex: 1 },
+      ];
+      expect(getShiftRestStatusFromTimeline(events, ts("2026-06-11T20:30:00"))).toBeNull();
     });
 
     it("finds shift end across older record slices (not current slice only)", () => {
