@@ -118,6 +118,25 @@ def _normalize_component(value: float, ceiling: float) -> float:
     return round(_clamp(value / ceiling, 0.0, 1.0) * 100.0, 2)
 
 
+# Driver self-report 1–5 from day card (mirrors TS driverAlertnessRiskFactor).
+_SELF_REPORT_FACTORS: dict[int, float] = {
+    1: 0.05,
+    2: 0.25,
+    3: 0.5,
+    4: 0.75,
+    5: 1.0,
+}
+# Max impairment points added at level 5 (~28% at factor 1.0).
+_SELF_REPORT_BUMP_SCALE = 28
+
+
+def _self_report_impairment_bump(level: int | None) -> int:
+    if level is None or level < 1 or level > 5:
+        return 0
+    factor = _SELF_REPORT_FACTORS.get(level, 0.0)
+    return int(round(factor * _SELF_REPORT_BUMP_SCALE))
+
+
 def _combined_pct(s_t: float, c_alert: float, w_t: float) -> int:
     """
     TPMA net alertness capacity: C - S - W (Åkerstedt/Folkard).
@@ -251,6 +270,9 @@ def calculate_frms_metrics(
                 w_t = 0.0
 
         combined = _combined_pct(s_t, c_alert, w_t)
+        self_report_bump = _self_report_impairment_bump(block.alertness_level)
+        if self_report_bump > 0:
+            combined = min(100, combined + self_report_bump)
         band = _risk_band(combined)
 
         workload_pct = _normalize_component(

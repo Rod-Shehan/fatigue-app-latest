@@ -5,12 +5,13 @@
 import type { PrismaClient } from "@prisma/client";
 import type { CameraBlockFeatures, CameraRiskPacketV1, RiskBlockDiaryContext, RiskBlockUploadItem } from "@/lib/camera-risk-packet";
 import { extractCameraFeatures, parseCameraRiskPacket } from "@/lib/camera-risk-packet";
+import { lookupAlertnessFromDriverSheets } from "@/lib/alertness-for-block";
 import {
   alignToBlockStartMs,
   blockInputsToRiskPercent,
   type RiskTimelineBlockInput,
 } from "@/lib/manager-risk-timeline";
-import { driverAlertnessRiskFactor } from "@/lib/driver-alertness";
+import { driverAlertnessRiskFactor, isDriverAlertnessLevel } from "@/lib/driver-alertness";
 
 export type IngestRiskBlockParams = {
   userId: string;
@@ -18,6 +19,21 @@ export type IngestRiskBlockParams = {
   item: RiskBlockUploadItem;
   timezone?: string;
 };
+
+/** Merge day-card alertness from attested sheets when the upload omits it. */
+export async function enrichDiaryWithSheetAlertness(
+  prisma: PrismaClient,
+  driverName: string,
+  blockStartMs: number,
+  diary?: RiskBlockDiaryContext
+): Promise<RiskBlockDiaryContext | undefined> {
+  if (diary?.alertness_level && isDriverAlertnessLevel(diary.alertness_level)) {
+    return diary;
+  }
+  const fromSheet = await lookupAlertnessFromDriverSheets(prisma, driverName, blockStartMs);
+  if (!fromSheet) return diary;
+  return { ...diary, alertness_level: fromSheet };
+}
 
 export function diaryContextToBlockInput(
   blockStartMs: number,
@@ -90,11 +106,13 @@ export async function ingestDriverRiskBlock(
 
   const blockStartMs = alignToBlockStartMs(params.item.block_start_ms);
   const camera = parsed.parsed.features;
-  const { baselinePct, livePct, fusionSources } = computeFusedRiskPercents(
+  const diary = await enrichDiaryWithSheetAlertness(
+    prisma,
+    params.driverName,
     blockStartMs,
-    camera,
     params.item.diary
   );
+  const { baselinePct, livePct, fusionSources } = computeFusedRiskPercents(blockStartMs, camera, diary);
 
   const timezone = params.timezone ?? "Australia/Perth";
   const cameraPayload = params.item.camera as unknown as CameraRiskPacketV1;
@@ -123,7 +141,7 @@ export async function ingestDriverRiskBlock(
       deviceId: params.item.camera.device_id,
       packetVersion: params.item.camera.schema_version,
       cameraPayload: cameraPayload as object,
-      diaryContext: params.item.diary ? (params.item.diary as object) : undefined,
+      diaryContext: diary ? (diary as object) : undefined,
       baselinePct,
       livePct,
       fusionSources,

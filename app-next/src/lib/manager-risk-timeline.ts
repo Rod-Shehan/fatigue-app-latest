@@ -184,6 +184,7 @@ export const RISK_TIMELINE_CHART_HELP = {
       "Rolling work hours in the prior 14 days (slow background load)",
       "Time of day — circadian modulation (Borbély two-process model)",
       "Plan deviation treated as zero on the baseline curve",
+      "Driver self-reported alertness (1–5 from Set up day) — ~8% weight in the composite when present on the upload diary",
     ],
     mapping:
       "Carry and other factors form a composite index → z-score → logistic curve to 0–100%. Breaks are a recovery barrier, not just a compliance checkbox.",
@@ -194,7 +195,7 @@ export const RISK_TIMELINE_CHART_HELP = {
     title: "Live risk (coloured line and dots)",
     summary: "Observed risk when a 15-minute block is received from the driver device.",
     factors: [
-      "Same diary factors as the baseline, including actual plan deviation",
+      "Same diary factors as the baseline, including actual plan deviation and day-card alertness",
       "Cab camera metrics when connected (drowsiness, distraction, eyes-off-road, coverage-weighted)",
     ],
     horizon: "Filled for blocks up to right now; later blocks appear as data arrives (or in demo controls).",

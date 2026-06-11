@@ -19,6 +19,7 @@ class TimelineBlockIn(BaseModel):
     is_work: bool
     is_rest: bool
     enrichment: BlockEnrichment | None = None
+    alertness_level: int | None = Field(None, ge=1, le=5)
 
 
 class RiskProfileRequest(BaseModel):
@@ -63,6 +64,7 @@ def risk_profile(
             is_work=b.is_work,
             is_rest=b.is_rest,
             enrichment=b.enrichment,
+            alertness_level=b.alertness_level,
         )
         for b in body.timeline_blocks
     ]

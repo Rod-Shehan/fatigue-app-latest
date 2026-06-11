@@ -70,4 +70,26 @@ describe("fused risk scoring", () => {
     expect(fusionSources).toContain("camera");
     expect(fusionSources).toContain("diary");
   });
+
+  it("self-reported alertness raises fused scores", () => {
+    const features = {
+      drowsinessScore: 0.2,
+      distractionScore: 0.1,
+      eyesOffRoadSeconds: 10,
+      sampleCoveragePct: 90,
+      yawnCount: 0,
+      headNodCount: 0,
+    };
+    const blockMs = Date.parse("2026-06-02T06:00:00+08:00");
+    const low = computeFusedRiskPercents(blockMs, features, {
+      work_minutes: 10,
+      alertness_level: 1,
+    });
+    const high = computeFusedRiskPercents(blockMs, features, {
+      work_minutes: 10,
+      alertness_level: 5,
+    });
+    expect(high.livePct).toBeGreaterThan(low.livePct);
+    expect(high.baselinePct).toBeGreaterThan(low.baselinePct);
+  });
 });

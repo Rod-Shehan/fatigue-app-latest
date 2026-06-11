@@ -48,9 +48,10 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
       "Process C — two-harmonic circadian alertness (Folkard & Akerstedt): afternoon dip and deep circadian nadir",
       "Process W — sleep inertia on waking after qualifying rest",
       "Progressive compression — continuous on-duty legs tracked for 5.5 h / 7 h / 10 h coaching thresholds",
+      "Driver self-reported alertness (1–5 from Set up day) — subjective impairment bump on all blocks that calendar day",
     ],
     mapping:
-      "Net alertness capacity C − S − W is mapped to 0–100% impairment (higher = higher fatigue risk). Bands: low ≤35%, monitor ≤54%, elevated ≤74%, critical ≥75%.",
+      "Net alertness capacity C − S − W is mapped to 0–100% impairment, then adjusted for self-reported alertness (higher = higher fatigue risk). Bands: low ≤35%, monitor ≤54%, elevated ≤74%, critical ≥75%.",
     horizon:
       "Computed for past and future 15-minute blocks from attested sheets so you can see the expected trajectory; future segments use declared diary context where the app has it.",
   },
@@ -59,8 +60,8 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
     summary:
       "Observed impairment for blocks up to right now — TPMA combined score when no device block exists; cab-camera fusion when a DriverRiskBlock is stored.",
     factors: [
-      "Same TPMA diary trajectory as the baseline for blocks without camera ingest",
-      "When connected: drowsiness, distraction, eyes-off-road, and coverage-weighted camera metrics overlay the observed live line",
+      "Same TPMA diary trajectory (including self-reported alertness) as the baseline for blocks without camera ingest",
+      "When connected: drowsiness, distraction, eyes-off-road, and coverage-weighted camera metrics overlay the observed live line; diary alertness is merged from the day card on upload",
     ],
     horizon:
       "Filled for blocks up to right now; later blocks appear as diary context and device data arrive (or in demo controls when FRMS cache is empty).",

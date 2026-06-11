@@ -42,6 +42,32 @@ def test_rest_recovers_homeostatic_pressure():
     assert snaps[7].process_s_pct > snaps[15].process_s_pct
 
 
+def test_self_report_elevates_combined_pct():
+    base_ms = 1_700_000_000_000
+    block_ms = 15 * 60 * 1000
+    blocks_low = [
+        TimelineBlock(
+            start_ms=base_ms + i * block_ms,
+            is_work=True,
+            is_rest=False,
+            alertness_level=1,
+        )
+        for i in range(12)
+    ]
+    blocks_high = [
+        TimelineBlock(
+            start_ms=base_ms + i * block_ms,
+            is_work=True,
+            is_rest=False,
+            alertness_level=5,
+        )
+        for i in range(12)
+    ]
+    snaps_low, _ = calculate_frms_metrics(blocks_low, "Australia/Perth", as_of_ms=base_ms)
+    snaps_high, _ = calculate_frms_metrics(blocks_high, "Australia/Perth", as_of_ms=base_ms)
+    assert snaps_high[-1].combined_pct > snaps_low[-1].combined_pct
+
+
 def test_prospective_register_future_blocks_only():
     base_ms = 1_700_000_000_000
     block_ms = 15 * 60 * 1000

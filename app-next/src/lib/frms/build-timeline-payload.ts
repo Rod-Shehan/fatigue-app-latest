@@ -1,7 +1,10 @@
 import { createHash } from "crypto";
+import type { DayData } from "@/lib/api";
 import type { ComplianceDayData } from "@/lib/compliance";
 import { normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
 import { parseSheetDaysJson } from "@/lib/compliance-history";
+import { stampAlertnessForCalendarDay } from "@/lib/alertness-for-block";
+import { isDriverAlertnessLevel } from "@/lib/driver-alertness";
 import { RISK_BLOCK_MINUTES, alignToBlockStartMs, findNowBlockStartMs } from "@/lib/manager-risk-timeline";
 import { getPerthMidnightUtcMs, getSheetDayDateString } from "@/lib/weeks";
 
@@ -19,6 +22,8 @@ export type FrmsTimelinePayload = {
     start_ms: number;
     is_work: boolean;
     is_rest: boolean;
+    /** Driver self-report 1–5 from day card for this Perth calendar day. */
+    alertness_level?: 1 | 2 | 3 | 4 | 5;
   }>;
   enrichment?: {
     weather_hourly?: Array<{ timestamp_ms: number; temp_c: number }>;
@@ -107,6 +112,7 @@ export function buildFrmsTimelinePayload(input: {
   const blockMs = RISK_BLOCK_MINUTES * 60 * 1000;
 
   const blockCounts = new Map<number, BlockMinuteCounts>();
+  const alertnessByBlock = new Map<number, 1 | 2 | 3 | 4 | 5>();
   const sortedWeeks = Array.from(input.weekMap.keys()).sort();
 
   for (const weekKey of sortedWeeks) {
@@ -116,11 +122,14 @@ export function buildFrmsTimelinePayload(input: {
     const days = parseSheetDaysJson(weekData.days);
 
     days.forEach((rawDay, dayIndex) => {
-      const day = rawDay as DayWithIntervals;
+      const day = rawDay as DayWithIntervals & DayData;
       if (day.intervals?.length) {
         accumulateFromIntervals(blockCounts, day.intervals);
       }
       accumulateFromCoverageDay(blockCounts, weekKey, dayIndex, day);
+      if (isDriverAlertnessLevel(day.alertness_level)) {
+        stampAlertnessForCalendarDay(alertnessByBlock, weekKey, dayIndex, day.alertness_level);
+      }
     });
   }
 
@@ -133,11 +142,21 @@ export function buildFrmsTimelinePayload(input: {
   for (let t = horizon_from_ms; t <= horizon_to_ms; t += blockMs) {
     const start_ms = alignToBlockStartMs(t);
     const counts = blockCounts.get(start_ms);
+    const alertness_level = alertnessByBlock.get(start_ms);
     if (!counts) {
-      timeline_blocks.push({ start_ms, is_work: false, is_rest: false });
+      timeline_blocks.push({
+        start_ms,
+        is_work: false,
+        is_rest: false,
+        ...(alertness_level ? { alertness_level } : {}),
+      });
       continue;
     }
-    timeline_blocks.push({ start_ms, ...blockFlags(counts) });
+    timeline_blocks.push({
+      start_ms,
+      ...blockFlags(counts),
+      ...(alertness_level ? { alertness_level } : {}),
+    });
   }
 
   return {

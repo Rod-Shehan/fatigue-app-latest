@@ -90,6 +90,7 @@ import {
   type SheetKmIssue,
 } from "@/lib/rego-kms-validation";
 import { SignKmFixDialog } from "@/components/fatigue/SignKmFixDialog";
+import { setActiveSheetDiaryContext } from "@/lib/risk-block-diary";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY, normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
@@ -338,6 +339,18 @@ export function SheetDetail({
       canDriverAttestSheet(sheetData.week_starting, sheetData.status, sheetData.signature),
     [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
+
+  useEffect(() => {
+    if (isManager || !sheetData.week_starting || !sheetData.days?.length) {
+      setActiveSheetDiaryContext(null);
+      return;
+    }
+    setActiveSheetDiaryContext({
+      weekStarting: sheetData.week_starting,
+      days: sheetData.days,
+    });
+    return () => setActiveSheetDiaryContext(null);
+  }, [isManager, sheetData.week_starting, sheetData.days]);
 
   const weekOfLabel = useMemo(
     () =>

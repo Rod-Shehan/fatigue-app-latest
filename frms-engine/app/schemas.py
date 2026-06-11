@@ -20,6 +20,7 @@ class TimelineBlock(BaseModel):
     is_work: bool
     is_rest: bool
     enrichment: Optional[BlockEnrichment] = None
+    alertness_level: Optional[int] = Field(None, ge=1, le=5)
 
 
 class SnapshotResponse(BaseModel):
