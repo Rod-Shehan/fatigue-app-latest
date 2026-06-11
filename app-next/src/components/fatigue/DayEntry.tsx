@@ -162,9 +162,7 @@ export default function DayEntry({
     (dayData.start_location ?? "").trim() !== "" &&
     (dayData.destination ?? "").trim() !== "" &&
     dayData.start_kms != null &&
-    !Number.isNaN(Number(dayData.start_kms)) &&
-    (!(dayData.truck_rego ?? "").trim() ||
-      (dayData.end_kms != null && !Number.isNaN(Number(dayData.end_kms))));
+    !Number.isNaN(Number(dayData.start_kms));
 
   const showInlineStartKm =
     isToday && canEditDetails && hasRouteExceptKms(dayData) && !detailsComplete;

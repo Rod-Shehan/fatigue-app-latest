@@ -13,6 +13,8 @@ export type CatalogueSource = "fleet" | "driver";
 export type RoutePresetRecord = {
   id: string;
   label: string;
+  start_location: string | null;
+  destination: string | null;
   planned_distance_km: number | null;
   planned_on_duty_hours: number | null;
   catalogue_source: CatalogueSource;
@@ -22,6 +24,8 @@ export type RoutePresetRecord = {
 
 export type RoutePresetCreateInput = {
   label: string;
+  start_location?: string | null;
+  destination?: string | null;
   planned_distance_km?: number | null;
   planned_on_duty_hours?: number | null;
   catalogue_source?: CatalogueSource;
@@ -53,6 +57,40 @@ export function runPlanFieldsFromPreset(preset: RoutePresetRecord): RunPlanField
     planned_on_duty_hours: preset.planned_on_duty_hours,
     route_source: routeSourceForCatalogue(preset.catalogue_source),
     route_preset_id: preset.id,
+  };
+}
+
+/** Infer from/to from preset fields, or parse "Perth – Kalgoorlie" style labels. */
+export function parseRouteLabelToLocations(label: string): {
+  start_location?: string;
+  destination?: string;
+} {
+  const trimmed = label.trim();
+  if (!trimmed) return {};
+  const separators = [/\s*[–—-]\s*/, /\s+to\s+/i, /\s*\/\s*/, /\s*→\s*/];
+  for (const sep of separators) {
+    const parts = trimmed.split(sep).map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return { start_location: parts[0], destination: parts[parts.length - 1] };
+    }
+  }
+  return { destination: trimmed };
+}
+
+export type DayCardFieldsFromPreset = RunPlanFields & {
+  start_location?: string;
+  destination?: string;
+};
+
+/** Run plan + day-card route fields when a catalogue preset is selected. */
+export function dayCardFieldsFromPreset(preset: RoutePresetRecord): DayCardFieldsFromPreset {
+  const explicitStart = (preset.start_location ?? "").trim();
+  const explicitDest = (preset.destination ?? "").trim();
+  const parsed = parseRouteLabelToLocations(preset.label);
+  return {
+    ...runPlanFieldsFromPreset(preset),
+    start_location: explicitStart || parsed.start_location,
+    destination: explicitDest || parsed.destination,
   };
 }
 

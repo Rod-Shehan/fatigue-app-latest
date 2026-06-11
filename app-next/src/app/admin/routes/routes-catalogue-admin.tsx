@@ -15,6 +15,8 @@ import Link from "next/link";
 export function RoutesCatalogueAdmin() {
   const queryClient = useQueryClient();
   const [label, setLabel] = useState("");
+  const [startLocation, setStartLocation] = useState("");
+  const [destination, setDestination] = useState("");
   const [hours, setHours] = useState("");
   const [km, setKm] = useState("");
 
@@ -27,12 +29,16 @@ export function RoutesCatalogueAdmin() {
     mutationFn: () =>
       api.routePresets.create({
         label: label.trim(),
+        start_location: startLocation.trim() || null,
+        destination: destination.trim() || null,
         planned_on_duty_hours: hours === "" ? null : Number(hours),
         planned_distance_km: km === "" ? null : Number(km),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["route-presets"] });
       setLabel("");
+      setStartLocation("");
+      setDestination("");
       setHours("");
       setKm("");
     },
@@ -76,11 +82,29 @@ export function RoutesCatalogueAdmin() {
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Route name</Label>
             <Input
-              placeholder="e.g. Kalgoorlie return"
+              placeholder="e.g. Perth – Kalgoorlie"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
               className="text-base"
             />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Start location</Label>
+              <Input
+                placeholder="e.g. Perth"
+                value={startLocation}
+                onChange={(e) => setStartLocation(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Destination</Label>
+              <Input
+                placeholder="e.g. Kalgoorlie"
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+              />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
@@ -142,6 +166,11 @@ export function RoutesCatalogueAdmin() {
               <li key={preset.id} className="flex items-center justify-between gap-3 px-4 py-3">
                 <div className="min-w-0">
                   <p className="text-slate-800 dark:text-slate-200 truncate">{formatRoutePresetOption(preset)}</p>
+                  {(preset.start_location || preset.destination) && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      {[preset.start_location, preset.destination].filter(Boolean).join(" → ")}
+                    </p>
+                  )}
                   {preset.created_by_name && (
                     <p className="text-xs text-slate-500 dark:text-slate-400">Added by {preset.created_by_name}</p>
                   )}

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   catalogueSourceForSession,
+  dayCardFieldsFromPreset,
+  parseRouteLabelToLocations,
   routeSourceForCatalogue,
   runPlanFieldsFromPreset,
   validateRoutePresetCreateInput,
@@ -28,6 +30,8 @@ describe("route-preset", () => {
     const fields = runPlanFieldsFromPreset({
       id: "p1",
       label: "Kalgoorlie",
+      start_location: null,
+      destination: null,
       planned_distance_km: 600,
       planned_on_duty_hours: 10,
       catalogue_source: "fleet",
@@ -37,5 +41,50 @@ describe("route-preset", () => {
     expect(fields.route_preset_id).toBe("p1");
     expect(fields.route_source).toBe("org_preset");
     expect(fields.route_label).toBe("Kalgoorlie");
+  });
+
+  it("parses route labels into from/to", () => {
+    expect(parseRouteLabelToLocations("Perth – Kalgoorlie")).toEqual({
+      start_location: "Perth",
+      destination: "Kalgoorlie",
+    });
+    expect(parseRouteLabelToLocations("Perth to Kalgoorlie")).toEqual({
+      start_location: "Perth",
+      destination: "Kalgoorlie",
+    });
+    expect(parseRouteLabelToLocations("Loop")).toEqual({ destination: "Loop" });
+  });
+
+  it("dayCardFieldsFromPreset prefers explicit locations over parsed label", () => {
+    const fields = dayCardFieldsFromPreset({
+      id: "p2",
+      label: "Perth – Kalgoorlie",
+      start_location: "Fremantle",
+      destination: "Leonora",
+      planned_distance_km: 420,
+      planned_on_duty_hours: 9,
+      catalogue_source: "driver",
+      created_by_name: null,
+      sort_order: 0,
+    });
+    expect(fields.start_location).toBe("Fremantle");
+    expect(fields.destination).toBe("Leonora");
+    expect(fields.route_source).toBe("driver_saved");
+  });
+
+  it("dayCardFieldsFromPreset falls back to parsed label", () => {
+    const fields = dayCardFieldsFromPreset({
+      id: "p3",
+      label: "Perth – Kalgoorlie",
+      start_location: null,
+      destination: null,
+      planned_distance_km: null,
+      planned_on_duty_hours: 8,
+      catalogue_source: "fleet",
+      created_by_name: null,
+      sort_order: 0,
+    });
+    expect(fields.start_location).toBe("Perth");
+    expect(fields.destination).toBe("Kalgoorlie");
   });
 });

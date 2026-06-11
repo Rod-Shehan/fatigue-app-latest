@@ -34,6 +34,8 @@ export async function PATCH(
     const body = await req.json();
     const data: {
       label?: string;
+      startLocation?: string | null;
+      destination?: string | null;
       plannedDistanceKm?: number | null;
       plannedOnDutyHours?: number | null;
       sortOrder?: number;
@@ -48,6 +50,18 @@ export async function PATCH(
       });
       if (err) return NextResponse.json({ error: err }, { status: 400 });
       data.label = body.label.trim();
+    }
+    if (body.start_location !== undefined) {
+      data.startLocation =
+        typeof body.start_location === "string" && body.start_location.trim()
+          ? body.start_location.trim()
+          : null;
+    }
+    if (body.destination !== undefined) {
+      data.destination =
+        typeof body.destination === "string" && body.destination.trim()
+          ? body.destination.trim()
+          : null;
     }
     if (body.planned_distance_km !== undefined) {
       data.plannedDistanceKm =

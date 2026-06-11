@@ -48,6 +48,14 @@ export async function POST(req: Request) {
     const row = await prisma.routePreset.create({
       data: {
         label: body.label.trim(),
+        startLocation:
+          typeof body.start_location === "string" && body.start_location.trim()
+            ? body.start_location.trim()
+            : null,
+        destination:
+          typeof body.destination === "string" && body.destination.trim()
+            ? body.destination.trim()
+            : null,
         plannedDistanceKm:
           body.planned_distance_km != null && !Number.isNaN(Number(body.planned_distance_km))
             ? Number(body.planned_distance_km)

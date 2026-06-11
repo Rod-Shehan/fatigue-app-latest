@@ -50,6 +50,8 @@ export type Rego = { id: string; label: string; sort_order: number };
 export type RoutePreset = {
   id: string;
   label: string;
+  start_location: string | null;
+  destination: string | null;
   planned_distance_km: number | null;
   planned_on_duty_hours: number | null;
   catalogue_source: "fleet" | "driver";
@@ -238,6 +240,8 @@ export const api = {
     list: () => fetchApi<RoutePreset[]>("/api/route-presets"),
     create: (data: {
       label: string;
+      start_location?: string | null;
+      destination?: string | null;
       planned_distance_km?: number | null;
       planned_on_duty_hours?: number | null;
       catalogue_source?: "fleet" | "driver";
@@ -247,6 +251,8 @@ export const api = {
       id: string,
       data: {
         label?: string;
+        start_location?: string | null;
+        destination?: string | null;
         planned_distance_km?: number | null;
         planned_on_duty_hours?: number | null;
         sort_order?: number;

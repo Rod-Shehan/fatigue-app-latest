@@ -23,8 +23,8 @@ import type { Rego } from "@/lib/api";
 import { hasRunPlanContent, runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
 import {
+  dayCardFieldsFromPreset,
   formatRoutePresetOption,
-  runPlanFieldsFromPreset,
   validateRoutePresetCreateInput,
 } from "@/lib/route-preset";
 import { Loader2 } from "lucide-react";
@@ -60,6 +60,8 @@ export type DayCardFields = {
 
 const fieldClass =
   "h-12 text-base font-medium placeholder:text-slate-500 dark:placeholder:text-slate-400";
+
+type RouteSetupMode = "catalogue" | "custom" | "none";
 
 export function DayCardDetailsDialog({
   open,
@@ -111,7 +113,8 @@ export function DayCardDetailsDialog({
   const [kmError, setKmError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [saveCatalogueError, setSaveCatalogueError] = useState<string | null>(null);
-  const [presetPick, setPresetPick] = useState<string>("__none__");
+  const [routeMode, setRouteMode] = useState<RouteSetupMode>("catalogue");
+  const [presetPick, setPresetPick] = useState<string>("");
   const [confirming, setConfirming] = useState(false);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
@@ -126,16 +129,23 @@ export function DayCardDetailsDialog({
     mutationFn: () =>
       api.routePresets.create({
         label: (draft.route_label ?? "").trim(),
+        start_location: (draft.start_location ?? "").trim() || null,
+        destination: (draft.destination ?? "").trim() || null,
         planned_on_duty_hours: draft.planned_on_duty_hours ?? null,
         planned_distance_km: draft.planned_distance_km ?? null,
       }),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ["route-presets"] });
       setSaveCatalogueError(null);
+      setRouteMode("catalogue");
       setPresetPick(created.id);
       setDraft((prev) => ({
         ...prev,
-        ...runPlanFieldsFromPreset(created),
+        ...dayCardFieldsFromPreset(created),
+        start_kms: prev.start_kms,
+        end_kms: prev.end_kms,
+        truck_rego: prev.truck_rego,
+        shift_label: prev.shift_label,
       }));
     },
     onError: () => setSaveCatalogueError("Could not save to catalogue. Try again."),
@@ -156,18 +166,29 @@ export function DayCardDetailsDialog({
     setSaveCatalogueError(null);
     setServerMaxEndKms(null);
     const pid = initial.route_preset_id?.trim();
-    if (!pid && !hasRunPlanContent(initial)) setPresetPick("__none__");
-    else if (pid) setPresetPick(pid);
-    else setPresetPick("__custom__");
+    if (pid) {
+      setRouteMode("catalogue");
+      setPresetPick(pid);
+    } else if (hasRunPlanContent(initial)) {
+      setRouteMode("custom");
+      setPresetPick("");
+    } else {
+      setRouteMode("catalogue");
+      setPresetPick("");
+    }
   }, [open]);
 
   useEffect(() => {
     if (!open || presetsLoading) return;
     const pid = initial.route_preset_id?.trim();
-    if (pid && routePresets.some((p) => p.id === pid)) setPresetPick(pid);
-    else if (hasRunPlanContent(initial)) setPresetPick("__custom__");
-    else setPresetPick("__none__");
-  }, [open, presetsLoading, routePresets]);
+    if (pid && routePresets.some((p) => p.id === pid)) {
+      setRouteMode("catalogue");
+      setPresetPick(pid);
+    } else if (hasRunPlanContent(initial)) {
+      setRouteMode("custom");
+      setPresetPick("");
+    }
+  }, [open, presetsLoading, routePresets, initial]);
 
   const regoForGuide = (draft.truck_rego ?? "").trim();
 
@@ -212,9 +233,8 @@ export function DayCardDetailsDialog({
         field === "planned_distance_km" ||
         field === "planned_on_duty_hours"
       ) {
-        if (presetPick !== "__none__" && presetPick !== "__custom__") {
-          setPresetPick("__custom__");
-        }
+        setRouteMode("custom");
+        setPresetPick("");
         return {
           ...next,
           route_preset_id: undefined,
@@ -225,11 +245,12 @@ export function DayCardDetailsDialog({
     });
   };
 
-  const applyPresetSelection = (value: string) => {
-    setPresetPick(value);
+  const switchRouteMode = (mode: RouteSetupMode) => {
+    setRouteMode(mode);
     setPlanError(null);
     setSaveCatalogueError(null);
-    if (value === "__none__") {
+    if (mode === "none") {
+      setPresetPick("");
       setDraft((prev) => ({
         ...prev,
         route_label: "",
@@ -240,21 +261,35 @@ export function DayCardDetailsDialog({
       }));
       return;
     }
-    if (value === "__custom__") {
+    if (mode === "custom") {
+      setPresetPick("");
       setDraft((prev) => ({
         ...prev,
         route_preset_id: undefined,
         route_source: hasRunPlanContent(prev) ? ("adhoc" as const) : undefined,
       }));
-      return;
     }
+  };
+
+  const applyPresetSelection = (value: string) => {
+    setPresetPick(value);
+    setPlanError(null);
+    setSaveCatalogueError(null);
     const preset = routePresets.find((p) => p.id === value);
     if (!preset) return;
+    setRouteMode("catalogue");
     setDraft((prev) => ({
       ...prev,
-      ...runPlanFieldsFromPreset(preset),
+      ...dayCardFieldsFromPreset(preset),
+      start_kms: prev.start_kms,
+      end_kms: prev.end_kms,
+      truck_rego: prev.truck_rego,
+      shift_label: prev.shift_label,
     }));
   };
+
+  const catalogueFilledRoute =
+    routeMode === "catalogue" && presetPick && routePresets.some((p) => p.id === presetPick);
 
   const handleSaveToCatalogue = () => {
     setSaveCatalogueError(null);
@@ -291,10 +326,6 @@ export function DayCardDetailsDialog({
     if (rego) {
       if (draft.start_kms == null || Number.isNaN(Number(draft.start_kms))) {
         setKmError("Start km is required when rego is set.");
-        return;
-      }
-      if (draft.end_kms == null || Number.isNaN(Number(draft.end_kms))) {
-        setKmError("End km is required when rego is set (odometer at end of shift).");
         return;
       }
     }
@@ -364,6 +395,138 @@ export function DayCardDetailsDialog({
         )}
 
         <div className="space-y-4">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
+            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Route setup</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+              Pick a saved run plan to fill From, To, and expected hours/km — or enter a custom trip.
+              Run plans feed forward-looking fatigue exposure only (not compliance until work is logged).
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  ["catalogue", "Saved run plan"],
+                  ["custom", "Custom trip"],
+                  ["none", "No run plan"],
+                ] as const
+              ).map(([mode, label]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => switchRouteMode(mode)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                    routeMode === mode
+                      ? "border-teal-600 bg-teal-50 text-teal-900 dark:border-teal-500 dark:bg-teal-950/50 dark:text-teal-100"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {routeMode === "catalogue" ? (
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                  Saved run plan
+                </Label>
+                <Select
+                  value={presetPick || "__pick__"}
+                  onValueChange={(v) => {
+                    if (v !== "__pick__") applyPresetSelection(v);
+                  }}
+                  disabled={presetsLoading}
+                >
+                  <SelectTrigger className={`${fieldClass} w-full`}>
+                    <SelectValue
+                      placeholder={presetsLoading ? "Loading routes…" : "Select a saved route"}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__pick__" disabled>
+                      Select a saved route…
+                    </SelectItem>
+                    {routePresets.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {formatRoutePresetOption(p)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {catalogueFilledRoute ? (
+                  <p className="text-xs text-teal-700 dark:text-teal-300">
+                    From, To, and run plan filled from catalogue — check below and adjust if needed.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {routeMode === "custom" ? (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Route name</Label>
+                  <Input
+                    value={draft.route_label || ""}
+                    onChange={(e) => set("route_label", e.target.value)}
+                    placeholder="e.g. Kalgoorlie return"
+                    className={fieldClass}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Expected hours</Label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      value={draft.planned_on_duty_hours ?? ""}
+                      onChange={(e) =>
+                        set("planned_on_duty_hours", e.target.value === "" ? null : Number(e.target.value))
+                      }
+                      placeholder="e.g. 9"
+                      className={`${fieldClass} tabular-nums`}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Expected km</Label>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={draft.planned_distance_km ?? ""}
+                      onChange={(e) =>
+                        set("planned_distance_km", e.target.value === "" ? null : Number(e.target.value))
+                      }
+                      placeholder="e.g. 420"
+                      className={`${fieldClass} tabular-nums`}
+                    />
+                  </div>
+                </div>
+                {hasRunPlanContent(draft) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    disabled={saveToCatalogueMutation.isPending}
+                    onClick={handleSaveToCatalogue}
+                  >
+                    {saveToCatalogueMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Save to route catalogue
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+            {saveCatalogueError ? (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {saveCatalogueError}
+              </p>
+            ) : null}
+            {planError ? (
+              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+                {planError}
+              </p>
+            ) : null}
+          </div>
+
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Start location</Label>
             <Input
@@ -429,96 +592,6 @@ export function DayCardDetailsDialog({
               <p className="text-xs text-slate-500 dark:text-slate-400">Optional — for day ↔ night changes after 5+ work days.</p>
             )}
           </div>
-          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Run plan (optional)</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-              For upcoming days: expected distance and/or on-duty time. Used for forward-looking fatigue exposure
-              (not a compliance violation until work is logged). Pick from the catalogue or enter a custom route.
-            </p>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">From catalogue</Label>
-              <Select value={presetPick} onValueChange={applyPresetSelection} disabled={presetsLoading}>
-                <SelectTrigger className={`${fieldClass} w-full`}>
-                  <SelectValue
-                    placeholder={presetsLoading ? "Loading routes…" : "Pick a saved route (optional)"}
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">— No run plan —</SelectItem>
-                  {routePresets.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {formatRoutePresetOption(p)}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value="__custom__">Custom (type below)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Route name</Label>
-              <Input
-                value={draft.route_label || ""}
-                onChange={(e) => set("route_label", e.target.value)}
-                placeholder="e.g. Kalgoorlie return"
-                className={fieldClass}
-                autoComplete="off"
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Expected hours</Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  value={draft.planned_on_duty_hours ?? ""}
-                  onChange={(e) =>
-                    set("planned_on_duty_hours", e.target.value === "" ? null : Number(e.target.value))
-                  }
-                  placeholder="e.g. 9"
-                  className={`${fieldClass} tabular-nums`}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Expected km</Label>
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  value={draft.planned_distance_km ?? ""}
-                  onChange={(e) =>
-                    set("planned_distance_km", e.target.value === "" ? null : Number(e.target.value))
-                  }
-                  placeholder="e.g. 420"
-                  className={`${fieldClass} tabular-nums`}
-                />
-              </div>
-            </div>
-            {hasRunPlanContent(draft) && presetPick === "__custom__" && (
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-full"
-                disabled={saveToCatalogueMutation.isPending}
-                onClick={handleSaveToCatalogue}
-              >
-                {saveToCatalogueMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
-                Save to route catalogue
-              </Button>
-            )}
-            {saveCatalogueError && (
-              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                {saveCatalogueError}
-              </p>
-            )}
-            {planError && (
-              <p className="text-sm text-red-600 dark:text-red-400" role="alert">
-                {planError}
-              </p>
-            )}
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
@@ -555,7 +628,7 @@ export function DayCardDetailsDialog({
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                End km{regoSet ? <span className="text-red-600 dark:text-red-400 font-normal"> *</span> : null}
+                End km
               </Label>
               <Input
                 type="number"
@@ -567,6 +640,11 @@ export function DayCardDetailsDialog({
                 placeholder="At end of shift"
                 className={`${fieldClass} tabular-nums`}
               />
+              {regoSet ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                  Optional now — enter when you End shift, or before signing the week.
+                </p>
+              ) : null}
             </div>
           </div>
           {kmError ? (
@@ -576,7 +654,7 @@ export function DayCardDetailsDialog({
           ) : null}
           {regoSet ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
-              Both readings required to sign the week. End shift can capture end km on the day you finish.
+              Start km is required to begin work. End km is required before sign-off — End shift will prompt for it.
             </p>
           ) : null}
         </div>

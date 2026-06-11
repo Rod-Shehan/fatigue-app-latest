@@ -94,6 +94,10 @@ model TruckRego {
 model RoutePreset {
   id                 String   @id @default(cuid())
   label              String
+  /** Where the run begins (day card "Start location"). */
+  startLocation      String?
+  /** Where the run ends (day card "Destination"). */
+  destination        String?
   plannedDistanceKm  Float?
   plannedOnDutyHours Float?
   /** "fleet" = org catalogue (org_preset); "driver" = driver-added (driver_saved). */

@@ -8,6 +8,8 @@ export function serializeRoutePreset(
   return {
     id: row.id,
     label: row.label,
+    start_location: row.startLocation?.trim() || null,
+    destination: row.destination?.trim() || null,
     planned_distance_km: row.plannedDistanceKm,
     planned_on_duty_hours: row.plannedOnDutyHours,
     catalogue_source: source,
