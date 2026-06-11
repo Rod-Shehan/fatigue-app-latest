@@ -5,17 +5,31 @@ import {
   MapContainer,
   TileLayer,
   CircleMarker,
+  Polyline,
   Popup,
   useMap,
 } from "react-leaflet";
 import type { MapEvent } from "@/lib/api";
 import "leaflet/dist/leaflet.css";
 
-const EVENT_COLORS: Record<string, { color: string; fillColor: string }> = {
-  work: { color: "#2563eb", fillColor: "#3b82f6" },
-  break: { color: "#d97706", fillColor: "#f59e0b" },
-  stop: { color: "#dc2626", fillColor: "#ef4444" },
+/**
+ * Each marker is where the driver was when they LOGGED the event — a status
+ * change, not continuous tracking. A break dot next to a work dot means the
+ * driver pulled over, started a break, then resumed work from the same spot.
+ */
+const EVENT_META: Record<
+  string,
+  { label: string; color: string; fillColor: string; radius: number }
+> = {
+  work: { label: "Started work", color: "#1d4ed8", fillColor: "#3b82f6", radius: 7 },
+  break: { label: "Started break", color: "#b45309", fillColor: "#f59e0b", radius: 7 },
+  stop: { label: "Ended shift", color: "#b91c1c", fillColor: "#ef4444", radius: 9 },
+  non_work: { label: "Off duty", color: "#475569", fillColor: "#94a3b8", radius: 6 },
 };
+
+function eventMeta(type: string) {
+  return EVENT_META[type] ?? EVENT_META.work;
+}
 
 function formatEventTime(iso: string): string {
   try {
@@ -50,6 +64,28 @@ function FitBounds({ events }: { events: MapEvent[] }) {
   return null;
 }
 
+type DayJourney = {
+  key: string;
+  /** Events of one driver-day in logged order — markers + connecting line. */
+  events: MapEvent[];
+};
+
+/** Group events into per-driver-per-day journeys, each sorted by time. */
+function buildJourneys(events: MapEvent[]): DayJourney[] {
+  const groups = new Map<string, MapEvent[]>();
+  for (const ev of events) {
+    const dayKey = ev.time.slice(0, 10);
+    const key = `${ev.sheetId}|${ev.day_label ?? dayKey}`;
+    const list = groups.get(key);
+    if (list) list.push(ev);
+    else groups.set(key, [ev]);
+  }
+  return [...groups.entries()].map(([key, list]) => ({
+    key,
+    events: [...list].sort((a, b) => a.time.localeCompare(b.time)),
+  }));
+}
+
 export type ManagerEventMapProps = {
   events: MapEvent[];
   /** Show only events whose type is in this set (e.g. work, break, stop). */
@@ -67,6 +103,8 @@ export function ManagerEventMap({
     if (eventTypesFilter.size === 0) return [];
     return events.filter((e) => eventTypesFilter.has(e.type));
   }, [events, eventTypesFilter]);
+
+  const journeys = useMemo(() => buildJourneys(filtered), [filtered]);
 
   if (filtered.length === 0) {
     return (
@@ -103,47 +141,63 @@ export function ManagerEventMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds events={filtered} />
-        {filtered.map((ev, i) => {
-          const style = EVENT_COLORS[ev.type] ?? EVENT_COLORS.work;
-          return (
-            <CircleMarker
-              key={`${ev.sheetId}-${ev.time}-${i}`}
-              center={[ev.lat, ev.lng]}
-              radius={8}
+
+        {/* Journey lines: connect one driver-day's events in logged order so the
+            dots read as a run, not scattered points. */}
+        {journeys.map((journey) =>
+          journey.events.length >= 2 ? (
+            <Polyline
+              key={journey.key}
+              positions={journey.events.map((ev) => [ev.lat, ev.lng])}
               pathOptions={{
-                color: style.color,
-                fillColor: style.fillColor,
-                fillOpacity: 0.8,
-                weight: 2,
+                color: "#0f766e",
+                weight: 2.5,
+                opacity: 0.55,
+                dashArray: "6 6",
               }}
-            >
-              <Popup>
-                <div className="text-sm min-w-[180px]">
-                  <p className="font-semibold text-slate-900 dark:text-slate-100">
-                    {ev.driver_name}
-                  </p>
-                  <p className="capitalize text-slate-600 dark:text-slate-300">
-                    {ev.type}
-                  </p>
-                  <p className="text-slate-500 dark:text-slate-400">
-                    {formatEventTime(ev.time)}
-                  </p>
-                  {ev.day_label && (
-                    <p className="text-xs text-slate-400">
-                      {ev.day_label} · Week of {ev.week_starting}
+            />
+          ) : null
+        )}
+
+        {journeys.flatMap((journey) =>
+          journey.events.map((ev, i) => {
+            const meta = eventMeta(ev.type);
+            return (
+              <CircleMarker
+                key={`${journey.key}-${ev.time}-${i}`}
+                center={[ev.lat, ev.lng]}
+                radius={meta.radius}
+                pathOptions={{
+                  color: "#ffffff",
+                  fillColor: meta.fillColor,
+                  fillOpacity: 0.95,
+                  weight: 2,
+                }}
+              >
+                <Popup>
+                  {/* Leaflet popups are always white — keep text dark regardless of theme. */}
+                  <div className="text-sm min-w-[200px]">
+                    <p className="font-semibold text-slate-900">{ev.driver_name}</p>
+                    <p className="font-medium" style={{ color: meta.color }}>
+                      {meta.label}
                     </p>
-                  )}
-                  <a
-                    href={`/sheets/${ev.sheetId}`}
-                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline mt-1 inline-block"
-                  >
-                    Open sheet →
-                  </a>
-                </div>
-              </Popup>
-            </CircleMarker>
-          );
-        })}
+                    <p className="text-slate-600">{formatEventTime(ev.time)}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Stop {i + 1} of {journey.events.length} logged{" "}
+                      {ev.day_label ? `on ${ev.day_label}` : "that day"} · Week of {ev.week_starting}
+                    </p>
+                    <a
+                      href={`/sheets/${ev.sheetId}`}
+                      className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                    >
+                      Open sheet →
+                    </a>
+                  </div>
+                </Popup>
+              </CircleMarker>
+            );
+          })
+        )}
       </MapContainer>
     </div>
   );

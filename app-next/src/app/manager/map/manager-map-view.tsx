@@ -48,9 +48,9 @@ function ManagerMapViewInner() {
     stop: true,
   });
   const mapEventTypeLabel: Record<keyof typeof mapEventTypes, string> = {
-    work: "Work",
-    break: "Break",
-    stop: "End shift",
+    work: "Work started",
+    break: "Break started",
+    stop: "Shift ended",
   };
 
   const { data: sheets = [] } = useQuery({
@@ -192,6 +192,28 @@ function ManagerMapViewInner() {
                 className="w-full"
               />
             )}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full border border-white bg-blue-500 shadow" />
+                Started work
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-2.5 w-2.5 rounded-full border border-white bg-amber-500 shadow" />
+                Started break
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-3 w-3 rounded-full border border-white bg-red-500 shadow" />
+                Ended shift
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-0 w-6 border-t-2 border-dashed border-teal-700 dark:border-teal-500" />
+                One driver&apos;s day, in logged order
+              </span>
+            </div>
+            <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              Each marker is where a driver <span className="font-semibold text-slate-700 dark:text-slate-200">logged a status change</span> — not continuous tracking.
+              A break dot beside a work dot is normal: the driver pulled over, rested, then resumed work from the same spot.
+            </p>
           </div>
         </div>
       </div>
