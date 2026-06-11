@@ -31,6 +31,33 @@ function eventMeta(type: string) {
   return EVENT_META[type] ?? EVENT_META.work;
 }
 
+function formatDuration(mins: number): string {
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
+
+/**
+ * Fatigue context for a marker, derived from the previous logged event that
+ * day: how long the work leg ran before a break, and how long the break was
+ * before work resumed.
+ */
+function eventContext(ev: MapEvent, prev: MapEvent | undefined): string | null {
+  if (!prev) {
+    return ev.type === "work" ? "First log of the day" : null;
+  }
+  const mins = Math.round((Date.parse(ev.time) - Date.parse(prev.time)) / 60000);
+  if (!Number.isFinite(mins) || mins < 0) return null;
+  const dur = formatDuration(mins);
+  if (ev.type === "work" && prev.type === "break") return `Ended a ${dur} break`;
+  if (ev.type === "work" && prev.type === "non_work") return `Back on duty after ${dur} off`;
+  if (ev.type === "break" && prev.type === "work") return `After ${dur} of work`;
+  if (ev.type === "non_work" && prev.type === "work") return `Off duty after ${dur} of work`;
+  if (ev.type === "stop" && prev.type === "work") return `After a final ${dur} work leg`;
+  return null;
+}
+
 function formatEventTime(iso: string): string {
   try {
     const d = new Date(iso);
@@ -104,7 +131,9 @@ export function ManagerEventMap({
     return events.filter((e) => eventTypesFilter.has(e.type));
   }, [events, eventTypesFilter]);
 
-  const journeys = useMemo(() => buildJourneys(filtered), [filtered]);
+  // Journeys keep ALL of a day's events (sorted) so break/work durations in
+  // popups stay correct even when some marker types are filtered out of view.
+  const journeys = useMemo(() => buildJourneys(events), [events]);
 
   if (filtered.length === 0) {
     return (
@@ -161,7 +190,9 @@ export function ManagerEventMap({
 
         {journeys.flatMap((journey) =>
           journey.events.map((ev, i) => {
+            if (eventTypesFilter && !eventTypesFilter.has(ev.type)) return null;
             const meta = eventMeta(ev.type);
+            const context = eventContext(ev, journey.events[i - 1]);
             return (
               <CircleMarker
                 key={`${journey.key}-${ev.time}-${i}`}
@@ -180,6 +211,9 @@ export function ManagerEventMap({
                     <p className="font-semibold text-slate-900">{ev.driver_name}</p>
                     <p className="font-medium" style={{ color: meta.color }}>
                       {meta.label}
+                      {context ? (
+                        <span className="font-normal text-slate-600"> — {context.toLowerCase()}</span>
+                      ) : null}
                     </p>
                     <p className="text-slate-600">{formatEventTime(ev.time)}</p>
                     <p className="text-xs text-slate-500 mt-0.5">
