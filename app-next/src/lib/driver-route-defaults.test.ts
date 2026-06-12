@@ -4,6 +4,7 @@ import {
   applyRouteDefaultsToWeekDays,
   extractDriverRouteDefaults,
   findLastRouteDefaultsFromDays,
+  inferRouteCarryMode,
   mergeRouteDefaults,
 } from "@/lib/driver-route-defaults";
 import type { DayData } from "@/lib/api";
@@ -17,14 +18,44 @@ describe("driver-route-defaults", () => {
       start_kms: 100,
       end_kms: 500,
       planned_on_duty_hours: 9,
+      route_label: "Perth run",
     });
     expect(d).toEqual({
+      carry_mode: "run_plan",
       truck_rego: "1ABC",
       start_location: "Perth",
       destination: "Kal",
+      route_label: "Perth run",
       planned_on_duty_hours: 9,
     });
     expect(d).not.toHaveProperty("start_kms");
+  });
+
+  it("extractDriverRouteDefaults manual mode omits run plan fields", () => {
+    const d = extractDriverRouteDefaults({
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Albany",
+    });
+    expect(d).toEqual({
+      carry_mode: "manual",
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Albany",
+    });
+    expect(d).not.toHaveProperty("route_label");
+    expect(d).not.toHaveProperty("planned_on_duty_hours");
+  });
+
+  it("inferRouteCarryMode prefers catalogue preset", () => {
+    expect(
+      inferRouteCarryMode({
+        start_location: "Perth",
+        destination: "Albany",
+        route_preset_id: "preset-1",
+        route_label: "Northam",
+      })
+    ).toBe("run_plan");
   });
 
   it("applyDriverRouteDefaultsToDay fills empty fields only", () => {
@@ -52,10 +83,52 @@ describe("driver-route-defaults", () => {
 
   it("mergeRouteDefaults prefers in-week over stored", () => {
     const merged = mergeRouteDefaults(
-      { truck_rego: "STORED", start_location: "S", destination: "D" },
-      { truck_rego: "WEEK", start_location: "S", destination: "D" }
+      {
+        carry_mode: "run_plan",
+        truck_rego: "STORED",
+        start_location: "S",
+        destination: "D",
+        route_label: "Northam",
+        planned_on_duty_hours: 10,
+      },
+      { carry_mode: "manual", truck_rego: "WEEK", start_location: "Perth", destination: "Albany" }
     );
     expect(merged?.truck_rego).toBe("WEEK");
+    expect(merged?.carry_mode).toBe("manual");
+    expect(merged).not.toHaveProperty("route_label");
+  });
+
+  it("applyDriverRouteDefaultsToDay manual mode does not carry run plan", () => {
+    const day: DayData = {};
+    const out = applyDriverRouteDefaultsToDay(day, {
+      carry_mode: "manual",
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Albany",
+    });
+    expect(out.start_location).toBe("Perth");
+    expect(out.route_label).toBeUndefined();
+    expect(out.planned_on_duty_hours).toBeUndefined();
+  });
+
+  it("applyDriverRouteDefaultsToDay manual mode clears stale run plan", () => {
+    const day: DayData = {
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Albany",
+      route_label: "Northam",
+      planned_on_duty_hours: 10,
+      planned_distance_km: 500,
+    };
+    const out = applyDriverRouteDefaultsToDay(day, {
+      carry_mode: "manual",
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Albany",
+    });
+    expect(out.route_label).toBeUndefined();
+    expect(out.planned_on_duty_hours).toBeUndefined();
+    expect(out.planned_distance_km).toBeUndefined();
   });
 
   it("applyRouteDefaultsToWeekDays updates today when empty", () => {
