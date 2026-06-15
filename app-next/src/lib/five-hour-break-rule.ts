@@ -223,6 +223,99 @@ export function isRestRequirementAlreadyMetBeforeCurrentBreak(events: TimelineEv
   return qualifyingRestComplete(prior);
 }
 
+/**
+ * Work accumulated since the last qualifying-break reset (or stop/non_work).
+ * Mirrors compliance.ts / LogBar warning: qualifying rest when returning to work resets the block.
+ */
+export function computeWorkPeriodAtEnd(
+  events: TimelineEvent[],
+  endMs: number
+): { periodStartMs: number; workMins: number } | null {
+  if (events.length === 0) return null;
+
+  let periodStartMs = toMs(events[0].time);
+  let workMins = 0;
+  let breakRunDurations: number[] = [];
+
+  for (let i = 0; i < events.length; i++) {
+    const segStart = toMs(events[i].time);
+    if (segStart >= endMs) break;
+
+    const naturalEnd = i + 1 < events.length ? toMs(events[i + 1].time) : endMs;
+    const segEnd = Math.min(naturalEnd, endMs);
+    if (segEnd <= segStart) continue;
+
+    const dur = Math.floor((segEnd - segStart) / 60000);
+    const type = events[i].type;
+
+    if (type === "work") {
+      if (breakRunDurations.length > 0) {
+        const slice = events.slice(0, i);
+        if (qualifyingRestMetForWorkAfterBreak(slice, breakRunDurations)) {
+          periodStartMs = segStart;
+          workMins = 0;
+        }
+        breakRunDurations = [];
+      }
+      workMins += dur;
+    } else if (type === "break") {
+      breakRunDurations.push(dur);
+    } else {
+      periodStartMs = segEnd;
+      workMins = 0;
+      breakRunDurations = [];
+    }
+  }
+
+  return { periodStartMs, workMins };
+}
+
+/** Wall-clock time when `targetWorkMins` of work have elapsed since `periodStartMs`. */
+export function findWallClockMsAtWorkMinutes(
+  events: TimelineEvent[],
+  periodStartMs: number,
+  targetWorkMins: number
+): number {
+  let accumulated = 0;
+  for (let i = 0; i < events.length; i++) {
+    if (events[i].type !== "work") continue;
+    const segStart = toMs(events[i].time);
+    const segEnd = i + 1 < events.length ? toMs(events[i + 1].time) : Number.MAX_SAFE_INTEGER;
+    if (segEnd <= periodStartMs) continue;
+    const clipStart = Math.max(segStart, periodStartMs);
+    if (segEnd <= clipStart) continue;
+    const segWorkMins = Math.floor((segEnd - clipStart) / 60000);
+    if (accumulated + segWorkMins >= targetWorkMins) {
+      const needMins = targetWorkMins - accumulated;
+      return clipStart + needMins * 60 * 1000;
+    }
+    accumulated += segWorkMins;
+  }
+  return periodStartMs + targetWorkMins * 60 * 1000;
+}
+
+/**
+ * When the last event is work: wall-clock ms when a break should start (or was due).
+ * Returns null when not in work or rest is already satisfied in the current work period.
+ */
+export function getBreakDueByTime(events: TimelineEvent[], nowMs: number): number | null {
+  if (events.length === 0) return null;
+  const last = events[events.length - 1];
+  if (last.type !== "work") return null;
+
+  const period = computeWorkPeriodAtEnd(events, nowMs);
+  if (period == null) return null;
+
+  const { periodStartMs, workMins } = period;
+  const slots = getRestSlotsForBreakRange(events, periodStartMs, nowMs);
+  const minutesBeforeDue = getMinutesBeforeDueFromSlots(slots);
+
+  if (qualifyingRestComplete(slots) && workMins < WORK_WINDOW_MIN) return null;
+
+  const workThreshold = WORK_WINDOW_MIN - minutesBeforeDue;
+  return findWallClockMsAtWorkMinutes(events, periodStartMs, workThreshold);
+}
+
 /** Minutes left to satisfy the rest rule if continuing this break (rough display). */
 export function getRemainingBreakMinutesForDisplay(priorSlots: RestSlots, elapsedMin: number): number {
   const slots = { ...priorSlots };

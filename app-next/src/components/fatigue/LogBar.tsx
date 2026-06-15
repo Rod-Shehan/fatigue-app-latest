@@ -42,6 +42,7 @@ import {
   qualifyingRestMetForWorkAfterBreak,
   getBreakSplitBarState,
   getRemainingBreakMinutesForDisplay,
+  getBreakDueByTime,
 } from "@/lib/five-hour-break-rule";
 
 const WORK_TARGET_MINUTES = WORK_WINDOW_MIN;
@@ -167,17 +168,6 @@ function getBreakWarningIfNeeded(events: { time: string; type: string }[], nowMs
   if (workMinsSinceValidBreak < WORK_TARGET_MINUTES) return null;
   if (qualifyingRestMetForWorkAfterBreak(events, breakSegments)) return null;
   return "20 min rest per 5h work (2×10 min or 1×20 min; breaks under 10 min count as work)";
-}
-
-function getBreakDueByTime(events: { time: string; type: string }[], nowMs: number): number | null {
-  if (events.length === 0) return null;
-  const last = events[events.length - 1];
-  if (last.type !== "work") return null;
-  const windowStartMs = findWorkWindowStartMs(events, nowMs);
-  if (windowStartMs == null) return null;
-  const slots = getRestSlotsForBreakRange(events, windowStartMs, nowMs);
-  const minutesBeforeDue = getMinutesBeforeDueFromSlots(slots);
-  return windowStartMs + (WORK_TARGET_MINUTES - minutesBeforeDue) * 60 * 1000;
 }
 
 function getBreakCompleteByTime(events: { time: string; type: string }[]): number | null {

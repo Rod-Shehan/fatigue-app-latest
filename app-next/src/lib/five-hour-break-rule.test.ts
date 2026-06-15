@@ -8,6 +8,8 @@ import {
   findWorkWindowStartMs,
   getMinutesBeforeDueFromSlots,
   getBreakSplitBarState,
+  getBreakDueByTime,
+  computeWorkPeriodAtEnd,
 } from "./five-hour-break-rule";
 
 describe("five-hour-break-rule", () => {
@@ -66,5 +68,53 @@ describe("five-hour-break-rule", () => {
     const nowMs = t0 + work120;
     const ws = findWorkWindowStartMs(events, nowMs);
     expect(ws).toBe(t0);
+  });
+
+  it("computeWorkPeriodAtEnd resets after qualifying 20 min breaks", () => {
+    const t0 = new Date("2026-06-01T08:00:00.000Z").getTime();
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const h = (n: number) => n * 60 * 60 * 1000;
+    const m = (n: number) => n * 60 * 1000;
+    let t = t0;
+    const events = [
+      { time: iso((t += 0)), type: "work" },
+      { time: iso((t += h(3))), type: "break" },
+      { time: iso((t += m(20))), type: "work" },
+      { time: iso((t += h(2))), type: "break" },
+      { time: iso((t += m(20))), type: "work" },
+    ];
+    const nowMs = t + h(1) + m(49);
+    const period = computeWorkPeriodAtEnd(events, nowMs);
+    expect(period?.workMins).toBe(109);
+  });
+
+  it("getBreakDueByTime is not overdue after qualifying breaks reset the work period", () => {
+    const t0 = new Date("2026-06-01T08:00:00.000Z").getTime();
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const h = (n: number) => n * 60 * 60 * 1000;
+    const m = (n: number) => n * 60 * 1000;
+    let t = t0;
+    const events = [
+      { time: iso((t += 0)), type: "work" },
+      { time: iso((t += h(3))), type: "break" },
+      { time: iso((t += m(20))), type: "work" },
+      { time: iso((t += h(2))), type: "break" },
+      { time: iso((t += m(20))), type: "work" },
+    ];
+    const nowMs = t + h(1) + m(49);
+    const dueBy = getBreakDueByTime(events, nowMs);
+    expect(dueBy).not.toBeNull();
+    expect(dueBy!).toBeGreaterThan(nowMs + 60 * 60 * 1000);
+  });
+
+  it("getBreakDueByTime is in the past when 5h work has no qualifying rest", () => {
+    const t0 = new Date("2026-06-01T08:00:00.000Z").getTime();
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const work300 = 300 * 60 * 1000;
+    const events = [{ time: iso(t0), type: "work" }];
+    const nowMs = t0 + work300 + 10 * 60 * 1000;
+    const dueBy = getBreakDueByTime(events, nowMs);
+    expect(dueBy).not.toBeNull();
+    expect(dueBy!).toBeLessThan(nowMs);
   });
 });

@@ -14,8 +14,7 @@ import type { TimelineEvent } from "@/lib/manager-risk-shift-lane";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 import {
   findWorkWindowStartMs,
-  getRestSlotsForBreakRange,
-  getMinutesBeforeDueFromSlots,
+  getBreakDueByTime,
   TOTAL_QUAL_BREAK_MIN,
   WORK_WINDOW_MIN,
 } from "@/lib/five-hour-break-rule";
@@ -127,22 +126,11 @@ function workMsInWindowEndingAt(events: TimelineEvent[], endMs: number): number 
 }
 
 export function getBreakDueRange(events: TimelineEvent[], nowMs: number): BreakDueRange | null {
-  if (events.length === 0) return null;
   const sorted = [...events].sort(
     (a, b) => new Date(a.time).getTime() - new Date(b.time).getTime()
   );
-  const last = sorted[sorted.length - 1];
-  if (last.type !== "work") return null;
-
-  const windowStartMs = findWorkWindowStartMs(sorted, nowMs);
-  if (windowStartMs == null) return null;
-  const slots = getRestSlotsForBreakRange(sorted, windowStartMs, nowMs);
-  const minutesBeforeDue = getMinutesBeforeDueFromSlots(slots);
-  if (minutesBeforeDue === 0) return null;
-
-  const dueMs = windowStartMs + (WORK_WINDOW_MIN - minutesBeforeDue) * 60 * 1000;
-  if (dueMs >= nowMs) return null;
-
+  const dueMs = getBreakDueByTime(sorted, nowMs);
+  if (dueMs == null || dueMs >= nowMs) return null;
   return { startMs: dueMs, endMs: nowMs };
 }
 

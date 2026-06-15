@@ -58,7 +58,7 @@ import {
 import { getPreviousWeekSunday } from "@/lib/weeks";
 import type { ManagerComplianceItem } from "@/lib/api";
 import { getEventsInTimeOrder, getLastShiftEndTime, getNonWorkHoursSinceLastShiftEnd } from "@/lib/rolling-events";
-import { findWorkWindowStartMs, getRestSlotsForBreakRange, getMinutesBeforeDueFromSlots, WORK_WINDOW_MIN } from "@/lib/five-hour-break-rule";
+import { getBreakDueByTime } from "@/lib/five-hour-break-rule";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -96,17 +96,6 @@ type RiskLine = {
 
 function formatTimeHm(ms: number): string {
   return new Date(ms).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
-}
-
-function getBreakDueByTime(events: { time: string; type: string }[], nowMs: number): number | null {
-  if (events.length === 0) return null;
-  const last = events[events.length - 1];
-  if (last.type !== "work") return null;
-  const windowStartMs = findWorkWindowStartMs(events, nowMs);
-  if (windowStartMs == null) return null;
-  const slots = getRestSlotsForBreakRange(events, windowStartMs, nowMs);
-  const minutesBeforeDue = getMinutesBeforeDueFromSlots(slots);
-  return windowStartMs + (WORK_WINDOW_MIN - minutesBeforeDue) * 60 * 1000;
 }
 
 function assuranceLinesForWeek(
