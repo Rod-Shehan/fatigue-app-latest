@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import {
   Briefcase,
   Coffee,
@@ -307,7 +308,7 @@ export default function LogBar({
   const focusScrollResetRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
-  const [focusToolsOpen, setFocusToolsOpen] = useState(false);
+  const [sessionToolsMounted, setSessionToolsMounted] = useState(false);
 
   useEffect(() => {
     setVoiceAlertsEnabled(getVoiceAlertsEnabled());
@@ -380,15 +381,6 @@ export default function LogBar({
       document.body.style.overflow = prev;
     };
   }, [mobileToolsOpen, shiftSegmentOpen]);
-
-  useEffect(() => {
-    if (!mobileToolsOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setMobileToolsOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [mobileToolsOpen, setMobileToolsOpen]);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
@@ -514,9 +506,35 @@ export default function LogBar({
     }
   }, [isLiveNow, currentType]);
 
+  const closeSessionTools = useCallback(() => {
+    setMobileToolsOpen(false);
+  }, [setMobileToolsOpen]);
+
   useEffect(() => {
-    if (!sessionDimmed) setFocusToolsOpen(false);
-  }, [sessionDimmed]);
+    if (!sessionDimmed) closeSessionTools();
+  }, [sessionDimmed, closeSessionTools]);
+
+  useEffect(() => {
+    if (!mobileToolsOpen || !sessionDimmed) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [mobileToolsOpen, sessionDimmed]);
+
+  useEffect(() => {
+    if (!mobileToolsOpen || !sessionDimmed) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeSessionTools();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileToolsOpen, sessionDimmed, closeSessionTools]);
+
+  useEffect(() => {
+    setSessionToolsMounted(true);
+  }, []);
 
   useEffect(() => {
     onSessionDimmedChange?.(sessionDimmed);
@@ -895,7 +913,7 @@ export default function LogBar({
     shiftSegmentOpen,
     sessionDimmed,
     primaryActionPending,
-    focusToolsOpen,
+    mobileToolsOpen,
   ]);
 
   const barContent = (
@@ -1170,13 +1188,10 @@ export default function LogBar({
           <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-10">
             <button
               type="button"
-              onClick={() => {
-                setFocusToolsOpen(true);
-                setMobileToolsOpen(true);
-              }}
+              onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
               className="relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-colors"
               aria-label="More options"
-              aria-expanded={focusToolsOpen}
+              aria-expanded={mobileToolsOpen}
               aria-controls="driver-focus-tools-sheet"
             >
               <MoreVertical className="h-7 w-7" aria-hidden />
@@ -1369,96 +1384,6 @@ export default function LogBar({
             </div>
           </div>
         )}
-        {sessionDimmed && (focusToolsOpen || mobileToolsOpen) && (
-          <div
-            className="fixed inset-0 z-[55]"
-            role="dialog"
-            aria-modal
-            aria-labelledby="driver-focus-tools-title"
-            id="driver-focus-tools-sheet"
-          >
-            <button
-              type="button"
-              className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
-              aria-label="Dismiss options"
-              onClick={() => {
-                setFocusToolsOpen(false);
-                setMobileToolsOpen(false);
-              }}
-            />
-            <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center pointer-events-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <div
-                className="pointer-events-auto w-full max-w-md rounded-2xl border border-white/15 bg-slate-900/95 shadow-2xl p-4 space-y-4 backdrop-blur-md"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 id="driver-focus-tools-title" className="text-lg font-bold text-white">
-                      Options
-                    </h2>
-                    <p className="text-xs text-white/60 mt-1">Compliance, voice, and display</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-xl p-2 hover:bg-white/10 text-white/80"
-                    onClick={() => {
-                      setFocusToolsOpen(false);
-                      setMobileToolsOpen(false);
-                    }}
-                    aria-label="Close"
-                  >
-                    <X className="h-7 w-7" />
-                  </button>
-                </div>
-                {complianceButton && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFocusToolsOpen(false);
-                      setMobileToolsOpen(false);
-                      complianceButton.onClick();
-                    }}
-                    disabled={complianceButton.loading}
-                    className="flex w-full items-center gap-3 min-h-[52px] rounded-xl px-4 bg-white/10 hover:bg-white/15 text-white font-semibold disabled:opacity-60"
-                  >
-                    {complianceButton.loading ? (
-                      <Loader2 className="w-6 h-6 animate-spin shrink-0" aria-hidden />
-                    ) : complianceButton.hasViolations ? (
-                      <X className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={3} aria-hidden />
-                    ) : complianceButton.hasWarnings ? (
-                      <AlertTriangle className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={2.5} aria-hidden />
-                    ) : (
-                      <ClipboardList className="w-6 h-6 shrink-0 text-emerald-300" strokeWidth={2} aria-hidden />
-                    )}
-                    <span className="flex-1 text-left">
-                      {complianceButton.loading
-                        ? "Checking compliance…"
-                        : complianceButton.hasViolations
-                          ? "Compliance — issues"
-                          : complianceButton.hasWarnings
-                            ? "Compliance — warnings"
-                            : "Compliance — all clear"}
-                    </span>
-                  </button>
-                )}
-                <div className="flex flex-wrap items-center justify-center gap-5 pt-1">
-                  <VoiceCommandControl
-                    {...voiceCommandProps}
-                    buttonClassName={touchSheetBtn}
-                    iconClassName={touchSheetIcon}
-                  />
-                  <VoiceAlertsToggle
-                    enabled={voiceAlertsEnabled}
-                    onChange={setVoiceAlertsEnabled}
-                    buttonClassName={touchSheetBtn}
-                    iconClassName={touchSheetIcon}
-                  />
-                  <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         {forgottenActionReminder && (
           <div
             role="alert"
@@ -1485,14 +1410,7 @@ export default function LogBar({
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (sessionDimmed) {
-                      setFocusToolsOpen(true);
-                      setMobileToolsOpen(true);
-                    } else {
-                      setMobileToolsOpen(true);
-                    }
-                  }}
+                  onClick={() => setMobileToolsOpen(true)}
                   className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold"
                 >
                   Show tools
@@ -1573,6 +1491,100 @@ export default function LogBar({
           </div>
         )}
       </div>
+      {sessionToolsMounted &&
+        sessionDimmed &&
+        mobileToolsOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100]"
+            role="dialog"
+            aria-modal
+            aria-labelledby="driver-focus-tools-title"
+            id="driver-focus-tools-sheet"
+          >
+            <button
+              type="button"
+              className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
+              aria-label="Dismiss options"
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeSessionTools();
+              }}
+            />
+            <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div className="w-full max-w-md rounded-2xl border border-white/15 bg-slate-900/95 shadow-2xl p-4 space-y-4 backdrop-blur-md">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 id="driver-focus-tools-title" className="text-lg font-bold text-white">
+                      Options
+                    </h2>
+                    <p className="text-xs text-white/60 mt-1">Compliance, voice, and display</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-xl p-2 hover:bg-white/10 text-white/80"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeSessionTools();
+                    }}
+                    aria-label="Close"
+                  >
+                    <X className="h-7 w-7" />
+                  </button>
+                </div>
+                {complianceButton && (
+                  <button
+                    type="button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      closeSessionTools();
+                      complianceButton.onClick();
+                    }}
+                    disabled={complianceButton.loading}
+                    className="flex w-full items-center gap-3 min-h-[52px] rounded-xl px-4 bg-white/10 hover:bg-white/15 text-white font-semibold disabled:opacity-60"
+                  >
+                    {complianceButton.loading ? (
+                      <Loader2 className="w-6 h-6 animate-spin shrink-0" aria-hidden />
+                    ) : complianceButton.hasViolations ? (
+                      <X className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={3} aria-hidden />
+                    ) : complianceButton.hasWarnings ? (
+                      <AlertTriangle className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={2.5} aria-hidden />
+                    ) : (
+                      <ClipboardList className="w-6 h-6 shrink-0 text-emerald-300" strokeWidth={2} aria-hidden />
+                    )}
+                    <span className="flex-1 text-left">
+                      {complianceButton.loading
+                        ? "Checking compliance…"
+                        : complianceButton.hasViolations
+                          ? "Compliance — issues"
+                          : complianceButton.hasWarnings
+                            ? "Compliance — warnings"
+                            : "Compliance — all clear"}
+                    </span>
+                  </button>
+                )}
+                <div className="flex flex-wrap items-center justify-center gap-5 pt-1">
+                  <VoiceCommandControl
+                    {...voiceCommandProps}
+                    buttonClassName={touchSheetBtn}
+                    iconClassName={touchSheetIcon}
+                  />
+                  <VoiceAlertsToggle
+                    enabled={voiceAlertsEnabled}
+                    onChange={setVoiceAlertsEnabled}
+                    buttonClassName={touchSheetBtn}
+                    iconClassName={touchSheetIcon}
+                  />
+                  <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </>
   );
 }

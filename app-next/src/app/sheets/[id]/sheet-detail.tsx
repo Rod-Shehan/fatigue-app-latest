@@ -227,6 +227,13 @@ export function SheetDetail({
   const [shiftSegmentOpenForMobile, setShiftSegmentOpenForMobile] = useState(false);
   const [driverSessionDimmed, setDriverSessionDimmed] = useState(false);
   const [mobileLogToolsOpen, setMobileLogToolsOpen] = useState(false);
+  const ignoreMobileToolsOpenUntilRef = useRef(0);
+  const handleMobileToolsOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      ignoreMobileToolsOpenUntilRef.current = Date.now() + 500;
+    }
+    setMobileLogToolsOpen(open);
+  }, []);
   const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
@@ -1178,7 +1185,7 @@ export function SheetDetail({
             onShiftSegmentChange={setShiftSegmentOpenForMobile}
             onSessionDimmedChange={setDriverSessionDimmed}
             mobileToolsOpen={mobileLogToolsOpen}
-            onMobileToolsOpenChange={setMobileLogToolsOpen}
+            onMobileToolsOpenChange={handleMobileToolsOpenChange}
           />
         </>
       )}
@@ -1503,6 +1510,7 @@ export function SheetDetail({
                   onPointerDown={(e) => {
                     if (!canShowLogBar) return;
                     if (!shiftSegmentOpenForMobile || idx !== currentDayIndex) return;
+                    if (Date.now() < ignoreMobileToolsOpenUntilRef.current) return;
                     const t = e.target;
                     if (!(t instanceof HTMLElement)) return;
                     if (
