@@ -21,6 +21,51 @@ export function hasRunPlanContent(day: RunPlanFields): boolean {
   return label !== "" || (km != null && !Number.isNaN(Number(km))) || (hrs != null && !Number.isNaN(Number(hrs)));
 }
 
+/** Planned on-duty hours from run-plan fields or manual day-card km/hours. */
+export function resolvePlannedOnDutyHours(
+  day: RunPlanFields & { start_kms?: number | null; end_kms?: number | null }
+): number | null {
+  const hrs = day.planned_on_duty_hours;
+  if (hrs != null && !Number.isNaN(Number(hrs)) && Number(hrs) > 0) {
+    return Number(hrs);
+  }
+  const km = day.planned_distance_km;
+  if (km != null && !Number.isNaN(Number(km)) && Number(km) > 0) {
+    return Math.max(4, Number(km) / 50);
+  }
+  const start = day.start_kms;
+  const end = day.end_kms;
+  if (
+    start != null &&
+    end != null &&
+    !Number.isNaN(Number(start)) &&
+    !Number.isNaN(Number(end))
+  ) {
+    const tripKm = Math.max(0, Number(end) - Number(start));
+    if (tripKm > 0) return Math.max(4, tripKm / 50);
+  }
+  return null;
+}
+
+export function resolvePlannedDistanceKm(
+  day: RunPlanFields & { start_kms?: number | null; end_kms?: number | null }
+): number | null {
+  const km = day.planned_distance_km;
+  if (km != null && !Number.isNaN(Number(km)) && Number(km) > 0) return Number(km);
+  const start = day.start_kms;
+  const end = day.end_kms;
+  if (
+    start != null &&
+    end != null &&
+    !Number.isNaN(Number(start)) &&
+    !Number.isNaN(Number(end))
+  ) {
+    const tripKm = Math.max(0, Number(end) - Number(start));
+    return tripKm > 0 ? tripKm : null;
+  }
+  return null;
+}
+
 /** True when user started a run plan but it fails ADR validation. */
 export function runPlanValidationError(day: RunPlanFields): string | null {
   if (!hasRunPlanContent(day)) return null;

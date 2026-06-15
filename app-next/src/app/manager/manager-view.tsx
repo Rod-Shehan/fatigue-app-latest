@@ -14,6 +14,8 @@ import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTi
 import { ManagerFleetRiskPulse } from "@/components/manager/ManagerFleetRiskPulse";
 import { ManagerRiskScopeBar } from "@/components/manager/ManagerRiskScopeBar";
 import { pickHighestCurrentRiskDriver } from "@/lib/frms/fleet-risk-timeline";
+import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
+import { buildShiftWorkProjections } from "@/lib/manager-shift-lane-plans";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
@@ -386,6 +388,56 @@ export function ManagerView() {
     }
     return autoChartDriver ?? driverOptions[0] ?? null;
   }, [driverPickManual, selectedDriverFilter, driverOptions, autoChartDriver]);
+
+  const chartShiftEvents = useMemo(() => {
+    if (!chartDriverName || !weekForSnapshot) return [];
+    const blockMs = RISK_BLOCK_MINUTES * 60 * 1000;
+    const windowStart = findNowBlockStartMs() - 32 * blockMs - blockMs;
+    const out: { time: string; type: string }[] = [];
+
+    for (const sheet of sheets) {
+      if (sheet.week_starting !== weekForSnapshot) continue;
+      const primary = (sheet.driver_name ?? "").trim();
+      const second = (sheet.second_driver ?? "").trim();
+      const matchesPrimary = primary === chartDriverName;
+      const matchesSecond = second === chartDriverName;
+      if (!matchesPrimary && !matchesSecond) continue;
+
+      const days = Array.isArray(sheet.days) ? sheet.days : [];
+      for (const day of days) {
+        for (const ev of day.events ?? []) {
+          const t = new Date(ev.time).getTime();
+          if (t < windowStart) continue;
+          if (sheet.driver_type === "two_up" && ev.driver) {
+            const evDriver =
+              ev.driver === "second" ? second : primary;
+            if (evDriver !== chartDriverName) continue;
+          }
+          out.push({ time: ev.time, type: ev.type });
+        }
+      }
+    }
+
+    out.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+    return out;
+  }, [chartDriverName, weekForSnapshot, sheets]);
+
+  const chartShiftProjections = useMemo(() => {
+    if (!chartDriverName || !weekForSnapshot) return [];
+    const blockMs = RISK_BLOCK_MINUTES * 60 * 1000;
+    const nowMs = Date.now();
+    const windowStart = findNowBlockStartMs(nowMs) - 32 * blockMs;
+    const windowEnd = findNowBlockStartMs(nowMs) + 12 * blockMs + blockMs;
+    return buildShiftWorkProjections({
+      sheets,
+      driverName: chartDriverName,
+      weekStarting: weekForSnapshot,
+      windowStartMs: windowStart,
+      windowEndMs: windowEnd,
+      nowMs,
+      events: chartShiftEvents,
+    });
+  }, [chartDriverName, weekForSnapshot, sheets, chartShiftEvents]);
 
   const handleFleetSelectDriver = (name: string) => {
     setSelectedDriverFilter(name);
@@ -768,6 +820,8 @@ export function ManagerView() {
                 demo
                 autoSelected={!driverPickManual}
                 mapDayIndex={activeDayIndex}
+                shiftEvents={chartShiftEvents}
+                shiftProjections={chartShiftProjections}
               />
           ) : null}
 

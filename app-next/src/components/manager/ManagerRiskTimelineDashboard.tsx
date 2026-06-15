@@ -41,6 +41,9 @@ import {
   FRMS_RISK_TIMELINE_CHART_HELP,
   FRMS_TPMA_REFERENCES,
 } from "@/lib/frms/tpma-references";
+import { ManagerRiskShiftLane } from "@/components/manager/ManagerRiskShiftLane";
+import type { TimelineEvent } from "@/lib/manager-risk-shift-lane";
+import type { ShiftWorkProjection } from "@/lib/manager-shift-lane-plans";
 
 type FeedState = {
   blocks: RiskTimelineBlock[];
@@ -133,6 +136,8 @@ export function ManagerRiskTimelineDashboard({
   aboveChart,
   autoSelected = false,
   mapDayIndex,
+  shiftEvents = [],
+  shiftProjections = [],
 }: {
   driverName: string;
   /** Manager focus week — aligns FRMS cache hash with day picker. */
@@ -145,6 +150,10 @@ export function ManagerRiskTimelineDashboard({
   autoSelected?: boolean;
   /** Selected day (0=Sun) — rides along on the map link so Back restores it. */
   mapDayIndex?: number;
+  /** Driver diary events for the shift lane (recorded duty before now). */
+  shiftEvents?: TimelineEvent[];
+  /** Declared run plan / manual km·hours for projected duty after now. */
+  shiftProjections?: ShiftWorkProjection[];
 }) {
   const { resolved: colorMode } = useTheme();
   const chart = CHART_THEME[colorMode];
@@ -349,7 +358,7 @@ export function ManagerRiskTimelineDashboard({
       <div className="px-4 py-4 sm:px-6">
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
+            <LineChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
               <XAxis
                 dataKey="time"
@@ -444,6 +453,12 @@ export function ManagerRiskTimelineDashboard({
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        <ManagerRiskShiftLane
+          blocks={feed.blocks}
+          events={shiftEvents}
+          projections={shiftProjections}
+        />
 
         <div className="mt-2 flex flex-wrap gap-3 px-2 text-[10px] text-slate-500 dark:text-slate-400">
           <span className="inline-flex items-center gap-1" title={chartHelp.baseline.summary}>

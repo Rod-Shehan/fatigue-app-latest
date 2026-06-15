@@ -1,0 +1,70 @@
+import { describe, expect, it } from "vitest";
+import { buildShiftLaneCells, recordedKindForBlock } from "@/lib/manager-risk-shift-lane";
+import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
+
+const BLOCK_MS = RISK_BLOCK_MINUTES * 60 * 1000;
+
+describe("manager-risk-shift-lane", () => {
+  it("records work across a block from logged events", () => {
+    const nowBlock = findNowBlockStartMs(Date.parse("2026-06-11T14:00:00+08:00"));
+    const blockStart = nowBlock - 2 * BLOCK_MS;
+    const events = [
+      { time: new Date(blockStart).toISOString(), type: "work" },
+    ];
+
+    expect(recordedKindForBlock(blockStart, events, nowBlock)).toBe("work");
+  });
+
+  it("marks blocks at/after now as generated", () => {
+    const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const blocks = [
+      {
+        blockStartMs: nowBlock - BLOCK_MS,
+        label: "13:45",
+        baselinePct: 30,
+        livePct: 32,
+      },
+      {
+        blockStartMs: nowBlock,
+        label: "14:00",
+        baselinePct: 35,
+        livePct: 36,
+        isNow: true,
+      },
+      {
+        blockStartMs: nowBlock + BLOCK_MS,
+        label: "14:15",
+        baselinePct: 40,
+      },
+    ];
+
+    const cells = buildShiftLaneCells(blocks, [], { nowMs });
+    expect(cells[0].generated).toBe(false);
+    expect(cells[1].generated).toBe(false);
+    expect(cells[2].generated).toBe(true);
+  });
+
+  it("uses run plan projections for future blocks when provided", () => {
+    const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const blocks = [
+      { blockStartMs: nowBlock, label: "14:00", baselinePct: 35, livePct: 36, isNow: true },
+      { blockStartMs: nowBlock + BLOCK_MS, label: "14:15", baselinePct: 40 },
+    ];
+    const projections = [
+      {
+        startMs: nowBlock + BLOCK_MS,
+        endMs: nowBlock + 4 * BLOCK_MS,
+        routeLabel: "Kalgoorlie",
+        plannedHours: 9,
+        source: "run_plan" as const,
+        dayYmd: "2026-06-11",
+      },
+    ];
+
+    const cells = buildShiftLaneCells(blocks, [], { nowMs, projections });
+    expect(cells[1].kind).toBe("work");
+    expect(cells[1].planLabel).toBe("Kalgoorlie");
+  });
+});
