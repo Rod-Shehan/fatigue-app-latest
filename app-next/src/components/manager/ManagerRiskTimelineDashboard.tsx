@@ -272,7 +272,7 @@ export function ManagerRiskTimelineDashboard({
       className="rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
       aria-label={`Risk timeline for ${driverName}`}
     >
-      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -346,7 +346,7 @@ export function ManagerRiskTimelineDashboard({
         <div className="border-b border-slate-100 dark:border-slate-800">{aboveChart}</div>
       ) : null}
 
-      <div className="px-2 py-4 sm:px-4">
+      <div className="px-4 py-4 sm:px-6">
         <div className="h-[280px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={rows} margin={{ top: 8, right: 12, left: 0, bottom: 4 }}>
@@ -523,7 +523,7 @@ export function ManagerRiskTimelineDashboard({
         </details>
       </div>
 
-      <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+      <div className="border-t border-slate-100 px-4 py-2.5 dark:border-slate-800 sm:px-6">
         <div className="flex items-start gap-2">
           <Radio className="mt-0.5 h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
           <div className="min-w-0">
@@ -536,7 +536,7 @@ export function ManagerRiskTimelineDashboard({
       </div>
 
       {useDemoData ? (
-        <div className="border-t border-dashed border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-800/40 sm:px-5">
+        <div className="border-t border-dashed border-slate-200 bg-slate-50/80 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/40 sm:px-6">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
             Demo controls (hidden when camera blocks exist on server)
           </p>

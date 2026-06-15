@@ -94,7 +94,7 @@ export function ManagerAssuranceSignals({
       }
       aria-label={MANAGER_EXPERIENCE.SNAPSHOT_TITLE}
     >
-      <div className="border-b border-slate-100 px-4 py-4 dark:border-slate-800 sm:px-5">
+      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6">
         <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">
           {MANAGER_EXPERIENCE.SNAPSHOT_TITLE}
         </h2>
@@ -104,10 +104,10 @@ export function ManagerAssuranceSignals({
       </div>
 
       {loading ? (
-        <p className="px-5 py-6 text-sm text-slate-500">Loading assurance signals…</p>
+        <p className="px-4 py-5 text-sm text-slate-500 sm:px-6">Loading assurance signals…</p>
       ) : (
         <div className="space-y-0 divide-y divide-slate-100 dark:divide-slate-800">
-          <div className="px-4 py-4 sm:px-5">
+          <div className="px-4 py-4 sm:px-6">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {MANAGER_EXPERIENCE.CURRENT_WEEK_LABEL}
@@ -127,7 +127,7 @@ export function ManagerAssuranceSignals({
               </ul>
             )}
           </div>
-          <div className="px-4 py-4 sm:px-5">
+          <div className="px-4 py-4 sm:px-6">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                 {MANAGER_EXPERIENCE.PRIOR_WEEK_LABEL}
@@ -150,7 +150,7 @@ export function ManagerAssuranceSignals({
         </div>
       )}
       {!loading ? (
-        <div className="border-t border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+        <div className="border-t border-slate-100 px-4 py-2.5 dark:border-slate-800 sm:px-6">
           <CompliancePolicyFootnote variant="manager" />
         </div>
       ) : null}

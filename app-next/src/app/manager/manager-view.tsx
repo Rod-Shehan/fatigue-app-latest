@@ -756,21 +756,19 @@ export function ManagerView() {
               mapDayIndex={activeDayIndex}
             />
           ) : (
-            <p className="mb-6 rounded-xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-100">
+            <p className="rounded-xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-sm text-teal-900 dark:border-teal-800 dark:bg-teal-950/30 dark:text-teal-100">
               {MANAGER_EXPERIENCE.FLEET_PULSE_EMPTY}
             </p>
           )}
 
           {chartDriverName ? (
-            <div className="mb-8">
-              <ManagerRiskTimelineDashboard
+            <ManagerRiskTimelineDashboard
                 driverName={chartDriverName}
                 weekStarting={weekForSnapshot}
                 demo
                 autoSelected={!driverPickManual}
                 mapDayIndex={activeDayIndex}
               />
-            </div>
           ) : null}
 
           <ManagerReferencePanel

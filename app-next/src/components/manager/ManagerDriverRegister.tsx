@@ -22,7 +22,7 @@ export function ManagerDriverRegister({ rows, loading }: { rows: DriverRegisterR
 
   return (
     <div className="rounded-xl border border-slate-200 dark:border-slate-700">
-      <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+      <div className="border-b border-slate-100 px-4 py-3 sm:px-6 dark:border-slate-800">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
           {MANAGER_EXPERIENCE.REGISTER_TITLE}
         </h3>
@@ -32,7 +32,7 @@ export function ManagerDriverRegister({ rows, loading }: { rows: DriverRegisterR
         {rows.map((row) => {
           const tierStyle = MANAGER_TIER_STYLES[row.tier];
           return (
-            <li key={row.sheetId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <li key={row.sheetId} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Link

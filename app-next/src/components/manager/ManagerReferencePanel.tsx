@@ -55,7 +55,7 @@ export function ManagerReferencePanel({
       className={`rounded-2xl ${style.wrap} ${className ?? "mb-6"}`}
       aria-label={library.title}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6">
         <div className="flex items-center gap-2.5">
           <div
             className={`flex h-9 w-9 items-center justify-center rounded-xl ${style.icon}`}

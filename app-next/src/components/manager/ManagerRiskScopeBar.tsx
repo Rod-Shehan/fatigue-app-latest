@@ -61,7 +61,7 @@ export function ManagerRiskScopeBar({
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3 py-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:gap-3 sm:px-4">
+      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-4 py-2.5 shadow-sm dark:border-slate-700 dark:bg-slate-900/90 sm:gap-3 sm:px-6">
         <div className="flex min-w-[9rem] flex-1 flex-col gap-1 sm:max-w-[11rem]">
           <Label className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
             Work week
