@@ -45,26 +45,62 @@ describe("manager-risk-shift-lane", () => {
     expect(cells[2].generated).toBe(true);
   });
 
-  it("uses run plan projections for future blocks when provided", () => {
+  it("uses cycled run plan segments for future blocks", () => {
     const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
     const nowBlock = findNowBlockStartMs(nowMs);
     const blocks = [
       { blockStartMs: nowBlock, label: "14:00", baselinePct: 35, livePct: 36, isNow: true },
       { blockStartMs: nowBlock + BLOCK_MS, label: "14:15", baselinePct: 40 },
-    ];
-    const projections = [
-      {
-        startMs: nowBlock + BLOCK_MS,
-        endMs: nowBlock + 4 * BLOCK_MS,
-        routeLabel: "Kalgoorlie",
-        plannedHours: 9,
-        source: "run_plan" as const,
-        dayYmd: "2026-06-11",
-      },
+      { blockStartMs: nowBlock + 2 * BLOCK_MS, label: "14:30", baselinePct: 42 },
     ];
 
-    const cells = buildShiftLaneCells(blocks, [], { nowMs, projections });
+    const cells = buildShiftLaneCells(blocks, [], {
+      nowMs,
+      planContext: {
+        segments: [
+          {
+            startMs: nowBlock + BLOCK_MS,
+            endMs: nowBlock + 3 * BLOCK_MS,
+            kind: "work",
+            generated: true,
+            planLabel: "Kalgoorlie",
+          },
+        ],
+        breakDue: null,
+      },
+    });
     expect(cells[1].kind).toBe("work");
     expect(cells[1].planLabel).toBe("Kalgoorlie");
+  });
+
+  it("falls back to sawtooth when no plan segments", () => {
+    const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const blocks = [
+      { blockStartMs: nowBlock, label: "14:00", baselinePct: 35, isNow: true },
+      { blockStartMs: nowBlock + BLOCK_MS, label: "14:15", baselinePct: 40 },
+    ];
+    const cells = buildShiftLaneCells(blocks, [], { nowMs, planContext: { segments: [], breakDue: null } });
+    expect(cells[1].generated).toBe(true);
+    expect(["work", "break"]).toContain(cells[1].kind);
+  });
+
+  it("flags break due on recorded work blocks", () => {
+    const nowMs = Date.parse("2026-06-11T12:00:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const workStart = nowMs - 5.5 * 60 * 60 * 1000;
+    const blocks = [{ blockStartMs: nowBlock - BLOCK_MS, label: "11:45", baselinePct: 30 }];
+    const cells = buildShiftLaneCells(
+      blocks,
+      [{ time: new Date(workStart).toISOString(), type: "work" }],
+      {
+        nowMs,
+        planContext: {
+          segments: [],
+          breakDue: { startMs: nowMs - 30 * 60 * 1000, endMs: nowMs },
+        },
+      }
+    );
+    expect(cells[0].breakDue).toBe(true);
   });
 });

@@ -15,7 +15,7 @@ import { ManagerFleetRiskPulse } from "@/components/manager/ManagerFleetRiskPuls
 import { ManagerRiskScopeBar } from "@/components/manager/ManagerRiskScopeBar";
 import { pickHighestCurrentRiskDriver } from "@/lib/frms/fleet-risk-timeline";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
-import { buildShiftWorkProjections } from "@/lib/manager-shift-lane-plans";
+import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
@@ -422,13 +422,15 @@ export function ManagerView() {
     return out;
   }, [chartDriverName, weekForSnapshot, sheets]);
 
-  const chartShiftProjections = useMemo(() => {
-    if (!chartDriverName || !weekForSnapshot) return [];
+  const chartShiftPlanContext = useMemo(() => {
+    if (!chartDriverName || !weekForSnapshot) {
+      return { segments: [], breakDue: null };
+    }
     const blockMs = RISK_BLOCK_MINUTES * 60 * 1000;
     const nowMs = Date.now();
     const windowStart = findNowBlockStartMs(nowMs) - 32 * blockMs;
     const windowEnd = findNowBlockStartMs(nowMs) + 12 * blockMs + blockMs;
-    return buildShiftWorkProjections({
+    return buildShiftLanePlanContext({
       sheets,
       driverName: chartDriverName,
       weekStarting: weekForSnapshot,
@@ -821,7 +823,7 @@ export function ManagerView() {
                 autoSelected={!driverPickManual}
                 mapDayIndex={activeDayIndex}
                 shiftEvents={chartShiftEvents}
-                shiftProjections={chartShiftProjections}
+                shiftPlanContext={chartShiftPlanContext}
               />
           ) : null}
 

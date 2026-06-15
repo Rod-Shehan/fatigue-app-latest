@@ -43,7 +43,7 @@ import {
 } from "@/lib/frms/tpma-references";
 import { ManagerRiskShiftLane } from "@/components/manager/ManagerRiskShiftLane";
 import type { TimelineEvent } from "@/lib/manager-risk-shift-lane";
-import type { ShiftWorkProjection } from "@/lib/manager-shift-lane-plans";
+import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 
 type FeedState = {
   blocks: RiskTimelineBlock[];
@@ -137,7 +137,7 @@ export function ManagerRiskTimelineDashboard({
   autoSelected = false,
   mapDayIndex,
   shiftEvents = [],
-  shiftProjections = [],
+  shiftPlanContext,
 }: {
   driverName: string;
   /** Manager focus week — aligns FRMS cache hash with day picker. */
@@ -152,8 +152,8 @@ export function ManagerRiskTimelineDashboard({
   mapDayIndex?: number;
   /** Driver diary events for the shift lane (recorded duty before now). */
   shiftEvents?: TimelineEvent[];
-  /** Declared run plan / manual km·hours for projected duty after now. */
-  shiftProjections?: ShiftWorkProjection[];
+  /** Run plan duty segments + break-due window for the shift lane. */
+  shiftPlanContext?: ShiftLanePlanContext;
 }) {
   const { resolved: colorMode } = useTheme();
   const chart = CHART_THEME[colorMode];
@@ -457,7 +457,7 @@ export function ManagerRiskTimelineDashboard({
         <ManagerRiskShiftLane
           blocks={feed.blocks}
           events={shiftEvents}
-          projections={shiftProjections}
+          planContext={shiftPlanContext}
         />
 
         <div className="mt-2 flex flex-wrap gap-3 px-2 text-[10px] text-slate-500 dark:text-slate-400">

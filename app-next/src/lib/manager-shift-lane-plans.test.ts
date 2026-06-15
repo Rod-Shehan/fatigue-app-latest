@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildShiftWorkProjections } from "@/lib/manager-shift-lane-plans";
+import {
+  buildCycledWorkSegments,
+  buildShiftDutySegments,
+  getBreakDueRange,
+} from "@/lib/manager-shift-lane-plans";
 import { resolvePlannedOnDutyHours } from "@/lib/route-plan";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 import type { FatigueSheet } from "@/lib/api";
@@ -18,8 +22,36 @@ describe("resolvePlannedOnDutyHours", () => {
   });
 });
 
-describe("buildShiftWorkProjections", () => {
-  it("projects remaining planned work from now", () => {
+describe("buildCycledWorkSegments", () => {
+  it("inserts a break after five hours of projected work", () => {
+    const startMs = Date.parse("2026-06-11T12:00:00+08:00");
+    const horizon = startMs + 6 * 60 * 60 * 1000;
+    const segments = buildCycledWorkSegments(
+      startMs,
+      horizon,
+      6 * 60 * 60 * 1000,
+      [],
+      startMs,
+      "Test run"
+    );
+    expect(segments.some((s) => s.kind === "work")).toBe(true);
+    expect(segments.some((s) => s.kind === "break")).toBe(true);
+  });
+});
+
+describe("getBreakDueRange", () => {
+  it("returns overdue window when working past break due", () => {
+    const nowMs = Date.parse("2026-06-11T12:00:00+08:00");
+    const workStart = new Date(nowMs - 5.5 * 60 * 60 * 1000).toISOString();
+    const range = getBreakDueRange([{ time: workStart, type: "work" }], nowMs);
+    expect(range).not.toBeNull();
+    expect(range!.endMs).toBe(nowMs);
+    expect(range!.startMs).toBeLessThan(nowMs);
+  });
+});
+
+describe("buildShiftDutySegments", () => {
+  it("projects cycled duty from remaining planned work", () => {
     const nowMs = Date.parse("2026-06-11T10:00:00+08:00");
     const blockMs = RISK_BLOCK_MINUTES * 60 * 1000;
     const windowStart = findNowBlockStartMs(nowMs) - 32 * blockMs;
@@ -33,7 +65,7 @@ describe("buildShiftWorkProjections", () => {
         i === 4
           ? {
               route_label: "Kalgoorlie",
-              planned_on_duty_hours: 4,
+              planned_on_duty_hours: 6,
               events: [{ time: new Date(nowMs - 60 * 60 * 1000).toISOString(), type: "work" }],
             }
           : {}
@@ -41,7 +73,7 @@ describe("buildShiftWorkProjections", () => {
       status: "draft",
     };
 
-    const projections = buildShiftWorkProjections({
+    const segments = buildShiftDutySegments({
       sheets: [sheet],
       driverName: "Alex",
       weekStarting: "2026-06-07",
@@ -52,9 +84,8 @@ describe("buildShiftWorkProjections", () => {
       todayYmd: "2026-06-11",
     });
 
-    expect(projections.length).toBe(1);
-    expect(projections[0].plannedHours).toBe(4);
-    expect(projections[0].startMs).toBe(nowMs);
-    expect(projections[0].endMs - projections[0].startMs).toBe(3 * 60 * 60 * 1000);
+    expect(segments.length).toBeGreaterThan(0);
+    expect(segments.some((s) => s.kind === "work")).toBe(true);
+    expect(segments[0].startMs).toBeGreaterThanOrEqual(findNowBlockStartMs(nowMs) + blockMs);
   });
 });

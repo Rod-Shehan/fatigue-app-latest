@@ -1,13 +1,13 @@
 /**
  * Shift lane cells aligned to 15-minute risk timeline blocks.
- * Before now: duty from logged events. After now: declared run plan / manual km·hours, else demo walk.
+ * Before now: duty from logged events. After now: run plan cycles, sawtooth fallback.
  */
 
-import { demoBlockEventForIndex, type FatigueCarryBlockEvent } from "@/lib/fatigue-risk-carry";
-import type { ShiftWorkProjection } from "@/lib/manager-shift-lane-plans";
+import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import {
-  projectedKindFromPlans,
-  projectionLabelForBlock,
+  blockOverlapsBreakDue,
+  dutyFromSegmentsForBlock,
+  sawtoothKindForBlockIndex,
 } from "@/lib/manager-shift-lane-plans";
 import {
   RISK_BLOCK_MINUTES,
@@ -23,20 +23,15 @@ export type ShiftLaneKind = "work" | "break" | "non_work" | "idle";
 export type ShiftLaneCell = {
   blockStartMs: number;
   kind: ShiftLaneKind;
-  /** True when block is at or after the now line (projected, not attested). */
+  /** True when block is after the now line (projected, not attested). */
   generated: boolean;
   /** Run plan / manual plan label when projected from declared route. */
   planLabel?: string | null;
+  /** Break was due/overdue in this block while still on work. */
+  breakDue?: boolean;
 };
 
 export type TimelineEvent = { time: string; type: string };
-
-function fatigueEventToKind(event: FatigueCarryBlockEvent): ShiftLaneKind {
-  if (event.nonWork) return "non_work";
-  if (event.recoveryMinutes > 0) return "break";
-  if (event.workMinutes > 0) return "work";
-  return "idle";
-}
 
 function eventTypeToKind(type: string): ShiftLaneKind | null {
   switch (type) {
@@ -100,47 +95,59 @@ export function buildShiftLaneCells(
   events: TimelineEvent[],
   opts?: {
     nowMs?: number;
-    projections?: ShiftWorkProjection[];
+    planContext?: ShiftLanePlanContext;
   }
 ): ShiftLaneCell[] {
   const nowMs = opts?.nowMs ?? Date.now();
-  const projections = opts?.projections ?? [];
+  const segments = opts?.planContext?.segments ?? [];
+  const breakDue = opts?.planContext?.breakDue ?? null;
   const nowBlock = findNowBlockStartMs(nowMs);
-  const hasPlanProjection = projections.length > 0;
+  const hasPlanSegments = segments.length > 0;
 
   return blocks.map((block, index) => {
     const generated = block.blockStartMs > nowBlock;
+    const recorded = generated ? null : recordedKindForBlock(block.blockStartMs, events, nowMs);
+    const breakDueOverlap =
+      !generated &&
+      blockOverlapsBreakDue(block.blockStartMs, breakDue, nowMs) &&
+      (recorded === "work" || recorded === null);
+
     if (generated) {
-      if (hasPlanProjection) {
-        const kind = projectedKindFromPlans(block.blockStartMs, projections);
+      if (hasPlanSegments) {
+        const duty = dutyFromSegmentsForBlock(block.blockStartMs, segments);
         return {
           blockStartMs: block.blockStartMs,
-          kind,
+          kind: duty.kind === "idle" ? "non_work" : duty.kind,
           generated: true,
-          planLabel: projectionLabelForBlock(block.blockStartMs, projections),
+          planLabel: duty.planLabel,
         };
       }
-      const projected = demoBlockEventForIndex(index, true);
       return {
         blockStartMs: block.blockStartMs,
-        kind: fatigueEventToKind(projected),
+        kind: sawtoothKindForBlockIndex(index),
         generated: true,
         planLabel: null,
       };
     }
 
-    const recorded = recordedKindForBlock(block.blockStartMs, events, nowMs);
     return {
       blockStartMs: block.blockStartMs,
       kind: recorded ?? "idle",
       generated: false,
+      breakDue: breakDueOverlap,
     };
   });
 }
 
-export function shiftLaneColor(kind: ShiftLaneKind, generated: boolean): string {
+export function shiftLaneColor(
+  kind: ShiftLaneKind,
+  generated: boolean,
+  breakDue?: boolean
+): string {
+  if (breakDue) return ACTIVITY_THEME.break.hex;
+
   if (kind === "idle") {
-    return generated ? "rgba(148, 163, 184, 0.35)" : "#cbd5e1";
+    return generated ? "rgba(148, 163, 184, 0.35)" : "#94a3b8";
   }
 
   const themeKey: ActivityKey = kind;
@@ -149,7 +156,8 @@ export function shiftLaneColor(kind: ShiftLaneKind, generated: boolean): string 
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, 0.42)`;
 }
 
-export function shiftLaneLabel(kind: ShiftLaneKind): string {
+export function shiftLaneLabel(kind: ShiftLaneKind, breakDue?: boolean): string {
+  if (breakDue) return "Break due";
   switch (kind) {
     case "work":
       return "Work";
