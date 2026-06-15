@@ -53,6 +53,48 @@ function formatElapsedBarDisplay(totalMinutes: number): string {
   return `${h}h ${min.toString().padStart(2, "0")}m`;
 }
 
+type ComplianceTone = "default" | "violation" | "warning" | "pending" | "ok";
+type BreakDueTone = null | "amber" | "red";
+
+/** Compliance colours for the unified primary action (formerly the full-width header shell). */
+function getComplianceChrome(
+  complianceTone: ComplianceTone,
+  breakDueTone: BreakDueTone
+): { onColoredSurface: boolean; surfaceClass: string; textClass: string } {
+  const onColoredSurface = complianceTone !== "default" || breakDueTone != null;
+
+  const surfaceClass =
+    complianceTone === "violation" || complianceTone === "warning"
+      ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-950 dark:border-amber-100 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
+      : breakDueTone === "red"
+        ? "bg-red-600 dark:bg-red-700 border-4 border-red-950 dark:border-red-100 shadow-lg hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800"
+        : breakDueTone === "amber"
+          ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-950 dark:border-amber-100 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
+          : complianceTone === "pending"
+            ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
+            : complianceTone === "ok"
+              ? "bg-emerald-500 dark:bg-emerald-600 border-4 border-emerald-950 dark:border-emerald-100 shadow-lg hover:bg-emerald-600 dark:hover:bg-emerald-500 active:bg-emerald-700"
+              : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600";
+
+  const textClass =
+    complianceTone === "violation" || complianceTone === "warning"
+      ? "text-amber-950 dark:text-white"
+      : breakDueTone === "red"
+        ? "text-white"
+        : breakDueTone === "amber"
+          ? "text-amber-950 dark:text-white"
+          : complianceTone === "pending"
+            ? "text-emerald-950 dark:text-white"
+            : complianceTone === "ok"
+              ? "text-emerald-950 dark:text-white"
+              : "text-slate-900 dark:text-slate-100";
+
+  return { onColoredSurface, surfaceClass, textClass };
+}
+
+const FIXED_LOG_BAR_SHELL =
+  "bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm";
+
 const EVENT_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string }>> = {
   work: Briefcase,
   break: Coffee,
@@ -418,36 +460,18 @@ export default function LogBar({
     return null;
   }, [currentType, eventsForDriver, isLiveNow, tick]);
 
-  /** Colored compliance header (amber / red / lime / emerald): use a dark track + saturated fills so the bar stays visible. */
-  const barOnColoredHeader = complianceTone !== "default" || breakDueTone != null;
+  const complianceChrome = getComplianceChrome(complianceTone, breakDueTone);
+  /** Dark inset track on the unified action when it carries compliance colour. */
+  const barOnColoredHeader = complianceChrome.onColoredSurface;
 
-  /** Saturated bands + thick border for single-glance compliance (outdoor / cab visibility). */
-  const headerShellClass =
-    complianceTone === "violation" || complianceTone === "warning"
-      ? "bg-amber-500 dark:bg-amber-600 border-b-4 border-amber-950 dark:border-amber-100 shadow-lg"
-      : breakDueTone === "red"
-          ? "bg-red-600 dark:bg-red-700 border-b-4 border-red-950 dark:border-red-100 shadow-lg"
-          : breakDueTone === "amber"
-              ? "bg-amber-500 dark:bg-amber-600 border-b-4 border-amber-950 dark:border-amber-100 shadow-lg"
-              : complianceTone === "pending"
-          ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-b-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
-          : complianceTone === "ok"
-            ? "bg-emerald-500 dark:bg-emerald-600 border-b-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
-            : "bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shadow-md";
-
-  /** Keep labels readable on solid compliance backgrounds. */
-  const complianceBarTextClass =
-    complianceTone === "violation" || complianceTone === "warning"
-      ? "text-amber-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-amber-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
-      : breakDueTone === "red"
-          ? "text-white [&_.text-slate-400]:!text-white/85 [&_.text-slate-500]:!text-white/90 [&_.text-slate-600]:!text-white [&_.text-slate-700]:!text-white [&_.text-slate-800]:!text-white [&_.text-slate-300]:!text-white [&_.text-slate-100]:!text-white [&_.text-slate-200]:!text-white"
-          : breakDueTone === "amber"
-              ? "text-amber-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-amber-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
-              : complianceTone === "pending"
-          ? "text-emerald-950 dark:text-white [&_.text-slate-400]:!text-amber-900/80 [&_.text-slate-400]:dark:!text-amber-50 [&_.text-slate-500]:dark:!text-lime-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
-          : complianceTone === "ok"
-            ? "text-emerald-950 dark:text-white [&_.text-slate-400]:!text-emerald-900/75 [&_.text-slate-400]:dark:!text-emerald-50 [&_.text-slate-500]:dark:!text-emerald-50 [&_.text-slate-600]:dark:!text-white [&_.text-slate-700]:dark:!text-white [&_.text-slate-800]:dark:!text-white [&_.text-slate-300]:dark:!text-white [&_.text-slate-100]:dark:!text-white [&_.text-slate-200]:dark:!text-white"
-            : "";
+  const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
+  const primaryActionPending = pendingType === nextWorkBreak;
+  const isStartingShift = nextWorkBreak === "work" && currentType === null;
+  const primaryActionLabel = isStartingShift
+    ? canResumeWithinSeventeenHourEpisode
+      ? "Resume shift"
+      : "Start shift"
+    : EVENT_LABELS[nextWorkBreak];
 
   const clearPending = useCallback(() => {
     if (resetTimerRef.current) {
@@ -762,7 +786,7 @@ export default function LogBar({
   };
 
   const barContent = (
-    <div className={cn("space-y-2", complianceBarTextClass)}>
+    <div className="space-y-2">
       {logBarBanner ? (
         <div
           role="status"
@@ -771,7 +795,7 @@ export default function LogBar({
           {logBarBanner}
         </div>
       ) : null}
-      <div className="flex flex-wrap items-center justify-center gap-3">
+      <div className="flex flex-wrap items-stretch justify-center gap-3">
         {driverType === "two_up" && (
           <span className="flex w-full justify-center items-center gap-2 text-sm text-slate-500 dark:text-slate-400 sm:w-auto sm:justify-start">
             <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
@@ -803,45 +827,141 @@ export default function LogBar({
             </button>
           </span>
         )}
-        <div className="flex w-full max-w-md flex-col items-stretch gap-2 sm:inline-flex sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-3 shrink-0">
-          {(() => {
-            const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
-
-            const isPending = pendingType === nextWorkBreak;
-            const theme = ACTIVITY_THEME[nextWorkBreak];
-            const isStartingShift = nextWorkBreak === "work" && currentType === null;
-            const primaryLabel = isStartingShift
-              ? canResumeWithinSeventeenHourEpisode
-                ? "Resume shift"
-                : "Start shift"
-              : EVENT_LABELS[nextWorkBreak];
-            return (
-              <button
-                type="button"
-                onClick={() => handleLog(nextWorkBreak)}
-                className={cn(
-                  "flex items-center justify-center gap-3 sm:gap-4 px-6 py-4 sm:px-10 sm:py-5 rounded-xl text-white font-bold transition-all duration-150 active:scale-95 shadow-lg min-h-[56px] sm:min-h-[64px] w-full max-w-sm min-w-0 sm:min-w-[200px] sm:w-auto shrink-0",
-                  theme.button,
-                  isPending &&
-                    "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse"
-                )}
-                aria-label={isPending ? "Tap again to confirm" : primaryLabel}
-              >
-                {React.createElement(EVENT_ICONS[nextWorkBreak], {
-                  className: "shrink-0 text-white drop-shadow-sm w-8 h-8",
-                })}
-                {isPending ? (
-                  <span className="flex flex-col items-center leading-tight min-w-0">
-                    <span className="text-base sm:text-lg">Tap again to confirm</span>
-                  </span>
-                ) : (
-                  <span className="flex flex-col items-center leading-tight min-w-0">
-                    <span className="text-base sm:text-lg">{primaryLabel}</span>
-                  </span>
-                )}
-              </button>
-            );
-          })()}
+        <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
+          <button
+            type="button"
+            onClick={() => handleLog(nextWorkBreak)}
+            className={cn(
+              "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 py-3 sm:px-5 sm:py-4 font-bold transition-all duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
+              complianceChrome.surfaceClass,
+              complianceChrome.textClass,
+              primaryActionPending &&
+                "ring-2 ring-white ring-offset-2 ring-offset-slate-100 dark:ring-offset-slate-950 animate-pulse"
+            )}
+            aria-label={primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
+          >
+            <div className="flex w-full items-center justify-center gap-3 sm:gap-4">
+              {React.createElement(EVENT_ICONS[nextWorkBreak], {
+                className: "h-8 w-8 shrink-0 drop-shadow-sm",
+              })}
+              <span className="flex min-w-0 flex-col items-center leading-tight">
+                <span className="text-base sm:text-lg">
+                  {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
+                </span>
+              </span>
+            </div>
+            {contextualBar ? (
+              <div className="flex w-full min-w-0 items-center gap-2">
+                <div
+                  className={cn(
+                    "relative h-9 min-h-9 sm:h-10 sm:min-h-10 flex-1 min-w-0 rounded-lg overflow-hidden",
+                    barOnColoredHeader
+                      ? "bg-black/60 ring-2 ring-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.55)] dark:bg-black/65 dark:ring-white/30"
+                      : "bg-slate-100 dark:bg-slate-700"
+                  )}
+                >
+                  <div className="absolute inset-0 rounded-lg">
+                    {contextualBar.type === "work" && (
+                      <>
+                        <div
+                          className={cn(
+                            "absolute inset-y-0 left-0 rounded-lg transition-all duration-300",
+                            barOnColoredHeader &&
+                              "bg-lime-300 shadow-sm dark:bg-lime-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
+                          )}
+                          style={{
+                            width: `${contextualBar.pct}%`,
+                            ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
+                          }}
+                        />
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "absolute top-0 bottom-0 w-px",
+                              barOnColoredHeader ? "bg-white/45" : "bg-white/60"
+                            )}
+                            style={{ left: `${(i / 5) * 100}%` }}
+                            aria-hidden
+                          />
+                        ))}
+                      </>
+                    )}
+                    {contextualBar.type === "break" && (
+                      <>
+                        <div className="absolute inset-0 flex rounded-lg overflow-hidden">
+                          <div
+                            className={cn(
+                              "relative h-full w-1/2",
+                              barOnColoredHeader ? "border-r border-white/35" : "border-r border-white/50"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "absolute inset-y-0 left-0 transition-all duration-300",
+                                barOnColoredHeader &&
+                                  "bg-amber-300 shadow-sm dark:bg-amber-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
+                              )}
+                              style={{
+                                width: `${contextualBar.leftPct}%`,
+                                ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
+                              }}
+                            />
+                          </div>
+                          <div className="relative h-full w-1/2">
+                            <div
+                              className={cn(
+                                "absolute inset-y-0 left-0 transition-all duration-300",
+                                barOnColoredHeader &&
+                                  "bg-amber-300 shadow-sm dark:bg-amber-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
+                              )}
+                              style={{
+                                width: `${contextualBar.rightPct}%`,
+                                ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
+                              }}
+                            />
+                          </div>
+                        </div>
+                        <div
+                          className={cn(
+                            "absolute top-0 bottom-0 left-1/2 w-px -translate-x-px z-[1]",
+                            barOnColoredHeader ? "bg-white/90" : "bg-white/70"
+                          )}
+                          aria-hidden
+                        />
+                      </>
+                    )}
+                  </div>
+                  {((contextualBar.type === "work" && contextualBar.pct < 100) ||
+                    (contextualBar.type === "break" && contextualBar.pct < 100)) && (
+                    <div
+                      className={cn(
+                        "absolute top-1/2 w-2.5 h-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md pointer-events-none z-10",
+                        barOnColoredHeader
+                          ? "bg-white ring-2 ring-emerald-950/90 dark:ring-white/90"
+                          : "bg-black dark:bg-white border-2 border-slate-400 dark:border-slate-300"
+                      )}
+                      style={{ left: `${contextualBar.pct}%` }}
+                      title="Current progress"
+                      aria-hidden
+                    />
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    "flex h-9 min-h-9 sm:h-10 sm:min-h-10 shrink-0 items-center font-mono text-[1.75rem] font-extrabold tabular-nums leading-none tracking-tight sm:text-[2rem]",
+                    barOnColoredHeader
+                      ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+                      : "text-slate-900 dark:text-slate-100"
+                  )}
+                  title="Elapsed time this work / break"
+                  aria-live="polite"
+                >
+                  {formatElapsedBarDisplay(contextualBar.elapsed)}
+                </span>
+              </div>
+            ) : null}
+          </button>
           {(shiftSegmentOpen || pendingType === "stop") &&
             (() => {
               const type = "stop";
@@ -863,120 +983,6 @@ export default function LogBar({
             })()}
         </div>
       </div>
-
-      {contextualBar && (
-        <div className="pt-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <div
-              className={cn(
-                "relative h-9 min-h-9 sm:h-10 sm:min-h-10 flex-1 min-w-0 rounded-lg overflow-hidden",
-                barOnColoredHeader
-                  ? "bg-black/60 ring-2 ring-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.55)] dark:bg-black/65 dark:ring-white/30"
-                  : "bg-slate-100 dark:bg-slate-700"
-              )}
-            >
-              <div className="absolute inset-0 rounded-lg">
-                {contextualBar.type === "work" && (
-                  <>
-                    <div
-                      className={cn(
-                        "absolute inset-y-0 left-0 rounded-lg transition-all duration-300",
-                        barOnColoredHeader &&
-                          "bg-lime-300 shadow-sm dark:bg-lime-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
-                      )}
-                      style={{
-                        width: `${contextualBar.pct}%`,
-                        ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
-                      }}
-                    />
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={cn(
-                          "absolute top-0 bottom-0 w-px",
-                          barOnColoredHeader ? "bg-white/45" : "bg-white/60"
-                        )}
-                        style={{ left: `${(i / 5) * 100}%` }}
-                        aria-hidden
-                      />
-                    ))}
-                  </>
-                )}
-                {contextualBar.type === "break" && (
-                  <>
-                    <div className="absolute inset-0 flex rounded-lg overflow-hidden">
-                      <div
-                        className={cn(
-                          "relative h-full w-1/2",
-                          barOnColoredHeader ? "border-r border-white/35" : "border-r border-white/50"
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            "absolute inset-y-0 left-0 transition-all duration-300",
-                            barOnColoredHeader &&
-                              "bg-amber-300 shadow-sm dark:bg-amber-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
-                          )}
-                          style={{
-                            width: `${contextualBar.leftPct}%`,
-                            ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
-                          }}
-                        />
-                      </div>
-                      <div className="relative h-full w-1/2">
-                        <div
-                          className={cn(
-                            "absolute inset-y-0 left-0 transition-all duration-300",
-                            barOnColoredHeader &&
-                              "bg-amber-300 shadow-sm dark:bg-amber-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
-                          )}
-                          style={{
-                            width: `${contextualBar.rightPct}%`,
-                            ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div
-                      className={cn(
-                        "absolute top-0 bottom-0 left-1/2 w-px -translate-x-px z-[1]",
-                        barOnColoredHeader ? "bg-white/90" : "bg-white/70"
-                      )}
-                      aria-hidden
-                    />
-                  </>
-                )}
-              </div>
-              {((contextualBar.type === "work" && contextualBar.pct < 100) ||
-                (contextualBar.type === "break" && contextualBar.pct < 100)) && (
-                <div
-                  className={cn(
-                    "absolute top-1/2 w-2.5 h-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md pointer-events-none z-10",
-                    barOnColoredHeader
-                      ? "bg-white ring-2 ring-emerald-950/90 dark:ring-white/90"
-                      : "bg-black dark:bg-white border-2 border-slate-400 dark:border-slate-300"
-                  )}
-                  style={{ left: `${contextualBar.pct}%` }}
-                  title="Current progress"
-                  aria-hidden
-                />
-              )}
-            </div>
-            <span
-              className={cn(
-                "h-9 min-h-9 sm:h-10 sm:min-h-10 flex shrink-0 items-center font-mono font-extrabold tabular-nums leading-none text-[1.75rem] sm:text-[2rem] tracking-tight",
-                barOnColoredHeader
-                  ? "text-slate-950 dark:text-white drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
-                  : "text-slate-900 dark:text-slate-100"
-              )}
-              title="Elapsed time this work / break"
-              aria-live="polite"
-            >
-              {formatElapsedBarDisplay(contextualBar.elapsed)}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 
@@ -997,9 +1003,7 @@ export default function LogBar({
           </div>
         </div>
       </div>
-      <div
-        className={`fixed top-0 left-0 right-0 z-50 px-4 py-3 transition-colors duration-300 ${headerShellClass}`}
-      >
+      <div className={cn("fixed top-0 left-0 right-0 z-50 px-4 py-3", FIXED_LOG_BAR_SHELL)}>
         <div className="max-w-[1400px] mx-auto flex flex-col gap-2 md:flex-row md:items-start md:gap-3">
           <div className="flex-1 min-w-0 w-full">{barContent}</div>
           <div className="flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start">
