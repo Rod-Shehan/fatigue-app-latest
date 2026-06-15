@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Week boundaries (Sunday-based). Uses local date.
  */
 

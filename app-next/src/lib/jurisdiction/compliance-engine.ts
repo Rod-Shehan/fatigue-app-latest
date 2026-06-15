@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Pluggable compliance engine entry (ADR 0001).
  * WA implementation delegates to runComplianceChecks in ../compliance.ts (same behaviour).
  *

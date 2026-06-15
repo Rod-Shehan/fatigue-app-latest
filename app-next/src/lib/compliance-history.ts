@@ -1,3 +1,7 @@
+/**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ */
 import type { PrismaClient } from "@prisma/client";
 import type { ComplianceDayData } from "@/lib/compliance";
 import { getPreviousWeekSunday } from "@/lib/weeks";

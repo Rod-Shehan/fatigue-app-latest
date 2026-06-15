@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Single source of truth: work / break / non-work coverage per calendar day as 1440 booleans (one per minute).
  * Used by EventLogger, compliance, and TimeGrid (via dayData grids).
  */

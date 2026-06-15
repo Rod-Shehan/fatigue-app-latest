@@ -1,3 +1,4 @@
+/** RULE IP — owner approval required before changing expected rule outcomes. See .cursor/rules/time-rules-ip.mdc */
 import { describe, expect, it } from "vitest";
 import { buildDriverComplianceWeekContext, runLocalSheetComplianceCheck } from "./sheet-compliance-local";
 import type { FatigueSheet } from "@/lib/api";

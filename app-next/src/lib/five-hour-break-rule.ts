@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Standard fatigue rule: within each rolling 5h block of work time,
  * qualifying rest is either one continuous ≥20 min break, or two separate ≥10 min breaks.
  * Breaks &lt;10 min do not count toward rest (counted as work in coverage). This module

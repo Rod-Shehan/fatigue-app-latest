@@ -8,5 +8,6 @@ alwaysApply: false
 
 - **Do not** redesign or materially restructure **fundamental UI** without **explicit user/product-owner approval** in chat or ticket. This includes: **LogBar**, **day cards** (`DayEntry` and related), **sheet header** / toolbar patterns, **manager workbench** tiles and tab layout, and **navigation** around the driver sheet.
 - **Allowed without special approval**: bug fixes, copy typos, accessibility fixes that preserve layout, and **non-visual** refactors that produce identical UI.
-- Architectural work in `src/lib/compliance.ts`, `src/lib/jurisdiction/`, APIs, and docs per **ADR 0001** is encouraged; keep **quick-view / aggregated day displays** as the simple default unless the user approves a change.
+- **Time/compliance rule logic** is core IP — see `.cursor/rules/time-rules-ip.mdc` (owner approval required before any rule change).
+- Keep **quick-view / aggregated day displays** as the simple default unless the user approves a change.
 - See `app-next/docs/adr/0001-multi-jurisdiction-fatigue-architecture.md` and `app-next/docs/architecture/australia-wide-transition.md`.

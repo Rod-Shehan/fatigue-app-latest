@@ -1,3 +1,5 @@
+# RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+# See .cursor/rules/time-rules-ip.mdc
 """
 Three-Process Model of Alertness (TPMA) + progressive task workload compression.
 

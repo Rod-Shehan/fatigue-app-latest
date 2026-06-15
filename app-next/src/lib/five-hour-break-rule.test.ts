@@ -1,3 +1,4 @@
+/** RULE IP — owner approval required before changing expected rule outcomes. See .cursor/rules/time-rules-ip.mdc */
 import { describe, it, expect } from "vitest";
 import {
   applyQualifyingBreakSegment,

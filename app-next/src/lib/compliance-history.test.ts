@@ -1,3 +1,4 @@
+/** RULE IP — owner approval required before changing expected rule outcomes. See .cursor/rules/time-rules-ip.mdc */
 import { describe, expect, it } from "vitest";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import {

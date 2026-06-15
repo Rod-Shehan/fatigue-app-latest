@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Rolling time model: events are a single continuous timeline.
  * Days are only used to know "where" events came from (for display); rules use time only.
  */

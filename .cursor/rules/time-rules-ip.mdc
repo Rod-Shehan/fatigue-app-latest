@@ -1,0 +1,52 @@
+---
+description: Fatigue time/compliance rules are core IP — owner approval required before any change
+alwaysApply: true
+---
+
+# Time rules IP — owner approval gate
+
+Fatigue **time and compliance rule logic** is the product's core intellectual property.
+
+## Do not change without explicit owner approval
+
+Never modify rule **behaviour**, **thresholds**, **evaluation order**, **reset conditions**, or **regulatory interpretations** unless the user has **explicitly approved** that change in the current chat or a linked ticket.
+
+This applies to:
+
+- Implementations under `app-next/src/lib/` listed below
+- **Tests** for those modules (they encode expected rule outcomes)
+- **Duplicated rule logic** in UI (e.g. `LogBar.tsx` break warnings) — treat as rule IP, not casual UI
+- `frms-engine/app/math_engine.py` (TPMA / alertness time model)
+
+### Protected rule modules
+
+| Module | Role |
+|--------|------|
+| `five-hour-break-rule.ts` | 5h work / 20 min rest (2×10 or 1×20) |
+| `compliance.ts` | WA OSH Reg 3.132 compliance checks |
+| `seventeen-hour-episode.ts` | Solo 17h episode / 7h non-work anchor |
+| `rolling-events.ts` | Rolling timeline; shift-gap / non-work between shifts |
+| `rolling-168h-metrics.ts` | 14-day / 168h work limits |
+| `shift-change.ts` | Reg 184E shift-pattern change / 24h gap |
+| `weeks.ts` | Regulatory week boundaries and rule “today” (Perth) |
+| `coverage/derive-minute-coverage.ts` | Minute coverage that feeds rule engines |
+| `compliance-state.ts` | Retrospective compliance snapshots |
+| `compliance-history.ts` | Multi-week lookback for rolling rules |
+| `sheet-compliance-local.ts` | Client compliance runner (same engines as API) |
+| `jurisdiction/compliance-engine.ts` | Pluggable compliance engine entry |
+| `jurisdiction/nhvr-provisional-engine.ts` | NHVR provisional pack |
+| `manager-shift-lane-plans.ts` | Break-due / 5h cycle projection on manager timeline |
+| `frms-engine/app/math_engine.py` | TPMA alertness time model |
+
+### Allowed without rule approval
+
+- **Read-only** investigation, logging, or explaining current behaviour
+- **Refactors** that are provably behaviour-identical (same tests green; no threshold/copy-of-logic changes)
+- **UI-only** changes that do not alter when rules fire or what they compute
+- **Docs** that describe existing behaviour without changing code
+
+### When the user reports a rule bug
+
+1. **Diagnose** and explain using current code — do not “fix” yet.
+2. **Propose** the minimal change and wait for explicit approval.
+3. Only then implement, with tests that lock the approved behaviour.

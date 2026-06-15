@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Rolling 14-day / 168h work metrics on a minute timeline.
  * Shared by compliance (retrospective) and prospective risk projection.
  * Keep aligned with check168hWorkOnMinuteTimeline in compliance.ts.

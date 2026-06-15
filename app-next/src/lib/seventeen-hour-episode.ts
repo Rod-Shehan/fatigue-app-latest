@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Solo 17h episode: work+break since the last ≥7h non-work anchor (rolling timeline).
  * End shift inside an active episode does not require a fresh 7h rest before resume.
  */

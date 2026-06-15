@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * Retrospective compliance state at a point in time (ADR 0003).
  * Input-only for prospective risk — does not score past segments as "risk".
  */

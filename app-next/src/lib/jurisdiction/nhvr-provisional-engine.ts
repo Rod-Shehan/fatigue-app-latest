@@ -1,4 +1,7 @@
 /**
+ * RULE IP — Do not change fatigue time/compliance rule logic without explicit owner approval.
+ * See .cursor/rules/time-rules-ip.mdc
+ *
  * NHVR-oriented **provisional** pack (S5 / ADR 0001).
  * Does not implement certified Heavy Vehicle National Law BFM / EWD logic.
  * Until dedicated NHVR rules exist, behaviour matches WA OSH Reg 3.132 with a clear banner warning.

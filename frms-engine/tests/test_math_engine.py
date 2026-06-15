@@ -1,3 +1,5 @@
+# RULE IP — owner approval required before changing expected rule outcomes.
+# See .cursor/rules/time-rules-ip.mdc
 """Unit tests for TPMA math engine."""
 
 from app.math_engine import calculate_frms_metrics

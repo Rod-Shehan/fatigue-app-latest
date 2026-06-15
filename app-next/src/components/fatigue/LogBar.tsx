@@ -136,6 +136,7 @@ function formatDurationHoursMinutes(totalMinutes: number): string {
  * Computes whether a warning should be shown when switching to "work" now.
  * We only warn once there's actually been ~5h of work since the last valid break (or a stop/non_work reset).
  */
+/** RULE IP — owner approval required before changing break-warning rule logic. See .cursor/rules/time-rules-ip.mdc */
 function getBreakWarningIfNeeded(events: { time: string; type: string }[], nowMs: number): string | null {
   if (events.length === 0) return null;
 
