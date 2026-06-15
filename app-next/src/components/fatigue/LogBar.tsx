@@ -301,6 +301,7 @@ export default function LogBar({
    */
   const voiceFinalizeNextLogRef = useRef(false);
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
+  const focusScrollResetRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
   const [focusToolsOpen, setFocusToolsOpen] = useState(false);
@@ -479,7 +480,7 @@ export default function LogBar({
       : "Start shift"
     : EVENT_LABELS[nextWorkBreak];
 
-  /** Live + idle at scroll top: mobile focus mode (centered hero); desktop keeps top bar. */
+  /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
   const primaryHeroExpanded = isIdleAtTop;
@@ -491,6 +492,19 @@ export default function LogBar({
       : complianceChrome;
   /** Dark inset track on the unified action when it carries compliance colour. */
   const barOnColoredHeader = actionChrome.onColoredSurface;
+
+  useEffect(() => {
+    focusScrollResetRef.current = false;
+  }, [currentDayIndex, weekStarting]);
+
+  /** Ensure focus mode is visible when opening today's live sheet (not mid-scroll). */
+  useEffect(() => {
+    if (!isLiveNow || currentType !== null || focusScrollResetRef.current) return;
+    focusScrollResetRef.current = true;
+    if (window.scrollY > 0) {
+      window.scrollTo(0, 0);
+    }
+  }, [isLiveNow, currentType]);
 
   useEffect(() => {
     if (!isIdleAtTop) setFocusToolsOpen(false);
@@ -848,8 +862,7 @@ export default function LogBar({
     const el = fixedHeaderRef.current;
     if (!el) return;
     const sync = () => {
-      const mobileFocus = isIdleAtTop && window.matchMedia("(max-width: 767px)").matches;
-      const h = mobileFocus ? 0 : el.offsetHeight;
+      const h = isIdleAtTop ? 0 : el.offsetHeight;
       setHeaderHeight(h);
       document.documentElement.style.setProperty("--driver-log-bar-height", `${h}px`);
     };
@@ -873,14 +886,14 @@ export default function LogBar({
   ]);
 
   const barContent = (
-    <div className={cn("space-y-2", isIdleAtTop && "max-md:space-y-4")}>
+    <div className={cn("space-y-2", isIdleAtTop && "space-y-4")}>
       {logBarBanner ? (
         <div
           role="status"
           className={cn(
             "px-3 py-2 text-sm",
             isIdleAtTop
-              ? "max-md:text-center max-md:text-white/80 max-md:px-0 max-md:py-0"
+              ? "text-center text-white/80 px-0 py-0"
               : "rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200"
           )}
         >
@@ -892,9 +905,7 @@ export default function LogBar({
           <span
             className={cn(
               "flex w-full justify-center items-center gap-2 text-sm sm:w-auto sm:justify-start",
-              isIdleAtTop
-                ? "max-md:text-white/75"
-                : "text-slate-500 dark:text-slate-400"
+              isIdleAtTop ? "text-white/75" : "text-slate-500 dark:text-slate-400"
             )}
           >
             <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
@@ -933,7 +944,7 @@ export default function LogBar({
             className={cn(
               "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
               primaryHeroExpanded
-                ? "justify-center max-md:min-h-[12rem] max-md:rounded-2xl max-md:py-10 max-md:shadow-2xl max-md:shadow-emerald-500/30 max-md:ring-4 max-md:ring-emerald-400/20 min-h-[9.5rem] py-8 md:min-h-[4.5rem] md:py-4 md:shadow-lg"
+                ? "mx-auto w-full max-w-md justify-center min-h-[12rem] rounded-2xl py-10 shadow-2xl shadow-emerald-500/30 ring-4 ring-emerald-400/20"
                 : currentType === null
                   ? "min-h-[5rem] justify-center py-5 md:min-h-[4rem] md:py-4"
                   : scrollCompact
@@ -949,21 +960,19 @@ export default function LogBar({
             <div
               className={cn(
                 "flex w-full items-center justify-center gap-3 sm:gap-4",
-                primaryHeroExpanded && "max-md:flex-col max-md:gap-2"
+                primaryHeroExpanded && "flex-col gap-2"
               )}
             >
               {React.createElement(EVENT_ICONS[nextWorkBreak], {
                 className: cn(
                   "shrink-0 drop-shadow-sm",
-                  primaryHeroExpanded
-                    ? "max-md:h-14 max-md:w-14 h-12 w-12 md:h-8 md:w-8"
-                    : "h-9 w-9 sm:h-8 sm:w-8"
+                  primaryHeroExpanded ? "h-14 w-14" : "h-9 w-9 sm:h-8 sm:w-8"
                 ),
               })}
               <span className="flex min-w-0 flex-col items-center leading-tight">
                 <span
                   className={cn(
-                    primaryHeroExpanded ? "max-md:text-3xl text-2xl md:text-lg" : "text-lg sm:text-lg"
+                    primaryHeroExpanded ? "text-3xl" : "text-lg sm:text-lg"
                   )}
                 >
                   {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
@@ -1121,7 +1130,7 @@ export default function LogBar({
       )}
       {isIdleAtTop && (
         <div
-          className="fixed inset-0 z-40 bg-black/65 max-md:block hidden pointer-events-none transition-opacity duration-500"
+          className="fixed inset-0 z-40 bg-black/65 pointer-events-none transition-opacity duration-500"
           aria-hidden
         />
       )}
@@ -1130,7 +1139,7 @@ export default function LogBar({
         className={cn(
           "fixed z-50 px-4 transition-all duration-500 ease-out",
           isIdleAtTop
-            ? "max-md:inset-0 max-md:flex max-md:flex-col max-md:items-center max-md:justify-center max-md:px-6 max-md:pt-[max(1rem,env(safe-area-inset-top))] max-md:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-md:bg-transparent max-md:border-0 max-md:shadow-none max-md:backdrop-blur-none md:top-0 md:left-0 md:right-0 md:inset-auto md:block md:pt-[max(0.75rem,env(safe-area-inset-top))] md:py-3 md:bg-slate-50/95 md:dark:bg-slate-950/95 md:backdrop-blur-sm md:border-b md:border-slate-200 md:dark:border-slate-700 md:shadow-sm"
+            ? "inset-0 flex flex-col items-center justify-center px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-transparent border-0 shadow-none backdrop-blur-none"
             : cn(
                 "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
                 scrollCompact ? "py-2" : "py-3",
@@ -1139,7 +1148,7 @@ export default function LogBar({
         )}
       >
         {isIdleAtTop && (
-          <div className="max-md:absolute max-md:top-[max(0.75rem,env(safe-area-inset-top))] max-md:right-4 max-md:z-10 md:hidden">
+          <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-10">
             <button
               type="button"
               onClick={() => setFocusToolsOpen(true)}
@@ -1162,17 +1171,17 @@ export default function LogBar({
           className={cn(
             "mx-auto w-full",
             isIdleAtTop
-              ? "max-md:max-w-md max-md:w-full max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
+              ? "max-w-md w-full flex flex-col justify-center"
               : "max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
           )}
         >
-          <div className={cn("flex-1 min-w-0 w-full", isIdleAtTop && "max-md:flex max-md:flex-col max-md:justify-center")}>
+          <div className={cn("flex-1 min-w-0 w-full", isIdleAtTop && "flex flex-col justify-center")}>
             {barContent}
           </div>
           <div
             className={cn(
               "flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start",
-              isIdleAtTop && "max-md:hidden"
+              isIdleAtTop && "hidden"
             )}
           >
             {complianceButton && (
@@ -1340,7 +1349,7 @@ export default function LogBar({
         )}
         {isIdleAtTop && focusToolsOpen && (
           <div
-            className="fixed inset-0 z-[55] md:hidden"
+            className="fixed inset-0 z-[55]"
             role="dialog"
             aria-modal
             aria-labelledby="driver-focus-tools-title"
@@ -1427,7 +1436,7 @@ export default function LogBar({
             className={cn(
               "rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100",
               isIdleAtTop
-                ? "max-md:mx-auto max-md:mt-4 max-md:max-w-md max-md:w-full max-md:border-amber-400/40 max-md:bg-amber-950/80 max-md:text-amber-100 md:max-w-[1400px] md:mx-auto md:mt-2"
+                ? "mx-auto mt-4 max-w-md w-full border-amber-400/40 bg-amber-950/80 text-amber-100"
                 : "max-w-[1400px] mx-auto mt-2"
             )}
           >
