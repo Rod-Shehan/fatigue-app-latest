@@ -90,11 +90,12 @@ function feedReducer(state: FeedState, action: FeedAction): FeedState {
   }
 }
 
-function chartRows(blocks: RiskTimelineBlock[]) {
+function chartRows(blocks: RiskTimelineBlock[], nowBlockStartMs: number) {
   return blocks.map((b) => ({
     ...b,
     time: b.label,
     livePct: b.livePct ?? null,
+    prospectivePct: b.blockStartMs > nowBlockStartMs ? b.baselinePct : null,
   }));
 }
 
@@ -199,7 +200,10 @@ export function ManagerRiskTimelineDashboard({
     }
   }, [driverName, hasServerData, apiData, apiLoading]);
 
-  const rows = useMemo(() => chartRows(feed.blocks), [feed.blocks]);
+  const rows = useMemo(
+    () => chartRows(feed.blocks, feed.nowBlockStartMs),
+    [feed.blocks, feed.nowBlockStartMs]
+  );
   const crossovers = useMemo(() => findCrossoverIntervals(feed.blocks), [feed.blocks]);
 
   const crossoverBands = useMemo(() => {
@@ -373,10 +377,16 @@ export function ManagerRiskTimelineDashboard({
                 width={36}
               />
               <Tooltip
-                formatter={(value: number, name: string) => [
-                  value == null ? "—" : `${value}%`,
-                  name === "baselinePct" ? "Expected (baseline)" : "Live risk",
-                ]}
+                formatter={(value: number, name: string) => {
+                  if (value == null) return ["—", name];
+                  const label =
+                    name === "baselinePct"
+                      ? "Expected (baseline)"
+                      : name === "prospectivePct"
+                        ? "Projected risk (TPMA)"
+                        : "Live risk";
+                  return [`${value}%`, label];
+                }}
                 labelFormatter={(label) => `Block ${label} AWST`}
                 contentStyle={{
                   fontSize: 12,
@@ -439,6 +449,36 @@ export function ManagerRiskTimelineDashboard({
                 }}
                 isAnimationActive={false}
               />
+              <Line
+                type="monotone"
+                dataKey="prospectivePct"
+                name="prospectivePct"
+                stroke="#64748b"
+                strokeWidth={2}
+                strokeDasharray="5 4"
+                connectNulls={false}
+                dot={(props) => {
+                  const { cx, cy, payload } = props as {
+                    cx?: number;
+                    cy?: number;
+                    payload?: { prospectivePct?: number | null };
+                  };
+                  if (cx == null || cy == null || payload?.prospectivePct == null) return <g />;
+                  const fill = riskPercentToColor(payload.prospectivePct);
+                  return (
+                    <circle
+                      key={`prospective-${cx}-${cy}`}
+                      cx={cx}
+                      cy={cy}
+                      r={3}
+                      fill={fill}
+                      stroke={chart.dotStroke}
+                      strokeWidth={1}
+                    />
+                  );
+                }}
+                isAnimationActive={false}
+              />
               {latestLiveBlock && latestLiveBlock.livePct != null &&
               latestLiveBlock.livePct > latestLiveBlock.baselinePct ? (
                 <ReferenceDot
@@ -464,6 +504,10 @@ export function ManagerRiskTimelineDashboard({
           <span className="inline-flex items-center gap-1" title={chartHelp.baseline.summary}>
             <span className="h-0.5 w-4 bg-slate-400" aria-hidden /> Expected baseline
             <span className="text-slate-400 dark:text-slate-500">(diary-only expected %)</span>
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <span className="h-0.5 w-4 border-b border-dashed border-slate-500" aria-hidden /> Projected
+            risk (after now)
           </span>
           <span className="inline-flex items-center gap-1">
             <span className="h-0.5 w-4 bg-emerald-600" aria-hidden /> Live &lt; {RISK_COLOR_THRESHOLDS.amber}%

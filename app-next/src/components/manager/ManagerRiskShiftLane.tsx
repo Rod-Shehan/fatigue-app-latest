@@ -75,19 +75,28 @@ export function ManagerRiskShiftLane({
       <div
         className="relative flex h-3 overflow-hidden rounded-sm border border-slate-200/80 bg-slate-800/40 dark:border-slate-700 dark:bg-slate-800"
         style={{ marginLeft: Y_AXIS_GUTTER_PX, marginRight: RIGHT_MARGIN_PX }}
-        aria-label="Shift duty lane — recorded before now, projected after"
+        aria-label="Timeline lane — recorded duty before now, projected risk after"
       >
         {cells.map((cell, i) => (
           <div
             key={cell.blockStartMs}
             className="min-w-0 flex-1"
             title={
-              cell.planLabel
-                ? `Projected · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${cell.planLabel} · ${blocks[i]?.label ?? ""}`
-                : `${cell.generated ? "Projected" : "Recorded"} · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${blocks[i]?.label ?? ""}`
+              cell.generated && cell.riskPct != null
+                ? `Projected risk ${cell.riskPct}% · ${shiftLaneLabel(cell.kind, cell.breakDue)}${
+                    cell.planLabel ? ` · ${cell.planLabel}` : ""
+                  } · ${blocks[i]?.label ?? ""}`
+                : cell.planLabel
+                  ? `Recorded · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${cell.planLabel} · ${blocks[i]?.label ?? ""}`
+                  : `${cell.generated ? "Projected" : "Recorded"} · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${blocks[i]?.label ?? ""}`
             }
             style={{
-              backgroundColor: shiftLaneColor(cell.kind, cell.generated, cell.breakDue),
+              backgroundColor: shiftLaneColor(
+                cell.kind,
+                cell.generated,
+                cell.breakDue,
+                cell.riskPct
+              ),
             }}
           />
         ))}
@@ -135,11 +144,10 @@ export function ManagerRiskShiftLane({
         </span>
         <span className="inline-flex items-center gap-1">
           <span
-            className="h-2 w-3 rounded-sm border border-slate-300 dark:border-slate-600"
-            style={{ backgroundColor: "rgba(59, 130, 246, 0.42)" }}
+            className="h-2 w-3 rounded-sm bg-gradient-to-r from-emerald-500 via-amber-500 to-red-600"
             aria-hidden
           />
-          Projected (run plan / km·h)
+          Projected risk (after now)
         </span>
       </div>
     </div>

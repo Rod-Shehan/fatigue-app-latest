@@ -71,6 +71,7 @@ describe("manager-risk-shift-lane", () => {
     });
     expect(cells[1].kind).toBe("work");
     expect(cells[1].planLabel).toBe("Kalgoorlie");
+    expect(cells[1].riskPct).toBe(40);
   });
 
   it("falls back to sawtooth when no plan segments", () => {

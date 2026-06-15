@@ -1,6 +1,6 @@
 /**
  * Shift lane cells aligned to 15-minute risk timeline blocks.
- * Before now: duty from logged events. After now: run plan cycles, sawtooth fallback.
+ * Before now: duty from logged events. After now: TPMA risk % per block (duty in tooltip).
  */
 
 import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
@@ -11,6 +11,7 @@ import {
 } from "@/lib/manager-shift-lane-plans";
 import {
   RISK_BLOCK_MINUTES,
+  riskPercentToColor,
   type RiskTimelineBlock,
   findNowBlockStartMs,
 } from "@/lib/manager-risk-timeline";
@@ -29,6 +30,8 @@ export type ShiftLaneCell = {
   planLabel?: string | null;
   /** Break was due/overdue in this block while still on work. */
   breakDue?: boolean;
+  /** TPMA / timeline impairment % for projected blocks after now. */
+  riskPct?: number;
 };
 
 export type TimelineEvent = { time: string; type: string };
@@ -113,6 +116,7 @@ export function buildShiftLaneCells(
       (recorded === "work" || recorded === null);
 
     if (generated) {
+      const riskPct = block.baselinePct;
       if (hasPlanSegments) {
         const duty = dutyFromSegmentsForBlock(block.blockStartMs, segments);
         return {
@@ -120,6 +124,7 @@ export function buildShiftLaneCells(
           kind: duty.kind === "idle" ? "non_work" : duty.kind,
           generated: true,
           planLabel: duty.planLabel,
+          riskPct,
         };
       }
       return {
@@ -127,6 +132,7 @@ export function buildShiftLaneCells(
         kind: sawtoothKindForBlockIndex(index),
         generated: true,
         planLabel: null,
+        riskPct,
       };
     }
 
@@ -142,9 +148,14 @@ export function buildShiftLaneCells(
 export function shiftLaneColor(
   kind: ShiftLaneKind,
   generated: boolean,
-  breakDue?: boolean
+  breakDue?: boolean,
+  riskPct?: number
 ): string {
   if (breakDue) return ACTIVITY_THEME.break.hex;
+
+  if (generated && riskPct != null) {
+    return riskPercentToColor(riskPct);
+  }
 
   if (kind === "idle") {
     return generated ? "rgba(148, 163, 184, 0.35)" : "#94a3b8";
