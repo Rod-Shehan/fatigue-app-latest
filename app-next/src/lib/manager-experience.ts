@@ -142,6 +142,18 @@ export const MANAGER_EXPERIENCE = {
   FLEET_KPI_ELEVATED_NOW: "Elevated now",
   FLEET_KPI_TPMA_LIVE: "TPMA live",
   FLEET_KPI_CHECK_INS: "Check-ins",
+  FLEET_KPI_IN_SCOPE_HINT:
+    "Drivers included for the selected work week and scope filters (day, rego, chart driver).",
+  FLEET_KPI_ACTIONABLE_HINT:
+    "Drivers at or above 55% combined TPMA risk right now or in the next 24 hours — shown in the heatmap.",
+  FLEET_KPI_WORST_NOW_HINT:
+    "Highest current combined risk in scope. Tap to select that driver on the individual chart.",
+  FLEET_KPI_ELEVATED_NOW_HINT:
+    "How many drivers are at or above 55% combined risk at this moment (not forecast).",
+  FLEET_KPI_TPMA_LIVE_HINT:
+    "Whether scores use live TPMA fleet scoring on the server or demo/legacy data for this view.",
+  FLEET_KPI_CHECK_INS_HINT:
+    "Drivers flagged for a wellbeing check-in from elevated near-term exposure. Tap when due to scroll to the list.",
   FLEET_PRIORITY_TITLE: "Priority queue",
   FLEET_PRIORITY_HINT:
     "Only drivers at or above the elevated threshold — ranked by current TPMA risk.",

@@ -62,23 +62,25 @@ function DriverHeatmapRow({
       type="button"
       onClick={() => onSelect(row.driverName)}
       className={cn(
-        "group flex w-full min-w-0 items-stretch gap-0 border-b border-white/5 text-left transition-colors",
-        selected ? "bg-teal-900/50" : "hover:bg-white/5",
-        rank <= 3 && !selected && "bg-rose-950/20"
+        "group flex w-full min-w-0 items-stretch gap-0 border-b border-slate-200 text-left transition-colors dark:border-white/5",
+        selected ? "bg-teal-50 dark:bg-teal-900/50" : "hover:bg-slate-50 dark:hover:bg-white/5",
+        rank <= 3 && !selected && "bg-rose-50/90 dark:bg-rose-950/20"
       )}
     >
-      <div className="sticky left-0 z-10 flex w-[8.5rem] shrink-0 items-center gap-2 border-r border-white/10 bg-inherit px-2 py-2 sm:w-[10rem] sm:px-3">
+      <div className="sticky left-0 z-10 flex w-[8.5rem] shrink-0 items-center gap-2 border-r border-slate-200 bg-inherit px-2 py-2 sm:w-[10rem] sm:px-3 dark:border-white/10">
         <span
           className={cn(
             "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
-            rank <= 3 ? "bg-rose-900/80 text-rose-100" : "bg-white/10 text-slate-400"
+            rank <= 3
+              ? "bg-rose-100 text-rose-800 dark:bg-rose-900/80 dark:text-rose-100"
+              : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-400"
           )}
         >
           {rank}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-white">{row.driverName}</p>
-          <p className="text-[10px] tabular-nums text-slate-400">
+          <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{row.driverName}</p>
+          <p className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
             {row.nowPct ?? "—"}% now
           </p>
         </div>
@@ -90,7 +92,7 @@ function DriverHeatmapRow({
             title={`${row.driverName} · ${cell.label} · ${cell.pct}%`}
             className={cn(
               "h-9 min-w-[5px] flex-1 sm:min-w-[7px]",
-              i === nowIndex && "ring-1 ring-inset ring-teal-400"
+              i === nowIndex && "ring-1 ring-inset ring-teal-500 dark:ring-teal-400"
             )}
             style={{ backgroundColor: cellBackground(cell.pct) }}
           />
@@ -118,8 +120,8 @@ function PriorityQueueItem({
       className={cn(
         "flex w-full items-stretch gap-1 rounded-lg border transition-colors",
         selected
-          ? "border-teal-500/50 bg-teal-950/40"
-          : "border-white/5 bg-white/5 hover:border-white/15 hover:bg-white/10"
+          ? "border-teal-300 bg-teal-50 dark:border-teal-500/50 dark:bg-teal-950/40"
+          : "border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-slate-100 dark:border-white/5 dark:bg-white/5 dark:hover:border-white/15 dark:hover:bg-white/10"
       )}
     >
       <button
@@ -130,18 +132,18 @@ function PriorityQueueItem({
         <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[item.severity])} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="truncate text-xs font-semibold text-white">{item.driverName}</p>
-            <span className="shrink-0 text-xs font-bold tabular-nums text-teal-200">
+            <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{item.driverName}</p>
+            <span className="shrink-0 text-xs font-bold tabular-nums text-teal-700 dark:text-teal-200">
               {item.nowPct ?? "—"}%
             </span>
           </div>
-          <p className="mt-0.5 text-[10px] leading-snug text-slate-400">{item.reason}</p>
+          <p className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-400">{item.reason}</p>
         </div>
-        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-600" aria-hidden />
+        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-400 dark:text-slate-600" aria-hidden />
       </button>
       <Link
         href={managerMapHref({ weekStarting, driverName: item.driverName, dayIndex: mapDayIndex })}
-        className="flex shrink-0 items-center rounded-r-lg border-l border-white/5 px-2 text-slate-500 transition-colors hover:bg-teal-950/50 hover:text-teal-300"
+        className="flex shrink-0 items-center rounded-r-lg border-l border-slate-200 px-2 text-slate-500 transition-colors hover:bg-teal-50 hover:text-teal-700 dark:border-white/5 dark:hover:bg-teal-950/50 dark:hover:text-teal-300"
         title={`${MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER} — ${item.driverName}`}
         aria-label={`${MANAGER_EXPERIENCE.MAP_LOCATE_DRIVER} — ${item.driverName}`}
       >
@@ -157,40 +159,56 @@ function KpiChip({
   icon,
   onClick,
   highlight,
+  hint,
 }: {
   label: string;
   value: string;
   icon: ReactNode;
   onClick?: () => void;
   highlight?: boolean;
+  hint?: string;
 }) {
   const className = cn(
-    "inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left transition-colors",
+    "group/kpi relative inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left transition-colors",
     highlight
-      ? "border-rose-500/40 bg-rose-950/40 text-rose-100"
-      : "border-white/10 bg-white/5 text-slate-200",
-    onClick && "cursor-pointer hover:border-teal-500/40 hover:bg-teal-950/30"
+      ? "border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-500/40 dark:bg-rose-950/40 dark:text-rose-100"
+      : "border-slate-200 bg-white text-slate-800 dark:border-white/10 dark:bg-white/5 dark:text-slate-200",
+    onClick &&
+      "cursor-pointer hover:border-teal-400 hover:bg-teal-50 dark:hover:border-teal-500/40 dark:hover:bg-teal-950/30",
+    hint && !onClick && "cursor-help"
+  );
+
+  const body = (
+    <>
+      {icon}
+      <span className="flex flex-col">
+        <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          {label}
+        </span>
+        <span className="text-xs font-semibold tabular-nums">{value}</span>
+      </span>
+      {hint ? (
+        <span
+          role="tooltip"
+          className="pointer-events-none absolute top-[calc(100%+6px)] left-1/2 z-50 w-[min(16rem,calc(100vw-2rem))] -translate-x-1/2 rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-[10px] font-normal normal-case leading-snug tracking-normal text-slate-600 opacity-0 shadow-lg transition-opacity duration-150 group-hover/kpi:opacity-100 group-focus-within/kpi:opacity-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300"
+        >
+          {hint}
+        </span>
+      ) : null}
+    </>
   );
 
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={className}>
-        {icon}
-        <span className="flex flex-col">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
-          <span className="text-xs font-semibold tabular-nums">{value}</span>
-        </span>
+      <button type="button" onClick={onClick} className={className} title={hint}>
+        {body}
       </button>
     );
   }
 
   return (
-    <span className={className}>
-      {icon}
-      <span className="flex flex-col">
-        <span className="text-[9px] font-semibold uppercase tracking-wider text-slate-400">{label}</span>
-        <span className="text-xs font-semibold tabular-nums">{value}</span>
-      </span>
+    <span className={className} tabIndex={hint ? 0 : undefined} title={hint}>
+      {body}
     </span>
   );
 }
@@ -274,24 +292,24 @@ export function ManagerFleetRiskPulse({
 
   return (
     <section
-      className="mb-8 overflow-hidden rounded-2xl border border-teal-200/90 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-950 text-white shadow-xl dark:border-teal-800/60"
+      className="mb-8 overflow-visible rounded-2xl border border-teal-200/90 bg-white text-slate-900 shadow-lg dark:border-teal-800/60 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 dark:text-white dark:shadow-xl"
       aria-label={MANAGER_EXPERIENCE.FLEET_PULSE_TITLE}
     >
-      <div className="border-b border-white/10 px-4 py-4 sm:px-6">
+      <div className="border-b border-slate-200 px-4 py-4 sm:px-6 dark:border-white/10">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <Activity className="h-4 w-4 shrink-0 text-teal-300" aria-hidden />
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-300/90">
+              <Activity className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-300" aria-hidden />
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-700 dark:text-teal-300/90">
                 {MANAGER_EXPERIENCE.FLEET_PULSE_EYEBROW}
               </p>
             </div>
-            <h2 className="mt-2 text-lg font-semibold tracking-tight text-white sm:text-xl">
+            <h2 className="mt-2 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl dark:text-white">
               {MANAGER_EXPERIENCE.FLEET_PULSE_TITLE}
             </h2>
           </div>
           {updatedLabel ? (
-            <span className="text-[10px] text-slate-500">
+            <span className="text-[10px] text-slate-500 dark:text-slate-500">
               {isFetching ? "Updating…" : `${updatedLabel} AWST`}
             </span>
           ) : null}
@@ -301,62 +319,68 @@ export function ManagerFleetRiskPulse({
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_IN_SCOPE}
             value={`${totalInScope} driver${totalInScope === 1 ? "" : "s"}`}
-            icon={<Users className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />}
+            icon={<Users className="h-4 w-4 shrink-0 text-slate-500 dark:text-slate-400" aria-hidden />}
+            hint={MANAGER_EXPERIENCE.FLEET_KPI_IN_SCOPE_HINT}
           />
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_ACTIONABLE}
             value={`${actionableCount} above ${thresholdPct}%`}
-            icon={<AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" aria-hidden />}
+            icon={<AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />}
             highlight={actionableCount > 0}
+            hint={MANAGER_EXPERIENCE.FLEET_KPI_ACTIONABLE_HINT}
           />
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_WORST_NOW}
             value={
               worstNow ? `${worstNow.driverName} · ${worstNow.nowPct}%` : "—"
             }
-            icon={<TrendingUp className="h-4 w-4 shrink-0 text-rose-400" aria-hidden />}
+            icon={<TrendingUp className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />}
             highlight={!!worstNow && worstNow.nowPct >= FLEET_ACTION_THRESHOLD_PCT}
             onClick={worstNow ? () => onSelectDriver(worstNow.driverName) : undefined}
+            hint={MANAGER_EXPERIENCE.FLEET_KPI_WORST_NOW_HINT}
           />
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_ELEVATED_NOW}
             value={`${elevatedNow} elevated now`}
-            icon={<TrendingUp className="h-4 w-4 shrink-0 text-rose-400" aria-hidden />}
+            icon={<TrendingUp className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden />}
             highlight={elevatedNow > 0}
+            hint={MANAGER_EXPERIENCE.FLEET_KPI_ELEVATED_NOW_HINT}
           />
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_TPMA_LIVE}
             value={`${scoringBadge} · ${tpmaLiveLabel}`}
-            icon={<Radio className="h-4 w-4 shrink-0 text-teal-400" aria-hidden />}
+            icon={<Radio className="h-4 w-4 shrink-0 text-teal-600 dark:text-teal-400" aria-hidden />}
+            hint={MANAGER_EXPERIENCE.FLEET_KPI_TPMA_LIVE_HINT}
           />
           <KpiChip
             label={MANAGER_EXPERIENCE.FLEET_KPI_CHECK_INS}
             value={`${checkInCount} due`}
-            icon={<HeartHandshake className="h-4 w-4 shrink-0 text-violet-300" aria-hidden />}
+            icon={<HeartHandshake className="h-4 w-4 shrink-0 text-violet-600 dark:text-violet-300" aria-hidden />}
             highlight={checkInCount > 0}
             onClick={checkInCount > 0 ? onScrollToCheckIns : undefined}
+            hint={MANAGER_EXPERIENCE.FLEET_KPI_CHECK_INS_HINT}
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="px-6 py-12 text-center text-sm text-slate-400">Loading fleet pulse…</div>
+        <div className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">Loading fleet pulse…</div>
       ) : totalInScope === 0 ? (
-        <div className="px-6 py-12 text-center text-sm text-slate-400">
+        <div className="px-6 py-12 text-center text-sm text-slate-500 dark:text-slate-400">
           {MANAGER_EXPERIENCE.FLEET_PULSE_EMPTY}
         </div>
       ) : allBelowThreshold ? (
         <div className="flex flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:gap-6">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="mt-0.5 h-8 w-8 shrink-0 text-emerald-400" aria-hidden />
+            <CheckCircle2 className="mt-0.5 h-8 w-8 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
             <div>
-              <p className="text-sm font-semibold text-emerald-100">
+              <p className="text-sm font-semibold text-emerald-800 dark:text-emerald-100">
                 {MANAGER_EXPERIENCE.FLEET_PRIORITY_ALL_CLEAR}
               </p>
-              <p className="mt-1 text-sm text-slate-400">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {MANAGER_EXPERIENCE.FLEET_ALL_CLEAR}
               </p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-500">
                 {MANAGER_EXPERIENCE.FLEET_ACTIONABLE_SUMMARY(0, totalInScope, thresholdPct)}
               </p>
             </div>
@@ -365,7 +389,7 @@ export function ManagerFleetRiskPulse({
       ) : (
         <>
           {summary ? (
-            <p className="border-b border-white/10 px-4 py-2 text-[11px] text-slate-400 sm:px-6">
+            <p className="border-b border-slate-200 px-4 py-2 text-[11px] text-slate-500 sm:px-6 dark:border-white/10 dark:text-slate-400">
               {MANAGER_EXPERIENCE.FLEET_ACTIONABLE_SUMMARY(
                 summary.actionable_count,
                 summary.total_in_scope,
@@ -377,9 +401,9 @@ export function ManagerFleetRiskPulse({
             </p>
           ) : null}
         <div className="flex flex-col lg:flex-row">
-          <div className="min-w-0 flex-[7] overflow-x-auto border-b border-white/10 lg:border-b-0 lg:border-r">
-            <div className="border-b border-white/10 bg-slate-900/60 px-3 py-2 sm:px-4">
-              <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400">
+          <div className="min-w-0 flex-[7] overflow-x-auto border-b border-slate-200 lg:border-b-0 lg:border-r dark:border-white/10">
+            <div className="border-b border-slate-200 bg-slate-50 px-3 py-2 sm:px-4 dark:border-white/10 dark:bg-slate-900/60">
+              <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-600 dark:text-slate-400">
                 <span className="inline-flex items-center gap-1">
                   <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(25) }} />
                   Lower
@@ -395,8 +419,8 @@ export function ManagerFleetRiskPulse({
               </div>
             </div>
 
-            <div className="flex min-w-[520px] border-b border-white/10 bg-slate-900/40">
-              <div className="sticky left-0 z-10 w-[8.5rem] shrink-0 border-r border-white/10 px-2 py-2 sm:w-[10rem] sm:px-3">
+            <div className="flex min-w-[520px] border-b border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-slate-900/40">
+              <div className="sticky left-0 z-10 w-[8.5rem] shrink-0 border-r border-slate-200 px-2 py-2 sm:w-[10rem] sm:px-3 dark:border-white/10">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                   Driver
                 </span>
@@ -407,7 +431,7 @@ export function ManagerFleetRiskPulse({
                     key={`${label}-${i}`}
                     className={cn(
                       "min-w-[5px] flex-1 py-2 text-center text-[9px] text-slate-500 sm:min-w-[7px]",
-                      i === nowIndex && "font-semibold text-teal-300",
+                      i === nowIndex && "font-semibold text-teal-600 dark:text-teal-300",
                       labelIndices.includes(i) ? "opacity-100" : "opacity-0"
                     )}
                   >
@@ -429,16 +453,16 @@ export function ManagerFleetRiskPulse({
             ))}
           </div>
 
-          <aside className="flex flex-[3] flex-col bg-slate-950/50 lg:max-w-[18rem] xl:max-w-xs">
-            <div className="border-b border-white/10 px-4 py-3">
-              <p className="text-xs font-semibold text-white">{MANAGER_EXPERIENCE.FLEET_PRIORITY_TITLE}</p>
-              <p className="mt-0.5 text-[10px] leading-snug text-slate-400">
+          <aside className="flex flex-[3] flex-col bg-slate-50 lg:max-w-[18rem] xl:max-w-xs dark:bg-slate-950/50">
+            <div className="border-b border-slate-200 px-4 py-3 dark:border-white/10">
+              <p className="text-xs font-semibold text-slate-900 dark:text-white">{MANAGER_EXPERIENCE.FLEET_PRIORITY_TITLE}</p>
+              <p className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-400">
                 {MANAGER_EXPERIENCE.FLEET_PRIORITY_HINT}
               </p>
             </div>
             <div className="flex max-h-[280px] flex-col gap-2 overflow-y-auto p-3 lg:max-h-none lg:flex-1">
               {priorityQueue.length === 0 ? (
-                <p className="text-xs text-slate-500">{MANAGER_EXPERIENCE.FLEET_PRIORITY_EMPTY}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500">{MANAGER_EXPERIENCE.FLEET_PRIORITY_EMPTY}</p>
               ) : (
                 priorityQueue.map((item) => (
                   <PriorityQueueItem
@@ -458,7 +482,7 @@ export function ManagerFleetRiskPulse({
       )}
 
       {data?.disclaimer ? (
-        <p className="border-t border-white/10 px-4 py-3 text-[10px] leading-relaxed text-slate-500 sm:px-6">
+        <p className="border-t border-slate-200 px-4 py-3 text-[10px] leading-relaxed text-slate-500 sm:px-6 dark:border-white/10 dark:text-slate-500">
           {data.disclaimer}
         </p>
       ) : null}
