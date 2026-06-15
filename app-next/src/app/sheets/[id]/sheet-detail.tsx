@@ -388,6 +388,16 @@ export function SheetDetail({
     return TAGLINE_DRIVER;
   }, [isPastWeek, weekOfLabel, sheetData.week_starting, sheetData.status, sheetData.signature]);
 
+  const sheetBackNav = useMemo(() => {
+    if (isManager) {
+      return { href: "/manager", label: "Manager dashboard" };
+    }
+    if (isPastWeek) {
+      return { href: "/sheets", label: "Your weeks" };
+    }
+    return { href: "/driver", label: "Drive home" };
+  }, [isManager, isPastWeek]);
+
   // Re-derive time grids every minute on the live (current) week only
   useEffect(() => {
     setSheetData((prev) => {
@@ -1125,8 +1135,8 @@ export function SheetDetail({
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
         <div className="max-w-[1400px] mx-auto px-4 py-6">
           <PageHeader
-            backHref="/sheets"
-            backLabel="Your Sheets"
+            backHref={isManager ? "/manager" : "/sheets"}
+            backLabel={isManager ? "Manager dashboard" : "Your Sheets"}
             title={PRODUCT_NAME}
             subtitle={TAGLINE_DRIVER}
             driverDisplayName={headerDriverDisplayName}
@@ -1184,8 +1194,8 @@ export function SheetDetail({
       >
         {!driverSessionDimmed && (
         <PageHeader
-          backHref={isPastWeek ? "/sheets" : "/driver"}
-          backLabel={isPastWeek ? "Your weeks" : "Drive home"}
+          backHref={sheetBackNav.href}
+          backLabel={sheetBackNav.label}
           title={PRODUCT_NAME}
           subtitle={pageSubtitle}
           compact={canShowLogBar}
