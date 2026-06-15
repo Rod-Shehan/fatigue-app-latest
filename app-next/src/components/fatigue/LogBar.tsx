@@ -243,6 +243,7 @@ export default function LogBar({
   /** Header tint + icon (right side); tap to jump to compliance panel. */
   complianceButton,
   onShiftSegmentChange,
+  onSessionDimmedChange,
   mobileToolsOpen: mobileToolsOpenProp,
   onMobileToolsOpenChange,
   priorTimelineSlices,
@@ -278,6 +279,8 @@ export default function LogBar({
     loading?: boolean;
   };
   onShiftSegmentChange?: (shiftSegmentOpen: boolean) => void;
+  /** When live session UI dims sheet chrome (idle focus or active work/break at scroll top). */
+  onSessionDimmedChange?: (sessionDimmed: boolean) => void;
   mobileToolsOpen?: boolean;
   onMobileToolsOpenChange?: (open: boolean) => void;
   /** Older record slices before this sheet (chronological). Rules use event timestamps only. */
@@ -484,6 +487,10 @@ export default function LogBar({
   const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
   const primaryHeroExpanded = isIdleAtTop;
+  /** Dim sheet + tuck chrome while live at scroll top — idle hero or active work/break. */
+  const sessionDimmed =
+    isLiveNow && !scrollCompact && (isIdleAtTop || shiftSegmentOpen);
+  const hideSecondaryToolbar = sessionDimmed;
 
   /** Idle focus: strong emerald CTA instead of neutral gray on dark shell. */
   const actionChrome =
@@ -507,17 +514,21 @@ export default function LogBar({
   }, [isLiveNow, currentType]);
 
   useEffect(() => {
-    if (!isIdleAtTop) setFocusToolsOpen(false);
-  }, [isIdleAtTop]);
+    if (!sessionDimmed) setFocusToolsOpen(false);
+  }, [sessionDimmed]);
 
   useEffect(() => {
-    if (isIdleAtTop) {
+    onSessionDimmedChange?.(sessionDimmed);
+  }, [sessionDimmed, onSessionDimmedChange]);
+
+  useEffect(() => {
+    if (sessionDimmed) {
       document.documentElement.setAttribute("data-driver-focus", "");
     } else {
       document.documentElement.removeAttribute("data-driver-focus");
     }
     return () => document.documentElement.removeAttribute("data-driver-focus");
-  }, [isIdleAtTop]);
+  }, [sessionDimmed]);
 
   /** Idle hero at top; compact header when driver scrolls down the sheet. */
   useEffect(() => {
@@ -881,6 +892,7 @@ export default function LogBar({
     logBarBanner,
     forgottenActionReminder,
     shiftSegmentOpen,
+    sessionDimmed,
     primaryActionPending,
     focusToolsOpen,
   ]);
@@ -892,7 +904,7 @@ export default function LogBar({
           role="status"
           className={cn(
             "px-3 py-2 text-sm",
-            isIdleAtTop
+            isIdleAtTop || (sessionDimmed && shiftSegmentOpen)
               ? "text-center text-white/80 px-0 py-0"
               : "rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200"
           )}
@@ -905,7 +917,7 @@ export default function LogBar({
           <span
             className={cn(
               "flex w-full justify-center items-center gap-2 text-sm sm:w-auto sm:justify-start",
-              isIdleAtTop ? "text-white/75" : "text-slate-500 dark:text-slate-400"
+              isIdleAtTop || sessionDimmed ? "text-white/75" : "text-slate-500 dark:text-slate-400"
             )}
           >
             <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
@@ -1128,7 +1140,7 @@ export default function LogBar({
           }}
         />
       )}
-      {isIdleAtTop && (
+      {sessionDimmed && (
         <div
           className="fixed inset-0 z-40 bg-black/65 pointer-events-none transition-opacity duration-500"
           aria-hidden
@@ -1140,18 +1152,27 @@ export default function LogBar({
           "fixed z-50 px-4 transition-all duration-500 ease-out",
           isIdleAtTop
             ? "inset-0 flex flex-col items-center justify-center px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-transparent border-0 shadow-none backdrop-blur-none"
-            : cn(
-                "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
-                scrollCompact ? "py-2" : "py-3",
-                FIXED_LOG_BAR_SHELL
-              )
+            : sessionDimmed
+              ? cn(
+                  "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
+                  scrollCompact ? "py-2" : "py-3",
+                  "bg-transparent border-0 shadow-none backdrop-blur-none"
+                )
+              : cn(
+                  "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
+                  scrollCompact ? "py-2" : "py-3",
+                  FIXED_LOG_BAR_SHELL
+                )
         )}
       >
-        {isIdleAtTop && (
+        {hideSecondaryToolbar && (
           <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-10">
             <button
               type="button"
-              onClick={() => setFocusToolsOpen(true)}
+              onClick={() => {
+                setFocusToolsOpen(true);
+                setMobileToolsOpen(true);
+              }}
               className="relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-colors"
               aria-label="More options"
               aria-expanded={focusToolsOpen}
@@ -1181,10 +1202,10 @@ export default function LogBar({
           <div
             className={cn(
               "flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start",
-              isIdleAtTop && "hidden"
+              hideSecondaryToolbar && "hidden"
             )}
           >
-            {complianceButton && (
+            {complianceButton && !hideSecondaryToolbar && (
             <button
               type="button"
               onClick={complianceButton.onClick}
@@ -1257,7 +1278,7 @@ export default function LogBar({
               )}
             </button>
             )}
-            {shiftSegmentOpen && (
+            {shiftSegmentOpen && !hideSecondaryToolbar && (
               <button
                 type="button"
                 className="md:hidden shrink-0 flex items-center gap-2 min-h-[48px] px-3 py-2 rounded-xl font-semibold text-sm bg-black/25 dark:bg-black/30 border border-white/35 text-slate-900 dark:text-white shadow-sm active:scale-[0.98] transition-transform"
@@ -1269,7 +1290,7 @@ export default function LogBar({
                 <span className="max-w-[10rem] leading-tight text-left">Voice &amp; display</span>
               </button>
             )}
-            {!shiftSegmentOpen || !mobileToolsOpen ? (
+            {!hideSecondaryToolbar && (!shiftSegmentOpen || !mobileToolsOpen) ? (
               <div
                 className={cn(
                   "shrink-0 items-center gap-1",
@@ -1292,7 +1313,7 @@ export default function LogBar({
             ) : null}
           </div>
         </div>
-        {shiftSegmentOpen && mobileToolsOpen && (
+        {shiftSegmentOpen && mobileToolsOpen && !hideSecondaryToolbar && (
           <div
             className="fixed inset-0 z-[45] md:hidden"
             role="dialog"
@@ -1347,7 +1368,7 @@ export default function LogBar({
             </div>
           </div>
         )}
-        {isIdleAtTop && focusToolsOpen && (
+        {sessionDimmed && (focusToolsOpen || mobileToolsOpen) && (
           <div
             className="fixed inset-0 z-[55]"
             role="dialog"
@@ -1359,7 +1380,10 @@ export default function LogBar({
               type="button"
               className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
               aria-label="Dismiss options"
-              onClick={() => setFocusToolsOpen(false)}
+              onClick={() => {
+                setFocusToolsOpen(false);
+                setMobileToolsOpen(false);
+              }}
             />
             <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center pointer-events-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div
@@ -1376,7 +1400,10 @@ export default function LogBar({
                   <button
                     type="button"
                     className="shrink-0 rounded-xl p-2 hover:bg-white/10 text-white/80"
-                    onClick={() => setFocusToolsOpen(false)}
+                    onClick={() => {
+                      setFocusToolsOpen(false);
+                      setMobileToolsOpen(false);
+                    }}
                     aria-label="Close"
                   >
                     <X className="h-7 w-7" />
@@ -1387,6 +1414,7 @@ export default function LogBar({
                     type="button"
                     onClick={() => {
                       setFocusToolsOpen(false);
+                      setMobileToolsOpen(false);
                       complianceButton.onClick();
                     }}
                     disabled={complianceButton.loading}
@@ -1435,7 +1463,7 @@ export default function LogBar({
             role="alert"
             className={cn(
               "rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100",
-              isIdleAtTop
+              sessionDimmed
                 ? "mx-auto mt-4 max-w-md w-full border-amber-400/40 bg-amber-950/80 text-amber-100"
                 : "max-w-[1400px] mx-auto mt-2"
             )}
@@ -1456,7 +1484,14 @@ export default function LogBar({
                 </button>
                 <button
                   type="button"
-                  onClick={() => (isIdleAtTop ? setFocusToolsOpen(true) : setMobileToolsOpen(true))}
+                  onClick={() => {
+                    if (sessionDimmed) {
+                      setFocusToolsOpen(true);
+                      setMobileToolsOpen(true);
+                    } else {
+                      setMobileToolsOpen(true);
+                    }
+                  }}
                   className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold"
                 >
                   Show tools

@@ -225,6 +225,7 @@ export function SheetDetail({
   const [shiftPatternPrompt, setShiftPatternPrompt] = useState<{ dayIndex: number } | null>(null);
   /** LogBar work/break segment open — used to open large mobile tools on day-card tap. */
   const [shiftSegmentOpenForMobile, setShiftSegmentOpenForMobile] = useState(false);
+  const [driverSessionDimmed, setDriverSessionDimmed] = useState(false);
   const [mobileLogToolsOpen, setMobileLogToolsOpen] = useState(false);
   const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
@@ -1175,6 +1176,7 @@ export function SheetDetail({
               loading: complianceLoading,
             }}
             onShiftSegmentChange={setShiftSegmentOpenForMobile}
+            onSessionDimmedChange={setDriverSessionDimmed}
             mobileToolsOpen={mobileLogToolsOpen}
             onMobileToolsOpenChange={setMobileLogToolsOpen}
           />
@@ -1186,6 +1188,7 @@ export function SheetDetail({
           canShowLogBar ? "py-3 sm:py-4" : "py-6"
         )}
       >
+        {!driverSessionDimmed && (
         <PageHeader
           backHref={isPastWeek ? "/sheets" : "/driver"}
           backLabel={isPastWeek ? "Your weeks" : "Drive home"}
@@ -1218,6 +1221,7 @@ export function SheetDetail({
             ) : null
           }
         />
+        )}
 
         {saveMutation.isError &&
           (saveMutation.error as Error & { body?: { code?: string; sheet_id?: string } }).body?.code ===
@@ -1241,15 +1245,15 @@ export function SheetDetail({
         <div ref={dayCardsRef} className="space-y-2 max-w-4xl">
             {!isManager ? (
               <>
-                {sheetData.days?.length > 0 && (
+                {!driverSessionDimmed && sheetData.days?.length > 0 && (
                   <DriverComplianceStrip
                     sheetId={sheetId}
                     loading={complianceLoading}
                     results={complianceResults}
                   />
                 )}
-                <DriverRoadsideProduceButton variant="strip" />
-                {!isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
+                {!driverSessionDimmed && <DriverRoadsideProduceButton variant="strip" />}
+                {!driverSessionDimmed && !isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
                   <DriverRecordsStrip
                     count={unsignedPastWeeksForDriver.length}
                     onOpen={() => setGearDrawerOpen(true)}
@@ -1279,6 +1283,7 @@ export function SheetDetail({
                 onSign={canDriverSign ? handleMarkCompleteClick : undefined}
               />
             )}
+            {!driverSessionDimmed && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-4">
               <SheetHeader
                 sheetData={sheetData}
@@ -1359,6 +1364,7 @@ export function SheetDetail({
                 />
               )}
             </motion.div>
+            )}
             {(groupDaysAroundToday
               ? [
                   ...(priorDayIndices.length > 0 ? (["prior-group"] as const) : []),
