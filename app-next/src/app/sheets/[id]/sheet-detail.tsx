@@ -223,17 +223,7 @@ export function SheetDetail({
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
   const [shiftPatternPrompt, setShiftPatternPrompt] = useState<{ dayIndex: number } | null>(null);
-  /** LogBar work/break segment open — used to open large mobile tools on day-card tap. */
-  const [shiftSegmentOpenForMobile, setShiftSegmentOpenForMobile] = useState(false);
   const [driverSessionDimmed, setDriverSessionDimmed] = useState(false);
-  const [mobileLogToolsOpen, setMobileLogToolsOpen] = useState(false);
-  const ignoreMobileToolsOpenUntilRef = useRef(0);
-  const handleMobileToolsOpenChange = useCallback((open: boolean) => {
-    if (!open) {
-      ignoreMobileToolsOpenUntilRef.current = Date.now() + 500;
-    }
-    setMobileLogToolsOpen(open);
-  }, []);
   const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
@@ -1182,10 +1172,7 @@ export function SheetDetail({
               hasWarnings: hasComplianceWarnings,
               loading: complianceLoading,
             }}
-            onShiftSegmentChange={setShiftSegmentOpenForMobile}
             onSessionDimmedChange={setDriverSessionDimmed}
-            mobileToolsOpen={mobileLogToolsOpen}
-            onMobileToolsOpenChange={handleMobileToolsOpenChange}
           />
         </>
       )}
@@ -1507,21 +1494,6 @@ export function SheetDetail({
                     dayCardElsRef.current[idx] = el;
                   }}
                   className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
-                  onPointerDown={(e) => {
-                    if (!canShowLogBar) return;
-                    if (!shiftSegmentOpenForMobile || idx !== currentDayIndex) return;
-                    if (Date.now() < ignoreMobileToolsOpenUntilRef.current) return;
-                    const t = e.target;
-                    if (!(t instanceof HTMLElement)) return;
-                    if (
-                      t.closest(
-                        "input, textarea, select, button, a, label, [role='button'], [role='slider'], canvas"
-                      )
-                    ) {
-                      return;
-                    }
-                    setMobileLogToolsOpen(true);
-                  }}
                 >
                   <DayEntry
                     dayIndex={idx}

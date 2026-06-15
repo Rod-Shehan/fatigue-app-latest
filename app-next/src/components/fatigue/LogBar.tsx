@@ -245,8 +245,6 @@ export default function LogBar({
   complianceButton,
   onShiftSegmentChange,
   onSessionDimmedChange,
-  mobileToolsOpen: mobileToolsOpenProp,
-  onMobileToolsOpenChange,
   priorTimelineSlices,
 }: {
   days: DayData[];
@@ -282,8 +280,6 @@ export default function LogBar({
   onShiftSegmentChange?: (shiftSegmentOpen: boolean) => void;
   /** When live session UI dims sheet chrome (idle focus or active work/break at scroll top). */
   onSessionDimmedChange?: (sessionDimmed: boolean) => void;
-  mobileToolsOpen?: boolean;
-  onMobileToolsOpenChange?: (open: boolean) => void;
   /** Older record slices before this sheet (chronological). Rules use event timestamps only. */
   priorTimelineSlices?: TimelineSlice[];
 }) {
@@ -309,6 +305,9 @@ export default function LogBar({
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
   const [sessionToolsMounted, setSessionToolsMounted] = useState(false);
+  /** Options sheet — only opened via explicit ⋯ tap (never from day card or parent state). */
+  const [sessionToolsOpen, setSessionToolsOpen] = useState(false);
+  const [legacyMobileToolsOpen, setLegacyMobileToolsOpen] = useState(false);
 
   useEffect(() => {
     setVoiceAlertsEnabled(getVoiceAlertsEnabled());
@@ -355,42 +354,43 @@ export default function LogBar({
   /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
   const shiftSegmentOpen = currentType === "work" || currentType === "break";
 
-  const [internalMobileToolsOpen, setInternalMobileToolsOpen] = useState(false);
-  const mobileToolsOpen = mobileToolsOpenProp ?? internalMobileToolsOpen;
-  const setMobileToolsOpen = useCallback(
-    (open: boolean) => {
-      onMobileToolsOpenChange?.(open);
-      if (mobileToolsOpenProp === undefined) setInternalMobileToolsOpen(open);
-    },
-    [onMobileToolsOpenChange, mobileToolsOpenProp]
-  );
+  const openSessionTools = useCallback(() => {
+    setSessionToolsOpen(true);
+  }, []);
+
+  const closeSessionTools = useCallback(() => {
+    setSessionToolsOpen(false);
+  }, []);
 
   useEffect(() => {
     onShiftSegmentChange?.(shiftSegmentOpen);
   }, [shiftSegmentOpen, onShiftSegmentChange]);
 
   useEffect(() => {
-    if (!shiftSegmentOpen) setMobileToolsOpen(false);
-  }, [shiftSegmentOpen, setMobileToolsOpen]);
+    if (!shiftSegmentOpen) setLegacyMobileToolsOpen(false);
+  }, [shiftSegmentOpen]);
 
   useEffect(() => {
-    if (!mobileToolsOpen || !shiftSegmentOpen) return;
+    if (!legacyMobileToolsOpen || !shiftSegmentOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [mobileToolsOpen, shiftSegmentOpen]);
+  }, [legacyMobileToolsOpen, shiftSegmentOpen]);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 768px)");
     const closeIfDesktop = () => {
-      if (mq.matches) setMobileToolsOpen(false);
+      if (mq.matches) {
+        setLegacyMobileToolsOpen(false);
+        setSessionToolsOpen(false);
+      }
     };
     mq.addEventListener("change", closeIfDesktop);
     closeIfDesktop();
     return () => mq.removeEventListener("change", closeIfDesktop);
-  }, [setMobileToolsOpen]);
+  }, []);
 
   /** Faster tick during work/break so compliance header (e.g. pending → OK) updates within a few seconds. */
   useEffect(() => {
@@ -506,31 +506,27 @@ export default function LogBar({
     }
   }, [isLiveNow, currentType]);
 
-  const closeSessionTools = useCallback(() => {
-    setMobileToolsOpen(false);
-  }, [setMobileToolsOpen]);
-
   useEffect(() => {
     if (!sessionDimmed) closeSessionTools();
   }, [sessionDimmed, closeSessionTools]);
 
   useEffect(() => {
-    if (!mobileToolsOpen || !sessionDimmed) return;
+    if (!sessionToolsOpen || !sessionDimmed) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [mobileToolsOpen, sessionDimmed]);
+  }, [sessionToolsOpen, sessionDimmed]);
 
   useEffect(() => {
-    if (!mobileToolsOpen || !sessionDimmed) return;
+    if (!sessionToolsOpen || !sessionDimmed) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeSessionTools();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [mobileToolsOpen, sessionDimmed, closeSessionTools]);
+  }, [sessionToolsOpen, sessionDimmed, closeSessionTools]);
 
   useEffect(() => {
     setSessionToolsMounted(true);
@@ -913,7 +909,7 @@ export default function LogBar({
     shiftSegmentOpen,
     sessionDimmed,
     primaryActionPending,
-    mobileToolsOpen,
+    sessionToolsOpen,
   ]);
 
   const barContent = (
@@ -1188,10 +1184,10 @@ export default function LogBar({
           <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-10">
             <button
               type="button"
-              onClick={() => setMobileToolsOpen(!mobileToolsOpen)}
+              onClick={openSessionTools}
               className="relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-colors"
               aria-label="More options"
-              aria-expanded={mobileToolsOpen}
+              aria-expanded={sessionToolsOpen}
               aria-controls="driver-focus-tools-sheet"
             >
               <MoreVertical className="h-7 w-7" aria-hidden />
@@ -1298,15 +1294,15 @@ export default function LogBar({
               <button
                 type="button"
                 className="md:hidden shrink-0 flex items-center gap-2 min-h-[48px] px-3 py-2 rounded-xl font-semibold text-sm bg-black/25 dark:bg-black/30 border border-white/35 text-slate-900 dark:text-white shadow-sm active:scale-[0.98] transition-transform"
-                onClick={() => setMobileToolsOpen(true)}
-                aria-expanded={mobileToolsOpen}
+                onClick={() => setLegacyMobileToolsOpen(true)}
+                aria-expanded={legacyMobileToolsOpen}
                 aria-controls="mobile-log-tools-sheet"
               >
                 <SlidersHorizontal className="h-6 w-6 shrink-0" aria-hidden />
                 <span className="max-w-[10rem] leading-tight text-left">Voice &amp; display</span>
               </button>
             )}
-            {!hideSecondaryToolbar && (!shiftSegmentOpen || !mobileToolsOpen) ? (
+            {!hideSecondaryToolbar && (!shiftSegmentOpen || !legacyMobileToolsOpen) ? (
               <div
                 className={cn(
                   "shrink-0 items-center gap-1",
@@ -1329,7 +1325,7 @@ export default function LogBar({
             ) : null}
           </div>
         </div>
-        {shiftSegmentOpen && mobileToolsOpen && !hideSecondaryToolbar && (
+        {shiftSegmentOpen && legacyMobileToolsOpen && !hideSecondaryToolbar && (
           <div
             className="fixed inset-0 z-[45] md:hidden"
             role="dialog"
@@ -1341,7 +1337,7 @@ export default function LogBar({
               type="button"
               className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
               aria-label="Dismiss voice and display tools"
-              onClick={() => setMobileToolsOpen(false)}
+              onClick={() => setLegacyMobileToolsOpen(false)}
             />
             <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center pointer-events-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <div
@@ -1360,7 +1356,7 @@ export default function LogBar({
                   <button
                     type="button"
                     className="shrink-0 rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                    onClick={() => setMobileToolsOpen(false)}
+                    onClick={() => setLegacyMobileToolsOpen(false)}
                     aria-label="Close"
                   >
                     <X className="h-7 w-7" />
@@ -1399,7 +1395,7 @@ export default function LogBar({
               <p className="flex-1 font-medium min-w-0">{forgottenActionReminder.message}</p>
             </div>
             {forgottenActionReminder.variant === "break-due" && (
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={() => onLogEvent(currentDayIndex, "break", driverType === "two_up" ? activeDriver : undefined)}
@@ -1407,13 +1403,6 @@ export default function LogBar({
                 >
                   <Coffee className="w-4 h-4" />
                   Start break now
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileToolsOpen(true)}
-                  className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold"
-                >
-                  Show tools
                 </button>
               </div>
             )}
@@ -1493,7 +1482,7 @@ export default function LogBar({
       </div>
       {sessionToolsMounted &&
         sessionDimmed &&
-        mobileToolsOpen &&
+        sessionToolsOpen &&
         createPortal(
           <div
             className="fixed inset-0 z-[100]"
