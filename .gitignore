@@ -31,6 +31,11 @@ dist-ssr
 
 .env
 
+# Circadia Command Center (isolated internal app)
+circadia-command/.env
+circadia-command/node_modules
+circadia-command/.next
+
 # Next.js / app-next
 app-next/.env
 app-next/.env.local

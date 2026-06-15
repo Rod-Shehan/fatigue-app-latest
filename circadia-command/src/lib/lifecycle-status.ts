@@ -1,0 +1,17 @@
+export const LIFECYCLE_STATUSES = [
+  "PENDING_TRIAGE",
+  "VERIFIED_FALSE_POSITIVE",
+  "VERIFIED_TRUE_FATIGUE",
+  "MANAGER_VALIDATION_PENDING",
+  "INTERVENTION_SENT",
+  "DRIVER_ACKNOWLEDGED",
+  "DRIVER_DISPUTED",
+  "CLOSED",
+] as const;
+
+export type LifecycleStatus = (typeof LIFECYCLE_STATUSES)[number];
+
+export type ActorType = "OPERATOR" | "DRIVER" | "FLEET_MANAGER" | "SYSTEM";
+
+export const TRIAGE_ACTIONS = ["VERIFIED_TRUE_FATIGUE", "VERIFIED_FALSE_POSITIVE"] as const;
+export type TriageAction = (typeof TRIAGE_ACTIONS)[number];

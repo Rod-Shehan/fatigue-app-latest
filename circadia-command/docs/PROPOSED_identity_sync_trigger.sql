@@ -1,0 +1,15 @@
+-- Section 7 (PROPOSED — NOT APPLIED BY DEFAULT)
+--
+-- Gemini spec attaches a trigger to the customer "Driver" table. This repo rule
+-- forbids modifying customer app behavior without explicit approval:
+--   - Driver model has NO tenant_id column today
+--   - Trigger on "Driver" couples Command Center to customer schema
+--
+-- Preferred alternative: Railway sync job reading Driver via read-only connection
+-- and upserting identity_uuid_map (see MASTER_SPEC Section 7).
+--
+-- DO NOT RUN unless product approves customer-table triggers.
+
+-- CREATE OR REPLACE FUNCTION coordinate_runtime_identity_mapping()
+-- RETURNS TRIGGER AS $$
+-- ...

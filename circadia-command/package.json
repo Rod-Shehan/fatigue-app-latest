@@ -1,0 +1,47 @@
+{
+  "name": "circadia-command",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "postinstall": "prisma generate",
+    "db:push": "node -e \"console.error('Blocked: use npm run db:apply-sql on shared Neon (db push drops app-next tables)');process.exit(1)\"",
+    "db:apply-sql": "node scripts/apply-sql-migrations.js",
+    "db:studio": "prisma studio",
+    "db:migrate-sql": "node scripts/print-migrate-sql.js",
+    "simulate:ingest": "npx tsx scripts/simulate-ingest.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "6.9.0",
+    "@simplewebauthn/browser": "^13.1.0",
+    "@simplewebauthn/server": "^13.1.1",
+    "@tanstack/react-query": "^5.84.1",
+    "jose": "^6.0.11",
+    "pg": "^8.16.0",
+    "clsx": "^2.1.1",
+    "next": "^16.2.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^3.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/pg": "^8.15.2",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.15",
+    "prisma": "6.9.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.0"
+  }
+}

@@ -1,0 +1,216 @@
+openapi: 3.0.3
+info:
+  title: Circadia Command Core API
+  version: 1.0.0
+  description: Privileged gateway at https://api-command.circadia24.com/v1
+servers:
+  - url: https://api-command.circadia24.com/v1
+paths:
+  /triage/queue:
+    get:
+      summary: Global active triage feed
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Queue page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueueResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /triage/claim:
+    post:
+      summary: Assign incident to operator terminal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimRequest"
+      responses:
+        "200":
+          description: Incident locked to operator
+        "409":
+          description: ERR_INCIDENT_ALREADY_CLAIMED
+
+  /triage/mutate:
+    post:
+      summary: Apply triage decision (Section 3 / 4 idempotency)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriageMutateRequest"
+      responses:
+        "200":
+          description: INTERVENTION_SENT (gate off)
+        "202":
+          description: MANAGER_VALIDATION_PENDING (gate on)
+        "409":
+          $ref: "#/components/responses/IdempotencyConflict"
+
+  /triage/manager-validate:
+    post:
+      summary: Fleet manager authorize or dismiss (manager gate)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagerValidateRequest"
+      responses:
+        "200":
+          description: Processed
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /driver/respond:
+    post:
+      summary: In-cab driver ack or dispute (Section 10)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DriverRespondRequest"
+      responses:
+        "200":
+          description: Response recorded
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /hardware/provision:
+    get:
+      summary: Edge device identity lookup (QR login)
+      parameters:
+        - name: driver_cuid
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: vehicle_reg
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: UUID mapping for edge write
+
+  /ingress/media-token:
+    post:
+      summary: Presigned R2/S3 upload URL for edge video snippet
+      responses:
+        "200":
+          description: uploadUrl valid 120s
+
+components:
+  responses:
+    Unauthorized:
+      description: Missing or invalid operator/driver auth
+    Forbidden:
+      description: IP not whitelisted or insufficient tenant scope
+    IdempotencyConflict:
+      description: ERR_IDEMPOTENCY_CONFLICT — row state no longer matches expected status
+  schemas:
+    QueueResponse:
+      type: object
+      properties:
+        queue_depth:
+          type: integer
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Incident"
+        pagination:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+            has_more:
+              type: boolean
+    Incident:
+      type: object
+      properties:
+        lifecycle_id:
+          type: string
+          format: uuid
+        event_id:
+          type: string
+          format: uuid
+        vehicle_registration:
+          type: string
+        fatigue_metric_type:
+          type: string
+        confidence_score:
+          type: number
+        detected_at:
+          type: string
+          format: date-time
+        video_snippet_url:
+          type: string
+        lock_holder_id:
+          type: string
+          format: uuid
+          nullable: true
+    ClaimRequest:
+      type: object
+      required: [lifecycle_id, idempotency_key]
+      properties:
+        lifecycle_id:
+          type: string
+          format: uuid
+        idempotency_key:
+          type: string
+    TriageMutateRequest:
+      type: object
+      required: [lifecycle_id, action, idempotency_key]
+      properties:
+        lifecycle_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [VERIFIED_TRUE_FATIGUE, VERIFIED_FALSE_POSITIVE]
+        idempotency_key:
+          type: string
+        operator_notes:
+          type: string
+    ManagerValidateRequest:
+      type: object
+      required: [lifecycle_id, manager_action, manager_user_cuid]
+      properties:
+        lifecycle_id:
+          type: string
+          format: uuid
+        manager_user_cuid:
+          type: string
+        manager_action:
+          type: string
+          enum: [APPROVE_INTERVENTION, OVERRIDE_AS_FALSE_POSITIVE]
+    DriverRespondRequest:
+      type: object
+      required: [lifecycle_id, driver_auth_token, response_vector]
+      properties:
+        lifecycle_id:
+          type: string
+          format: uuid
+        driver_auth_token:
+          type: string
+        response_vector:
+          type: string
+          enum: [DRIVER_ACKNOWLEDGED, DRIVER_DISPUTED]
