@@ -939,17 +939,20 @@ export default function LogBar({
       type="button"
       onClick={() => handleLog("stop")}
       className={cn(
-        "flex w-full items-center justify-center gap-3 rounded-xl px-4 font-bold text-white transition-all duration-150 active:scale-[0.99] shadow-lg min-h-[6rem] text-xl sm:text-2xl",
+        "flex w-full items-center justify-center gap-1.5 rounded-lg px-3 font-bold text-white transition-all duration-150 active:scale-[0.99] shadow-md min-h-[1.5rem] py-1.5 text-sm",
         pendingType === "stop"
           ? "bg-amber-600 hover:bg-amber-700 ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-900 animate-pulse"
           : ACTIVITY_THEME.stop.button
       )}
       aria-label={pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
     >
-      {React.createElement(EVENT_ICONS.stop, { className: "h-8 w-8 shrink-0" })}
+      {React.createElement(EVENT_ICONS.stop, { className: "h-4 w-4 shrink-0" })}
       {pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
     </button>
   ) : null;
+
+  /** Scrolled down on live sheet — shrink primary log control to ¼ size. */
+  const primaryBarCompact = scrollCompact && Boolean(isLiveNow);
 
   const barContent = (
     <div className={cn("space-y-2", isIdleAtTop && "space-y-4")}>
@@ -1008,13 +1011,16 @@ export default function LogBar({
             type="button"
             onClick={() => handleLog(nextWorkBreak)}
             className={cn(
-              "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
+              "flex w-full min-w-0 flex-col rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
+              primaryBarCompact ? "gap-0.5" : "gap-2",
               primaryHeroExpanded
                 ? "mx-auto w-full max-w-md justify-center min-h-[24rem] rounded-2xl py-16 shadow-2xl shadow-emerald-500/30 ring-4 ring-emerald-400/20"
-                : currentType === null
-                  ? "min-h-[10rem] justify-center py-10 md:min-h-[8rem] md:py-8"
-                  : scrollCompact
-                    ? "py-4 sm:py-6"
+                : primaryBarCompact
+                  ? currentType === null
+                    ? "min-h-[2.5rem] justify-center py-2 md:min-h-[2rem] md:py-1.5"
+                    : "py-1.5 sm:py-2"
+                  : currentType === null
+                    ? "min-h-[10rem] justify-center py-10 md:min-h-[8rem] md:py-8"
                     : "py-6 sm:py-8",
               actionChrome.surfaceClass,
               actionChrome.textClass,
@@ -1025,20 +1031,29 @@ export default function LogBar({
           >
             <div
               className={cn(
-                "flex w-full items-center justify-center gap-3 sm:gap-4",
+                "flex w-full items-center justify-center",
+                primaryBarCompact ? "gap-1.5" : "gap-3 sm:gap-4",
                 primaryHeroExpanded && "flex-col gap-2"
               )}
             >
               {React.createElement(EVENT_ICONS[nextWorkBreak], {
                 className: cn(
                   "shrink-0 drop-shadow-sm",
-                  primaryHeroExpanded ? "h-20 w-20" : "h-14 w-14 sm:h-12 sm:w-12"
+                  primaryHeroExpanded
+                    ? "h-20 w-20"
+                    : primaryBarCompact
+                      ? "h-5 w-5"
+                      : "h-14 w-14 sm:h-12 sm:w-12"
                 ),
               })}
               <span className="flex min-w-0 flex-col items-center leading-tight">
                 <span
                   className={cn(
-                    primaryHeroExpanded ? "text-4xl" : "text-2xl sm:text-xl"
+                    primaryHeroExpanded
+                      ? "text-4xl"
+                      : primaryBarCompact
+                        ? "text-sm"
+                        : "text-2xl sm:text-xl"
                   )}
                 >
                   {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
@@ -1046,10 +1061,13 @@ export default function LogBar({
               </span>
             </div>
             {contextualBar ? (
-              <div className="flex w-full min-w-0 items-center gap-2">
+              <div className={cn("flex w-full min-w-0 items-center", primaryBarCompact ? "gap-1" : "gap-2")}>
                 <div
                   className={cn(
-                    "relative h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20 flex-1 min-w-0 rounded-lg overflow-hidden",
+                    "relative flex-1 min-w-0 rounded-lg overflow-hidden",
+                    primaryBarCompact
+                      ? "h-[1.125rem] min-h-[1.125rem] sm:h-5 sm:min-h-5"
+                      : "h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20",
                     barOnColoredHeader
                       ? "bg-black/60 ring-2 ring-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.55)] dark:bg-black/65 dark:ring-white/30"
                       : "bg-slate-100 dark:bg-slate-700"
@@ -1144,7 +1162,10 @@ export default function LogBar({
                 </div>
                 <span
                   className={cn(
-                    "flex h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20 shrink-0 items-center font-mono text-[2.25rem] font-extrabold tabular-nums leading-none tracking-tight sm:text-[2.5rem]",
+                    "flex shrink-0 items-center font-mono font-extrabold tabular-nums leading-none tracking-tight",
+                    primaryBarCompact
+                      ? "h-[1.125rem] min-h-[1.125rem] sm:h-5 sm:min-h-5 text-sm sm:text-base"
+                      : "h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20 text-[2.25rem] sm:text-[2.5rem]",
                     barOnColoredHeader
                       ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
                       : "text-slate-900 dark:text-slate-100"
@@ -1598,7 +1619,7 @@ export default function LogBar({
         <div
           ref={fixedEndShiftRef}
           className={cn(
-            "fixed bottom-0 left-0 right-0 z-50 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+            "fixed bottom-0 left-0 right-0 z-50 px-4 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
             sessionDimmed
               ? "bg-slate-950/90 border-t border-white/10 backdrop-blur-md"
               : "bg-slate-50/95 dark:bg-slate-950/95 border-t border-slate-200 dark:border-slate-700 backdrop-blur-sm shadow-[0_-4px_24px_rgba(0,0,0,0.12)]"
