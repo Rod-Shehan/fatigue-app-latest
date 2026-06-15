@@ -25,7 +25,9 @@ export type ShiftWorkProjection = {
   dayYmd: string;
 };
 
-function projectionSource(day: RunPlanFields & { start_kms?: number | null }): ShiftWorkProjectionSource | null {
+function projectionSource(
+  day: RunPlanFields & { start_kms?: number | null; end_kms?: number | null }
+): ShiftWorkProjectionSource | null {
   const hrs = day.planned_on_duty_hours;
   if (hrs != null && !Number.isNaN(Number(hrs)) && Number(hrs) > 0) {
     return inferRouteCarryMode(day) === "run_plan" ? "run_plan" : "manual_hours";
