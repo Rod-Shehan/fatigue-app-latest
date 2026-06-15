@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { saveDriverRouteDefaults, hasRouteExceptKms } from "@/lib/driver-route-defaults";
+import { saveDriverRouteDefaults, hasRouteExceptKms, inferRouteCarryMode } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown } from "lucide-react";
 import TimeGrid from "./TimeGrid";
@@ -152,24 +152,40 @@ export default function DayEntry({
 
   const canEditDetails = !readOnly;
 
-  const hasRouteDetails =
-    (dayData.start_location ?? "").trim() !== "" ||
-    (dayData.destination ?? "").trim() !== "" ||
-    (dayData.truck_rego ?? "").trim() !== "" ||
-    dayData.start_kms != null;
+  const runPlanSummary = formatRunPlanSummary(dayData);
+  const usesRunPlan = inferRouteCarryMode(dayData) === "run_plan" && hasRunPlanContent(dayData);
+  const showManualFromTo = !usesRunPlan;
 
-  const detailsComplete =
-    (dayData.truck_rego ?? "").trim() !== "" &&
-    (dayData.start_location ?? "").trim() !== "" &&
-    (dayData.destination ?? "").trim() !== "" &&
-    dayData.start_kms != null &&
-    !Number.isNaN(Number(dayData.start_kms));
+  const hasRouteDetails = usesRunPlan
+    ? hasRunPlanContent(dayData) ||
+      (dayData.truck_rego ?? "").trim() !== "" ||
+      (dayData.start_location ?? "").trim() !== "" ||
+      dayData.start_kms != null
+    : (dayData.start_location ?? "").trim() !== "" ||
+      (dayData.destination ?? "").trim() !== "" ||
+      (dayData.truck_rego ?? "").trim() !== "" ||
+      dayData.start_kms != null;
+
+  const detailsComplete = usesRunPlan
+    ? (dayData.truck_rego ?? "").trim() !== "" &&
+      dayData.start_kms != null &&
+      !Number.isNaN(Number(dayData.start_kms))
+    : (dayData.truck_rego ?? "").trim() !== "" &&
+      (dayData.start_location ?? "").trim() !== "" &&
+      (dayData.destination ?? "").trim() !== "" &&
+      dayData.start_kms != null &&
+      !Number.isNaN(Number(dayData.start_kms));
 
   const showInlineStartKm =
-    isToday && canEditDetails && hasRouteExceptKms(dayData) && !detailsComplete;
+    isToday &&
+    canEditDetails &&
+    (usesRunPlan
+      ? (dayData.truck_rego ?? "").trim() !== ""
+      : hasRouteExceptKms(dayData)) &&
+    !detailsComplete;
 
-  const runPlanSummary = formatRunPlanSummary(dayData);
-  const showRunPlanSection = isFuture || !!runPlanSummary;
+  const showRunPlanSection = usesRunPlan && isFuture && !!runPlanSummary;
+  const showRunPlanInCard = usesRunPlan && !isFuture && !!runPlanSummary;
 
   const workHours = getHours(dayData.work_time);
   const collapsedSummary = isFuture
@@ -378,11 +394,21 @@ export default function DayEntry({
                 {CONTINUED_SHIFT_ROUTE_CARD_NOTE}
               </p>
             )}
-            <div className="flex items-center gap-2 min-w-0 mb-3">
-              <StatBlock label="From" value={(dayData.start_location || "").trim() || "—"} emphasis />
-              <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
-              <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
-            </div>
+            {showRunPlanInCard ? (
+              <div className="mb-3 min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                  Run plan
+                </p>
+                <p className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-slate-100">{runPlanSummary}</p>
+              </div>
+            ) : null}
+            {showManualFromTo ? (
+              <div className="flex items-center gap-2 min-w-0 mb-3">
+                <StatBlock label="From" value={(dayData.start_location || "").trim() || "—"} emphasis />
+                <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
+                <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
+              </div>
+            ) : null}
             {getDriverAlertnessOption(dayData.alertness_level) ? (
               <div
                 className={cn(
@@ -441,7 +467,9 @@ export default function DayEntry({
               }}
             />
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-              Rego and route are filled from your last trip. Check them, enter start km, then tap Work.
+              {usesRunPlan
+                ? "Run plan and rego are filled from your last trip. Check them, enter start km, then tap Work."
+                : "Rego and route are filled from your last trip. Check them, enter start km, then tap Work."}
             </p>
           </div>
         )}

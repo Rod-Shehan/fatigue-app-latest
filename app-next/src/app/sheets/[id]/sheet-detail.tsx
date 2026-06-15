@@ -1386,7 +1386,7 @@ export function SheetDetail({
                         ref={(el) => {
                           dayCardElsRef.current[idx] = el;
                         }}
-                        className={canShowLogBar ? "scroll-mt-48" : "scroll-mt-6"}
+                        className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
                       >
                         <DayEntry
                           dayIndex={idx}
@@ -1445,7 +1445,7 @@ export function SheetDetail({
                         ref={(el) => {
                           dayCardElsRef.current[idx] = el;
                         }}
-                        className={canShowLogBar ? "scroll-mt-48" : "scroll-mt-6"}
+                        className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
                       >
                         <DayEntry
                           dayIndex={idx}
@@ -1493,7 +1493,7 @@ export function SheetDetail({
                   ref={(el) => {
                     dayCardElsRef.current[idx] = el;
                   }}
-                  className={canShowLogBar ? "scroll-mt-48" : "scroll-mt-6"}
+                  className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
                   onPointerDown={(e) => {
                     if (!canShowLogBar) return;
                     if (!shiftSegmentOpenForMobile || idx !== currentDayIndex) return;

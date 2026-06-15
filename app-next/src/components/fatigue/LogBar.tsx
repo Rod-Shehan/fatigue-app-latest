@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from "react";
 import {
   Briefcase,
   Coffee,
@@ -118,6 +118,8 @@ const MIN_BREAK_BLOCK_MINUTES = 10;
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
 const CONFIRM_RESET_MS = 2500;
+/** After this idle period (not in work/break), the primary action grows on phone. */
+const PRIMARY_IDLE_EXPAND_MS = 10_000;
 
 function formatDurationHoursMinutes(totalMinutes: number): string {
   const m = Math.max(0, Math.floor(totalMinutes));
@@ -296,6 +298,10 @@ export default function LogBar({
    * (onLogEvent / end shift) instead of only arming pendingType ("Tap again to log").
    */
   const voiceFinalizeNextLogRef = useRef(false);
+  const fixedHeaderRef = useRef<HTMLDivElement>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [idleExpandEpoch, setIdleExpandEpoch] = useState(0);
+  const [primaryIdleExpanded, setPrimaryIdleExpanded] = useState(false);
 
   useEffect(() => {
     setVoiceAlertsEnabled(getVoiceAlertsEnabled());
@@ -472,6 +478,30 @@ export default function LogBar({
       ? "Resume shift"
       : "Start shift"
     : EVENT_LABELS[nextWorkBreak];
+
+  const primaryIdleHero =
+    isLiveNow && currentType === null && primaryIdleExpanded && !primaryActionPending;
+
+  useEffect(() => {
+    const bumpIdleExpandTimer = () => setIdleExpandEpoch((n) => n + 1);
+    window.addEventListener("pointerdown", bumpIdleExpandTimer);
+    window.addEventListener("keydown", bumpIdleExpandTimer);
+    return () => {
+      window.removeEventListener("pointerdown", bumpIdleExpandTimer);
+      window.removeEventListener("keydown", bumpIdleExpandTimer);
+    };
+  }, []);
+
+  /** Phone: grow the idle primary action after no interaction — driver focus when not working. */
+  useEffect(() => {
+    if (!isLiveNow || currentType !== null) {
+      setPrimaryIdleExpanded(false);
+      return;
+    }
+    setPrimaryIdleExpanded(false);
+    const t = window.setTimeout(() => setPrimaryIdleExpanded(true), PRIMARY_IDLE_EXPAND_MS);
+    return () => window.clearTimeout(t);
+  }, [isLiveNow, currentType, idleExpandEpoch]);
 
   const clearPending = useCallback(() => {
     if (resetTimerRef.current) {
@@ -785,6 +815,31 @@ export default function LogBar({
     },
   };
 
+  useLayoutEffect(() => {
+    const el = fixedHeaderRef.current;
+    if (!el) return;
+    const sync = () => {
+      const h = el.offsetHeight;
+      setHeaderHeight(h);
+      document.documentElement.style.setProperty("--driver-log-bar-height", `${h}px`);
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--driver-log-bar-height");
+    };
+  }, [
+    primaryIdleExpanded,
+    primaryIdleHero,
+    contextualBar,
+    logBarBanner,
+    forgottenActionReminder,
+    shiftSegmentOpen,
+    primaryActionPending,
+  ]);
+
   const barContent = (
     <div className="space-y-2">
       {logBarBanner ? (
@@ -832,7 +887,12 @@ export default function LogBar({
             type="button"
             onClick={() => handleLog(nextWorkBreak)}
             className={cn(
-              "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 py-3 sm:px-5 sm:py-4 font-bold transition-all duration-150 active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
+              "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
+              primaryIdleHero
+                ? "min-h-[9.5rem] justify-center py-8 md:min-h-[4.5rem] md:py-4"
+                : currentType === null
+                  ? "min-h-[5rem] justify-center py-5 md:min-h-[4rem] md:py-4"
+                  : "py-3 sm:py-4",
               complianceChrome.surfaceClass,
               complianceChrome.textClass,
               primaryActionPending &&
@@ -840,14 +900,31 @@ export default function LogBar({
             )}
             aria-label={primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
           >
-            <div className="flex w-full items-center justify-center gap-3 sm:gap-4">
+            <div
+              className={cn(
+                "flex w-full items-center justify-center gap-3 sm:gap-4",
+                primaryIdleHero && "max-md:flex-col max-md:gap-2"
+              )}
+            >
               {React.createElement(EVENT_ICONS[nextWorkBreak], {
-                className: "h-8 w-8 shrink-0 drop-shadow-sm",
+                className: cn(
+                  "shrink-0 drop-shadow-sm",
+                  primaryIdleHero ? "h-12 w-12 md:h-8 md:w-8" : "h-9 w-9 sm:h-8 sm:w-8"
+                ),
               })}
               <span className="flex min-w-0 flex-col items-center leading-tight">
-                <span className="text-base sm:text-lg">
+                <span
+                  className={cn(
+                    primaryIdleHero ? "text-2xl md:text-lg" : "text-lg sm:text-lg"
+                  )}
+                >
                   {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
                 </span>
+                {primaryIdleHero && !primaryActionPending ? (
+                  <span className="mt-1 text-sm font-semibold opacity-90 max-md:block md:hidden">
+                    Tap to log your shift
+                  </span>
+                ) : null}
               </span>
             </div>
             {contextualBar ? (
@@ -988,22 +1065,19 @@ export default function LogBar({
 
   return (
     <>
-      {/* In-flow spacer so title/save row sit below the fixed bar; same structure = same height */}
+      {/* Reserve space matching the fixed header so sheet content is not covered */}
       <div
-        className="max-w-[1400px] mx-auto px-4 py-3 invisible pointer-events-none select-none flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
         aria-hidden
+        className="max-w-[1400px] mx-auto w-full"
+        style={{ height: headerHeight > 0 ? headerHeight : undefined, minHeight: headerHeight > 0 ? undefined : "7.5rem" }}
+      />
+      <div
+        ref={fixedHeaderRef}
+        className={cn(
+          "fixed top-0 left-0 right-0 z-50 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]",
+          FIXED_LOG_BAR_SHELL
+        )}
       >
-        <div className="flex-1 min-w-0 w-full">{barContent}</div>
-        <div className="flex w-full shrink-0 items-center justify-end gap-2 md:w-auto md:self-center md:justify-start md:gap-2">
-          <span className="w-12 h-12 shrink-0" aria-hidden />
-          <div className="flex shrink-0 items-center gap-1">
-            <span className="w-11 h-11 shrink-0" aria-hidden />
-            <span className="w-11 h-11 shrink-0" aria-hidden />
-            <span className="w-11 h-11 shrink-0" aria-hidden />
-          </div>
-        </div>
-      </div>
-      <div className={cn("fixed top-0 left-0 right-0 z-50 px-4 py-3", FIXED_LOG_BAR_SHELL)}>
         <div className="max-w-[1400px] mx-auto flex flex-col gap-2 md:flex-row md:items-start md:gap-3">
           <div className="flex-1 min-w-0 w-full">{barContent}</div>
           <div className="flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start">
