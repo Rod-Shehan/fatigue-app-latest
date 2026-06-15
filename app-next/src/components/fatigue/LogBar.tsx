@@ -488,8 +488,9 @@ export default function LogBar({
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
   const primaryHeroExpanded = isIdleAtTop;
   /** Dim sheet + tuck chrome while live at scroll top — idle hero or active work/break. */
-  const sessionDimmed =
-    isLiveNow && !scrollCompact && (isIdleAtTop || shiftSegmentOpen);
+  const sessionDimmed = Boolean(
+    isLiveNow && !scrollCompact && (isIdleAtTop || shiftSegmentOpen)
+  );
   const hideSecondaryToolbar = sessionDimmed;
 
   /** Idle focus: strong emerald CTA instead of neutral gray on dark shell. */
