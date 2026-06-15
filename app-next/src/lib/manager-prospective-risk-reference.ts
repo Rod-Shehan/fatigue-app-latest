@@ -16,7 +16,7 @@ const CARDS: ManagerReferenceCard[] = [
     bullets: [
       "Context: jurisdiction, driver type, and rolling headroom from the attested record (e.g. 168h, solo 14d/28d).",
       "Identification: driver-declared run plans on future days (route name + expected hours and/or km).",
-      "Treatment is coaching (shorten leg, extra rest, delay start) — not a signed breach until work is logged.",
+      "Treatment consists of preemptive coaching (shorten leg, extra rest, delay start). This is a forward-looking risk advisory tool; an enforceable compliance breach is only determined post-event once work is finalized and logged.",
     ],
     relateTo: ["prospective", "run plan", "headroom", "168"],
   },

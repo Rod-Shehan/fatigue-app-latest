@@ -36,9 +36,9 @@ export const REGULATORY_REQUIREMENTS_REFERENCE: ManagerReferenceLibrary = {
       summary:
         "Primary time-based rules implemented in Circadia for Western Australia — work diary and break structure.",
       bullets: [
-        "Reg 184E(1)(a): breaks per 5 hours work (≥20 min total, incl. ≥10 min after 5 h).",
-        "Reg 184E(1)(b): ≤168 h work in any 14-day period (48 h continuous non-work resets segmentation in app).",
-        "Solo Reg 184E(2): 72 h / 27 h non-work, 14-day 24 h blocks, 17 h separation — see in-app compliance detail.",
+        "Reg 184E(1)(a): Min 20 min of breaks for every 5h of work (maximum 5h continuous work block).",
+        "Reg 184E(1)(b): Max 168h work in any 14-day period (48h continuous non-work resets app segments).",
+        "Solo Drivers: Min 7h continuous non-work in 24h; min 27h non-work in 72h.",
         "Source mapping: docs/regulatory/wa-commercial-vehicle-hours.md in this product.",
       ],
       relateTo: ["14-day", "28-day", "168", "5-hour", "break"],
@@ -58,10 +58,10 @@ export const REGULATORY_REQUIREMENTS_REFERENCE: ManagerReferenceLibrary = {
       id: "nhvr-cor",
       title: "NHVR · chain of responsibility",
       summary:
-        "Heavy Vehicle National Law and CoR — parties in the supply chain may owe duties beyond the driver.",
+        "Heavy Vehicle National Law and CoR — parties in the supply chain owe duties beyond the driver.",
       bullets: [
         "Reasonable steps to manage fatigue risk; records support due diligence but do not replace it.",
-        "Operators should align SMS procedures with NHVR guidance and state regulators (e.g. WA WorkSafe).",
+        "Align SMS procedures with WorkSafe WA, Main Roads WA (WAHVA), and NHVR interstate guidance.",
         "Circadia compliance outcomes reflect the attested diary; legal interpretation stays with your counsel.",
       ],
     },
