@@ -118,8 +118,9 @@ const MIN_BREAK_BLOCK_MINUTES = 10;
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
 const CONFIRM_RESET_MS = 2500;
-/** After this idle period (not in work/break), the primary action grows on phone. */
-const PRIMARY_IDLE_EXPAND_MS = 10_000;
+/** Scroll past this (px) to shrink the driver header; scroll back above expand threshold to restore. */
+const SCROLL_COMPACT_THRESHOLD_PX = 56;
+const SCROLL_EXPAND_THRESHOLD_PX = 12;
 
 function formatDurationHoursMinutes(totalMinutes: number): string {
   const m = Math.max(0, Math.floor(totalMinutes));
@@ -300,8 +301,7 @@ export default function LogBar({
   const voiceFinalizeNextLogRef = useRef(false);
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const [idleExpandEpoch, setIdleExpandEpoch] = useState(0);
-  const [primaryIdleExpanded, setPrimaryIdleExpanded] = useState(false);
+  const [scrollCompact, setScrollCompact] = useState(false);
 
   useEffect(() => {
     setVoiceAlertsEnabled(getVoiceAlertsEnabled());
@@ -479,29 +479,35 @@ export default function LogBar({
       : "Start shift"
     : EVENT_LABELS[nextWorkBreak];
 
-  const primaryIdleHero =
-    isLiveNow && currentType === null && primaryIdleExpanded && !primaryActionPending;
+  const primaryHeroExpanded =
+    isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
 
+  /** Idle hero at top; compact header when driver scrolls down the sheet. */
   useEffect(() => {
-    const bumpIdleExpandTimer = () => setIdleExpandEpoch((n) => n + 1);
-    window.addEventListener("pointerdown", bumpIdleExpandTimer);
-    window.addEventListener("keydown", bumpIdleExpandTimer);
-    return () => {
-      window.removeEventListener("pointerdown", bumpIdleExpandTimer);
-      window.removeEventListener("keydown", bumpIdleExpandTimer);
-    };
-  }, []);
-
-  /** Phone: grow the idle primary action after no interaction — driver focus when not working. */
-  useEffect(() => {
-    if (!isLiveNow || currentType !== null) {
-      setPrimaryIdleExpanded(false);
+    if (!isLiveNow) {
+      setScrollCompact(false);
       return;
     }
-    setPrimaryIdleExpanded(false);
-    const t = window.setTimeout(() => setPrimaryIdleExpanded(true), PRIMARY_IDLE_EXPAND_MS);
-    return () => window.clearTimeout(t);
-  }, [isLiveNow, currentType, idleExpandEpoch]);
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = window.requestAnimationFrame(() => {
+        raf = 0;
+        const y = window.scrollY;
+        setScrollCompact((prev) => {
+          if (!prev && y > SCROLL_COMPACT_THRESHOLD_PX) return true;
+          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX) return false;
+          return prev;
+        });
+      });
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) window.cancelAnimationFrame(raf);
+    };
+  }, [isLiveNow]);
 
   const clearPending = useCallback(() => {
     if (resetTimerRef.current) {
@@ -831,8 +837,8 @@ export default function LogBar({
       document.documentElement.style.removeProperty("--driver-log-bar-height");
     };
   }, [
-    primaryIdleExpanded,
-    primaryIdleHero,
+    scrollCompact,
+    primaryHeroExpanded,
     contextualBar,
     logBarBanner,
     forgottenActionReminder,
@@ -888,11 +894,13 @@ export default function LogBar({
             onClick={() => handleLog(nextWorkBreak)}
             className={cn(
               "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
-              primaryIdleHero
+              primaryHeroExpanded
                 ? "min-h-[9.5rem] justify-center py-8 md:min-h-[4.5rem] md:py-4"
                 : currentType === null
                   ? "min-h-[5rem] justify-center py-5 md:min-h-[4rem] md:py-4"
-                  : "py-3 sm:py-4",
+                  : scrollCompact
+                    ? "py-2 sm:py-3"
+                    : "py-3 sm:py-4",
               complianceChrome.surfaceClass,
               complianceChrome.textClass,
               primaryActionPending &&
@@ -903,24 +911,24 @@ export default function LogBar({
             <div
               className={cn(
                 "flex w-full items-center justify-center gap-3 sm:gap-4",
-                primaryIdleHero && "max-md:flex-col max-md:gap-2"
+                primaryHeroExpanded && "max-md:flex-col max-md:gap-2"
               )}
             >
               {React.createElement(EVENT_ICONS[nextWorkBreak], {
                 className: cn(
                   "shrink-0 drop-shadow-sm",
-                  primaryIdleHero ? "h-12 w-12 md:h-8 md:w-8" : "h-9 w-9 sm:h-8 sm:w-8"
+                  primaryHeroExpanded ? "h-12 w-12 md:h-8 md:w-8" : "h-9 w-9 sm:h-8 sm:w-8"
                 ),
               })}
               <span className="flex min-w-0 flex-col items-center leading-tight">
                 <span
                   className={cn(
-                    primaryIdleHero ? "text-2xl md:text-lg" : "text-lg sm:text-lg"
+                    primaryHeroExpanded ? "text-2xl md:text-lg" : "text-lg sm:text-lg"
                   )}
                 >
                   {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
                 </span>
-                {primaryIdleHero && !primaryActionPending ? (
+                {primaryHeroExpanded && !primaryActionPending ? (
                   <span className="mt-1 text-sm font-semibold opacity-90 max-md:block md:hidden">
                     Tap to log your shift
                   </span>
@@ -1069,12 +1077,13 @@ export default function LogBar({
       <div
         aria-hidden
         className="max-w-[1400px] mx-auto w-full"
-        style={{ height: headerHeight > 0 ? headerHeight : undefined, minHeight: headerHeight > 0 ? undefined : "7.5rem" }}
+        style={{ height: headerHeight > 0 ? headerHeight : undefined, minHeight: headerHeight > 0 ? undefined : "10rem" }}
       />
       <div
         ref={fixedHeaderRef}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]",
+          "fixed top-0 left-0 right-0 z-50 px-4 transition-[padding] duration-300 pt-[max(0.75rem,env(safe-area-inset-top))]",
+          scrollCompact ? "py-2" : "py-3",
           FIXED_LOG_BAR_SHELL
         )}
       >
