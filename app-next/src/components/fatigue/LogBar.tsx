@@ -301,6 +301,7 @@ export default function LogBar({
    */
   const voiceFinalizeNextLogRef = useRef(false);
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
+  const fixedEndShiftRef = useRef<HTMLDivElement>(null);
   const focusScrollResetRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
@@ -884,6 +885,8 @@ export default function LogBar({
     },
   };
 
+  const showEndShiftDock = shiftSegmentOpen || pendingType === "stop";
+
   useLayoutEffect(() => {
     const el = fixedHeaderRef.current;
     if (!el) return;
@@ -911,6 +914,42 @@ export default function LogBar({
     primaryActionPending,
     sessionToolsOpen,
   ]);
+
+  useLayoutEffect(() => {
+    if (!showEndShiftDock) {
+      document.documentElement.style.setProperty("--driver-end-shift-height", "0px");
+      return () => document.documentElement.style.removeProperty("--driver-end-shift-height");
+    }
+    const el = fixedEndShiftRef.current;
+    if (!el) return;
+    const sync = () => {
+      document.documentElement.style.setProperty("--driver-end-shift-height", `${el.offsetHeight}px`);
+    };
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--driver-end-shift-height");
+    };
+  }, [showEndShiftDock, pendingType, shiftSegmentOpen]);
+
+  const endShiftButton = showEndShiftDock ? (
+    <button
+      type="button"
+      onClick={() => handleLog("stop")}
+      className={cn(
+        "flex w-full items-center justify-center gap-3 rounded-xl px-4 font-bold text-white transition-all duration-150 active:scale-[0.99] shadow-lg min-h-[6rem] text-xl sm:text-2xl",
+        pendingType === "stop"
+          ? "bg-amber-600 hover:bg-amber-700 ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-900 animate-pulse"
+          : ACTIVITY_THEME.stop.button
+      )}
+      aria-label={pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
+    >
+      {React.createElement(EVENT_ICONS.stop, { className: "h-8 w-8 shrink-0" })}
+      {pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
+    </button>
+  ) : null;
 
   const barContent = (
     <div className={cn("space-y-2", isIdleAtTop && "space-y-4")}>
@@ -971,12 +1010,12 @@ export default function LogBar({
             className={cn(
               "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
               primaryHeroExpanded
-                ? "mx-auto w-full max-w-md justify-center min-h-[12rem] rounded-2xl py-10 shadow-2xl shadow-emerald-500/30 ring-4 ring-emerald-400/20"
+                ? "mx-auto w-full max-w-md justify-center min-h-[24rem] rounded-2xl py-16 shadow-2xl shadow-emerald-500/30 ring-4 ring-emerald-400/20"
                 : currentType === null
-                  ? "min-h-[5rem] justify-center py-5 md:min-h-[4rem] md:py-4"
+                  ? "min-h-[10rem] justify-center py-10 md:min-h-[8rem] md:py-8"
                   : scrollCompact
-                    ? "py-2 sm:py-3"
-                    : "py-3 sm:py-4",
+                    ? "py-4 sm:py-6"
+                    : "py-6 sm:py-8",
               actionChrome.surfaceClass,
               actionChrome.textClass,
               primaryActionPending &&
@@ -993,13 +1032,13 @@ export default function LogBar({
               {React.createElement(EVENT_ICONS[nextWorkBreak], {
                 className: cn(
                   "shrink-0 drop-shadow-sm",
-                  primaryHeroExpanded ? "h-14 w-14" : "h-9 w-9 sm:h-8 sm:w-8"
+                  primaryHeroExpanded ? "h-20 w-20" : "h-14 w-14 sm:h-12 sm:w-12"
                 ),
               })}
               <span className="flex min-w-0 flex-col items-center leading-tight">
                 <span
                   className={cn(
-                    primaryHeroExpanded ? "text-3xl" : "text-lg sm:text-lg"
+                    primaryHeroExpanded ? "text-4xl" : "text-2xl sm:text-xl"
                   )}
                 >
                   {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
@@ -1010,7 +1049,7 @@ export default function LogBar({
               <div className="flex w-full min-w-0 items-center gap-2">
                 <div
                   className={cn(
-                    "relative h-9 min-h-9 sm:h-10 sm:min-h-10 flex-1 min-w-0 rounded-lg overflow-hidden",
+                    "relative h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20 flex-1 min-w-0 rounded-lg overflow-hidden",
                     barOnColoredHeader
                       ? "bg-black/60 ring-2 ring-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.55)] dark:bg-black/65 dark:ring-white/30"
                       : "bg-slate-100 dark:bg-slate-700"
@@ -1105,7 +1144,7 @@ export default function LogBar({
                 </div>
                 <span
                   className={cn(
-                    "flex h-9 min-h-9 sm:h-10 sm:min-h-10 shrink-0 items-center font-mono text-[1.75rem] font-extrabold tabular-nums leading-none tracking-tight sm:text-[2rem]",
+                    "flex h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20 shrink-0 items-center font-mono text-[2.25rem] font-extrabold tabular-nums leading-none tracking-tight sm:text-[2.5rem]",
                     barOnColoredHeader
                       ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
                       : "text-slate-900 dark:text-slate-100"
@@ -1118,25 +1157,6 @@ export default function LogBar({
               </div>
             ) : null}
           </button>
-          {(shiftSegmentOpen || pendingType === "stop") &&
-            (() => {
-              const type = "stop";
-              const isPending = pendingType === type;
-              const theme = ACTIVITY_THEME[type];
-              const buttonColors = isPending
-                ? "bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300"
-                : theme.button;
-              return (
-                <button
-                  type="button"
-                  onClick={() => handleLog(type)}
-                  className={`flex w-full sm:w-auto items-center justify-center gap-2 px-4 py-3 sm:py-2.5 rounded-lg text-white text-sm sm:text-base font-bold min-h-[48px] transition-all duration-150 active:scale-95 shadow-sm shrink-0 ${buttonColors} ${isPending ? "ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-800 animate-pulse" : ""}`}
-                >
-                  {React.createElement(EVENT_ICONS[type], { className: "w-5 h-5" })}
-                  {isPending ? "Tap again to end shift" : EVENT_LABELS[type]}
-                </button>
-              );
-            })()}
         </div>
       </div>
     </div>
@@ -1151,7 +1171,7 @@ export default function LogBar({
           className="max-w-[1400px] mx-auto w-full"
           style={{
             height: headerHeight > 0 ? headerHeight : undefined,
-            minHeight: headerHeight > 0 ? undefined : "10rem",
+            minHeight: headerHeight > 0 ? undefined : "20rem",
           }}
         />
       )}
@@ -1574,6 +1594,19 @@ export default function LogBar({
           </div>,
           document.body
         )}
+      {showEndShiftDock && (
+        <div
+          ref={fixedEndShiftRef}
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+            sessionDimmed
+              ? "bg-slate-950/90 border-t border-white/10 backdrop-blur-md"
+              : "bg-slate-50/95 dark:bg-slate-950/95 border-t border-slate-200 dark:border-slate-700 backdrop-blur-sm shadow-[0_-4px_24px_rgba(0,0,0,0.12)]"
+          )}
+        >
+          <div className="max-w-[1400px] mx-auto">{endShiftButton}</div>
+        </div>
+      )}
     </>
   );
 }

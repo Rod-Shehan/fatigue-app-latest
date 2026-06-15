@@ -1132,7 +1132,14 @@ export function SheetDetail({
 
   if (isLoading || !sheet) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
+      <div
+        className={cn(
+          "min-h-screen bg-slate-50 dark:bg-slate-950",
+          canShowLogBar
+            ? "pb-[max(1.5rem,var(--driver-end-shift-height,0px))]"
+            : "pb-6"
+        )}
+      >
         <div className="max-w-[1400px] mx-auto px-4 py-6">
           <PageHeader
             backHref={isManager ? "/manager" : "/sheets"}
@@ -1151,7 +1158,14 @@ export function SheetDetail({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
+    <div
+      className={cn(
+        "min-h-screen bg-slate-50 dark:bg-slate-950",
+        canShowLogBar
+          ? "pb-[max(1.5rem,var(--driver-end-shift-height,0px))]"
+          : "pb-6"
+      )}
+    >
       {canShowLogBar && (
         <>
           <LogBar
@@ -1396,7 +1410,7 @@ export function SheetDetail({
                         ref={(el) => {
                           dayCardElsRef.current[idx] = el;
                         }}
-                        className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
+                        className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,20rem)]" : "scroll-mt-6"}
                       >
                         <DayEntry
                           dayIndex={idx}
@@ -1455,7 +1469,7 @@ export function SheetDetail({
                         ref={(el) => {
                           dayCardElsRef.current[idx] = el;
                         }}
-                        className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
+                        className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,20rem)]" : "scroll-mt-6"}
                       >
                         <DayEntry
                           dayIndex={idx}
@@ -1503,7 +1517,7 @@ export function SheetDetail({
                   ref={(el) => {
                     dayCardElsRef.current[idx] = el;
                   }}
-                  className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,13rem)]" : "scroll-mt-6"}
+                  className={canShowLogBar ? "scroll-mt-[var(--driver-log-bar-height,20rem)]" : "scroll-mt-6"}
                 >
                   <DayEntry
                     dayIndex={idx}
