@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Clock,
   SlidersHorizontal,
+  MoreVertical,
 } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -302,6 +303,7 @@ export default function LogBar({
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
+  const [focusToolsOpen, setFocusToolsOpen] = useState(false);
 
   useEffect(() => {
     setVoiceAlertsEnabled(getVoiceAlertsEnabled());
@@ -467,8 +469,6 @@ export default function LogBar({
   }, [currentType, eventsForDriver, isLiveNow, tick]);
 
   const complianceChrome = getComplianceChrome(complianceTone, breakDueTone);
-  /** Dark inset track on the unified action when it carries compliance colour. */
-  const barOnColoredHeader = complianceChrome.onColoredSurface;
 
   const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
   const primaryActionPending = pendingType === nextWorkBreak;
@@ -479,8 +479,31 @@ export default function LogBar({
       : "Start shift"
     : EVENT_LABELS[nextWorkBreak];
 
-  const primaryHeroExpanded =
+  /** Live + idle at scroll top: mobile focus mode (centered hero); desktop keeps top bar. */
+  const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
+  const primaryHeroExpanded = isIdleAtTop;
+
+  /** Idle focus: strong emerald CTA instead of neutral gray on dark shell. */
+  const actionChrome =
+    isIdleAtTop && complianceTone === "default" && breakDueTone == null
+      ? getComplianceChrome("ok", null)
+      : complianceChrome;
+  /** Dark inset track on the unified action when it carries compliance colour. */
+  const barOnColoredHeader = actionChrome.onColoredSurface;
+
+  useEffect(() => {
+    if (!isIdleAtTop) setFocusToolsOpen(false);
+  }, [isIdleAtTop]);
+
+  useEffect(() => {
+    if (isIdleAtTop) {
+      document.documentElement.setAttribute("data-driver-focus", "");
+    } else {
+      document.documentElement.removeAttribute("data-driver-focus");
+    }
+    return () => document.documentElement.removeAttribute("data-driver-focus");
+  }, [isIdleAtTop]);
 
   /** Idle hero at top; compact header when driver scrolls down the sheet. */
   useEffect(() => {
@@ -825,7 +848,8 @@ export default function LogBar({
     const el = fixedHeaderRef.current;
     if (!el) return;
     const sync = () => {
-      const h = el.offsetHeight;
+      const mobileFocus = isIdleAtTop && window.matchMedia("(max-width: 767px)").matches;
+      const h = mobileFocus ? 0 : el.offsetHeight;
       setHeaderHeight(h);
       document.documentElement.style.setProperty("--driver-log-bar-height", `${h}px`);
     };
@@ -837,6 +861,7 @@ export default function LogBar({
       document.documentElement.style.removeProperty("--driver-log-bar-height");
     };
   }, [
+    isIdleAtTop,
     scrollCompact,
     primaryHeroExpanded,
     contextualBar,
@@ -844,21 +869,34 @@ export default function LogBar({
     forgottenActionReminder,
     shiftSegmentOpen,
     primaryActionPending,
+    focusToolsOpen,
   ]);
 
   const barContent = (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", isIdleAtTop && "max-md:space-y-4")}>
       {logBarBanner ? (
         <div
           role="status"
-          className="rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 px-3 py-2 text-sm text-slate-700 dark:text-slate-200"
+          className={cn(
+            "px-3 py-2 text-sm",
+            isIdleAtTop
+              ? "max-md:text-center max-md:text-white/80 max-md:px-0 max-md:py-0"
+              : "rounded-lg border border-slate-200/80 dark:border-slate-700 bg-white/70 dark:bg-slate-900/40 text-slate-700 dark:text-slate-200"
+          )}
         >
           {logBarBanner}
         </div>
       ) : null}
       <div className="flex flex-wrap items-stretch justify-center gap-3">
         {driverType === "two_up" && (
-          <span className="flex w-full justify-center items-center gap-2 text-sm text-slate-500 dark:text-slate-400 sm:w-auto sm:justify-start">
+          <span
+            className={cn(
+              "flex w-full justify-center items-center gap-2 text-sm sm:w-auto sm:justify-start",
+              isIdleAtTop
+                ? "max-md:text-white/75"
+                : "text-slate-500 dark:text-slate-400"
+            )}
+          >
             <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
             <button
               type="button"
@@ -895,14 +933,14 @@ export default function LogBar({
             className={cn(
               "flex w-full min-w-0 flex-col gap-2 rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
               primaryHeroExpanded
-                ? "min-h-[9.5rem] justify-center py-8 md:min-h-[4.5rem] md:py-4"
+                ? "justify-center max-md:min-h-[12rem] max-md:rounded-2xl max-md:py-10 max-md:shadow-2xl max-md:shadow-emerald-500/30 max-md:ring-4 max-md:ring-emerald-400/20 min-h-[9.5rem] py-8 md:min-h-[4.5rem] md:py-4 md:shadow-lg"
                 : currentType === null
                   ? "min-h-[5rem] justify-center py-5 md:min-h-[4rem] md:py-4"
                   : scrollCompact
                     ? "py-2 sm:py-3"
                     : "py-3 sm:py-4",
-              complianceChrome.surfaceClass,
-              complianceChrome.textClass,
+              actionChrome.surfaceClass,
+              actionChrome.textClass,
               primaryActionPending &&
                 "ring-2 ring-white ring-offset-2 ring-offset-slate-100 dark:ring-offset-slate-950 animate-pulse"
             )}
@@ -917,22 +955,19 @@ export default function LogBar({
               {React.createElement(EVENT_ICONS[nextWorkBreak], {
                 className: cn(
                   "shrink-0 drop-shadow-sm",
-                  primaryHeroExpanded ? "h-12 w-12 md:h-8 md:w-8" : "h-9 w-9 sm:h-8 sm:w-8"
+                  primaryHeroExpanded
+                    ? "max-md:h-14 max-md:w-14 h-12 w-12 md:h-8 md:w-8"
+                    : "h-9 w-9 sm:h-8 sm:w-8"
                 ),
               })}
               <span className="flex min-w-0 flex-col items-center leading-tight">
                 <span
                   className={cn(
-                    primaryHeroExpanded ? "text-2xl md:text-lg" : "text-lg sm:text-lg"
+                    primaryHeroExpanded ? "max-md:text-3xl text-2xl md:text-lg" : "text-lg sm:text-lg"
                   )}
                 >
                   {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
                 </span>
-                {primaryHeroExpanded && !primaryActionPending ? (
-                  <span className="mt-1 text-sm font-semibold opacity-90 max-md:block md:hidden">
-                    Tap to log your shift
-                  </span>
-                ) : null}
               </span>
             </div>
             {contextualBar ? (
@@ -1073,23 +1108,73 @@ export default function LogBar({
 
   return (
     <>
-      {/* Reserve space matching the fixed header so sheet content is not covered */}
-      <div
-        aria-hidden
-        className="max-w-[1400px] mx-auto w-full"
-        style={{ height: headerHeight > 0 ? headerHeight : undefined, minHeight: headerHeight > 0 ? undefined : "10rem" }}
-      />
+      {/* Reserve space for fixed top bar (not used in mobile focus — button floats centered). */}
+      {!isIdleAtTop && (
+        <div
+          aria-hidden
+          className="max-w-[1400px] mx-auto w-full"
+          style={{
+            height: headerHeight > 0 ? headerHeight : undefined,
+            minHeight: headerHeight > 0 ? undefined : "10rem",
+          }}
+        />
+      )}
+      {isIdleAtTop && (
+        <div
+          className="fixed inset-0 z-40 bg-black/65 max-md:block hidden pointer-events-none transition-opacity duration-500"
+          aria-hidden
+        />
+      )}
       <div
         ref={fixedHeaderRef}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 px-4 transition-[padding] duration-300 pt-[max(0.75rem,env(safe-area-inset-top))]",
-          scrollCompact ? "py-2" : "py-3",
-          FIXED_LOG_BAR_SHELL
+          "fixed z-50 px-4 transition-all duration-500 ease-out",
+          isIdleAtTop
+            ? "max-md:inset-0 max-md:flex max-md:flex-col max-md:items-center max-md:justify-center max-md:px-6 max-md:pt-[max(1rem,env(safe-area-inset-top))] max-md:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-md:bg-transparent max-md:border-0 max-md:shadow-none max-md:backdrop-blur-none md:top-0 md:left-0 md:right-0 md:inset-auto md:block md:pt-[max(0.75rem,env(safe-area-inset-top))] md:py-3 md:bg-slate-50/95 md:dark:bg-slate-950/95 md:backdrop-blur-sm md:border-b md:border-slate-200 md:dark:border-slate-700 md:shadow-sm"
+            : cn(
+                "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
+                scrollCompact ? "py-2" : "py-3",
+                FIXED_LOG_BAR_SHELL
+              )
         )}
       >
-        <div className="max-w-[1400px] mx-auto flex flex-col gap-2 md:flex-row md:items-start md:gap-3">
-          <div className="flex-1 min-w-0 w-full">{barContent}</div>
-          <div className="flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start">
+        {isIdleAtTop && (
+          <div className="max-md:absolute max-md:top-[max(0.75rem,env(safe-area-inset-top))] max-md:right-4 max-md:z-10 md:hidden">
+            <button
+              type="button"
+              onClick={() => setFocusToolsOpen(true)}
+              className="relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-colors"
+              aria-label="More options"
+              aria-expanded={focusToolsOpen}
+              aria-controls="driver-focus-tools-sheet"
+            >
+              <MoreVertical className="h-7 w-7" aria-hidden />
+              {(complianceButton?.hasViolations || complianceButton?.hasWarnings) && (
+                <span
+                  className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-black/40"
+                  aria-hidden
+                />
+              )}
+            </button>
+          </div>
+        )}
+        <div
+          className={cn(
+            "mx-auto w-full",
+            isIdleAtTop
+              ? "max-md:max-w-md max-md:w-full max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
+              : "max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
+          )}
+        >
+          <div className={cn("flex-1 min-w-0 w-full", isIdleAtTop && "max-md:flex max-md:flex-col max-md:justify-center")}>
+            {barContent}
+          </div>
+          <div
+            className={cn(
+              "flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start",
+              isIdleAtTop && "max-md:hidden"
+            )}
+          >
             {complianceButton && (
             <button
               type="button"
@@ -1253,10 +1338,98 @@ export default function LogBar({
             </div>
           </div>
         )}
+        {isIdleAtTop && focusToolsOpen && (
+          <div
+            className="fixed inset-0 z-[55] md:hidden"
+            role="dialog"
+            aria-modal
+            aria-labelledby="driver-focus-tools-title"
+            id="driver-focus-tools-sheet"
+          >
+            <button
+              type="button"
+              className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
+              aria-label="Dismiss options"
+              onClick={() => setFocusToolsOpen(false)}
+            />
+            <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center pointer-events-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <div
+                className="pointer-events-auto w-full max-w-md rounded-2xl border border-white/15 bg-slate-900/95 shadow-2xl p-4 space-y-4 backdrop-blur-md"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h2 id="driver-focus-tools-title" className="text-lg font-bold text-white">
+                      Options
+                    </h2>
+                    <p className="text-xs text-white/60 mt-1">Compliance, voice, and display</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-xl p-2 hover:bg-white/10 text-white/80"
+                    onClick={() => setFocusToolsOpen(false)}
+                    aria-label="Close"
+                  >
+                    <X className="h-7 w-7" />
+                  </button>
+                </div>
+                {complianceButton && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFocusToolsOpen(false);
+                      complianceButton.onClick();
+                    }}
+                    disabled={complianceButton.loading}
+                    className="flex w-full items-center gap-3 min-h-[52px] rounded-xl px-4 bg-white/10 hover:bg-white/15 text-white font-semibold disabled:opacity-60"
+                  >
+                    {complianceButton.loading ? (
+                      <Loader2 className="w-6 h-6 animate-spin shrink-0" aria-hidden />
+                    ) : complianceButton.hasViolations ? (
+                      <X className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={3} aria-hidden />
+                    ) : complianceButton.hasWarnings ? (
+                      <AlertTriangle className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={2.5} aria-hidden />
+                    ) : (
+                      <ClipboardList className="w-6 h-6 shrink-0 text-emerald-300" strokeWidth={2} aria-hidden />
+                    )}
+                    <span className="flex-1 text-left">
+                      {complianceButton.loading
+                        ? "Checking compliance…"
+                        : complianceButton.hasViolations
+                          ? "Compliance — issues"
+                          : complianceButton.hasWarnings
+                            ? "Compliance — warnings"
+                            : "Compliance — all clear"}
+                    </span>
+                  </button>
+                )}
+                <div className="flex flex-wrap items-center justify-center gap-5 pt-1">
+                  <VoiceCommandControl
+                    {...voiceCommandProps}
+                    buttonClassName={touchSheetBtn}
+                    iconClassName={touchSheetIcon}
+                  />
+                  <VoiceAlertsToggle
+                    enabled={voiceAlertsEnabled}
+                    onChange={setVoiceAlertsEnabled}
+                    buttonClassName={touchSheetBtn}
+                    iconClassName={touchSheetIcon}
+                  />
+                  <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {forgottenActionReminder && (
           <div
             role="alert"
-            className="max-w-[1400px] mx-auto mt-2 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100"
+            className={cn(
+              "rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100",
+              isIdleAtTop
+                ? "max-md:mx-auto max-md:mt-4 max-md:max-w-md max-md:w-full max-md:border-amber-400/40 max-md:bg-amber-950/80 max-md:text-amber-100 md:max-w-[1400px] md:mx-auto md:mt-2"
+                : "max-w-[1400px] mx-auto mt-2"
+            )}
           >
             <div className="flex items-center gap-2 flex-wrap">
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden />
@@ -1274,7 +1447,7 @@ export default function LogBar({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMobileToolsOpen(true)}
+                  onClick={() => (isIdleAtTop ? setFocusToolsOpen(true) : setMobileToolsOpen(true))}
                   className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold"
                 >
                   Show tools
