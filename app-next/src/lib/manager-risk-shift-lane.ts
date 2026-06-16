@@ -166,13 +166,6 @@ export function buildShiftLaneCells(
 
   return blocks.map((block, index) => {
     const generated = block.blockStartMs > nowBlock;
-    const recorded = generated
-      ? null
-      : resolveRecordedKind(block.blockStartMs, events, dayCoverage, nowMs);
-    const breakDueOverlap =
-      !generated &&
-      blockOverlapsBreakDue(block.blockStartMs, breakDue, nowMs) &&
-      recorded === "work";
 
     if (generated) {
       const riskPct = block.baselinePct;
@@ -195,9 +188,13 @@ export function buildShiftLaneCells(
       };
     }
 
+    const kind = resolveRecordedKind(block.blockStartMs, events, dayCoverage, nowMs);
+    const breakDueOverlap =
+      blockOverlapsBreakDue(block.blockStartMs, breakDue, nowMs) && kind === "work";
+
     return {
       blockStartMs: block.blockStartMs,
-      kind: recorded,
+      kind,
       generated: false,
       breakDue: breakDueOverlap,
     };
