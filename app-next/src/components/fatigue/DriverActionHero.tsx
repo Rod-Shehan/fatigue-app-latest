@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { formatComplianceCountdown } from "@/lib/driver-action-format";
 import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { cn } from "@/lib/utils";
+import { driverActionSizeClass } from "@/lib/driver-action-sizes";
 
 export interface DriverActionHeroProps {
   workMinutesUsed: number;
@@ -91,11 +92,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const showCompactLabel = compact && actionPending;
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
 
-  const sizeClass = expanded
-    ? "size-[min(72vw,18rem)]"
-    : compact
-      ? "size-[4.5rem] sm:size-[5rem]"
-      : "size-[min(64vw,12rem)] sm:size-[12rem]";
+  const sizeClass = driverActionSizeClass(expanded, compact);
 
   const sharedSurfaceClass = cn(
     "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out",

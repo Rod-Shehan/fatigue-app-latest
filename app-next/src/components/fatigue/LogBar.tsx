@@ -49,6 +49,10 @@ import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import {
+  endShiftButtonSizeClass,
+  endShiftIconSizeClass,
+} from "@/lib/driver-action-sizes";
+import {
   requestDriverImmersive,
   syncDriverImmersiveClass,
 } from "@/lib/driver-fullscreen";
@@ -740,25 +744,27 @@ export default function LogBar({
     };
   }, [showEndShiftDock, pendingType, shiftSegmentOpen]);
 
+  /** Scrolled down on live sheet — shrink primary log control to top-bar icon. */
+  const primaryBarCompact = scrollCompact && Boolean(isLiveNow);
+
   const endShiftButton = showEndShiftDock ? (
     <button
       type="button"
       onClick={() => handleLog("stop")}
       className={cn(
-        "flex w-full items-center justify-center gap-1.5 rounded-lg px-3 font-bold text-white transition-all duration-150 active:scale-[0.99] shadow-md min-h-[1.5rem] py-1.5 text-sm",
+        "flex shrink-0 items-center justify-center rounded-full font-bold text-white transition-all duration-500 ease-out shadow-lg active:scale-[0.98]",
+        endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact),
         pendingType === "stop"
-          ? "bg-amber-600 hover:bg-amber-700 ring-2 ring-white ring-offset-2 ring-offset-slate-200 dark:ring-offset-slate-900 animate-pulse"
+          ? "bg-amber-600 hover:bg-amber-700 ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
           : ACTIVITY_THEME.stop.button
       )}
       aria-label={pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
     >
-      {React.createElement(EVENT_ICONS.stop, { className: "h-4 w-4 shrink-0" })}
-      {pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
+      {React.createElement(EVENT_ICONS.stop, {
+        className: cn("shrink-0", endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact)),
+      })}
     </button>
   ) : null;
-
-  /** Scrolled down on live sheet — shrink primary log control to ¼ size. */
-  const primaryBarCompact = scrollCompact && Boolean(isLiveNow);
 
   const barContent = (
     <div className={cn("space-y-2", isIdleAtTop && "space-y-4")}>
@@ -871,7 +877,7 @@ export default function LogBar({
           sessionDimmed
             ? cn(
                 "inset-0 flex flex-col items-center justify-center px-6 pt-[max(1rem,env(safe-area-inset-top))]",
-                "pb-[max(1.5rem,calc(var(--driver-end-shift-height,0px)+0.75rem),env(safe-area-inset-bottom))]",
+                "pb-[max(1rem,env(safe-area-inset-bottom))]",
                 "bg-transparent border-0 shadow-none backdrop-blur-none pointer-events-none"
               )
             : cn(
@@ -1278,13 +1284,12 @@ export default function LogBar({
         <div
           ref={fixedEndShiftRef}
           className={cn(
-            "fixed bottom-0 left-0 right-0 z-50 px-4 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]",
-            sessionDimmed
-              ? "bg-slate-950/90 border-t border-white/10 backdrop-blur-md"
-              : "bg-slate-50/95 dark:bg-slate-950/95 border-t border-slate-200 dark:border-slate-700 backdrop-blur-sm shadow-[0_-4px_24px_rgba(0,0,0,0.12)]"
+            "fixed z-[55] flex pointer-events-none",
+            "right-[max(0.75rem,env(safe-area-inset-right))]",
+            "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
           )}
         >
-          <div className="max-w-[1400px] mx-auto">{endShiftButton}</div>
+          <div className="pointer-events-auto">{endShiftButton}</div>
         </div>
       )}
     </>
