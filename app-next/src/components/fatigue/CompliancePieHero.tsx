@@ -77,25 +77,33 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
 
   const showWorkCountdown = !isMoving && currentSegment === "work" && !isIdleAtTop;
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
-  const ringSizeClass = expanded
-    ? "w-full max-w-[min(88vw,24rem)]"
+
+  /** Fixed square — avoids flex stretch blowing up w-full + aspect-square. */
+  const pieSizeClass = expanded
+    ? "size-[min(72vw,18rem)]"
     : compact
-      ? "w-[4.5rem] sm:w-[5rem]"
-      : "w-full max-w-[min(100vw-2rem,14rem)] sm:max-w-[12rem]";
+      ? "size-[4.5rem] sm:size-[5rem]"
+      : "size-[min(64vw,12rem)] sm:size-[12rem]";
+
+  const hubInsetClass = expanded ? "inset-[16%]" : compact ? "inset-[12%]" : "inset-[14%]";
 
   return (
     <div
-      className={cn("mx-auto flex flex-col items-center", className)}
+      className={cn("mx-auto flex shrink-0 flex-col items-center", className)}
       data-tier={pie.wedgeTier}
       data-moving={isMoving ? "true" : "false"}
     >
-      <div className={cn("relative aspect-square transition-all duration-500 ease-out", ringSizeClass)}>
+      <div className={cn("relative shrink-0 transition-all duration-500 ease-out", pieSizeClass)}>
+        {/* Base track — always visible on dark focus overlay */}
+        <div
+          className="absolute inset-0 rounded-full bg-slate-600/70 ring-2 ring-slate-400/25"
+          aria-hidden
+        />
+        {/* Compliance wedge */}
         <div
           className={cn(
-            "absolute inset-0 rounded-full bg-slate-950",
-            "ring-4 ring-slate-800/90 transition-all duration-500 ease-out",
-            isMoving && "ring-[6px] ring-slate-900/80 shadow-[0_8px_32px_rgba(0,0,0,0.55)]",
-            expanded && !isMoving && "shadow-2xl shadow-emerald-500/20"
+            "absolute inset-0 rounded-full transition-all duration-500 ease-out",
+            expanded && !isMoving && "shadow-lg shadow-black/40"
           )}
           style={{ background: pie.wedgeGradient }}
           aria-hidden
@@ -107,7 +115,8 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
             onClick={onAction}
             disabled={actionDisabled}
             className={cn(
-              "absolute inset-[12%] flex flex-col items-center justify-center rounded-full",
+              "absolute flex flex-col items-center justify-center rounded-full",
+              hubInsetClass,
               "font-bold transition-all duration-500 ease-out",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
               "active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none",
@@ -115,7 +124,7 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
               pie.chrome.textClass,
               actionPending &&
                 "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse",
-              expanded ? "gap-2 px-4" : compact ? "gap-0 px-1" : "gap-1.5 px-3"
+              expanded ? "gap-1.5 px-3" : compact ? "gap-0 px-0.5" : "gap-1 px-2"
             )}
             aria-label={hubLabel}
           >
@@ -123,14 +132,14 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
               <ActionIcon
                 className={cn(
                   "shrink-0 drop-shadow-sm",
-                  expanded ? "h-16 w-16" : compact ? "h-5 w-5" : "h-10 w-10 sm:h-12 sm:w-12"
+                  expanded ? "h-11 w-11" : compact ? "h-5 w-5" : "h-9 w-9 sm:h-10 sm:w-10"
                 )}
               />
             ) : null}
             <span
               className={cn(
                 "text-center leading-tight",
-                expanded ? "text-2xl sm:text-3xl" : compact ? "text-[10px] leading-none" : "text-lg sm:text-xl"
+                expanded ? "text-lg sm:text-xl" : compact ? "text-[9px] leading-none" : "text-base sm:text-lg"
               )}
             >
               {hubLabel}
@@ -139,8 +148,8 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
               <>
                 <span
                   className={cn(
-                    "font-black tabular-nums tracking-tight",
-                    expanded ? "text-4xl sm:text-5xl" : compact ? "text-xs" : "text-2xl sm:text-3xl",
+                    "font-black tabular-nums tracking-tight leading-none",
+                    expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
                     pie.chrome.onColoredSurface && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   )}
                 >
@@ -148,8 +157,8 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
                 </span>
                 <span
                   className={cn(
-                    "uppercase tracking-[0.18em] font-semibold opacity-90",
-                    expanded ? "text-[0.65rem]" : "text-[0.6rem]",
+                    "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight",
+                    expanded ? "text-[0.6rem]" : "text-[0.55rem]",
                     pie.breakDueTone === "red"
                       ? "text-white"
                       : pie.breakDueTone === "amber"
@@ -166,8 +175,8 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
             {elapsedLabel ? (
               <span
                 className={cn(
-                  "font-mono font-extrabold tabular-nums",
-                  expanded ? "text-2xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
+                  "font-mono font-extrabold tabular-nums leading-none",
+                  expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
                   pie.chrome.onColoredSurface
                     ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
                     : "text-slate-900 dark:text-slate-100"

@@ -19,6 +19,7 @@ const TIER_GRADIENT: Record<ComplianceClockTier, { from: string; to: string }> =
 };
 
 const TRACK_COLOR = COMPLIANCE_PIE_PALETTE.track;
+const IDLE_TRACK_COLOR = COMPLIANCE_PIE_PALETTE.idleTrack;
 
 export function clampWorkMinutesUsed(workMinutesUsed: number, totalWindowMinutes: number): number {
   if (!Number.isFinite(workMinutesUsed) || workMinutesUsed < 0) return 0;
@@ -56,9 +57,15 @@ export function getUsedWedgePercent(workMinutesUsed: number, totalWindowMinutes:
   return Math.min(100, Math.max(0, (used / totalWindowMinutes) * 100));
 }
 
-/** Empty in-cab track (idle / on break) — no used wedge. */
+/** Empty in-cab track (idle / on break) — visible ring on dark overlay. */
 export function buildNeutralPieTrackGradient(): string {
-  return `conic-gradient(from -90deg, ${TRACK_COLOR} 0deg, ${TRACK_COLOR} 360deg)`;
+  return `conic-gradient(from -90deg, ${IDLE_TRACK_COLOR} 0deg, ${IDLE_TRACK_COLOR} 360deg)`;
+}
+
+/** Work segment with no logged minutes yet — faint full-ring hint in tier colour. */
+export function buildWorkWindowEmptyRingGradient(tier: ComplianceClockTier): string {
+  const { from } = TIER_GRADIENT[tier];
+  return `conic-gradient(from -90deg, ${from} 0deg, ${from} 360deg)`;
 }
 
 /** Conic gradient for a solid clockwise “used time” wedge from 12 o'clock. */
@@ -72,7 +79,7 @@ export function buildComplianceClockConicGradient(
   const { from, to } = TIER_GRADIENT[tier];
   const midDeg = sweepDeg * 0.55;
   if (sweepDeg <= 0) {
-    return buildNeutralPieTrackGradient();
+    return buildWorkWindowEmptyRingGradient(tier);
   }
   if (sweepDeg >= 360) {
     return `conic-gradient(from -90deg, ${from} 0deg, ${to} 360deg)`;

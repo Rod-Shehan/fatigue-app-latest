@@ -714,11 +714,7 @@ export default function LogBar({
             }
             expanded={primaryHeroExpanded}
             compact={primaryBarCompact && !sessionDimmed}
-            className={cn(
-              "w-full",
-              sessionDimmed && "max-w-md",
-              primaryBarCompact && !sessionDimmed && "max-w-none"
-            )}
+            className="shrink-0"
           />
         </div>
       </div>
@@ -785,11 +781,18 @@ export default function LogBar({
           className={cn(
             "mx-auto w-full",
             sessionDimmed
-              ? "max-w-md w-full flex flex-col items-center justify-center"
+              ? "flex shrink-0 flex-col items-center justify-center"
               : "max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
           )}
         >
-          <div className={cn("flex-1 min-w-0 w-full", sessionDimmed && "flex flex-col items-center justify-center")}>
+          <div
+            className={cn(
+              "min-w-0 w-full",
+              sessionDimmed
+                ? "flex shrink-0 flex-col items-center justify-center"
+                : "flex-1"
+            )}
+          >
             {barContent}
           </div>
           <div

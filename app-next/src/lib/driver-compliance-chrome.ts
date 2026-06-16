@@ -11,7 +11,8 @@ export const COMPLIANCE_PIE_PALETTE = {
   safe: { from: "#10b981", to: "#059669" }, // emerald-500 → emerald-600
   warning: { from: "#f59e0b", to: "#d97706" }, // amber-500 → amber-600
   breach: { from: "#dc2626", to: "#b91c1c" }, // red-600 → red-700
-  track: "#020617", // slate-950
+  track: "#020617", // slate-950 — unused wedge portion
+  idleTrack: "#475569", // slate-600 — visible on dark focus overlay
 } as const;
 
 export type CompliancePieWedgeTier = "safe" | "warning" | "breach" | "neutral";

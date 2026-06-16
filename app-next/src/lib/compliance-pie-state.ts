@@ -60,16 +60,12 @@ export function resolveCompliancePieState(input: CompliancePieStateInput): Compl
   const wedgeTier = resolvePieWedgeTier(complianceTone, breakDueTone);
   const clockTier = wedgeTierToClockTier(wedgeTier);
 
-  const showWedge =
-    input.showWorkWindowWedge !== false &&
-    input.currentSegment === "work" &&
-    wedgeTier !== "neutral";
+  const showWedge = input.showWorkWindowWedge !== false && input.currentSegment === "work";
 
   const usedForGradient = showWedge ? input.workMinutesUsed : 0;
-  const wedgeGradient =
-    wedgeTier === "neutral" || !showWedge
-      ? buildNeutralPieTrackGradient()
-      : buildComplianceClockConicGradient(usedForGradient, input.totalWindowMinutes, clockTier);
+  const wedgeGradient = showWedge
+    ? buildComplianceClockConicGradient(usedForGradient, input.totalWindowMinutes, clockTier)
+    : buildNeutralPieTrackGradient();
 
   const chrome = resolveActionChrome({
     complianceTone,
