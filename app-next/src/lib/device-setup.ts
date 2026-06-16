@@ -25,7 +25,9 @@ export function isStandaloneDisplay(): boolean {
   const nav = navigator as unknown as { standalone?: boolean };
   if (typeof nav.standalone === "boolean") return nav.standalone;
   // Android/modern: matchMedia display-mode
-  return window.matchMedia?.("(display-mode: standalone)")?.matches ?? false;
+  if (window.matchMedia?.("(display-mode: standalone)")?.matches) return true;
+  if (window.matchMedia?.("(display-mode: fullscreen)")?.matches) return true;
+  return false;
 }
 
 export type PersistStorageResult =

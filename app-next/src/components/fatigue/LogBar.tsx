@@ -37,6 +37,10 @@ import {
 import { computeWorkPeriodAtEnd, WORK_WINDOW_MIN } from "@/lib/five-hour-break-rule";
 import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
 import { CompliancePieHero } from "@/components/fatigue/CompliancePieHero";
+import {
+  requestDriverImmersive,
+  syncDriverImmersiveClass,
+} from "@/lib/driver-fullscreen";
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
@@ -469,7 +473,20 @@ export default function LogBar({
     [dayForCardFields, eventsForDriver, onStartShiftBlocked]
   );
 
+  useEffect(() => {
+    if (!isLiveNow) return;
+    syncDriverImmersiveClass();
+    const onFullscreenChange = () => syncDriverImmersiveClass();
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+    };
+  }, [isLiveNow]);
+
   const handleLog = (type: string) => {
+    void requestDriverImmersive().then(() => syncDriverImmersiveClass());
     if (type === currentType) return;
 
     if (

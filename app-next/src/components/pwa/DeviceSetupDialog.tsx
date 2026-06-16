@@ -85,10 +85,10 @@ export function DeviceSetupDialog({
               title="Install recommended"
               desc={
                 inStandalone
-                  ? "Installed: opening from the home screen is recommended for remote areas."
+                  ? "Installed fullscreen: opens without browser bars — best for dashboard mounting."
                   : ios
-                    ? "On iPhone/iPad: Share → Add to Home Screen."
-                    : "On Android: menu → Install app."
+                    ? "On iPhone/iPad: Share → Add to Home Screen for fullscreen cab mode."
+                    : "On Android: menu → Install app (or Add to Home Screen) for fullscreen."
               }
             />
           </div>

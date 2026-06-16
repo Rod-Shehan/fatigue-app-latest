@@ -4,7 +4,7 @@
   "description": "Driver fatigue record that works offline in WA.",
   "start_url": "/driver",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [

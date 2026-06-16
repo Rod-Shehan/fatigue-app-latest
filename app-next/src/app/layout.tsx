@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PRODUCT_NAME, TAGLINE_VEHICLE } from "@/lib/branding";
 import { Providers } from "@/components/providers";
@@ -7,6 +7,13 @@ import { ThemeToggleInLayout } from "@/components/theme-toggle-in-layout";
 export const metadata: Metadata = {
   title: `${PRODUCT_NAME} – WA`,
   description: `${PRODUCT_NAME} — ${TAGLINE_VEHICLE}`,
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0f172a",
 };
 
 const themeScript = `
@@ -25,10 +32,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#0f172a" />
         <meta name="application-name" content={PRODUCT_NAME} />
         <meta name="apple-mobile-web-app-title" content={PRODUCT_NAME} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.webmanifest" />
         <link rel="icon" href="/icons/icon-192.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icons/icon-512.svg" />

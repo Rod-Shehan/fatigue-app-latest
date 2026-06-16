@@ -34,7 +34,22 @@
 
 @layer base {
   * { @apply border-border; }
-  body { @apply bg-background text-foreground; }
+  html {
+    min-height: 100%;
+    min-height: 100dvh;
+  }
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100%;
+    min-height: 100dvh;
+  }
+}
+
+/* Installed PWA or Fullscreen API — edge-to-edge in cab */
+html.driver-immersive body {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* Light mode: darker theme with clear contrast */
