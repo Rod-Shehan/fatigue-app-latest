@@ -79,6 +79,27 @@ export function resolveBreakDueTone(
   return null;
 }
 
+/** Wedge colour tier for the pie ring during work — 5h window only. */
+export function resolveWorkWindowWedgeTier(breakDueTone: BreakDueTone): CompliancePieWedgeTier {
+  if (breakDueTone === "red") return "breach";
+  if (breakDueTone === "amber") return "warning";
+  return "safe";
+}
+
+/** Pie hub/ring tone — in-cab operational state only (not sheet retrospective warnings). */
+export function resolvePieOperationalTone(input: {
+  loading?: boolean;
+  currentSegment?: "work" | "break" | null;
+  breakRestIncomplete?: boolean;
+  shiftSegmentOpen?: boolean;
+}): ComplianceTone {
+  if (input.loading) return "default";
+  if (input.breakRestIncomplete) return "pending";
+  if (input.currentSegment === "work" || input.currentSegment === "break") return "ok";
+  if (input.shiftSegmentOpen) return "ok";
+  return "default";
+}
+
 /** Wedge colour tier — mirrors getComplianceChrome priority (sheet issues → break due → ok). */
 export function resolvePieWedgeTier(
   complianceTone: ComplianceTone,

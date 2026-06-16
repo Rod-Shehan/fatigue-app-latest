@@ -83,4 +83,50 @@ describe("resolveCompliancePieState", () => {
     expect(state.wedgeGradient).toContain("#f59e0b");
     expect(state.chrome.surfaceClass).toContain("amber-500");
   });
+
+  it("shows break arc track and pending hub when on break without ring data", () => {
+    const state = resolveCompliancePieState({
+      workMinutesUsed: 120,
+      totalWindowMinutes: 300,
+      currentSegment: "break",
+      shiftSegmentOpen: true,
+      hasWarnings: true,
+    });
+    expect(state.complianceTone).toBe("pending");
+    expect(state.wedgeGradient).toContain("90deg");
+    expect(state.wedgeGradient).toContain("180deg");
+    expect(state.chrome.surfaceClass).toContain("amber-500");
+  });
+
+  it("maps 7 min into break to amber in the first 10 min slot", () => {
+    const state = resolveCompliancePieState({
+      workMinutesUsed: 0,
+      totalWindowMinutes: 300,
+      currentSegment: "break",
+      shiftSegmentOpen: true,
+      breakRing: {
+        leftPct: 70,
+        rightPct: 0,
+        complete: false,
+        priorSlot1: false,
+        priorSlot2: false,
+      },
+    });
+    expect(state.wedgeGradient).toContain("#f59e0b");
+    expect(state.wedgeGradient).toMatch(/6[23](\.\d+)?deg/);
+    expect(state.complianceTone).toBe("pending");
+  });
+
+  it("stays emerald on work when sheet has warnings but 5h window is safe", () => {
+    const state = resolveCompliancePieState({
+      workMinutesUsed: 1,
+      totalWindowMinutes: 300,
+      currentSegment: "work",
+      shiftSegmentOpen: true,
+      hasWarnings: true,
+    });
+    expect(state.breakDueTone).toBe(null);
+    expect(state.chrome.surfaceClass).toContain("bg-emerald-500");
+    expect(state.statusLabel).toBe("WORK WINDOW LEFT");
+  });
 });

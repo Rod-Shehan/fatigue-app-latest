@@ -70,7 +70,7 @@ describe("buildBreakSplitPieGradient", () => {
     expect(g).not.toContain("#f59e0b");
   });
 
-  it("fills first semicircle with amber while first 10 min elapses", () => {
+  it("fills first 10 min as 90° amber arc from 12 o'clock", () => {
     const g = buildBreakSplitPieGradient({
       leftPct: 50,
       rightPct: 0,
@@ -79,6 +79,22 @@ describe("buildBreakSplitPieGradient", () => {
       priorSlot2: false,
     });
     expect(g).toContain("#f59e0b");
+    expect(g).toContain("45deg");
+    expect(g).toContain("90deg");
+    expect(g).toContain("180deg");
     expect(g).toContain("#475569");
+  });
+
+  it("shows green first slot and amber second while 15 min into break", () => {
+    const g = buildBreakSplitPieGradient({
+      leftPct: 100,
+      rightPct: 50,
+      complete: false,
+      priorSlot1: false,
+      priorSlot2: false,
+    });
+    expect(g).toContain("#10b981");
+    expect(g).toContain("#f59e0b");
+    expect(g).toContain("135deg");
   });
 });

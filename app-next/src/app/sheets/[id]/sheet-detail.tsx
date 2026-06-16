@@ -1253,7 +1253,6 @@ export function SheetDetail({
           }
         : undefined,
       dayTools: isCurrent && isTodayCard ? driverDayTools : undefined,
-      compactOnShift: shiftSegmentOpen && isCurrent && isTodayCard,
     };
   };
 

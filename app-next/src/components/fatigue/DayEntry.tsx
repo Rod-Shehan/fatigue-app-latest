@@ -119,7 +119,6 @@ export default function DayEntry({
   last24hBreak,
   onCrewMetaSync,
   dayTools,
-  compactOnShift = false,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -147,8 +146,6 @@ export default function DayEntry({
   onCrewMetaSync?: (crew: { driver_type: "solo" | "two_up"; second_driver: string }) => void;
   /** Sheet-level tools (compliance, PDF, gear) — today only. */
   dayTools?: DayCardToolsConfig;
-  /** Minimal card while on an open work/break segment. */
-  compactOnShift?: boolean;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -423,13 +420,6 @@ export default function DayEntry({
         </div>
       )}
 
-      {compactOnShift ? (
-        <p className="mb-3 text-sm text-slate-600 dark:text-slate-300 leading-snug">
-          Shift in progress — use <span className="font-semibold">Edit day</span> for crew, route, or km. Day tools
-          {" "}
-          <span className="font-semibold">(⋯)</span> for compliance and records.
-        </p>
-      ) : (
       <div
         className={cn(
           "mb-3 rounded-lg border bg-slate-50/90 dark:bg-slate-950/50 px-3 py-3",
@@ -530,9 +520,8 @@ export default function DayEntry({
           </div>
         )}
       </div>
-      )}
 
-      {!compactOnShift && showRunPlanSection && (
+      {showRunPlanSection && (
         <div className="mb-3 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             type="button"
@@ -570,14 +559,14 @@ export default function DayEntry({
         </div>
       )}
 
-      {!compactOnShift && showShiftPatternEducation && !detailsOpen && (
+      {showShiftPatternEducation && !detailsOpen && (
         <p className="mb-2 text-xs leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
           <span className="font-semibold">Shift pattern:</span> set Day (A) or Night (B) in route details if you swap
           patterns after {formatPatternStreakForDisplay(patternWorkMinutes)}.
         </p>
       )}
 
-      {!compactOnShift && <TimeGrid dayData={{ ...dayData, date: getISODate() }} />}
+      <TimeGrid dayData={{ ...dayData, date: getISODate() }} />
 
       {dayTools && (
         <DayCardToolsSheet

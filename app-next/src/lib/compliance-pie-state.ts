@@ -2,6 +2,7 @@ import {
   buildBreakSplitPieGradient,
   buildComplianceClockConicGradient,
   buildNeutralPieTrackGradient,
+  EMPTY_BREAK_PIE_RING,
   type BreakSplitPieInput,
   formatComplianceCountdown,
   getComplianceClockLabel,
@@ -12,8 +13,9 @@ import {
 import {
   resolveActionChrome,
   resolveBreakDueTone,
-  resolveComplianceTone,
+  resolvePieOperationalTone,
   resolvePieWedgeTier,
+  resolveWorkWindowWedgeTier,
   type BreakDueTone,
   type CompliancePieWedgeTier,
   type ComplianceTone,
@@ -55,38 +57,53 @@ function wedgeTierToClockTier(tier: CompliancePieWedgeTier): ComplianceClockTier
 
 export function resolveCompliancePieState(input: CompliancePieStateInput): CompliancePieState {
   const remainingMinutes = getRemainingWindowMinutes(input.workMinutesUsed, input.totalWindowMinutes);
+  const breakRing =
+    input.currentSegment === "break" ? (input.breakRing ?? EMPTY_BREAK_PIE_RING) : input.breakRing;
   const breakRestIncomplete =
-    input.currentSegment === "break" && input.breakRing != null && !input.breakRing.complete;
+    input.currentSegment === "break" && breakRing != null && !breakRing.complete;
 
-  const complianceTone = resolveComplianceTone({
-    loading: input.complianceLoading,
-    hasViolations: input.hasViolations,
-    hasWarnings: input.hasWarnings,
-    shiftSegmentOpen: input.shiftSegmentOpen,
-    breakRestIncomplete,
-  });
   const breakDueTone = resolveBreakDueTone(remainingMinutes, input.currentSegment);
-  const wedgeTier = resolvePieWedgeTier(complianceTone, breakDueTone);
-  const clockTier = wedgeTierToClockTier(wedgeTier);
+
+  /** Pie = live work/break/idle state. Sheet violations/warnings stay on the compliance ⋮ button. */
+  const pieComplianceTone = resolvePieOperationalTone({
+    loading: input.complianceLoading,
+    currentSegment: input.currentSegment,
+    breakRestIncomplete,
+    shiftSegmentOpen: input.shiftSegmentOpen,
+  });
+
+  const wedgeTier =
+    input.currentSegment === "work"
+      ? resolveWorkWindowWedgeTier(breakDueTone)
+      : resolvePieWedgeTier(pieComplianceTone, null);
+
+  const clockTier: ComplianceClockTier =
+    input.currentSegment === "work"
+      ? breakDueTone === "red"
+        ? "breach"
+        : breakDueTone === "amber"
+          ? "warning"
+          : "safe"
+      : wedgeTierToClockTier(wedgeTier);
 
   const showWedge = input.showWorkWindowWedge !== false && input.currentSegment === "work";
 
   const usedForGradient = showWedge ? input.workMinutesUsed : 0;
   const wedgeGradient = showWedge
     ? buildComplianceClockConicGradient(usedForGradient, input.totalWindowMinutes, clockTier)
-    : input.currentSegment === "break" && input.breakRing
-      ? buildBreakSplitPieGradient(input.breakRing)
+    : input.currentSegment === "break"
+      ? buildBreakSplitPieGradient(breakRing ?? EMPTY_BREAK_PIE_RING)
       : buildNeutralPieTrackGradient();
 
   const chrome = resolveActionChrome({
-    complianceTone,
+    complianceTone: pieComplianceTone,
     breakDueTone,
     isIdleAtTop: input.isIdleAtTop,
     idleRestBlocked: input.idleRestBlocked,
   });
 
   return {
-    complianceTone,
+    complianceTone: pieComplianceTone,
     breakDueTone,
     wedgeTier,
     wedgeGradient,

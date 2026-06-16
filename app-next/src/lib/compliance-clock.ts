@@ -70,14 +70,29 @@ export type BreakSplitPieInput = {
   priorSlot2: boolean;
 };
 
+/** 20 min qualifying rest arc on the ring — clockwise from 12 o'clock. */
+export const BREAK_PIE_ARC_DEG = 180;
+/** Each 10 min slot is half of the 20 min arc. */
+export const BREAK_PIE_SLOT_DEG = BREAK_PIE_ARC_DEG / 2;
+
+export const EMPTY_BREAK_PIE_RING: BreakSplitPieInput = {
+  leftPct: 0,
+  rightPct: 0,
+  complete: false,
+  priorSlot1: false,
+  priorSlot2: false,
+};
+
 /**
- * Radial 2×10 min break progress — first semicircle (12→6) then second (6→12).
- * Amber while filling; emerald when each 10 min slot is satisfied (matches top-bar split bar).
+ * 20 min break arc from 12 o'clock: two 10 min sections (amber while filling, green when banked).
+ * Remainder of the ring stays neutral until rest is complete (then full emerald ring).
  */
 export function buildBreakSplitPieGradient(input: BreakSplitPieInput): string {
   const amber = COMPLIANCE_PIE_PALETTE.warning.from;
   const green = COMPLIANCE_PIE_PALETTE.safe.from;
   const track = IDLE_TRACK_COLOR;
+  const slot1End = BREAK_PIE_SLOT_DEG;
+  const arcEnd = BREAK_PIE_ARC_DEG;
 
   if (input.complete) {
     return `conic-gradient(from 0deg, ${green} 0deg, ${green} 360deg)`;
@@ -92,31 +107,33 @@ export function buildBreakSplitPieGradient(input: BreakSplitPieInput): string {
     else stops.push([deg, color]);
   };
 
-  if (input.priorSlot1) {
+  const slot1Done = input.priorSlot1 || input.leftPct >= 100;
+  if (slot1Done) {
     push(0, green);
-    push(180, green);
+    push(slot1End, green);
   } else {
-    const fill1 = Math.max(0, Math.min(180, (input.leftPct / 100) * 180));
+    const fill1 = Math.max(0, Math.min(slot1End, (input.leftPct / 100) * slot1End));
     push(0, fill1 > 0 ? amber : track);
     if (fill1 > 0) push(fill1, amber);
-    push(180, track);
+    push(slot1End, track);
   }
 
-  if (input.priorSlot2) {
-    push(180, green);
-    push(360, green);
+  const slot2Done = input.priorSlot2 || input.rightPct >= 100;
+  if (slot2Done) {
+    push(slot1End, green);
+    push(arcEnd, green);
   } else {
-    const fill2End = 180 + Math.max(0, Math.min(180, (input.rightPct / 100) * 180));
-    const prevAt180 = stops.find(([d]) => d === 180)?.[1] ?? track;
-    if (fill2End > 180) {
-      push(180, input.priorSlot1 ? green : prevAt180);
+    const fill2End = slot1End + Math.max(0, Math.min(slot1End, (input.rightPct / 100) * slot1End));
+    const colorAtSlot2Start = slot1Done ? green : stops.find(([d]) => d === slot1End)?.[1] ?? track;
+    push(slot1End, colorAtSlot2Start);
+    if (fill2End > slot1End) {
       push(fill2End, amber);
-      push(360, track);
-    } else {
-      push(180, input.priorSlot1 ? green : prevAt180);
-      push(360, track);
     }
+    push(arcEnd, track);
   }
+
+  push(arcEnd, track);
+  push(360, track);
 
   const parts = stops.map(([deg, color]) => `${color} ${deg}deg`).join(", ");
   return `conic-gradient(from 0deg, ${parts})`;
