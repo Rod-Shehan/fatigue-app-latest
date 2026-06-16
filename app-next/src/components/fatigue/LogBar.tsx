@@ -182,6 +182,9 @@ export default function LogBar({
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
   const fixedEndShiftRef = useRef<HTMLDivElement>(null);
   const focusScrollResetRef = useRef(false);
+  /** Compact from swipe/wheel at scrollY 0 — don't immediately re-expand on the scroll listener. */
+  const gestureCompactRef = useRef(false);
+  const touchStartYRef = useRef(0);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
   const [sessionToolsMounted, setSessionToolsMounted] = useState(false);
@@ -419,6 +422,7 @@ export default function LogBar({
   useEffect(() => {
     if (!isLiveNow) {
       setScrollCompact(false);
+      gestureCompactRef.current = false;
       return;
     }
     let raf = 0;
@@ -427,9 +431,15 @@ export default function LogBar({
       raf = window.requestAnimationFrame(() => {
         raf = 0;
         const y = window.scrollY;
+        if (y > SCROLL_EXPAND_THRESHOLD_PX) {
+          gestureCompactRef.current = false;
+        }
         setScrollCompact((prev) => {
           if (!prev && y > SCROLL_COMPACT_THRESHOLD_PX) return true;
-          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX) return false;
+          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX) {
+            if (gestureCompactRef.current) return true;
+            return false;
+          }
           return prev;
         });
       });
@@ -441,6 +451,41 @@ export default function LogBar({
       if (raf) window.cancelAnimationFrame(raf);
     };
   }, [isLiveNow]);
+
+  /**
+   * Centered hero blocks most of the viewport — window scrollY may stay 0 while the driver
+   * swipes the sheet. Treat wheel / upward swipe as minimize intent.
+   */
+  useEffect(() => {
+    if (!isLiveNow || !sessionDimmed) return;
+
+    const minimizeFromGesture = () => {
+      if (window.scrollY <= SCROLL_EXPAND_THRESHOLD_PX) {
+        gestureCompactRef.current = true;
+      }
+      setScrollCompact(true);
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartYRef.current = e.touches[0]?.clientY ?? 0;
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? 0;
+      if (touchStartYRef.current - y > 10) minimizeFromGesture();
+    };
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY > 0) minimizeFromGesture();
+    };
+
+    window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: true, capture: true });
+    window.addEventListener("wheel", onWheel, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener("touchstart", onTouchStart, true);
+      window.removeEventListener("touchmove", onTouchMove, true);
+      window.removeEventListener("wheel", onWheel, true);
+    };
+  }, [isLiveNow, sessionDimmed]);
 
   const clearPending = useCallback(() => {
     if (resetTimerRef.current) {

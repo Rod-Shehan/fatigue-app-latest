@@ -83,10 +83,12 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     ]
   );
 
-  const showWorkCountdown = !isMoving && currentSegment === "work" && !isIdleAtTop;
+  const showWorkCountdown = !compact && !isMoving && currentSegment === "work" && !isIdleAtTop;
   const showIdleRestCountdown =
+    !compact &&
     !isMoving &&
     Boolean(isIdleAtTop && idleRestBlocked && idleRestRemainingMinutes != null);
+  const showCompactLabel = compact && actionPending;
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
 
   const sizeClass = expanded
@@ -129,24 +131,37 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           actionPending &&
             "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
         )}
-        aria-label={hubLabel}
+        aria-label={
+          compact && !actionPending
+            ? [
+                hubLabel,
+                currentSegment === "work" ? `${action.countdown} ${action.statusLabel}` : null,
+                breakRestProgressLabel,
+                elapsedLabel,
+              ]
+                .filter(Boolean)
+                .join(", ")
+            : hubLabel
+        }
       >
         {ActionIcon ? (
           <ActionIcon
             className={cn(
               "shrink-0 drop-shadow-sm",
-              expanded ? "h-11 w-11" : compact ? "h-5 w-5" : "h-9 w-9 sm:h-10 sm:w-10"
+              expanded ? "h-11 w-11" : compact ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9 sm:h-10 sm:w-10"
             )}
           />
         ) : null}
-        <span
-          className={cn(
-            "text-center leading-tight",
-            expanded ? "text-lg sm:text-xl" : compact ? "text-[9px] leading-none" : "text-base sm:text-lg"
-          )}
-        >
-          {hubLabel}
-        </span>
+        {!compact || showCompactLabel ? (
+          <span
+            className={cn(
+              "text-center leading-tight",
+              expanded ? "text-lg sm:text-xl" : compact ? "text-[9px] leading-none" : "text-base sm:text-lg"
+            )}
+          >
+            {hubLabel}
+          </span>
+        ) : null}
         {showWorkCountdown ? (
           <>
             <span
@@ -208,7 +223,10 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             {idleRestHelper}
           </span>
         ) : null}
-        {breakRestProgressLabel && currentSegment === "break" && !showWorkCountdown ? (
+        {breakRestProgressLabel &&
+        !compact &&
+        currentSegment === "break" &&
+        !showWorkCountdown ? (
           <span
             className={cn(
               "font-semibold tabular-nums leading-tight",
@@ -220,7 +238,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             {breakRestProgressLabel}
           </span>
         ) : null}
-        {elapsedLabel && !showWorkCountdown && !showIdleRestCountdown ? (
+        {elapsedLabel && !compact && !showWorkCountdown && !showIdleRestCountdown ? (
           <span
             className={cn(
               "font-mono font-extrabold tabular-nums leading-none",
