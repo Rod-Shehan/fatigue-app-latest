@@ -34,6 +34,9 @@ import {
   getShiftStartSetupMissing,
   workLogRequiresShiftStartSetup,
 } from "@/lib/shift-start-gate";
+import { computeWorkPeriodAtEnd, WORK_WINDOW_MIN } from "@/lib/five-hour-break-rule";
+import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
+import { CompliancePieHero } from "@/components/fatigue/CompliancePieHero";
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
@@ -41,45 +44,6 @@ function formatElapsedBarDisplay(totalMinutes: number): string {
   const h = Math.floor(m / 60);
   const min = m % 60;
   return `${h}h ${min.toString().padStart(2, "0")}m`;
-}
-
-type ComplianceTone = "default" | "violation" | "warning" | "pending" | "ok";
-type BreakDueTone = null | "amber" | "red";
-
-/** Compliance colours for the unified primary action (formerly the full-width header shell). */
-function getComplianceChrome(
-  complianceTone: ComplianceTone,
-  breakDueTone: BreakDueTone
-): { onColoredSurface: boolean; surfaceClass: string; textClass: string } {
-  const onColoredSurface = complianceTone !== "default" || breakDueTone != null;
-
-  const surfaceClass =
-    complianceTone === "violation" || complianceTone === "warning"
-      ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-950 dark:border-amber-100 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
-      : breakDueTone === "red"
-        ? "bg-red-600 dark:bg-red-700 border-4 border-red-950 dark:border-red-100 shadow-lg hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800"
-        : breakDueTone === "amber"
-          ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-950 dark:border-amber-100 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
-          : complianceTone === "pending"
-            ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
-            : complianceTone === "ok"
-              ? "bg-emerald-500 dark:bg-emerald-600 border-4 border-emerald-950 dark:border-emerald-100 shadow-lg hover:bg-emerald-600 dark:hover:bg-emerald-500 active:bg-emerald-700"
-              : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600";
-
-  const textClass =
-    complianceTone === "violation" || complianceTone === "warning"
-      ? "text-amber-950 dark:text-white"
-      : breakDueTone === "red"
-        ? "text-white"
-        : breakDueTone === "amber"
-          ? "text-amber-950 dark:text-white"
-          : complianceTone === "pending"
-            ? "text-emerald-950 dark:text-white"
-            : complianceTone === "ok"
-              ? "text-emerald-950 dark:text-white"
-              : "text-slate-900 dark:text-slate-100";
-
-  return { onColoredSurface, surfaceClass, textClass };
 }
 
 const FIXED_LOG_BAR_SHELL =
@@ -306,18 +270,16 @@ export default function LogBar({
   const elapsedMinutes = Math.max(0, elapsedMs / 60000);
   const showSessionTimer = Boolean(isLiveNow && shiftSegmentOpen && lastEvent);
 
-  const complianceTone = (() => {
-    if (!complianceButton) return "default" as const;
-    if (complianceButton.loading) return "default" as const;
-    if (complianceButton.hasViolations) return "violation" as const;
-    if (complianceButton.hasWarnings) return "warning" as const;
-    if (shiftSegmentOpen) return "ok" as const;
-    return "default" as const;
-  })();
+  const complianceTone = resolveComplianceTone({
+    loading: complianceButton?.loading,
+    hasViolations: complianceButton?.hasViolations,
+    hasWarnings: complianceButton?.hasWarnings,
+    shiftSegmentOpen,
+  });
 
-  const breakDueTone = null as null | "amber" | "red";
-
-  const complianceChrome = getComplianceChrome(complianceTone, breakDueTone);
+  const workPeriod =
+    currentType === "work" ? computeWorkPeriodAtEnd(eventsForDriver, Date.now()) : null;
+  const workMinutesUsed = workPeriod?.workMins ?? 0;
 
   const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
   const primaryActionPending = pendingType === nextWorkBreak;
@@ -338,14 +300,6 @@ export default function LogBar({
     isLiveNow && !scrollCompact && (isIdleAtTop || shiftSegmentOpen)
   );
   const hideSecondaryToolbar = sessionDimmed;
-
-  /** Idle focus: strong emerald CTA instead of neutral gray on dark shell. */
-  const actionChrome =
-    isIdleAtTop && complianceTone === "default" && breakDueTone == null
-      ? getComplianceChrome("ok", null)
-      : complianceChrome;
-  /** Dark inset track on the unified action when it carries compliance colour. */
-  const barOnColoredHeader = actionChrome.onColoredSurface;
 
   useEffect(() => {
     focusScrollResetRef.current = false;
@@ -739,84 +693,33 @@ export default function LogBar({
           </span>
         )}
         <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
-          <button
-            type="button"
-            onClick={() => handleLog(nextWorkBreak)}
+          <CompliancePieHero
+            workMinutesUsed={workMinutesUsed}
+            totalWindowMinutes={WORK_WINDOW_MIN}
+            currentSegment={
+              currentType === "work" ? "work" : currentType === "break" ? "break" : null
+            }
+            complianceLoading={complianceButton?.loading}
+            hasViolations={complianceButton?.hasViolations}
+            hasWarnings={complianceButton?.hasWarnings}
+            shiftSegmentOpen={shiftSegmentOpen}
+            isIdleAtTop={isIdleAtTop}
+            isMoving={false}
+            actionLabel={primaryActionLabel}
+            onAction={() => handleLog(nextWorkBreak)}
+            actionPending={primaryActionPending}
+            actionIcon={EVENT_ICONS[nextWorkBreak]}
+            elapsedLabel={
+              showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
+            }
+            expanded={primaryHeroExpanded}
+            compact={primaryBarCompact && !primaryHeroExpanded}
             className={cn(
-              "flex w-full min-w-0 flex-col rounded-xl px-4 font-bold transition-all duration-500 ease-out active:scale-[0.99] focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-100 dark:focus-visible:ring-offset-slate-950",
-              primaryBarCompact ? "gap-0.5" : "gap-2",
-              primaryHeroExpanded
-                ? "mx-auto w-full max-w-md justify-center min-h-[24rem] rounded-2xl py-16 shadow-2xl shadow-emerald-500/30 ring-4 ring-emerald-400/20"
-                : primaryBarCompact
-                  ? currentType === null
-                    ? "min-h-[2.5rem] justify-center py-2 md:min-h-[2rem] md:py-1.5"
-                    : "py-1.5 sm:py-2"
-                  : currentType === null
-                    ? "min-h-[10rem] justify-center py-10 md:min-h-[8rem] md:py-8"
-                    : "py-6 sm:py-8",
-              actionChrome.surfaceClass,
-              actionChrome.textClass,
-              primaryActionPending &&
-                "ring-2 ring-white ring-offset-2 ring-offset-slate-100 dark:ring-offset-slate-950 animate-pulse"
+              "w-full",
+              primaryHeroExpanded && "max-w-md",
+              primaryBarCompact && !primaryHeroExpanded && "max-w-none"
             )}
-            aria-label={primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
-          >
-            <div
-              className={cn(
-                "flex w-full items-center justify-center",
-                primaryBarCompact ? "gap-1.5" : "gap-3 sm:gap-4",
-                primaryHeroExpanded && "flex-col gap-2"
-              )}
-            >
-              {React.createElement(EVENT_ICONS[nextWorkBreak], {
-                className: cn(
-                  "shrink-0 drop-shadow-sm",
-                  primaryHeroExpanded
-                    ? "h-20 w-20"
-                    : primaryBarCompact
-                      ? "h-5 w-5"
-                      : "h-14 w-14 sm:h-12 sm:w-12"
-                ),
-              })}
-              <span className="flex min-w-0 flex-col items-center leading-tight">
-                <span
-                  className={cn(
-                    primaryHeroExpanded
-                      ? "text-4xl"
-                      : primaryBarCompact
-                        ? "text-sm"
-                        : "text-2xl sm:text-xl"
-                  )}
-                >
-                  {primaryActionPending ? "Tap again to confirm" : primaryActionLabel}
-                </span>
-              </span>
-            </div>
-            {showSessionTimer ? (
-              <div
-                className={cn(
-                  "flex w-full min-w-0 items-center justify-center",
-                  primaryBarCompact ? "pt-0.5" : "pt-1"
-                )}
-              >
-                <span
-                  className={cn(
-                    "font-mono font-extrabold tabular-nums leading-none tracking-tight",
-                    primaryBarCompact
-                      ? "text-sm sm:text-base"
-                      : "text-[2.25rem] sm:text-[2.5rem]",
-                    barOnColoredHeader
-                      ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
-                      : "text-slate-900 dark:text-slate-100"
-                  )}
-                  title="Elapsed time this work / break"
-                  aria-live="polite"
-                >
-                  {formatElapsedBarDisplay(elapsedMinutes)}
-                </span>
-              </div>
-            ) : null}
-          </button>
+          />
         </div>
       </div>
     </div>
