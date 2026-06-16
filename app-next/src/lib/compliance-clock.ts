@@ -59,13 +59,13 @@ export function getUsedWedgePercent(workMinutesUsed: number, totalWindowMinutes:
 
 /** Empty in-cab track (idle / on break) — visible ring on dark overlay. */
 export function buildNeutralPieTrackGradient(): string {
-  return `conic-gradient(from -90deg, ${IDLE_TRACK_COLOR} 0deg, ${IDLE_TRACK_COLOR} 360deg)`;
+  return `conic-gradient(from 0deg, ${IDLE_TRACK_COLOR} 0deg, ${IDLE_TRACK_COLOR} 360deg)`;
 }
 
 /** Work segment with no logged minutes yet — faint full-ring hint in tier colour. */
 export function buildWorkWindowEmptyRingGradient(tier: ComplianceClockTier): string {
   const { from } = TIER_GRADIENT[tier];
-  return `conic-gradient(from -90deg, ${from} 0deg, ${from} 360deg)`;
+  return `conic-gradient(from 0deg, ${from} 0deg, ${from} 360deg)`;
 }
 
 /** Conic gradient for a solid clockwise “used time” wedge from 12 o'clock. */
@@ -82,9 +82,9 @@ export function buildComplianceClockConicGradient(
     return buildWorkWindowEmptyRingGradient(tier);
   }
   if (sweepDeg >= 360) {
-    return `conic-gradient(from -90deg, ${from} 0deg, ${to} 360deg)`;
+    return `conic-gradient(from 0deg, ${from} 0deg, ${to} 360deg)`;
   }
-  return `conic-gradient(from -90deg, ${from} 0deg, ${to} ${midDeg}deg, ${to} ${sweepDeg}deg, ${TRACK_COLOR} ${sweepDeg}deg, ${TRACK_COLOR} 360deg)`;
+  return `conic-gradient(from 0deg, ${from} 0deg, ${to} ${midDeg}deg, ${to} ${sweepDeg}deg, ${TRACK_COLOR} ${sweepDeg}deg, ${TRACK_COLOR} 360deg)`;
 }
 
 export function formatComplianceCountdown(remainingMinutes: number): string {
