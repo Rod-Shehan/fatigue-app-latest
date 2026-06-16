@@ -43,10 +43,11 @@ import {
   findWorkWindowStartMs,
   getBreakSplitBarState,
   getPriorRestSlotsBeforeTime,
+  getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
-import { CompliancePieHero } from "@/components/fatigue/CompliancePieHero";
+import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import {
   requestDriverImmersive,
   syncDriverImmersiveClass,
@@ -316,7 +317,7 @@ export default function LogBar({
       ? Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRest.consecutiveNonWorkMinutes)
       : null;
 
-  const breakRing = useMemo(() => {
+  const breakRestStatus = useMemo(() => {
     if (!isLiveNow || currentType !== "break" || !lastEvent) return null;
     const breakStartMs = new Date(lastEvent.time).getTime();
     const windowStartMs = findWorkWindowStartMs(eventsForDriver, breakStartMs);
@@ -325,12 +326,11 @@ export default function LogBar({
         ? getPriorRestSlotsBeforeTime(eventsForDriver, windowStartMs, breakStartMs)
         : emptySlots();
     const split = getBreakSplitBarState(priorSlots, elapsedMinutes);
+    const remaining = getRemainingBreakMinutesForDisplay(priorSlots, elapsedMinutes);
+    const banked = Math.max(0, 20 - remaining);
     return {
-      leftPct: split.leftPct,
-      rightPct: split.rightPct,
-      complete: split.complete,
-      priorSlot1: priorSlots.slot1,
-      priorSlot2: priorSlots.slot2,
+      incomplete: !split.complete,
+      progressLabel: split.complete ? null : `Rest ${banked}/20 min`,
     };
   }, [isLiveNow, currentType, lastEvent, eventsForDriver, elapsedMinutes]);
 
@@ -357,7 +357,7 @@ export default function LogBar({
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
-  /** Centered hero at scroll top while on work/break; scroll down compacts pie into the top bar. */
+  /** Centered hero at scroll top while on work/break; scroll down compacts into the top bar. */
   const onLiveShiftAtTop = isLiveNow && shiftSegmentOpen && !scrollCompact;
   const sessionDimmed = Boolean(isIdleAtTop || onLiveShiftAtTop);
   const primaryHeroExpanded = sessionDimmed;
@@ -769,15 +769,13 @@ export default function LogBar({
           </span>
         )}
         <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
-          <CompliancePieHero
+          <DriverActionHero
             workMinutesUsed={workMinutesUsed}
             totalWindowMinutes={WORK_WINDOW_MIN}
             currentSegment={
               currentType === "work" ? "work" : currentType === "break" ? "break" : null
             }
             complianceLoading={complianceButton?.loading}
-            hasViolations={complianceButton?.hasViolations}
-            hasWarnings={complianceButton?.hasWarnings}
             shiftSegmentOpen={shiftSegmentOpen}
             isIdleAtTop={isIdleAtTop}
             isMoving={false}
@@ -788,7 +786,8 @@ export default function LogBar({
             elapsedLabel={
               showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
             }
-            breakRing={breakRing}
+            breakRestIncomplete={breakRestStatus?.incomplete ?? false}
+            breakRestProgressLabel={breakRestStatus?.progressLabel ?? null}
             idleRestBlocked={idleRestBlocked}
             idleRestHelper={idlePrimary?.helper ?? null}
             idleRestRemainingMinutes={idleRestRemainingMinutes}
@@ -803,7 +802,7 @@ export default function LogBar({
 
   return (
     <>
-      {/* Reserve space for fixed top bar (not used in mobile focus — pie floats centered). */}
+      {/* Reserve space for fixed top bar (not used in mobile focus — hero floats centered). */}
       {!sessionDimmed && (
         <div
           aria-hidden

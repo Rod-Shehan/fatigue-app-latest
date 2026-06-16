@@ -1,21 +1,9 @@
 /**
- * Shared compliance colours for driver primary actions (LogBar hero, CompliancePieHero).
- * Pie wedge tiers use the same saturated palette as button chrome.
+ * Shared compliance colours for driver primary actions (LogBar, DriverActionHero).
  */
 
 export type ComplianceTone = "default" | "violation" | "warning" | "pending" | "ok";
 export type BreakDueTone = null | "amber" | "red";
-
-/** Pie wedge / conic-gradient palette — aligned with getComplianceChrome surfaces. */
-export const COMPLIANCE_PIE_PALETTE = {
-  safe: { from: "#10b981", to: "#059669" }, // emerald-500 → emerald-600
-  warning: { from: "#f59e0b", to: "#d97706" }, // amber-500 → amber-600
-  breach: { from: "#dc2626", to: "#b91c1c" }, // red-600 → red-700
-  track: "#020617", // slate-950 — unused wedge portion
-  idleTrack: "#475569", // slate-600 — visible on dark focus overlay
-} as const;
-
-export type CompliancePieWedgeTier = "safe" | "warning" | "breach" | "neutral";
 
 export function getComplianceChrome(
   complianceTone: ComplianceTone,
@@ -57,7 +45,6 @@ export function resolveComplianceTone(input: {
   hasViolations?: boolean;
   hasWarnings?: boolean;
   shiftSegmentOpen?: boolean;
-  /** On break — 2×10 min rest not yet banked (top-bar “pending” band). */
   breakRestIncomplete?: boolean;
 }): ComplianceTone {
   if (input.loading) return "default";
@@ -68,7 +55,7 @@ export function resolveComplianceTone(input: {
   return "default";
 }
 
-/** Same thresholds as compliance-clock — maps work-window minutes left to break-due chrome. */
+/** Maps work-window minutes left to break-due button chrome. */
 export function resolveBreakDueTone(
   remainingWindowMinutes: number | null,
   currentSegment: "work" | "break" | null
@@ -79,15 +66,8 @@ export function resolveBreakDueTone(
   return null;
 }
 
-/** Wedge colour tier for the pie ring during work — 5h window only. */
-export function resolveWorkWindowWedgeTier(breakDueTone: BreakDueTone): CompliancePieWedgeTier {
-  if (breakDueTone === "red") return "breach";
-  if (breakDueTone === "amber") return "warning";
-  return "safe";
-}
-
-/** Pie hub/ring tone — in-cab operational state only (not sheet retrospective warnings). */
-export function resolvePieOperationalTone(input: {
+/** In-cab button tone — live work/break/idle state only (not sheet retrospective warnings). */
+export function resolveOperationalTone(input: {
   loading?: boolean;
   currentSegment?: "work" | "break" | null;
   breakRestIncomplete?: boolean;
@@ -100,23 +80,10 @@ export function resolvePieOperationalTone(input: {
   return "default";
 }
 
-/** Wedge colour tier — mirrors getComplianceChrome priority (sheet issues → break due → ok). */
-export function resolvePieWedgeTier(
-  complianceTone: ComplianceTone,
-  breakDueTone: BreakDueTone
-): CompliancePieWedgeTier {
-  if (complianceTone === "violation" || complianceTone === "warning") return "warning";
-  if (breakDueTone === "red") return "breach";
-  if (breakDueTone === "amber") return "warning";
-  if (complianceTone === "ok" || complianceTone === "pending") return "safe";
-  return "neutral";
-}
-
 export function resolveActionChrome(input: {
   complianceTone: ComplianceTone;
   breakDueTone: BreakDueTone;
   isIdleAtTop?: boolean;
-  /** Idle before 7h non-work — red blocked hub (matches legacy start-shift-wait). */
   idleRestBlocked?: boolean;
 }): ReturnType<typeof getComplianceChrome> {
   const { complianceTone, breakDueTone, isIdleAtTop, idleRestBlocked } = input;
