@@ -28,14 +28,12 @@ import { useSession } from "next-auth/react";
 import { PageHeader } from "@/components/PageHeader";
 import SheetHeader from "@/components/fatigue/SheetHeader";
 import { CvdMedicalBanner } from "@/components/fatigue/CvdMedicalBanner";
-import DayEntry from "@/components/fatigue/DayEntry";
+import DayEntry, { type DayCardToolsConfig } from "@/components/fatigue/DayEntry";
 import { ComplianceAlertBar, ComplianceNoticeBar } from "@/components/fatigue/ComplianceAlertBar";
 import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialog";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
-import { DriverComplianceStrip } from "@/components/driver/DriverComplianceStrip";
-import { DriverRecordsStrip } from "@/components/driver/DriverRecordsStrip";
 import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
@@ -84,6 +82,7 @@ import {
 import type { TimelineSlice } from "@/lib/rolling-events";
 import { concatenateTimelineSlices, getEventsForDriverInOrder } from "@/lib/rolling-events";
 import { getWorkLogBlockReason } from "@/lib/shift-start-gate";
+import { resolveDayCrew } from "@/lib/day-crew";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
@@ -226,6 +225,7 @@ export function SheetDetail({
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
   const [shiftPatternPrompt, setShiftPatternPrompt] = useState<{ dayIndex: number } | null>(null);
   const [driverSessionDimmed, setDriverSessionDimmed] = useState(false);
+  const [shiftSegmentOpen, setShiftSegmentOpen] = useState(false);
   const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
@@ -263,6 +263,11 @@ export function SheetDetail({
   const currentDayIndex = useMemo(
     () => getCurrentDayIndex(sheetData.week_starting, todayYmd),
     [sheetData.week_starting, todayYmd]
+  );
+
+  const todayCrew = useMemo(
+    () => resolveDayCrew(sheetData.days[currentDayIndex], sheetData),
+    [sheetData.days, currentDayIndex, sheetData.driver_type, sheetData.second_driver]
   );
 
   const forgottenActionReminder = useMemo(
@@ -520,7 +525,7 @@ export function SheetDetail({
       : (complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null);
     return {
       days: sheetData.days,
-      driverType: sheetData.driver_type,
+      driverType: todayCrew.driver_type,
       prevWeekDays,
       historyDays: isManager
         ? (complianceHistoryRemote?.history_days ?? null)
@@ -536,7 +541,7 @@ export function SheetDetail({
     };
   }, [
     sheetData.days,
-    sheetData.driver_type,
+    todayCrew.driver_type,
     sheetData.jurisdiction_code,
     sheetData.last_24h_break,
     sheetData.week_starting,
@@ -584,6 +589,40 @@ export function SheetDetail({
     [complianceResults]
   );
 
+  const driverDayTools = useMemo((): DayCardToolsConfig | undefined => {
+    if (isManager) return undefined;
+    const violations = complianceResults.filter((r) => r.type === "violation");
+    const warnings = complianceResults.filter((r) => r.type === "warning");
+    const infos = complianceResults.filter((r) => r.type === "info");
+    const issueCount = violations.length + warnings.length;
+    let complianceDetail = "All clear";
+    let complianceTone: "ok" | "warn" | "issue" = "ok";
+    if (issueCount > 0) {
+      complianceTone = violations.length > 0 ? "issue" : "warn";
+      complianceDetail = `${issueCount} need attention`;
+    } else if (infos.length > 0) {
+      complianceDetail = `${infos.length} optional note${infos.length === 1 ? "" : "s"}`;
+    }
+    return {
+      sheetId,
+      weekStarting: sheetData.week_starting,
+      last24hBreak: sheetData.last_24h_break,
+      complianceLoading,
+      complianceDetail,
+      complianceTone,
+      unsignedPastWeeksCount: unsignedPastWeeksForDriver.length,
+      onOpenGear: () => setGearDrawerOpen(true),
+    };
+  }, [
+    isManager,
+    complianceResults,
+    complianceLoading,
+    sheetId,
+    sheetData.week_starting,
+    sheetData.last_24h_break,
+    unsignedPastWeeksForDriver.length,
+  ]);
+
   const prospectiveWorkWarnings = useMemo(() => {
     if (!sheetData.days?.length || sheetData.status === "completed") return [];
     return getProspectiveWorkWarnings(
@@ -591,7 +630,7 @@ export function SheetDetail({
       currentDayIndex,
       sheetData.week_starting,
       {
-        driverType: sheetData.driver_type,
+        driverType: todayCrew.driver_type,
         prevWeekDays: compliancePayload.prevWeekDays ?? null,
         historyDays: compliancePayload.historyDays ?? null,
         last24hBreak: sheetData.last_24h_break || undefined,
@@ -602,7 +641,7 @@ export function SheetDetail({
   }, [
     sheetData.days,
     sheetData.week_starting,
-    sheetData.driver_type,
+    todayCrew.driver_type,
     sheetData.last_24h_break,
     sheetData.status,
     sheetData.jurisdiction_code,
@@ -769,6 +808,16 @@ export function SheetDetail({
     setIsDirty(true);
   }, [driverContentLocked]);
 
+  const driverSheetMetaProps = useMemo(
+    () => ({
+      last24hBreak: sheetData.last_24h_break,
+      onLast24hBreakChange: (last_24h_break: string) => {
+        handleHeaderChange({ last_24h_break });
+      },
+    }),
+    [sheetData.last_24h_break, handleHeaderChange]
+  );
+
   const handleDayUpdate = useCallback((dayIndex: number, dayData: DayData) => {
     if (driverContentLocked) return;
     setSheetData((prev) => {
@@ -820,10 +869,11 @@ export function SheetDetail({
 
     if (type === "work") {
       const prev = sheetDataRef.current;
+      const dayCrew = resolveDayCrew(prev.days[dayIndex], prev);
       const timeline = concatenateTimelineSlices(priorTimelineSlices, prev.days);
       const driverEvents = getEventsForDriverInOrder(
         timeline,
-        prev.driver_type === "two_up" ? (driver ?? "primary") : undefined
+        dayCrew.driver_type === "two_up" ? (driver ?? "primary") : undefined
       );
       const dayFields = getDayWithMergedRouteContext(
         prev.days,
@@ -846,12 +896,13 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const day = newDays[dayIndex];
       const events = day.events || [];
+      const dayCrew = resolveDayCrew(day, prev);
         const baseEvent: { time: string; type: string; driver?: "primary" | "second" } = {
           time: new Date().toISOString(),
           type,
         };
         const newEvent =
-          type === "work" && prev.driver_type === "two_up"
+          type === "work" && dayCrew.driver_type === "two_up"
             ? { ...baseEvent, driver: driver ?? "primary" }
             : baseEvent;
       const newEvents = [...events, newEvent];
@@ -1184,6 +1235,28 @@ export function SheetDetail({
     );
   }
 
+  const getDriverDayEntryExtras = (dayIndex: number) => {
+    if (isManager) return { driverType: sheetData.driver_type };
+    const isTodayCard = getSheetDayDateString(sheetData.week_starting, dayIndex) === todayYmd;
+    const isCurrent = dayIndex === currentDayIndex;
+    const crew = resolveDayCrew(sheetData.days[dayIndex], sheetData);
+    return {
+      ...driverSheetMetaProps,
+      driverType: crew.driver_type,
+      secondDriver: crew.second_driver,
+      onCrewMetaSync: isTodayCard
+        ? (meta: { driver_type: "solo" | "two_up"; second_driver: string }) => {
+            handleHeaderChange({
+              driver_type: meta.driver_type,
+              second_driver: meta.second_driver,
+            });
+          }
+        : undefined,
+      dayTools: isCurrent && isTodayCard ? driverDayTools : undefined,
+      compactOnShift: shiftSegmentOpen && isCurrent && isTodayCard,
+    };
+  };
+
   return (
     <div
       className={cn(
@@ -1212,9 +1285,9 @@ export function SheetDetail({
               todayYmd,
               storedRouteDefaults
             )}
-            driverType={sheetData.driver_type}
+            driverType={todayCrew.driver_type}
             primaryDriverName={sheetData.driver_name}
-            secondDriverName={sheetData.second_driver}
+            secondDriverName={todayCrew.second_driver}
             forgottenActionReminder={forgottenActionReminder}
             isLiveNow={getSheetDayDateString(sheetData.week_starting, currentDayIndex) === todayYmd}
             complianceButton={{
@@ -1224,7 +1297,26 @@ export function SheetDetail({
               loading: complianceLoading,
             }}
             onSessionDimmedChange={setDriverSessionDimmed}
+            onShiftSegmentChange={setShiftSegmentOpen}
           />
+          {!isManager && (
+            <DriverGearDrawer
+              returnHref={`/sheets/${sheetId}`}
+              sheetId={sheetId}
+              open={gearDrawerOpen}
+              onOpenChange={setGearDrawerOpen}
+              showSheetActions
+              hideTrigger
+              unsignedPastWeeks={!isPastWeek ? unsignedPastWeeksForDriver : []}
+              optionalNotes={complianceInfoNotes}
+              saveStatus={saveStatus}
+              onSave={driverContentLocked ? undefined : handleSave}
+              savePending={saveMutation.isPending}
+              onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
+              markCompleteLabel={isPastWeek ? "Sign record" : undefined}
+              onExportPdf={handleExportPdf}
+            />
+          )}
         </>
       )}
       <div
@@ -1288,24 +1380,7 @@ export function SheetDetail({
           )}
 
         <div ref={dayCardsRef} className="space-y-2 max-w-4xl">
-            {!isManager ? (
-              <>
-                {!driverSessionDimmed && sheetData.days?.length > 0 && (
-                  <DriverComplianceStrip
-                    sheetId={sheetId}
-                    loading={complianceLoading}
-                    results={complianceResults}
-                  />
-                )}
-                {!driverSessionDimmed && <DriverRoadsideProduceButton variant="strip" />}
-                {!driverSessionDimmed && !isPastWeek && unsignedPastWeeksForDriver.length > 0 && (
-                  <DriverRecordsStrip
-                    count={unsignedPastWeeksForDriver.length}
-                    onOpen={() => setGearDrawerOpen(true)}
-                  />
-                )}
-              </>
-            ) : (
+            {isManager && (
               <>
                 {sheetData.days?.length > 0 &&
                   (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
@@ -1328,7 +1403,7 @@ export function SheetDetail({
                 onSign={canDriverSign ? handleMarkCompleteClick : undefined}
               />
             )}
-            {!driverSessionDimmed && (
+            {isManager && !driverSessionDimmed && (
             <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-4">
               <SheetHeader
                 sheetData={sheetData}
@@ -1336,7 +1411,6 @@ export function SheetDetail({
                 hidePrimaryDriverField
                 readOnly={driverContentLocked}
                 headerActions={
-                  isManager ? (
                     <>
                       {lastSaved && !isDirty && (
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1 shrink-0">
@@ -1373,23 +1447,6 @@ export function SheetDetail({
                         onExportPdf={handleExportPdf}
                       />
                     </>
-                  ) : (
-                    <DriverGearDrawer
-                      returnHref={`/sheets/${sheetId}`}
-                      sheetId={sheetId}
-                      open={gearDrawerOpen}
-                      onOpenChange={setGearDrawerOpen}
-                      showSheetActions
-                      unsignedPastWeeks={!isPastWeek ? unsignedPastWeeksForDriver : []}
-                      optionalNotes={complianceInfoNotes}
-                      saveStatus={saveStatus}
-                      onSave={driverContentLocked ? undefined : handleSave}
-                      savePending={saveMutation.isPending}
-                      onMarkComplete={canDriverSign ? handleMarkCompleteClick : undefined}
-                      markCompleteLabel={isPastWeek ? "Sign record" : undefined}
-                      onExportPdf={handleExportPdf}
-                    />
-                  )
                 }
               />
               {matchedRosterPrimary && (
@@ -1470,7 +1527,7 @@ export function SheetDetail({
                           todayYmd={todayYmd}
                           allDays={sheetData.days}
                           sheetId={sheetId}
-                          driverType={sheetData.driver_type}
+                          {...getDriverDayEntryExtras(idx)}
                         />
                       </div>
                     ))}
@@ -1529,7 +1586,7 @@ export function SheetDetail({
                           todayYmd={todayYmd}
                           allDays={sheetData.days}
                           sheetId={sheetId}
-                          driverType={sheetData.driver_type}
+                          {...getDriverDayEntryExtras(idx)}
                         />
                       </div>
                     ))}
@@ -1578,7 +1635,7 @@ export function SheetDetail({
                     collapseWhenNotToday={!groupDaysAroundToday}
                     allDays={sheetData.days}
                     sheetId={sheetId}
-                    driverType={sheetData.driver_type}
+                    {...getDriverDayEntryExtras(idx)}
                   />
                 </div>
               );

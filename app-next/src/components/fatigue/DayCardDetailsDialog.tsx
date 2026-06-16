@@ -51,6 +51,8 @@ import {
   driverAlertnessNeedsBreakWarning,
   type DriverAlertnessLevel,
 } from "@/lib/driver-alertness";
+import { Last24hBreakField } from "@/components/fatigue/Last24hBreakField";
+import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 
 export type DayCardFields = {
   truck_rego?: string;
@@ -65,6 +67,8 @@ export type DayCardFields = {
   route_source?: "adhoc" | "driver_saved" | "org_preset";
   route_preset_id?: string;
   alertness_level?: DriverAlertnessLevel;
+  driver_type?: "solo" | "two_up";
+  second_driver?: string;
 };
 
 const fieldClass =
@@ -86,7 +90,9 @@ export function DayCardDetailsDialog({
   eventsEditable = false,
   sheetId,
   weekStarting,
-  driverType,
+  last24hBreak,
+  onLast24hBreakChange,
+  readOnly = false,
   onConfirm,
   showShiftPatternEducation,
   patternWorkMinutes = 0,
@@ -109,7 +115,9 @@ export function DayCardDetailsDialog({
   eventsEditable?: boolean;
   sheetId?: string;
   weekStarting?: string;
-  driverType?: string;
+  last24hBreak?: string;
+  onLast24hBreakChange?: (ymd: string) => void;
+  readOnly?: boolean;
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
   showShiftPatternEducation?: boolean;
   /** Rolling minutes on same shift pattern ending at this day. */
@@ -391,7 +399,7 @@ export function DayCardDetailsDialog({
         <DialogHeader>
           <DialogTitle className="text-lg">{dayTitle}</DialogTitle>
           <DialogDescription className="text-base text-slate-600 dark:text-slate-300">
-            {dateLabel} — route, kilometres, and work / break / non-work times for this day
+            {dateLabel} — crew, route, kilometres, and work / break / non-work times for this day
           </DialogDescription>
         </DialogHeader>
 
@@ -411,6 +419,24 @@ export function DayCardDetailsDialog({
         )}
 
         <div className="space-y-4">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3">
+            <DriverTypeFields
+              driverType={draft.driver_type ?? "solo"}
+              secondDriver={draft.second_driver}
+              onDriverTypeChange={(type) => set("driver_type", type)}
+              onSecondDriverChange={(name) => set("second_driver", name)}
+              readOnly={readOnly}
+            />
+          </div>
+
+          {onLast24hBreakChange && (
+            <Last24hBreakField
+              value={last24hBreak}
+              onChange={onLast24hBreakChange}
+              readOnly={readOnly}
+            />
+          )}
+
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
             <div>
               <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">How alert do you feel?</p>
@@ -720,7 +746,7 @@ export function DayCardDetailsDialog({
             onChange={setDraftEvents}
             readOnly={!eventsEditable}
             sheetId={sheetId}
-            driverType={driverType}
+            driverType={draft.driver_type ?? "solo"}
           />
         )}
 

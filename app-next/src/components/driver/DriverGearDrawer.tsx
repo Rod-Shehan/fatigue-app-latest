@@ -30,6 +30,7 @@ export function DriverGearDrawer({
   markCompleteLabel,
   onExportPdf,
   showSheetActions = false,
+  hideTrigger = false,
   open: openControlled,
   onOpenChange,
   className,
@@ -45,6 +46,7 @@ export function DriverGearDrawer({
   markCompleteLabel?: string;
   onExportPdf?: () => void;
   showSheetActions?: boolean;
+  hideTrigger?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   className?: string;
@@ -66,6 +68,7 @@ export function DriverGearDrawer({
 
   return (
     <>
+      {!hideTrigger && (
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -88,6 +91,7 @@ export function DriverGearDrawer({
           />
         )}
       </button>
+      )}
 
       {open && (
         <div

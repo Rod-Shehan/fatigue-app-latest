@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { saveDriverRouteDefaults, hasRouteExceptKms, inferRouteCarryMode } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
-import { Pencil, ArrowRight, ChevronDown } from "lucide-react";
+import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
 import TimeGrid from "./TimeGrid";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
@@ -25,6 +25,20 @@ import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
 import { formatRunPlanSummary, hasRunPlanContent } from "@/lib/route-plan";
 import { formatDriverAlertnessCompact, getDriverAlertnessOption } from "@/lib/driver-alertness";
+import { DayCardToolsSheet } from "@/components/driver/DayCardToolsSheet";
+import { driverIconBtn } from "@/components/driver/driver-ui-classes";
+import { formatDayCrewLabel, resolveDayCrew } from "@/lib/day-crew";
+
+export type DayCardToolsConfig = {
+  sheetId: string;
+  weekStarting?: string;
+  last24hBreak?: string;
+  complianceLoading?: boolean;
+  complianceDetail: string;
+  complianceTone: "ok" | "warn" | "issue";
+  unsignedPastWeeksCount?: number;
+  onOpenGear: () => void;
+};
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -100,6 +114,12 @@ export default function DayEntry({
   allDays = [],
   sheetId,
   driverType,
+  secondDriver,
+  onLast24hBreakChange,
+  last24hBreak,
+  onCrewMetaSync,
+  dayTools,
+  compactOnShift = false,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -120,6 +140,15 @@ export default function DayEntry({
   allDays?: DayWithKms[];
   sheetId?: string;
   driverType?: string;
+  secondDriver?: string;
+  last24hBreak?: string;
+  onLast24hBreakChange?: (ymd: string) => void;
+  /** When today's crew is confirmed in Set up day, sync sheet header for LogBar / compliance. */
+  onCrewMetaSync?: (crew: { driver_type: "solo" | "two_up"; second_driver: string }) => void;
+  /** Sheet-level tools (compliance, PDF, gear) — today only. */
+  dayTools?: DayCardToolsConfig;
+  /** Minimal card while on an open work/break segment. */
+  compactOnShift?: boolean;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -139,6 +168,7 @@ export default function DayEntry({
   const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
 
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
 
@@ -186,6 +216,11 @@ export default function DayEntry({
 
   const showRunPlanSection = usesRunPlan && isFuture && !!runPlanSummary;
   const showRunPlanInCard = usesRunPlan && !isFuture && !!runPlanSummary;
+
+  const dayCrew = resolveDayCrew(dayData, {
+    driver_type: driverType,
+    second_driver: secondDriver,
+  });
 
   const workHours = getHours(dayData.work_time);
   const collapsedSummary = isFuture
@@ -292,6 +327,19 @@ export default function DayEntry({
           </div>
         </div>
         <div className="flex flex-col gap-2 w-full sm:flex-row sm:flex-wrap sm:items-center sm:gap-2 sm:w-auto sm:ml-auto">
+          {dayTools && (
+            <button
+              type="button"
+              onClick={() => setToolsOpen(true)}
+              className={cn(
+                driverIconBtn,
+                "h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 shrink-0"
+              )}
+              aria-label="Day tools — compliance, records, settings"
+            >
+              <MoreVertical className="h-6 w-6" aria-hidden />
+            </button>
+          )}
           {collapseWhenNotToday && !isToday && (
             <Button
               type="button"
@@ -375,6 +423,13 @@ export default function DayEntry({
         </div>
       )}
 
+      {compactOnShift ? (
+        <p className="mb-3 text-sm text-slate-600 dark:text-slate-300 leading-snug">
+          Shift in progress — use <span className="font-semibold">Edit day</span> for crew, route, or km. Day tools
+          {" "}
+          <span className="font-semibold">(⋯)</span> for compliance and records.
+        </p>
+      ) : (
       <div
         className={cn(
           "mb-3 rounded-lg border bg-slate-50/90 dark:bg-slate-950/50 px-3 py-3",
@@ -428,6 +483,7 @@ export default function DayEntry({
               </div>
             ) : null}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
+              <StatBlock label="Crew" value={formatDayCrewLabel(dayCrew)} />
               <StatBlock label="Rego" value={(dayData.truck_rego || "").trim() || "—"} mono />
               <StatBlock label="Pattern" value={formatShiftLabel(dayData.shift_label)} />
               <StatBlock label="Start km" value={formatKm(dayData.start_kms)} mono />
@@ -474,8 +530,9 @@ export default function DayEntry({
           </div>
         )}
       </div>
+      )}
 
-      {showRunPlanSection && (
+      {!compactOnShift && showRunPlanSection && (
         <div className="mb-3 rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <button
             type="button"
@@ -513,14 +570,31 @@ export default function DayEntry({
         </div>
       )}
 
-      {showShiftPatternEducation && !detailsOpen && (
+      {!compactOnShift && showShiftPatternEducation && !detailsOpen && (
         <p className="mb-2 text-xs leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
           <span className="font-semibold">Shift pattern:</span> set Day (A) or Night (B) in route details if you swap
           patterns after {formatPatternStreakForDisplay(patternWorkMinutes)}.
         </p>
       )}
 
-      <TimeGrid dayData={{ ...dayData, date: getISODate() }} />
+      {!compactOnShift && <TimeGrid dayData={{ ...dayData, date: getISODate() }} />}
+
+      {dayTools && (
+        <DayCardToolsSheet
+          open={toolsOpen}
+          onOpenChange={setToolsOpen}
+          sheetId={dayTools.sheetId}
+          weekStarting={dayTools.weekStarting}
+          last24hBreak={dayTools.last24hBreak}
+          complianceLoading={dayTools.complianceLoading}
+          complianceDetail={dayTools.complianceDetail}
+          complianceTone={dayTools.complianceTone}
+          unsignedPastWeeksCount={dayTools.unsignedPastWeeksCount}
+          onOpenGear={dayTools.onOpenGear}
+          onOpenDaySetup={() => setDetailsOpen(true)}
+          last24hUnset={!dayTools.last24hBreak?.trim()}
+        />
+      )}
 
       {canEditDetails && (
         <DayCardDetailsDialog
@@ -541,6 +615,8 @@ export default function DayEntry({
             route_source: dayData.route_source,
             route_preset_id: dayData.route_preset_id,
             alertness_level: dayData.alertness_level,
+            driver_type: dayData.driver_type ?? (driverType === "two_up" ? "two_up" : "solo"),
+            second_driver: dayData.second_driver ?? secondDriver ?? "",
           }}
           regos={regos}
           dayIndex={dayIndex}
@@ -550,7 +626,9 @@ export default function DayEntry({
           eventsEditable={canEditDetails}
           sheetId={sheetId}
           weekStarting={weekStart}
-          driverType={driverType}
+          last24hBreak={last24hBreak}
+          onLast24hBreakChange={onLast24hBreakChange}
+          readOnly={readOnly}
           showShiftPatternEducation={showShiftPatternEducation}
           patternWorkMinutes={patternWorkMinutes}
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
@@ -571,10 +649,18 @@ export default function DayEntry({
             const merged = {
               ...dayData,
               ...planFields,
+              driver_type: fields.driver_type ?? dayCrew.driver_type,
+              second_driver: fields.second_driver ?? "",
               events: updatedEvents,
               route_confirmed: true,
             };
             onUpdate(dayIndex, merged);
+            if (isToday && onCrewMetaSync) {
+              onCrewMetaSync({
+                driver_type: merged.driver_type === "two_up" ? "two_up" : "solo",
+                second_driver: (merged.second_driver ?? "").trim(),
+              });
+            }
             if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
           }}
         />
