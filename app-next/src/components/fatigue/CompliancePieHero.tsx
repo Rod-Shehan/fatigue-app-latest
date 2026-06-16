@@ -78,7 +78,7 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
   const showWorkCountdown = !isMoving && currentSegment === "work" && !isIdleAtTop;
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
   const ringSizeClass = expanded
-    ? "w-full max-w-[min(100vw-3rem,22rem)]"
+    ? "w-full max-w-[min(88vw,24rem)]"
     : compact
       ? "w-[4.5rem] sm:w-[5rem]"
       : "w-full max-w-[min(100vw-2rem,14rem)] sm:max-w-[12rem]";

@@ -294,11 +294,11 @@ export default function LogBar({
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
-  const primaryHeroExpanded = isIdleAtTop;
   /** Dim sheet + tuck chrome while live at scroll top — idle hero or active work/break. */
   const sessionDimmed = Boolean(
     isLiveNow && !scrollCompact && (isIdleAtTop || shiftSegmentOpen)
   );
+  const primaryHeroExpanded = sessionDimmed;
   const hideSecondaryToolbar = sessionDimmed;
 
   useEffect(() => {
@@ -577,7 +577,7 @@ export default function LogBar({
     const el = fixedHeaderRef.current;
     if (!el) return;
     const sync = () => {
-      const h = isIdleAtTop ? 0 : el.offsetHeight;
+      const h = sessionDimmed ? 0 : el.offsetHeight;
       setHeaderHeight(h);
       document.documentElement.style.setProperty("--driver-log-bar-height", `${h}px`);
     };
@@ -713,11 +713,11 @@ export default function LogBar({
               showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
             }
             expanded={primaryHeroExpanded}
-            compact={primaryBarCompact && !primaryHeroExpanded}
+            compact={primaryBarCompact && !sessionDimmed}
             className={cn(
               "w-full",
-              primaryHeroExpanded && "max-w-md",
-              primaryBarCompact && !primaryHeroExpanded && "max-w-none"
+              sessionDimmed && "max-w-md",
+              primaryBarCompact && !sessionDimmed && "max-w-none"
             )}
           />
         </div>
@@ -727,8 +727,8 @@ export default function LogBar({
 
   return (
     <>
-      {/* Reserve space for fixed top bar (not used in mobile focus — button floats centered). */}
-      {!isIdleAtTop && (
+      {/* Reserve space for fixed top bar (not used in mobile focus — pie floats centered). */}
+      {!sessionDimmed && (
         <div
           aria-hidden
           className="max-w-[1400px] mx-auto w-full"
@@ -748,15 +748,13 @@ export default function LogBar({
         ref={fixedHeaderRef}
         className={cn(
           "fixed z-50 px-4 transition-all duration-500 ease-out",
-          isIdleAtTop
-            ? "inset-0 flex flex-col items-center justify-center px-6 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] bg-transparent border-0 shadow-none backdrop-blur-none"
-            : sessionDimmed
-              ? cn(
-                  "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
-                  scrollCompact ? "py-2" : "py-3",
-                  "bg-transparent border-0 shadow-none backdrop-blur-none"
-                )
-              : cn(
+          sessionDimmed
+            ? cn(
+                "inset-0 flex flex-col items-center justify-center px-6 pt-[max(1rem,env(safe-area-inset-top))]",
+                "pb-[max(1.5rem,calc(var(--driver-end-shift-height,0px)+0.75rem),env(safe-area-inset-bottom))]",
+                "bg-transparent border-0 shadow-none backdrop-blur-none"
+              )
+            : cn(
                   "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
                   scrollCompact ? "py-2" : "py-3",
                   FIXED_LOG_BAR_SHELL
@@ -786,12 +784,12 @@ export default function LogBar({
         <div
           className={cn(
             "mx-auto w-full",
-            isIdleAtTop
-              ? "max-w-md w-full flex flex-col justify-center"
+            sessionDimmed
+              ? "max-w-md w-full flex flex-col items-center justify-center"
               : "max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
           )}
         >
-          <div className={cn("flex-1 min-w-0 w-full", isIdleAtTop && "flex flex-col justify-center")}>
+          <div className={cn("flex-1 min-w-0 w-full", sessionDimmed && "flex flex-col items-center justify-center")}>
             {barContent}
           </div>
           <div
