@@ -298,10 +298,9 @@ export default function LogBar({
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
-  /** Dim sheet + tuck chrome while live at scroll top — idle hero or active work/break. */
-  const sessionDimmed = Boolean(
-    isLiveNow && !scrollCompact && (isIdleAtTop || shiftSegmentOpen)
-  );
+  /** Centered hero at scroll top while on work/break; scroll down compacts pie into the top bar. */
+  const onLiveShiftAtTop = isLiveNow && shiftSegmentOpen && !scrollCompact;
+  const sessionDimmed = Boolean(isIdleAtTop || onLiveShiftAtTop);
   const primaryHeroExpanded = sessionDimmed;
   const hideSecondaryToolbar = sessionDimmed;
 
@@ -677,7 +676,8 @@ export default function LogBar({
           <span
             className={cn(
               "flex w-full justify-center items-center gap-2 text-sm sm:w-auto sm:justify-start",
-              isIdleAtTop || sessionDimmed ? "text-white/75" : "text-slate-500 dark:text-slate-400"
+              isIdleAtTop || sessionDimmed ? "text-white/75" : "text-slate-500 dark:text-slate-400",
+              sessionDimmed && "pointer-events-auto"
             )}
           >
             <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
@@ -731,7 +731,7 @@ export default function LogBar({
             }
             expanded={primaryHeroExpanded}
             compact={primaryBarCompact && !sessionDimmed}
-            className="shrink-0"
+            className={cn("shrink-0", sessionDimmed && "pointer-events-auto")}
           />
         </div>
       </div>
@@ -765,7 +765,7 @@ export default function LogBar({
             ? cn(
                 "inset-0 flex flex-col items-center justify-center px-6 pt-[max(1rem,env(safe-area-inset-top))]",
                 "pb-[max(1.5rem,calc(var(--driver-end-shift-height,0px)+0.75rem),env(safe-area-inset-bottom))]",
-                "bg-transparent border-0 shadow-none backdrop-blur-none"
+                "bg-transparent border-0 shadow-none backdrop-blur-none pointer-events-none"
               )
             : cn(
                   "top-0 left-0 right-0 pt-[max(0.75rem,env(safe-area-inset-top))]",
@@ -775,7 +775,7 @@ export default function LogBar({
         )}
       >
         {hideSecondaryToolbar && (
-          <div className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-10">
+          <div className="pointer-events-auto absolute top-[max(0.75rem,env(safe-area-inset-top))] right-4 z-10">
             <button
               type="button"
               onClick={openSessionTools}
@@ -979,7 +979,7 @@ export default function LogBar({
             className={cn(
               "rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/40 px-3 py-2.5 text-sm text-amber-900 dark:text-amber-100",
               sessionDimmed
-                ? "mx-auto mt-4 max-w-md w-full border-amber-400/40 bg-amber-950/80 text-amber-100"
+                ? "pointer-events-auto mx-auto mt-4 max-w-md w-full border-amber-400/40 bg-amber-950/80 text-amber-100"
                 : "max-w-[1400px] mx-auto mt-2"
             )}
           >
@@ -1043,7 +1043,7 @@ export default function LogBar({
           </div>
         )}
         {workWarning && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50" aria-modal role="alertdialog" aria-labelledby="work-warning-title">
+          <div className="pointer-events-auto fixed inset-0 z-[100] flex items-center justify-center bg-black/50" aria-modal role="alertdialog" aria-labelledby="work-warning-title">
             <div className="mx-4 max-w-sm rounded-xl bg-white dark:bg-slate-800 border border-amber-300 dark:border-amber-600 shadow-xl p-4 space-y-3">
               <p id="work-warning-title" className="font-semibold text-amber-800 dark:text-amber-200">⚠️ Work time rule</p>
               <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">{workWarning.message}</p>

@@ -1,4 +1,5 @@
 import {
+  buildBreakPieTrackGradient,
   buildComplianceClockConicGradient,
   buildNeutralPieTrackGradient,
   formatComplianceCountdown,
@@ -65,12 +66,15 @@ export function resolveCompliancePieState(input: CompliancePieStateInput): Compl
   const usedForGradient = showWedge ? input.workMinutesUsed : 0;
   const wedgeGradient = showWedge
     ? buildComplianceClockConicGradient(usedForGradient, input.totalWindowMinutes, clockTier)
-    : buildNeutralPieTrackGradient();
+    : input.currentSegment === "break"
+      ? buildBreakPieTrackGradient()
+      : buildNeutralPieTrackGradient();
 
   const chrome = resolveActionChrome({
     complianceTone,
     breakDueTone,
     isIdleAtTop: input.isIdleAtTop,
+    currentSegment: input.currentSegment,
   });
 
   return {

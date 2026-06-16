@@ -43,6 +43,15 @@ describe("resolveActionChrome", () => {
     const chrome = resolveActionChrome({ complianceTone: "default", breakDueTone: null, isIdleAtTop: true });
     expect(chrome.surfaceClass).toContain("bg-emerald-500");
   });
+
+  it("uses amber hub while on break segment", () => {
+    const chrome = resolveActionChrome({
+      complianceTone: "ok",
+      breakDueTone: null,
+      currentSegment: "break",
+    });
+    expect(chrome.surfaceClass).toContain("bg-amber-500");
+  });
 });
 
 describe("resolveCompliancePieState", () => {
@@ -57,5 +66,16 @@ describe("resolveCompliancePieState", () => {
     expect(state.wedgeTier).toBe("breach");
     expect(state.chrome.surfaceClass).toContain("bg-red-600");
     expect(state.wedgeGradient).toContain("conic-gradient");
+  });
+
+  it("uses amber break ring when resting on break", () => {
+    const state = resolveCompliancePieState({
+      workMinutesUsed: 120,
+      totalWindowMinutes: 300,
+      currentSegment: "break",
+      shiftSegmentOpen: true,
+    });
+    expect(state.wedgeGradient).toContain("#f59e0b");
+    expect(state.chrome.surfaceClass).toContain("bg-amber-500");
   });
 });

@@ -76,6 +76,7 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
   );
 
   const showWorkCountdown = !isMoving && currentSegment === "work" && !isIdleAtTop;
+  const showBreakElapsed = !isMoving && currentSegment === "break" && !isIdleAtTop && Boolean(elapsedLabel);
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
 
   /** Fixed square — avoids flex stretch blowing up w-full + aspect-square. */
@@ -172,7 +173,30 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
                 </span>
               </>
             ) : null}
-            {elapsedLabel ? (
+            {showBreakElapsed ? (
+              <>
+                <span
+                  className={cn(
+                    "font-black tabular-nums tracking-tight leading-none",
+                    expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
+                    pie.chrome.onColoredSurface && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                  )}
+                  aria-live="polite"
+                >
+                  {elapsedLabel}
+                </span>
+                <span
+                  className={cn(
+                    "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight",
+                    expanded ? "text-[0.6rem]" : "text-[0.55rem]",
+                    "text-amber-950/80 dark:text-white/80"
+                  )}
+                >
+                  On break
+                </span>
+              </>
+            ) : null}
+            {!showBreakElapsed && elapsedLabel && !showWorkCountdown ? (
               <span
                 className={cn(
                   "font-mono font-extrabold tabular-nums leading-none",

@@ -57,9 +57,15 @@ export function getUsedWedgePercent(workMinutesUsed: number, totalWindowMinutes:
   return Math.min(100, Math.max(0, (used / totalWindowMinutes) * 100));
 }
 
-/** Empty in-cab track (idle / on break) — visible ring on dark overlay. */
+/** Empty in-cab track (idle) — visible ring on dark focus overlay. */
 export function buildNeutralPieTrackGradient(): string {
   return `conic-gradient(from 0deg, ${IDLE_TRACK_COLOR} 0deg, ${IDLE_TRACK_COLOR} 360deg)`;
+}
+
+/** On break — amber ring matches break activity theme. */
+export function buildBreakPieTrackGradient(): string {
+  const { from, to } = TIER_GRADIENT.warning;
+  return `conic-gradient(from 0deg, ${from} 0deg, ${to} 360deg)`;
 }
 
 /** Work segment with no logged minutes yet — faint full-ring hint in tier colour. */

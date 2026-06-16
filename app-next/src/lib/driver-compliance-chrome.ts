@@ -92,8 +92,12 @@ export function resolveActionChrome(input: {
   complianceTone: ComplianceTone;
   breakDueTone: BreakDueTone;
   isIdleAtTop?: boolean;
+  currentSegment?: "work" | "break" | null;
 }): ReturnType<typeof getComplianceChrome> {
-  const { complianceTone, breakDueTone, isIdleAtTop } = input;
+  const { complianceTone, breakDueTone, isIdleAtTop, currentSegment } = input;
+  if (currentSegment === "break" && !isIdleAtTop && complianceTone === "ok" && breakDueTone == null) {
+    return getComplianceChrome("warning", null);
+  }
   if (isIdleAtTop && complianceTone === "default" && breakDueTone == null) {
     return getComplianceChrome("ok", null);
   }
