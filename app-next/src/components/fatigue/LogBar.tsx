@@ -88,8 +88,8 @@ const EVENT_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string 
   stop: Square,
 };
 const EVENT_LABELS: Record<ActivityKey, string> = {
-  work: "Work",
-  break: "Break",
+  work: "Start Work",
+  break: "Start Break",
   non_work: "Non-Work Time",
   stop: "End shift",
 };
@@ -598,8 +598,8 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        getNextWorkBreakType(currentType) === "work" && currentType === null ? "Start shift" : "Log work",
-      break: "Log break",
+        getNextWorkBreakType(currentType) === "work" && currentType === null ? "Start shift" : "Start Work",
+      break: "Start Break",
       stop: EVENT_LABELS.stop,
     },
     onConfirmIntent: (intent: "work" | "break" | "stop") => {
