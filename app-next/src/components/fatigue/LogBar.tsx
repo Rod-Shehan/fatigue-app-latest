@@ -11,7 +11,6 @@ import {
   X,
   Loader2,
   AlertTriangle,
-  Clock,
   SlidersHorizontal,
   MoreVertical,
 } from "lucide-react";
@@ -31,22 +30,6 @@ import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
 import { driverAlertnessMustStop } from "@/lib/driver-alertness";
-import {
-  WORK_WINDOW_MIN,
-  emptySlots,
-  findWorkWindowStartMs,
-  getRestSlotsForBreakRange,
-  getMinutesBeforeDueFromSlots,
-  getPriorRestSlotsBeforeTime,
-  getAdditionalMinutesNeededForCurrentBreak,
-  qualifyingRestMetForWorkAfterBreak,
-  getBreakSplitBarState,
-  getRemainingBreakMinutesForDisplay,
-  getBreakDueByTime,
-} from "@/lib/five-hour-break-rule";
-
-const WORK_TARGET_MINUTES = WORK_WINDOW_MIN;
-const BREAK_TARGET_MINUTES = 20;
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
@@ -116,8 +99,6 @@ function getNextWorkBreakType(currentType: string | null): "work" | "break" {
   return currentType === "work" ? "break" : "work";
 }
 
-const MIN_BREAK_BLOCK_MINUTES = 10;
-/** Minimum non-work time (hours) between shifts. */
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
 const CONFIRM_RESET_MS = 2500;
@@ -130,78 +111,6 @@ function formatDurationHoursMinutes(totalMinutes: number): string {
   const h = Math.floor(m / 60);
   const mm = m % 60;
   return h > 0 ? `${h}h ${mm}m` : `${mm}m`;
-}
-
-/**
- * Computes whether a warning should be shown when switching to "work" now.
- * We only warn once there's actually been ~5h of work since the last valid break (or a stop/non_work reset).
- */
-/** RULE IP — owner approval required before changing break-warning rule logic. See .cursor/rules/time-rules-ip.mdc */
-function getBreakWarningIfNeeded(events: { time: string; type: string }[], nowMs: number): string | null {
-  if (events.length === 0) return null;
-
-  let workMinsSinceValidBreak = 0;
-  let breakSegments: number[] = [];
-
-  for (let i = 0; i < events.length; i++) {
-    const ev = events[i];
-    const segStart = new Date(ev.time).getTime();
-    const segEnd = i + 1 < events.length ? new Date(events[i + 1].time).getTime() : nowMs;
-    const dur = Math.max(0, Math.floor((segEnd - segStart) / 60000));
-
-    if (ev.type === "work") {
-      if (breakSegments.length > 0) {
-        const slice = events.slice(0, i);
-        if (qualifyingRestMetForWorkAfterBreak(slice, breakSegments)) workMinsSinceValidBreak = 0;
-        breakSegments = [];
-      }
-      workMinsSinceValidBreak += dur;
-    } else if (ev.type === "break") {
-      breakSegments.push(dur);
-    } else {
-      workMinsSinceValidBreak = 0;
-      breakSegments = [];
-    }
-  }
-
-  const last = events[events.length - 1];
-  if (last.type !== "break") return null;
-  if (workMinsSinceValidBreak < WORK_TARGET_MINUTES) return null;
-  if (qualifyingRestMetForWorkAfterBreak(events, breakSegments)) return null;
-  return "20 min rest per 5h work (2×10 min or 1×20 min; breaks under 10 min count as work)";
-}
-
-function getBreakCompleteByTime(events: { time: string; type: string }[]): number | null {
-  if (events.length === 0) return null;
-  const last = events[events.length - 1];
-  if (last.type !== "break") return null;
-  const breakStartMs = new Date(last.time).getTime();
-  const windowStartMs = findWorkWindowStartMs(events, breakStartMs);
-  if (windowStartMs == null) return null;
-  const prior = getPriorRestSlotsBeforeTime(events, windowStartMs, breakStartMs);
-  const additional = getAdditionalMinutesNeededForCurrentBreak(prior);
-  return breakStartMs + additional * 60 * 1000;
-}
-
-/** Minutes until minimum rest is satisfied on the current break (for Work button countdown). */
-function getBreakFinishMinutes(events: { time: string; type: string }[], nowMs: number): number | null {
-  if (events.length === 0) return null;
-  const last = events[events.length - 1];
-  if (last.type !== "break") return null;
-
-  const completeBy = getBreakCompleteByTime(events);
-  if (completeBy != null) {
-    return Math.max(0, Math.ceil((completeBy - nowMs) / 60000));
-  }
-
-  const breakStartMs = new Date(last.time).getTime();
-  const elapsedMin = Math.max(0, (nowMs - breakStartMs) / 60000);
-  const windowStartMs = findWorkWindowStartMs(events, breakStartMs);
-  const prior =
-    windowStartMs != null
-      ? getPriorRestSlotsBeforeTime(events, windowStartMs, breakStartMs)
-      : emptySlots();
-  return getRemainingBreakMinutesForDisplay(prior, elapsedMin);
 }
 
 type DayData = {
@@ -281,11 +190,7 @@ export default function LogBar({
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tick, setTick] = useState(0);
   const [voiceAlertsEnabled, setVoiceAlertsEnabled] = useState(false);
-  /** Tracks break bar % to announce once when 20 min minimum is reached. */
-  const prevBreakPctRef = useRef<number | null>(null);
   const lastSpokenShiftBlockMsgRef = useRef<string | null>(null);
-  /** Dedupe 5h insufficient-break modal speech (Strict Mode / reopen). */
-  const lastSpokenFiveHourBreakRef = useRef<string | null>(null);
   /**
    * Voice confirm dialog already affirms the action — complete the same path as the second tap
    * (onLogEvent / end shift) instead of only arming pendingType ("Tap again to log").
@@ -395,66 +300,18 @@ export default function LogBar({
   const elapsedMs =
     isLiveNow && currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
   const elapsedMinutes = Math.max(0, elapsedMs / 60000);
-  const contextualBar = (() => {
-    if (!currentType || currentType === "stop") return null;
-    if (currentType === "work") {
-      const target = WORK_TARGET_MINUTES;
-      const pct = Math.min(100, (elapsedMinutes / target) * 100);
-      const remaining = Math.max(0, target - Math.floor(elapsedMinutes));
-      return { type: "work" as const, elapsed: elapsedMinutes, target, pct, remaining, color: ACTIVITY_THEME.work.hex, label: "5h" };
-    }
-    if (currentType === "break" && lastEvent) {
-      const breakStartMs = new Date(lastEvent.time).getTime();
-      const windowStartMs = findWorkWindowStartMs(eventsForDriver, breakStartMs);
-      const priorSlots =
-        windowStartMs != null
-          ? getPriorRestSlotsBeforeTime(eventsForDriver, windowStartMs, breakStartMs)
-          : emptySlots();
-      const split = getBreakSplitBarState(priorSlots, elapsedMinutes);
-      const remaining = getRemainingBreakMinutesForDisplay(priorSlots, elapsedMinutes);
-      return {
-        type: "break" as const,
-        elapsed: elapsedMinutes,
-        target: BREAK_TARGET_MINUTES,
-        pct: split.combinedPct,
-        leftPct: split.leftPct,
-        rightPct: split.rightPct,
-        restComplete: split.complete,
-        remaining,
-        color: ACTIVITY_THEME.break.hex,
-        label: "2×10m / 20m",
-      };
-    }
-    return null;
-  })();
+  const showSessionTimer = Boolean(isLiveNow && shiftSegmentOpen && lastEvent);
 
   const complianceTone = (() => {
     if (!complianceButton) return "default" as const;
     if (complianceButton.loading) return "default" as const;
     if (complianceButton.hasViolations) return "violation" as const;
     if (complianceButton.hasWarnings) return "warning" as const;
-    /** Break running but 5h rest rule not yet satisfied on the split bar — between “warning” and full “OK” green. */
-    if (
-      currentType === "break" &&
-      contextualBar?.type === "break" &&
-      !contextualBar.restComplete
-    ) {
-      return "pending" as const;
-    }
-    return "ok" as const;
+    if (shiftSegmentOpen) return "ok" as const;
+    return "default" as const;
   })();
 
-  const breakDueTone = useMemo(() => {
-    if (!isLiveNow) return null as null | "amber" | "red";
-    if (currentType !== "work") return null as null | "amber" | "red";
-    const nowMs = Date.now();
-    const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
-    if (dueBy == null) return null as null | "amber" | "red";
-    const mins = Math.ceil((dueBy - nowMs) / 60000);
-    if (mins <= 5) return "red";
-    if (mins <= 10) return "amber";
-    return null;
-  }, [currentType, eventsForDriver, isLiveNow, tick]);
+  const breakDueTone = null as null | "amber" | "red";
 
   const complianceChrome = getComplianceChrome(complianceTone, breakDueTone);
 
@@ -577,11 +434,10 @@ export default function LogBar({
     setWorkWarning(null);
   }, [currentDayIndex, clearPending]);
 
-  /** Phase 1 voice: work-warning modals (card incomplete, 5h break rule). */
+  /** Phase 1 voice: work-warning modals (card incomplete, etc.). */
   useEffect(() => {
     if (!workWarning) {
       lastSpokenShiftBlockMsgRef.current = null;
-      lastSpokenFiveHourBreakRef.current = null;
       return;
     }
     if (!voiceAlertsEnabled) return;
@@ -601,52 +457,8 @@ export default function LogBar({
       if (lastSpokenShiftBlockMsgRef.current === key) return;
       lastSpokenShiftBlockMsgRef.current = key;
       speakVoiceAlert(workWarning.message);
-      return;
-    }
-
-    /** 5h rule: only this modal uses confirm "Log work anyway" + this subtext (compliance uses different copy). */
-    if (
-      workWarning.confirmLabel === "Log work anyway" &&
-      workWarning.subtext === "This will log work now."
-    ) {
-      const key = workWarning.message;
-      if (lastSpokenFiveHourBreakRef.current === key) return;
-      lastSpokenFiveHourBreakRef.current = key;
-      speakVoiceAlert(
-        "Critical five hour rule. Twenty minute break required."
-      );
-      return;
     }
   }, [workWarning, voiceAlertsEnabled]);
-
-  /** Phase 1 voice: minimum 20 minute break bar just reached 100%. */
-  useEffect(() => {
-    if (!voiceAlertsEnabled) return;
-    if (currentType !== "break" || !contextualBar || contextualBar.type !== "break") {
-      prevBreakPctRef.current = null;
-      return;
-    }
-    const pct = contextualBar.pct;
-    const prev = prevBreakPctRef.current;
-    prevBreakPctRef.current = pct;
-    if (
-      prev !== null &&
-      prev < 100 &&
-      contextualBar.type === "break" &&
-      contextualBar.restComplete
-    ) {
-      speakVoiceAlert("Minimum break complete. You can resume work when ready.");
-    }
-  }, [currentType, contextualBar, voiceAlertsEnabled, tick]);
-
-  /** Warning when finishing a break (switching to work): short breaks count as work time. */
-  const getShortBreakWarning = (newType: string) => {
-    if (newType !== "work" || currentType !== "break" || !lastEvent) return null;
-    const breakStart = new Date(lastEvent.time).getTime();
-    const breakMinutes = Math.floor((Date.now() - breakStart) / 60000);
-    if (breakMinutes >= MIN_BREAK_BLOCK_MINUTES) return null;
-    return "Break under 10 minutes is automatically counted as work time.";
-  };
 
   /** Warning when starting work with <7h non-work since last shift end (rolling event time). */
   const getInsufficientNonWorkWarning = () => {
@@ -659,30 +471,7 @@ export default function LogBar({
     );
   };
 
-  const logBarBanner = useMemo(() => {
-    if (!isLiveNow) return null;
-    const nowMs = Date.now();
-
-    if (currentType === "work") {
-      const dueBy = getBreakDueByTime(eventsForDriver, nowMs);
-      if (dueBy == null) return null;
-      const mins = Math.ceil((dueBy - nowMs) / 60000);
-      // Show only when the driver is at/near the due moment (keeps UI quiet).
-      if (mins > 30) return null;
-      return mins <= 0
-        ? "Break is due now (20 min per 5h work)."
-        : `Break due in ${mins} min (20 min per 5h work).`;
-    }
-
-    if (currentType === "break") {
-      const mins = getBreakFinishMinutes(eventsForDriver, nowMs);
-      if (mins == null) return null;
-      if (mins <= 0) return "Minimum break complete — you may resume work when ready.";
-      return `Minimum break: ${mins} min remaining.`;
-    }
-
-    return null;
-  }, [currentType, eventsForDriver, isLiveNow]);
+  const logBarBanner = null;
 
   const handleLog = (type: string) => {
     if (type === currentType) return;
@@ -736,25 +525,6 @@ export default function LogBar({
     }
 
     if (pendingType === type) {
-      if (type === "work") {
-        const insufficientBreakMsg = getBreakWarningIfNeeded(eventsForDriver, Date.now());
-        if (insufficientBreakMsg) {
-          setWorkWarning({
-            message: insufficientBreakMsg,
-            confirmLabel: "Log work anyway",
-            subtext: "This will log work now.",
-            onConfirm: () => {
-              setWorkWarning(null);
-              clearPending();
-              const driverForEvent: "primary" | "second" | undefined =
-                driverType === "two_up" ? activeDriver : undefined;
-              onLogEvent(currentDayIndex, type, driverForEvent);
-            },
-            onCancel: clearPending,
-          });
-          return;
-        }
-      }
       clearPending();
       if (type === "stop" && onEndShiftRequest) {
         onEndShiftRequest(currentDayIndex);
@@ -767,21 +537,6 @@ export default function LogBar({
     }
 
     if (type === "work") {
-      const shortBreakMsg = getShortBreakWarning(type);
-      if (shortBreakMsg) {
-        setWorkWarning({
-          message: shortBreakMsg,
-          confirmLabel: "Finish break anyway",
-          subtext: "Tap Work again within a few seconds to confirm.",
-          onConfirm: () => {
-            setWorkWarning(null);
-            setPendingType("work");
-            if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
-          },
-        });
-        return;
-      }
       const nonWorkMsg = getInsufficientNonWorkWarning();
       if (nonWorkMsg) {
         setWorkWarning({
@@ -817,25 +572,6 @@ export default function LogBar({
       }
     }
     if (voiceFinalizeNextLogRef.current) {
-      if (type === "work") {
-        const insufficientBreakMsg = getBreakWarningIfNeeded(eventsForDriver, Date.now());
-        if (insufficientBreakMsg) {
-          setWorkWarning({
-            message: insufficientBreakMsg,
-            confirmLabel: "Log work anyway",
-            subtext: "This will log work now.",
-            onConfirm: () => {
-              setWorkWarning(null);
-              clearPending();
-              const driverForEvent: "primary" | "second" | undefined =
-                driverType === "two_up" ? activeDriver : undefined;
-              onLogEvent(currentDayIndex, type, driverForEvent);
-            },
-            onCancel: clearPending,
-          });
-          return;
-        }
-      }
       clearPending();
       if (type === "stop" && onEndShiftRequest) {
         onEndShiftRequest(currentDayIndex);
@@ -897,7 +633,7 @@ export default function LogBar({
     isIdleAtTop,
     scrollCompact,
     primaryHeroExpanded,
-    contextualBar,
+    showSessionTimer,
     logBarBanner,
     forgottenActionReminder,
     shiftSegmentOpen,
@@ -1051,112 +787,19 @@ export default function LogBar({
                 </span>
               </span>
             </div>
-            {contextualBar ? (
-              <div className={cn("flex w-full min-w-0 items-center", primaryBarCompact ? "gap-1" : "gap-2")}>
-                <div
-                  className={cn(
-                    "relative flex-1 min-w-0 rounded-lg overflow-hidden",
-                    primaryBarCompact
-                      ? "h-[1.125rem] min-h-[1.125rem] sm:h-5 sm:min-h-5"
-                      : "h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20",
-                    barOnColoredHeader
-                      ? "bg-black/60 ring-2 ring-white/40 shadow-[inset_0_2px_6px_rgba(0,0,0,0.55)] dark:bg-black/65 dark:ring-white/30"
-                      : "bg-slate-100 dark:bg-slate-700"
-                  )}
-                >
-                  <div className="absolute inset-0 rounded-lg">
-                    {contextualBar.type === "work" && (
-                      <>
-                        <div
-                          className={cn(
-                            "absolute inset-y-0 left-0 rounded-lg transition-all duration-300",
-                            barOnColoredHeader &&
-                              "bg-lime-300 shadow-sm dark:bg-lime-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.25)]"
-                          )}
-                          style={{
-                            width: `${contextualBar.pct}%`,
-                            ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
-                          }}
-                        />
-                        {[1, 2, 3, 4].map((i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "absolute top-0 bottom-0 w-px",
-                              barOnColoredHeader ? "bg-white/45" : "bg-white/60"
-                            )}
-                            style={{ left: `${(i / 5) * 100}%` }}
-                            aria-hidden
-                          />
-                        ))}
-                      </>
-                    )}
-                    {contextualBar.type === "break" && (
-                      <>
-                        <div className="absolute inset-0 flex rounded-lg overflow-hidden">
-                          <div
-                            className={cn(
-                              "relative h-full w-1/2",
-                              barOnColoredHeader ? "border-r border-white/35" : "border-r border-white/50"
-                            )}
-                          >
-                            <div
-                              className={cn(
-                                "absolute inset-y-0 left-0 transition-all duration-300",
-                                barOnColoredHeader &&
-                                  "bg-amber-300 shadow-sm dark:bg-amber-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
-                              )}
-                              style={{
-                                width: `${contextualBar.leftPct}%`,
-                                ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
-                              }}
-                            />
-                          </div>
-                          <div className="relative h-full w-1/2">
-                            <div
-                              className={cn(
-                                "absolute inset-y-0 left-0 transition-all duration-300",
-                                barOnColoredHeader &&
-                                  "bg-amber-300 shadow-sm dark:bg-amber-400 dark:shadow-[0_0_0_1px_rgba(0,0,0,0.2)]"
-                              )}
-                              style={{
-                                width: `${contextualBar.rightPct}%`,
-                                ...(barOnColoredHeader ? {} : { backgroundColor: contextualBar.color }),
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <div
-                          className={cn(
-                            "absolute top-0 bottom-0 left-1/2 w-px -translate-x-px z-[1]",
-                            barOnColoredHeader ? "bg-white/90" : "bg-white/70"
-                          )}
-                          aria-hidden
-                        />
-                      </>
-                    )}
-                  </div>
-                  {((contextualBar.type === "work" && contextualBar.pct < 100) ||
-                    (contextualBar.type === "break" && contextualBar.pct < 100)) && (
-                    <div
-                      className={cn(
-                        "absolute top-1/2 w-2.5 h-2.5 -translate-y-1/2 -translate-x-1/2 rounded-full shadow-md pointer-events-none z-10",
-                        barOnColoredHeader
-                          ? "bg-white ring-2 ring-emerald-950/90 dark:ring-white/90"
-                          : "bg-black dark:bg-white border-2 border-slate-400 dark:border-slate-300"
-                      )}
-                      style={{ left: `${contextualBar.pct}%` }}
-                      title="Current progress"
-                      aria-hidden
-                    />
-                  )}
-                </div>
+            {showSessionTimer ? (
+              <div
+                className={cn(
+                  "flex w-full min-w-0 items-center justify-center",
+                  primaryBarCompact ? "pt-0.5" : "pt-1"
+                )}
+              >
                 <span
                   className={cn(
-                    "flex shrink-0 items-center font-mono font-extrabold tabular-nums leading-none tracking-tight",
+                    "font-mono font-extrabold tabular-nums leading-none tracking-tight",
                     primaryBarCompact
-                      ? "h-[1.125rem] min-h-[1.125rem] sm:h-5 sm:min-h-5 text-sm sm:text-base"
-                      : "h-[4.5rem] min-h-[4.5rem] sm:h-20 sm:min-h-20 text-[2.25rem] sm:text-[2.5rem]",
+                      ? "text-sm sm:text-base"
+                      : "text-[2.25rem] sm:text-[2.5rem]",
                     barOnColoredHeader
                       ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)] dark:drop-shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
                       : "text-slate-900 dark:text-slate-100"
@@ -1164,7 +807,7 @@ export default function LogBar({
                   title="Elapsed time this work / break"
                   aria-live="polite"
                 >
-                  {formatElapsedBarDisplay(contextualBar.elapsed)}
+                  {formatElapsedBarDisplay(elapsedMinutes)}
                 </span>
               </div>
             ) : null}
@@ -1258,8 +901,6 @@ export default function LogBar({
                 "shrink-0 flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] md:h-12 md:w-12 md:min-h-[48px] md:min-w-[48px] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
                 complianceTone === "ok" &&
                   "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-emerald-900 dark:focus-visible:ring-white focus-visible:ring-offset-emerald-400 dark:focus-visible:ring-offset-emerald-600",
-                complianceTone === "pending" &&
-                  "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-400 dark:focus-visible:ring-offset-lime-600",
                 (complianceTone === "warning" || complianceTone === "violation") &&
                   "bg-black/15 dark:bg-black/20 hover:bg-black/25 dark:hover:bg-black/30 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-400 dark:focus-visible:ring-offset-amber-500",
                 complianceTone === "default" && "rounded-lg hover:bg-black/10 dark:hover:bg-white/15 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
@@ -1271,8 +912,8 @@ export default function LogBar({
                     ? "View compliance — violations"
                     : complianceButton.hasWarnings
                       ? "View compliance — warnings"
-                      : complianceTone === "pending"
-                        ? "Break in progress — tap for compliance details"
+                      : complianceTone === "ok"
+                        ? "View compliance — session active"
                         : "View compliance — all clear"
               }
               aria-label={
@@ -1282,8 +923,8 @@ export default function LogBar({
                     ? "Compliance: violations — jump to details"
                     : complianceButton.hasWarnings
                       ? "Compliance: warnings — jump to details"
-                      : complianceTone === "pending"
-                        ? "Compliance: break in progress — jump to details"
+                      : complianceTone === "ok"
+                        ? "Compliance: session active — jump to details"
                         : "Compliance: OK — jump to details"
               }
             >
@@ -1304,12 +945,6 @@ export default function LogBar({
               ) : complianceButton.hasWarnings ? (
                 <AlertTriangle
                   className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm"
-                  strokeWidth={2.5}
-                  aria-hidden
-                />
-              ) : complianceTone === "pending" ? (
-                <Clock
-                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   strokeWidth={2.5}
                   aria-hidden
                 />
