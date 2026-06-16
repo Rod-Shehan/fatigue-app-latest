@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildShiftLaneCells, recordedKindForBlock } from "@/lib/manager-risk-shift-lane";
+import {
+  buildShiftLaneCells,
+  dominantKindFromMinuteGrids,
+  recordedKindForBlock,
+} from "@/lib/manager-risk-shift-lane";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 
 const BLOCK_MS = RISK_BLOCK_MINUTES * 60 * 1000;
@@ -41,8 +45,60 @@ describe("manager-risk-shift-lane", () => {
 
     const cells = buildShiftLaneCells(blocks, [], { nowMs });
     expect(cells[0].generated).toBe(false);
+    expect(cells[0].kind).toBe("non_work");
     expect(cells[1].generated).toBe(false);
     expect(cells[2].generated).toBe(true);
+  });
+
+  it("defaults past blocks without events to non_work (not idle)", () => {
+    const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const blocks = [{ blockStartMs: nowBlock - BLOCK_MS, label: "13:45", baselinePct: 30 }];
+    const cells = buildShiftLaneCells(blocks, [], { nowMs });
+    expect(cells[0].kind).toBe("non_work");
+  });
+
+  it("uses minute coverage when events do not overlap a block", () => {
+    const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const blockStart = nowBlock - BLOCK_MS;
+    const ymd = "2026-06-11";
+    const dayStart = new Date(`${ymd}T00:00:00`).getTime();
+    const workMinute = Math.floor((blockStart - dayStart) / 60_000);
+
+    const work_time = Array(1440).fill(false);
+    const breaks = Array(1440).fill(false);
+    const non_work = Array(1440).fill(true);
+    for (let m = workMinute; m < workMinute + 15; m++) {
+      work_time[m] = true;
+      non_work[m] = false;
+    }
+
+    const cells = buildShiftLaneCells(
+      [{ blockStartMs: blockStart, label: "13:45", baselinePct: 30 }],
+      [],
+      {
+        nowMs,
+        dayCoverage: [{ ymd, work_time, breaks, non_work }],
+      }
+    );
+    expect(cells[0].kind).toBe("work");
+    expect(dominantKindFromMinuteGrids(blockStart, [{ ymd, work_time, breaks, non_work }], nowMs)).toBe(
+      "work"
+    );
+  });
+
+  it("carries work from events before the visible window", () => {
+    const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const blockStart = nowBlock - 4 * BLOCK_MS;
+    const workStart = blockStart - 2 * BLOCK_MS;
+    const cells = buildShiftLaneCells(
+      [{ blockStartMs: blockStart, label: "12:45", baselinePct: 30 }],
+      [{ time: new Date(workStart).toISOString(), type: "work" }],
+      { nowMs }
+    );
+    expect(cells[0].kind).toBe("work");
   });
 
   it("uses cycled run plan segments for future blocks", () => {

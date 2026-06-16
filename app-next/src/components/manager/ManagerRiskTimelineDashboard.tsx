@@ -42,7 +42,7 @@ import {
   FRMS_TPMA_REFERENCES,
 } from "@/lib/frms/tpma-references";
 import { ManagerRiskShiftLane } from "@/components/manager/ManagerRiskShiftLane";
-import type { TimelineEvent } from "@/lib/manager-risk-shift-lane";
+import type { ShiftLaneDayCoverage, TimelineEvent } from "@/lib/manager-risk-shift-lane";
 import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 
 type FeedState = {
@@ -138,6 +138,7 @@ export function ManagerRiskTimelineDashboard({
   autoSelected = false,
   mapDayIndex,
   shiftEvents = [],
+  shiftDayCoverage,
   shiftPlanContext,
 }: {
   driverName: string;
@@ -153,6 +154,8 @@ export function ManagerRiskTimelineDashboard({
   mapDayIndex?: number;
   /** Driver diary events for the shift lane (recorded duty before now). */
   shiftEvents?: TimelineEvent[];
+  /** Per-day minute grids when event segments do not overlap a block. */
+  shiftDayCoverage?: ShiftLaneDayCoverage[];
   /** Run plan duty segments + break-due window for the shift lane. */
   shiftPlanContext?: ShiftLanePlanContext;
 }) {
@@ -497,6 +500,7 @@ export function ManagerRiskTimelineDashboard({
         <ManagerRiskShiftLane
           blocks={feed.blocks}
           events={shiftEvents}
+          dayCoverage={shiftDayCoverage}
           planContext={shiftPlanContext}
         />
 

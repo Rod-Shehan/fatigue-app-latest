@@ -15,6 +15,9 @@ import {
   type RiskTimelineBlock,
   findNowBlockStartMs,
 } from "@/lib/manager-risk-timeline";
+import {
+  MINUTES_PER_DAY,
+} from "@/lib/coverage/derive-minute-coverage";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 
 const BLOCK_MS = RISK_BLOCK_MINUTES * 60 * 1000;
@@ -35,6 +38,58 @@ export type ShiftLaneCell = {
 };
 
 export type TimelineEvent = { time: string; type: string };
+
+/** Per-day minute grids (driver sheet / EventLogger) for blocks with no event overlap. */
+export type ShiftLaneDayCoverage = {
+  ymd: string;
+  work_time: boolean[];
+  breaks: boolean[];
+  non_work: boolean[];
+};
+
+function dominantFromOverlapMs(overlapMs: Record<"work" | "break" | "non_work", number>): ShiftLaneKind | null {
+  const total = overlapMs.work + overlapMs.break + overlapMs.non_work;
+  if (total === 0) return null;
+  if (overlapMs.work >= overlapMs.break && overlapMs.work >= overlapMs.non_work) return "work";
+  if (overlapMs.break >= overlapMs.non_work) return "break";
+  return "non_work";
+}
+
+export function dominantKindFromMinuteGrids(
+  blockStartMs: number,
+  sources: ShiftLaneDayCoverage[],
+  nowMs: number
+): ShiftLaneKind | null {
+  const blockEnd = Math.min(blockStartMs + BLOCK_MS, nowMs);
+  if (blockStartMs >= nowMs || blockEnd <= blockStartMs) return null;
+
+  const overlapMs = { work: 0, break: 0, non_work: 0 };
+  for (const src of sources) {
+    const dayStart = new Date(`${src.ymd}T00:00:00`).getTime();
+    for (let t = blockStartMs; t < blockEnd; t += 60_000) {
+      const minute = Math.floor((t - dayStart) / 60_000);
+      if (minute < 0 || minute >= MINUTES_PER_DAY) continue;
+      if (src.work_time[minute]) overlapMs.work += 1;
+      else if (src.breaks[minute]) overlapMs.break += 1;
+      else if (src.non_work[minute]) overlapMs.non_work += 1;
+    }
+  }
+  return dominantFromOverlapMs(overlapMs);
+}
+
+function resolveRecordedKind(
+  blockStartMs: number,
+  events: TimelineEvent[],
+  dayCoverage: ShiftLaneDayCoverage[] | undefined,
+  nowMs: number
+): ShiftLaneKind {
+  const fromEvents = recordedKindForBlock(blockStartMs, events, nowMs);
+  if (fromEvents != null) return fromEvents;
+  const fromCoverage = dayCoverage?.length
+    ? dominantKindFromMinuteGrids(blockStartMs, dayCoverage, nowMs)
+    : null;
+  return fromCoverage ?? "non_work";
+}
 
 function eventTypeToKind(type: string): ShiftLaneKind | null {
   switch (type) {
@@ -99,9 +154,11 @@ export function buildShiftLaneCells(
   opts?: {
     nowMs?: number;
     planContext?: ShiftLanePlanContext;
+    dayCoverage?: ShiftLaneDayCoverage[];
   }
 ): ShiftLaneCell[] {
   const nowMs = opts?.nowMs ?? Date.now();
+  const dayCoverage = opts?.dayCoverage;
   const segments = opts?.planContext?.segments ?? [];
   const breakDue = opts?.planContext?.breakDue ?? null;
   const nowBlock = findNowBlockStartMs(nowMs);
@@ -109,11 +166,13 @@ export function buildShiftLaneCells(
 
   return blocks.map((block, index) => {
     const generated = block.blockStartMs > nowBlock;
-    const recorded = generated ? null : recordedKindForBlock(block.blockStartMs, events, nowMs);
+    const recorded = generated
+      ? null
+      : resolveRecordedKind(block.blockStartMs, events, dayCoverage, nowMs);
     const breakDueOverlap =
       !generated &&
       blockOverlapsBreakDue(block.blockStartMs, breakDue, nowMs) &&
-      (recorded === "work" || recorded === null);
+      recorded === "work";
 
     if (generated) {
       const riskPct = block.baselinePct;
@@ -138,7 +197,7 @@ export function buildShiftLaneCells(
 
     return {
       blockStartMs: block.blockStartMs,
-      kind: recorded ?? "idle",
+      kind: recorded,
       generated: false,
       breakDue: breakDueOverlap,
     };

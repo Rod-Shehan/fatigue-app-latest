@@ -5,6 +5,7 @@ import {
   buildShiftLaneCells,
   shiftLaneColor,
   shiftLaneLabel,
+  type ShiftLaneDayCoverage,
   type TimelineEvent,
 } from "@/lib/manager-risk-shift-lane";
 import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
@@ -49,15 +50,17 @@ function breakDueOverlayWidth(
 export function ManagerRiskShiftLane({
   blocks,
   events,
+  dayCoverage,
   planContext,
 }: {
   blocks: RiskTimelineBlock[];
   events: TimelineEvent[];
+  dayCoverage?: ShiftLaneDayCoverage[];
   planContext?: ShiftLanePlanContext;
 }) {
   const cells = useMemo(
-    () => buildShiftLaneCells(blocks, events, { planContext }),
-    [blocks, events, planContext]
+    () => buildShiftLaneCells(blocks, events, { planContext, dayCoverage }),
+    [blocks, events, planContext, dayCoverage]
   );
 
   const nowIndex = blocks.findIndex((b) => b.isNow);
@@ -119,10 +122,6 @@ export function ManagerRiskShiftLane({
         className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500 dark:text-slate-400"
         style={{ marginLeft: Y_AXIS_GUTTER_PX, marginRight: RIGHT_MARGIN_PX }}
       >
-        <span className="inline-flex items-center gap-1">
-          <span className="h-2 w-3 rounded-sm bg-slate-400" aria-hidden />
-          No log
-        </span>
         <span className="inline-flex items-center gap-1">
           <span className="h-2 w-3 rounded-sm" style={{ backgroundColor: ACTIVITY_THEME.work.hex }} aria-hidden />
           Work
