@@ -114,6 +114,37 @@ export function getNonWorkMinutesSinceLastShiftEnd(
   return Math.max(0, Math.floor((asOfMs - lastEnd) / 60000));
 }
 
+type RollingEventPoint = { time: string; type: string };
+
+/**
+ * Last event at or before asOfMs on a rolling timeline (event timestamps only).
+ */
+export function getLastRollingEventAt(
+  events: RollingEventPoint[],
+  asOfMs: number
+): RollingEventPoint | null {
+  let last: RollingEventPoint | null = null;
+  let lastMs = -Infinity;
+  for (const ev of events) {
+    const t = new Date(ev.time).getTime();
+    if (!Number.isFinite(t) || t > asOfMs) continue;
+    if (t >= lastMs) {
+      lastMs = t;
+      last = ev;
+    }
+  }
+  return last;
+}
+
+/** True when the rolling timeline ends in open work or break at asOfMs. */
+export function isOpenWorkOrBreakAt(
+  events: RollingEventPoint[],
+  asOfMs: number = Date.now()
+): boolean {
+  const last = getLastRollingEventAt(events, asOfMs);
+  return last?.type === "work" || last?.type === "break";
+}
+
 export type ShiftRestStatus = {
   consecutiveNonWorkMinutes: number;
   restRunStartedAtMs: number;

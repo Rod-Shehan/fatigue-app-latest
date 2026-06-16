@@ -30,6 +30,10 @@ import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { cn } from "@/lib/utils";
 import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
 import { driverAlertnessMustStop } from "@/lib/driver-alertness";
+import {
+  getShiftStartSetupMissing,
+  workLogRequiresShiftStartSetup,
+} from "@/lib/shift-start-gate";
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
@@ -317,7 +321,8 @@ export default function LogBar({
 
   const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
   const primaryActionPending = pendingType === nextWorkBreak;
-  const isStartingShift = nextWorkBreak === "work" && currentType === null;
+  const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
+  const isStartingShift = nextWorkBreak === "work" && needsShiftStartSetup;
   const primaryActionLabel = isStartingShift
     ? canResumeWithinSeventeenHourEpisode
       ? "Resume shift"
@@ -473,31 +478,14 @@ export default function LogBar({
 
   const logBarBanner = null;
 
-  const handleLog = (type: string) => {
-    if (type === currentType) return;
+  const showShiftStartSetupBlock = useCallback(
+    (type: string): boolean => {
+      if (type !== "work" || !workLogRequiresShiftStartSetup(eventsForDriver)) return false;
 
-    if (
-      type === "stop" &&
-      !shiftSegmentOpen &&
-      pendingType !== "stop"
-    ) {
-      return;
-    }
-
-    const isStartingShift = type === "work" && currentType === null;
-    if (isStartingShift) {
-      const hasRego = (dayForCardFields?.truck_rego ?? "").toString().trim() !== "";
-      const hasStartLocation = (dayForCardFields?.start_location ?? "").toString().trim() !== "";
-      const hasDestination = (dayForCardFields?.destination ?? "").toString().trim() !== "";
-      const hasStartKms = dayForCardFields?.start_kms != null && !Number.isNaN(Number(dayForCardFields.start_kms));
-      if (!hasRego || !hasStartLocation || !hasDestination || !hasStartKms) {
-        const missing: string[] = [];
-        if (!hasRego) missing.push("Rego");
-        if (!hasStartLocation) missing.push("Start location");
-        if (!hasDestination) missing.push("Destination");
-        if (!hasStartKms) missing.push("Start KM");
+      const missing = getShiftStartSetupMissing(dayForCardFields ?? {});
+      if (missing.length > 0) {
         setWorkWarning({
-          message: `Please complete today's card before starting shift: ${missing.join(", ")}.`,
+          message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
           confirmLabel: "Go to today's card",
           subtext: "Fill in the fields above, then tap Start shift again.",
           onConfirm: () => {
@@ -506,7 +494,7 @@ export default function LogBar({
           },
           onCancel: () => setWorkWarning(null),
         });
-        return;
+        return true;
       }
       if (driverAlertnessMustStop(dayForCardFields?.alertness_level)) {
         setWorkWarning({
@@ -520,9 +508,25 @@ export default function LogBar({
           },
           onCancel: () => setWorkWarning(null),
         });
-        return;
+        return true;
       }
+      return false;
+    },
+    [dayForCardFields, eventsForDriver, onStartShiftBlocked]
+  );
+
+  const handleLog = (type: string) => {
+    if (type === currentType) return;
+
+    if (
+      type === "stop" &&
+      !shiftSegmentOpen &&
+      pendingType !== "stop"
+    ) {
+      return;
     }
+
+    if (showShiftStartSetupBlock(type)) return;
 
     if (pendingType === type) {
       clearPending();
@@ -559,7 +563,7 @@ export default function LogBar({
             : "Logging work now may affect these compliance rules:\n\n• " + workRelevantComplianceMessages.join("\n\n• ");
         setWorkWarning({
           message,
-          confirmLabel: currentType === null ? "Start shift anyway" : "Log work anyway",
+          confirmLabel: needsShiftStartSetup ? "Start shift anyway" : "Log work anyway",
           subtext: "Tap Work again within a few seconds to confirm.",
           onConfirm: () => {
             setWorkWarning(null);
@@ -573,6 +577,7 @@ export default function LogBar({
     }
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
+      if (showShiftStartSetupBlock(type)) return;
       if (type === "stop" && onEndShiftRequest) {
         onEndShiftRequest(currentDayIndex);
         return;
@@ -598,7 +603,7 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        getNextWorkBreakType(currentType) === "work" && currentType === null ? "Start shift" : "Start Work",
+        getNextWorkBreakType(currentType) === "work" && needsShiftStartSetup ? "Start shift" : "Start Work",
       break: "Start Break",
       stop: EVENT_LABELS.stop,
     },
@@ -1065,7 +1070,7 @@ export default function LogBar({
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={() => onLogEvent(currentDayIndex, "break", driverType === "two_up" ? activeDriver : undefined)}
+                  onClick={() => handleLog("break")}
                   className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <Coffee className="w-4 h-4" />
@@ -1077,7 +1082,7 @@ export default function LogBar({
               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => onLogEvent(currentDayIndex, "work", driverType === "two_up" ? activeDriver : undefined)}
+                  onClick={() => handleLog("work")}
                   className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <Briefcase className="w-4 h-4" />

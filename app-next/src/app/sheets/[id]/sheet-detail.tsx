@@ -82,6 +82,8 @@ import {
   runLocalSheetComplianceCheck,
 } from "@/lib/sheet-compliance-local";
 import type { TimelineSlice } from "@/lib/rolling-events";
+import { concatenateTimelineSlices, getEventsForDriverInOrder } from "@/lib/rolling-events";
+import { getWorkLogBlockReason } from "@/lib/shift-start-gate";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
@@ -815,6 +817,31 @@ export function SheetDetail({
   const handleLogEvent = useCallback(
     (dayIndex: number, type: string, driver?: "primary" | "second") => {
     if (driverContentLocked) return;
+
+    if (type === "work") {
+      const prev = sheetDataRef.current;
+      const timeline = concatenateTimelineSlices(priorTimelineSlices, prev.days);
+      const driverEvents = getEventsForDriverInOrder(
+        timeline,
+        prev.driver_type === "two_up" ? (driver ?? "primary") : undefined
+      );
+      const dayFields = getDayWithMergedRouteContext(
+        prev.days,
+        dayIndex,
+        prev.week_starting,
+        getRegulatoryTodayYmd(prev.jurisdiction_code),
+        storedRouteDefaults
+      );
+      const blockReason = getWorkLogBlockReason(driverEvents, dayFields);
+      if (blockReason) {
+        window.alert(blockReason);
+        if (dayIndex === currentDayIndex) {
+          scrollToCurrentDayCard();
+        }
+        return;
+      }
+    }
+
     setSheetData((prev) => {
       const newDays = [...prev.days];
       const day = newDays[dayIndex];
@@ -851,7 +878,7 @@ export function SheetDetail({
       })
       .catch(() => {});
   },
-  [driverContentLocked]);
+  [driverContentLocked, priorTimelineSlices, currentDayIndex, scrollToCurrentDayCard, storedRouteDefaults]);
 
   const handleEndShiftRequest = useCallback(async (dayIndex: number) => {
     if (driverContentLocked) return;
