@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   SlidersHorizontal,
   MoreVertical,
+  CircleX,
 } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -24,6 +25,7 @@ import {
   getEventsForDriverInOrder,
   getEventsInTimeOrder,
   getInsufficientNonWorkMessage,
+  getShiftRestStatusFromTimeline,
   type TimelineSlice,
 } from "@/lib/rolling-events";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
@@ -34,7 +36,15 @@ import {
   getShiftStartSetupMissing,
   workLogRequiresShiftStartSetup,
 } from "@/lib/shift-start-gate";
-import { computeWorkPeriodAtEnd, WORK_WINDOW_MIN } from "@/lib/five-hour-break-rule";
+import {
+  computeWorkPeriodAtEnd,
+  WORK_WINDOW_MIN,
+  emptySlots,
+  findWorkWindowStartMs,
+  getBreakSplitBarState,
+  getPriorRestSlotsBeforeTime,
+} from "@/lib/five-hour-break-rule";
+import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
 import { CompliancePieHero } from "@/components/fatigue/CompliancePieHero";
 import {
@@ -285,15 +295,64 @@ export default function LogBar({
     currentType === "work" ? computeWorkPeriodAtEnd(eventsForDriver, Date.now()) : null;
   const workMinutesUsed = workPeriod?.workMins ?? 0;
 
+  const shiftRest =
+    isLiveNow && currentType === null
+      ? getShiftRestStatusFromTimeline(driverTimelineEvents, Date.now(), {
+          allowSeventeenHourEpisodeResume: soloEpisodeResume,
+        })
+      : null;
+
+  const idlePrimary =
+    currentType === null && shiftRest
+      ? resolveIdlePrimaryLogAction({
+          restRunMinutes: shiftRest.consecutiveNonWorkMinutes,
+          minRestMinutes: MIN_NON_WORK_MIN_BETWEEN_SHIFTS,
+        })
+      : null;
+
+  const idleRestBlocked = idlePrimary?.type === "non_work";
+  const idleRestRemainingMinutes =
+    idleRestBlocked && shiftRest
+      ? Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRest.consecutiveNonWorkMinutes)
+      : null;
+
+  const breakRing = useMemo(() => {
+    if (!isLiveNow || currentType !== "break" || !lastEvent) return null;
+    const breakStartMs = new Date(lastEvent.time).getTime();
+    const windowStartMs = findWorkWindowStartMs(eventsForDriver, breakStartMs);
+    const priorSlots =
+      windowStartMs != null
+        ? getPriorRestSlotsBeforeTime(eventsForDriver, windowStartMs, breakStartMs)
+        : emptySlots();
+    const split = getBreakSplitBarState(priorSlots, elapsedMinutes);
+    return {
+      leftPct: split.leftPct,
+      rightPct: split.rightPct,
+      complete: split.complete,
+      priorSlot1: priorSlots.slot1,
+      priorSlot2: priorSlots.slot2,
+    };
+  }, [isLiveNow, currentType, lastEvent, eventsForDriver, elapsedMinutes]);
+
   const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
-  const primaryActionPending = pendingType === nextWorkBreak;
+  const primaryLogType = (idlePrimary?.type ?? nextWorkBreak) as "work" | "break" | "non_work";
+  const primaryActionPending = pendingType === primaryLogType;
   const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
-  const isStartingShift = nextWorkBreak === "work" && needsShiftStartSetup;
-  const primaryActionLabel = isStartingShift
-    ? canResumeWithinSeventeenHourEpisode
-      ? "Resume shift"
-      : "Start shift"
-    : EVENT_LABELS[nextWorkBreak];
+  const isStartingShift = primaryLogType === "work" && needsShiftStartSetup;
+  const primaryActionLabel = idlePrimary
+    ? idlePrimary.label
+    : isStartingShift
+      ? canResumeWithinSeventeenHourEpisode
+        ? "Resume shift"
+        : "Start shift"
+      : EVENT_LABELS[nextWorkBreak];
+
+  const primaryActionIcon =
+    idleRestBlocked
+      ? CircleX
+      : primaryLogType === "non_work"
+        ? EVENT_ICONS.non_work
+        : EVENT_ICONS[primaryLogType === "break" ? "break" : "work"];
 
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
@@ -723,12 +782,16 @@ export default function LogBar({
             isIdleAtTop={isIdleAtTop}
             isMoving={false}
             actionLabel={primaryActionLabel}
-            onAction={() => handleLog(nextWorkBreak)}
+            onAction={() => handleLog(primaryLogType)}
             actionPending={primaryActionPending}
-            actionIcon={EVENT_ICONS[nextWorkBreak]}
+            actionIcon={primaryActionIcon}
             elapsedLabel={
               showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
             }
+            breakRing={breakRing}
+            idleRestBlocked={idleRestBlocked}
+            idleRestHelper={idlePrimary?.helper ?? null}
+            idleRestRemainingMinutes={idleRestRemainingMinutes}
             expanded={primaryHeroExpanded}
             compact={primaryBarCompact && !sessionDimmed}
             className={cn("shrink-0", sessionDimmed && "pointer-events-auto")}

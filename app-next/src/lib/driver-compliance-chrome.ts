@@ -57,10 +57,13 @@ export function resolveComplianceTone(input: {
   hasViolations?: boolean;
   hasWarnings?: boolean;
   shiftSegmentOpen?: boolean;
+  /** On break — 2×10 min rest not yet banked (top-bar “pending” band). */
+  breakRestIncomplete?: boolean;
 }): ComplianceTone {
   if (input.loading) return "default";
   if (input.hasViolations) return "violation";
   if (input.hasWarnings) return "warning";
+  if (input.breakRestIncomplete) return "pending";
   if (input.shiftSegmentOpen) return "ok";
   return "default";
 }
@@ -92,11 +95,12 @@ export function resolveActionChrome(input: {
   complianceTone: ComplianceTone;
   breakDueTone: BreakDueTone;
   isIdleAtTop?: boolean;
-  currentSegment?: "work" | "break" | null;
+  /** Idle before 7h non-work — red blocked hub (matches legacy start-shift-wait). */
+  idleRestBlocked?: boolean;
 }): ReturnType<typeof getComplianceChrome> {
-  const { complianceTone, breakDueTone, isIdleAtTop, currentSegment } = input;
-  if (currentSegment === "break" && !isIdleAtTop && complianceTone === "ok" && breakDueTone == null) {
-    return getComplianceChrome("warning", null);
+  const { complianceTone, breakDueTone, isIdleAtTop, idleRestBlocked } = input;
+  if (idleRestBlocked) {
+    return getComplianceChrome("default", "red");
   }
   if (isIdleAtTop && complianceTone === "default" && breakDueTone == null) {
     return getComplianceChrome("ok", null);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildComplianceClockConicGradient,
+  buildBreakSplitPieGradient,
   formatComplianceCountdown,
   getComplianceClockLabel,
   getComplianceClockTier,
@@ -53,5 +54,31 @@ describe("buildComplianceClockConicGradient", () => {
     const gradient = buildComplianceClockConicGradient(75, 300, "safe");
     expect(gradient).toMatch(/^conic-gradient\(/);
     expect(gradient).toContain("#10b981");
+  });
+});
+
+describe("buildBreakSplitPieGradient", () => {
+  it("is full emerald when 2×10 rest is complete", () => {
+    const g = buildBreakSplitPieGradient({
+      leftPct: 100,
+      rightPct: 100,
+      complete: true,
+      priorSlot1: true,
+      priorSlot2: true,
+    });
+    expect(g).toContain("#10b981");
+    expect(g).not.toContain("#f59e0b");
+  });
+
+  it("fills first semicircle with amber while first 10 min elapses", () => {
+    const g = buildBreakSplitPieGradient({
+      leftPct: 50,
+      rightPct: 0,
+      complete: false,
+      priorSlot1: false,
+      priorSlot2: false,
+    });
+    expect(g).toContain("#f59e0b");
+    expect(g).toContain("#475569");
   });
 });

@@ -1,7 +1,8 @@
 import {
-  buildBreakPieTrackGradient,
+  buildBreakSplitPieGradient,
   buildComplianceClockConicGradient,
   buildNeutralPieTrackGradient,
+  type BreakSplitPieInput,
   formatComplianceCountdown,
   getComplianceClockLabel,
   getRemainingWindowMinutes,
@@ -27,7 +28,10 @@ export type CompliancePieStateInput = {
   hasWarnings?: boolean;
   shiftSegmentOpen?: boolean;
   isIdleAtTop?: boolean;
-  /** When false, wedge reflects work window; when on break, ring stays neutral unless sheet warns. */
+  /** When on break — 2×10 min ring segments (from getBreakSplitBarState). */
+  breakRing?: BreakSplitPieInput | null;
+  /** Idle before 7h continuous non-work. */
+  idleRestBlocked?: boolean;
   showWorkWindowWedge?: boolean;
 };
 
@@ -51,11 +55,15 @@ function wedgeTierToClockTier(tier: CompliancePieWedgeTier): ComplianceClockTier
 
 export function resolveCompliancePieState(input: CompliancePieStateInput): CompliancePieState {
   const remainingMinutes = getRemainingWindowMinutes(input.workMinutesUsed, input.totalWindowMinutes);
+  const breakRestIncomplete =
+    input.currentSegment === "break" && input.breakRing != null && !input.breakRing.complete;
+
   const complianceTone = resolveComplianceTone({
     loading: input.complianceLoading,
     hasViolations: input.hasViolations,
     hasWarnings: input.hasWarnings,
     shiftSegmentOpen: input.shiftSegmentOpen,
+    breakRestIncomplete,
   });
   const breakDueTone = resolveBreakDueTone(remainingMinutes, input.currentSegment);
   const wedgeTier = resolvePieWedgeTier(complianceTone, breakDueTone);
@@ -66,15 +74,15 @@ export function resolveCompliancePieState(input: CompliancePieStateInput): Compl
   const usedForGradient = showWedge ? input.workMinutesUsed : 0;
   const wedgeGradient = showWedge
     ? buildComplianceClockConicGradient(usedForGradient, input.totalWindowMinutes, clockTier)
-    : input.currentSegment === "break"
-      ? buildBreakPieTrackGradient()
+    : input.currentSegment === "break" && input.breakRing
+      ? buildBreakSplitPieGradient(input.breakRing)
       : buildNeutralPieTrackGradient();
 
   const chrome = resolveActionChrome({
     complianceTone,
     breakDueTone,
     isIdleAtTop: input.isIdleAtTop,
-    currentSegment: input.currentSegment,
+    idleRestBlocked: input.idleRestBlocked,
   });
 
   return {

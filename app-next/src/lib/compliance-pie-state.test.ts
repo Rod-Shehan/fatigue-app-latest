@@ -17,6 +17,12 @@ describe("resolveComplianceTone", () => {
   it("returns ok when on shift and sheet is clear", () => {
     expect(resolveComplianceTone({ shiftSegmentOpen: true })).toBe("ok");
   });
+
+  it("returns pending when on break and 2×10 rest incomplete", () => {
+    expect(
+      resolveComplianceTone({ shiftSegmentOpen: true, breakRestIncomplete: true })
+    ).toBe("pending");
+  });
 });
 
 describe("resolveBreakDueTone", () => {
@@ -43,15 +49,6 @@ describe("resolveActionChrome", () => {
     const chrome = resolveActionChrome({ complianceTone: "default", breakDueTone: null, isIdleAtTop: true });
     expect(chrome.surfaceClass).toContain("bg-emerald-500");
   });
-
-  it("uses amber hub while on break segment", () => {
-    const chrome = resolveActionChrome({
-      complianceTone: "ok",
-      breakDueTone: null,
-      currentSegment: "break",
-    });
-    expect(chrome.surfaceClass).toContain("bg-amber-500");
-  });
 });
 
 describe("resolveCompliancePieState", () => {
@@ -68,14 +65,22 @@ describe("resolveCompliancePieState", () => {
     expect(state.wedgeGradient).toContain("conic-gradient");
   });
 
-  it("uses amber break ring when resting on break", () => {
+  it("uses pending chrome and split break ring on break", () => {
     const state = resolveCompliancePieState({
       workMinutesUsed: 120,
       totalWindowMinutes: 300,
       currentSegment: "break",
       shiftSegmentOpen: true,
+      breakRing: {
+        leftPct: 50,
+        rightPct: 0,
+        complete: false,
+        priorSlot1: false,
+        priorSlot2: false,
+      },
     });
+    expect(state.complianceTone).toBe("pending");
     expect(state.wedgeGradient).toContain("#f59e0b");
-    expect(state.chrome.surfaceClass).toContain("bg-amber-500");
+    expect(state.chrome.surfaceClass).toContain("amber-500");
   });
 });

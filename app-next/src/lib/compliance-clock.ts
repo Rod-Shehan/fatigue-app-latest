@@ -57,15 +57,69 @@ export function getUsedWedgePercent(workMinutesUsed: number, totalWindowMinutes:
   return Math.min(100, Math.max(0, (used / totalWindowMinutes) * 100));
 }
 
-/** Empty in-cab track (idle) — visible ring on dark focus overlay. */
+/** Empty in-cab track (idle / on break) — visible ring on dark focus overlay. */
 export function buildNeutralPieTrackGradient(): string {
   return `conic-gradient(from 0deg, ${IDLE_TRACK_COLOR} 0deg, ${IDLE_TRACK_COLOR} 360deg)`;
 }
 
-/** On break — amber ring matches break activity theme. */
-export function buildBreakPieTrackGradient(): string {
-  const { from, to } = TIER_GRADIENT.warning;
-  return `conic-gradient(from 0deg, ${from} 0deg, ${to} 360deg)`;
+export type BreakSplitPieInput = {
+  leftPct: number;
+  rightPct: number;
+  complete: boolean;
+  priorSlot1: boolean;
+  priorSlot2: boolean;
+};
+
+/**
+ * Radial 2×10 min break progress — first semicircle (12→6) then second (6→12).
+ * Amber while filling; emerald when each 10 min slot is satisfied (matches top-bar split bar).
+ */
+export function buildBreakSplitPieGradient(input: BreakSplitPieInput): string {
+  const amber = COMPLIANCE_PIE_PALETTE.warning.from;
+  const green = COMPLIANCE_PIE_PALETTE.safe.from;
+  const track = IDLE_TRACK_COLOR;
+
+  if (input.complete) {
+    return `conic-gradient(from 0deg, ${green} 0deg, ${green} 360deg)`;
+  }
+
+  const stops: Array<[number, string]> = [];
+
+  const push = (deg: number, color: string) => {
+    const last = stops[stops.length - 1];
+    if (last && last[0] === deg && last[1] === color) return;
+    if (last && last[0] === deg) stops[stops.length - 1] = [deg, color];
+    else stops.push([deg, color]);
+  };
+
+  if (input.priorSlot1) {
+    push(0, green);
+    push(180, green);
+  } else {
+    const fill1 = Math.max(0, Math.min(180, (input.leftPct / 100) * 180));
+    push(0, fill1 > 0 ? amber : track);
+    if (fill1 > 0) push(fill1, amber);
+    push(180, track);
+  }
+
+  if (input.priorSlot2) {
+    push(180, green);
+    push(360, green);
+  } else {
+    const fill2End = 180 + Math.max(0, Math.min(180, (input.rightPct / 100) * 180));
+    const prevAt180 = stops.find(([d]) => d === 180)?.[1] ?? track;
+    if (fill2End > 180) {
+      push(180, input.priorSlot1 ? green : prevAt180);
+      push(fill2End, amber);
+      push(360, track);
+    } else {
+      push(180, input.priorSlot1 ? green : prevAt180);
+      push(360, track);
+    }
+  }
+
+  const parts = stops.map(([deg, color]) => `${color} ${deg}deg`).join(", ");
+  return `conic-gradient(from 0deg, ${parts})`;
 }
 
 /** Work segment with no logged minutes yet — faint full-ring hint in tier colour. */

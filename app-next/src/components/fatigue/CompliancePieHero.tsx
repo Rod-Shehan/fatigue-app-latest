@@ -1,6 +1,10 @@
 "use client";
 
 import React, { useMemo } from "react";
+import {
+  formatComplianceCountdown,
+  type BreakSplitPieInput,
+} from "@/lib/compliance-clock";
 import { resolveCompliancePieState } from "@/lib/compliance-pie-state";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +26,11 @@ export interface CompliancePieHeroProps {
   actionIcon?: React.ComponentType<{ className?: string }>;
   /** Elapsed work/break timer shown under the action label when resting. */
   elapsedLabel?: string | null;
+  /** 2×10 min break ring segments (on break only). */
+  breakRing?: BreakSplitPieInput | null;
+  idleRestBlocked?: boolean;
+  idleRestHelper?: string | null;
+  idleRestRemainingMinutes?: number | null;
   expanded?: boolean;
   compact?: boolean;
   className?: string;
@@ -47,6 +56,10 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
   actionDisabled = false,
   actionIcon: ActionIcon,
   elapsedLabel,
+  breakRing = null,
+  idleRestBlocked = false,
+  idleRestHelper = null,
+  idleRestRemainingMinutes = null,
   expanded = false,
   compact = false,
   className,
@@ -62,6 +75,8 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
         hasWarnings,
         shiftSegmentOpen,
         isIdleAtTop,
+        breakRing,
+        idleRestBlocked,
       }),
     [
       workMinutesUsed,
@@ -72,11 +87,15 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
       hasWarnings,
       shiftSegmentOpen,
       isIdleAtTop,
+      breakRing,
+      idleRestBlocked,
     ]
   );
 
   const showWorkCountdown = !isMoving && currentSegment === "work" && !isIdleAtTop;
-  const showBreakElapsed = !isMoving && currentSegment === "break" && !isIdleAtTop && Boolean(elapsedLabel);
+  const showIdleRestCountdown =
+    !isMoving &&
+    Boolean(isIdleAtTop && idleRestBlocked && idleRestRemainingMinutes != null);
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
 
   /** Fixed square — avoids flex stretch blowing up w-full + aspect-square. */
@@ -173,30 +192,40 @@ export const CompliancePieHero: React.FC<CompliancePieHeroProps> = ({
                 </span>
               </>
             ) : null}
-            {showBreakElapsed ? (
+            {showIdleRestCountdown ? (
               <>
                 <span
                   className={cn(
                     "font-black tabular-nums tracking-tight leading-none",
                     expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
-                    pie.chrome.onColoredSurface && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                    "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   )}
                   aria-live="polite"
                 >
-                  {elapsedLabel}
+                  {formatComplianceCountdown(idleRestRemainingMinutes!)}
                 </span>
                 <span
                   className={cn(
-                    "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight",
-                    expanded ? "text-[0.6rem]" : "text-[0.55rem]",
-                    "text-amber-950/80 dark:text-white/80"
+                    "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight text-white/90",
+                    expanded ? "text-[0.6rem]" : "text-[0.55rem]"
                   )}
                 >
-                  On break
+                  7h rest required
                 </span>
               </>
             ) : null}
-            {!showBreakElapsed && elapsedLabel && !showWorkCountdown ? (
+            {idleRestHelper && isIdleAtTop && !showIdleRestCountdown ? (
+              <span
+                className={cn(
+                  "text-center font-semibold leading-tight opacity-90",
+                  expanded ? "text-xs" : "text-[10px]",
+                  pie.chrome.onColoredSurface ? "text-white/90" : "text-slate-500"
+                )}
+              >
+                {idleRestHelper}
+              </span>
+            ) : null}
+            {elapsedLabel && !showWorkCountdown && !showIdleRestCountdown ? (
               <span
                 className={cn(
                   "font-mono font-extrabold tabular-nums leading-none",
