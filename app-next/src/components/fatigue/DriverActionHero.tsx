@@ -165,7 +165,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               className={cn(
                 "font-black tabular-nums tracking-tight leading-none",
                 expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
-                action.chrome.onColoredSurface && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                action.chrome.onColoredSurface && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
               )}
             >
               {action.countdown}
@@ -177,9 +177,9 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
                 action.breakDueTone === "red"
                   ? "text-white"
                   : action.breakDueTone === "amber"
-                    ? "text-amber-950 dark:text-white"
+                    ? "text-white dark:text-amber-950"
                     : action.chrome.onColoredSurface
-                      ? "text-emerald-950/80 dark:text-white/80"
+                      ? "text-white/80 dark:text-emerald-950/80"
                       : "text-slate-500"
               )}
             >
@@ -214,7 +214,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             className={cn(
               "text-center font-semibold leading-tight opacity-90",
               expanded ? "text-xs" : "text-[10px]",
-              action.chrome.onColoredSurface ? "text-white/90" : "text-slate-500"
+              action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-500"
             )}
           >
             {idleRestHelper}
@@ -228,7 +228,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             className={cn(
               "font-semibold tabular-nums leading-tight",
               expanded ? "text-sm" : compact ? "text-[8px]" : "text-xs",
-              action.chrome.onColoredSurface ? "text-white/90" : "text-slate-600"
+              action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-600"
             )}
             aria-live="polite"
           >
@@ -241,7 +241,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               "font-mono font-extrabold tabular-nums leading-none",
               expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
               action.chrome.onColoredSurface
-                ? "drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
                 : "text-slate-900 dark:text-slate-100"
             )}
             aria-live="polite"

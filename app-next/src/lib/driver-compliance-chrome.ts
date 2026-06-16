@@ -13,28 +13,28 @@ export function getComplianceChrome(
 
   const surfaceClass =
     complianceTone === "violation" || complianceTone === "warning"
-      ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-950 dark:border-amber-100 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
+      ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
       : breakDueTone === "red"
-        ? "bg-red-600 dark:bg-red-700 border-4 border-red-950 dark:border-red-100 shadow-lg hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800"
+        ? "bg-red-600 dark:bg-red-700 border-4 border-red-100 dark:border-red-950 shadow-lg hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800"
         : breakDueTone === "amber"
-          ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-950 dark:border-amber-100 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
+          ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
           : complianceTone === "pending"
-            ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-4 border-emerald-950 dark:border-emerald-100 shadow-lg"
+            ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg"
             : complianceTone === "ok"
-              ? "bg-emerald-500 dark:bg-emerald-600 border-4 border-emerald-950 dark:border-emerald-100 shadow-lg hover:bg-emerald-600 dark:hover:bg-emerald-500 active:bg-emerald-700"
+              ? "bg-emerald-500 dark:bg-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg hover:bg-emerald-600 dark:hover:bg-emerald-500 active:bg-emerald-700"
               : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600";
 
   const textClass =
     complianceTone === "violation" || complianceTone === "warning"
-      ? "text-amber-950 dark:text-white"
+      ? "text-white dark:text-amber-950"
       : breakDueTone === "red"
         ? "text-white"
         : breakDueTone === "amber"
-          ? "text-amber-950 dark:text-white"
+          ? "text-white dark:text-amber-950"
           : complianceTone === "pending"
-            ? "text-emerald-950 dark:text-white"
+            ? "text-white dark:text-emerald-950"
             : complianceTone === "ok"
-              ? "text-emerald-950 dark:text-white"
+              ? "text-white dark:text-emerald-950"
               : "text-slate-900 dark:text-slate-100";
 
   return { onColoredSurface, surfaceClass, textClass };
