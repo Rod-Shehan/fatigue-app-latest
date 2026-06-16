@@ -83,12 +83,12 @@ function resolveRecordedKind(
   dayCoverage: ShiftLaneDayCoverage[] | undefined,
   nowMs: number
 ): ShiftLaneKind {
-  const fromEvents = recordedKindForBlock(blockStartMs, events, nowMs);
-  if (fromEvents != null) return fromEvents;
   const fromCoverage = dayCoverage?.length
     ? dominantKindFromMinuteGrids(blockStartMs, dayCoverage, nowMs)
     : null;
-  return fromCoverage ?? "non_work";
+  if (fromCoverage != null) return fromCoverage;
+  const fromEvents = recordedKindForBlock(blockStartMs, events, nowMs);
+  return fromEvents ?? "non_work";
 }
 
 function eventTypeToKind(type: string): ShiftLaneKind | null {

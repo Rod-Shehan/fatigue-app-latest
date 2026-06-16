@@ -101,6 +101,28 @@ describe("manager-risk-shift-lane", () => {
     expect(cells[0].kind).toBe("work");
   });
 
+  it("prefers rollover coverage over open event segments (forgot end shift)", () => {
+    const nowMs = Date.parse("2026-06-11T10:00:00+08:00");
+    const nowBlock = findNowBlockStartMs(nowMs);
+    const ymd = "2026-06-11";
+    const dayStart = new Date(`${ymd}T00:00:00`).getTime();
+    const blockStart = nowBlock - BLOCK_MS;
+
+    const work_time = Array(1440).fill(false);
+    const breaks = Array(1440).fill(false);
+    const non_work = Array(1440).fill(true);
+
+    const cells = buildShiftLaneCells(
+      [{ blockStartMs: blockStart, label: "09:45", baselinePct: 30 }],
+      [{ time: new Date(dayStart - 2 * 60 * 60 * 1000).toISOString(), type: "work" }],
+      {
+        nowMs,
+        dayCoverage: [{ ymd, work_time, breaks, non_work }],
+      }
+    );
+    expect(cells[0].kind).toBe("non_work");
+  });
+
   it("uses cycled run plan segments for future blocks", () => {
     const nowMs = Date.parse("2026-06-11T14:07:00+08:00");
     const nowBlock = findNowBlockStartMs(nowMs);

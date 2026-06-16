@@ -17,8 +17,9 @@ import { pickHighestCurrentRiskDriver } from "@/lib/frms/fleet-risk-timeline";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 import type { ShiftLaneDayCoverage } from "@/lib/manager-risk-shift-lane";
 import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
-import { deriveMinuteGridFromEvents } from "@/lib/coverage/derive-minute-coverage";
+import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
 import { sheetDayYmdFromIndex } from "@/lib/route-plan";
+import { getRegulatoryTodayYmd } from "@/lib/weeks";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
@@ -422,12 +423,8 @@ export function ManagerView() {
       if (!matchesPrimary && !matchesSecond) continue;
 
       const days = Array.isArray(sheet.days) ? sheet.days : [];
-      const out: ShiftLaneDayCoverage[] = [];
-      for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
-        const day = days[dayIndex];
-        if (!day) continue;
-        const ymd = sheetDayYmdFromIndex(weekForSnapshot, dayIndex);
-        const dayEvents = (day.events ?? [])
+      const daysInput = days.map((day) => {
+        const dayEvents = (day?.events ?? [])
           .filter((ev) => {
             if (sheet.driver_type === "two_up" && ev.driver) {
               const evDriver = ev.driver === "second" ? second : primary;
@@ -436,11 +433,24 @@ export function ManagerView() {
             return true;
           })
           .map((ev) => ({ time: ev.time, type: ev.type }));
-        const grids = deriveMinuteGridFromEvents(
-          dayEvents.length ? dayEvents : undefined,
-          ymd
-        );
-        out.push({ ymd, ...grids });
+        return {
+          assume_idle_from: day?.assume_idle_from,
+          events: dayEvents,
+        };
+      });
+      const rolled = deriveDaysWithRollover(daysInput, weekForSnapshot, {
+        todayStr: getRegulatoryTodayYmd(sheet.jurisdiction_code),
+      });
+      const out: ShiftLaneDayCoverage[] = [];
+      for (let dayIndex = 0; dayIndex < rolled.length; dayIndex++) {
+        const ymd = sheetDayYmdFromIndex(weekForSnapshot, dayIndex);
+        const grids = rolled[dayIndex];
+        out.push({
+          ymd,
+          work_time: grids.work_time,
+          breaks: grids.breaks,
+          non_work: grids.non_work,
+        });
       }
       return out;
     }
