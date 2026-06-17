@@ -119,7 +119,6 @@ export default function LogBar({
   onLogEvent,
   onEndShiftRequest,
   workRelevantComplianceMessages,
-  onAssumeIdle,
   onStartShiftBlocked,
   currentDayDisplay,
   driverType,
@@ -139,12 +138,10 @@ export default function LogBar({
   weekStarting: string;
   /** Log a new event. When driver is provided and driverType is two_up, the event belongs to that driver. */
   onLogEvent: (dayIndex: number, type: string, driver?: "primary" | "second") => void;
-  /** When provided, End shift (second tap) calls this instead of onLogEvent so the parent can show end km input. */
+  /** When provided, End shift opens the correction dialog (end time + end km). */
   onEndShiftRequest?: (dayIndex: number) => void;
   /** Prospective compliance messages (non-work time, limits) if work were logged now. When set, shown when user taps Work. */
   workRelevantComplianceMessages?: string[];
-  /** When provided and in work/break state, "Assume idle" is shown. Call to mark from now as non-work (forgot to end shift). */
-  onAssumeIdle?: () => void;
   /** When Start shift is blocked (rego/destination/start KM missing), called after user dismisses so parent can scroll to day card. */
   onStartShiftBlocked?: () => void;
   /** When provided, used for Start shift gate (rego/destination/start KM) so carried-over values count. */
@@ -1134,22 +1131,15 @@ export default function LogBar({
                 )}
               </div>
             )}
-            {forgottenActionReminder.variant === "end-shift" && onEndShiftRequest && onAssumeIdle && (
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {forgottenActionReminder.variant === "end-shift" && onEndShiftRequest && (
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={() => onEndShiftRequest(currentDayIndex)}
                   className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
                 >
                   <Square className="w-4 h-4" />
-                  End shift now
-                </button>
-                <button
-                  type="button"
-                  onClick={onAssumeIdle}
-                  className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold"
-                >
-                  Mark non-work from now
+                  End shift
                 </button>
               </div>
             )}

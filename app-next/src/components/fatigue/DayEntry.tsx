@@ -20,6 +20,7 @@ import {
   CONTINUED_SHIFT_ROUTE_CARD_NOTE,
   formatContinuedShiftRouteBanner,
   formatPriorDayUnclosedShiftBanner,
+  PRIOR_DAY_CORRECT_END_TIME_LABEL,
 } from "@/lib/product-copy";
 import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
@@ -126,7 +127,8 @@ export default function DayEntry({
   continuedShiftRoute?: { previousDayName: string } | null;
   /** Prior day missing End shift; today is non-work / idle — not a continuation. */
   unclosedPriorShift?: { previousDayName: string; previousDayIndex: number } | null;
-  onClosePriorDayAtBoundary?: (dayIndex: number) => void;
+  /** Open end-shift correction for the prior sheet day (rolling timeline — prior day index). */
+  onClosePriorDayAtBoundary?: (priorDayIndex: number) => void;
   onEndShiftOnDay?: (dayIndex: number) => void;
   onUpdate: (idx: number, d: DayData) => void;
   weekStart: string;
@@ -392,9 +394,9 @@ export default function DayEntry({
                 size="sm"
                 variant="outline"
                 className="min-h-10 flex-1 border-amber-400 dark:border-amber-600 font-semibold"
-                onClick={() => onClosePriorDayAtBoundary(dayIndex)}
+                onClick={() => onClosePriorDayAtBoundary(unclosedPriorShift.previousDayIndex)}
               >
-                End at last log time
+                {PRIOR_DAY_CORRECT_END_TIME_LABEL}
               </Button>
             ) : null}
           </div>

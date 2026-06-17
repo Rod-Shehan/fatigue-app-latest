@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, CheckCircle2, XCircle, Square } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { PageHeader } from "@/components/PageHeader";
@@ -34,17 +34,24 @@ import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialo
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
+import { EndShiftCorrectionDialog } from "@/components/fatigue/EndShiftCorrectionDialog";
 import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
 import { driverDialogBtn } from "@/components/driver/driver-ui-classes";
 import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
 import {
-  closePriorDayShiftAfterLastEvent,
-  suggestedEndShiftTimeAfterLastEvent,
   getContinuedShiftRoutePrompt,
   getPriorDayUnclosedShiftPrompt,
+  suggestedEndShiftTimeAfterLastEvent,
 } from "@/lib/day-route-carry";
+import {
+  applyStopAtCorrectedTime,
+  routeConfirmDayAfterPriorEndShift,
+  suggestedCorrectEndShiftIso,
+  validateCorrectEndShiftTime,
+} from "@/lib/shift-timeline-correction";
+import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
 import {
   applyRouteDefaultsToWeekDays,
   getDayWithMergedRouteContext,
@@ -156,7 +163,7 @@ function getForgottenActionReminder(
   if (last.type === "work") {
     // This is an inactivity-style prompt: time since the last logged event while still in "work".
     if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
-      return { message: "No log updates for 7+ hours. Tap End shift if you've finished (or log Break if you stopped).", variant: "end-shift" };
+      return { message: "No log updates for 7+ hours. End shift and record when you finished (or log Break if you stopped).", variant: "end-shift" };
     if (elapsedMin >= WORK_BREAK_DUE_MIN)
       return { message: "Time for your 20 min break — tap Break when you start.", variant: "break-due" };
     return null;
@@ -219,8 +226,10 @@ export function SheetDetail({
   const [complianceDialogOpen, setComplianceDialogOpen] = useState(false);
   const [endShiftDialog, setEndShiftDialog] = useState<{
     dayIndex: number;
-    stopTimeIso: string;
+    dayLabel: string;
+    sheetDayYmd: string;
   } | null>(null);
+  const [endShiftStopHhmm, setEndShiftStopHhmm] = useState("");
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
   const [endShiftError, setEndShiftError] = useState<string | null>(null);
   const [shiftPatternPrompt, setShiftPatternPrompt] = useState<{ dayIndex: number } | null>(null);
@@ -831,37 +840,60 @@ export function SheetDetail({
     setIsDirty(true);
   }, [driverContentLocked]);
 
-  const handleClosePriorDayAfterLastLog = useCallback(
-    (dayIndex: number) => {
+  const handleOpenEndShiftCorrection = useCallback(
+    async (dayIndex: number) => {
       if (driverContentLocked) return;
-      setSheetData((prev) => {
-        const newDays = closePriorDayShiftAfterLastEvent(prev.days, dayIndex);
-        const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
-          todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
-        });
-        return {
-          ...prev,
-          days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined),
-        };
+      const prev = sheetDataRef.current;
+      const days = prev.days;
+      const day = days[dayIndex];
+      const startKms = day?.start_kms;
+      if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
+        window.alert("Please enter start km for this day before ending the shift.");
+        return;
+      }
+      const rego = (day?.truck_rego ?? "").trim();
+      let serverMaxEndKms: number | null = null;
+      if (rego) {
+        try {
+          const res = await api.sheets.regoMaxEndKms(rego, {
+            excludeSheetId: sheetId,
+            beforeWeekStarting: prev.week_starting || undefined,
+          });
+          serverMaxEndKms = res.maxEndKms;
+        } catch {
+          // Offline: validate with local data only when confirming
+        }
+      }
+      const minAllowed = getMinAllowedStartKms(days, dayIndex, rego, serverMaxEndKms);
+      if (minAllowed != null && startKms < minAllowed) {
+        window.alert(
+          `Start km (${startKms}) cannot be lower than the last recorded end km for this rego (${minAllowed}). Please correct start km on the day card first.`
+        );
+        return;
+      }
+      const sheetDayYmd = getSheetDayDateString(prev.week_starting, dayIndex);
+      const stopTimeIso =
+        suggestedCorrectEndShiftIso(day ?? {}) ?? suggestedEndShiftTimeAfterLastEvent(day ?? {}) ?? new Date().toISOString();
+      setEndShiftError(null);
+      setEndShiftEndKms(String(day?.end_kms ?? ""));
+      setEndShiftStopHhmm(isoToLocalHHMM(stopTimeIso));
+      setEndShiftDialog({
+        dayIndex,
+        sheetDayYmd,
+        dayLabel: formatSheetDisplayDate(sheetDayYmd),
       });
-      setIsDirty(true);
     },
-    [driverContentLocked]
+    [driverContentLocked, sheetId]
   );
 
-  const handleAssumeIdle = useCallback(() => {
-    if (driverContentLocked) return;
-    setSheetData((prev) => {
-      const newDays = [...prev.days];
-      const day = newDays[currentDayIndex] ?? {};
-      newDays[currentDayIndex] = { ...day, assume_idle_from: new Date().toISOString() };
-      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
-        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
-      });
-      return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
-    });
-    setIsDirty(true);
-  }, [currentDayIndex, driverContentLocked]);
+  const handleEndShiftRequest = handleOpenEndShiftCorrection;
+
+  const handleClosePriorDayEndShift = useCallback(
+    (priorDayIndex: number) => {
+      void handleOpenEndShiftCorrection(priorDayIndex);
+    },
+    [handleOpenEndShiftCorrection]
+  );
 
   const handleLogEvent = useCallback(
     (dayIndex: number, type: string, driver?: "primary" | "second") => {
@@ -931,46 +963,10 @@ export function SheetDetail({
   },
   [driverContentLocked, priorTimelineSlices, currentDayIndex, scrollToCurrentDayCard, storedRouteDefaults]);
 
-  const handleEndShiftRequest = useCallback(async (dayIndex: number) => {
-    if (driverContentLocked) return;
-    const days = sheetDataRef.current.days;
-    const day = days[dayIndex];
-    const startKms = day?.start_kms;
-    if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
-      window.alert("Please enter start km for today before ending the shift.");
-      return;
-    }
-    const rego = (day?.truck_rego ?? "").trim();
-    let serverMaxEndKms: number | null = null;
-    if (rego) {
-      try {
-        const res = await api.sheets.regoMaxEndKms(rego, {
-          excludeSheetId: sheetId,
-          beforeWeekStarting: sheetDataRef.current.week_starting || undefined,
-        });
-        serverMaxEndKms = res.maxEndKms;
-      } catch {
-        // Offline: validate with local data only when confirming
-      }
-    }
-    const minAllowed = getMinAllowedStartKms(days, dayIndex, rego, serverMaxEndKms);
-    if (minAllowed != null && startKms < minAllowed) {
-      window.alert(
-        `Start km (${startKms}) cannot be lower than the last recorded end km for this rego (${minAllowed}). Please correct start km on the day card first.`
-      );
-      return;
-    }
-    setEndShiftError(null);
-    setEndShiftEndKms(String(sheetDataRef.current.days[dayIndex]?.end_kms ?? ""));
-    const stopTimeIso =
-      suggestedEndShiftTimeAfterLastEvent(day ?? {}) ?? new Date().toISOString();
-    setEndShiftDialog({ dayIndex, stopTimeIso });
-  }, [sheetId]);
-
   const handleEndShiftConfirm = useCallback(async () => {
     if (endShiftDialog == null) return;
     setEndShiftError(null);
-    const dayIndex = endShiftDialog.dayIndex;
+    const { dayIndex, sheetDayYmd } = endShiftDialog;
     const trimmed = endShiftEndKms.trim();
     if (trimmed === "") {
       setEndShiftError("End km is required.");
@@ -981,8 +977,18 @@ export function SheetDetail({
       setEndShiftError("Enter a valid end km (0 or greater).");
       return;
     }
+    if (!endShiftStopHhmm.trim()) {
+      setEndShiftError("Enter when you finished work.");
+      return;
+    }
+    const stopTimeIso = hhmmOnSheetDayToIso(sheetDayYmd, endShiftStopHhmm);
     const days = sheetDataRef.current.days;
     const day = days[dayIndex];
+    const timeCheck = validateCorrectEndShiftTime(day, sheetDayYmd, stopTimeIso);
+    if (!timeCheck.valid) {
+      setEndShiftError(timeCheck.message);
+      return;
+    }
     const startKms = day?.start_kms ?? null;
     const rego = (day?.truck_rego ?? "").trim();
     let serverMaxEndKms: number | null = null;
@@ -1002,18 +1008,13 @@ export function SheetDetail({
       setEndShiftError(validation.message ?? "Invalid km.");
       return;
     }
+    const markRouteOn = routeConfirmDayAfterPriorEndShift(dayIndex, currentDayIndex);
     let daysAfterEndShift: DayData[] | null = null;
     setSheetData((prev) => {
-      const newDays = [...prev.days];
-      const d = newDays[dayIndex];
-      const events = d.events || [];
-      const newEvent = {
-        time: endShiftDialog.stopTimeIso,
-        type: "stop",
-      };
-      const newEvents = [...events, newEvent];
-      newDays[dayIndex] = { ...d, end_kms: endKmsParsed, events: newEvents };
-      const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
+      const corrected = applyStopAtCorrectedTime(prev.days, dayIndex, stopTimeIso, endKmsParsed, {
+        markRouteConfirmedOnDayIndex: markRouteOn,
+      });
+      const withGrids = deriveDaysWithRollover(corrected, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
       });
       const finalDays = applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined);
@@ -1023,6 +1024,7 @@ export function SheetDetail({
     setIsDirty(true);
     setEndShiftDialog(null);
     setEndShiftEndKms("");
+    setEndShiftStopHhmm("");
     if (daysAfterEndShift && shouldEducateAfterEndShift(daysAfterEndShift, dayIndex)) {
       setShiftPatternPrompt({ dayIndex });
     }
@@ -1041,7 +1043,7 @@ export function SheetDetail({
         setIsDirty(true);
       })
       .catch(() => {});
-  }, [endShiftDialog, endShiftEndKms, sheetId]);
+  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex]);
 
   const handleShiftPatternSave = useCallback(
     (todayShift: ShiftLabel | "", tomorrowShift: ShiftLabel | "") => {
@@ -1275,7 +1277,6 @@ export function SheetDetail({
             onLogEvent={handleLogEvent}
             onEndShiftRequest={handleEndShiftRequest}
             workRelevantComplianceMessages={prospectiveLogMessages}
-            onAssumeIdle={handleAssumeIdle}
             onStartShiftBlocked={scrollToCurrentDayCard}
             currentDayDisplay={getDayWithMergedRouteContext(
               sheetData.days,
@@ -1516,7 +1517,7 @@ export function SheetDetail({
                             sheetData.week_starting,
                             todayYmd
                           )}
-                          onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                          onClosePriorDayAtBoundary={handleClosePriorDayEndShift}
                           onEndShiftOnDay={handleEndShiftRequest}
                           onUpdate={handleDayUpdate}
                           weekStart={sheetData.week_starting}
@@ -1575,7 +1576,7 @@ export function SheetDetail({
                             sheetData.week_starting,
                             todayYmd
                           )}
-                          onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                          onClosePriorDayAtBoundary={handleClosePriorDayEndShift}
                           onEndShiftOnDay={handleEndShiftRequest}
                           onUpdate={handleDayUpdate}
                           weekStart={sheetData.week_starting}
@@ -1623,7 +1624,7 @@ export function SheetDetail({
                       sheetData.week_starting,
                       todayYmd
                     )}
-                    onClosePriorDayAtBoundary={handleClosePriorDayAfterLastLog}
+                    onClosePriorDayAtBoundary={handleClosePriorDayEndShift}
                     onEndShiftOnDay={handleEndShiftRequest}
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}
@@ -1732,49 +1733,28 @@ export function SheetDetail({
           onSave={handleShiftPatternSave}
         />
       )}
-      <Dialog open={!!endShiftDialog} onOpenChange={(open) => !open && setEndShiftDialog(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Square className="w-5 h-5" />
-              End shift
-            </DialogTitle>
-            <DialogDescription>
-              Enter end odometer. End shift is recorded at your last log time on that day when the shift was still open — not at midnight — so rest hours stay continuous. Start km and end km are required.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 pt-1">
-            <Label htmlFor="end-shift-kms" className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-              End km (required)
-            </Label>
-            <Input
-              id="end-shift-kms"
-              type="number"
-              min={0}
-              placeholder="e.g. 12345"
-              value={endShiftEndKms}
-              onChange={(e) => { setEndShiftEndKms(e.target.value); setEndShiftError(null); }}
-              className="font-mono"
-              aria-invalid={!!endShiftError}
-              aria-describedby={endShiftError ? "end-shift-error" : undefined}
-            />
-            {endShiftError && (
-              <p id="end-shift-error" className="text-xs text-red-600 dark:text-red-400" role="alert">
-                {endShiftError}
-              </p>
-            )}
-            <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
-              <Button variant="outline" className={driverDialogBtn} onClick={() => setEndShiftDialog(null)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEndShiftConfirm} className={cn(driverDialogBtn, "gap-2")}>
-                <Square className="w-5 h-5" />
-                End shift
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <EndShiftCorrectionDialog
+        open={!!endShiftDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEndShiftDialog(null);
+            setEndShiftError(null);
+          }
+        }}
+        dayLabel={endShiftDialog?.dayLabel ?? ""}
+        stopTimeHhmm={endShiftStopHhmm}
+        onStopTimeHhmmChange={(v) => {
+          setEndShiftStopHhmm(v);
+          setEndShiftError(null);
+        }}
+        endKms={endShiftEndKms}
+        onEndKmsChange={(v) => {
+          setEndShiftEndKms(v);
+          setEndShiftError(null);
+        }}
+        error={endShiftError}
+        onConfirm={handleEndShiftConfirm}
+      />
     </div>
   );
 }
