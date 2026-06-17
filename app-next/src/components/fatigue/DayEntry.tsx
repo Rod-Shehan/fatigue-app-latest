@@ -20,7 +20,6 @@ import {
   CONTINUED_SHIFT_ROUTE_CARD_NOTE,
   formatContinuedShiftRouteBanner,
   formatPriorDayUnclosedShiftBanner,
-  PRIOR_DAY_CORRECT_END_TIME_LABEL,
 } from "@/lib/product-copy";
 import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
@@ -102,7 +101,6 @@ export default function DayEntry({
   dayData,
   continuedShiftRoute = null,
   unclosedPriorShift = null,
-  onClosePriorDayAtBoundary,
   onEndShiftOnDay,
   onUpdate,
   weekStart,
@@ -127,8 +125,6 @@ export default function DayEntry({
   continuedShiftRoute?: { previousDayName: string } | null;
   /** Prior day missing End shift; today is non-work / idle — not a continuation. */
   unclosedPriorShift?: { previousDayName: string; previousDayIndex: number } | null;
-  /** Open end-shift correction for the prior sheet day (rolling timeline — prior day index). */
-  onClosePriorDayAtBoundary?: (priorDayIndex: number) => void;
   onEndShiftOnDay?: (dayIndex: number) => void;
   onUpdate: (idx: number, d: DayData) => void;
   weekStart: string;
@@ -388,17 +384,6 @@ export default function DayEntry({
                 End shift on {unclosedPriorShift.previousDayName}
               </Button>
             ) : null}
-            {onClosePriorDayAtBoundary ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="min-h-10 flex-1 border-amber-400 dark:border-amber-600 font-semibold"
-                onClick={() => onClosePriorDayAtBoundary(unclosedPriorShift.previousDayIndex)}
-              >
-                {PRIOR_DAY_CORRECT_END_TIME_LABEL}
-              </Button>
-            ) : null}
           </div>
         </div>
       )}
@@ -568,7 +553,7 @@ export default function DayEntry({
         </p>
       )}
 
-      <TimeGrid dayData={{ ...dayData, date: getISODate() }} />
+      <TimeGrid dayData={{ ...dayData, date: getISODate() }} regulatoryTodayYmd={todayYmd} />
 
       {dayTools && (
         <DayCardToolsSheet

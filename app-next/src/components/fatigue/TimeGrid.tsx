@@ -27,16 +27,19 @@ function rangesToGaps(ranges: { startMin: number; endMin: number }[], totalMin: 
   return gaps;
 }
 
-/** Non-work is retrospective only: cap at now on the current day; no time for future days. */
-function getEffectiveDayEndMinutes(dateStr: string): number {
-  const today = getTodayLocalDateString();
-  if (dateStr > today) return 0;
-  if (dateStr < today) return 24 * 60;
+/** Non-work is retrospective only: cap at now on the active regulatory day; no time for future sheet days. */
+function getEffectiveDayEndMinutes(dateStr: string, regulatoryTodayYmd: string): number {
+  if (dateStr > regulatoryTodayYmd) return 0;
+  if (dateStr < regulatoryTodayYmd) return 24 * 60;
   const dayStart = new Date(dateStr + "T00:00:00").getTime();
   return Math.min(24 * 60, Math.ceil((Date.now() - dayStart) / 60000));
 }
 
-function buildSegments(events: { time: string; type: string }[] | undefined, dateStr: string) {
+function buildSegments(
+  events: { time: string; type: string }[] | undefined,
+  dateStr: string,
+  regulatoryTodayYmd: string
+) {
   const segments: { work_time: { startMin: number; endMin: number }[]; breaks: { startMin: number; endMin: number }[]; non_work: { startMin: number; endMin: number }[] } = {
     work_time: [],
     breaks: [],
@@ -44,7 +47,7 @@ function buildSegments(events: { time: string; type: string }[] | undefined, dat
   };
   const dayStart = new Date(dateStr + "T00:00:00").getTime();
   const dayEnd = new Date(dateStr + "T23:59:59").getTime();
-  const effectiveEndMin = getEffectiveDayEndMinutes(dateStr);
+  const effectiveEndMin = getEffectiveDayEndMinutes(dateStr, regulatoryTodayYmd);
 
   if (!events?.length) {
     if (effectiveEndMin > 0) segments.non_work = [{ startMin: 0, endMin: effectiveEndMin }];
@@ -103,10 +106,18 @@ type DayDataGrid = {
   non_work?: boolean[];
 };
 
-export default function TimeGrid({ dayData }: { dayData: DayDataGrid }) {
+export default function TimeGrid({
+  dayData,
+  regulatoryTodayYmd,
+}: {
+  dayData: DayDataGrid;
+  /** Regulatory calendar today (YYYY-MM-DD); aligns caps with derive/compliance. */
+  regulatoryTodayYmd?: string;
+}) {
   const events = dayData.events || [];
-  const dateStr = dayData.date || getTodayLocalDateString();
-  const effectiveEndMin = getEffectiveDayEndMinutes(dateStr);
+  const todayYmd = regulatoryTodayYmd ?? getTodayLocalDateString();
+  const dateStr = dayData.date || todayYmd;
+  const effectiveEndMin = getEffectiveDayEndMinutes(dateStr, todayYmd);
 
   const slotBased =
     dayData.work_time != null && dayData.breaks != null && dayData.non_work != null;
@@ -122,7 +133,7 @@ export default function TimeGrid({ dayData }: { dayData: DayDataGrid }) {
         non_work: minuteBooleansToRanges(dayData.non_work, effectiveEndMin),
       }
     : events.length > 0
-      ? buildSegments(events, dateStr)
+      ? buildSegments(events, dateStr, todayYmd)
       : slotBased
         ? {
             work_time: halfHourSlotsToRanges(
@@ -132,7 +143,7 @@ export default function TimeGrid({ dayData }: { dayData: DayDataGrid }) {
             breaks: halfHourSlotsToRanges(dayData.breaks, 24 * 60),
             non_work: halfHourSlotsToRanges(dayData.non_work, effectiveEndMin),
           }
-        : buildSegments(events, dateStr);
+        : buildSegments(events, dateStr, todayYmd);
 
   const ticks = Array.from({ length: 13 }, (_, i) => i * 2);
 

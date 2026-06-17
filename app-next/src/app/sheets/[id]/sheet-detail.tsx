@@ -47,8 +47,8 @@ import {
 } from "@/lib/day-route-carry";
 import {
   applyStopAtCorrectedTime,
+  dayHasOpenWorkOrBreakSegment,
   routeConfirmDayAfterPriorEndShift,
-  suggestedCorrectEndShiftIso,
   validateCorrectEndShiftTime,
 } from "@/lib/shift-timeline-correction";
 import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
@@ -851,6 +851,10 @@ export function SheetDetail({
         window.alert("Please enter start km for this day before ending the shift.");
         return;
       }
+      if (!dayHasOpenWorkOrBreakSegment(day)) {
+        window.alert("This day has no open work or break to end on the record.");
+        return;
+      }
       const rego = (day?.truck_rego ?? "").trim();
       let serverMaxEndKms: number | null = null;
       if (rego) {
@@ -873,7 +877,7 @@ export function SheetDetail({
       }
       const sheetDayYmd = getSheetDayDateString(prev.week_starting, dayIndex);
       const stopTimeIso =
-        suggestedCorrectEndShiftIso(day ?? {}) ?? suggestedEndShiftTimeAfterLastEvent(day ?? {}) ?? new Date().toISOString();
+        suggestedEndShiftTimeAfterLastEvent(day ?? {}) ?? new Date().toISOString();
       setEndShiftError(null);
       setEndShiftEndKms(String(day?.end_kms ?? ""));
       setEndShiftStopHhmm(isoToLocalHHMM(stopTimeIso));
@@ -887,13 +891,6 @@ export function SheetDetail({
   );
 
   const handleEndShiftRequest = handleOpenEndShiftCorrection;
-
-  const handleClosePriorDayEndShift = useCallback(
-    (priorDayIndex: number) => {
-      void handleOpenEndShiftCorrection(priorDayIndex);
-    },
-    [handleOpenEndShiftCorrection]
-  );
 
   const handleLogEvent = useCallback(
     (dayIndex: number, type: string, driver?: "primary" | "second") => {
@@ -1517,7 +1514,6 @@ export function SheetDetail({
                             sheetData.week_starting,
                             todayYmd
                           )}
-                          onClosePriorDayAtBoundary={handleClosePriorDayEndShift}
                           onEndShiftOnDay={handleEndShiftRequest}
                           onUpdate={handleDayUpdate}
                           weekStart={sheetData.week_starting}
@@ -1576,7 +1572,6 @@ export function SheetDetail({
                             sheetData.week_starting,
                             todayYmd
                           )}
-                          onClosePriorDayAtBoundary={handleClosePriorDayEndShift}
                           onEndShiftOnDay={handleEndShiftRequest}
                           onUpdate={handleDayUpdate}
                           weekStart={sheetData.week_starting}
@@ -1624,7 +1619,6 @@ export function SheetDetail({
                       sheetData.week_starting,
                       todayYmd
                     )}
-                    onClosePriorDayAtBoundary={handleClosePriorDayEndShift}
                     onEndShiftOnDay={handleEndShiftRequest}
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}

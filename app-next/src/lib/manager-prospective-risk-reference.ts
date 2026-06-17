@@ -51,7 +51,7 @@ const CARDS: ManagerReferenceCard[] = [
       "Bow-tie language links threats, top events, and consequences. Logging, End shift, breaks, and start-shift gates are barriers the register tests.",
     bullets: [
       "Preventive barriers: rest before a long leg, realistic run plans, manager roster changes.",
-      "Recovery barriers: End shift, 7h non-work gates, driver “mark non-work from now” when they forgot to end.",
+      "Recovery barriers: End shift with recorded finish time and end km, 7h non-work gates on the rolling timeline.",
       "Residual risk assumes standard barriers hold; if not, conversation — not automatic discipline.",
     ],
     relateTo: ["barrier", "end shift", "recovery"],

@@ -1,5 +1,4 @@
 import type { DayData } from "@/lib/api";
-import { suggestedEndShiftTimeAfterLastEvent } from "@/lib/day-route-carry";
 import { sheetDayEndMs } from "@/lib/sheet-day-time";
 
 export type CorrectEndShiftValidation =
@@ -13,11 +12,6 @@ export function dayHasOpenWorkOrBreakSegment(day: DayData | undefined): boolean 
   const events = day?.events ?? [];
   const last = events[events.length - 1];
   return !!last && OPEN_SEGMENT_TYPES.has(last.type);
-}
-
-/** Suggested end-shift time from the rolling event line on this day (driver may correct). */
-export function suggestedCorrectEndShiftIso(day: DayData | undefined): string | null {
-  return suggestedEndShiftTimeAfterLastEvent(day ?? {});
 }
 
 /**

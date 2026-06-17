@@ -121,8 +121,8 @@ When you tap **End shift**:
 If you **forget** End shift:
 
 - The app may show a reminder.
-- You may see **Mark non-work from now**.
-- If **yesterday** was not ended, a banner may say **End shift on [day]** or **End at last log time**.
+- Tap **End shift** and enter **when you finished** and **end km**.
+- If the **prior day** was not ended, a banner may say **End shift on [day name]** — same dialog; pick the correct finish time.
 
 ---
 

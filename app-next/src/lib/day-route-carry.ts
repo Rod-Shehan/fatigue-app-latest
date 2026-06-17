@@ -120,8 +120,9 @@ export function suggestedEndShiftTimeAfterLastEvent(day: DayData): string | null
 }
 
 /**
- * Append End shift on the previous day immediately after the last logged event.
- * Marks today as route-confirmed (non-work day — no route carry needed).
+ * Programmatic close at suggested last-event time (tests / migration only).
+ * Drivers use the end-shift correction dialog, which records end km and a chosen time.
+ * @deprecated Prefer applyStopAtCorrectedTime from shift-timeline-correction.ts
  */
 export function closePriorDayShiftAfterLastEvent(
   days: DayData[],

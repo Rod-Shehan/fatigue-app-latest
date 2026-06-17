@@ -83,7 +83,7 @@ export type DayData = {
     /** When two-up: which named driver was driving for this work segment. */
     driver?: "primary" | "second";
   }>;
-  /** When set (ISO string), work/break is capped at this time on that day; from then to "now" shows as non-work ("forgot to end shift" / assume idle). */
+  /** When set (ISO string), legacy grid cap only — prefer end-shift events on the rolling timeline. */
   assume_idle_from?: string;
   /** Prospective run plan (ADR 0003) — future segments only for risk engine. */
   route_label?: string;

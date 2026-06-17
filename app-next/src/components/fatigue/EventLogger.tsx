@@ -78,7 +78,7 @@ export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; 
   });
 }
 
-/** Open segment at calendar day end — continues across midnight until the next event (End shift clears). */
+/** Open segment at end of a sheet calendar day — may continue on the rolling timeline until the next event. */
 export type OpenActivityAtDayEnd = "work" | "break" | "non_work";
 
 /**

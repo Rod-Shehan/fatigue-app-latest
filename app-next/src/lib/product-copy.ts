@@ -182,7 +182,5 @@ export function formatPriorDayUnclosedShiftBanner(previousDayName: string): stri
   return `${previousDayName}'s shift wasn't ended on the record. Record when that shift finished so rest stays continuous on your timeline — log Work on today when you start again.`;
 }
 
-export const PRIOR_DAY_CORRECT_END_TIME_LABEL = "Correct end time";
-
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
   "Carried from your previous day — confirm route to save on this day's record.";

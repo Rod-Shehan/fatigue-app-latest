@@ -1,6 +1,6 @@
 /**
  * Auto-close draft sheets for **past** work weeks when there is nothing actionable
- * (no open shift to end, no “assume idle from now”, no grid work/break without a closed event line).
+ * (no open shift to end, no legacy assume-idle cap, no grid work/break without a closed event line).
  * Frees drivers from being stuck on an old week when starting the current week.
  */
 

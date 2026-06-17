@@ -4,9 +4,9 @@ import {
   applyStopAtCorrectedTime,
   dayHasOpenWorkOrBreakSegment,
   routeConfirmDayAfterPriorEndShift,
-  suggestedCorrectEndShiftIso,
   validateCorrectEndShiftTime,
 } from "./shift-timeline-correction";
+import { suggestedEndShiftTimeAfterLastEvent } from "./day-route-carry";
 
 const SHEET_DAY = "2026-06-17";
 const WORK_ISO = `${SHEET_DAY}T06:00:00`;
@@ -75,7 +75,7 @@ describe("applyStopAtCorrectedTime", () => {
 
   it("marks route confirmed on the following day when requested", () => {
     const days: DayData[] = [openWorkDay(), {}];
-    const stopIso = suggestedCorrectEndShiftIso(openWorkDay())!;
+    const stopIso = suggestedEndShiftTimeAfterLastEvent(openWorkDay())!;
     const next = applyStopAtCorrectedTime(days, 0, stopIso, 1100, {
       markRouteConfirmedOnDayIndex: 1,
     });
