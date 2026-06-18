@@ -239,6 +239,8 @@ export function SheetDetail({
   const [gearDrawerOpen, setGearDrawerOpen] = useState(false);
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
+  const [todaySetupOpenRequest, setTodaySetupOpenRequest] = useState(0);
+  const [heroExpandRequest, setHeroExpandRequest] = useState(0);
   const sheetDataRef = useRef(sheetData);
   sheetDataRef.current = sheetData;
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -729,6 +731,24 @@ export function SheetDetail({
     };
     window.setTimeout(run, 120);
   }, [currentDayIndex]);
+
+  const handleStartShiftBlocked = useCallback(
+    (opts?: { openSetup?: boolean }) => {
+      scrollToCurrentDayCard();
+      if (opts?.openSetup) {
+        setTodaySetupOpenRequest((n) => n + 1);
+      }
+    },
+    [scrollToCurrentDayCard]
+  );
+
+  const handleTodayDetailsDialogClosed = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.scrollY < 12) {
+      window.scrollTo(0, 0);
+      setHeroExpandRequest((n) => n + 1);
+    }
+  }, []);
 
   const scrollToDayCard = useCallback(
     (dayIndex: number) => {
@@ -1263,6 +1283,8 @@ export function SheetDetail({
           }
         : undefined,
       dayTools: isCurrent && isTodayCard ? driverDayTools : undefined,
+      setupOpenRequest: isCurrent && isTodayCard ? todaySetupOpenRequest : undefined,
+      onDetailsDialogClosed: isCurrent && isTodayCard ? handleTodayDetailsDialogClosed : undefined,
     };
   };
 
@@ -1288,7 +1310,8 @@ export function SheetDetail({
             complianceCheckResults={complianceResults}
             prospectiveRouteHint={prospectiveRouteHint}
             rolling168hMetrics={rolling168hMetrics}
-            onStartShiftBlocked={scrollToCurrentDayCard}
+            onStartShiftBlocked={handleStartShiftBlocked}
+            heroExpandRequest={heroExpandRequest}
             currentDayDisplay={getDayWithMergedRouteContext(
               sheetData.days,
               currentDayIndex,

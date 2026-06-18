@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -118,6 +118,8 @@ export default function DayEntry({
   last24hBreak,
   onCrewMetaSync,
   dayTools,
+  setupOpenRequest,
+  onDetailsDialogClosed,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -144,6 +146,10 @@ export default function DayEntry({
   onCrewMetaSync?: (crew: { driver_type: "solo" | "two_up"; second_driver: string }) => void;
   /** Sheet-level tools (compliance, PDF, gear) — today only. */
   dayTools?: DayCardToolsConfig;
+  /** Parent bump opens Set up day (e.g. Start shift blocked → Go to today's card). */
+  setupOpenRequest?: number;
+  /** Fired when Set up / Edit day dialog closes. */
+  onDetailsDialogClosed?: () => void;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -166,6 +172,7 @@ export default function DayEntry({
   const [toolsOpen, setToolsOpen] = useState(false);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
+  const lastSetupOpenRequestRef = useRef(0);
 
   const events = useMemo(() => {
     const base = (dayData.events ?? []).filter((e) => e && typeof e.time === "string" && typeof e.type === "string");
@@ -176,6 +183,20 @@ export default function DayEntry({
     patternStreakThresholdMet(patternWorkMinutes) && !dayData.shift_label;
 
   const canEditDetails = !readOnly;
+
+  useEffect(() => {
+    if (!setupOpenRequest || setupOpenRequest <= lastSetupOpenRequestRef.current) return;
+    lastSetupOpenRequestRef.current = setupOpenRequest;
+    if (canEditDetails) setDetailsOpen(true);
+  }, [setupOpenRequest, canEditDetails]);
+
+  const handleDetailsOpenChange = useCallback(
+    (open: boolean) => {
+      setDetailsOpen(open);
+      if (!open) onDetailsDialogClosed?.();
+    },
+    [onDetailsDialogClosed]
+  );
 
   const runPlanSummary = formatRunPlanSummary(dayData);
   const usesRunPlan = inferRouteCarryMode(dayData) === "run_plan" && hasRunPlanContent(dayData);
@@ -575,7 +596,7 @@ export default function DayEntry({
       {canEditDetails && (
         <DayCardDetailsDialog
           open={detailsOpen}
-          onOpenChange={setDetailsOpen}
+          onOpenChange={handleDetailsOpenChange}
           dayTitle={DAY_NAMES[dayIndex] ?? "Day"}
           dateLabel={getDateStr()}
           initial={{

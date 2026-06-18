@@ -132,6 +132,7 @@ export default function LogBar({
   prospectiveRouteHint = null,
   rolling168hMetrics = null,
   onStartShiftBlocked,
+  heroExpandRequest = 0,
   currentDayDisplay,
   driverType,
   reliefDriverName,
@@ -159,8 +160,10 @@ export default function LogBar({
   prospectiveRouteHint?: string | null;
   /** Rolling 14-day / 168h headroom for the chip. */
   rolling168hMetrics?: Rolling168hMetrics | null;
-  /** When Start shift is blocked (rego/destination/start KM missing), called after user dismisses so parent can scroll to day card. */
-  onStartShiftBlocked?: () => void;
+  /** When Start shift is blocked, parent scrolls to today’s card and may open Set up day. */
+  onStartShiftBlocked?: (opts?: { openSetup?: boolean }) => void;
+  /** Bump to clear compact hero when parent knows setup finished at scroll top. */
+  heroExpandRequest?: number;
   /** When provided, used for Start shift gate (rego/destination/start KM) so carried-over values count. */
   currentDayDisplay?: DayData;
   /** Solo or two_up — selects rule set (184E(2) vs 184E(3)). */
@@ -199,9 +202,7 @@ export default function LogBar({
   const fixedHeaderRef = useRef<HTMLDivElement>(null);
   const fixedEndShiftRef = useRef<HTMLDivElement>(null);
   const focusScrollResetRef = useRef(false);
-  /** Compact from swipe/wheel at scrollY 0 — don't immediately re-expand on the scroll listener. */
-  const gestureCompactRef = useRef(false);
-  const touchStartYRef = useRef(0);
+  const prevShiftSegmentOpenRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
   const [sessionToolsMounted, setSessionToolsMounted] = useState(false);
@@ -410,12 +411,7 @@ export default function LogBar({
   });
 
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
-  const isIdleAtTop =
-    isLiveNow &&
-    currentType === null &&
-    !scrollCompact &&
-    !primaryActionPending &&
-    !resumeShiftPending;
+  const isIdleAtTop = isLiveNow && currentType === null && !scrollCompact;
   /** Centered hero at scroll top while on work/break; scroll down compacts into the top bar. */
   const onLiveShiftAtTop = isLiveNow && shiftSegmentOpen && !scrollCompact;
   const sessionDimmed = Boolean(isIdleAtTop || onLiveShiftAtTop);
@@ -478,7 +474,6 @@ export default function LogBar({
   useEffect(() => {
     if (!isLiveNow) {
       setScrollCompact(false);
-      gestureCompactRef.current = false;
       return;
     }
     let raf = 0;
@@ -487,15 +482,9 @@ export default function LogBar({
       raf = window.requestAnimationFrame(() => {
         raf = 0;
         const y = window.scrollY;
-        if (y > SCROLL_EXPAND_THRESHOLD_PX) {
-          gestureCompactRef.current = false;
-        }
         setScrollCompact((prev) => {
           if (!prev && y > SCROLL_COMPACT_THRESHOLD_PX) return true;
-          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX) {
-            if (gestureCompactRef.current) return true;
-            return false;
-          }
+          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX) return false;
           return prev;
         });
       });
@@ -508,40 +497,22 @@ export default function LogBar({
     };
   }, [isLiveNow]);
 
-  /**
-   * Centered hero blocks most of the viewport — window scrollY may stay 0 while the driver
-   * swipes the sheet. Treat wheel / upward swipe as minimize intent.
-   */
+  /** After end shift at scroll top, restore focus hero (not icon-only compact). */
   useEffect(() => {
-    if (!isLiveNow || !sessionDimmed) return;
+    const wasOpen = prevShiftSegmentOpenRef.current;
+    prevShiftSegmentOpenRef.current = shiftSegmentOpen;
+    if (!isLiveNow || !wasOpen || shiftSegmentOpen) return;
+    if (window.scrollY < SCROLL_EXPAND_THRESHOLD_PX) {
+      setScrollCompact(false);
+    }
+  }, [shiftSegmentOpen, isLiveNow]);
 
-    const minimizeFromGesture = () => {
-      if (window.scrollY <= SCROLL_EXPAND_THRESHOLD_PX) {
-        gestureCompactRef.current = true;
-      }
-      setScrollCompact(true);
-    };
-
-    const onTouchStart = (e: TouchEvent) => {
-      touchStartYRef.current = e.touches[0]?.clientY ?? 0;
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      const y = e.touches[0]?.clientY ?? 0;
-      if (touchStartYRef.current - y > 10) minimizeFromGesture();
-    };
-    const onWheel = (e: WheelEvent) => {
-      if (e.deltaY > 0) minimizeFromGesture();
-    };
-
-    window.addEventListener("touchstart", onTouchStart, { passive: true, capture: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true, capture: true });
-    window.addEventListener("wheel", onWheel, { passive: true, capture: true });
-    return () => {
-      window.removeEventListener("touchstart", onTouchStart, true);
-      window.removeEventListener("touchmove", onTouchMove, true);
-      window.removeEventListener("wheel", onWheel, true);
-    };
-  }, [isLiveNow, sessionDimmed]);
+  useEffect(() => {
+    if (!heroExpandRequest || !isLiveNow) return;
+    if (window.scrollY < SCROLL_EXPAND_THRESHOLD_PX) {
+      setScrollCompact(false);
+    }
+  }, [heroExpandRequest, isLiveNow]);
 
   const clearPending = useCallback(() => {
     if (resetTimerRef.current) {
@@ -553,10 +524,8 @@ export default function LogBar({
   }, []);
 
   const revealTodayCard = useCallback(() => {
-    gestureCompactRef.current = true;
-    setScrollCompact(true);
     closeSessionTools();
-    window.setTimeout(() => onStartShiftBlocked?.(), 0);
+    window.setTimeout(() => onStartShiftBlocked?.({ openSetup: true }), 0);
   }, [closeSessionTools, onStartShiftBlocked]);
 
   useEffect(() => {
