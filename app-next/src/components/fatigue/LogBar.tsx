@@ -48,6 +48,13 @@ import {
 import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
+import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
+import type { ComplianceCheckResult } from "@/lib/compliance";
+import type { Rolling168hMetrics } from "@/lib/rolling-168h-metrics";
+import {
+  resolveUpcomingComplianceChip,
+  shouldShowUpcomingComplianceChip,
+} from "@/lib/upcoming-compliance-chip";
 import {
   endShiftButtonSizeClass,
   endShiftIconSizeClass,
@@ -119,6 +126,9 @@ export default function LogBar({
   onLogEvent,
   onEndShiftRequest,
   workRelevantComplianceMessages,
+  complianceCheckResults = [],
+  prospectiveRouteHint = null,
+  rolling168hMetrics = null,
   onStartShiftBlocked,
   currentDayDisplay,
   driverType,
@@ -142,6 +152,12 @@ export default function LogBar({
   onEndShiftRequest?: (dayIndex: number) => void;
   /** Prospective compliance messages (non-work time, limits) if work were logged now. When set, shown when user taps Work. */
   workRelevantComplianceMessages?: string[];
+  /** Full compliance check output for the upcoming-issues chip (live sheet). */
+  complianceCheckResults?: ComplianceCheckResult[];
+  /** Future run-plan risk summary for the chip (from risk register). */
+  prospectiveRouteHint?: string | null;
+  /** Rolling 14-day / 168h headroom for the chip. */
+  rolling168hMetrics?: Rolling168hMetrics | null;
   /** When Start shift is blocked (rego/destination/start KM missing), called after user dismisses so parent can scroll to day card. */
   onStartShiftBlocked?: () => void;
   /** When provided, used for Start shift gate (rego/destination/start KM) so carried-over values count. */
@@ -169,6 +185,8 @@ export default function LogBar({
 }) {
   void weekStarting;
   const [pendingType, setPendingType] = useState<string | null>(null);
+  /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
+  const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
   const [activeDriver, setActiveDriver] = useState<"primary" | "second">("primary");
   const [workWarning, setWorkWarning] = useState<{ message: string; confirmLabel: string; onConfirm: () => void; onCancel?: () => void; subtext?: string } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -340,16 +358,21 @@ export default function LogBar({
 
   const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
   const primaryLogType = (idlePrimary?.type ?? nextWorkBreak) as "work" | "break" | "non_work";
-  const primaryActionPending = pendingType === primaryLogType;
   const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
   const isStartingShift = primaryLogType === "work" && needsShiftStartSetup;
+  /** Callback / same fatigue episode — secondary action; primary stays Start shift. */
+  const showResumeShiftOption =
+    isLiveNow &&
+    isStartingShift &&
+    canResumeWithinSeventeenHourEpisode &&
+    !idleRestBlocked;
   const primaryActionLabel = idlePrimary
     ? idlePrimary.label
     : isStartingShift
-      ? canResumeWithinSeventeenHourEpisode
-        ? "Resume shift"
-        : "Start shift"
+      ? "Start shift"
       : EVENT_LABELS[nextWorkBreak];
+  const primaryActionPending = pendingType === primaryLogType && !workLogEpisodeResume;
+  const resumeShiftPending = pendingType === "work" && workLogEpisodeResume;
 
   const primaryActionIcon =
     idleRestBlocked
@@ -358,9 +381,43 @@ export default function LogBar({
         ? EVENT_ICONS.non_work
         : EVENT_ICONS[primaryLogType === "break" ? "break" : "work"];
 
+  const upcomingComplianceChip = useMemo(
+    () =>
+      resolveUpcomingComplianceChip({
+        prospectiveWorkWarnings: (workRelevantComplianceMessages ?? []).filter(
+          (m) => !prospectiveRouteHint || m !== prospectiveRouteHint
+        ),
+        prospectiveRouteHint,
+        complianceResults: complianceCheckResults,
+        rolling168h: rolling168hMetrics,
+        idleRestBlocked,
+        idleRestRemainingMinutes,
+        onWorkSegment: currentType === "work",
+      }),
+    [
+      workRelevantComplianceMessages,
+      prospectiveRouteHint,
+      complianceCheckResults,
+      rolling168hMetrics,
+      idleRestBlocked,
+      idleRestRemainingMinutes,
+      currentType,
+    ]
+  );
+
+  const showUpcomingComplianceChip = shouldShowUpcomingComplianceChip({
+    isLiveNow: Boolean(isLiveNow),
+    shiftIdle: currentType === null,
+    chip: upcomingComplianceChip,
+  });
+
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
-    isLiveNow && currentType === null && !scrollCompact && !primaryActionPending;
+    isLiveNow &&
+    currentType === null &&
+    !scrollCompact &&
+    !primaryActionPending &&
+    !resumeShiftPending;
   /** Centered hero at scroll top while on work/break; scroll down compacts into the top bar. */
   const onLiveShiftAtTop = isLiveNow && shiftSegmentOpen && !scrollCompact;
   const sessionDimmed = Boolean(isIdleAtTop || onLiveShiftAtTop);
@@ -494,6 +551,7 @@ export default function LogBar({
       resetTimerRef.current = null;
     }
     setPendingType(null);
+    setWorkLogEpisodeResume(false);
   }, []);
 
   useEffect(() => {
@@ -528,13 +586,16 @@ export default function LogBar({
   }, [workWarning, voiceAlertsEnabled]);
 
   /** Warning when starting work with <7h non-work since last shift end (rolling event time). */
-  const getInsufficientNonWorkWarning = () => {
+  const getInsufficientNonWorkWarning = (allowSeventeenHourEpisodeResume: boolean) => {
     if (currentType !== null) return null;
     return getInsufficientNonWorkMessage(
       driverTimelineEvents,
       Date.now(),
       MIN_NON_WORK_HOURS_BETWEEN_SHIFTS,
-      { allowSeventeenHourEpisodeResume: soloEpisodeResume }
+      {
+        allowSeventeenHourEpisodeResume:
+          allowSeventeenHourEpisodeResume && soloEpisodeResume,
+      }
     );
   };
 
@@ -589,7 +650,7 @@ export default function LogBar({
     };
   }, [isLiveNow]);
 
-  const handleLog = (type: string) => {
+  const handleLog = (type: string, options?: { episodeResume?: boolean }) => {
     void requestDriverImmersive().then(() => syncDriverImmersiveClass());
     if (type === currentType) return;
 
@@ -603,7 +664,9 @@ export default function LogBar({
 
     if (showShiftStartSetupBlock(type)) return;
 
-    if (pendingType === type) {
+    const episodeResume = type === "work" && options?.episodeResume === true;
+
+    if (pendingType === type && workLogEpisodeResume === episodeResume) {
       clearPending();
       if (type === "stop" && onEndShiftRequest) {
         onEndShiftRequest(currentDayIndex);
@@ -616,14 +679,17 @@ export default function LogBar({
     }
 
     if (type === "work") {
-      const nonWorkMsg = getInsufficientNonWorkWarning();
+      const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
       if (nonWorkMsg) {
         setWorkWarning({
           message: nonWorkMsg,
-          confirmLabel: "Start anyway",
-          subtext: "Tap Work again within a few seconds to confirm.",
+          confirmLabel: episodeResume ? "Resume shift anyway" : "Start anyway",
+          subtext: episodeResume
+            ? "Tap Resume shift again within a few seconds to confirm."
+            : "Tap Start shift again within a few seconds to confirm.",
           onConfirm: () => {
             setWorkWarning(null);
+            setWorkLogEpisodeResume(episodeResume);
             setPendingType("work");
             if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
             resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
@@ -638,10 +704,17 @@ export default function LogBar({
             : "Logging work now may affect these compliance rules:\n\n• " + workRelevantComplianceMessages.join("\n\n• ");
         setWorkWarning({
           message,
-          confirmLabel: needsShiftStartSetup ? "Start shift anyway" : "Log work anyway",
-          subtext: "Tap Work again within a few seconds to confirm.",
+          confirmLabel: episodeResume
+            ? "Resume shift anyway"
+            : needsShiftStartSetup
+              ? "Start shift anyway"
+              : "Log work anyway",
+          subtext: episodeResume
+            ? "Tap Resume shift again within a few seconds to confirm."
+            : "Tap Work again within a few seconds to confirm.",
           onConfirm: () => {
             setWorkWarning(null);
+            setWorkLogEpisodeResume(episodeResume);
             setPendingType("work");
             if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
             resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
@@ -662,10 +735,14 @@ export default function LogBar({
       onLogEvent(currentDayIndex, type, driverForEvent);
       return;
     }
+    setWorkLogEpisodeResume(episodeResume);
     setPendingType(type);
     if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
     resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
   };
+
+  const handleStartShift = () => handleLog("work", { episodeResume: false });
+  const handleResumeShift = () => handleLog("work", { episodeResume: true });
 
   /** Larger tap targets on small screens; sheet uses max size for floating panel. */
   const touchHeaderBtn =
@@ -817,7 +894,22 @@ export default function LogBar({
           </span>
         )}
         <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
-          <DriverActionHero
+          <div
+            className={cn(
+              "flex w-full flex-col items-center gap-2.5 min-w-0",
+              sessionDimmed ? "max-w-md" : "sm:items-center"
+            )}
+          >
+            {showUpcomingComplianceChip ? (
+              <UpcomingComplianceChip
+                model={upcomingComplianceChip}
+                onOpenDetail={complianceButton?.onClick}
+                onDark={sessionDimmed}
+                compact={primaryBarCompact && !sessionDimmed}
+                className={cn(sessionDimmed && "pointer-events-auto")}
+              />
+            ) : null}
+            <DriverActionHero
             workMinutesUsed={workMinutesUsed}
             totalWindowMinutes={WORK_WINDOW_MIN}
             currentSegment={
@@ -828,7 +920,11 @@ export default function LogBar({
             isIdleAtTop={isIdleAtTop}
             isMoving={false}
             actionLabel={primaryActionLabel}
-            onAction={() => handleLog(primaryLogType)}
+            onAction={() =>
+              primaryLogType === "work" && isStartingShift
+                ? handleStartShift()
+                : handleLog(primaryLogType)
+            }
             actionPending={primaryActionPending}
             actionIcon={primaryActionIcon}
             elapsedLabel={
@@ -842,7 +938,17 @@ export default function LogBar({
             expanded={primaryHeroExpanded}
             compact={primaryBarCompact && !sessionDimmed}
             className={cn("shrink-0", sessionDimmed && "pointer-events-auto")}
+            secondaryAction={
+              showResumeShiftOption
+                ? {
+                    label: "Resume shift",
+                    onAction: handleResumeShift,
+                    pending: resumeShiftPending,
+                  }
+                : undefined
+            }
           />
+          </div>
         </div>
       </div>
     </div>

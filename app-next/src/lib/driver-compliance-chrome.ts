@@ -40,6 +40,24 @@ export function getComplianceChrome(
   return { onColoredSurface, surfaceClass, textClass };
 }
 
+/** Tint for the decorative hero ring mask — tracks button chrome, not compliance sheet warnings. */
+export function getActionRingTintClass(input: {
+  complianceTone: ComplianceTone;
+  breakDueTone: BreakDueTone;
+  idleRestBlocked?: boolean;
+}): string {
+  const { complianceTone, breakDueTone, idleRestBlocked } = input;
+  if (idleRestBlocked) return "bg-red-500 dark:bg-red-600";
+  if (breakDueTone === "red") return "bg-red-500 dark:bg-red-600";
+  if (breakDueTone === "amber") return "bg-amber-500 dark:bg-amber-600";
+  if (complianceTone === "pending") return "bg-lime-500 dark:bg-lime-600";
+  if (complianceTone === "ok") return "bg-emerald-500 dark:bg-emerald-600";
+  if (complianceTone === "warning" || complianceTone === "violation") {
+    return "bg-amber-500 dark:bg-amber-600";
+  }
+  return "bg-slate-400 dark:bg-slate-500";
+}
+
 export function resolveComplianceTone(input: {
   loading?: boolean;
   hasViolations?: boolean;

@@ -82,6 +82,7 @@ import {
   type ShiftLabel,
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
+import { complianceStateAt } from "@/lib/compliance-state";
 import {
   buildDriverComplianceWeekContext,
   runLocalSheetComplianceCheck,
@@ -690,6 +691,28 @@ export function SheetDetail({
     return msgs;
   }, [prospectiveWorkWarnings, prospectiveRouteHint]);
 
+  const rolling168hMetrics = useMemo(() => {
+    if (!sheetData.days?.length || sheetData.status === "completed") return null;
+    return complianceStateAt({
+      historyDays: compliancePayload.historyDays ?? null,
+      prevWeekDays: compliancePayload.prevWeekDays ?? null,
+      currentWeekDays: sheetData.days,
+      weekStarting: sheetData.week_starting,
+      todayYmd: getRegulatoryTodayYmd(sheetData.jurisdiction_code),
+      slotOffsetWithinToday: compliancePayload.slotOffsetWithinToday,
+      currentDayIndex,
+    }).rolling168h;
+  }, [
+    sheetData.days,
+    sheetData.week_starting,
+    sheetData.status,
+    sheetData.jurisdiction_code,
+    compliancePayload.historyDays,
+    compliancePayload.prevWeekDays,
+    compliancePayload.slotOffsetWithinToday,
+    currentDayIndex,
+  ]);
+
   const openComplianceDialog = useCallback(() => {
     setComplianceDialogOpen(true);
   }, []);
@@ -1274,6 +1297,9 @@ export function SheetDetail({
             onLogEvent={handleLogEvent}
             onEndShiftRequest={handleEndShiftRequest}
             workRelevantComplianceMessages={prospectiveLogMessages}
+            complianceCheckResults={complianceResults}
+            prospectiveRouteHint={prospectiveRouteHint}
+            rolling168hMetrics={rolling168hMetrics}
             onStartShiftBlocked={scrollToCurrentDayCard}
             currentDayDisplay={getDayWithMergedRouteContext(
               sheetData.days,

@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  @keyframes driver-action-ring-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-driver-action-ring {
+    animation: driver-action-ring-spin 14s linear infinite;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

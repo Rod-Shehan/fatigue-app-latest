@@ -2,7 +2,9 @@
 
 import React, { useMemo } from "react";
 import { formatComplianceCountdown } from "@/lib/driver-action-format";
+import { getActionRingTintClass } from "@/lib/driver-compliance-chrome";
 import { resolveDriverActionState } from "@/lib/driver-action-state";
+import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass } from "@/lib/driver-action-sizes";
 
@@ -31,6 +33,13 @@ export interface DriverActionHeroProps {
   expanded?: boolean;
   compact?: boolean;
   className?: string;
+  /** Secondary action (e.g. Resume shift) — smaller control under the hero. */
+  secondaryAction?: {
+    label: string;
+    onAction: () => void;
+    pending?: boolean;
+    disabled?: boolean;
+  };
 }
 
 /**
@@ -59,6 +68,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   expanded = false,
   compact = false,
   className,
+  secondaryAction,
 }) => {
   const action = useMemo(
     () =>
@@ -91,11 +101,17 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     Boolean(isIdleAtTop && idleRestBlocked && idleRestRemainingMinutes != null);
   const showCompactLabel = compact && actionPending;
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
+  const ringTintClass = getActionRingTintClass({
+    complianceTone: action.operationalTone,
+    breakDueTone: action.breakDueTone,
+    idleRestBlocked,
+  });
+  const ringSpin = currentSegment === "break" && !compact;
 
   const sizeClass = driverActionSizeClass(expanded, compact);
 
   const sharedSurfaceClass = cn(
-    "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out",
+    "relative overflow-hidden flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out",
     action.chrome.surfaceClass,
     action.chrome.textClass,
     expanded ? "gap-1.5 px-3" : compact ? "gap-0 px-0.5" : "gap-1 px-2",
@@ -109,10 +125,17 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           className={cn(sizeClass, sharedSurfaceClass)}
           role="img"
           aria-label={`Work window ${Math.round(action.remainingMinutes)} minutes remaining`}
-        />
+        >
+          <DriverActionHeroRing tintClass={ringTintClass} spin={false} />
+        </div>
       </div>
     );
   }
+
+  const hubStackClass = cn(
+    "relative z-10 flex flex-col items-center justify-center",
+    expanded ? "gap-1.5" : compact ? "gap-0" : "gap-1"
+  );
 
   return (
     <div className={cn("mx-auto flex shrink-0 flex-col items-center", className)}>
@@ -141,6 +164,8 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             : hubLabel
         }
       >
+        <DriverActionHeroRing tintClass={ringTintClass} spin={ringSpin} />
+        <div className={hubStackClass}>
         {ActionIcon ? (
           <ActionIcon
             className={cn(
@@ -249,7 +274,29 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             {elapsedLabel}
           </span>
         ) : null}
+        </div>
       </button>
+      {secondaryAction ? (
+        <button
+          type="button"
+          onClick={secondaryAction.onAction}
+          disabled={secondaryAction.disabled}
+          className={cn(
+            "mt-2 max-w-[min(100%,14rem)] rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+            "disabled:opacity-50 disabled:pointer-events-none",
+            expanded || isIdleAtTop
+              ? "text-white/65 hover:text-white hover:bg-white/10"
+              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200",
+            secondaryAction.pending && "animate-pulse ring-1 ring-white/40"
+          )}
+          aria-label={
+            secondaryAction.pending ? "Tap again to confirm resume shift" : secondaryAction.label
+          }
+        >
+          {secondaryAction.pending ? "Tap again to confirm" : secondaryAction.label}
+        </button>
+      ) : null}
     </div>
   );
 };

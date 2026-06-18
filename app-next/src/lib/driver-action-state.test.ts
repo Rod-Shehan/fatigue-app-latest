@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getActionRingTintClass,
   resolveActionChrome,
   resolveBreakDueTone,
   resolveComplianceTone,
@@ -41,6 +42,23 @@ describe("resolveActionChrome", () => {
       isIdleAtTop: true,
     });
     expect(chrome.surfaceClass).toContain("bg-emerald-500");
+  });
+});
+
+describe("getActionRingTintClass", () => {
+  it("tracks operational chrome tones", () => {
+    expect(
+      getActionRingTintClass({ complianceTone: "ok", breakDueTone: null })
+    ).toContain("emerald");
+    expect(
+      getActionRingTintClass({ complianceTone: "pending", breakDueTone: null })
+    ).toContain("lime");
+    expect(
+      getActionRingTintClass({ complianceTone: "ok", breakDueTone: "red" })
+    ).toContain("red");
+    expect(
+      getActionRingTintClass({ complianceTone: "default", breakDueTone: null, idleRestBlocked: true })
+    ).toContain("red");
   });
 });
 

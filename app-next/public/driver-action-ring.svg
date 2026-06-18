@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Placeholder mask: white ring on transparent. Replace with your PNG at driver-action-ring.png -->
+  <circle cx="100" cy="100" r="88" stroke="white" stroke-width="14" />
+  <circle cx="100" cy="100" r="62" stroke="white" stroke-width="3" opacity="0.35" />
+</svg>
