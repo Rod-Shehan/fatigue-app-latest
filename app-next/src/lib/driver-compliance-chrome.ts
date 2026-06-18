@@ -40,6 +40,11 @@ export function getComplianceChrome(
   return { onColoredSurface, surfaceClass, textClass };
 }
 
+/** Round End shift FAB — same light/dark trim as break-due (red) hero chrome. */
+export function getEndShiftButtonChrome(): ReturnType<typeof getComplianceChrome> {
+  return getComplianceChrome("default", "red");
+}
+
 /** Tint for the decorative hero ring mask — tracks button chrome, not compliance sheet warnings. */
 export function getActionRingTintClass(input: {
   complianceTone: ComplianceTone;

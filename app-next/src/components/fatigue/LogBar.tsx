@@ -15,7 +15,7 @@ import {
   MoreVertical,
   CircleX,
 } from "lucide-react";
-import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
+import { type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
@@ -46,7 +46,7 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { resolveComplianceTone } from "@/lib/driver-compliance-chrome";
+import { getEndShiftButtonChrome, resolveComplianceTone } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
 import type { ComplianceCheckResult } from "@/lib/compliance";
@@ -821,16 +821,20 @@ export default function LogBar({
   /** Scrolled down on live sheet — shrink primary log control to top-bar icon. */
   const primaryBarCompact = scrollCompact && Boolean(isLiveNow);
 
+  const endShiftChrome = getEndShiftButtonChrome();
+
   const endShiftButton = showEndShiftDock ? (
     <button
       type="button"
       onClick={() => handleLog("stop")}
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full font-bold text-white transition-all duration-500 ease-out shadow-lg active:scale-[0.98]",
+        "flex shrink-0 items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
         endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact),
-        pendingType === "stop"
-          ? "bg-amber-600 hover:bg-amber-700 ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
-          : ACTIVITY_THEME.stop.button
+        endShiftChrome.surfaceClass,
+        endShiftChrome.textClass,
+        pendingType === "stop" &&
+          "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
       )}
       aria-label={pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
     >
