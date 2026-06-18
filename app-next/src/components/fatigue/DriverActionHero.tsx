@@ -33,13 +33,23 @@ export interface DriverActionHeroProps {
   expanded?: boolean;
   compact?: boolean;
   className?: string;
-  /** Secondary action (e.g. Resume shift) — smaller control under the hero. */
+  /** Secondary action (e.g. Resume shift) — smaller control beside/below the hero. */
   secondaryAction?: {
     label: string;
     onAction: () => void;
     pending?: boolean;
     disabled?: boolean;
   };
+  /** Extra pills in the same row as secondary (e.g. View diary). */
+  auxiliaryActions?: Array<{
+    label: string;
+    onAction: () => void;
+    pending?: boolean;
+    disabled?: boolean;
+    icon?: React.ComponentType<{ className?: string }>;
+    /** Ghost pill on dark focus overlay. */
+    onDark?: boolean;
+  }>;
 }
 
 /**
@@ -69,6 +79,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   compact = false,
   className,
   secondaryAction,
+  auxiliaryActions,
 }) => {
   const action = useMemo(
     () =>
@@ -112,6 +123,51 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const secondarySizeClass = endShiftButtonSizeClass(expanded, compact);
   const resumeShiftChrome = getResumeShiftButtonChrome();
 
+  const hasAuxActions =
+    Boolean(secondaryAction) || (auxiliaryActions != null && auxiliaryActions.length > 0);
+  /** Compact top bar: tuck resume beside the hero circle. */
+  const auxInlineCompact = compact && !expanded && Boolean(secondaryAction);
+
+  const auxPillBase =
+    "flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold transition-all duration-500 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:pointer-events-none";
+
+  const renderAuxPill = (
+    key: string,
+    opts: {
+      label: string;
+      onAction: () => void;
+      pending?: boolean;
+      disabled?: boolean;
+      icon?: React.ComponentType<{ className?: string }>;
+      onDark?: boolean;
+      chrome?: { surfaceClass: string; textClass: string };
+      pendingLabel?: string;
+    }
+  ) => {
+    const Icon = opts.icon;
+    const displayLabel = opts.pending ? (opts.pendingLabel ?? "Tap again") : opts.label;
+    return (
+      <button
+        key={key}
+        type="button"
+        onClick={opts.onAction}
+        disabled={opts.disabled}
+        className={cn(
+          auxPillBase,
+          expanded ? "min-h-10 px-4 py-2 text-sm" : "min-h-9 px-3 py-1.5 text-xs",
+          opts.onDark
+            ? "border border-white/25 bg-white/10 text-white hover:bg-white/15"
+            : cn(opts.chrome?.surfaceClass, opts.chrome?.textClass),
+          opts.pending && "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
+        )}
+        aria-label={opts.pending ? `Tap again to confirm ${opts.label.toLowerCase()}` : opts.label}
+      >
+        {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden /> : null}
+        <span className="whitespace-nowrap">{displayLabel}</span>
+      </button>
+    );
+  };
+
   const sharedSurfaceClass = cn(
     "relative overflow-hidden flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out",
     action.chrome.surfaceClass,
@@ -119,6 +175,67 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     expanded ? "gap-1.5 px-3" : compact ? "gap-0 px-0.5" : "gap-1 px-2",
     expanded && !isMoving && "shadow-lg shadow-black/40"
   );
+
+  const auxActionRow =
+    hasAuxActions && !auxInlineCompact ? (
+      <div
+        className={cn(
+          "flex flex-row flex-wrap items-center justify-center gap-2",
+          expanded ? "mt-3" : "mt-2.5"
+        )}
+      >
+        {secondaryAction
+          ? renderAuxPill("resume-shift", {
+              label: "Resume shift",
+              onAction: secondaryAction.onAction,
+              pending: secondaryAction.pending,
+              disabled: secondaryAction.disabled,
+              chrome: resumeShiftChrome,
+              pendingLabel: "Tap again",
+            })
+          : null}
+        {auxiliaryActions?.map((aux) =>
+          renderAuxPill(aux.label, {
+            label: aux.label,
+            onAction: aux.onAction,
+            pending: aux.pending,
+            disabled: aux.disabled,
+            icon: aux.icon,
+            onDark: aux.onDark,
+          })
+        )}
+      </div>
+    ) : null;
+
+  const auxInlineResume = auxInlineCompact && secondaryAction ? (
+    <button
+      type="button"
+      onClick={secondaryAction.onAction}
+      disabled={secondaryAction.disabled}
+      className={cn(
+        "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+        "disabled:opacity-50 disabled:pointer-events-none",
+        secondarySizeClass,
+        resumeShiftChrome.surfaceClass,
+        resumeShiftChrome.textClass,
+        secondaryAction.pending &&
+          "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
+      )}
+      aria-label={
+        secondaryAction.pending ? "Tap again to confirm resume shift" : secondaryAction.label
+      }
+    >
+      <span
+        className={cn(
+          "text-center leading-tight px-0.5",
+          compact ? "text-[7px] leading-none" : "text-[9px] sm:text-[10px]"
+        )}
+      >
+        {secondaryAction.pending ? "Tap again" : "Resume"}
+      </span>
+    </button>
+  ) : null;
 
   if (isMoving) {
     return (
@@ -140,7 +257,13 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   );
 
   return (
-    <div className={cn("mx-auto flex shrink-0 flex-col items-center", className)}>
+    <div
+      className={cn(
+        "mx-auto flex shrink-0",
+        auxInlineCompact ? "flex-row items-center gap-2" : "flex-col items-center",
+        className
+      )}
+    >
       <button
         type="button"
         onClick={onAction}
@@ -278,48 +401,8 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         ) : null}
         </div>
       </button>
-      {secondaryAction ? (
-        <button
-          type="button"
-          onClick={secondaryAction.onAction}
-          disabled={secondaryAction.disabled}
-          className={cn(
-            "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
-            "disabled:opacity-50 disabled:pointer-events-none",
-            expanded ? "mt-6" : "mt-5",
-            secondarySizeClass,
-            resumeShiftChrome.surfaceClass,
-            resumeShiftChrome.textClass,
-            secondaryAction.pending &&
-              "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
-          )}
-          aria-label={
-            secondaryAction.pending ? "Tap again to confirm resume shift" : secondaryAction.label
-          }
-        >
-          <span
-            className={cn(
-              "text-center leading-tight",
-              expanded ? "text-[10px] sm:text-xs" : compact ? "text-[7px] leading-none" : "text-[9px] sm:text-[10px]"
-            )}
-          >
-            {secondaryAction.pending ? (
-              <>
-                Tap again
-                <br />
-                to confirm
-              </>
-            ) : (
-              <>
-                Resume
-                <br />
-                shift
-              </>
-            )}
-          </span>
-        </button>
-      ) : null}
+      {auxInlineResume}
+      {auxActionRow}
     </div>
   );
 };

@@ -945,17 +945,19 @@ export default function LogBar({
                   }
                 : undefined
             }
+            auxiliaryActions={
+              sessionDimmed
+                ? [
+                    {
+                      label: "View diary",
+                      onAction: viewDiary,
+                      icon: ChevronDown,
+                      onDark: true,
+                    },
+                  ]
+                : undefined
+            }
           />
-            {sessionDimmed ? (
-              <button
-                type="button"
-                onClick={viewDiary}
-                className="pointer-events-auto mt-4 flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 active:scale-[0.98] transition-colors"
-              >
-                <ChevronDown className="h-5 w-5 shrink-0" aria-hidden />
-                View diary
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
