@@ -550,6 +550,13 @@ export default function LogBar({
     setWorkLogEpisodeResume(false);
   }, []);
 
+  const revealTodayCard = useCallback(() => {
+    gestureCompactRef.current = true;
+    setScrollCompact(true);
+    closeSessionTools();
+    window.setTimeout(() => onStartShiftBlocked?.(), 0);
+  }, [closeSessionTools, onStartShiftBlocked]);
+
   useEffect(() => {
     clearPending();
     setWorkWarning(null);
@@ -612,7 +619,7 @@ export default function LogBar({
           subtext: "Fill in the fields above, then tap Start shift again.",
           onConfirm: () => {
             setWorkWarning(null);
-            onStartShiftBlocked?.();
+            revealTodayCard();
           },
           onCancel: () => setWorkWarning(null),
         });
@@ -626,7 +633,7 @@ export default function LogBar({
           subtext: "This is not a fitness-for-work sign-off — update how you feel after resting.",
           onConfirm: () => {
             setWorkWarning(null);
-            onStartShiftBlocked?.();
+            revealTodayCard();
           },
           onCancel: () => setWorkWarning(null),
         });
@@ -634,7 +641,7 @@ export default function LogBar({
       }
       return false;
     },
-    [dayForCardFields, eventsForDriver, onStartShiftBlocked]
+    [dayForCardFields, eventsForDriver, revealTodayCard]
   );
 
   useEffect(() => {
