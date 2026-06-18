@@ -18,3 +18,10 @@ export function endShiftIconSizeClass(expanded: boolean, compact: boolean): stri
   if (compact) return "h-4 w-4";
   return "h-6 w-6";
 }
+
+/** Visible light/dark trim band around the end-shift FAB (¼-size — thinner than hero border-4). */
+export function endShiftTrimPaddingClass(expanded: boolean, compact: boolean): string {
+  if (expanded) return "p-1";
+  if (compact) return "p-0.5";
+  return "p-[3px]";
+}

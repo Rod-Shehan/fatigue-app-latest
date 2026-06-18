@@ -40,9 +40,19 @@ export function getComplianceChrome(
   return { onColoredSurface, surfaceClass, textClass };
 }
 
-/** Round End shift FAB — same light/dark trim as break-due (red) hero chrome. */
-export function getEndShiftButtonChrome(): ReturnType<typeof getComplianceChrome> {
-  return getComplianceChrome("default", "red");
+/** End shift FAB — inner red surface + outer trim ring (trim is a wrapper, not border-4 on a 3rem circle). */
+export function getEndShiftButtonChrome(): {
+  trimClass: string;
+  surfaceClass: string;
+  textClass: string;
+} {
+  return {
+    trimClass:
+      "bg-red-100 dark:bg-red-950 shadow-lg shadow-black/25 dark:shadow-black/40",
+    surfaceClass:
+      "bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800",
+    textClass: "text-white",
+  };
 }
 
 /** Round Resume shift secondary — neutral grey trim matching hero border pattern. */
