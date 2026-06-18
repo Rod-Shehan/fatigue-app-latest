@@ -14,6 +14,8 @@ import {
   SlidersHorizontal,
   MoreVertical,
   CircleX,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -205,6 +207,8 @@ export default function LogBar({
   const prevShiftSegmentOpenRef = useRef(false);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scrollCompact, setScrollCompact] = useState(false);
+  /** Driver chose to view the sheet — keep compact top bar even at scroll top. */
+  const [sheetViewMode, setSheetViewMode] = useState(false);
   const [sessionToolsMounted, setSessionToolsMounted] = useState(false);
   /** Options sheet — only opened via explicit ⋯ tap (never from day card or parent state). */
   const [sessionToolsOpen, setSessionToolsOpen] = useState(false);
@@ -411,9 +415,11 @@ export default function LogBar({
   });
 
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
-  const isIdleAtTop = isLiveNow && currentType === null && !scrollCompact;
+  const isIdleAtTop =
+    isLiveNow && currentType === null && !scrollCompact && !sheetViewMode;
   /** Centered hero at scroll top while on work/break; scroll down compacts into the top bar. */
-  const onLiveShiftAtTop = isLiveNow && shiftSegmentOpen && !scrollCompact;
+  const onLiveShiftAtTop =
+    isLiveNow && shiftSegmentOpen && !scrollCompact && !sheetViewMode;
   const sessionDimmed = Boolean(isIdleAtTop || onLiveShiftAtTop);
   const primaryHeroExpanded = sessionDimmed;
   const hideSecondaryToolbar = sessionDimmed;
@@ -484,7 +490,7 @@ export default function LogBar({
         const y = window.scrollY;
         setScrollCompact((prev) => {
           if (!prev && y > SCROLL_COMPACT_THRESHOLD_PX) return true;
-          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX) return false;
+          if (prev && y < SCROLL_EXPAND_THRESHOLD_PX && !sheetViewMode) return false;
           return prev;
         });
       });
@@ -495,7 +501,20 @@ export default function LogBar({
       window.removeEventListener("scroll", onScroll);
       if (raf) window.cancelAnimationFrame(raf);
     };
-  }, [isLiveNow]);
+  }, [isLiveNow, sheetViewMode]);
+
+  const restoreFocusHero = useCallback(() => {
+    setSheetViewMode(false);
+    if (window.scrollY < SCROLL_EXPAND_THRESHOLD_PX) {
+      setScrollCompact(false);
+    }
+  }, []);
+
+  /** Exit focus overlay so the driver can read or edit day cards (time bar, setup, other days). */
+  const viewDiary = useCallback(() => {
+    setSheetViewMode(true);
+    closeSessionTools();
+  }, [closeSessionTools]);
 
   /** After end shift at scroll top, restore focus hero (not icon-only compact). */
   useEffect(() => {
@@ -503,6 +522,7 @@ export default function LogBar({
     prevShiftSegmentOpenRef.current = shiftSegmentOpen;
     if (!isLiveNow || !wasOpen || shiftSegmentOpen) return;
     if (window.scrollY < SCROLL_EXPAND_THRESHOLD_PX) {
+      setSheetViewMode(false);
       setScrollCompact(false);
     }
   }, [shiftSegmentOpen, isLiveNow]);
@@ -510,6 +530,7 @@ export default function LogBar({
   useEffect(() => {
     if (!heroExpandRequest || !isLiveNow) return;
     if (window.scrollY < SCROLL_EXPAND_THRESHOLD_PX) {
+      setSheetViewMode(false);
       setScrollCompact(false);
     }
   }, [heroExpandRequest, isLiveNow]);
@@ -524,6 +545,7 @@ export default function LogBar({
   }, []);
 
   const revealTodayCard = useCallback(() => {
+    setSheetViewMode(true);
     closeSessionTools();
     window.setTimeout(() => onStartShiftBlocked?.({ openSetup: true }), 0);
   }, [closeSessionTools, onStartShiftBlocked]);
@@ -791,8 +813,8 @@ export default function LogBar({
     };
   }, [showEndShiftDock, pendingType, shiftSegmentOpen]);
 
-  /** Scrolled down on live sheet — shrink primary log control to top-bar icon. */
-  const primaryBarCompact = scrollCompact && Boolean(isLiveNow);
+  /** Scrolled down or viewing diary — compact hero in the top bar. */
+  const primaryBarCompact = Boolean(isLiveNow) && (scrollCompact || sheetViewMode);
 
   const endShiftChrome = getEndShiftButtonChrome();
   const endShiftPending = pendingType === "stop";
@@ -924,6 +946,16 @@ export default function LogBar({
                 : undefined
             }
           />
+            {sessionDimmed ? (
+              <button
+                type="button"
+                onClick={viewDiary}
+                className="pointer-events-auto mt-4 flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/15 active:scale-[0.98] transition-colors"
+              >
+                <ChevronDown className="h-5 w-5 shrink-0" aria-hidden />
+                View diary
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -944,9 +976,11 @@ export default function LogBar({
         />
       )}
       {sessionDimmed && (
-        <div
-          className="fixed inset-0 z-40 bg-black/65 pointer-events-none transition-opacity duration-500"
-          aria-hidden
+        <button
+          type="button"
+          aria-label="View diary"
+          className="fixed inset-0 z-40 bg-black/65 pointer-events-auto transition-opacity duration-500 cursor-default border-0 p-0"
+          onClick={viewDiary}
         />
       )}
       <div
@@ -1010,6 +1044,20 @@ export default function LogBar({
               hideSecondaryToolbar && "hidden"
             )}
           >
+            {sheetViewMode && isLiveNow && !hideSecondaryToolbar && (
+              <button
+                type="button"
+                onClick={restoreFocusHero}
+                className={cn(
+                  touchHeaderBtn,
+                  "shrink-0 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+                title="Expand controls"
+                aria-label="Expand controls"
+              >
+                <ChevronUp className={touchHeaderIcon} aria-hidden />
+              </button>
+            )}
             {complianceButton && !hideSecondaryToolbar && (
             <button
               type="button"
