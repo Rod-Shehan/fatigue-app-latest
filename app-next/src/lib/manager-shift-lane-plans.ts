@@ -13,6 +13,7 @@ import {
 } from "@/lib/fatigue-risk-carry";
 import { inferRouteCarryMode } from "@/lib/driver-route-defaults";
 import type { ShiftLaneKind } from "@/lib/manager-risk-shift-lane";
+import { isSheetOwnedByDriver } from "@/lib/sheet-ownership";
 import type { TimelineEvent } from "@/lib/manager-risk-shift-lane";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 import {
@@ -229,12 +230,10 @@ function sheetForDriver(
   driverName: string,
   weekStarting: string
 ): FatigueSheet | undefined {
-  return sheets.find((sheet) => {
-    if (sheet.week_starting !== weekStarting) return false;
-    const primary = (sheet.driver_name ?? "").trim();
-    const second = (sheet.second_driver ?? "").trim();
-    return primary === driverName || second === driverName;
-  });
+  return sheets.find(
+    (sheet) =>
+      sheet.week_starting === weekStarting && isSheetOwnedByDriver(sheet, driverName)
+  );
 }
 
 export function buildShiftDutySegments(opts: {

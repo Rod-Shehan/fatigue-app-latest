@@ -317,7 +317,7 @@ export default function SheetHeader({
       {driverType === "two_up" && (
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
           <Label className="text-[10px] uppercase tracking-wider font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
-            <Users className="w-3 h-3" /> 2nd driver
+            <Users className="w-3 h-3" /> Relief driver (name only)
           </Label>
           {activeDrivers.length > 0 ? (
             <Select
@@ -341,11 +341,14 @@ export default function SheetHeader({
             <Input
               value={sheetData.second_driver || ""}
               onChange={(e) => handleChange("second_driver", e.target.value)}
-              placeholder="Required for Two-Up"
+              placeholder="Relief driver on this crew"
               className="h-10 flex-1 min-w-[10rem] border-amber-300 text-sm font-medium focus:border-amber-400"
               disabled={readOnly}
             />
           )}
+          <p className="w-full text-xs text-slate-500 dark:text-slate-400 leading-snug">
+            Context only — each driver keeps their own weekly record.
+          </p>
         </div>
       )}
 

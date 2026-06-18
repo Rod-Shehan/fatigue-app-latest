@@ -4,6 +4,7 @@ import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import { halfHourSlotsToRanges, minuteBooleansToRanges } from "@/lib/coverage/grid-to-ranges";
 import { getPerthNowParts } from "@/lib/perth-now";
+import { sheetHasLegacyDriverEventTags } from "@/lib/sheet-ownership";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
@@ -345,10 +346,11 @@ function buildShiftLogHtml(opts: {
   const secondName = (sheet.second_driver || "").trim();
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
+  const showLegacyDriverCol = sheetHasLegacyDriverEventTags(sheet);
 
   const metaRows: { label: string; value: string }[] = [
-    { label: "Primary driver", value: primaryName },
-    ...(secondName ? [{ label: "Second driver", value: secondName }] as const : []),
+    { label: "Driver", value: primaryName },
+    ...(secondName ? [{ label: "Relief driver", value: secondName }] as const : []),
     { label: "Driver type", value: sheet.driver_type === "two_up" ? "Two-up" : "Solo" },
     { label: "Week starting", value: sheet.week_starting || "—" },
     { label: "Rules (jurisdiction)", value: sheet.jurisdiction_label || "—" },
@@ -412,7 +414,6 @@ function buildShiftLogHtml(opts: {
       }).events;
       const hasEvents = Array.isArray(events) && events.length > 0;
 
-      const isTwoUp = sheet.driver_type === "two_up";
       let bodyHtml: string;
       if (hasEvents) {
         const rows = events!
@@ -420,11 +421,11 @@ function buildShiftLogHtml(opts: {
           .map((ev) => {
             const typeLabel = logEventTypeLabel(ev.type || "");
             let driverCol = "—";
-            if (isTwoUp && ev.driver === "second") {
+            if (showLegacyDriverCol && ev.driver === "second") {
               driverCol = secondName || "Second driver";
-            } else if (isTwoUp && ev.driver === "primary") {
+            } else if (showLegacyDriverCol && ev.driver === "primary") {
               driverCol = primaryName;
-            } else if (isTwoUp) {
+            } else if (showLegacyDriverCol) {
               driverCol = "—";
             }
             let loc = "—";
@@ -434,7 +435,7 @@ function buildShiftLogHtml(opts: {
                 loc += ` (±${Math.round(ev.accuracy)} m)`;
               }
             }
-            const cells = isTwoUp
+            const cells = showLegacyDriverCol
               ? `<td class="mono">${escapeHtml(formatTimestampPerth(ev.time))}</td>
               <td>${escapeHtml(typeLabel)}</td>
               <td>${escapeHtml(driverCol)}</td>
@@ -445,10 +446,10 @@ function buildShiftLogHtml(opts: {
             return `<tr>${cells}</tr>`;
           })
           .join("");
-        const thead = isTwoUp
-          ? "<tr><th>Time (Australia/Perth)</th><th>Type</th><th>Driver (two-up)</th><th>Location</th></tr>"
+        const thead = showLegacyDriverCol
+          ? "<tr><th>Time (Australia/Perth)</th><th>Type</th><th>Driver (legacy)</th><th>Location</th></tr>"
           : "<tr><th>Time (Australia/Perth)</th><th>Type</th><th>Location</th></tr>";
-        const emptyColspan = isTwoUp ? 4 : 3;
+        const emptyColspan = showLegacyDriverCol ? 4 : 3;
         bodyHtml = `
           <p class="shiftSource">Logged events (exact times and types as recorded in the app).</p>
           <table class="shiftEventTable">
@@ -871,7 +872,7 @@ function renderShiftLogJsPDF(
 
   const metaBits: string[] = [
     `Primary driver: ${sheet.driver_name || "—"}`,
-    ...(sheet.second_driver?.trim() ? [`Second driver: ${sheet.second_driver.trim()}`] : []),
+    ...(sheet.second_driver?.trim() ? [`Relief driver: ${sheet.second_driver.trim()}`] : []),
     `Driver type: ${sheet.driver_type === "two_up" ? "Two-up" : "Solo"}`,
     `Week starting: ${sheet.week_starting || "—"}`,
     `Rules: ${sheet.jurisdiction_label || "—"}`,
@@ -890,7 +891,7 @@ function renderShiftLogJsPDF(
 
   const primaryName = (sheet.driver_name || "").trim() || "—";
   const secondName = (sheet.second_driver || "").trim();
-  const isTwoUp = sheet.driver_type === "two_up";
+  const showLegacyDriverCol = sheetHasLegacyDriverEventTags(sheet);
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
 
@@ -956,7 +957,7 @@ function renderShiftLogJsPDF(
         if (!time) continue;
         const typeLabel = logEventTypeLabel(String((ev as { type?: string }).type ?? ""));
         let driverCol = "—";
-        if (isTwoUp) {
+        if (showLegacyDriverCol) {
           if ((ev as { driver?: string }).driver === "second") driverCol = secondName || "Second";
           else if ((ev as { driver?: string }).driver === "primary") driverCol = primaryName;
         }
@@ -968,7 +969,7 @@ function renderShiftLogJsPDF(
           loc = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
           if (acc != null && Number.isFinite(acc)) loc += ` (±${Math.round(acc)} m)`;
         }
-        const line = isTwoUp
+        const line = showLegacyDriverCol
           ? `${formatTimestampPerth(time)}  |  ${typeLabel}  |  ${driverCol}  |  ${loc}`
           : `${formatTimestampPerth(time)}  |  ${typeLabel}  |  ${loc}`;
         const wrapped = doc.splitTextToSize(line, colW);

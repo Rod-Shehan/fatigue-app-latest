@@ -20,6 +20,8 @@ import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
 import { sheetDayYmdFromIndex } from "@/lib/route-plan";
 import { getRegulatoryTodayYmd } from "@/lib/weeks";
+import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
+import { isSheetOwnedByDriver } from "@/lib/sheet-ownership";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
@@ -260,8 +262,6 @@ export function ManagerView() {
       if (!dayHasActivity(day)) continue;
       const name = (s.driver_name ?? "").trim();
       if (name) drivers.add(name);
-      const second = (s.second_driver ?? "").trim();
-      if (second) drivers.add(second);
       const rego = typeof day?.truck_rego === "string" ? day.truck_rego.trim() : "";
       if (rego) regos.add(rego);
     }
@@ -292,9 +292,7 @@ export function ManagerView() {
       const day = Array.isArray(s.days) ? s.days[activeDayIndex] : undefined;
       if (!dayHasActivity(day)) return false;
       if (selectedDriverFilter) {
-        const primary = (s.driver_name ?? "").trim();
-        const second = (s.second_driver ?? "").trim();
-        if (primary !== selectedDriverFilter && second !== selectedDriverFilter) return false;
+        if (!isSheetOwnedByDriver(s, selectedDriverFilter)) return false;
       }
       if (selectedRegoFilter) {
         const r = typeof day?.truck_rego === "string" ? day.truck_rego.trim() : "";
@@ -388,23 +386,9 @@ export function ManagerView() {
 
     for (const sheet of sheets) {
       if (sheet.week_starting !== weekForSnapshot) continue;
-      const primary = (sheet.driver_name ?? "").trim();
-      const second = (sheet.second_driver ?? "").trim();
-      const matchesPrimary = primary === chartDriverName;
-      const matchesSecond = second === chartDriverName;
-      if (!matchesPrimary && !matchesSecond) continue;
-
+      if (!isSheetOwnedByDriver(sheet, chartDriverName)) continue;
       const days = Array.isArray(sheet.days) ? sheet.days : [];
-      for (const day of days) {
-        for (const ev of day.events ?? []) {
-          if (sheet.driver_type === "two_up" && ev.driver) {
-            const evDriver =
-              ev.driver === "second" ? second : primary;
-            if (evDriver !== chartDriverName) continue;
-          }
-          out.push({ time: ev.time, type: ev.type });
-        }
-      }
+      out.push(...getSheetOwnerEventsInOrder(days));
     }
 
     out.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
@@ -416,28 +400,13 @@ export function ManagerView() {
 
     for (const sheet of sheets) {
       if (sheet.week_starting !== weekForSnapshot) continue;
-      const primary = (sheet.driver_name ?? "").trim();
-      const second = (sheet.second_driver ?? "").trim();
-      const matchesPrimary = primary === chartDriverName;
-      const matchesSecond = second === chartDriverName;
-      if (!matchesPrimary && !matchesSecond) continue;
+      if (!isSheetOwnedByDriver(sheet, chartDriverName)) continue;
 
       const days = Array.isArray(sheet.days) ? sheet.days : [];
-      const daysInput = days.map((day) => {
-        const dayEvents = (day?.events ?? [])
-          .filter((ev) => {
-            if (sheet.driver_type === "two_up" && ev.driver) {
-              const evDriver = ev.driver === "second" ? second : primary;
-              return evDriver === chartDriverName;
-            }
-            return true;
-          })
-          .map((ev) => ({ time: ev.time, type: ev.type }));
-        return {
-          assume_idle_from: day?.assume_idle_from,
-          events: dayEvents,
-        };
-      });
+      const daysInput = days.map((day) => ({
+        assume_idle_from: day?.assume_idle_from,
+        events: getSheetOwnerEventsInOrder([{ events: day?.events }]),
+      }));
       const rolled = deriveDaysWithRollover(daysInput, weekForSnapshot, {
         todayStr: getRegulatoryTodayYmd(sheet.jurisdiction_code),
       });
@@ -1100,7 +1069,7 @@ export function ManagerView() {
                       {form.driver_type === "two_up" && (
                         <div className="space-y-1.5 sm:col-span-2">
                           <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                            Second driver
+                            Relief driver (name only)
                           </Label>
                           <Input
                             value={form.second_driver}
@@ -1110,9 +1079,13 @@ export function ManagerView() {
                                 second_driver: e.target.value,
                               }))
                             }
-                            placeholder="Second driver name"
+                            placeholder="Relief driver on this crew"
                             className="h-9 max-w-xs"
                           />
+                          <p className="text-xs text-slate-400 leading-snug">
+                            One sheet per driver per week. Create a separate sheet for the relief driver;
+                            this field is context on this driver&apos;s record only.
+                          </p>
                         </div>
                       )}
                       {managerEditNeedsReason && (

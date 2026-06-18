@@ -1462,7 +1462,7 @@ export function SheetDetail({
               {matchedRosterPrimary && (
                 <CvdMedicalBanner
                   driverLabel={matchedRosterPrimary.name}
-                  roleLabel={sheetData.driver_type === "two_up" ? "Primary" : undefined}
+                  roleLabel={undefined}
                   expiryYmd={matchedRosterPrimary.cvd_medical_expiry}
                   canAccessManager={canAccessManager}
                 />
@@ -1470,7 +1470,7 @@ export function SheetDetail({
               {sheetData.driver_type === "two_up" && matchedRosterSecond && (
                 <CvdMedicalBanner
                   driverLabel={matchedRosterSecond.name}
-                  roleLabel="Second"
+                  roleLabel="Relief driver"
                   expiryYmd={matchedRosterSecond.cvd_medical_expiry}
                   canAccessManager={canAccessManager}
                 />
