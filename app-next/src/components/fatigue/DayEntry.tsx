@@ -21,12 +21,20 @@ import {
   formatContinuedShiftRouteBanner,
   formatPriorDayUnclosedShiftBanner,
 } from "@/lib/product-copy";
-import { driverCardBtn } from "@/components/driver/driver-ui-classes";
+import {
+  driverAmberBtn,
+  driverCard,
+  driverCardBtn,
+  driverCardDefault,
+  driverCardToday,
+  driverCollapsedRow,
+  driverIconBtnBordered,
+  driverPanel,
+} from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
 import { formatRunPlanSummary, hasRunPlanContent } from "@/lib/route-plan";
 import { formatDriverAlertnessCompact, getDriverAlertnessOption } from "@/lib/driver-alertness";
 import { DayCardToolsSheet } from "@/components/driver/DayCardToolsSheet";
-import { driverIconBtn } from "@/components/driver/driver-ui-classes";
 import { formatDayCrewLabel, resolveDayCrew } from "@/lib/day-crew";
 
 export type DayCardToolsConfig = {
@@ -250,7 +258,7 @@ export default function DayEntry({
   if (collapseWhenNotToday && !isToday && !expanded) {
     const summaryLabel = readOnly ? `${collapsedSummary}. Read only.` : `${collapsedSummary}. Tap to expand and edit.`;
     const rowClass = cn(
-      "flex w-full items-center gap-2 rounded-lg border px-3 py-2 min-h-[44px] text-left",
+      driverCollapsedRow,
       readOnly
         ? isPast
           ? "bg-white/60 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-90"
@@ -312,10 +320,8 @@ export default function DayEntry({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: dayIndex * 0.04 }}
       className={cn(
-        "rounded-xl border-2 shadow-sm p-3 md:p-5 transition-colors",
-        isToday
-          ? "bg-amber-50 dark:bg-slate-800/95 border-amber-400 dark:border-amber-500 ring-2 ring-amber-200/80 dark:ring-amber-500/40"
-          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+        driverCard,
+        isToday ? driverCardToday : driverCardDefault
       )}
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
@@ -347,10 +353,7 @@ export default function DayEntry({
             <button
               type="button"
               onClick={() => setToolsOpen(true)}
-              className={cn(
-                driverIconBtn,
-                "h-11 w-11 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 shrink-0"
-              )}
+              className={driverIconBtnBordered}
               aria-label="Day tools — compliance, records, settings"
             >
               <MoreVertical className="h-6 w-6" aria-hidden />
@@ -361,7 +364,7 @@ export default function DayEntry({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-9 text-xs text-slate-500"
+              className="min-h-[44px] h-11 text-xs text-slate-500 rounded-xl"
               onClick={() => setExpanded(false)}
             >
               Collapse
@@ -399,7 +402,7 @@ export default function DayEntry({
               <Button
                 type="button"
                 size="sm"
-                className="min-h-10 flex-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                className={cn(driverAmberBtn, "flex-1 w-auto")}
                 onClick={() => onEndShiftOnDay(unclosedPriorShift.previousDayIndex)}
               >
                 End shift on {unclosedPriorShift.previousDayName}
@@ -420,7 +423,7 @@ export default function DayEntry({
           <Button
             type="button"
             size="sm"
-            className="min-h-10 shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+            className={cn(driverAmberBtn, "w-auto shrink-0 px-4")}
             onClick={() => setDetailsOpen(true)}
           >
             Confirm route & times
@@ -430,10 +433,10 @@ export default function DayEntry({
 
       <div
         className={cn(
-          "mb-3 rounded-lg border bg-slate-50/90 dark:bg-slate-950/50 px-3 py-3",
+          driverPanel,
           isToday && !detailsComplete && canEditDetails
             ? "border-amber-300 dark:border-amber-700"
-            : "border-slate-200 dark:border-slate-700"
+            : undefined
         )}
       >
         {!hasRouteDetails ? (

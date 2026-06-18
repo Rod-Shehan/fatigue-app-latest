@@ -14,7 +14,7 @@ import {
 import type { FatigueSheet } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
-import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components/driver/driver-ui-classes";
+import { driverDrawerRow, driverSectionLabel, driverIconBtn, driverIconBtnBordered } from "@/components/driver/driver-ui-classes";
 import { DriverSheetActions } from "./DriverSheetActions";
 import { DriverRoadsideProduceButton } from "./DriverRoadsideProduceButton";
 
@@ -73,11 +73,9 @@ export function DriverGearDrawer({
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-          "border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900",
-          "text-slate-700 dark:text-slate-200",
-          "hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950",
+          "relative",
+          driverIconBtnBordered,
+          "focus-visible:ring-emerald-500",
           className
         )}
         aria-label="Settings and tools"

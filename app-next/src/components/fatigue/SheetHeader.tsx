@@ -14,6 +14,11 @@ import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DEFAULT_JURISDICTION_CODE, getJurisdictionOptions } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { cn } from "@/lib/utils";
+import {
+  driverDateChip,
+  driverToggleSegment,
+  driverToggleTrack,
+} from "@/components/driver/driver-ui-classes";
 
 type SheetData = {
   driver_name?: string;
@@ -23,9 +28,6 @@ type SheetData = {
   last_24h_break?: string;
   week_starting?: string;
 };
-
-const dateChipBase =
-  "inline-flex items-center gap-1.5 h-10 min-h-10 px-2.5 rounded-lg border text-sm font-medium shrink min-w-0 max-w-[11rem] sm:max-w-none";
 
 /** Regulatory label for last_24h_break (WA fatigue record). */
 const LAST_24H_BREAK_CHIP_LABEL = "Last 24Hr Break";
@@ -50,7 +52,7 @@ function HeaderDateChip({
   className?: string;
 }) {
   const className = cn(
-    dateChipBase,
+    driverDateChip,
     classNameProp,
     highlight
       ? "border-2 border-amber-400 dark:border-amber-600 bg-amber-50 hover:bg-amber-100/90 dark:bg-amber-950/50 dark:hover:bg-amber-950/70 text-amber-950 dark:text-amber-50"
@@ -177,17 +179,7 @@ export default function SheetHeader({
   });
   const activeDrivers = drivers.filter((d) => d.is_active);
 
-  const driverToggleClass = (active: boolean) =>
-    cn(
-      "px-3 py-1.5 text-sm font-semibold min-h-[40px] min-w-[4.25rem] transition-colors",
-      readOnly
-        ? active
-          ? "bg-slate-200 text-slate-800 dark:bg-slate-800/80 dark:text-slate-100 cursor-not-allowed"
-          : "bg-slate-100 text-slate-400 dark:bg-slate-900/40 dark:text-slate-500 cursor-not-allowed"
-        : active
-          ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 dark:shadow-md dark:ring-1 dark:ring-white/30"
-          : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900/40 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-    );
+  const driverToggleClass = (active: boolean) => driverToggleSegment(active, readOnly);
 
   return (
     <div className="space-y-2">
@@ -216,7 +208,7 @@ export default function SheetHeader({
 
       <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
         <div
-          className="flex rounded-lg border border-slate-200 overflow-hidden shrink-0 dark:border-slate-500 dark:bg-slate-950 dark:p-0.5 dark:gap-0.5"
+          className={driverToggleTrack}
           role="group"
           aria-label="Driver type"
         >

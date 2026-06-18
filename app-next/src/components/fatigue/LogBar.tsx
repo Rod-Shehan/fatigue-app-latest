@@ -67,6 +67,12 @@ import {
   requestDriverImmersive,
   syncDriverImmersiveClass,
 } from "@/lib/driver-fullscreen";
+import {
+  driverAmberBtn,
+  driverMutedBtn,
+  driverSheetUtilityBtn,
+  driverTouchIconBtn,
+} from "@/components/driver/driver-ui-classes";
 
 /** Elapsed work/break time beside the header bar (e.g. 0h 05m). */
 function formatElapsedBarDisplay(totalMinutes: number): string {
@@ -739,11 +745,10 @@ export default function LogBar({
   const handleStartShift = () => handleLog("work", { episodeResume: false });
   const handleResumeShift = () => handleLog("work", { episodeResume: true });
 
-  /** Larger tap targets on small screens; sheet uses max size for floating panel. */
-  const touchHeaderBtn =
-    "h-14 w-14 min-h-[56px] min-w-[56px] md:h-11 md:w-11 md:min-h-[44px] md:min-w-[44px] rounded-xl md:rounded-lg";
-  const touchHeaderIcon = "h-8 w-8 md:h-6 md:w-6";
-  const touchSheetBtn = "h-16 w-16 min-h-[64px] min-w-[64px] rounded-2xl";
+  /** Header / sheet utility control sizing. */
+  const touchHeaderBtn = driverTouchIconBtn;
+  const touchHeaderIcon = "h-6 w-6";
+  const touchSheetBtn = driverSheetUtilityBtn;
   const touchSheetIcon = "h-10 w-10";
 
   const voiceCommandProps = {
@@ -1066,12 +1071,13 @@ export default function LogBar({
               onClick={complianceButton.onClick}
               disabled={complianceButton.loading}
               className={cn(
-                "shrink-0 flex items-center justify-center h-11 w-11 min-h-[44px] min-w-[44px] md:h-12 md:w-12 md:min-h-[48px] md:min-w-[48px] rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
+                driverTouchIconBtn,
+                "md:h-12 md:w-12 md:min-h-[48px] md:min-w-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
                 complianceTone === "ok" &&
                   "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-emerald-900 dark:focus-visible:ring-white focus-visible:ring-offset-emerald-400 dark:focus-visible:ring-offset-emerald-600",
                 (complianceTone === "warning" || complianceTone === "violation") &&
                   "bg-black/15 dark:bg-black/20 hover:bg-black/25 dark:hover:bg-black/30 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-400 dark:focus-visible:ring-offset-amber-500",
-                complianceTone === "default" && "rounded-lg hover:bg-black/10 dark:hover:bg-white/15 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+                complianceTone === "default" && "hover:bg-black/10 dark:hover:bg-white/15 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
               )}
               title={
                 complianceButton.loading
@@ -1234,7 +1240,7 @@ export default function LogBar({
                 <button
                   type="button"
                   onClick={() => handleLog("break")}
-                  className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
+                  className={driverAmberBtn}
                 >
                   <Coffee className="w-4 h-4" />
                   Start break now
@@ -1246,7 +1252,7 @@ export default function LogBar({
                 <button
                   type="button"
                   onClick={() => handleLog("work")}
-                  className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
+                  className={driverAmberBtn}
                 >
                   <Briefcase className="w-4 h-4" />
                   Resume work
@@ -1255,7 +1261,10 @@ export default function LogBar({
                   <button
                     type="button"
                     onClick={() => onEndShiftRequest(currentDayIndex)}
-                    className="h-11 w-full rounded-lg bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 font-semibold flex items-center justify-center gap-2"
+                    className={cn(
+                    driverAmberBtn,
+                    "bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 hover:bg-white dark:hover:bg-slate-900/70"
+                  )}
                   >
                     <Square className="w-4 h-4" />
                     End shift
@@ -1268,7 +1277,7 @@ export default function LogBar({
                 <button
                   type="button"
                   onClick={() => onEndShiftRequest(currentDayIndex)}
-                  className="h-11 w-full rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold flex items-center justify-center gap-2"
+                  className={driverAmberBtn}
                 >
                   <Square className="w-4 h-4" />
                   End shift
@@ -1292,14 +1301,14 @@ export default function LogBar({
                     workWarning.onCancel?.();
                     setWorkWarning(null);
                   }}
-                  className="min-h-[48px] px-4 py-3 rounded-xl text-base font-semibold bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500"
+                  className={driverMutedBtn}
                 >
                   {workWarning.confirmLabel === "Start anyway" ? "Keep resting" : "Cancel"}
                 </button>
                 <button
                   type="button"
                   onClick={() => workWarning.onConfirm()}
-                  className="min-h-[48px] px-4 py-3 rounded-xl text-base font-semibold bg-amber-500 hover:bg-amber-600 text-white"
+                  className={cn(driverAmberBtn, "bg-amber-500 hover:bg-amber-600")}
                 >
                   {workWarning.confirmLabel}
                 </button>

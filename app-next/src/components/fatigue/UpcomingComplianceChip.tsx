@@ -2,6 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
 import type { UpcomingComplianceChipModel, UpcomingComplianceTone } from "@/lib/upcoming-compliance-chip";
+import { driverChipShell } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Upcoming compliance issues";
@@ -77,7 +78,7 @@ export function UpcomingComplianceChip({
   );
 
   const shellClass = cn(
-    "w-full max-w-md rounded-xl border px-3 py-2.5 shadow-sm transition-colors",
+    driverChipShell,
     toneStyles(model.tone, onDark),
     interactive && "hover:brightness-[1.02] active:scale-[0.99] cursor-pointer",
     compact && "py-2 px-2.5",

@@ -10,10 +10,8 @@ import {
   ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { driverActionBtn } from "@/components/driver/driver-ui-classes";
+import { driverActionBtn, driverToolbarBtn } from "@/components/driver/driver-ui-classes";
 
-const inlineBtn =
-  "h-9 gap-1.5 text-xs min-h-[44px] sm:min-h-9";
 const stackedBtn = driverActionBtn;
 
 export function DriverSheetActions({
@@ -44,7 +42,7 @@ export function DriverSheetActions({
       variant="outline"
       size={stacked ? "default" : "sm"}
       className={cn(
-        stacked ? stackedBtn : inlineBtn,
+        stacked ? stackedBtn : cn(driverToolbarBtn, "gap-1.5 text-xs"),
         "border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200"
       )}
       onClick={onMarkComplete}
@@ -59,7 +57,7 @@ export function DriverSheetActions({
       type="button"
       variant="outline"
       size={stacked ? "default" : "sm"}
-      className={cn(stacked ? stackedBtn : inlineBtn)}
+      className={cn(stacked ? stackedBtn : cn(driverToolbarBtn, "gap-1.5 text-xs"))}
       disabled={savePending}
       onClick={onSave}
     >
@@ -90,7 +88,7 @@ export function DriverSheetActions({
           type="button"
           variant="outline"
           size={stacked ? "default" : "sm"}
-          className={cn(stacked ? stackedBtn : inlineBtn)}
+          className={cn(stacked ? stackedBtn : cn(driverToolbarBtn, "gap-1.5 text-xs"))}
           onClick={onExportPdf}
         >
           <Download className={cn(iconSize, "shrink-0")} />
@@ -111,7 +109,7 @@ export function DriverSheetActions({
       ) : (
         <Link
           href={`/sheets/${sheetId}/shift-log`}
-          className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 min-h-[44px] sm:min-h-9"
+          className={cn(driverToolbarBtn, "gap-1.5 text-xs")}
         >
           <ScrollText className="w-3.5 h-3.5 shrink-0" />
           Shift log

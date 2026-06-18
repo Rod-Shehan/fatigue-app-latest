@@ -13,20 +13,7 @@ import {
 import { Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-
-const driverToggleClass = (active: boolean, readOnly: boolean) =>
-  cn(
-    "px-3 py-1.5 text-sm font-semibold min-h-[40px] min-w-[4.25rem] transition-colors",
-    readOnly
-      ? active
-        ? "bg-slate-200 text-slate-800 dark:bg-slate-800/80 dark:text-slate-100 cursor-not-allowed"
-        : "bg-slate-100 text-slate-400 dark:bg-slate-900/40 dark:text-slate-500 cursor-not-allowed"
-      : active
-        ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900 dark:shadow-md dark:ring-1 dark:ring-white/30"
-        : "bg-white text-slate-500 hover:bg-slate-50 dark:bg-slate-900/40 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-300"
-  );
-
-export function DriverTypeFields({
+import { driverToggleSegment, driverToggleTrack } from "@/components/driver/driver-ui-classes";
   driverType,
   secondDriver,
   onDriverTypeChange,
@@ -58,7 +45,7 @@ export function DriverTypeFields({
         </p>
       </div>
       <div
-        className="inline-flex rounded-lg border border-slate-200 overflow-hidden shrink-0 dark:border-slate-500 dark:bg-slate-950 dark:p-0.5 dark:gap-0.5"
+        className={cn("inline-flex", driverToggleTrack)}
         role="group"
         aria-label="Driver type"
       >
@@ -66,7 +53,7 @@ export function DriverTypeFields({
           type="button"
           disabled={readOnly}
           onClick={() => onDriverTypeChange("solo")}
-          className={cn(driverToggleClass(type === "solo", readOnly), "rounded-none dark:rounded-md")}
+          className={cn(driverToggleSegment(type === "solo", readOnly), "rounded-none dark:rounded-md")}
         >
           Solo
         </button>
@@ -75,7 +62,7 @@ export function DriverTypeFields({
           disabled={readOnly}
           onClick={() => onDriverTypeChange("two_up")}
           className={cn(
-            driverToggleClass(type === "two_up", readOnly),
+            driverToggleSegment(type === "two_up", readOnly),
             "border-l border-slate-200 dark:border-0 rounded-none dark:rounded-md"
           )}
         >

@@ -4,6 +4,7 @@ import React from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { driverCollapsedRow } from "@/components/driver/driver-ui-classes";
 
 export function DayEntryWeekGroup({
   title,
@@ -25,7 +26,7 @@ export function DayEntryWeekGroup({
   children: React.ReactNode;
 }) {
   const rowClass = cn(
-    "flex w-full items-center gap-2 rounded-lg border px-3 py-2 min-h-[44px] text-left",
+    driverCollapsedRow,
     readOnly
       ? variant === "past"
         ? "bg-white/60 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 opacity-90"

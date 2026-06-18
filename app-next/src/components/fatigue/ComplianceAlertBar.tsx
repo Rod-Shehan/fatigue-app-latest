@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ChevronRight, Info, Loader2 } from "lucide-react";
 import type { ComplianceCheckResult } from "@/lib/api";
+import { driverAlertBar } from "@/components/driver/driver-ui-classes";
+import { cn } from "@/lib/utils";
 
 export function ComplianceNoticeBar({ results }: { results: ComplianceCheckResult[] }) {
   const notices = results.filter((r) => r.type === "info");
@@ -15,7 +17,10 @@ export function ComplianceNoticeBar({ results }: { results: ComplianceCheckResul
 
   return (
     <div
-      className="mb-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/80"
+      className={cn(
+        driverAlertBar,
+        "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/80"
+      )}
       role="status"
     >
       <Info className="w-5 h-5 text-slate-500 dark:text-slate-400 shrink-0 mt-0.5" aria-hidden />
@@ -47,7 +52,12 @@ export function ComplianceAlertBar({
 
   if (loading) {
     return (
-      <div className="mb-4 flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80 px-3 py-2.5 text-sm text-slate-500">
+      <div
+        className={cn(
+          driverAlertBar,
+          "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/80 text-sm text-slate-500"
+        )}
+      >
         <Loader2 className="w-4 h-4 animate-spin shrink-0" aria-hidden />
         Checking compliance…
       </div>
@@ -71,13 +81,15 @@ export function ComplianceAlertBar({
   return (
     <Link
       href={href}
-      className={`mb-4 flex items-start gap-3 rounded-xl border-2 px-4 py-3 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+      className={cn(
+        driverAlertBar,
+        "border-2",
         violations.length > 0
           ? "border-amber-400 bg-amber-50 hover:bg-amber-100/80 dark:border-amber-600 dark:bg-amber-950/50 dark:hover:bg-amber-950/80 focus:ring-amber-400"
           : warnings.length > 0
             ? "border-amber-300 bg-amber-50/90 hover:bg-amber-100/70 dark:border-amber-700 dark:bg-amber-950/40 focus:ring-amber-400"
             : "border-emerald-300 bg-emerald-50/80 hover:bg-emerald-100/60 dark:border-emerald-800 dark:bg-emerald-950/30 focus:ring-emerald-400"
-      }`}
+      )}
       aria-label={`${title}. Open full compliance check.`}
     >
       {violations.length > 0 ? (
