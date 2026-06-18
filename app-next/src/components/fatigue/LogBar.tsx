@@ -59,6 +59,7 @@ import {
   endShiftButtonSizeClass,
   endShiftIconSizeClass,
   endShiftTrimPaddingClass,
+  endShiftConfirmLabelSizeClass,
 } from "@/lib/driver-action-sizes";
 import {
   requestDriverImmersive,
@@ -825,14 +826,15 @@ export default function LogBar({
   const primaryBarCompact = scrollCompact && Boolean(isLiveNow);
 
   const endShiftChrome = getEndShiftButtonChrome();
+  const endShiftPending = pendingType === "stop";
 
   const endShiftButton = showEndShiftDock ? (
     <div
       className={cn(
         "inline-flex shrink-0 rounded-full transition-all duration-500 ease-out",
-        endShiftTrimPaddingClass(primaryHeroExpanded, primaryBarCompact),
+        endShiftTrimPaddingClass(primaryHeroExpanded, primaryBarCompact, endShiftPending),
         endShiftChrome.trimClass,
-        pendingType === "stop" &&
+        endShiftPending &&
           "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
       )}
     >
@@ -840,17 +842,33 @@ export default function LogBar({
         type="button"
         onClick={() => handleLog("stop")}
         className={cn(
-          "flex items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+          "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
-          endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact),
+          endShiftPending ? "gap-1 px-2" : "gap-0",
+          endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact, endShiftPending),
           endShiftChrome.surfaceClass,
           endShiftChrome.textClass
         )}
-        aria-label={pendingType === "stop" ? "Tap again to end shift" : EVENT_LABELS.stop}
+        aria-label={
+          endShiftPending ? "Tap again to confirm end shift" : EVENT_LABELS.stop
+        }
       >
         {React.createElement(EVENT_ICONS.stop, {
-          className: cn("shrink-0", endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact)),
+          className: cn(
+            "shrink-0",
+            endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact, endShiftPending)
+          ),
         })}
+        {endShiftPending ? (
+          <span
+            className={cn(
+              "text-center leading-tight",
+              endShiftConfirmLabelSizeClass(primaryHeroExpanded, primaryBarCompact)
+            )}
+          >
+            End shift?
+          </span>
+        ) : null}
       </button>
     </div>
   ) : null;
