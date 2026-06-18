@@ -14,6 +14,8 @@ import { Users } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { driverToggleSegment, driverToggleTrack } from "@/components/driver/driver-ui-classes";
+
+export function DriverTypeFields({
   driverType,
   secondDriver,
   onDriverTypeChange,
