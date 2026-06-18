@@ -80,7 +80,7 @@ export type DayData = {
     lat?: number;
     lng?: number;
     accuracy?: number;
-    /** When two-up: which named driver was driving for this work segment. */
+  /** @deprecated Legacy shared-sheet tag — not set on new events. */
     driver?: "primary" | "second";
   }>;
   /** When set (ISO string), legacy grid cap only — prefer end-shift events on the rolling timeline. */

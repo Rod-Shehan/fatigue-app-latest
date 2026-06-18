@@ -1,4 +1,4 @@
-import { getEventsForDriverInOrder } from "@/lib/rolling-events";
+import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getSheetDayDateString } from "@/lib/weeks";
 import type { DayData } from "@/lib/api";
 
@@ -35,7 +35,7 @@ export function getDriverHomeShiftStatus(
     };
   }
 
-  const events = getEventsForDriverInOrder(days);
+  const events = getSheetOwnerEventsInOrder(days);
   const last = events.length ? events[events.length - 1] : undefined;
   if (!last) {
     return {

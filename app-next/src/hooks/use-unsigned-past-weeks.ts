@@ -19,8 +19,7 @@ export function useUnsignedPastWeeks(driverName: string | undefined) {
     const thisSun = getThisWeekSunday();
     return sheets.filter((s) => {
       const primary = s.driver_name?.trim().toLowerCase();
-      const second = s.second_driver?.trim().toLowerCase();
-      const isMySheet = primary === me || second === me;
+      const isMySheet = primary === me;
       return (
         isMySheet &&
         s.week_starting &&

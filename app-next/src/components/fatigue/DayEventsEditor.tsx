@@ -91,12 +91,9 @@ export function DayEventsEditor({
   driverType?: string;
 }) {
   const sorted = normalizeDayEvents(events);
-  const isTwoUp = driverType === "two_up";
 
   const addEvent = (type: ActivityKey) => {
-    const base: DayEventDraft = { type, time: defaultTimeForNewEvent(sheetDayYmd, events) };
-    if (type === "work" && isTwoUp) base.driver = "primary";
-    onChange([...events, base]);
+    onChange([...events, { type, time: defaultTimeForNewEvent(sheetDayYmd, events) }]);
   };
 
   const updateAt = (eventIndex: number, patch: Partial<DayEventDraft>) => {
@@ -165,7 +162,6 @@ export function DayEventsEditor({
                         onValueChange={(v) => {
                           const nextType = v as ActivityKey;
                           const patch: Partial<DayEventDraft> = { type: nextType };
-                          if (nextType === "work" && isTwoUp && !ev.driver) patch.driver = "primary";
                           if (nextType !== "work") patch.driver = undefined;
                           updateAt(eventIndex, patch);
                         }}
@@ -191,22 +187,6 @@ export function DayEventsEditor({
                         className="h-11 w-28 text-base font-mono flex-1 min-w-[6.5rem]"
                         aria-label={`Time for ${TYPE_LABELS[typeKey]}`}
                       />
-                      {isTwoUp && typeKey === "work" && (
-                        <Select
-                          value={ev.driver ?? "primary"}
-                          onValueChange={(v) =>
-                            updateAt(eventIndex, { driver: v as "primary" | "second" })
-                          }
-                        >
-                          <SelectTrigger className="h-11 w-[6.5rem] shrink-0 text-xs">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="primary">Primary</SelectItem>
-                            <SelectItem value="second">Second</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
                       <Button
                         type="button"
                         variant="outline"

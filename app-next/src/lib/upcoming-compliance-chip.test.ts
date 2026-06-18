@@ -29,7 +29,7 @@ describe("upcoming-compliance-chip", () => {
       idleRestRemainingMinutes: 260,
     });
     expect(chip.tone).toBe("attention");
-    expect(chip.lines[0]).toMatch(/7h rest/);
+    expect(chip.lines[0]).toMatch(/Rest required before work/);
   });
 
   it("summarises prospective 72h warning", () => {

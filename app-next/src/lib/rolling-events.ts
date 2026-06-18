@@ -19,6 +19,8 @@ export type TimelineSlice = {
   events?: { time: string; type: string; driver?: "primary" | "second" }[];
 };
 
+export type RollingEventPoint = { time: string; type: string };
+
 /** Concatenate record slices in chronological order (storage layout only; rules use event timestamps). */
 export function concatenateTimelineSlices(...parts: TimelineSlice[][]): TimelineSlice[] {
   return parts.flat();
@@ -41,25 +43,35 @@ export function getEventsInTimeOrder(days: TimelineSlice[]): RollingEvent[] {
 }
 
 /**
- * Events in chronological order for a single driver (two-up) or all events (solo).
- * Missing driver on an event is treated as primary.
+ * Events on this driver's sheet — excludes legacy `driver: "second"` rows from the
+ * shared-logbook model. Each driver keeps their own record; relief driver is metadata only.
+ */
+export function getSheetOwnerEventsInOrder(
+  days: TimelineSlice[]
+): { time: string; type: string }[] {
+  return getEventsInTimeOrder(days)
+    .filter((ev) => ev.driver !== "second")
+    .map(({ time, type }) => ({ time, type }));
+}
+
+/**
+ * @deprecated Legacy shared-sheet filter. Prefer {@link getSheetOwnerEventsInOrder}.
  */
 export function getEventsForDriverInOrder(
   days: TimelineSlice[],
   activeDriver?: "primary" | "second"
 ): { time: string; type: string }[] {
+  if (activeDriver === undefined) return getSheetOwnerEventsInOrder(days);
   const ordered = getEventsInTimeOrder(days);
-  const filtered =
-    activeDriver === undefined
-      ? ordered
-      : ordered.filter((ev) => (ev.driver ?? "primary") === activeDriver);
-  return filtered.map(({ time, type }) => ({ time, type }));
+  return ordered
+    .filter((ev) => (ev.driver ?? "primary") === activeDriver)
+    .map(({ time, type }) => ({ time, type }));
 }
 
 /**
  * Last "stop" (end shift) time in ms before optional cutoff, or null if none.
  */
-export function getLastStopTime(events: RollingEvent[], beforeTimeMs?: number): number | null {
+export function getLastStopTime(events: RollingEventPoint[], beforeTimeMs?: number): number | null {
   const cutoff = beforeTimeMs ?? Infinity;
   let last: number | null = null;
   for (const ev of events) {
@@ -74,7 +86,7 @@ export function getLastStopTime(events: RollingEvent[], beforeTimeMs?: number): 
  * We treat both explicit End shift (stop) and Non-work start as shift-ending markers for the 7h recovery check.
  * This avoids false blocks when the driver logs non-work between shifts but forgets (or cannot) log End shift.
  */
-export function getLastShiftEndTime(events: RollingEvent[], beforeTimeMs?: number): number | null {
+export function getLastShiftEndTime(events: RollingEventPoint[], beforeTimeMs?: number): number | null {
   const cutoff = beforeTimeMs ?? Infinity;
   let last: number | null = null;
   for (const ev of events) {
@@ -88,7 +100,7 @@ export function getLastShiftEndTime(events: RollingEvent[], beforeTimeMs?: numbe
  * Non-work time (hours) since the last stop event, as of asOfMs.
  * Returns null if there has never been a stop (no "last shift").
  */
-export function getNonWorkHoursSinceLastStop(events: RollingEvent[], asOfMs: number): number | null {
+export function getNonWorkHoursSinceLastStop(events: RollingEventPoint[], asOfMs: number): number | null {
   const lastStop = getLastStopTime(events, asOfMs + 1);
   if (lastStop === null) return null;
   return (asOfMs - lastStop) / (3600 * 1000);
@@ -98,7 +110,7 @@ export function getNonWorkHoursSinceLastStop(events: RollingEvent[], asOfMs: num
  * Non-work time (hours) since the last shift end marker (stop or non_work), as of asOfMs.
  * Returns null if none exists (no shift end marker recorded).
  */
-export function getNonWorkHoursSinceLastShiftEnd(events: RollingEvent[], asOfMs: number): number | null {
+export function getNonWorkHoursSinceLastShiftEnd(events: RollingEventPoint[], asOfMs: number): number | null {
   const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
   if (lastEnd === null) return null;
   return (asOfMs - lastEnd) / (3600 * 1000);
@@ -106,15 +118,13 @@ export function getNonWorkHoursSinceLastShiftEnd(events: RollingEvent[], asOfMs:
 
 /** Non-work minutes since the last shift end marker (stop or non_work), rolling from event time. */
 export function getNonWorkMinutesSinceLastShiftEnd(
-  events: RollingEvent[],
+  events: RollingEventPoint[],
   asOfMs: number
 ): number | null {
   const lastEnd = getLastShiftEndTime(events, asOfMs + 1);
   if (lastEnd === null) return null;
   return Math.max(0, Math.floor((asOfMs - lastEnd) / 60000));
 }
-
-type RollingEventPoint = { time: string; type: string };
 
 /**
  * Last event at or before asOfMs on a rolling timeline (event timestamps only).
@@ -155,7 +165,7 @@ export type ShiftRestStatus = {
  * Returns null when no gate applies (no prior shift end, or solo resume inside active 17h episode).
  */
 export function getShiftRestStatusFromTimeline(
-  events: RollingEvent[],
+  events: RollingEventPoint[],
   asOfMs: number,
   options?: { allowSeventeenHourEpisodeResume?: boolean }
 ): ShiftRestStatus | null {
@@ -179,7 +189,7 @@ const DEFAULT_MIN_NON_WORK_HOURS = 7;
  * Returns null if no stop exists or non-work time is sufficient.
  */
 export function getInsufficientNonWorkMessage(
-  events: RollingEvent[],
+  events: RollingEventPoint[],
   asOfMs: number,
   minNonWorkHours: number = DEFAULT_MIN_NON_WORK_HOURS,
   options?: { allowSeventeenHourEpisodeResume?: boolean }
@@ -192,4 +202,76 @@ export function getInsufficientNonWorkMessage(
   if (nonWorkHours === null) return null;
   if (nonWorkHours >= minNonWorkHours) return null;
   return `Less than ${minNonWorkHours} hours non-work time since last shift. Starting work may not meet non-work time requirements.`;
+}
+
+const MS_24H = 24 * 60 * 60 * 1000;
+const MIN_NON_WORK_MINUTES_TWO_UP_24H = 7 * 60;
+
+type RollingSegmentKind = "work" | "break" | "non_work";
+
+function openSegmentKindAfterEvent(type: string): RollingSegmentKind {
+  if (type === "work") return "work";
+  if (type === "break") return "break";
+  return "non_work";
+}
+
+export type TwoUpRolling24hRestStatus = {
+  nonWorkMinutes: number;
+  workOrBreakMinutes: number;
+  /** Non-work minutes still needed in the rolling 24h window (0 when met). */
+  nonWorkMinutesShortfall: number;
+};
+
+/**
+ * Two-Up Reg 184E(3)(a): ≥7h non-work in any rolling 24h when work/break exists in that window.
+ * Returns null when the gate does not apply (no work/break in window, or non-work already ≥7h).
+ */
+export function getTwoUpRolling24hRestStatus(
+  events: RollingEventPoint[],
+  asOfMs: number
+): TwoUpRolling24hRestStatus | null {
+  const windowStart = asOfMs - MS_24H;
+  const sorted = [...events]
+    .filter((e) => Number.isFinite(new Date(e.time).getTime()))
+    .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+
+  const lastBefore = getLastRollingEventAt(sorted, windowStart);
+  let segKind: RollingSegmentKind = lastBefore ? openSegmentKindAfterEvent(lastBefore.type) : "non_work";
+  let segStart = windowStart;
+
+  let nonWorkMinutes = 0;
+  let workOrBreakMinutes = 0;
+
+  const addMinutes = (kind: RollingSegmentKind, fromMs: number, toMs: number) => {
+    const mins = Math.max(0, Math.floor((toMs - fromMs) / 60000));
+    if (kind === "non_work") nonWorkMinutes += mins;
+    else workOrBreakMinutes += mins;
+  };
+
+  for (const ev of sorted) {
+    const t = new Date(ev.time).getTime();
+    if (t <= windowStart) continue;
+    if (t > asOfMs) break;
+    addMinutes(segKind, segStart, t);
+    segStart = t;
+    segKind = openSegmentKindAfterEvent(ev.type);
+  }
+  addMinutes(segKind, segStart, asOfMs);
+
+  if (workOrBreakMinutes === 0) return null;
+
+  const shortfall = Math.max(0, MIN_NON_WORK_MINUTES_TWO_UP_24H - nonWorkMinutes);
+  if (shortfall === 0) return null;
+
+  return { nonWorkMinutes, workOrBreakMinutes, nonWorkMinutesShortfall: shortfall };
+}
+
+/** Prospective warning when Two-Up rolling 24h non-work is below 7h. */
+export function getInsufficientTwoUp24hNonWorkMessage(
+  events: RollingEventPoint[],
+  asOfMs: number
+): string | null {
+  const status = getTwoUpRolling24hRestStatus(events, asOfMs);
+  if (!status) return null;
+  return "Less than 7 hours non-work in the rolling 24-hour period. Starting work may not meet Two-Up rest requirements.";
 }

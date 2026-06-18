@@ -181,11 +181,12 @@ Do **not** expect the app to guess odometer readings.
 
 ## 8. Two drivers (two-up)
 
-If your sheet has **two drivers**:
+If your sheet is **Two-Up**:
 
-- You may see **Primary** and **Second**.
-- Choose your name before you tap Work / Break.
-- Each driver logs their own events.
+- Enter the **relief driver&apos;s name** in Set up day (for context only).
+- Log **only your own** work, break, non-work, and end-shift times on **your** sheet.
+- The relief driver keeps **their own** sheet for their times.
+- Two-Up uses different rest rules than solo (see Compliance).
 
 ---
 

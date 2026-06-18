@@ -30,3 +30,18 @@ export function resolveIdlePrimaryLogAction(options: {
   return { type: "work", label: "Start shift", helper: null };
 }
 
+/** Two-Up idle primary when rolling 24h non-work is below 7h (Reg 184E(3)(a)). */
+export function resolveTwoUpIdlePrimaryLogAction(status: {
+  nonWorkMinutesShortfall: number;
+}): PrimaryLogAction {
+  const remaining = Math.max(0, status.nonWorkMinutesShortfall);
+  const hrs = Math.floor(remaining / 60);
+  const mins = remaining % 60;
+  const remainingLabel = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+  return {
+    type: "non_work",
+    label: "Continue rest",
+    helper: `7h non-work in 24h required · ${remainingLabel} remaining`,
+  };
+}
+

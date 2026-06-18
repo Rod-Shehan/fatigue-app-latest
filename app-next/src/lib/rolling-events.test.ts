@@ -10,6 +10,9 @@ import {
   getNonWorkMinutesSinceLastShiftEnd,
   getShiftRestStatusFromTimeline,
   getInsufficientNonWorkMessage,
+  getInsufficientTwoUp24hNonWorkMessage,
+  getSheetOwnerEventsInOrder,
+  getTwoUpRolling24hRestStatus,
   type RollingEvent,
 } from "./rolling-events";
 
@@ -217,6 +220,47 @@ describe("rolling-events", () => {
       expect(getLastShiftEndTime(events)).toBe(ts("2025-02-17T18:00:00.000Z"));
       expect(getNonWorkHoursSinceLastShiftEnd(events, asOf)).toBe(7);
       expect(getInsufficientNonWorkMessage(events, asOf)).toBeNull();
+    });
+  });
+
+  describe("getSheetOwnerEventsInOrder", () => {
+    it("excludes legacy second-driver work from owner timeline", () => {
+      const days = [
+        {
+          events: [
+            { time: "2026-06-11T08:00:00", type: "work" },
+            { time: "2026-06-11T10:00:00", type: "work", driver: "second" as const },
+          ],
+        },
+      ];
+      const events = getSheetOwnerEventsInOrder(days);
+      expect(events).toHaveLength(1);
+      expect(events[0]!.type).toBe("work");
+    });
+  });
+
+  describe("getTwoUpRolling24hRestStatus", () => {
+    it("returns null when no work/break in rolling 24h", () => {
+      const events = [{ time: "2026-06-11T08:00:00", type: "non_work" }];
+      expect(getTwoUpRolling24hRestStatus(events, ts("2026-06-11T20:00:00"))).toBeNull();
+    });
+
+    it("returns shortfall when work fills rolling 24h with no non-work", () => {
+      const events = [{ time: "2026-06-10T06:00:00", type: "work" }];
+      const asOf = ts("2026-06-11T06:00:00");
+      const status = getTwoUpRolling24hRestStatus(events, asOf);
+      expect(status).not.toBeNull();
+      expect(status!.nonWorkMinutesShortfall).toBe(7 * 60);
+      expect(getInsufficientTwoUp24hNonWorkMessage(events, asOf)).toContain("rolling 24-hour");
+    });
+
+    it("returns null when rolling 24h has at least 7h non-work with work in window", () => {
+      const events = [
+        { time: "2026-06-10T20:00:00", type: "work" },
+        { time: "2026-06-10T22:00:00", type: "stop" },
+      ];
+      const asOf = ts("2026-06-11T14:00:00"); // 16h non-work since stop
+      expect(getTwoUpRolling24hRestStatus(events, asOf)).toBeNull();
     });
   });
 });

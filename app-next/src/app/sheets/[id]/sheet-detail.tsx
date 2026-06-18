@@ -88,7 +88,7 @@ import {
   runLocalSheetComplianceCheck,
 } from "@/lib/sheet-compliance-local";
 import type { TimelineSlice } from "@/lib/rolling-events";
-import { concatenateTimelineSlices, getEventsForDriverInOrder } from "@/lib/rolling-events";
+import { concatenateTimelineSlices, getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getWorkLogBlockReason } from "@/lib/shift-start-gate";
 import { resolveDayCrew } from "@/lib/day-crew";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
@@ -916,17 +916,13 @@ export function SheetDetail({
   const handleEndShiftRequest = handleOpenEndShiftCorrection;
 
   const handleLogEvent = useCallback(
-    (dayIndex: number, type: string, driver?: "primary" | "second") => {
+    (dayIndex: number, type: string) => {
     if (driverContentLocked) return;
 
     if (type === "work") {
       const prev = sheetDataRef.current;
-      const dayCrew = resolveDayCrew(prev.days[dayIndex], prev);
       const timeline = concatenateTimelineSlices(priorTimelineSlices, prev.days);
-      const driverEvents = getEventsForDriverInOrder(
-        timeline,
-        dayCrew.driver_type === "two_up" ? (driver ?? "primary") : undefined
-      );
+      const driverEvents = getSheetOwnerEventsInOrder(timeline);
       const dayFields = getDayWithMergedRouteContext(
         prev.days,
         dayIndex,
@@ -948,15 +944,7 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const day = newDays[dayIndex];
       const events = day.events || [];
-      const dayCrew = resolveDayCrew(day, prev);
-        const baseEvent: { time: string; type: string; driver?: "primary" | "second" } = {
-          time: new Date().toISOString(),
-          type,
-        };
-        const newEvent =
-          type === "work" && dayCrew.driver_type === "two_up"
-            ? { ...baseEvent, driver: driver ?? "primary" }
-            : baseEvent;
+        const newEvent = { time: new Date().toISOString(), type };
       const newEvents = [...events, newEvent];
       newDays[dayIndex] = { ...day, events: newEvents };
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
@@ -1309,8 +1297,7 @@ export function SheetDetail({
               storedRouteDefaults
             )}
             driverType={todayCrew.driver_type}
-            primaryDriverName={sheetData.driver_name}
-            secondDriverName={todayCrew.second_driver}
+            reliefDriverName={todayCrew.second_driver}
             forgottenActionReminder={forgottenActionReminder}
             isLiveNow={getSheetDayDateString(sheetData.week_starting, currentDayIndex) === todayYmd}
             complianceButton={{

@@ -22,15 +22,15 @@ import { VoiceCommandControl } from "@/components/VoiceCommandControl";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
 import {
   concatenateTimelineSlices,
-  getEventsForDriverInOrder,
-  getEventsInTimeOrder,
   getInsufficientNonWorkMessage,
+  getInsufficientTwoUp24hNonWorkMessage,
+  getSheetOwnerEventsInOrder,
   getShiftRestStatusFromTimeline,
+  getTwoUpRolling24hRestStatus,
   type TimelineSlice,
 } from "@/lib/rolling-events";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { cn } from "@/lib/utils";
-import { driverSegmentBtn } from "@/components/driver/driver-ui-classes";
 import { driverAlertnessMustStop } from "@/lib/driver-alertness";
 import {
   getShiftStartSetupMissing,
@@ -45,7 +45,7 @@ import {
   getPriorRestSlotsBeforeTime,
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
-import { resolveIdlePrimaryLogAction } from "@/lib/primary-log-action";
+import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { getEndShiftButtonChrome, resolveComplianceTone } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
@@ -132,8 +132,7 @@ export default function LogBar({
   onStartShiftBlocked,
   currentDayDisplay,
   driverType,
-  primaryDriverName,
-  secondDriverName,
+  reliefDriverName,
   forgottenActionReminder,
   /** True when this sheet/day is "live now" (today); otherwise hide live elapsed/timers. */
   isLiveNow,
@@ -146,8 +145,8 @@ export default function LogBar({
   days: DayData[];
   currentDayIndex: number;
   weekStarting: string;
-  /** Log a new event. When driver is provided and driverType is two_up, the event belongs to that driver. */
-  onLogEvent: (dayIndex: number, type: string, driver?: "primary" | "second") => void;
+  /** Log a new event on this driver's sheet. */
+  onLogEvent: (dayIndex: number, type: string) => void;
   /** When provided, End shift opens the correction dialog (end time + end km). */
   onEndShiftRequest?: (dayIndex: number) => void;
   /** Prospective compliance messages (non-work time, limits) if work were logged now. When set, shown when user taps Work. */
@@ -162,12 +161,10 @@ export default function LogBar({
   onStartShiftBlocked?: () => void;
   /** When provided, used for Start shift gate (rego/destination/start KM) so carried-over values count. */
   currentDayDisplay?: DayData;
-  /** Solo or two_up — controls whether driver toggle is shown. */
+  /** Solo or two_up — selects rule set (184E(2) vs 184E(3)). */
   driverType?: string;
-  /** Two-up primary driver name (sheet driver_name). */
-  primaryDriverName?: string;
-  /** Two-up second driver name (sheet second_driver). */
-  secondDriverName?: string;
+  /** Relief driver name when two_up (metadata only — not logged on this sheet). */
+  reliefDriverName?: string;
   /** Reminder banner content (e.g. forgot end shift). Rendered prominently inside fixed header. */
   forgottenActionReminder?: { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null;
   isLiveNow?: boolean;
@@ -187,7 +184,6 @@ export default function LogBar({
   const [pendingType, setPendingType] = useState<string | null>(null);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
-  const [activeDriver, setActiveDriver] = useState<"primary" | "second">("primary");
   const [workWarning, setWorkWarning] = useState<{ message: string; confirmLabel: string; onConfirm: () => void; onCancel?: () => void; subtext?: string } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tick, setTick] = useState(0);
@@ -222,37 +218,23 @@ export default function LogBar({
     [priorTimelineSlices, days]
   );
 
-  /** Rolling event timeline for this driver (all loaded record slices, sorted by time). */
+  /** This driver's attested timeline (excludes legacy second-driver rows on shared sheets). */
   const eventsForDriver = useMemo(
-    () =>
-      getEventsForDriverInOrder(
-        timelineSlices,
-        driverType === "two_up" ? activeDriver : undefined
-      ),
-    [timelineSlices, driverType, activeDriver]
-  );
-  const timelineEvents = useMemo(
-    () => getEventsInTimeOrder(timelineSlices),
+    () => getSheetOwnerEventsInOrder(timelineSlices),
     [timelineSlices]
   );
   const lastEvent = eventsForDriver.length ? eventsForDriver[eventsForDriver.length - 1] : undefined;
   const currentType = lastEvent && lastEvent.type !== "stop" ? lastEvent.type : null;
 
-  const driverTimelineEvents = useMemo(
-    () =>
-      driverType === "two_up"
-        ? timelineEvents.filter((ev) => (ev.driver ?? "primary") === activeDriver)
-        : timelineEvents,
-    [timelineEvents, driverType, activeDriver]
-  );
+  const isTwoUp = driverType === "two_up";
 
-  const soloEpisodeResume = driverType !== "two_up";
+  const soloEpisodeResume = !isTwoUp;
 
   const canResumeWithinSeventeenHourEpisode = useMemo(() => {
     if (!isLiveNow || !soloEpisodeResume) return false;
-    return getSeventeenHourEpisodeStatus(driverTimelineEvents, Date.now())
+    return getSeventeenHourEpisodeStatus(eventsForDriver, Date.now())
       .canResumeWithoutSevenHourRest;
-  }, [isLiveNow, soloEpisodeResume, driverTimelineEvents, tick]);
+  }, [isLiveNow, soloEpisodeResume, eventsForDriver, tick]);
   /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
   const shiftSegmentOpen = currentType === "work" || currentType === "break";
 
@@ -318,26 +300,39 @@ export default function LogBar({
     currentType === "work" ? computeWorkPeriodAtEnd(eventsForDriver, Date.now()) : null;
   const workMinutesUsed = workPeriod?.workMins ?? 0;
 
+  const twoUpRolling24hRest = useMemo(() => {
+    if (!isLiveNow || currentType !== null || !isTwoUp) return null;
+    return getTwoUpRolling24hRestStatus(eventsForDriver, Date.now());
+  }, [isLiveNow, currentType, isTwoUp, eventsForDriver, tick]);
+
   const shiftRest =
-    isLiveNow && currentType === null
-      ? getShiftRestStatusFromTimeline(driverTimelineEvents, Date.now(), {
+    isLiveNow && currentType === null && !isTwoUp
+      ? getShiftRestStatusFromTimeline(eventsForDriver, Date.now(), {
           allowSeventeenHourEpisodeResume: soloEpisodeResume,
         })
       : null;
 
   const idlePrimary =
-    currentType === null && shiftRest
-      ? resolveIdlePrimaryLogAction({
-          restRunMinutes: shiftRest.consecutiveNonWorkMinutes,
-          minRestMinutes: MIN_NON_WORK_MIN_BETWEEN_SHIFTS,
-        })
+    currentType === null
+      ? isTwoUp
+        ? twoUpRolling24hRest
+          ? resolveTwoUpIdlePrimaryLogAction(twoUpRolling24hRest)
+          : null
+        : shiftRest
+          ? resolveIdlePrimaryLogAction({
+              restRunMinutes: shiftRest.consecutiveNonWorkMinutes,
+              minRestMinutes: MIN_NON_WORK_MIN_BETWEEN_SHIFTS,
+            })
+          : null
       : null;
 
   const idleRestBlocked = idlePrimary?.type === "non_work";
   const idleRestRemainingMinutes =
-    idleRestBlocked && shiftRest
-      ? Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRest.consecutiveNonWorkMinutes)
-      : null;
+    idleRestBlocked && isTwoUp && twoUpRolling24hRest
+      ? twoUpRolling24hRest.nonWorkMinutesShortfall
+      : idleRestBlocked && shiftRest
+        ? Math.max(0, MIN_NON_WORK_MIN_BETWEEN_SHIFTS - shiftRest.consecutiveNonWorkMinutes)
+        : null;
 
   const breakRestStatus = useMemo(() => {
     if (!isLiveNow || currentType !== "break" || !lastEvent) return null;
@@ -589,8 +584,11 @@ export default function LogBar({
   /** Warning when starting work with <7h non-work since last shift end (rolling event time). */
   const getInsufficientNonWorkWarning = (allowSeventeenHourEpisodeResume: boolean) => {
     if (currentType !== null) return null;
+    if (isTwoUp) {
+      return getInsufficientTwoUp24hNonWorkMessage(eventsForDriver, Date.now());
+    }
     return getInsufficientNonWorkMessage(
-      driverTimelineEvents,
+      eventsForDriver,
       Date.now(),
       MIN_NON_WORK_HOURS_BETWEEN_SHIFTS,
       {
@@ -673,9 +671,7 @@ export default function LogBar({
         onEndShiftRequest(currentDayIndex);
         return;
       }
-      const driverForEvent: "primary" | "second" | undefined =
-        driverType === "two_up" && type === "work" ? activeDriver : undefined;
-      onLogEvent(currentDayIndex, type, driverForEvent);
+      onLogEvent(currentDayIndex, type);
       return;
     }
 
@@ -731,9 +727,7 @@ export default function LogBar({
         onEndShiftRequest(currentDayIndex);
         return;
       }
-      const driverForEvent: "primary" | "second" | undefined =
-        driverType === "two_up" && type === "work" ? activeDriver : undefined;
-      onLogEvent(currentDayIndex, type, driverForEvent);
+      onLogEvent(currentDayIndex, type);
       return;
     }
     setWorkLogEpisodeResume(episodeResume);
@@ -861,43 +855,17 @@ export default function LogBar({
         </div>
       ) : null}
       <div className="flex flex-wrap items-stretch justify-center gap-3">
-        {driverType === "two_up" && (
-          <span
+        {isTwoUp && reliefDriverName?.trim() ? (
+          <p
             className={cn(
-              "flex w-full justify-center items-center gap-2 text-sm sm:w-auto sm:justify-start",
-              isIdleAtTop || sessionDimmed ? "text-white/75" : "text-slate-500 dark:text-slate-400",
+              "w-full text-center text-xs font-semibold uppercase tracking-wider",
+              isIdleAtTop || sessionDimmed ? "text-white/70" : "text-slate-500 dark:text-slate-400",
               sessionDimmed && "pointer-events-auto"
             )}
           >
-            <span className="uppercase tracking-wider font-semibold text-xs sm:text-sm">Driver</span>
-            <button
-              type="button"
-              className={cn(
-                driverSegmentBtn,
-                "rounded-lg border",
-                activeDriver === "primary"
-                  ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
-                  : "bg-transparent text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600"
-              )}
-              onClick={() => setActiveDriver("primary")}
-            >
-              {primaryDriverName || "Driver 1"}
-            </button>
-            <button
-              type="button"
-              className={cn(
-                driverSegmentBtn,
-                "rounded-lg border",
-                activeDriver === "second"
-                  ? "bg-slate-900 text-white border-slate-900 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100"
-                  : "bg-transparent text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600"
-              )}
-              onClick={() => setActiveDriver("second")}
-            >
-              {secondDriverName || "Driver 2"}
-            </button>
-          </span>
-        )}
+            Two-up · relief driver {reliefDriverName.trim()}
+          </p>
+        ) : null}
         <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
           <div
             className={cn(

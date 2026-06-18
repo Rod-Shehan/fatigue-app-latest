@@ -112,7 +112,7 @@ export function resolveUpcomingComplianceChip(input: {
   );
 
   if (input.idleRestBlocked && input.idleRestRemainingMinutes != null) {
-    lines.push(`7h rest required — ${formatRestRemaining(input.idleRestRemainingMinutes)} left`);
+    lines.push(`Rest required before work — ${formatRestRemaining(input.idleRestRemainingMinutes)} left`);
     tone = "attention";
   }
 

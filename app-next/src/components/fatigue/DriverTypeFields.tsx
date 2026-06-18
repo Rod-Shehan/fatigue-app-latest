@@ -53,7 +53,8 @@ export function DriverTypeFields({
       <div>
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Crew for this shift</p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-          Solo or Two-Up for this day&apos;s work. Change before you start work if the crew changes.
+          Solo or Two-Up for this day. Two-Up needs the relief driver&apos;s name only — each driver keeps
+          their own record; you do not log the other driver&apos;s times here.
         </p>
       </div>
       <div
@@ -84,7 +85,7 @@ export function DriverTypeFields({
       {type === "two_up" && (
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-            <Users className="w-3 h-3" /> Second driver
+            <Users className="w-3 h-3" /> Relief driver (name only)
           </Label>
           {activeDrivers.length > 0 ? (
             <Select
