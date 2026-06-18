@@ -363,6 +363,7 @@ export default function LogBar({
   /** Callback / same fatigue episode — secondary action; primary stays Start shift. */
   const showResumeShiftOption =
     isLiveNow &&
+    currentType === null &&
     isStartingShift &&
     canResumeWithinSeventeenHourEpisode &&
     !idleRestBlocked;

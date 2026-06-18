@@ -2,11 +2,11 @@
 
 import React, { useMemo } from "react";
 import { formatComplianceCountdown } from "@/lib/driver-action-format";
-import { getActionRingTintClass } from "@/lib/driver-compliance-chrome";
+import { getActionRingTintClass, getResumeShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
-import { driverActionSizeClass } from "@/lib/driver-action-sizes";
+import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
 
 export interface DriverActionHeroProps {
   workMinutesUsed: number;
@@ -109,6 +109,8 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const ringSpin = currentSegment === "break" && !compact;
 
   const sizeClass = driverActionSizeClass(expanded, compact);
+  const secondarySizeClass = endShiftButtonSizeClass(expanded, compact);
+  const resumeShiftChrome = getResumeShiftButtonChrome();
 
   const sharedSurfaceClass = cn(
     "relative overflow-hidden flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out",
@@ -282,19 +284,40 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           onClick={secondaryAction.onAction}
           disabled={secondaryAction.disabled}
           className={cn(
-            "mt-2 max-w-[min(100%,14rem)] rounded-lg px-3 py-2 text-center text-sm font-semibold transition-colors",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+            "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
             "disabled:opacity-50 disabled:pointer-events-none",
-            expanded || isIdleAtTop
-              ? "text-white/65 hover:text-white hover:bg-white/10"
-              : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200",
-            secondaryAction.pending && "animate-pulse ring-1 ring-white/40"
+            expanded ? "mt-6" : "mt-5",
+            secondarySizeClass,
+            resumeShiftChrome.surfaceClass,
+            resumeShiftChrome.textClass,
+            secondaryAction.pending &&
+              "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
           )}
           aria-label={
             secondaryAction.pending ? "Tap again to confirm resume shift" : secondaryAction.label
           }
         >
-          {secondaryAction.pending ? "Tap again to confirm" : secondaryAction.label}
+          <span
+            className={cn(
+              "text-center leading-tight",
+              expanded ? "text-[10px] sm:text-xs" : compact ? "text-[7px] leading-none" : "text-[9px] sm:text-[10px]"
+            )}
+          >
+            {secondaryAction.pending ? (
+              <>
+                Tap again
+                <br />
+                to confirm
+              </>
+            ) : (
+              <>
+                Resume
+                <br />
+                shift
+              </>
+            )}
+          </span>
         </button>
       ) : null}
     </div>

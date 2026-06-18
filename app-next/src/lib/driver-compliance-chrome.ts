@@ -45,6 +45,16 @@ export function getEndShiftButtonChrome(): ReturnType<typeof getComplianceChrome
   return getComplianceChrome("default", "red");
 }
 
+/** Round Resume shift secondary — neutral grey trim matching hero border pattern. */
+export function getResumeShiftButtonChrome(): ReturnType<typeof getComplianceChrome> {
+  return {
+    onColoredSurface: true,
+    surfaceClass:
+      "bg-slate-500 dark:bg-slate-600 border-4 border-slate-100 dark:border-slate-950 shadow-lg hover:bg-slate-600 dark:hover:bg-slate-500 active:bg-slate-700",
+    textClass: "text-white dark:text-slate-100",
+  };
+}
+
 /** Tint for the decorative hero ring mask — tracks button chrome, not compliance sheet warnings. */
 export function getActionRingTintClass(input: {
   complianceTone: ComplianceTone;
