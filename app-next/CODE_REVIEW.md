@@ -34,7 +34,6 @@ Summary of findings and fixes applied.
 |----------|------|------------|
 | **`src/lib/rate-limit.ts`** | `checkLoginRateLimit`, `checkSensitiveApiRateLimit` are never imported. | Either wire them (e.g. login API route, POST /api/sheets, /api/users) or remove the file. |
 | **`src/lib/hours.ts`** | `getHoursForDisplay()` is never used. | Remove or use in UI (e.g. stat cards); logic duplicates `compliance.ts` `getHours()`. |
-| **`src/lib/firebase.ts`** | `getFirebaseAuth()`, `getApp()` are never used. | Kept for future Firebase Auth/Hosting; no change unless you add sign-in or remove Firebase. |
 
 ---
 
@@ -55,6 +54,3 @@ Summary of findings and fixes applied.
 
 2. **Consolidate hours helpers**  
    `getHoursForDisplay` (hours.ts) and `getHours` (compliance.ts) are the same. Use one (e.g. from compliance) everywhere or delete `hours.ts`.
-
-3. **Firebase**  
-   When you add Firebase Auth, call `getFirebaseAuth()` in client components and guard with `if (!auth) return null` or similar.

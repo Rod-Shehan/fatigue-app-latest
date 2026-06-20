@@ -1,6 +1,6 @@
-# Migration audit: Base44 → Next.js + Firebase rebuild
+# Migration audit: Base44 → Next.js rebuild
 
-This document lists **dead ends and issues** found after the app was rebuilt from another platform (Base44) for Next.js + Prisma + Firebase hosting.
+This document lists **dead ends and issues** found after the app was rebuilt from another platform (Base44) for Next.js + Prisma + Vercel hosting.
 
 ---
 
@@ -16,23 +16,7 @@ then edit `.env.local` with real values.
 
 ---
 
-## 2. Firebase client SDK is unused (dead code)
-
-**Issue:** The app uses **NextAuth (Credentials)** for auth only. No component or route imports `@/lib/firebase` (e.g. `getFirebaseAuth()` or `getApp()`). So:
-
-- `src/lib/firebase.ts` is **never used**.
-- The `firebase` npm package is only needed if you later add Firebase Auth or Firestore in the client.
-
-**Impact:** For **Firebase Hosting only** (deploy via `firebase deploy`), you only need `firebase-tools` (devDependency). The `firebase` dependency and `firebase.ts` are optional/future-use.
-
-**Options:**
-
-- **Keep:** Leave as-is and treat as optional for future Firebase Auth/Firestore; `src/lib/firebase.ts` is documented as optional in README.
-- **Remove:** If you will never use Firebase Auth/Firestore in the client, you can remove the `firebase` dependency and `src/lib/firebase.ts` to reduce bundle size and confusion.
-
----
-
-## 3. Placeholder repository URL
+## 2. Placeholder repository URL
 
 **Issue:** `package.json` has:
 ```json
@@ -44,7 +28,7 @@ This is a placeholder. Not breaking, but should be updated when the repo is know
 
 ---
 
-## 4. Doc vs code: NextAuth version
+## 3. Doc vs code: NextAuth version
 
 **Issue:** MIGRATION.md says "**Auth.js** (NextAuth.js **v5**)". The project uses `next-auth@^4.24.10` (v4).
 
@@ -52,7 +36,7 @@ This is a placeholder. Not breaking, but should be updated when the repo is know
 
 ---
 
-## 5. Base44 references (comments only – OK)
+## 4. Base44 references (comments only – OK)
 
 **Status:** No Base44 SDK or runtime code remains. The only references are:
 
@@ -63,7 +47,7 @@ These are fine to keep for context.
 
 ---
 
-## 6. Server-side API base URL
+## 5. Server-side API base URL
 
 **Status:** `src/lib/api.ts` uses:
 - In browser: `base = ""` (relative URLs, same origin + cookies).
@@ -78,7 +62,6 @@ The API client is only used from **client components** (e.g. useQuery, useMutati
 | Item                         | Severity   | Action taken / recommendation        |
 |-----------------------------|------------|--------------------------------------|
 | Missing `.env.example`      | High       | Added `app-next/.env.example`        |
-| Unused Firebase client      | Low / info | Documented; optional or remove       |
 | Placeholder repo URL        | Low        | Update when repo is known            |
 | NextAuth v5 vs v4 in docs   | Low        | Align MIGRATION.md with v4          |
 | Base44 references           | None       | Comments only, OK                    |

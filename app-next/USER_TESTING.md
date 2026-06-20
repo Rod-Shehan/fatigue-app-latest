@@ -7,7 +7,7 @@ Use this as a short brief for testers before they try the app.
 ## 1. Where to go
 
 - **Local:** After you run the app, open **http://localhost:3000**
-- **Staging / hosted:** Use the URL your team provides (e.g. `https://your-app.vercel.app` or your Firebase URL).
+- **Staging / hosted:** https://fatigue-app-latest.vercel.app (or the preview URL your team shares).
 
 ---
 

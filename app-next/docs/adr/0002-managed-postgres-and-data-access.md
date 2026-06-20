@@ -6,7 +6,7 @@
 
 ## Context
 
-- The app is built on **Next.js + Prisma + PostgreSQL** (`prisma/schema.prisma`). Local or informal Postgres and Firebase (or similar) hosting are appropriate for **development and early pilots**.
+- The app is built on **Next.js + Prisma + PostgreSQL** (`prisma/schema.prisma`). Local Postgres and **Vercel** hosting are appropriate for development and production.
 - **SharePoint + Power Automate** will publish **PDF hard copies** of attested fatigue records (same output as `GET /api/sheets/[id]/export`).
 - We need **one read path** for the manager PWA and future fleet statistics — not CSV imports into SharePoint lists, not a split brain where the app reads SharePoint for history.
 - **Legal retention** is **≥ 3 years** for records (WA Reg 184G, HVNL s 341). See [record-retention-and-compliance-lookback.md](../regulatory/record-retention-and-compliance-lookback.md).
@@ -66,7 +66,7 @@ Until managed Postgres is sized for multi-year retention, **keep signed sheets i
 
 - Automated backups and point-in-time recovery  
 - Storage growth without VM disk surprises  
-- Connection pooling for serverless Next / Firebase functions  
+- Connection pooling for serverless Next on Vercel  
 - HA / read replicas when needed for reporting  
 - Clear path to keep **years** of signed rows in one DB for manager statistics without cold-tier complexity  
 

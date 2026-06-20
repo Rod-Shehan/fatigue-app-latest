@@ -32,7 +32,6 @@ export default [
     ignores: [
       ".next/**",
       "node_modules/**",
-      ".firebase/**",
       "prisma/**",
       "tailwind.config.ts",
     ],
