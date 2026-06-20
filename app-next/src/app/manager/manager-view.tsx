@@ -950,28 +950,34 @@ export function ManagerView() {
           </div>
 
           <div className="space-y-4 rounded-xl border border-teal-200/90 bg-white/80 p-4 dark:border-teal-800/50 dark:bg-slate-950/60">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                  Sheet
+              <div className="space-y-2">
+                <Label
+                  htmlFor="manager-record-sheet"
+                  className="text-xs font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-200"
+                >
+                  {MANAGER_EXPERIENCE.RECORDS_SHEET_LABEL}
                 </Label>
                 <Select
                   value={selectedSheetId || "__none__"}
                   onValueChange={(id) => setSelectedSheetId(id === "__none__" ? "" : id)}
                   disabled={sheetsLoading}
                 >
-                  <SelectTrigger className="w-full max-w-md">
+                  <SelectTrigger
+                    id="manager-record-sheet"
+                    className="h-11 min-h-11 w-full max-w-md border-2 border-teal-300/90 bg-teal-50/80 text-sm font-medium text-slate-900 shadow-sm focus:ring-2 focus:ring-teal-500 focus:ring-offset-0 dark:border-teal-600/55 dark:bg-teal-950/40 dark:text-teal-50 dark:focus:ring-teal-400"
+                  >
                     <SelectValue
                       placeholder={
                         complianceSheetsForPicker.length === 0 && activeWeekStarting
-                          ? "No matching sheets for this day / filters"
+                          ? MANAGER_EXPERIENCE.RECORDS_SHEET_EMPTY_DAY
                           : sheets.length === 0
-                            ? "No sheets yet"
-                            : "Select a sheet…"
+                            ? MANAGER_EXPERIENCE.RECORDS_SHEET_EMPTY_FLEET
+                            : MANAGER_EXPERIENCE.RECORDS_SHEET_PLACEHOLDER
                       }
                     />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">— Select a sheet —</SelectItem>
+                    <SelectItem value="__none__">{MANAGER_EXPERIENCE.RECORDS_SHEET_PLACEHOLDER}</SelectItem>
                     {complianceSheetsForPicker.map((s) => (
                       <SelectItem key={s.id} value={s.id}>
                         {formatSheetLabel(s)}
@@ -980,8 +986,8 @@ export function ManagerView() {
                   </SelectContent>
                 </Select>
                 {!selectedSheetId && (
-                  <p className="text-xs text-slate-400 dark:text-slate-500">
-                    Select a sheet above to edit driver details, last 24h break, and record fields.
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {MANAGER_EXPERIENCE.RECORDS_SHEET_HINT}
                   </p>
                 )}
                 {activeWeekStarting &&

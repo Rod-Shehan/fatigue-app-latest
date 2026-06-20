@@ -121,7 +121,7 @@ Leading indicators from live events (break timing, long work blocks) — reach o
 
 ### Tab: Records & amendments
 
-Open a driver sheet in manager mode:
+Open a driver sheet in manager mode — start with the **Driver sheet** dropdown at the top of the section (teal highlight). It lists weekly sheets for your current week, day, and scope filters.
 
 - Edit past-week facts only with a **reason** (audited).
 - You may amend multiple times while aligning with the driver.
