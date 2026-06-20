@@ -81,6 +81,10 @@ Tier is a **composite** — not a single rule. Use it to prioritise conversation
 
 Shows **compliance rule outcomes** on weekly sheets for the selected week and the week before. Framed for learning; rolling checks may read further history than the visible panel.
 
+### Fleet risk pulse (heatmap)
+
+The fleet heatmap uses a **fluid grid** of 15-minute blocks: it grows with the panel on wide screens and scrolls horizontally only when the window is too narrow (no whole-page sideways scroll). The driver column stays fixed while you pan the timeline. **← →** buttons appear when more timeline is off-screen; you can also swipe on touch devices or use the keyboard when the timeline is focused. On load, the view centres on **right now**.
+
 ### Reference libraries (collapsible)
 
 Two card libraries open from the risk brief:

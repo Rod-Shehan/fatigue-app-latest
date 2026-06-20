@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import {
   Activity,
   AlertTriangle,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   HeartHandshake,
   MapPin,
@@ -30,6 +31,11 @@ import { RISK_COLOR_THRESHOLDS, riskPercentToColor } from "@/lib/manager-risk-ti
 import { managerMapHref } from "@/lib/manager-map-link";
 import { cn } from "@/lib/utils";
 
+/** Minimum pixel width per 15-minute block before horizontal scroll appears. */
+const FLEET_BLOCK_MIN_PX = 6;
+const FLEET_DRIVER_COL_CLASS =
+  "sticky left-0 z-10 w-[8.5rem] shrink-0 border-r border-slate-200 bg-inherit sm:w-[10rem] dark:border-white/10";
+
 function cellBackground(pct: number): string {
   const base = riskPercentToColor(pct);
   if (pct >= RISK_COLOR_THRESHOLDS.red) return `${base}cc`;
@@ -44,14 +50,190 @@ const SEVERITY_DOT: Record<FleetPriorityItem["severity"], string> = {
   clear: "bg-emerald-500",
 };
 
+function useHorizontalScroll(deps: unknown[]) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const update = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(maxScroll > 4 && el.scrollLeft < maxScroll - 4);
+  }, []);
+
+  useEffect(() => {
+    update();
+    const el = ref.current;
+    if (!el) return;
+    el.addEventListener("scroll", update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [update, ...deps]);
+
+  const scrollByViewport = useCallback((direction: -1 | 1) => {
+    const el = ref.current;
+    if (!el) return;
+    const amount = Math.max(120, Math.round(el.clientWidth * 0.45));
+    el.scrollBy({ left: direction * amount, behavior: "smooth" });
+  }, []);
+
+  return { ref, canScrollLeft, canScrollRight, scrollByViewport, update };
+}
+
+function FleetHeatmapTimeline({
+  columnLabels,
+  actionableDrivers,
+  nowIndex,
+  labelIndices,
+  selectedDriver,
+  onSelectDriver,
+}: {
+  columnLabels: string[];
+  actionableDrivers: FleetDriverRiskRow[];
+  nowIndex: number;
+  labelIndices: number[];
+  selectedDriver?: string;
+  onSelectDriver: (name: string) => void;
+}) {
+  const blockCount = columnLabels.length;
+  const { ref, canScrollLeft, canScrollRight, scrollByViewport, update } = useHorizontalScroll([
+    blockCount,
+    actionableDrivers.length,
+  ]);
+
+  const timelineMinWidth = useMemo(() => {
+    if (blockCount === 0) return "100%";
+    return `max(100%, calc(8.5rem + ${blockCount * FLEET_BLOCK_MIN_PX}px))`;
+  }, [blockCount]);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || nowIndex < 0 || blockCount === 0) return;
+    const driverCol = el.querySelector<HTMLElement>("[data-fleet-driver-col]");
+    const driverWidth = driverCol?.offsetWidth ?? 136;
+    const timelineWidth = Math.max(1, el.scrollWidth - driverWidth);
+    const cellWidth = timelineWidth / blockCount;
+    const nowCenter = driverWidth + nowIndex * cellWidth + cellWidth / 2;
+    el.scrollLeft = Math.max(0, nowCenter - el.clientWidth / 2);
+    update();
+  }, [nowIndex, blockCount, actionableDrivers.length, ref, update]);
+
+  return (
+    <div className="relative min-w-0 flex-[7] overflow-hidden border-b border-slate-200 lg:border-b-0 lg:border-r dark:border-white/10">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 sm:px-6 dark:border-white/10 dark:bg-slate-900/60">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-600 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(25) }} />
+              Lower
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(50) }} />
+              Monitor
+            </span>
+            <span className="inline-flex items-center gap-1">
+              <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(75) }} />
+              Elevated
+            </span>
+          </div>
+          {(canScrollLeft || canScrollRight) && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                disabled={!canScrollLeft}
+                onClick={() => scrollByViewport(-1)}
+                aria-label={MANAGER_EXPERIENCE.FLEET_HEATMAP_SCROLL_LEFT}
+                className={cn(
+                  "inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors dark:border-white/10 dark:bg-slate-900 dark:text-slate-200",
+                  canScrollLeft
+                    ? "hover:border-teal-400 hover:text-teal-700 dark:hover:border-teal-500/50 dark:hover:text-teal-300"
+                    : "cursor-not-allowed opacity-40"
+                )}
+              >
+                <ChevronLeft className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                disabled={!canScrollRight}
+                onClick={() => scrollByViewport(1)}
+                aria-label={MANAGER_EXPERIENCE.FLEET_HEATMAP_SCROLL_RIGHT}
+                className={cn(
+                  "inline-flex h-7 w-7 items-center justify-center rounded-md border border-slate-200 bg-white text-slate-700 transition-colors dark:border-white/10 dark:bg-slate-900 dark:text-slate-200",
+                  canScrollRight
+                    ? "hover:border-teal-400 hover:text-teal-700 dark:hover:border-teal-500/50 dark:hover:text-teal-300"
+                    : "cursor-not-allowed opacity-40"
+                )}
+              >
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div
+        ref={ref}
+        tabIndex={0}
+        aria-label={MANAGER_EXPERIENCE.FLEET_HEATMAP_SCROLL_LABEL}
+        className="fleet-heatmap-scroll max-w-full overflow-x-auto overscroll-x-contain focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500/40"
+      >
+        <div className="min-w-0 w-full" style={{ minWidth: timelineMinWidth }}>
+          <div className="flex w-full border-b border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-slate-900/40">
+            <div data-fleet-driver-col className={cn(FLEET_DRIVER_COL_CLASS, "px-2 py-2 sm:px-3")}>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Driver</span>
+            </div>
+            <div
+              className="grid min-w-0 flex-1"
+              style={{ gridTemplateColumns: `repeat(${Math.max(blockCount, 1)}, minmax(${FLEET_BLOCK_MIN_PX}px, 1fr))` }}
+            >
+              {columnLabels.map((label, i) => (
+                <div
+                  key={`${label}-${i}`}
+                  className={cn(
+                    "py-2 text-center text-[9px] text-slate-500",
+                    i === nowIndex && "font-semibold text-teal-600 dark:text-teal-300",
+                    labelIndices.includes(i) ? "opacity-100" : "opacity-0"
+                  )}
+                >
+                  {labelIndices.includes(i) ? label : ""}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {actionableDrivers.map((row, index) => (
+            <DriverHeatmapRow
+              key={row.driverName}
+              row={row}
+              blockCount={blockCount}
+              nowIndex={nowIndex}
+              selected={selectedDriver === row.driverName}
+              rank={index + 1}
+              onSelect={onSelectDriver}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DriverHeatmapRow({
   row,
+  blockCount,
   nowIndex,
   selected,
   rank,
   onSelect,
 }: {
   row: FleetDriverRiskRow;
+  blockCount: number;
   nowIndex: number;
   selected: boolean;
   rank: number;
@@ -67,7 +249,7 @@ function DriverHeatmapRow({
         rank <= 3 && !selected && "bg-rose-50/90 dark:bg-rose-950/20"
       )}
     >
-      <div className="sticky left-0 z-10 flex w-[8.5rem] shrink-0 items-center gap-2 border-r border-slate-200 bg-inherit px-2 py-2 sm:w-[10rem] sm:px-3 dark:border-white/10">
+      <div className={cn(FLEET_DRIVER_COL_CLASS, "flex items-center gap-2 px-2 py-2 sm:px-3")}>
         <span
           className={cn(
             "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
@@ -85,13 +267,16 @@ function DriverHeatmapRow({
           </p>
         </div>
       </div>
-      <div className="flex min-w-0 flex-1">
+      <div
+        className="grid min-w-0 flex-1"
+        style={{ gridTemplateColumns: `repeat(${Math.max(blockCount, 1)}, minmax(${FLEET_BLOCK_MIN_PX}px, 1fr))` }}
+      >
         {row.cells.map((cell, i) => (
           <div
             key={cell.blockStartMs}
             title={`${row.driverName} · ${cell.label} · ${cell.pct}%`}
             className={cn(
-              "h-9 min-w-[5px] flex-1 sm:min-w-[7px]",
+              "h-9 min-h-[2.25rem]",
               i === nowIndex && "ring-1 ring-inset ring-teal-500 dark:ring-teal-400"
             )}
             style={{ backgroundColor: cellBackground(cell.pct) }}
@@ -292,7 +477,7 @@ export function ManagerFleetRiskPulse({
 
   return (
     <section
-      className="overflow-visible rounded-2xl border border-teal-200/90 bg-white text-slate-900 shadow-lg dark:border-teal-800/60 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 dark:text-white dark:shadow-xl"
+      className="min-w-0 overflow-hidden rounded-2xl border border-teal-200/90 bg-white text-slate-900 shadow-lg dark:border-teal-800/60 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-teal-950 dark:text-white dark:shadow-xl"
       aria-label={MANAGER_EXPERIENCE.FLEET_PULSE_TITLE}
     >
       <div className="border-b border-slate-200 px-4 py-3 sm:px-6 dark:border-white/10">
@@ -400,60 +585,17 @@ export function ManagerFleetRiskPulse({
                 : ""}
             </p>
           ) : null}
-        <div className="flex flex-col lg:flex-row">
-          <div className="min-w-0 flex-[7] overflow-x-auto border-b border-slate-200 lg:border-b-0 lg:border-r dark:border-white/10">
-            <div className="border-b border-slate-200 bg-slate-50 px-4 py-2 sm:px-6 dark:border-white/10 dark:bg-slate-900/60">
-              <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-600 dark:text-slate-400">
-                <span className="inline-flex items-center gap-1">
-                  <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(25) }} />
-                  Lower
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(50) }} />
-                  Monitor
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <span className="h-2.5 w-6 rounded-sm" style={{ backgroundColor: cellBackground(75) }} />
-                  Elevated
-                </span>
-              </div>
-            </div>
+        <div className="flex min-w-0 flex-col lg:flex-row">
+          <FleetHeatmapTimeline
+            columnLabels={columnLabels}
+            actionableDrivers={actionableDrivers}
+            nowIndex={nowIndex}
+            labelIndices={labelIndices}
+            selectedDriver={selectedDriver}
+            onSelectDriver={onSelectDriver}
+          />
 
-            <div className="flex min-w-[520px] border-b border-slate-200 bg-slate-50/80 dark:border-white/10 dark:bg-slate-900/40">
-              <div className="sticky left-0 z-10 w-[8.5rem] shrink-0 border-r border-slate-200 px-2 py-2 sm:w-[10rem] sm:px-3 dark:border-white/10">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                  Driver
-                </span>
-              </div>
-              <div className="flex min-w-0 flex-1">
-                {columnLabels.map((label, i) => (
-                  <div
-                    key={`${label}-${i}`}
-                    className={cn(
-                      "min-w-[5px] flex-1 py-2 text-center text-[9px] text-slate-500 sm:min-w-[7px]",
-                      i === nowIndex && "font-semibold text-teal-600 dark:text-teal-300",
-                      labelIndices.includes(i) ? "opacity-100" : "opacity-0"
-                    )}
-                  >
-                    {labelIndices.includes(i) ? label : ""}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {actionableDrivers.map((row, index) => (
-              <DriverHeatmapRow
-                key={row.driverName}
-                row={row}
-                nowIndex={nowIndex}
-                selected={selectedDriver === row.driverName}
-                rank={index + 1}
-                onSelect={onSelectDriver}
-              />
-            ))}
-          </div>
-
-          <aside className="flex flex-[3] flex-col bg-slate-50 lg:max-w-[18rem] xl:max-w-xs dark:bg-slate-950/50">
+          <aside className="flex min-w-0 flex-[3] flex-col bg-slate-50 lg:max-w-[18rem] xl:max-w-xs dark:bg-slate-950/50">
             <div className="border-b border-slate-200 px-4 py-2.5 sm:px-6 dark:border-white/10">
               <p className="text-xs font-semibold text-slate-900 dark:text-white">{MANAGER_EXPERIENCE.FLEET_PRIORITY_TITLE}</p>
               <p className="mt-0.5 text-[10px] leading-snug text-slate-500 dark:text-slate-400">

@@ -164,6 +164,9 @@ export const MANAGER_EXPERIENCE = {
     "Only drivers at or above the elevated threshold — ranked by current TPMA risk.",
   FLEET_PRIORITY_EMPTY: "No drivers above the elevated threshold right now.",
   FLEET_PRIORITY_ALL_CLEAR: "Fleet looks steady for this scope.",
+  FLEET_HEATMAP_SCROLL_LABEL: "Fleet risk timeline — scroll horizontally",
+  FLEET_HEATMAP_SCROLL_LEFT: "Scroll timeline left",
+  FLEET_HEATMAP_SCROLL_RIGHT: "Scroll timeline right",
 
   REFERENCE_TITLE: "Regulatory requirements & references",
   REGULATORY_SECTION_TITLE: "Regulatory requirements & references",

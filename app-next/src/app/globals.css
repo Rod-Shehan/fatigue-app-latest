@@ -12,6 +12,32 @@
   .animate-driver-action-ring {
     animation: driver-action-ring-spin 14s linear infinite;
   }
+
+  .fleet-heatmap-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 0.55) transparent;
+  }
+
+  .fleet-heatmap-scroll::-webkit-scrollbar {
+    height: 6px;
+  }
+
+  .fleet-heatmap-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .fleet-heatmap-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background-color: rgb(148 163 184 / 0.55);
+  }
+
+  .dark .fleet-heatmap-scroll {
+    scrollbar-color: rgb(100 116 139 / 0.65) transparent;
+  }
+
+  .dark .fleet-heatmap-scroll::-webkit-scrollbar-thumb {
+    background-color: rgb(100 116 139 / 0.65);
+  }
 }
 
 @layer base {
