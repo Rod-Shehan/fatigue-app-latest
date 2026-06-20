@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { CheckCircle2, Info } from "lucide-react";
 import { referenceCardsForMessage } from "@/lib/manager-risk-reference";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_GLANCE_BADGE_STYLES } from "@/lib/manager-experience";
 import { CompliancePolicyFootnote } from "@/components/fatigue/CompliancePolicyFootnote";
 import type { GlanceBadge } from "@/lib/manager-risk-scoring";
 
@@ -24,7 +24,7 @@ function AssuranceLineRow({ line }: { line: AssuranceLine }) {
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 sm:w-[min(100%,14rem)] sm:shrink-0">
         <Link
           href={`/sheets/${line.sheetId}`}
-          className="text-sm font-semibold text-teal-900 underline-offset-2 hover:underline dark:text-teal-100"
+          className="text-sm font-bold text-teal-900 underline-offset-2 hover:underline dark:text-teal-100"
         >
           {line.driver || "—"}
         </Link>
@@ -34,16 +34,7 @@ function AssuranceLineRow({ line }: { line: AssuranceLine }) {
         {line.badges?.length ? (
           <span className="mt-1 flex flex-wrap items-center gap-1.5">
             {line.badges.slice(0, 3).map((b) => (
-              <span
-                key={b.label}
-                className={
-                  b.tone === "bad"
-                    ? "rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800 dark:bg-rose-900/40 dark:text-rose-100"
-                    : b.tone === "warn"
-                      ? "rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-900 dark:bg-amber-900/40 dark:text-amber-100"
-                      : "rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                }
-              >
+              <span key={b.label} className={MANAGER_GLANCE_BADGE_STYLES[b.tone]}>
                 {b.label}
               </span>
             ))}

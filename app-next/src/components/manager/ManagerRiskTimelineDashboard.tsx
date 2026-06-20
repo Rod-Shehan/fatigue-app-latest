@@ -294,10 +294,11 @@ export function ManagerRiskTimelineDashboard({
             <div className="flex items-center gap-2">
               <Activity className="h-4 w-4 shrink-0 text-teal-700 dark:text-teal-400" aria-hidden />
               <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">
-                {MANAGER_EXPERIENCE.TIMELINE_TITLE} — {driverName}
+                {MANAGER_EXPERIENCE.TIMELINE_TITLE} —{" "}
+                <span className="font-bold">{driverName}</span>
               </h3>
               {autoSelected ? (
-                <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-800 dark:bg-violet-950/60 dark:text-violet-200">
+                <span className="rounded-full bg-violet-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-violet-600 dark:text-white">
                   Auto
                 </span>
               ) : null}
@@ -319,10 +320,10 @@ export function ManagerRiskTimelineDashboard({
               {MANAGER_EXPERIENCE.TIMELINE_VIEW_ON_MAP}
             </Link>
             <span
-              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase ${
                 hasServerData
-                  ? "bg-teal-50 text-teal-800 dark:bg-teal-950/50 dark:text-teal-200"
-                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  ? "bg-teal-700 text-white dark:bg-teal-600 dark:text-white"
+                  : "bg-slate-600 text-white dark:bg-slate-500 dark:text-white"
               }`}
             >
               {apiLoading
@@ -338,10 +339,10 @@ export function ManagerRiskTimelineDashboard({
             {useDemoData ? (
               <>
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase ${
                     feed.online
-                      ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                      : "bg-amber-50 text-amber-900 dark:bg-amber-950/50 dark:text-amber-100"
+                      ? "bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white"
+                      : "bg-amber-600 text-white dark:bg-amber-500 dark:text-amber-950"
                   }`}
                 >
                   {feed.online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}

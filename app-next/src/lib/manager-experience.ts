@@ -191,24 +191,38 @@ export const MANAGER_TIER_STYLES: Record<
 > = {
   attention: {
     label: MANAGER_EXPERIENCE.TIER_ATTENTION,
-    chip: "bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-100",
-    dot: "bg-rose-500",
+    chip:
+      "bg-rose-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-rose-600 dark:text-white",
+    dot: "bg-white/90",
   },
   elevated: {
     label: MANAGER_EXPERIENCE.TIER_ELEVATED,
-    chip: "bg-amber-100 text-amber-950 dark:bg-amber-950/50 dark:text-amber-100",
-    dot: "bg-amber-500",
+    chip:
+      "bg-amber-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-amber-500 dark:text-amber-950",
+    dot: "bg-white/90",
   },
   monitor: {
     label: MANAGER_EXPERIENCE.TIER_MONITOR,
-    chip: "bg-sky-100 text-sky-950 dark:bg-sky-950/50 dark:text-sky-100",
-    dot: "bg-sky-500",
+    chip:
+      "bg-sky-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-sky-600 dark:text-white",
+    dot: "bg-white/90",
   },
   clear: {
     label: MANAGER_EXPERIENCE.TIER_CLEAR,
-    chip: "bg-emerald-100 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-100",
-    dot: "bg-emerald-500",
+    chip:
+      "bg-emerald-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-emerald-600 dark:text-white",
+    dot: "bg-white/90",
   },
+};
+
+export type GlanceBadgeTone = "neutral" | "warn" | "bad";
+
+/** Solid severity chips for compliance / prospective glance badges. */
+export const MANAGER_GLANCE_BADGE_STYLES: Record<GlanceBadgeTone, string> = {
+  bad: "rounded-full bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-rose-600 dark:text-white",
+  warn: "rounded-full bg-amber-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-amber-500 dark:text-amber-950",
+  neutral:
+    "rounded-full bg-slate-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-slate-500 dark:text-white",
 };
 
 export type CircadianLevel = "high" | "moderate" | "lower";

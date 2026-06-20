@@ -94,7 +94,7 @@ Use these when coaching staff or explaining why a signal appeared.
 
 ## 4. Driver exposure register
 
-One row per driver for the selected week. Columns include tier, top signal, compliance lines, and prospective risk lines where run plans exist.
+One row per driver for the selected week. **Driver names are bold** for fast scanning; tier chips use solid colour fills (rose / amber / sky / emerald) so severity stands out at a glance. Columns include tier, top signal, compliance lines, and prospective risk lines where run plans exist.
 
 **Practice:**
 

@@ -37,12 +37,12 @@ export function ManagerDriverRegister({ rows, loading }: { rows: DriverRegisterR
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={`/sheets/${row.sheetId}`}
-                    className="font-semibold text-slate-900 underline-offset-2 hover:underline dark:text-slate-50"
+                    className="font-bold text-slate-900 underline-offset-2 hover:underline dark:text-slate-50"
                   >
                     {row.driver}
                   </Link>
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tierStyle.chip}`}
+                    className={`inline-flex items-center gap-1.5 rounded-full ${tierStyle.chip}`}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${tierStyle.dot}`} aria-hidden />
                     {tierStyle.label}

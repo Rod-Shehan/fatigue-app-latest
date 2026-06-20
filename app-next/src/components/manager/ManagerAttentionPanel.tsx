@@ -52,7 +52,7 @@ export function ManagerAttentionPanel({ items }: { items: AttentionItem[] }) {
                     <div className="min-w-0">
                       <Link
                         href={`/sheets/${r.sheetId}`}
-                        className="text-sm font-semibold text-teal-900 underline-offset-2 hover:underline dark:text-teal-100"
+                        className="text-sm font-bold text-teal-900 underline-offset-2 hover:underline dark:text-teal-100"
                       >
                         {r.driver}
                       </Link>

@@ -79,7 +79,7 @@ function DriverHeatmapRow({
           {rank}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{row.driverName}</p>
+          <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{row.driverName}</p>
           <p className="text-[10px] tabular-nums text-slate-500 dark:text-slate-400">
             {row.nowPct ?? "—"}% now
           </p>
@@ -132,7 +132,7 @@ function PriorityQueueItem({
         <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", SEVERITY_DOT[item.severity])} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{item.driverName}</p>
+            <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{item.driverName}</p>
             <span className="shrink-0 text-xs font-bold tabular-nums text-teal-700 dark:text-teal-200">
               {item.nowPct ?? "—"}%
             </span>
