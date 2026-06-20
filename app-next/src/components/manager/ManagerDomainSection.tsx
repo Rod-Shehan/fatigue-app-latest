@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Compass, FileEdit, Scale } from "lucide-react";
+import { SectionBoundaryInfo } from "@/components/manager/SectionBoundaryInfo";
 
 const STYLES = {
   risk: {
@@ -11,8 +12,8 @@ const STYLES = {
       "bg-gradient-to-br from-violet-100 via-violet-50/90 to-white dark:from-violet-950/80 dark:via-violet-950/40 dark:to-slate-950",
     bodyBg: "bg-violet-50/40 dark:bg-violet-950/25",
     iconWrap: "bg-violet-600 text-white dark:bg-violet-500",
-    boundary:
-      "border-violet-300/80 bg-violet-100/80 text-violet-950 dark:border-violet-700/60 dark:bg-violet-950/50 dark:text-violet-100",
+    boundaryTrigger:
+      "text-violet-800/80 hover:text-violet-950 dark:text-violet-300/90 dark:hover:text-violet-100 focus-visible:ring-violet-500",
     Icon: Compass,
     eyebrow: "Prospective · coaching",
   },
@@ -23,8 +24,8 @@ const STYLES = {
       "bg-gradient-to-br from-amber-100 via-amber-50/90 to-stone-50 dark:from-amber-950/70 dark:via-amber-950/35 dark:to-slate-950",
     bodyBg: "bg-amber-50/35 dark:bg-amber-950/20",
     iconWrap: "bg-amber-700 text-white dark:bg-amber-600",
-    boundary:
-      "border-amber-300/80 bg-amber-100/70 text-amber-950 dark:border-amber-800/50 dark:bg-amber-950/40 dark:text-amber-50",
+    boundaryTrigger:
+      "text-amber-900/80 hover:text-amber-950 dark:text-amber-200/90 dark:hover:text-amber-50 focus-visible:ring-amber-500",
     Icon: Scale,
     eyebrow: "Attested · regulatory",
   },
@@ -35,8 +36,8 @@ const STYLES = {
       "bg-gradient-to-br from-teal-100 via-slate-50 to-white dark:from-teal-950/75 dark:via-slate-900/90 dark:to-slate-950",
     bodyBg: "bg-slate-100/70 dark:bg-slate-900/50",
     iconWrap: "bg-teal-800 text-white dark:bg-teal-600",
-    boundary:
-      "border-teal-300/90 bg-teal-50/90 text-teal-950 dark:border-teal-700/55 dark:bg-teal-950/45 dark:text-teal-50",
+    boundaryTrigger:
+      "text-teal-900/80 hover:text-teal-950 dark:text-teal-200/90 dark:hover:text-teal-50 focus-visible:ring-teal-500",
     Icon: FileEdit,
     eyebrow: "Document control · editing",
   },
@@ -78,18 +79,20 @@ export function ManagerDomainSection({
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
               {style.eyebrow}
             </p>
-            <h2
-              id={`${id}-heading`}
-              className="mt-1 text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50"
-            >
-              {title}
-            </h2>
+            <div className="mt-1 flex items-center gap-1">
+              <h2
+                id={`${id}-heading`}
+                className="text-lg font-bold tracking-tight text-slate-900 dark:text-slate-50"
+              >
+                {title}
+              </h2>
+              <SectionBoundaryInfo
+                sectionTitle={title}
+                body={boundary}
+                triggerClassName={style.boundaryTrigger}
+              />
+            </div>
             <p className="mt-1 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{subtitle}</p>
-            <p
-              className={`mt-3 rounded-lg border px-3 py-2 text-xs leading-relaxed ${style.boundary}`}
-            >
-              {boundary}
-            </p>
           </div>
         </div>
       </header>

@@ -40,6 +40,8 @@ export const MANAGER_EXPERIENCE = {
     "Complying with the law: attested work diary, live rule outcomes on signed weeks, the regulations that define those rules, and record amendments.",
   SECTION_COMPLIANCE_BOUNDARY:
     "Legal boundary: this section is the hard compliance view — attested records, rule engine results, and statutory references. Risk analysis above does not replace signed outcomes or legal duties.",
+
+  SECTION_BOUNDARY_TOOLTIP_LABEL: "Legal boundary",
   COMPLIANCE_REGULATORY_INTRO:
     "The rules your fleet must meet — WA Reg 184E hours, record retention, NHVR chain of responsibility, codes of practice, and industry guidance. Open the library to read what each outcome is measured against.",
 
