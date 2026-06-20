@@ -220,6 +220,124 @@ Until samples exist: **do not** implement ingest routes or UI beyond stubs.
 
 ---
 
+## 5a. FTCloud discovery checklist (first-hop reminder)
+
+If **FTCloud** is the first hop from the Streamax device, then FTCloud is likely the **integration surface** we need to understand first, not the camera hardware itself.
+
+Use this checklist in the next insider / vendor conversation:
+
+### Transport and delivery
+
+1. Does FTCloud **push** events to us (webhook), or do we **poll** an API?
+2. If polling, what is the endpoint for **new / unprocessed alerts**?
+3. What auth is required: API key, bearer token, IP allowlist, signed webhook, or session login?
+4. Are there sandbox credentials or a tenant we can safely test against?
+
+### Event payload shape
+
+1. Can we get one **real sample JSON payload** for a fatigue / distraction / eyes-closed alert?
+2. Is each alert a **discrete incident**, a rolling metric, or both?
+3. What timestamps are included: detected time, upload time, event start/end, timezone?
+4. What event identifiers exist: event ID, device ID, vehicle rego, trip ID, driver ID?
+5. Is there a confidence score, severity band, alarm type, or vendor status code?
+
+### Video / media access
+
+1. Are clips exposed as **direct URLs**, expiring URLs, HLS streams, or a separate download endpoint?
+2. How long do clip URLs remain valid?
+3. Does video require extra auth headers/cookies, or is the URL itself sufficient?
+4. Can we request multiple clip lengths / resolutions, or is there one fixed asset?
+5. Is there also a still image / thumbnail URL for queue previews?
+
+### Identity mapping
+
+1. Can FTCloud tell us the **driver**, or only the **device / vehicle**?
+2. If only vehicle/device, what stable field maps to our fleet records: rego, serial number, IMEI, unit ID?
+3. Can the same device move between vehicles or drivers?
+4. Is there a fleet admin screen or export where device-to-vehicle mappings are managed?
+
+### Lifecycle / acknowledgment
+
+1. Does FTCloud already have its own **acknowledge / close / reviewed** workflow?
+2. If yes, are we expected to write status **back** to FTCloud, or can Circadia run an independent lifecycle?
+3. Can we safely treat FTCloud as **read-only ingress**, with our own `fatigue_incident_lifecycle` as source of truth for operator/manager actions?
+4. Are duplicate deliveries possible, and what field should we use for idempotency?
+
+### Product-routing implications
+
+1. Which payloads feed **pipeline B** (`DriverRiskBlock` / fleet pulse)?
+2. Which payloads feed **pipeline C** (`fatigue_incident_lifecycle` / accept-dismiss workflow)?
+3. Are there customers who want **assurance-only** with no live alert workflow?
+4. For the pilot customer, which routing mode applies: **M1**, **M2**, **M3**, or **M4**?
+
+### Minimum artifact to unblock Phase 1
+
+Phase 1 feed mapping is unblocked once we have:
+
+- one real FTCloud event payload
+- one real video/clip access example
+- the stable identity fields we can map to driver / rego / device
+- the auth method
+- confirmation whether FTCloud is **push** or **poll**
+
+Without those five items, do not implement ingest routes or manager alert playback.
+
+**Source doc on file:** `Events-Platform-User-Guide-20231011.pdf` (VisionTrack / FTCloud-style Events Platform user guide, Oct 2023). Confirms cloud-first integration surface; does **not** replace API/integration contract.
+
+---
+
+## 5b. Events Platform user guide — implications for Circadia
+
+Reviewed against *Events Platform User Guide* (version 20231011.32). This is **operator UI documentation**, not wire-format spec — but it validates several assembly assumptions and raises one strategic fork.
+
+### What the guide confirms
+
+| Topic | Events Platform behaviour | Circadia implication |
+|-------|---------------------------|----------------------|
+| **First hop** | Cloud captures video + telematics; hardware-agnostic ingest | Integrate at **Events Platform / FTCloud**, not in-vehicle device API |
+| **Discrete events** | Events tab: filters, map, AI analysis, event notes | Maps to **pipeline C** (lifecycle), not fleet pulse alone |
+| **Identity** | Search by **VRN** or **device ID**; driver name or custom vehicle property | Map ingest → rego + device + optional driver in Circadia roster |
+| **Human triage** | Roles include **Event Viewer**; events designed for monitoring staff | Parallel to **circadia-command** `/triage` — not the fleet manager desk overview |
+| **Native statuses** | Not Processed · Incident · Dismissed · Footage Requested · Requires Intervention | Similar intent to our lifecycle; see integration model below |
+| **Issue categories** | Device Issue · Driver Issue · **False Positive** · Other | Operator dismiss / manager override language already exists in vendor UX |
+| **Video timing** | Not all red events auto-download video; manual request; media Queued/Sent/Unavailable; overwrite within days | **Manager alerts UI must tolerate video-pending** — show event first, clip when ready |
+| **Notifications** | Fleet/vehicle email alerts with **link back to event in platform** | Compare with Circadia `/manager/alerts` or tokenized deep link (§9) |
+| **Integration path** | Organisation → **Integration Details** (requires integration licence; contact Technical Support) | Insider must obtain this screen / docs — not in user guide body |
+
+### What the guide does not provide
+
+- REST/webhook endpoints, auth headers, JSON schemas
+- Whether external systems can **create or update** event notes/status
+- Programmatic media URL vs authenticated portal-only playback
+- Idempotency keys or event IDs for ingest deduplication
+
+Phase 1 remains blocked until **Integration Details** + sample payloads are supplied (§5a).
+
+### Strategic fork: who owns event processing?
+
+The Events Platform already **processes** events (notes remove items from “Needs Review”). Circadia must pick a model per customer:
+
+| Model | Description | When to use |
+|-------|-------------|-------------|
+| **A — Circadia primary** | Ingest → `fatigue_incident_lifecycle`; operator/manager act in Circadia; optional status sync back to Events Platform | M1–M3 customers replacing or augmenting Event Viewer workflow |
+| **B — Events Platform primary** | Circadia read-only ingest for FRMS/compliance context; customer keeps processing in vendor UI | Transition / assurance-only pilots |
+| **C — Dual write** | Both systems show queue; status must stay in sync | Avoid unless vendor API supports write-back — high complexity |
+
+**Default recommendation:** **Model A** for routed tenants (M1–M4); treat Events Platform as **ingress + media source** until write-back API is proven. Lock per pilot in §6 worksheet item 9.
+
+### UI design reminders from vendor UX
+
+1. **Event card** should show: VRN, time, classification, map pin, status, video state (ready / pending / unavailable).
+2. **Do not assume clip on alert** — mirror “Request Video” / media queue behaviour in empty states.
+3. **False positive dismiss** is a first-class vendor category — align operator F1 copy with vendor language where helpful.
+4. **Share event link** (60-day external access) is vendor-native — Circadia tokenized `/critical/[eventId]` (§9) is optional enhancement, not required for v1.
+
+### Copy-paste vendor request
+
+Ready-to-send email and checklist for Technical Support / integration team: **[events-platform-vendor-request.md](./events-platform-vendor-request.md)**.
+
+---
+
 ## 6. Assembly checklist (per tenant go-live)
 
 Use this as a sales/ops worksheet before enabling camera integration:
@@ -232,6 +350,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 6. **External handoff** — M4 webhook URL and payload format?
 7. **Assurance-only** — fleet pulse without lifecycle (pipeline B only)?
 8. **Intervention** — in-cab HUD enabled or alerts for coaching only?
+9. **Integration model** — Circadia primary (A), Events Platform primary (B), or dual (C)? See §5b.
 
 ---
 
@@ -286,5 +405,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-06-20 | §5b Events Platform user guide implications; §6 item 9 integration model; vendor request doc |
+| 2026-06-18 | §5a FTCloud discovery checklist |
 | 2026-06-18 | §1a — per-tenant setup rationale, who configures what, wizard vs raw flags |
 | 2026-06-18 | Initial assembly spec — planning lock before Streamax integration |
