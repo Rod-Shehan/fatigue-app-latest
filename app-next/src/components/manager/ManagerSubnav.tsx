@@ -5,6 +5,11 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import {
+  MANAGER_SUBNAV_FLEET,
+  MANAGER_SUBNAV_OWNER,
+  MANAGER_SUBNAV_WORKSPACE,
+} from "@/lib/navigation/navigation-links";
 import { isOwnerRole } from "@/lib/roles";
 import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 import {
@@ -20,30 +25,29 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  exact?: boolean;
+const SUBNAV_ICONS: Record<string, LucideIcon> = {
+  overview: LayoutDashboard,
+  map: MapIcon,
+  "manager-messages": MessageSquare,
+  drivers: Users,
+  regos: Truck,
+  routes: MapPin,
+  "manager-guide": BookOpen,
+  "add-managers": UserPlus,
+  security: Shield,
 };
 
-const WORKSPACE: NavItem[] = [
-  { href: "/manager", label: MANAGER_EXPERIENCE.NAV_OVERVIEW, icon: LayoutDashboard, exact: true },
-  { href: "/manager/map", label: MANAGER_EXPERIENCE.NAV_MAP, icon: MapIcon },
-  { href: "/manager/messages", label: MANAGER_EXPERIENCE.NAV_MESSAGES, icon: MessageSquare },
-];
-
-const FLEET_ADMIN: NavItem[] = [
-  { href: "/drivers", label: MANAGER_EXPERIENCE.NAV_DRIVERS, icon: Users },
-  { href: "/admin/regos", label: MANAGER_EXPERIENCE.NAV_REGOS, icon: Truck },
-  { href: "/admin/routes", label: MANAGER_EXPERIENCE.NAV_ROUTES, icon: MapPin },
-  { href: "/manager/help", label: MANAGER_EXPERIENCE.NAV_GUIDE, icon: BookOpen },
-];
-
-const OWNER_ONLY: NavItem[] = [
-  { href: "/manager/add-managers", label: MANAGER_EXPERIENCE.NAV_MANAGERS, icon: UserPlus },
-  { href: "/admin/security", label: "Organisation security", icon: Shield },
-];
+const SUBNAV_LABELS: Record<string, string> = {
+  overview: MANAGER_EXPERIENCE.NAV_OVERVIEW,
+  map: MANAGER_EXPERIENCE.NAV_MAP,
+  "manager-messages": MANAGER_EXPERIENCE.NAV_MESSAGES,
+  drivers: MANAGER_EXPERIENCE.NAV_DRIVERS,
+  regos: MANAGER_EXPERIENCE.NAV_REGOS,
+  routes: MANAGER_EXPERIENCE.NAV_ROUTES,
+  "manager-guide": MANAGER_EXPERIENCE.NAV_GUIDE,
+  "add-managers": MANAGER_EXPERIENCE.NAV_MANAGERS,
+  security: "Organisation security",
+};
 
 const linkClass = (active: boolean) =>
   cn(
@@ -58,11 +62,19 @@ function isActive(pathname: string, href: string, exact?: boolean): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function NavGroup({ items, pathname }: { items: NavItem[]; pathname: string }) {
+function NavGroup({
+  items,
+  pathname,
+}: {
+  items: typeof MANAGER_SUBNAV_WORKSPACE;
+  pathname: string;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      {items.map(({ href, label, icon: Icon, exact }) => {
+      {items.map(({ id, href, exact }) => {
         const active = isActive(pathname, href, exact);
+        const Icon = SUBNAV_ICONS[id] ?? LayoutDashboard;
+        const label = SUBNAV_LABELS[id] ?? id;
         return (
           <Link key={href} href={href} className={linkClass(active)} aria-current={active ? "page" : undefined}>
             <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
@@ -92,20 +104,20 @@ export function ManagerSubnav() {
           aria-hidden
         />
         <div className="h-px w-full bg-slate-100 sm:hidden dark:bg-slate-800" aria-hidden />
-        <NavGroup items={WORKSPACE} pathname={pathname} />
+        <NavGroup items={MANAGER_SUBNAV_WORKSPACE} pathname={pathname} />
         <div
           className="hidden h-8 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-700"
           aria-hidden
         />
         <div className="h-px w-full bg-slate-100 sm:hidden dark:bg-slate-800" aria-hidden />
-        <NavGroup items={FLEET_ADMIN} pathname={pathname} />
+        <NavGroup items={MANAGER_SUBNAV_FLEET} pathname={pathname} />
         {isOwner ? (
           <>
             <div
               className="hidden h-8 w-px shrink-0 bg-slate-200 sm:block dark:bg-slate-700"
               aria-hidden
             />
-            <NavGroup items={OWNER_ONLY} pathname={pathname} />
+            <NavGroup items={MANAGER_SUBNAV_OWNER} pathname={pathname} />
           </>
         ) : null}
       </div>

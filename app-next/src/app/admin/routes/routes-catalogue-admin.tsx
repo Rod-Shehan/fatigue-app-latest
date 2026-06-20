@@ -12,7 +12,18 @@ import { Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 
-export function RoutesCatalogueAdmin() {
+type RoutesCatalogueProps = {
+  backHref: string;
+  backLabel: string;
+  audience?: "manager" | "driver";
+};
+
+export function RoutesCatalogue({
+  backHref,
+  backLabel,
+  audience = "manager",
+}: RoutesCatalogueProps) {
+  const isDriver = audience === "driver";
   const queryClient = useQueryClient();
   const [label, setLabel] = useState("");
   const [startLocation, setStartLocation] = useState("");
@@ -33,6 +44,7 @@ export function RoutesCatalogueAdmin() {
         destination: destination.trim() || null,
         planned_on_duty_hours: hours === "" ? null : Number(hours),
         planned_distance_km: km === "" ? null : Number(km),
+        ...(isDriver ? { catalogue_source: "driver" as const } : {}),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["route-presets"] });
@@ -64,17 +76,31 @@ export function RoutesCatalogueAdmin() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
         <PageHeader
-          backHref="/manager"
-          backLabel="Manager dashboard"
-          title={PRODUCT_NAME}
-          subtitle="Route catalogue — saved run plans for the day setup dropdown"
+          backHref={backHref}
+          backLabel={backLabel}
+          title={isDriver ? "Route catalogue" : PRODUCT_NAME}
+          subtitle={
+            isDriver
+              ? "Saved run plans — pick on day setup or add your own"
+              : "Route catalogue — saved run plans for the day setup dropdown"
+          }
           icon={<MapPin className="w-5 h-5" />}
         />
 
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-          Managers add <span className="font-medium">fleet</span> routes; drivers can add their own{" "}
-          <span className="font-medium">driver</span> routes from day setup or here. Everyone picks from the same
-          list to save time; custom adhoc plans on a day still work.
+          {isDriver ? (
+            <>
+              Your fleet may share <span className="font-medium">fleet</span> routes here. You can add your own{" "}
+              <span className="font-medium">driver</span> routes to reuse on day setup. Custom adhoc plans on a day
+              still work.
+            </>
+          ) : (
+            <>
+              Managers add <span className="font-medium">fleet</span> routes; drivers can add their own{" "}
+              <span className="font-medium">driver</span> routes from day setup or here. Everyone picks from the same
+              list to save time; custom adhoc plans on a day still work.
+            </>
+          )}
         </p>
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5 space-y-3">
@@ -171,25 +197,34 @@ export function RoutesCatalogueAdmin() {
                       {[preset.start_location, preset.destination].filter(Boolean).join(" → ")}
                     </p>
                   )}
-                  {preset.created_by_name && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Added by {preset.created_by_name}</p>
-                  )}
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {preset.catalogue_source === "fleet" ? "Fleet route" : "Driver route"}
+                    {preset.created_by_name ? ` · Added by ${preset.created_by_name}` : ""}
+                  </p>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/50"
-                  onClick={() => deleteMutation.mutate(preset.id)}
-                  disabled={deleteMutation.isPending}
-                  aria-label={`Remove ${preset.label}`}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
+                {(!isDriver || preset.catalogue_source === "driver") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-400 dark:hover:bg-red-950/50"
+                    onClick={() => deleteMutation.mutate(preset.id)}
+                    disabled={deleteMutation.isPending}
+                    aria-label={`Remove ${preset.label}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
         </div>
       </div>
     </div>
+  );
+}
+
+export function RoutesCatalogueAdmin() {
+  return (
+    <RoutesCatalogue backHref="/manager" backLabel="Manager dashboard" audience="manager" />
   );
 }

@@ -9,14 +9,27 @@ import {
   MapPin,
   MessageSquare,
   Settings,
+  type LucideIcon,
 } from "lucide-react";
 import { DriverSettingsOptions } from "./driver-settings-options";
 import { DriverSettingsRecordsSection } from "./driver-settings-records";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { DriverSettingsDeviceSection } from "@/components/pwa/DriverSettingsDeviceSection";
+import {
+  DRIVER_SETTINGS_CONNECT_LINKS,
+  DRIVER_SETTINGS_DRIVE_LINKS,
+} from "@/lib/navigation/navigation-links";
 
-const MANAGER_LOGIN_HREF = `/?branch=manager&callbackUrl=${encodeURIComponent("/manager")}`;
+const SETTINGS_ICONS: Record<string, LucideIcon> = {
+  "this-week": FileText,
+  "your-weeks": FileText,
+  "driver-guide": BookOpen,
+  "driver-help": BookOpen,
+  "route-catalogue": MapPin,
+  messages: MessageSquare,
+  "manager-login": LayoutDashboard,
+};
 
 function safeReturnPath(from: string | undefined): string {
   if (!from || !from.startsWith("/") || from.startsWith("//")) return "/driver";
@@ -64,53 +77,36 @@ export default async function DriverSettingsPage({
           <section>
             <h2 className={driverSectionLabel}>Drive</h2>
             <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
-              <SettingsListRow
-                href="/driver"
-                icon={<FileText className="w-5 h-5" />}
-                title="This week"
-                description="Open your current week and log work"
-              />
-              <SettingsListRow
-                href="/sheets"
-                icon={<FileText className="w-5 h-5" />}
-                title="Your weeks"
-                description="Past and signed weekly records"
-              />
-              <SettingsListRow
-                href="/driver/guide"
-                icon={<BookOpen className="w-5 h-5" />}
-                title="Driver guide (pictures)"
-                description="Simple English — sign in, log work, sign your week"
-              />
-              <SettingsListRow
-                href="/driver/help"
-                icon={<BookOpen className="w-5 h-5" />}
-                title="How your record works"
-                description="Short help and rules overview"
-              />
-              <SettingsListRow
-                href="/admin/routes"
-                icon={<MapPin className="w-5 h-5" />}
-                title="Route catalogue"
-                description="Saved run plans — pick on day setup or add your own"
-              />
+              {DRIVER_SETTINGS_DRIVE_LINKS.map((row) => {
+                const Icon = SETTINGS_ICONS[row.id] ?? FileText;
+                return (
+                  <SettingsListRow
+                    key={row.id}
+                    href={row.href}
+                    icon={<Icon className="w-5 h-5" />}
+                    title={row.title}
+                    description={row.description}
+                  />
+                );
+              })}
             </div>
           </section>
 
           <section>
             <h2 className={driverSectionLabel}>Connect</h2>
             <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
-              <SettingsListRow
-                href="/driver/messages"
-                icon={<MessageSquare className="w-5 h-5" />}
-                title="Messages"
-              />
-              <SettingsListRow
-                href={MANAGER_LOGIN_HREF}
-                icon={<LayoutDashboard className="w-5 h-5" />}
-                title="Manager"
-                description="Manager sign-in"
-              />
+              {DRIVER_SETTINGS_CONNECT_LINKS.map((row) => {
+                const Icon = SETTINGS_ICONS[row.id] ?? MessageSquare;
+                return (
+                  <SettingsListRow
+                    key={row.id}
+                    href={row.href}
+                    icon={<Icon className="w-5 h-5" />}
+                    title={row.title}
+                    description={row.description}
+                  />
+                );
+              })}
             </div>
           </section>
 
