@@ -23,6 +23,9 @@ export const MANAGER_EXPERIENCE = {
   DOMAIN_EDIT_BLURB:
     "Select a sheet to correct errors with a reason on file, then ask the driver to sign again — document control, not discipline.",
 
+  /** Muted chip on domain overview cards when a section has nothing actionable. */
+  DOMAIN_KPI_ALL_CLEAR: "All clear",
+
   SECTION_EDIT_TITLE: "Records & amendments",
   SECTION_EDIT_SUBTITLE:
     "Edit attested weekly sheets when you and the driver agree a correction is needed.",

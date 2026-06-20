@@ -48,6 +48,18 @@ flowchart TB
 
 Layout is **monitor-first**: multi-column grids on wide screens; stacks on phones.
 
+### Domain overview cards (top of Driver Overview)
+
+Three cards link to anchored sections on the same page:
+
+| Card | Section anchor | Live badge |
+|------|----------------|------------|
+| **1. Risk analysis** | `#risk-analysis` | Drivers in **Needs attention** or **Elevated exposure** for the selected week |
+| **2. Compliance records** | `#compliance-records` | Rule **breaches** on attested sheets for the selected week |
+| **3. Records & amendments** | `#record-edits` | **Unsigned** weekly sheets for the selected week |
+
+Badges update when you change work week or driver scope. **All clear** means nothing actionable in that section for the current filters. Clicking a card smooth-scrolls to the section (sticky subnav offset is handled via `scroll-mt-24` on each section).
+
 ---
 
 ## 3. Risk brief — week at a glance

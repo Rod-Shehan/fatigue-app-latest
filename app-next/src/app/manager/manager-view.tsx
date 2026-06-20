@@ -26,6 +26,10 @@ import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection"
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
+  buildManagerDomainKpis,
+  countUnsignedSheetsForWeek,
+} from "@/lib/manager-dashboard-kpis";
+import {
   buildDriverRegister,
   buildGlanceBadges,
   type RiskLineKind,
@@ -630,6 +634,27 @@ export function ManagerView() {
     };
   }, [weekAssuranceLines, prevWeekAssuranceLines, selectedDriverFilter]);
 
+  const domainKpis = useMemo(
+    () =>
+      buildManagerDomainKpis({
+        driverRegister,
+        breachCount: assuranceLinesFiltered.current.length,
+        unsignedSheetCount: countUnsignedSheetsForWeek(
+          sheets,
+          weekForSnapshot,
+          selectedDriverFilter || undefined
+        ),
+        driverFilter: selectedDriverFilter || undefined,
+      }),
+    [
+      driverRegister,
+      assuranceLinesFiltered.current.length,
+      sheets,
+      weekForSnapshot,
+      selectedDriverFilter,
+    ]
+  );
+
   const { data: selectedSheet, isLoading: sheetLoading } = useQuery({
     queryKey: ["sheet", selectedSheetId],
     queryFn: () => api.sheets.get(selectedSheetId),
@@ -773,7 +798,7 @@ export function ManagerView() {
 
         <ManagerSubnav />
 
-        <ManagerDomainsOverview />
+        <ManagerDomainsOverview kpis={domainKpis} />
 
         <ManagerDomainSection
           id="risk-analysis"
