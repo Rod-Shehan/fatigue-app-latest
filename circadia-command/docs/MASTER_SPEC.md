@@ -252,6 +252,8 @@ States: skeleton loading · amber reconnect banner · green “ALL ASSETS CLEAR�
 
 ## Related docs
 
+- [incident-routing-assembly.md](../../app-next/docs/architecture/incident-routing-assembly.md) — tenant routing modes (operator / manager / external), building blocks assembly
+
 - [SCHEMA_ADAPTATIONS.md](./SCHEMA_ADAPTATIONS.md) — Gemini vs app-next fixes
 - [MISSING_PARTS.md](./MISSING_PARTS.md) — was the gap list (now largely complete)
 - [COLLABORATION.md](./COLLABORATION.md) — inbox workflow
