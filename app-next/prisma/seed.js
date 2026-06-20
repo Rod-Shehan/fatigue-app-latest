@@ -35,13 +35,17 @@ async function main() {
 
   const weekStarting = getThisWeekSunday();
 
-  // Drivers (for dropdown on sheets)
+  // Drivers (for dropdown on sheets — email links roster to login)
   const driver1 = await prisma.driver.upsert({
     where: { id: "seed-driver-1" },
-    update: {},
+    update: {
+      email: "driver@test.local",
+      name: "Test Driver",
+    },
     create: {
       id: "seed-driver-1",
-      name: "Sample Driver",
+      name: "Test Driver",
+      email: "driver@test.local",
       licenceNumber: "12345678",
       isActive: true,
     },
@@ -142,6 +146,7 @@ async function main() {
   const driverUser = await prisma.user.upsert({
     where: { email: "driver@test.local" },
     update: {
+      name: "Test Driver",
       ...(passwordHash ? { passwordHash } : {}),
     },
     create: {

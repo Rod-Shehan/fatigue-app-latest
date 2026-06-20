@@ -1,12 +1,17 @@
 /**
  * Optional dev / staging login paths (off by default on production).
  *
+ * All paths still require an active Approved Drivers roster row for field-driver emails.
  * Enable on Vercel while building: NEXTAUTH_ALLOW_DEV_LOGIN=true
  * Use a long random NEXTAUTH_DEV_BYPASS_SECRET as the password at login.
- * Remove both before public launch.
  */
 
 import { prisma } from "./prisma";
+import {
+  ensureLoginUserForRosterDriver,
+  findActiveDriverRosterByEmail,
+  normalizeLoginEmail,
+} from "./driver-login-gate";
 
 export function isDevLoginEnabled(): boolean {
   return process.env.NEXTAUTH_ALLOW_DEV_LOGIN === "true";
@@ -24,62 +29,41 @@ export function allowsPasswordlessEmailLogin(): boolean {
   return process.env.VERCEL_ENV === "preview";
 }
 
-type UserRow = { id: string; email: string; name: string | null; passwordHash: string | null };
+async function resolvePasswordlessRosterUser(
+  email: string
+): Promise<{ id: string; email: string; name: string | null } | null> {
+  const normalized = normalizeLoginEmail(email);
+  if (!normalized) return null;
 
-function toUserRow(
-  row: { id: string; email: string | null; name: string | null; passwordHash: string | null },
-  fallbackEmail: string
-): UserRow {
-  return {
-    id: row.id,
-    email: row.email ?? fallbackEmail,
-    name: row.name,
-    passwordHash: row.passwordHash,
-  };
-}
+  const roster = await findActiveDriverRosterByEmail(normalized);
+  if (!roster) return null;
 
-async function provisionUser(email: string): Promise<UserRow> {
   const existing = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, email: true, name: true, passwordHash: true },
+    where: { email: normalized },
+    select: { id: true, email: true, name: true, passwordHash: true, role: true },
   });
-  if (existing) return toUserRow(existing, email);
-  const created = await prisma.user.create({
-    data: { email, name: email.split("@")[0] },
-    select: { id: true, email: true, name: true, passwordHash: true },
-  });
-  return toUserRow(created, email);
+  if (existing?.passwordHash) return null;
+  if (existing?.role === "manager" || existing?.role === "owner") {
+    return { id: existing.id, email: existing.email!, name: existing.name };
+  }
+
+  const user = existing ?? (await ensureLoginUserForRosterDriver(normalized, roster.name));
+  return { id: user.id, email: user.email!, name: user.name };
 }
 
-/** Local NODE_ENV=development blank-password flows (unchanged behaviour). */
+/** Local NODE_ENV=development: email + blank password when no per-user hash and on roster. */
 export async function tryLocalDevelopmentLogin(
   email: string,
   password: string
 ): Promise<{ id: string; email: string; name: string | null } | null> {
   if (process.env.NODE_ENV !== "development") return null;
-
-  if (email === "" && password === "") {
-    const devEmail = "dev@localhost";
-    const user = await provisionUser(devEmail);
-    return { id: user.id, email: user.email, name: user.name };
-  }
-
-  if (email !== "" && password === "") {
-    const existing = await prisma.user.findUnique({
-      where: { email },
-      select: { id: true, email: true, name: true, passwordHash: true },
-    });
-    if (existing?.passwordHash) return null;
-    const user = await provisionUser(email);
-    return { id: user.id, email: user.email, name: user.name };
-  }
-
-  return null;
+  if (email === "" || password !== "") return null;
+  return resolvePasswordlessRosterUser(email);
 }
 
 /**
  * Staging bypass: password must equal NEXTAUTH_DEV_BYPASS_SECRET.
- * Works even when the user has a manager-set passwordHash.
+ * Field drivers must still be on the active roster.
  */
 export async function tryDevBypassSecretLogin(
   email: string,
@@ -88,21 +72,24 @@ export async function tryDevBypassSecretLogin(
   if (!isDevLoginEnabled() || !email) return null;
   const secret = getDevBypassSecret();
   if (!secret || password !== secret) return null;
-  const user = await provisionUser(email);
-  return { id: user.id, email: user.email, name: user.name };
+
+  const normalized = normalizeLoginEmail(email);
+  const existing = await prisma.user.findUnique({
+    where: { email: normalized },
+    select: { id: true, email: true, name: true, role: true },
+  });
+  if (existing?.role === "manager" || existing?.role === "owner") {
+    return { id: existing.id, email: existing.email!, name: existing.name };
+  }
+
+  return resolvePasswordlessRosterUser(normalized);
 }
 
-/** Preview + ALLOW_DEV_LOGIN: email with blank password if no per-user hash. */
+/** Preview + ALLOW_DEV_LOGIN: email with blank password if no per-user hash and on roster. */
 export async function tryPasswordlessStagingLogin(
   email: string,
   password: string
 ): Promise<{ id: string; email: string; name: string | null } | null> {
   if (!allowsPasswordlessEmailLogin() || !email || password !== "") return null;
-  const existing = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, email: true, name: true, passwordHash: true },
-  });
-  if (existing?.passwordHash) return null;
-  const user = await provisionUser(email);
-  return { id: user.id, email: user.email, name: user.name };
+  return resolvePasswordlessRosterUser(email);
 }

@@ -8,20 +8,25 @@ import {
   tryLocalDevelopmentLogin,
   tryPasswordlessStagingLogin,
 } from "./auth-dev-login";
+import {
+  finalizeCredentialsLogin,
+  normalizeLoginEmail,
+  resolveRosterDriverUserForLogin,
+  ROSTER_LOGIN_ERROR,
+} from "./driver-login-gate";
 import { isFleetManagerRole, isOwnerRole } from "./roles";
 import { getSystemPolicy, loginBlockedForRole } from "./system-policy";
 
 /**
  * Production sign-in:
- * - Default: fleet shared password (NEXTAUTH_CREDENTIALS_PASSWORD) is checked before bcrypt when it matches
- *   (NEXTAUTH_SHARED_PASSWORD_PRIORITY defaults to on). Set NEXTAUTH_SHARED_PASSWORD_PRIORITY=false to require
- *   per-user password when passwordHash exists.
- * - User without passwordHash: NEXTAUTH_CREDENTIALS_PASSWORD must be set; password field must match (trimmed).
+ * - Field drivers must be on the Approved Drivers roster (active, matching email).
+ * - Per-user bcrypt when manager set a password on add/edit driver.
+ * - Fleet shared password (NEXTAUTH_CREDENTIALS_PASSWORD) when no per-user hash — does not
+ *   create accounts for unknown emails; roster must exist first (manager adds driver).
  *
- * Dev / staging (opt-in via NEXTAUTH_ALLOW_DEV_LOGIN — see auth-dev-login.ts and .env.example):
- * - Local: blank fields → dev@localhost; email + blank password if no passwordHash.
- * - Vercel preview: same blank-password rule when ALLOW_DEV_LOGIN=true.
- * - Any deploy with ALLOW_DEV_LOGIN + NEXTAUTH_DEV_BYPASS_SECRET: use that secret as the password.
+ * Dev / staging (opt-in via NEXTAUTH_ALLOW_DEV_LOGIN — see auth-dev-login.ts):
+ * - Local/preview blank-password login only for roster emails without a passwordHash.
+ * - NEXTAUTH_DEV_BYPASS_SECRET as password — still roster-gated for field drivers.
  */
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -36,7 +41,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = (credentials?.email ?? "").trim().toLowerCase();
+        const email = normalizeLoginEmail(credentials?.email ?? "");
         const password = credentials?.password ?? "";
         const sharedPassRaw = process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
         const sharedPass =
@@ -45,16 +50,31 @@ export const authOptions: NextAuthOptions = {
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "false" &&
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "0";
 
+        async function completeLogin(user: {
+          id: string;
+          email: string | null;
+          name: string | null;
+          role: string | null;
+          disabledAt: Date | null;
+        }) {
+          try {
+            return await finalizeCredentialsLogin(user);
+          } catch (err) {
+            if (err instanceof Error && err.message === ROSTER_LOGIN_ERROR) {
+              throw err;
+            }
+            return null;
+          }
+        }
+
         const localDev = await tryLocalDevelopmentLogin(email, password);
         if (localDev) {
           const devUser = await prisma.user.findUnique({
             where: { id: localDev.id },
             select: { id: true, email: true, name: true, role: true, disabledAt: true },
           });
-          if (!devUser || devUser.disabledAt || loginBlockedForRole(await getSystemPolicy(), devUser.role)) {
-            return null;
-          }
-          return { id: devUser.id, email: devUser.email, name: devUser.name };
+          if (!devUser) return null;
+          return completeLogin(devUser);
         }
 
         const bypass = await tryDevBypassSecretLogin(email, password);
@@ -63,10 +83,8 @@ export const authOptions: NextAuthOptions = {
             where: { id: bypass.id },
             select: { id: true, email: true, name: true, role: true, disabledAt: true },
           });
-          if (!bypassUser || bypassUser.disabledAt || loginBlockedForRole(await getSystemPolicy(), bypassUser.role)) {
-            return null;
-          }
-          return { id: bypassUser.id, email: bypassUser.email, name: bypassUser.name };
+          if (!bypassUser) return null;
+          return completeLogin(bypassUser);
         }
 
         const passwordlessStaging = await tryPasswordlessStagingLogin(email, password);
@@ -75,14 +93,8 @@ export const authOptions: NextAuthOptions = {
             where: { id: passwordlessStaging.id },
             select: { id: true, email: true, name: true, role: true, disabledAt: true },
           });
-          if (
-            !stagingUser ||
-            stagingUser.disabledAt ||
-            loginBlockedForRole(await getSystemPolicy(), stagingUser.role)
-          ) {
-            return null;
-          }
-          return { id: stagingUser.id, email: stagingUser.email, name: stagingUser.name };
+          if (!stagingUser) return null;
+          return completeLogin(stagingUser);
         }
 
         if (!email) return null;
@@ -100,34 +112,24 @@ export const authOptions: NextAuthOptions = {
         const sharedPasswordMatches = sharedPass.length > 0 && password.trim() === sharedPass;
 
         if (sharedPasswordPriority && sharedPasswordMatches) {
-          let user = existing;
-          if (!user) {
-            user = await prisma.user.create({
-              data: { email, name: email.split("@")[0] },
-              select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
-            });
-          }
+          const user = existing ?? (await resolveRosterDriverUserForLogin(email));
+          if (!user) return null;
           if (loginBlockedForRole(policy, user.role)) return null;
-          return { id: user.id, email: user.email, name: user.name };
+          return completeLogin(user);
         }
 
         if (existing?.passwordHash) {
           if (!password) return null;
           const ok = await bcrypt.compare(password, existing.passwordHash);
           if (!ok) return null;
-          return { id: existing.id, email: existing.email, name: existing.name };
+          return completeLogin(existing);
         }
 
         if (sharedPasswordMatches) {
-          let user = existing;
-          if (!user) {
-            user = await prisma.user.create({
-              data: { email, name: email.split("@")[0] },
-              select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
-            });
-          }
+          const user = existing ?? (await resolveRosterDriverUserForLogin(email));
+          if (!user) return null;
           if (loginBlockedForRole(policy, user.role)) return null;
-          return { id: user.id, email: user.email, name: user.name };
+          return completeLogin(user);
         }
         return null;
       },

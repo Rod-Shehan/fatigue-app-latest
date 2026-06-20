@@ -17,6 +17,7 @@ import {
 import { isOnline } from "@/lib/offline-api";
 import { lobbyBranchFromCallback, type LobbyBranch } from "@/lib/lobby-url";
 import { canEnterLobbyBranch, normalizeUserRole } from "@/lib/roles";
+import { ROSTER_LOGIN_ERROR, ROSTER_LOGIN_MESSAGE } from "@/lib/driver-login-gate";
 import { clearOfflineAuth } from "@/lib/offline-auth";
 import { cn } from "@/lib/utils";
 
@@ -217,9 +218,11 @@ export function AppLanding() {
       });
       if (res?.error) {
         setError(
-          res.error === "Configuration"
-            ? "Sign-in is misconfigured on the server (check NEXTAUTH_SECRET and NEXTAUTH_URL)."
-            : "Invalid email or password."
+          res.error === ROSTER_LOGIN_ERROR
+            ? ROSTER_LOGIN_MESSAGE
+            : res.error === "Configuration"
+              ? "Sign-in is misconfigured on the server (check NEXTAUTH_SECRET and NEXTAUTH_URL)."
+              : "Invalid email or password."
         );
         setLoading(false);
         return;
