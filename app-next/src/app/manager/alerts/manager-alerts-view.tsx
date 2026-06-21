@@ -174,17 +174,17 @@ export function ManagerAlertsView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="mx-auto max-w-lg px-4 py-6 md:max-w-5xl md:py-10">
+      <div className="mx-auto max-w-lg px-4 py-4 md:max-w-5xl md:px-6 md:py-5">
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
           backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
           title={MANAGER_EXPERIENCE.NAV_ALERTS}
-          subtitle={MANAGER_EXPERIENCE.ALERTS_PAGE_SUBTITLE}
           icon={<Bell className="h-5 w-5" />}
+          compact
           showLobbyLink={false}
         />
-        <ManagerSubnav />
+        <ManagerSubnav compact />
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -249,7 +249,7 @@ export function ManagerAlertsView() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-[minmax(0,340px),1fr]">
-            <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto md:max-h-[calc(100vh-14rem)]">
+            <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto md:max-h-[calc(100vh-11rem)]">
               {alerts.map((alert) => (
                 <AlertCard
                   key={alert.id}
@@ -259,7 +259,7 @@ export function ManagerAlertsView() {
                 />
               ))}
             </div>
-            <div className="md:sticky md:top-6 md:self-start">
+            <div className="md:sticky md:top-4 md:self-start">
               {selected ? (
                 <AlertDetail alert={selected} />
               ) : (
