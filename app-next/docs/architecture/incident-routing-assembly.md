@@ -338,6 +338,81 @@ Ready-to-send email and checklist for Technical Support / integration team: **[e
 
 ---
 
+## 5c. Dual ingest — Circadia edge camera + Streamax (both at once)
+
+**Product intent:** Circadia’s **own in-vehicle camera / FMS** pushing JSON remains the primary development path. **Streamax via FTCloud** is an optional **second ingest adapter** for a local fleet opportunity — not a replacement architecture.
+
+Both sources normalize into the **same three pipelines** (§2.2). Compliance (pipeline A) always comes from the attested diary only.
+
+### Two ingest paths, one backend
+
+| Source | Typical wire path | Pipeline B (assurance) | Pipeline C (incidents) |
+|--------|-------------------|------------------------|-------------------------|
+| **Circadia edge** | Device JSON → driver app (BT) → `POST /api/driver/risk-blocks`; optional direct cellular to edge API later | **`CameraRiskPacketV1`** → `DriverRiskBlock` — [camera-risk-stream.md](./camera-risk-stream.md) | Discrete FMS alarms → `edge_fatigue_events` / lifecycle (Command spec) |
+| **Streamax / FTCloud** | Device → FTCloud → Circadia server adapter (poll/webhook) | Mapper → same block shape as B (if feed has rolling metrics) | FTCloud / Events Platform discrete events → lifecycle |
+
+```text
+                         ┌─ circadia-edge ──→ CameraRiskPacketV1 ──→ DriverRiskBlock (B)
+                         │                 └─ FMS alarm JSON ──────→ lifecycle (C)
+Tenant fleet / vehicle ──┼─ streamax-ftcloud ─→ normalized blocks ─→ DriverRiskBlock (B)
+                         │                    └─ discrete events ──→ lifecycle (C)
+                         │
+                         └─ attested diary / sheets ─────────────────→ compliance (A)
+```
+
+### Adapter rule (do not merge vendors in one blob)
+
+1. **Tag provenance** on every row — e.g. `source: "circadia_edge" | "streamax_ftcloud"`; raw payload in `vendor` / `telemetry_snapshot_json`.
+2. **One driver, one manager timeline** — fleet pulse and individual chart fuse all **B** sources; scoring may extend `fusionSources` beyond `["camera", "diary"]`.
+3. **One incident inbox** — pipeline **C** from either source; alert card shows source badge + video state (ready / pending / unavailable).
+4. **One operator desk** — Command `/triage` queue is source-agnostic; M1–M4 routing applies to all pipeline C events.
+5. **Do not fork UI** — `/manager`, `/manager/alerts`, and Command stay single surfaces.
+
+### Per-vehicle / per-tenant configuration
+
+Onboarding selects **modules and sources**, not a global either/or:
+
+| Setting | Options |
+|---------|---------|
+| Assurance (B) | off · Circadia edge only · Streamax only · **both** |
+| Live incidents (C) | off · Circadia edge only · Streamax only · **both** |
+| Call routing | M1–M4 (§3) — shared across all C sources |
+| Per vehicle | Which source(s) are active on this rego / device |
+
+Examples:
+
+- **Pilot on your hardware** — Circadia edge B (+ optional C); Streamax off.
+- **Streamax-only local deal** — Streamax B and/or C; M3 manager-only; your edge off.
+- **Mixed depot** — Truck A = your camera; Truck B = Streamax; Truck C = both (e.g. your 15‑min blocks + Streamax clips on incidents).
+
+### What differs per source (implementation only)
+
+| | Circadia edge / FMS | Streamax / FTCloud |
+|--|---------------------|---------------------|
+| **Ingest route** | `POST /api/driver/risk-blocks` (today); optional `POST /api/integrations/circadia-edge/...` later | `POST /api/integrations/streamax/...` or worker poll |
+| **Assurance contract** | Native `CameraRiskPacketV1` | Mapper → block-compatible shape |
+| **Incidents** | Your alarm schema → lifecycle | FTCloud event JSON → lifecycle |
+| **Video** | Clip URL in `vendor` when available | FTCloud media (often delayed vs event) |
+| **Identity** | `device_id` + logged-in driver | FTCloud device ID + VRN (+ driver when present) → roster map |
+| **Config** | Device provisioned to driver / vehicle | Tenant ID, secret, device→rego map (§5a) |
+
+Streamax does **not** replace `CameraRiskPacketV1` or firmware evolution — it adds **`streamax-ftcloud-v1`** (name TBD) as a parallel adapter.
+
+### Build order (unchanged priority)
+
+1. **Circadia edge** — `CameraRiskPacketV1` + risk-blocks ingest (pipeline B) — core IP path.
+2. **Circadia incidents** — discrete FMS alarms → lifecycle (pipeline C) when hardware emits them.
+3. **Streamax adapter** — when FTCloud credentials + sample payload land (Phase 1 for Streamax only).
+4. **Shared UI** — manager pulse, `/manager/alerts`, Command triage — one system, provenance on each row.
+
+Phase 1 for Streamax is **blocked on feed mapping** (§5a). Phase 1 for Circadia edge is **not** — packet schema and ingest route already exist in repo.
+
+### Relation to §5b integration models
+
+§5b models A/B/C describe **who processes Events Platform UI** when Streamax is the vendor. For **dual ingest**, default is **Model A (Circadia primary)** for pipeline C actions regardless of source — Streamax/Events Platform is ingress + media, not the manager’s only inbox. Model B (vendor UI primary) applies only to customers who explicitly keep triage inside Events Platform.
+
+---
+
 ## 6. Assembly checklist (per tenant go-live)
 
 Use this as a sales/ops worksheet before enabling camera integration:
@@ -351,6 +426,8 @@ Use this as a sales/ops worksheet before enabling camera integration:
 7. **Assurance-only** — fleet pulse without lifecycle (pipeline B only)?
 8. **Intervention** — in-cab HUD enabled or alerts for coaching only?
 9. **Integration model** — Circadia primary (A), Events Platform primary (B), or dual (C)? See §5b.
+10. **Camera sources** — Circadia edge only, Streamax only, or both? Per-vehicle map if mixed. See §5c.
+11. **Assurance vs incidents per source** — e.g. Streamax incidents only, Circadia 15‑min blocks only.
 
 ---
 
@@ -387,7 +464,8 @@ Use this as a sales/ops worksheet before enabling camera integration:
 2. **Push notifications** — polling/SSE enough for v1, or mobile push required for after-hours?
 3. **Multi-manager claim** — first-claim-wins (like operator `claim`) vs broadcast to all managers?
 4. **Assurance + incident link** — show heatmap context on alert card, or keep inbox minimal?
-5. **Autonomise vs Streamax direct** — single ingest adapter vs two; does not change assembly, only mapper.
+5. **Circadia edge direct POST** — driver-app relay only vs cellular direct-to-backend for own hardware (§5c).
+6. **Mixed-source scoring** — when both feed pipeline B for one driver, fusion rules and precedence (highest risk vs blended).
 
 ---
 
@@ -396,8 +474,9 @@ Use this as a sales/ops worksheet before enabling camera integration:
 - **Three pipelines** — compliance, assurance blocks, incident lifecycle — stay separate.
 - **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — same ledger, different queues.
 - **Four routing modes** — M1–M4 — per-tenant, driven by how the customer runs calls.
-- **Feed samples** unlock ingest mapping only; they do not change this assembly.
-- **Next concrete step:** insider payload → Phase 1 mapping doc → pick pilot `routing_mode` → then build bridge + alerts.
+- **Dual ingest** — Circadia edge (primary IP) + Streamax adapter (optional); both can run per fleet/vehicle (§5c).
+- **Feed samples** unlock Streamax Phase 1 only; Circadia `CameraRiskPacketV1` path already defined.
+- **Next concrete step:** continue own-camera ingest; in parallel obtain FTCloud samples when Streamax deal is live.
 
 ---
 
@@ -405,6 +484,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-06-20 | §5c dual ingest Circadia edge + Streamax; §6 items 10–11; summary + open decisions |
 | 2026-06-20 | §5b Events Platform user guide implications; §6 item 9 integration model; vendor request doc |
 | 2026-06-18 | §5a FTCloud discovery checklist |
 | 2026-06-18 | §1a — per-tenant setup rationale, who configures what, wizard vs raw flags |
