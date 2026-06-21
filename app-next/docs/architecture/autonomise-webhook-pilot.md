@@ -1,0 +1,81 @@
+# MTS Autonomise webhook pilot
+
+**Purpose:** Connect Miocevich Transport Services (Autonomise.ai) Event + Media webhooks to Circadia for capture and fatigue filtering.
+
+**Production base:** `https://fatigue-app-latest.vercel.app`
+
+## Circadia endpoints
+
+| Hook | URL |
+|------|-----|
+| **Event** | `https://fatigue-app-latest.vercel.app/api/integrations/autonomise/events` |
+| **Media** | `https://fatigue-app-latest.vercel.app/api/integrations/autonomise/media` |
+
+`GET` on each URL returns `{ configured, preset }` for a quick health check (no secret required).
+
+## Vercel environment variables
+
+Set in Vercel → Project → Settings → Environment Variables:
+
+```text
+AUTONOMISE_WEBHOOK_SECRET=<same value as Autonomise x-webhook-secret header>
+AUTONOMISE_EVENT_PRESET=core_plus_adas
+```
+
+Optional:
+
+```text
+AUTONOMISE_TENANT_GUID=2bd17364-739f-f011-8e62-6045bdfcbf17
+```
+
+After adding env vars, **redeploy** production.
+
+## Database
+
+Run once after deploy (local or CI):
+
+```bash
+cd app-next
+npm run db:push
+```
+
+Creates `AutonomiseWebhookIngest` table for raw payload capture.
+
+## Autonomise configuration (MTS admin)
+
+1. **User → Organisation → API**
+2. Set **Header Key** `x-webhook-secret` and **Header Value** = `AUTONOMISE_WEBHOOK_SECRET`
+3. Enable **Event webhook** → paste Event URL above
+4. Enable **Media webhook** → paste Media URL above
+5. **Update settings**
+6. **Device alarms** — Raise Event on DSM Fatigue, Distraction, and ADAS fatigue-proxy alarms only (see `fatigue-event-catalogue.ts`)
+
+## Test with curl
+
+```bash
+curl -sS -X POST "https://fatigue-app-latest.vercel.app/api/integrations/autonomise/events" \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-secret: YOUR_SECRET" \
+  -d '{"eventId":"test-1","alarmId":"VT3600AI_ALARM_DSM_Fatigue","vehicleRegistration":"1TST001"}'
+```
+
+Expected: `200` with `"accepted": true` and an `ingestId`.
+
+Seatbelt test (should reject):
+
+```bash
+curl -sS -X POST "https://fatigue-app-latest.vercel.app/api/integrations/autonomise/events" \
+  -H "Content-Type: application/json" \
+  -H "x-webhook-secret: YOUR_SECRET" \
+  -d '{"eventId":"test-2","alarmId":"VT3600AI_ALARM_DSM_SeatbeltUnfastened"}'
+```
+
+Expected: `200` with `"accepted": false`, `"rejectReason": "excluded_alarm"`.
+
+## What happens next
+
+1. Real Autonomise payloads arrive → stored in `AutonomiseWebhookIngest`
+2. Refine `autonomise-payload.ts` field mapping from real JSON
+3. Wire accepted events → incident lifecycle + `/manager/alerts`
+
+See [incident-routing-assembly.md](./incident-routing-assembly.md) §5d.

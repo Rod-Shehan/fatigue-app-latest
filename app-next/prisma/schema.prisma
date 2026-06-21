@@ -244,3 +244,25 @@ model FrmsRiskSnapshot {
   @@unique([runId, blockStartMs])
   @@index([runId, blockStartMs])
 }
+
+/** Raw Autonomise Event / Media webhook capture (MTS pilot — maps to lifecycle later). */
+model AutonomiseWebhookIngest {
+  id             String   @id @default(cuid())
+  kind           String   // event | media
+  idempotencyKey String?
+  vendorAlarmId  String?
+  vendorEventId  String?
+  vehicleRego    String?
+  driverName     String?
+  linkedEventId  String?
+  mediaUrl       String?
+  accepted       Boolean  @default(false)
+  rejectReason   String?
+  payload        Json
+  receivedAt     DateTime @default(now())
+
+  @@unique([kind, idempotencyKey])
+  @@index([receivedAt])
+  @@index([kind, accepted])
+  @@index([vehicleRego, receivedAt])
+}
