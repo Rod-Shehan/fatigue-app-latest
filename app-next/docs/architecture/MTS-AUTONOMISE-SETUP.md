@@ -13,7 +13,7 @@ You only need to complete the **3 browser steps** below.
 1. Autonomise sends an **Event** (alarm happened) or **Media** (video clip ready).
 2. Circadia checks a **password** (`x-webhook-secret`) so random people cannot fake alerts.
 3. Circadia **ignores** seatbelt, smoking, etc. — only fatigue-related alarms are marked **accepted**.
-4. Everything is **saved** in the database for the next phase (manager phone alerts).
+4. Everything is **saved** in the database for the next phase (manager phone alerts + **legal evidence pack** — see [incident-evidence-retention.md](../architecture/incident-evidence-retention.md)).
 
 You do **not** need to understand the code — only paste URLs and one secret in the right places.
 

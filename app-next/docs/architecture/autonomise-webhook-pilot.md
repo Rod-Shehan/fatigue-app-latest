@@ -76,6 +76,6 @@ Expected: `200` with `"accepted": false`, `"rejectReason": "excluded_alarm"`.
 
 1. Real Autonomise payloads arrive → stored in `AutonomiseWebhookIngest`
 2. Refine `autonomise-payload.ts` field mapping from real JSON
-3. Wire accepted events → incident lifecycle + `/manager/alerts`
+3. Wire accepted events → incident lifecycle + `/manager/alerts` + evidence retention — see [incident-evidence-retention.md](./incident-evidence-retention.md)
 
 See [incident-routing-assembly.md](./incident-routing-assembly.md) §5d.

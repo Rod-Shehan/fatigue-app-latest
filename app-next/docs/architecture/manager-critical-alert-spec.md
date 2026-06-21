@@ -4,6 +4,7 @@
 
 **Related:**
 
+- [incident-evidence-retention.md](./incident-evidence-retention.md) — legal evidence pack, re-host video, manager decision audit
 - [incident-routing-assembly.md](./incident-routing-assembly.md) — pipelines, M1–M4 routing, ingest
 - [autonomise-webhook-pilot.md](./autonomise-webhook-pilot.md) — MTS webhook plumbing (done)
 - `/manager/alerts` — passive inbox today; not the primary on-call alarm surface
@@ -23,6 +24,7 @@ Circadia’s **on-call layer** is core product IP: when an accepted in-cab fatig
 | **R1** | **Break through silent / DND** | On-call person must not miss an alert because device settings were left wrong |
 | **R2** | **ADAS-grade full-screen** | One glance = fatigue incident — act now; not “another app notification” |
 | **R3** | **Roster fan-out** | Everyone on the **active duty roster** gets the alert — no per-person opt-out for that shift |
+| **R4** | **Evidence before decision** | Manager Authorize/Dismiss is a **legal decision**; Circadia retains vendor payloads + **own copy of video** — see [incident-evidence-retention.md](./incident-evidence-retention.md) |
 
 ---
 
@@ -105,8 +107,9 @@ Accepted incident
       SMS (all roster numbers)
       open full-screen incident UI
 5. Claim / ack model (see below)
-6. Media webhook → attach video; refresh same incident screen
-7. Audit: who was notified, who acked, when, escalations
+6. Media resolver → re-host video to Circadia storage (see incident-evidence-retention.md)
+7. SMS/push with Circadia magic link — video served from our storage, not Autonomise
+8. Manager Authorize / Dismiss → append-only lifecycle + evidence pack audit
 ```
 
 ---
@@ -130,7 +133,7 @@ Accepted incident
 | `/manager/alerts` — 12s poll, list + video | **+** full-screen incident route from alarm |
 | No push / SMS / sound | **+** roster fan-out push + SMS |
 | No duty roster entity | **+** roster admin |
-| Authorize / Dismiss disabled | **+** ack / escalate → audit trail |
+| Authorize / Dismiss disabled | **+** ack / escalate → audit trail + evidence pack |
 
 Webhook work = **plumbing**. This document = **the product**.
 
@@ -171,5 +174,6 @@ Circadia’s on-call layer treats driver fatigue like an ADAS collision warning:
 
 | Date | Note |
 |------|------|
+| 2026-06-21 | R4 + flow link to [incident-evidence-retention.md](./incident-evidence-retention.md) |
 | 2026-06-21 | Link manager-critical-alert-spec.md (on-call product) |
 | 2026-06-21 | Initial spec from on-call / ADAS / roster fan-out product requirements |

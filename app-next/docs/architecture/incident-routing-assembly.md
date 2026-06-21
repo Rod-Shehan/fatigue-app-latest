@@ -4,6 +4,7 @@
 
 **Related:**
 
+- [incident-evidence-retention.md](./incident-evidence-retention.md) — legal evidence pack, re-host video, manager decision audit (pipeline C)
 - [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm (DND bypass, ADAS full-screen, roster fan-out) — core product, not built yet
 - [camera-risk-stream.md](./camera-risk-stream.md) — 15-minute assurance blocks (no acceptance workflow)
 - [ADR 0003](../adr/0003-prospective-risk-engine.md) — assurance vs compliance
@@ -127,6 +128,8 @@ Canonical enum (`fatigue_incident_lifecycle.event_status`):
 `PENDING_TRIAGE` · `VERIFIED_FALSE_POSITIVE` · `VERIFIED_TRUE_FATIGUE` · `MANAGER_VALIDATION_PENDING` · `INTERVENTION_SENT` · `DRIVER_ACKNOWLEDGED` · `DRIVER_DISPUTED` · `CLOSED`
 
 Append-only audit: `lifecycle_transition_log`.
+
+**Evidence retention:** manager Authorize/Dismiss is a legal decision; Circadia must retain vendor payloads plus **own copy of video** in an immutable evidence pack — see [incident-evidence-retention.md](./incident-evidence-retention.md). Autonomise / vendor feeds remain **read-only ingress**; Circadia lifecycle + evidence store = source of truth for triage outcomes.
 
 ---
 
@@ -516,6 +519,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 10. **Camera sources** — Circadia edge only, Streamax only, or both? Per-vehicle map if mixed. See §5c.
 11. **Assurance vs incidents per source** — e.g. Streamax incidents only, Circadia 15‑min blocks only.
 12. **Fatigue event preset** — `core_only` · `core_plus_adas` · `custom`; see §5d and `fatigue-event-catalogue.ts`.
+13. **Evidence retention** — re-host video on Circadia storage; retention years; export for audit — see [incident-evidence-retention.md](./incident-evidence-retention.md).
 
 ---
 
@@ -573,6 +577,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-06-21 | [incident-evidence-retention.md](./incident-evidence-retention.md) — legal evidence pack, re-host video, §6 item 13 |
 | 2026-06-21 | Link [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm product |
 | 2026-06-21 | §5d Autonomise tenant setup + `fatigue-event-catalogue.ts` (VT3600-AI tiers) |
 | 2026-06-20 | §5c dual ingest Circadia edge + Streamax |
