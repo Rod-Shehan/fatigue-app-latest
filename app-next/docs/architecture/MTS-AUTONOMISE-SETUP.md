@@ -115,4 +115,4 @@ When it works, Autonomise will show webhooks delivering **200** responses.
 - Attach video clips from Media webhook
 - Map VRN → driver name in Circadia roster
 
-Technical detail: [incident-routing-assembly.md](./incident-routing-assembly.md) · [autonomise-webhook-pilot.md](./autonomise-webhook-pilot.md)
+Technical detail: [incident-routing-assembly.md](./incident-routing-assembly.md) · [autonomise-webhook-pilot.md](./autonomise-webhook-pilot.md) · [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) (on-call alarm — future).

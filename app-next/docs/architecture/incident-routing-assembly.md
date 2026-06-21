@@ -4,6 +4,7 @@
 
 **Related:**
 
+- [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm (DND bypass, ADAS full-screen, roster fan-out) — core product, not built yet
 - [camera-risk-stream.md](./camera-risk-stream.md) — 15-minute assurance blocks (no acceptance workflow)
 - [ADR 0003](../adr/0003-prospective-risk-engine.md) — assurance vs compliance
 - `circadia-command/docs/MASTER_SPEC.md` — operator triage, lifecycle, manager gate
@@ -572,6 +573,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-06-21 | Link [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm product |
 | 2026-06-21 | §5d Autonomise tenant setup + `fatigue-event-catalogue.ts` (VT3600-AI tiers) |
 | 2026-06-20 | §5c dual ingest Circadia edge + Streamax |
 | 2026-06-20 | §5b Events Platform user guide implications; §6 item 9 integration model; vendor request doc |
