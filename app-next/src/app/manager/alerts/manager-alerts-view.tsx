@@ -227,6 +227,13 @@ export function ManagerAlertsView() {
           </div>
         )}
 
+        {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            Video fetch is not configured — add <code className="text-xs">AUTONOMISE_PRIMARY_KEY</code> on Vercel
+            (same Primary API key as Autonomise admin) and redeploy.
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-slate-500">
             <Loader2 className="h-6 w-6 animate-spin mr-2" aria-hidden />

@@ -7,6 +7,7 @@ import {
   getAutonomiseWebhookSecretFromEnv,
   verifyAutonomiseWebhookSecret,
 } from "@/lib/integrations/autonomise-webhook-auth";
+import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,5 +67,6 @@ export async function GET() {
     method: "POST",
     header: AUTONOMISE_WEBHOOK_SECRET_HEADER,
     configured: Boolean(getAutonomiseWebhookSecretFromEnv()),
+    apiConfigured: isAutonomiseApiConfigured(),
   });
 }

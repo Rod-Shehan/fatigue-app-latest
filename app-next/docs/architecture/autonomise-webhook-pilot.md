@@ -31,6 +31,15 @@ AUTONOMISE_FATIGUE_EVENT_TYPE_CODES=2,18
 
 `AUTONOMISE_FATIGUE_EVENT_TYPE_CODES` — Autonomise numeric `eventTypes` values treated as DSM Fatigue (MTS live uses **18** as well as **2**).
 
+**Video fetch** (required for clips when media webhooks have no URL):
+
+```text
+AUTONOMISE_PRIMARY_KEY=<Primary API key from Autonomise → API Settings>
+AUTONOMISE_CLIENT_ID=5e5A9Zq2e7
+```
+
+Optional: `AUTONOMISE_SECONDARY_KEY`, `AUTONOMISE_API_BASE_URL`, `AUTONOMISE_MEDIA_PATH_TEMPLATE`.
+
 After adding env vars, **redeploy** production.
 
 ## Database

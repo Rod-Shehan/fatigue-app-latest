@@ -413,7 +413,7 @@ export const api = {
       if (params?.acceptedOnly === false) sp.set("acceptedOnly", "false");
       if (params?.hours != null) sp.set("hours", String(params.hours));
       const q = sp.toString();
-      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestEventsRejected: number; ingestMedia: number; mediaWithoutMatchingEvent: number } }>(
+      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestEventsRejected: number; ingestMedia: number; mediaWithoutMatchingEvent: number; apiConfigured: boolean } }>(
         `/api/manager/camera-alerts${q ? `?${q}` : ""}`
       );
     },

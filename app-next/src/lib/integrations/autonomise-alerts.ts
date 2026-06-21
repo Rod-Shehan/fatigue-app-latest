@@ -2,6 +2,8 @@ import type { AutonomiseWebhookIngest, Prisma, PrismaClient } from "@prisma/clie
 import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getAutonomiseEventPresetFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
+import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
+import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
 import { getCatalogueEntry, type FatigueEventPresetId } from "@/lib/integrations/fatigue-event-catalogue";
 
 export type CameraAlertItem = {
@@ -26,6 +28,7 @@ export type CameraAlertsDiagnostics = {
   ingestEventsRejected: number;
   ingestMedia: number;
   mediaWithoutMatchingEvent: number;
+  apiConfigured: boolean;
 };
 
 type IngestRow = Pick<
@@ -92,7 +95,9 @@ export function buildCameraAlertsFromRows(
   const eventAlerts: CameraAlertItem[] = events.map((event) => {
     const entry = event.vendorAlarmId ? getCatalogueEntry(event.vendorAlarmId) : undefined;
     const eventKey = event.vendorEventId;
-    const mediaUrl = eventKey ? mediaByEventKey.get(eventKey) ?? null : null;
+    const mediaUrl = eventKey
+      ? mediaByEventKey.get(eventKey) ?? event.mediaUrl ?? null
+      : null;
 
     return {
       id: event.id,
@@ -200,6 +205,16 @@ export async function listCameraAlerts(
 
   const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, preset));
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
+
+  await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
+
+  for (const row of mediaRows) {
+    const eventId = enrichedEvents.find(
+      (e) => e.vendorEventId && (e.vendorEventId === row.linkedEventId || e.vendorEventId === row.vendorEventId)
+    );
+    if (eventId?.mediaUrl && !row.mediaUrl) row.mediaUrl = eventId.mediaUrl;
+  }
+
   const displayEvents = args.acceptedOnly
     ? enrichedEvents.filter((row) => row.accepted)
     : enrichedEvents;
@@ -209,6 +224,7 @@ export async function listCameraAlerts(
   const mediaWithoutMatchingEvent = alerts.filter((a) => a.eventWebhookPending).length;
 
   const configured = Boolean(process.env.AUTONOMISE_WEBHOOK_SECRET?.trim());
+  const apiConfigured = isAutonomiseApiConfigured();
 
   const visibleAlerts = args.acceptedOnly
     ? alerts.filter((a) => a.accepted || a.eventWebhookPending)
@@ -222,6 +238,7 @@ export async function listCameraAlerts(
       ingestEventsRejected,
       ingestMedia,
       mediaWithoutMatchingEvent,
+      apiConfigured,
     },
   };
 }
