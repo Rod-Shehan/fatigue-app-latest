@@ -114,6 +114,12 @@ export const MANAGER_SUBNAV_WORKSPACE: NavLinkEntry[] = [
     title: "Conversations",
     href: "/manager/messages",
   },
+  {
+    id: "manager-alerts",
+    surface: "manager-subnav",
+    title: "Live alerts",
+    href: "/manager/alerts",
+  },
 ];
 
 export const MANAGER_SUBNAV_FLEET: NavLinkEntry[] = [

@@ -47,3 +47,5 @@ app-next/prisma/*.db-journal
 
 # TypeScript incremental build cache (do not commit)
 *.tsbuildinfo
+.vercel
+.env*

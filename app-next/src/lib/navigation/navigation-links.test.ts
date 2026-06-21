@@ -76,6 +76,7 @@ describe("resolveRouteAudience", () => {
     expect(resolveRouteAudience("/driver/routes")).toBe("driver");
     expect(resolveRouteAudience("/admin/routes")).toBe("manager");
     expect(resolveRouteAudience("/manager")).toBe("manager");
+    expect(resolveRouteAudience("/manager/alerts")).toBe("manager");
     expect(resolveRouteAudience("/sheets")).toBe("driver");
     expect(resolveRouteAudience("/sheets/00000000-0000-4000-8000-000000000000")).toBe("shared");
     expect(resolveRouteAudience("#risk-analysis")).toBe("anchor");

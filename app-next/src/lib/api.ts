@@ -166,6 +166,22 @@ export type RiskRegisterSummary = {
   driverHint: string | null;
 };
 
+/** Camera fatigue alert from Autonomise webhook ingest (manager live inbox). */
+export type CameraAlertItem = {
+  id: string;
+  vendorEventId: string | null;
+  vendorAlarmId: string | null;
+  displayName: string | null;
+  tier: string | null;
+  vehicleRego: string | null;
+  driverName: string | null;
+  receivedAt: string;
+  accepted: boolean;
+  rejectReason: string | null;
+  mediaUrl: string | null;
+  mediaPending: boolean;
+};
+
 export type ManagerComplianceItem = {
   sheetId: string;
   driver_name: string;
@@ -389,6 +405,16 @@ export const api = {
       return fetchApi<import("@/lib/frms/fleet-risk-timeline").FleetRiskTimelineResult & {
         frms_engine_mode: string;
       }>(`/api/manager/fleet-risk-timeline${q ? `?${q}` : ""}`);
+    },
+    /** Autonomise fatigue camera alerts (live inbox). */
+    cameraAlerts: (params?: { acceptedOnly?: boolean; hours?: number }) => {
+      const sp = new URLSearchParams();
+      if (params?.acceptedOnly === false) sp.set("acceptedOnly", "false");
+      if (params?.hours != null) sp.set("hours", String(params.hours));
+      const q = sp.toString();
+      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean }>(
+        `/api/manager/camera-alerts${q ? `?${q}` : ""}`
+      );
     },
   },
   messages: {

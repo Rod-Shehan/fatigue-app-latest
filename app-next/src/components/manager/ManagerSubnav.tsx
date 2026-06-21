@@ -22,6 +22,7 @@ import {
   Truck,
   UserPlus,
   Users,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,6 +30,7 @@ const SUBNAV_ICONS: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
   map: MapIcon,
   "manager-messages": MessageSquare,
+  "manager-alerts": Bell,
   drivers: Users,
   regos: Truck,
   routes: MapPin,
@@ -41,6 +43,7 @@ const SUBNAV_LABELS: Record<string, string> = {
   overview: MANAGER_EXPERIENCE.NAV_OVERVIEW,
   map: MANAGER_EXPERIENCE.NAV_MAP,
   "manager-messages": MANAGER_EXPERIENCE.NAV_MESSAGES,
+  "manager-alerts": MANAGER_EXPERIENCE.NAV_ALERTS,
   drivers: MANAGER_EXPERIENCE.NAV_DRIVERS,
   regos: MANAGER_EXPERIENCE.NAV_REGOS,
   routes: MANAGER_EXPERIENCE.NAV_ROUTES,

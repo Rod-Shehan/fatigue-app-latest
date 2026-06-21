@@ -64,6 +64,7 @@ export const MANAGER_EXPERIENCE = {
   NAV_OVERVIEW: "Overview",
   NAV_MAP: "Logbook map",
   NAV_MESSAGES: "Conversations",
+  NAV_ALERTS: "Live alerts",
   NAV_DRIVERS: "Drivers",
   NAV_MANAGERS: "Managers",
   NAV_REGOS: "Rego",
@@ -191,6 +192,16 @@ export const MANAGER_EXPERIENCE = {
 
   MAP_PAGE_SUBTITLE: "Logbook entries placed on the map — where work, breaks, and shift ends were logged. The record, not a tracker.",
   MESSAGES_PAGE_SUBTITLE: "Check in with drivers when exposure rises — coaching tone, not compliance orders.",
+
+  ALERTS_PAGE_SUBTITLE:
+    "Camera fatigue signals from your fleet — review clips and decide next steps. Coaching workflow, not a signed compliance breach.",
+  ALERTS_EMPTY_TITLE: "No fatigue alerts in the last 48 hours",
+  ALERTS_EMPTY_BODY:
+    "When Autonomise sends a fatigue-related event, it appears here automatically. Keep this page open on your phone during after-hours cover.",
+  ALERTS_NOT_CONFIGURED:
+    "Camera webhooks are not configured on the server yet — alerts will not arrive until AUTONOMISE_WEBHOOK_SECRET is set on Vercel.",
+  ALERTS_WORKFLOW_HINT:
+    "Authorize / dismiss actions will record your decision on file in a later update. For now, use this screen to review events and video as they arrive.",
 } as const;
 
 export type ManagerRiskTier = "attention" | "elevated" | "monitor" | "clear";
