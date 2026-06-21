@@ -413,6 +413,92 @@ Phase 1 for Streamax is **blocked on feed mapping** (§5a). Phase 1 for Circadia
 
 ---
 
+## 5d. Tenant fatigue integration setup (Autonomise path — not fleet admin)
+
+Circadia **does not** replicate Autonomise organisation screens (journey intervals, speeding, idle, Geotab/Webfleet, shared locations, custom properties, fleet email rules). Those are fleet-management scope.
+
+**Owner-admin setup** (future `/admin/integrations` or equivalent) has **four blocks only**:
+
+### Block 1 — Integration sources (§5c)
+
+| Toggle | Meaning |
+|--------|---------|
+| Circadia edge / own FMS | `CameraRiskPacketV1` + optional own incident alarms |
+| Autonomise / Streamax path | Webhook ingress from Events Platform (Autonomise.ai white-label) |
+
+Per-vehicle source override deferred; tenant default first.
+
+### Block 2 — Webhook & API credentials (Autonomise only)
+
+Mirror what Autonomise exposes under **User → Organisation → API** (`autonomise.ai/organisation/api`):
+
+| Circadia stores | Autonomise counterpart |
+|-----------------|------------------------|
+| Inbound webhook secret | `x-webhook-secret` header value |
+| Display Circadia callback URLs | Paste into Autonomise **Event hook URL**, **Media hook URL** |
+| Optional API client id + token | Client ID + primary/secondary token (poll/backfill only) |
+
+**Webhooks to enable on vendor side (fatigue v1):**
+
+| Webhook | Circadia use | Default |
+|---------|--------------|---------|
+| **Event** | Discrete ADAS/DSM alarms → pipeline **C** | **On** |
+| **Media** | Clip URL when ready → attach to incident | **On** |
+| **Alarms** | Raw device alarm stream | Off until dedupe vs Event confirmed |
+| **Telemetry** | Continuous GPS/telematics | **Off** (not fatigue-FMS core) |
+| **Journey / Livetrack** | Fleet tracking | **Off** — out of product scope |
+
+Do **not** require managers to configure journey, geofence, channel labels, or device commissioning in Circadia.
+
+### Block 3 — Fatigue event catalogue (Autonomise alarm grid, filtered)
+
+Vendor **Device alarm configuration** maps hardware alarms to event types. Circadia maintains a **tenant-selectable subset** using the **same vendor alarm IDs** for mapper compatibility.
+
+Canonical list: `src/lib/integrations/fatigue-event-catalogue.ts`
+
+| Tier | Meaning | Tenant UI |
+|------|---------|-----------|
+| **core** | DSM fatigue + distraction | Always offered; default on |
+| **fatigue_adjacent** | ADAS proxies (lane departure, following distance, FCW); optional phone | Offered; default on in `core_plus_adas` preset |
+| **safety_other** | Panic, pedestrian, no driver | Offered; default **off** |
+| **excluded** | Seatbelt, smoking, overspeed pre-alarm, LPR | **Never shown** in Circadia setup |
+
+**Presets (owner wizard):**
+
+| Preset ID | Label |
+|-----------|-------|
+| `core_only` | Fatigue core only (DSM fatigue + distraction) |
+| `core_plus_adas` | Core + ADAS fatigue proxies (**recommended default**) |
+| `custom` | Per-alarm checkboxes (offered tiers only) |
+
+Ingest calls `isVendorAlarmAccepted(vendorAlarmId, tenantEnabledSet)` before creating lifecycle rows.
+
+### Block 4 — Call handling (§3, §6)
+
+Routing mode M1–M4, assurance-only vs incidents, intervention on/off — unchanged from assembly worksheet.
+
+### Autonomise screens → Circadia mapping (reference)
+
+| Autonomise (User → Organisation) | Circadia |
+|----------------------------------|----------|
+| Details / timezone | Org timezone already in app; no map defaults |
+| Settings → Journey / Platform / Media / Features | **Skip** |
+| Integration Details (Geotab/Webfleet) | **Skip** |
+| Device alarm configuration | **Concept only** → Block 3 catalogue |
+| Channel labels | **Skip** (optional later for video labels) |
+| Emails | **Skip** — use Circadia M1–M4 |
+| **API / webhooks** | **Block 2** |
+| Shared events / shared locations / custom properties | **Skip** |
+
+### Pilot activation checklist (Autonomise)
+
+1. Configure VT3600-AI alarms as **Raise Event** on vendor for Tier 1–2 ids only.
+2. Paste Circadia staging URLs into **Event** + **Media** webhooks; set matching `x-webhook-secret`.
+3. Capture one Event JSON + one Media JSON → Phase 1 mapper.
+4. Select tenant preset `core_plus_adas` in Circadia owner setup when UI exists.
+
+---
+
 ## 6. Assembly checklist (per tenant go-live)
 
 Use this as a sales/ops worksheet before enabling camera integration:
@@ -428,6 +514,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 9. **Integration model** — Circadia primary (A), Events Platform primary (B), or dual (C)? See §5b.
 10. **Camera sources** — Circadia edge only, Streamax only, or both? Per-vehicle map if mixed. See §5c.
 11. **Assurance vs incidents per source** — e.g. Streamax incidents only, Circadia 15‑min blocks only.
+12. **Fatigue event preset** — `core_only` · `core_plus_adas` · `custom`; see §5d and `fatigue-event-catalogue.ts`.
 
 ---
 
@@ -475,6 +562,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 - **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — same ledger, different queues.
 - **Four routing modes** — M1–M4 — per-tenant, driven by how the customer runs calls.
 - **Dual ingest** — Circadia edge (primary IP) + Streamax adapter (optional); both can run per fleet/vehicle (§5c).
+- **Tenant setup** — four blocks only for Autonomise path; fatigue event catalogue with tier presets (§5d).
 - **Feed samples** unlock Streamax Phase 1 only; Circadia `CameraRiskPacketV1` path already defined.
 - **Next concrete step:** continue own-camera ingest; in parallel obtain FTCloud samples when Streamax deal is live.
 
@@ -484,7 +572,8 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
-| 2026-06-20 | §5c dual ingest Circadia edge + Streamax; §6 items 10–11; summary + open decisions |
+| 2026-06-21 | §5d Autonomise tenant setup + `fatigue-event-catalogue.ts` (VT3600-AI tiers) |
+| 2026-06-20 | §5c dual ingest Circadia edge + Streamax |
 | 2026-06-20 | §5b Events Platform user guide implications; §6 item 9 integration model; vendor request doc |
 | 2026-06-18 | §5a FTCloud discovery checklist |
 | 2026-06-18 | §1a — per-tenant setup rationale, who configures what, wizard vs raw flags |
