@@ -72,6 +72,34 @@ describe("buildCameraAlertsFromRows", () => {
     );
     expect(alerts).toHaveLength(1);
     expect(alerts[0].eventWebhookPending).toBe(true);
-    expect(alerts[0].rejectReason).toBe("event_webhook_missing");
+  });
+
+  it("does not treat rejected event webhook as orphan media", () => {
+    const eventId = "a72e581d-3c0d-4240-b093-905af32562a5";
+    const alerts = buildCameraAlertsFromRows(
+      [
+        {
+          ...base,
+          id: "e-rejected",
+          kind: "event",
+          vendorEventId: eventId,
+          accepted: false,
+          rejectReason: "missing_alarm_id",
+          receivedAt: new Date("2026-06-21T13:22:00Z"),
+        },
+      ],
+      [
+        {
+          ...base,
+          id: "m-paired",
+          kind: "media",
+          vendorEventId: eventId,
+          linkedEventId: eventId,
+          receivedAt: new Date("2026-06-21T13:23:00Z"),
+        },
+      ],
+      [eventId]
+    );
+    expect(alerts.filter((a) => a.eventWebhookPending)).toHaveLength(0);
   });
 });

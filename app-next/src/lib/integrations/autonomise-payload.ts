@@ -3,13 +3,17 @@
  * Handles VT3600 alarm ids, FNOL base64 ids, and numeric eventTypes (live MTS pilot).
  */
 
+import { getAutonomiseFatigueEventTypeCodesFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
+
 export type AutonomiseWebhookKind = "event" | "media";
 
 const VENDOR_ALARM_ID_PATTERN = /VT3600AI_ALARM_[A-Za-z0-9_]+/;
 
-/** Autonomise `eventTypes` codes observed on MTS fatigue events (code 2 = fatigue). */
+/** Autonomise `eventTypes` codes → VT3600 alarm id (tenant-specific codes also via env). */
 const AUTONOMISE_EVENT_TYPE_CODE_TO_ALARM: Readonly<Record<number, string>> = {
   2: "VT3600AI_ALARM_DSM_Fatigue",
+  /** MTS live fatigue (2026-06-21) — same device, Red + classification 4 */
+  18: "VT3600AI_ALARM_DSM_Fatigue",
 };
 
 const EVENT_LABEL_TO_ALARM: Readonly<Record<string, string>> = {
@@ -203,7 +207,9 @@ function resolveAlarmIdFromLabels(body: Record<string, unknown>): string | null 
 
 function resolveAlarmIdFromEventTypes(body: Record<string, unknown>): string | null {
   const codes = parseCodeList(body.eventTypes ?? body.event_types ?? body.eventTypeIds);
+  const fatigueCodes = new Set(getAutonomiseFatigueEventTypeCodesFromEnv());
   for (const code of codes) {
+    if (fatigueCodes.has(code)) return "VT3600AI_ALARM_DSM_Fatigue";
     const hit = AUTONOMISE_EVENT_TYPE_CODE_TO_ALARM[code];
     if (hit) return hit;
   }

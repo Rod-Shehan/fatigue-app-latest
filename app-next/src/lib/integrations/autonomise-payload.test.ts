@@ -32,6 +32,16 @@ describe("autonomise-payload", () => {
     expect(fields.vendorEventId).toBe("3f0cd9b8-9e1d-4ef4-a86e-6a3a8fdaa79f");
   });
 
+  it("maps MTS live fatigue eventTypes code 18", () => {
+    const fields = extractAutonomiseFields({
+      id: "MDBkMjA1NzRlYnxhNzJlNTgxZC0zYzBkLTQyNDAtYjA5My05MDVhZjMyNTYyYTU=",
+      eventTypes: [18],
+      classification: 4,
+    });
+    expect(fields.vendorAlarmId).toBe("VT3600AI_ALARM_DSM_Fatigue");
+    expect(fields.vendorEventId).toBe("a72e581d-3c0d-4240-b093-905af32562a5");
+  });
+
   it("extracts media webhook nested event id (MTS pilot shape)", () => {
     const fields = extractAutonomiseFields(
       {

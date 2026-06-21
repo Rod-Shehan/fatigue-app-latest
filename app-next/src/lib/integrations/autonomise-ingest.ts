@@ -4,11 +4,10 @@ import {
   extractAutonomiseFields,
 } from "@/lib/integrations/autonomise-payload";
 import {
-  defaultEnabledAlarmIds,
   getCatalogueEntry,
-  isVendorAlarmAccepted,
   type FatigueEventPresetId,
 } from "@/lib/integrations/fatigue-event-catalogue";
+import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
 
 import type { AutonomiseWebhookKind } from "@/lib/integrations/autonomise-payload";
 
@@ -26,32 +25,15 @@ export type AutonomiseIngestResult = {
   mediaUrl: string | null;
 };
 
-function resolveEnabledAlarms(preset: FatigueEventPresetId): Set<string> {
-  return new Set(defaultEnabledAlarmIds(preset));
-}
-
 function evaluateAcceptance(
   kind: AutonomiseWebhookKind,
   vendorAlarmId: string | null,
-  enabledAlarms: ReadonlySet<string>
+  preset: FatigueEventPresetId
 ): { accepted: boolean; rejectReason: string | null } {
   if (kind === "media") {
     return { accepted: true, rejectReason: null };
   }
-  if (!vendorAlarmId) {
-    return { accepted: false, rejectReason: "missing_alarm_id" };
-  }
-  const entry = getCatalogueEntry(vendorAlarmId);
-  if (!entry) {
-    return { accepted: false, rejectReason: "unknown_alarm_id" };
-  }
-  if (entry.tier === "excluded" || entry.pipeline === null) {
-    return { accepted: false, rejectReason: "excluded_alarm" };
-  }
-  if (!isVendorAlarmAccepted(vendorAlarmId, enabledAlarms)) {
-    return { accepted: false, rejectReason: "alarm_not_enabled_for_tenant" };
-  }
-  return { accepted: true, rejectReason: null };
+  return evaluateAutonomiseEventAcceptance(vendorAlarmId, preset);
 }
 
 export async function ingestAutonomiseWebhook(
@@ -63,8 +45,7 @@ export async function ingestAutonomiseWebhook(
   }
 ): Promise<AutonomiseIngestResult> {
   const fields = extractAutonomiseFields(args.payload, args.kind);
-  const enabledAlarms = resolveEnabledAlarms(args.preset);
-  const { accepted, rejectReason } = evaluateAcceptance(args.kind, fields.vendorAlarmId, enabledAlarms);
+  const { accepted, rejectReason } = evaluateAcceptance(args.kind, fields.vendorAlarmId, args.preset);
   const idempotencyKey = buildAutonomiseIdempotencyKey(args.kind, fields, args.payload);
   const entry = fields.vendorAlarmId ? getCatalogueEntry(fields.vendorAlarmId) : undefined;
 

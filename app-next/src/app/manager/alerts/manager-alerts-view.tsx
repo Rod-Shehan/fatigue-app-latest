@@ -214,10 +214,10 @@ export function ManagerAlertsView() {
 
         {data?.diagnostics?.mediaWithoutMatchingEvent ? (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            Media webhook received ({data.diagnostics.ingestMedia}) but no matching event webhook (
-            {data.diagnostics.ingestEvents}). In Autonomise → API, confirm the <strong>Event</strong> URL is{" "}
-            <code className="text-xs">…/api/integrations/autonomise/events</code> (not only Media), and
-            Red events are included.
+            Media webhook received ({data.diagnostics.ingestMedia}) with no event row at all for{" "}
+            {data.diagnostics.mediaWithoutMatchingEvent} clip
+            {data.diagnostics.mediaWithoutMatchingEvent === 1 ? "" : "s"}. Check Autonomise Event URL is{" "}
+            <code className="text-xs">…/api/integrations/autonomise/events</code> and Red events are included.
           </div>
         ) : null}
 

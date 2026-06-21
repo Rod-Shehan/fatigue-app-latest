@@ -26,7 +26,10 @@ Optional:
 
 ```text
 AUTONOMISE_TENANT_GUID=2bd17364-739f-f011-8e62-6045bdfcbf17
+AUTONOMISE_FATIGUE_EVENT_TYPE_CODES=2,18
 ```
+
+`AUTONOMISE_FATIGUE_EVENT_TYPE_CODES` — Autonomise numeric `eventTypes` values treated as DSM Fatigue (MTS live uses **18** as well as **2**).
 
 After adding env vars, **redeploy** production.
 
