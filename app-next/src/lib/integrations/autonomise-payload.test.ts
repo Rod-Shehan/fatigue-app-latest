@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAutonomiseIdempotencyKey,
   extractAutonomiseFields,
+  parseFnolReference,
 } from "@/lib/integrations/autonomise-payload";
 import { verifyAutonomiseWebhookSecret } from "@/lib/integrations/autonomise-webhook-auth";
 
@@ -21,6 +22,33 @@ describe("autonomise-payload", () => {
     expect(fields.driverName).toBe("Pat Driver");
   });
 
+  it("maps live Autonomise fatigue eventTypes code 2", () => {
+    const fields = extractAutonomiseFields({
+      id: "MDBkMjA1NzRlYnwzZjBjZDliOC05ZTFkLTRlZjQtYTg2ZS02YTNhOGZkYWE3OWY=",
+      eventTypes: [2],
+      classification: 4,
+    });
+    expect(fields.vendorAlarmId).toBe("VT3600AI_ALARM_DSM_Fatigue");
+    expect(fields.vendorEventId).toBe("3f0cd9b8-9e1d-4ef4-a86e-6a3a8fdaa79f");
+  });
+
+  it("extracts media webhook nested event id (MTS pilot shape)", () => {
+    const fields = extractAutonomiseFields(
+      {
+        id: "cf06a246-1674-4105-86fb-c750195eddea",
+        type: 7,
+        event: { id: "914543cb-7aea-4c64-a324-85f9bb9e70d3" },
+      },
+      "media"
+    );
+    expect(fields.mediaRecordId).toBe("cf06a246-1674-4105-86fb-c750195eddea");
+    expect(fields.vendorEventId).toBe("914543cb-7aea-4c64-a324-85f9bb9e70d3");
+    expect(fields.linkedEventId).toBe("914543cb-7aea-4c64-a324-85f9bb9e70d3");
+    expect(buildAutonomiseIdempotencyKey("media", fields, {})).toBe(
+      "media:cf06a246-1674-4105-86fb-c750195eddea"
+    );
+  });
+
   it("extracts media url and event link", () => {
     const fields = extractAutonomiseFields({
       eventId: "evt-456",
@@ -33,6 +61,13 @@ describe("autonomise-payload", () => {
   it("builds event idempotency key", () => {
     const fields = extractAutonomiseFields({ eventId: "abc" });
     expect(buildAutonomiseIdempotencyKey("event", fields, {})).toBe("event:abc");
+  });
+
+  it("parses FNOL base64 to event uuid", () => {
+    const parsed = parseFnolReference(
+      "MDBkMjA1NzRlYnwzZjBjZDliOC05ZTFkLTRlZjQtYTg2ZS02YTNhOGZkYWE3OWY="
+    );
+    expect(parsed.eventUuid).toBe("3f0cd9b8-9e1d-4ef4-a86e-6a3a8fdaa79f");
   });
 });
 

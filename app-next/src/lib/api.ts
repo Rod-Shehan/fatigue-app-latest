@@ -180,6 +180,7 @@ export type CameraAlertItem = {
   rejectReason: string | null;
   mediaUrl: string | null;
   mediaPending: boolean;
+  eventWebhookPending?: boolean;
 };
 
 export type ManagerComplianceItem = {
@@ -412,7 +413,7 @@ export const api = {
       if (params?.acceptedOnly === false) sp.set("acceptedOnly", "false");
       if (params?.hours != null) sp.set("hours", String(params.hours));
       const q = sp.toString();
-      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean }>(
+      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestMedia: number; mediaWithoutMatchingEvent: number } }>(
         `/api/manager/camera-alerts${q ? `?${q}` : ""}`
       );
     },

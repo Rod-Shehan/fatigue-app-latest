@@ -55,4 +55,23 @@ describe("buildCameraAlertsFromRows", () => {
     );
     expect(alerts[0].mediaPending).toBe(true);
   });
+
+  it("surfaces orphan media when event webhook never arrived", () => {
+    const alerts = buildCameraAlertsFromRows(
+      [],
+      [
+        {
+          ...base,
+          id: "m-orphan",
+          kind: "media",
+          vendorEventId: "914543cb-7aea-4c64-a324-85f9bb9e70d3",
+          linkedEventId: "914543cb-7aea-4c64-a324-85f9bb9e70d3",
+          receivedAt: new Date("2026-06-21T12:05:00Z"),
+        },
+      ]
+    );
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].eventWebhookPending).toBe(true);
+    expect(alerts[0].rejectReason).toBe("event_webhook_missing");
+  });
 });

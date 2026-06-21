@@ -96,7 +96,9 @@ function AlertDetail({ alert }: { alert: CameraAlertItem }) {
         <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
         {!alert.accepted && alert.rejectReason && (
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            Not shown in coaching workflow: {alert.rejectReason.replace(/_/g, " ")}
+            {alert.eventWebhookPending
+              ? "Autonomise sent video metadata but not the event webhook — check Event URL in Autonomise API settings."
+              : `Not shown in coaching workflow: ${alert.rejectReason.replace(/_/g, " ")}`}
           </p>
         )}
       </div>
@@ -209,6 +211,15 @@ export function ManagerAlertsView() {
             {showFiltered ? "Fatigue only" : "Show filtered"}
           </Button>
         </div>
+
+        {data?.diagnostics?.mediaWithoutMatchingEvent ? (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            Media webhook received ({data.diagnostics.ingestMedia}) but no matching event webhook (
+            {data.diagnostics.ingestEvents}). In Autonomise → API, confirm the <strong>Event</strong> URL is{" "}
+            <code className="text-xs">…/api/integrations/autonomise/events</code> (not only Media), and
+            Red events are included.
+          </div>
+        ) : null}
 
         {!data?.configured && (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

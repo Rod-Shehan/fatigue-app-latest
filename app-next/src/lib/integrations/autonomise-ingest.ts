@@ -10,7 +10,7 @@ import {
   type FatigueEventPresetId,
 } from "@/lib/integrations/fatigue-event-catalogue";
 
-export type AutonomiseWebhookKind = "event" | "media";
+import type { AutonomiseWebhookKind } from "@/lib/integrations/autonomise-payload";
 
 export type AutonomiseIngestResult = {
   id: string;
@@ -62,7 +62,7 @@ export async function ingestAutonomiseWebhook(
     preset: FatigueEventPresetId;
   }
 ): Promise<AutonomiseIngestResult> {
-  const fields = extractAutonomiseFields(args.payload);
+  const fields = extractAutonomiseFields(args.payload, args.kind);
   const enabledAlarms = resolveEnabledAlarms(args.preset);
   const { accepted, rejectReason } = evaluateAcceptance(args.kind, fields.vendorAlarmId, enabledAlarms);
   const idempotencyKey = buildAutonomiseIdempotencyKey(args.kind, fields, args.payload);
