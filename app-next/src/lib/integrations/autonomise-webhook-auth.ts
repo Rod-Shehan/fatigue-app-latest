@@ -25,11 +25,4 @@ export function getAutonomiseEventPresetFromEnv(): "core_only" | "core_plus_adas
   return "core_plus_adas";
 }
 
-/** Autonomise webhook `eventTypes` numeric codes treated as DSM Fatigue for this tenant. */
-export function getAutonomiseFatigueEventTypeCodesFromEnv(): number[] {
-  const raw = (process.env.AUTONOMISE_FATIGUE_EVENT_TYPE_CODES ?? "2,18").trim();
-  return raw
-    .split(",")
-    .map((s) => Number.parseInt(s.trim(), 10))
-    .filter((n) => Number.isFinite(n));
-}
+export { getAutonomiseFatigueEventTypeCodesFromEnv } from "@/lib/integrations/autonomise-event-type-codes";

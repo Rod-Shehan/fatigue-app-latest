@@ -29,7 +29,33 @@ AUTONOMISE_TENANT_GUID=2bd17364-739f-f011-8e62-6045bdfcbf17
 AUTONOMISE_FATIGUE_EVENT_TYPE_CODES=2,18
 ```
 
-`AUTONOMISE_FATIGUE_EVENT_TYPE_CODES` — Autonomise numeric `eventTypes` values treated as DSM Fatigue (MTS live uses **18** as well as **2**).
+`AUTONOMISE_FATIGUE_EVENT_TYPE_CODES` — extra numeric `eventTypes` values treated as DSM Fatigue (legacy MTS uses **2**; current enum is **18**).
+
+Optional tenant override when Autonomise renumbers types:
+
+```text
+AUTONOMISE_EVENT_TYPE_CODE_MAP={"22":"VT3600AI_ALARM_ADAS_LaneDeparture"}
+```
+
+### Autonomise `eventTypes` → Circadia alarms (VT3600 / MTS)
+
+From Autonomise API `EventTypeDto` (swagger). Circadia maps these before the fatigue catalogue gate runs.
+
+| Code | Autonomise name | VT3600 alarm | `core_plus_adas` |
+|------|-----------------|--------------|------------------|
+| 2 | *(legacy MTS fatigue)* | DSM Fatigue | On |
+| 18 | Fatigue | DSM Fatigue | On |
+| 20 | Distraction | DSM Distracted | On |
+| 22 | Lane Departure | ADAS Lane Departure | On |
+| 23 | Forward Collision Warning | ADAS FCW | On |
+| 28 | Following Distance Warning | ADAS Following Distance | On |
+| 27 | Mobile Phone Warning | DSM Phonecall | Off (optional) |
+| 48 | Drowsy Eyes Detected | DSM Fatigue | On |
+| 50 | Physiological Fatigue | DSM Fatigue | On |
+| 19 | Smoking | — | Excluded |
+| 29 | Seatbelt Unfastened | — | Excluded |
+
+Telematics codes (Speed, Brake, etc.) are not mapped — ingest stores them as `missing_alarm_id` / filtered.
 
 **Video fetch** (required for clips when media webhooks have no URL):
 

@@ -44,6 +44,28 @@ describe("autonomise-payload", () => {
     expect(fields.deviceHardwareId).toBe("00d20574eb");
   });
 
+  it("maps distraction and ADAS eventTypes for core_plus_adas", () => {
+    expect(extractAutonomiseFields({ eventTypes: [20] }).vendorAlarmId).toBe(
+      "VT3600AI_ALARM_DSM_Distracted"
+    );
+    expect(extractAutonomiseFields({ eventTypes: [22] }).vendorAlarmId).toBe(
+      "VT3600AI_ALARM_ADAS_LaneDeparture"
+    );
+    expect(extractAutonomiseFields({ eventTypes: [23] }).vendorAlarmId).toBe(
+      "VT3600AI_ALARM_ADAS_ForwardCollisionWarning"
+    );
+    expect(extractAutonomiseFields({ eventTypes: [28] }).vendorAlarmId).toBe(
+      "VT3600AI_ALARM_ADAS_FollowingDistanceWarning"
+    );
+  });
+
+  it("maps label-based distraction when webhook includes text type", () => {
+    const fields = extractAutonomiseFields({
+      event: { id: "evt-dist", type: "Distraction" },
+    });
+    expect(fields.vendorAlarmId).toBe("VT3600AI_ALARM_DSM_Distracted");
+  });
+
   it("extracts MTS vehicle id when webhook has no VRN", () => {
     const fields = extractAutonomiseFields({
       id: "evt-1",

@@ -129,8 +129,9 @@ export function DriversList() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
         <PageHeader
-          backHref="/sheets"
-          backLabel="Your Sheets"
+          backHref="/manager"
+          backLabel="Manager dashboard"
+          backText="Overview"
           title={PRODUCT_NAME}
           subtitle={`Approved drivers — manage the roster and optional WA ${COMMERCIAL_DRIVERS_MEDICAL} expiry dates`}
           icon={<Users className="w-5 h-5" />}
