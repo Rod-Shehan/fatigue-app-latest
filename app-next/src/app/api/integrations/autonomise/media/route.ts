@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ingestAutonomiseWebhook } from "@/lib/integrations/autonomise-ingest";
+import { runAutonomiseIngestFollowUp } from "@/lib/integrations/autonomise-ingest-followup";
 import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 import {
   AUTONOMISE_WEBHOOK_SECRET_HEADER,
@@ -43,6 +44,10 @@ export async function POST(req: NextRequest) {
       kind: "media",
       payload,
       enabledAlarmIds,
+    });
+
+    after(async () => {
+      await runAutonomiseIngestFollowUp(prisma, { kind: "media", payload, result });
     });
 
     return NextResponse.json({

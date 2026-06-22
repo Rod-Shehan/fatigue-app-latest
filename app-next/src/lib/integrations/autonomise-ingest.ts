@@ -5,12 +5,6 @@ import {
 } from "@/lib/integrations/autonomise-payload";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
-import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
-import {
-  fnolSlugFromPayload,
-  resolveAndPersistAutonomiseMedia,
-} from "@/lib/integrations/autonomise-media-resolver";
-import { resolveAndPersistAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 
 import type { AutonomiseWebhookKind } from "@/lib/integrations/autonomise-payload";
 
@@ -98,55 +92,6 @@ export async function ingestAutonomiseWebhook(
 
   const row = await prisma.autonomiseWebhookIngest.create({ data });
 
-  let mediaUrl = fields.mediaUrl;
-  let driverName = fields.driverName;
-  const eventIdForMedia = fields.vendorEventId ?? fields.linkedEventId;
-  const shouldFetchMedia =
-    eventIdForMedia &&
-    isAutonomiseApiConfigured() &&
-    ((args.kind === "event" && accepted) || (args.kind === "media" && !mediaUrl));
-
-  if (shouldFetchMedia) {
-    try {
-      const resolved = await resolveAndPersistAutonomiseMedia(prisma, {
-        eventId: eventIdForMedia,
-        fnolSlug: fnolSlugFromPayload(args.payload),
-        payload: args.payload,
-      });
-      if (resolved?.mediaUrl) mediaUrl = resolved.mediaUrl;
-      if (resolved?.driverName) driverName = resolved.driverName;
-    } catch (e) {
-      console.warn(
-        "[autonomise-ingest] media fetch failed",
-        eventIdForMedia,
-        e instanceof Error ? e.message : e
-      );
-    }
-  }
-
-  let vehicleRego = fields.vehicleRego;
-  if (
-    args.kind === "event" &&
-    accepted &&
-    isAutonomiseApiConfigured() &&
-    (!vehicleRego || !driverName)
-  ) {
-    try {
-      const identity = await resolveAndPersistAutonomiseIdentity(prisma, {
-        ingestId: row.id,
-        payload: args.payload,
-      });
-      if (identity?.vehicleRego) vehicleRego = identity.vehicleRego;
-      if (identity?.driverName) driverName = identity.driverName;
-    } catch (e) {
-      console.warn(
-        "[autonomise-ingest] identity fetch failed",
-        row.id,
-        e instanceof Error ? e.message : e
-      );
-    }
-  }
-
   return {
     id: row.id,
     kind: args.kind,
@@ -155,9 +100,9 @@ export async function ingestAutonomiseWebhook(
     vendorAlarmId: fields.vendorAlarmId,
     displayName: entry?.displayName ?? null,
     rejectReason,
-    vehicleRego,
-    driverName,
+    vehicleRego: fields.vehicleRego,
+    driverName: fields.driverName,
     linkedEventId: fields.linkedEventId,
-    mediaUrl,
+    mediaUrl: fields.mediaUrl,
   };
 }

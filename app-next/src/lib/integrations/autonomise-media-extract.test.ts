@@ -57,6 +57,20 @@ describe("autonomise-media-extract", () => {
     expect(parsed.roadCameraUrl).toBe("https://cdn.example/forward.mp4");
   });
 
+  it("accepts unlabelled media[] video entries from Autonomise API", () => {
+    const parsed = extractMediaFromJson({
+      media: [
+        {
+          uri: "https://cdn.example/unlabelled-clip.mp4",
+          mimeType: "video/mp4",
+          mediaType: 3,
+        },
+      ],
+      missing: [],
+    });
+    expect(pickBestMediaUrl(parsed)).toBe("https://cdn.example/unlabelled-clip.mp4");
+  });
+
   it("extracts documented Autonomise device media API response (media[].uri)", () => {
     const parsed = extractMediaFromJson({
       media: [

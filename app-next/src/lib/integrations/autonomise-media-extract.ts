@@ -153,6 +153,16 @@ export function parseAutonomiseMediaList(media: unknown[]): ParsedMediaList {
         driverVideoType = picked.mediaType;
       } else if (channel === "road" && !result.roadVideoUrl) {
         result.roadVideoUrl = url;
+      } else if (!result.driverVideoUrl && !result.roadVideoUrl) {
+        // Unlabelled / internal / load — still a valid clip from Autonomise media API
+        const picked = pickBetterFatigueVideo(
+          result.driverVideoUrl,
+          driverVideoType,
+          url,
+          mediaType
+        );
+        result.driverVideoUrl = picked.url;
+        driverVideoType = picked.mediaType;
       }
       continue;
     }

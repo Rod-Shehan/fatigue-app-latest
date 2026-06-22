@@ -62,6 +62,65 @@ export async function resolveAndPersistAutonomiseMedia(
   };
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Delays before each media API attempt — clip is often not ready on first event webhook. */
+export const MEDIA_FETCH_RETRY_DELAYS_MS = [0, 45_000, 90_000, 180_000] as const;
+
+async function eventIngestHasMediaUrl(
+  prisma: PrismaClient,
+  eventId: string
+): Promise<string | null> {
+  const row = await prisma.autonomiseWebhookIngest.findFirst({
+    where: {
+      kind: "event",
+      OR: [{ vendorEventId: eventId }, { linkedEventId: eventId }],
+      mediaUrl: { not: null },
+    },
+    select: { mediaUrl: true },
+  });
+  return row?.mediaUrl ?? null;
+}
+
+/**
+ * Retry Autonomise media API until clip is ready (background follow-up after webhook).
+ * Clips exist on Autonomise before our single ingest attempt; retries close that gap.
+ */
+export async function resolveAutonomiseMediaWithRetries(
+  prisma: PrismaClient,
+  args: { eventId: string; payload?: unknown }
+): Promise<ResolveAutonomiseMediaResult | null> {
+  const eventId = String(args.eventId || "").trim();
+  if (!eventId || !isAutonomiseApiConfigured()) return null;
+
+  for (const delayMs of MEDIA_FETCH_RETRY_DELAYS_MS) {
+    if (delayMs > 0) await sleep(delayMs);
+
+    const existing = await eventIngestHasMediaUrl(prisma, eventId);
+    if (existing) {
+      return { eventId, mediaUrl: existing, driverName: null, fetched: false };
+    }
+
+    try {
+      const result = await resolveAndPersistAutonomiseMedia(prisma, {
+        eventId,
+        payload: args.payload,
+      });
+      if (result?.mediaUrl) return result;
+    } catch (e) {
+      console.warn(
+        "[autonomise-media] retry fetch failed",
+        eventId,
+        e instanceof Error ? e.message : e
+      );
+    }
+  }
+
+  return { eventId, mediaUrl: null, driverName: null, fetched: true };
+}
+
 const MAX_FETCH_PER_REQUEST = 3;
 
 /** Backfill media for accepted events missing a clip URL (Live alerts poll). Mutates rows in place. */
