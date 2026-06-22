@@ -5,10 +5,20 @@
 
 const VIDEO_EXT = /\.(mp4|webm|m3u8)(\?|$)/i;
 const VIDEO_PATH = /\/video|\/clip|\/playback|\/recording/i;
-const DRIVER_CHANNEL_HINTS = /driver|dsm|cab|face|inward|internal|operator/i;
+/** VT3600-AI (MTS): ch0 Forward, ch1 Internal (centre), ch2 Driver, ch3 Load */
+const VT3600_DRIVER_CHANNEL = 2;
+const VT3600_FORWARD_CHANNEL = 0;
+const VT3600_INTERNAL_CHANNEL = 1;
+const VT3600_LOAD_CHANNEL = 3;
+const DRIVER_CHANNEL_LABEL_HINTS = /\bdriver\b|dsm|face|inward|operator/i;
+const INTERNAL_CHANNEL_LABEL_HINTS = /\binternal\b|centre|center/i;
 const ROAD_CHANNEL_HINTS = /external|forward|road|adas|outward|front/i;
-const DRIVER_URL_HINTS = DRIVER_CHANNEL_HINTS;
+const LOAD_CHANNEL_LABEL_HINTS = /\bload\b/i;
+const DRIVER_URL_HINTS = /driver|dsm|cab|face|inward|operator/i;
 const ROAD_URL_HINTS = ROAD_CHANNEL_HINTS;
+/** Autonomise MediaType: 3 Video, 6 AiVideo — prefer over 7 BirdsEye / 8 Combined for DSM fatigue */
+const PREFERRED_FATIGUE_MEDIA_TYPES = new Set([3, 6]);
+const DEPRIORITIZED_FATIGUE_MEDIA_TYPES = new Set([7, 8]);
 
 function asUrl(value: unknown): string {
   if (!value) return "";
@@ -42,19 +52,65 @@ export function looksLikeVideoUrl(url: string): boolean {
   return VIDEO_EXT.test(u) || VIDEO_PATH.test(u);
 }
 
-/** Autonomise `media[]` channel — Internal/DSM vs External/forward (VT3600). */
-export function classifyAutonomiseMediaChannel(row: Record<string, unknown>): "driver" | "road" | "unknown" {
-  const label = String(row.channelLabel ?? row.channel_label ?? row.type ?? row.name ?? "").toLowerCase();
+export type AutonomiseMediaChannel = "driver" | "road" | "internal" | "load" | "unknown";
+
+function parseChannelNumber(channel: unknown): number | null {
+  if (typeof channel === "number" && Number.isFinite(channel)) return channel;
+  if (typeof channel === "string" && channel.trim() !== "") {
+    const n = Number.parseInt(channel, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function parseMediaType(row: Record<string, unknown>): number | null {
+  const raw = row.mediaType ?? row.media_type;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const n = Number.parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function fatigueVideoRank(mediaType: number | null): number {
+  if (mediaType == null) return 1;
+  if (PREFERRED_FATIGUE_MEDIA_TYPES.has(mediaType)) return 3;
+  if (DEPRIORITIZED_FATIGUE_MEDIA_TYPES.has(mediaType)) return 0;
+  return 2;
+}
+
+/** VT3600-AI channel labels + Autonomise `media[]` metadata. */
+export function classifyAutonomiseMediaChannel(row: Record<string, unknown>): AutonomiseMediaChannel {
+  const label = String(row.channelLabel ?? row.channel_label ?? row.type ?? row.name ?? "")
+    .trim()
+    .toLowerCase();
+  const channelNum = parseChannelNumber(row.channel);
+
   if (label) {
-    if (DRIVER_CHANNEL_HINTS.test(label)) return "driver";
+    if (DRIVER_CHANNEL_LABEL_HINTS.test(label)) return "driver";
+    if (LOAD_CHANNEL_LABEL_HINTS.test(label)) return "load";
+    if (INTERNAL_CHANNEL_LABEL_HINTS.test(label)) return "internal";
     if (ROAD_CHANNEL_HINTS.test(label)) return "road";
   }
 
-  const channel = row.channel;
-  if (channel === 1 || channel === "1") return "driver";
-  if (channel === 0 || channel === "0") return "road";
+  if (channelNum === VT3600_DRIVER_CHANNEL) return "driver";
+  if (channelNum === VT3600_FORWARD_CHANNEL) return "road";
+  if (channelNum === VT3600_INTERNAL_CHANNEL) return "internal";
+  if (channelNum === VT3600_LOAD_CHANNEL) return "load";
 
   return "unknown";
+}
+
+function pickBetterFatigueVideo(current: string, currentType: number | null, next: string, nextType: number | null): {
+  url: string;
+  mediaType: number | null;
+} {
+  if (!current) return { url: next, mediaType: nextType };
+  if (fatigueVideoRank(nextType) > fatigueVideoRank(currentType)) {
+    return { url: next, mediaType: nextType };
+  }
+  return { url: current, mediaType: currentType };
 }
 
 type ParsedMediaList = {
@@ -64,7 +120,7 @@ type ParsedMediaList = {
   roadImageUrl: string;
 };
 
-/** Parse Autonomise `GET …/media` list — prefer Internal/driver channel for DSM fatigue. */
+/** Parse Autonomise `GET …/media` list — VT3600 ch2 Driver for DSM fatigue. */
 export function parseAutonomiseMediaList(media: unknown[]): ParsedMediaList {
   const result: ParsedMediaList = {
     driverVideoUrl: "",
@@ -72,7 +128,7 @@ export function parseAutonomiseMediaList(media: unknown[]): ParsedMediaList {
     driverImageUrl: "",
     roadImageUrl: "",
   };
-  const unknownVideos: string[] = [];
+  let driverVideoType: number | null = null;
 
   for (const item of media) {
     if (!item || typeof item !== "object") continue;
@@ -83,11 +139,21 @@ export function parseAutonomiseMediaList(media: unknown[]): ParsedMediaList {
     const mime = String(row.mimeType ?? row.mime_type ?? "");
     const isVideo = isVideoMime(mime) || looksLikeVideoUrl(url);
     const channel = classifyAutonomiseMediaChannel(row);
+    const mediaType = parseMediaType(row);
 
     if (isVideo) {
-      if (channel === "driver" && !result.driverVideoUrl) result.driverVideoUrl = url;
-      else if (channel === "road" && !result.roadVideoUrl) result.roadVideoUrl = url;
-      else if (channel === "unknown") unknownVideos.push(url);
+      if (channel === "driver") {
+        const picked = pickBetterFatigueVideo(
+          result.driverVideoUrl,
+          driverVideoType,
+          url,
+          mediaType
+        );
+        result.driverVideoUrl = picked.url;
+        driverVideoType = picked.mediaType;
+      } else if (channel === "road" && !result.roadVideoUrl) {
+        result.roadVideoUrl = url;
+      }
       continue;
     }
 
@@ -95,13 +161,6 @@ export function parseAutonomiseMediaList(media: unknown[]): ParsedMediaList {
       if (channel === "driver" && !result.driverImageUrl) result.driverImageUrl = url;
       else if (channel === "road" && !result.roadImageUrl) result.roadImageUrl = url;
     }
-  }
-
-  if (!result.driverVideoUrl && unknownVideos.length === 1) {
-    result.driverVideoUrl = unknownVideos[0];
-  } else if (!result.driverVideoUrl && unknownVideos.length >= 2) {
-    result.roadVideoUrl = result.roadVideoUrl || unknownVideos[0];
-    result.driverVideoUrl = unknownVideos[1];
   }
 
   return result;

@@ -24,20 +24,29 @@ describe("autonomise-media-extract", () => {
     expect(parsed.roadCameraUrl).toContain("road");
   });
 
-  it("prefers Internal driver channel video over External forward when forward is listed first", () => {
+  it("prefers VT3600 channel 2 Driver over Forward and Internal centre", () => {
     const parsed = extractMediaFromJson({
       media: [
         {
           uri: "https://cdn.example/forward.mp4",
           mimeType: "video/mp4",
-          channelLabel: "External",
+          channelLabel: "Forward",
           channel: 0,
+          mediaType: 3,
+        },
+        {
+          uri: "https://cdn.example/internal.mp4",
+          mimeType: "video/mp4",
+          channelLabel: "Internal",
+          channel: 1,
+          mediaType: 3,
         },
         {
           uri: "https://cdn.example/driver.mp4",
           mimeType: "video/mp4",
-          channelLabel: "Internal",
-          channel: 1,
+          channelLabel: "Driver",
+          channel: 2,
+          mediaType: 3,
         },
       ],
       missing: [],
@@ -51,21 +60,24 @@ describe("autonomise-media-extract", () => {
       media: [
         {
           id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-          uri: "https://cdn.example/internal-clip.mp4",
+          uri: "https://cdn.example/driver-clip.mp4",
           mimeType: "video/mp4",
-          channelLabel: "Internal",
+          channelLabel: "Driver",
+          channel: 2,
+          mediaType: 3,
         },
         {
           uri: "https://cdn.example/driver.jpg",
           mimeType: "image/jpeg",
-          channelLabel: "Internal",
+          channelLabel: "Driver",
+          channel: 2,
         },
       ],
       missing: [],
     });
-    expect(parsed.eventVideoUrl).toBe("https://cdn.example/internal-clip.mp4");
-    expect(parsed.driverCameraUrl).toBe("https://cdn.example/internal-clip.mp4");
-    expect(pickBestMediaUrl(parsed)).toBe("https://cdn.example/internal-clip.mp4");
+    expect(parsed.eventVideoUrl).toBe("https://cdn.example/driver-clip.mp4");
+    expect(parsed.driverCameraUrl).toBe("https://cdn.example/driver-clip.mp4");
+    expect(pickBestMediaUrl(parsed)).toBe("https://cdn.example/driver-clip.mp4");
   });
 
   it("deep-scans unknown media webhook JSON for https urls", () => {
