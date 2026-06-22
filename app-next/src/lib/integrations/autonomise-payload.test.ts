@@ -122,6 +122,24 @@ describe("autonomise-payload", () => {
     );
     expect(parsed.eventUuid).toBe("3f0cd9b8-9e1d-4ef4-a86e-6a3a8fdaa79f");
   });
+
+  it("does not base64-decode plain event UUIDs (media webhook nested event.id)", () => {
+    const eventId = "c3582234-3a49-49d7-9cd0-e89b50b48716";
+    const parsed = parseFnolReference(eventId);
+    expect(parsed.canonicalEventId).toBe(eventId);
+
+    const fields = extractAutonomiseFields(
+      {
+        id: "16d65742-507a-4e8f-bd0e-ee078c4f72ea",
+        type: 7,
+        event: { id: eventId },
+        device: { hardwareId: "00d2047b28" },
+      },
+      "media"
+    );
+    expect(fields.vendorEventId).toBe(eventId);
+    expect(fields.linkedEventId).toBe(eventId);
+  });
 });
 
 describe("autonomise-webhook-auth", () => {

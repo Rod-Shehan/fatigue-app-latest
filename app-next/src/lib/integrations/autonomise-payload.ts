@@ -9,6 +9,10 @@ export type AutonomiseWebhookKind = "event" | "media";
 
 const VENDOR_ALARM_ID_PATTERN = /VT3600AI_ALARM_[A-Za-z0-9_]+/;
 
+/** Autonomise fleet event ids are plain UUIDs on media webhooks — never base64-decode these. */
+const AUTONOMISE_EVENT_UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const EVENT_LABEL_TO_ALARM: Readonly<Record<string, string>> = {
   fatigue: "VT3600AI_ALARM_DSM_Fatigue",
   distracted: "VT3600AI_ALARM_DSM_Distracted",
@@ -125,6 +129,10 @@ export function parseFnolReference(id: string | null | undefined): {
 } {
   const raw = String(id ?? "").trim();
   if (!raw) return { fnolSlug: "", eventUuid: "", canonicalEventId: "" };
+
+  if (AUTONOMISE_EVENT_UUID_PATTERN.test(raw)) {
+    return { fnolSlug: "", eventUuid: raw, canonicalEventId: raw };
+  }
 
   try {
     const decoded = Buffer.from(raw, "base64").toString("utf8");
