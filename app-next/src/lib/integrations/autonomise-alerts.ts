@@ -1,12 +1,12 @@
 import type { AutonomiseWebhookIngest, Prisma, PrismaClient } from "@prisma/client";
 import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
-import { getAutonomiseEventPresetFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
+import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
 import { backfillMissingAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
-import { getCatalogueEntry, type FatigueEventPresetId } from "@/lib/integrations/fatigue-event-catalogue";
+import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
@@ -68,12 +68,12 @@ function enrichMediaRow(row: IngestRow): IngestRow {
   };
 }
 
-/** Re-evaluate stored event rows when mapper improves (e.g. new eventTypes codes). */
-function enrichEventRow(row: IngestRow, preset: FatigueEventPresetId): IngestRow {
+/** Re-evaluate stored event rows when mapper or tenant settings change. */
+function enrichEventRow(row: IngestRow, enabledAlarmIds: ReadonlySet<string>): IngestRow {
   if (!row.payload) return row;
   const fields = extractAutonomiseFields(row.payload, "event");
   const vendorAlarmId = fields.vendorAlarmId ?? row.vendorAlarmId;
-  const { accepted, rejectReason } = evaluateAutonomiseEventAcceptance(vendorAlarmId, preset);
+  const { accepted, rejectReason } = evaluateAutonomiseEventAcceptance(vendorAlarmId, enabledAlarmIds);
   return {
     ...row,
     vendorAlarmId,
@@ -205,7 +205,7 @@ export async function listCameraAlerts(
   const defaultLimit = hours > 48 ? 100 : 40;
   const limit = Math.min(Math.max(args.limit ?? defaultLimit, 1), 100);
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-  const preset = getAutonomiseEventPresetFromEnv();
+  const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
 
   const [allEventRows, mediaRows, ingestEvents, ingestMedia] = await Promise.all([
     prisma.autonomiseWebhookIngest.findMany({
@@ -250,7 +250,7 @@ export async function listCameraAlerts(
     prisma.autonomiseWebhookIngest.count({ where: { kind: "media", receivedAt: { gte: since } } }),
   ]);
 
-  const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, preset));
+  const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, enabledAlarmIds));
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
   if (args.backfillMedia !== false) {

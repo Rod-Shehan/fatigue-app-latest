@@ -10,6 +10,7 @@ import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/a
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Video, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
 
 const HOURS_OPTIONS = [
   { label: "48 hours", value: 48 },
@@ -389,6 +390,8 @@ export function ManagerAlertsView() {
           </select>
         </div>
 
+        <CameraAlertEventTypesPanel />
+
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <Radio
@@ -416,7 +419,7 @@ export function ManagerAlertsView() {
             size="sm"
             onClick={() => setShowFiltered((v) => !v)}
           >
-            {showFiltered ? "Fatigue only" : "Show filtered"}
+            {showFiltered ? "Accepted only" : "Show filtered"}
           </Button>
         </div>
 

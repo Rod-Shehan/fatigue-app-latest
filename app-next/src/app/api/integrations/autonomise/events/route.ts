@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ingestAutonomiseWebhook } from "@/lib/integrations/autonomise-ingest";
+import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 import {
   AUTONOMISE_WEBHOOK_SECRET_HEADER,
   getAutonomiseEventPresetFromEnv,
@@ -34,10 +35,11 @@ async function handleWebhook(req: NextRequest, kind: "event" | "media") {
   }
 
   try {
+    const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
     const result = await ingestAutonomiseWebhook(prisma, {
       kind,
       payload,
-      preset: getAutonomiseEventPresetFromEnv(),
+      enabledAlarmIds,
     });
 
     return NextResponse.json({

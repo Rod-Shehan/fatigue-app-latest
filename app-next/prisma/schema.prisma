@@ -281,3 +281,13 @@ model CameraAlertTriage {
   @@index([decidedAt])
   @@index([decision])
 }
+
+/** Manager-selected Autonomise alarm types for live alerts ingest + inbox (singleton). */
+model CameraAlertEventSettings {
+  id              String   @id @default("default")
+  /** VT3600AI_ALARM_* ids from fatigue-event-catalogue (offered tiers only). */
+  enabledAlarmIds Json
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+}

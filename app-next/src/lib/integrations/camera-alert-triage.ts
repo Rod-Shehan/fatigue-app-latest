@@ -1,7 +1,7 @@
 import type { Prisma, PrismaClient } from "@prisma/client";
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
-import { getAutonomiseEventPresetFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
+import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 
 export type CameraAlertTriageDecision = "authorized" | "dismissed";
 
@@ -77,10 +77,10 @@ export async function recordCameraAlertTriage(
     throw new Error("EVENT_NOT_FOUND");
   }
 
-  const preset = getAutonomiseEventPresetFromEnv();
+  const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
   const fields = extractAutonomiseFields(eventRow.payload as Prisma.JsonValue, "event");
   const vendorAlarmId = fields.vendorAlarmId ?? eventRow.vendorAlarmId;
-  const { accepted, rejectReason } = evaluateAutonomiseEventAcceptance(vendorAlarmId, preset);
+  const { accepted, rejectReason } = evaluateAutonomiseEventAcceptance(vendorAlarmId, enabledAlarmIds);
   if (!accepted) {
     throw new Error("EVENT_NOT_FOUND");
   }

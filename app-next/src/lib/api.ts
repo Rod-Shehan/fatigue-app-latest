@@ -169,6 +169,22 @@ export type RiskRegisterSummary = {
 /** Camera fatigue alert from Autonomise webhook ingest (manager live inbox). */
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
+export type CameraAlertEventSettingsEntry = {
+  vendorAlarmId: string;
+  displayName: string;
+  tier: string;
+  family: string;
+  enabled: boolean;
+  defaultEnabled: boolean;
+};
+
+export type CameraAlertEventSettingsSnapshot = {
+  enabledAlarmIds: string[];
+  entries: CameraAlertEventSettingsEntry[];
+  envPreset: string;
+  updatedAt: string | null;
+};
+
 export type CameraAlertItem = {
   id: string;
   vendorEventId: string | null;
@@ -445,6 +461,15 @@ export const api = {
           decidedAt: string;
         };
       }>(`/api/manager/camera-alerts/${ingestEventId}/triage`, { method: "POST", body: data }),
+    cameraAlertEventSettings: () =>
+      fetchApi<{ settings: CameraAlertEventSettingsSnapshot }>(
+        "/api/manager/camera-alerts/event-settings"
+      ),
+    updateCameraAlertEventSettings: (enabledAlarmIds: string[]) =>
+      fetchApi<{ settings: CameraAlertEventSettingsSnapshot }>(
+        "/api/manager/camera-alerts/event-settings",
+        { method: "PATCH", body: { enabledAlarmIds } }
+      ),
   },
   messages: {
     threads: () => fetchApi<{ threads: MessageThreadSummary[] }>("/api/messages/threads"),

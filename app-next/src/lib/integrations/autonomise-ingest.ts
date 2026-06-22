@@ -3,10 +3,7 @@ import {
   buildAutonomiseIdempotencyKey,
   extractAutonomiseFields,
 } from "@/lib/integrations/autonomise-payload";
-import {
-  getCatalogueEntry,
-  type FatigueEventPresetId,
-} from "@/lib/integrations/fatigue-event-catalogue";
+import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import {
@@ -33,12 +30,12 @@ export type AutonomiseIngestResult = {
 function evaluateAcceptance(
   kind: AutonomiseWebhookKind,
   vendorAlarmId: string | null,
-  preset: FatigueEventPresetId
+  enabledAlarmIds: ReadonlySet<string>
 ): { accepted: boolean; rejectReason: string | null } {
   if (kind === "media") {
     return { accepted: true, rejectReason: null };
   }
-  return evaluateAutonomiseEventAcceptance(vendorAlarmId, preset);
+  return evaluateAutonomiseEventAcceptance(vendorAlarmId, enabledAlarmIds);
 }
 
 export async function ingestAutonomiseWebhook(
@@ -46,11 +43,11 @@ export async function ingestAutonomiseWebhook(
   args: {
     kind: AutonomiseWebhookKind;
     payload: unknown;
-    preset: FatigueEventPresetId;
+    enabledAlarmIds: ReadonlySet<string>;
   }
 ): Promise<AutonomiseIngestResult> {
   const fields = extractAutonomiseFields(args.payload, args.kind);
-  const { accepted, rejectReason } = evaluateAcceptance(args.kind, fields.vendorAlarmId, args.preset);
+  const { accepted, rejectReason } = evaluateAcceptance(args.kind, fields.vendorAlarmId, args.enabledAlarmIds);
   const idempotencyKey = buildAutonomiseIdempotencyKey(args.kind, fields, args.payload);
   const entry = fields.vendorAlarmId ? getCatalogueEntry(fields.vendorAlarmId) : undefined;
 
