@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
@@ -8,7 +8,7 @@ import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCircle2, ExternalLink, Loader2, Radio, Video, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Video, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const HOURS_OPTIONS = [
@@ -68,202 +68,221 @@ function triageBadge(status: CameraAlertTriageStatus) {
   };
 }
 
-function AlertCard({
+function AlertEventCard({
   alert,
-  selected,
-  onSelect,
-}: {
-  alert: CameraAlertItem;
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  const triage = triageBadge(alert.triageStatus);
-  const TriageIcon = triage.icon;
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "w-full rounded-xl border p-4 text-left transition-colors",
-        selected
-          ? "border-teal-600 bg-teal-50/80 shadow-sm dark:border-teal-500 dark:bg-teal-950/40"
-          : "border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600"
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
-            {alert.displayName ?? "Camera event"}
-          </p>
-          <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-            {formatVehicleDriverLine(alert)}
-          </p>
-          <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
-              tierChipClass(alert.tier, alert.accepted)
-            )}
-          >
-            {alert.accepted ? (alert.tier === "core" ? "Priority" : "Monitor") : "Filtered"}
-          </span>
-          {alert.accepted && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
-                triage.className
-              )}
-            >
-              {TriageIcon ? <TriageIcon className="h-3 w-3" aria-hidden /> : null}
-              {triage.label}
-            </span>
-          )}
-        </div>
-      </div>
-      {alert.mediaPending && (
-        <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">Video pending…</p>
-      )}
-      {alert.mediaUrl && (
-        <p className="mt-2 text-xs text-teal-700 dark:text-teal-400 flex items-center gap-1">
-          <Video className="h-3.5 w-3.5" aria-hidden />
-          Clip available
-        </p>
-      )}
-    </button>
-  );
-}
-
-function AlertDetail({
-  alert,
+  expanded,
+  onToggle,
+  collapsible,
   onTriage,
   triagePending,
   triageError,
 }: {
   alert: CameraAlertItem;
+  expanded: boolean;
+  onToggle: () => void;
+  collapsible: boolean;
   onTriage: (decision: "authorized" | "dismissed", note: string) => void;
   triagePending: boolean;
   triageError: string | null;
 }) {
   const [note, setNote] = useState("");
+  const triage = triageBadge(alert.triageStatus);
+  const TriageIcon = triage.icon;
   const canTriage = alert.accepted && !alert.eventWebhookPending && alert.triageStatus === "pending";
   const decided = alert.triageStatus !== "pending";
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+    <article
+      className={cn(
+        "rounded-xl border bg-white shadow-sm transition-colors dark:bg-slate-900",
+        expanded
+          ? "border-teal-600 dark:border-teal-500"
+          : "border-slate-200 dark:border-slate-700"
+      )}
+    >
+      {collapsible ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex w-full items-start justify-between gap-2 p-4 text-left"
+          aria-expanded={expanded}
+        >
+          <AlertEventHeader alert={alert} triage={triage} TriageIcon={TriageIcon} />
+          <ChevronDown
+            className={cn(
+              "mt-1 h-5 w-5 shrink-0 text-slate-400 transition-transform",
+              expanded && "rotate-180"
+            )}
+            aria-hidden
+          />
+        </button>
+      ) : (
+        <div className="p-4 pb-0">
+          <AlertEventHeader alert={alert} triage={triage} TriageIcon={TriageIcon} />
+        </div>
+      )}
+
+      {expanded && (
+        <div className={cn("px-4 pb-4", collapsible && "border-t border-slate-100 pt-4 dark:border-slate-800")}>
+          {!alert.accepted && alert.rejectReason && (
+            <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+              {alert.eventWebhookPending
+                ? "Autonomise sent video metadata but not the event webhook — check Event URL in Autonomise API settings."
+                : `Not shown in coaching workflow: ${alert.rejectReason.replace(/_/g, " ")}`}
+            </p>
+          )}
+
+          {decided && (
+            <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+              <p className="font-medium text-slate-800 dark:text-slate-200">
+                {alert.triageStatus === "authorized" ? "Follow-up authorized" : "Dismissed as false positive"}
+              </p>
+              {alert.triageDecidedBy && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {alert.triageDecidedBy}
+                  {alert.triageDecidedAt ? ` · ${formatWhen(alert.triageDecidedAt)}` : ""}
+                </p>
+              )}
+              {alert.triageNote && (
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{alert.triageNote}</p>
+              )}
+            </div>
+          )}
+
+          <div className="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-black/90 flex items-center justify-center">
+            {alert.mediaUrl ? (
+              <video
+                key={alert.mediaUrl}
+                src={alert.mediaUrl}
+                className="max-h-full max-w-full"
+                controls
+                playsInline
+                preload="metadata"
+              />
+            ) : (
+              <div className="px-4 text-center text-sm text-slate-400">
+                {alert.mediaPending
+                  ? "Video not ready yet — Autonomise may send a media webhook shortly."
+                  : "No video for this event."}
+              </div>
+            )}
+          </div>
+
+          {canTriage && (
+            <>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
+              </p>
+              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                Note (optional)
+              </label>
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={2}
+                placeholder="e.g. spoke with driver, fatigue after long leg"
+                className="mb-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
+              />
+              {triageError && (
+                <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">{triageError}</p>
+              )}
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  className="flex-1"
+                  disabled={triagePending}
+                  onClick={() => onTriage("authorized", note)}
+                >
+                  {triagePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                  Authorize follow-up
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={triagePending}
+                  onClick={() => onTriage("dismissed", note)}
+                >
+                  Dismiss as false positive
+                </Button>
+              </div>
+            </>
+          )}
+
+          {alert.mediaUrl && (
+            <a
+              href={alert.mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1 text-xs text-teal-700 hover:underline dark:text-teal-400"
+            >
+              Open clip in new tab
+              <ExternalLink className="h-3 w-3" aria-hidden />
+            </a>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
+function AlertEventHeader({
+  alert,
+  triage,
+  TriageIcon,
+}: {
+  alert: CameraAlertItem;
+  triage: ReturnType<typeof triageBadge>;
+  TriageIcon: typeof CheckCircle2 | null;
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="font-semibold text-slate-900 dark:text-slate-100 truncate">
           {alert.displayName ?? "Camera event"}
-        </h2>
-        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+        </p>
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
           {formatVehicleDriverLine(alert)}
         </p>
         <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
-        {!alert.accepted && alert.rejectReason && (
-          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-            {alert.eventWebhookPending
-              ? "Autonomise sent video metadata but not the event webhook — check Event URL in Autonomise API settings."
-              : `Not shown in coaching workflow: ${alert.rejectReason.replace(/_/g, " ")}`}
-          </p>
-        )}
-        {decided && (
-          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
-            <p className="font-medium text-slate-800 dark:text-slate-200">
-              {alert.triageStatus === "authorized" ? "Follow-up authorized" : "Dismissed as false positive"}
-            </p>
-            {alert.triageDecidedBy && (
-              <p className="text-xs text-slate-500 mt-0.5">
-                {alert.triageDecidedBy}
-                {alert.triageDecidedAt ? ` · ${formatWhen(alert.triageDecidedAt)}` : ""}
-              </p>
-            )}
-            {alert.triageNote && (
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{alert.triageNote}</p>
-            )}
-          </div>
+        {!alert.mediaUrl && alert.mediaPending && (
+          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">Video pending…</p>
         )}
       </div>
-
-      <div className="mb-4 aspect-video w-full overflow-hidden rounded-lg bg-black/90 flex items-center justify-center">
-        {alert.mediaUrl ? (
-          <video
-            key={alert.mediaUrl}
-            src={alert.mediaUrl}
-            className="max-h-full max-w-full"
-            controls
-            playsInline
-            preload="metadata"
-          />
-        ) : (
-          <div className="px-4 text-center text-sm text-slate-400">
-            {alert.mediaPending
-              ? "Video not ready yet — Autonomise may send a media webhook shortly."
-              : "No video for this event."}
-          </div>
-        )}
-      </div>
-
-      {canTriage && (
-        <>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-            {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
-          </p>
-          <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-            Note (optional)
-          </label>
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={2}
-            placeholder="e.g. spoke with driver, fatigue after long leg"
-            className="mb-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-          />
-          {triageError && (
-            <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">{triageError}</p>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide",
+            tierChipClass(alert.tier, alert.accepted)
           )}
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              type="button"
-              className="flex-1"
-              disabled={triagePending}
-              onClick={() => onTriage("authorized", note)}
-            >
-              {triagePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-              Authorize follow-up
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              disabled={triagePending}
-              onClick={() => onTriage("dismissed", note)}
-            >
-              Dismiss as false positive
-            </Button>
-          </div>
-        </>
-      )}
-
-      {alert.mediaUrl && (
-        <a
-          href={alert.mediaUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1 text-xs text-teal-700 hover:underline dark:text-teal-400"
         >
-          Open clip in new tab
-          <ExternalLink className="h-3 w-3" aria-hidden />
-        </a>
-      )}
+          {alert.accepted ? (alert.tier === "core" ? "Priority" : "Monitor") : "Filtered"}
+        </span>
+        {alert.accepted && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              triage.className
+            )}
+          >
+            {TriageIcon ? <TriageIcon className="h-3 w-3" aria-hidden /> : null}
+            {triage.label}
+          </span>
+        )}
+        {alert.mediaUrl && (
+          <span className="inline-flex items-center gap-1 text-[10px] text-teal-700 dark:text-teal-400">
+            <Video className="h-3 w-3" aria-hidden />
+            Clip
+          </span>
+        )}
+      </div>
     </div>
   );
 }
 
 export function ManagerAlertsView() {
   const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFiltered, setShowFiltered] = useState(false);
   const [hours, setHours] = useState(168);
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
@@ -299,10 +318,25 @@ export function ManagerAlertsView() {
   });
 
   const alerts = data?.alerts ?? [];
-  const selected = useMemo(
-    () => alerts.find((a) => a.id === selectedId) ?? alerts[0] ?? null,
-    [alerts, selectedId]
-  );
+  const collapsible = alerts.length > 1;
+
+  const defaultExpandedId = useMemo(() => {
+    if (alerts.length === 0) return null;
+    if (alerts.length === 1) return alerts[0].id;
+    const pending = alerts.find((a) => a.accepted && a.triageStatus === "pending");
+    return pending?.id ?? alerts[0].id;
+  }, [alerts]);
+
+  useEffect(() => {
+    if (alerts.length === 0) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId((current) => {
+      if (current && alerts.some((a) => a.id === current)) return current;
+      return defaultExpandedId;
+    });
+  }, [alerts, defaultExpandedId]);
 
   const liveLabel = data?.configured
     ? isFetching
@@ -317,7 +351,7 @@ export function ManagerAlertsView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="mx-auto max-w-lg px-4 py-4 md:max-w-5xl md:px-6 md:py-5">
+      <div className="mx-auto max-w-lg px-4 py-4 md:max-w-2xl md:px-6 md:py-5">
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
@@ -440,43 +474,34 @@ export function ManagerAlertsView() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-[minmax(0,340px),1fr]">
-            <div className="flex flex-col gap-2 max-h-[70vh] overflow-y-auto md:max-h-[calc(100vh-11rem)]">
-              {alerts.map((alert) => (
-                <AlertCard
-                  key={alert.id}
-                  alert={alert}
-                  selected={selected?.id === alert.id}
-                  onSelect={() => setSelectedId(alert.id)}
-                />
-              ))}
-            </div>
-            <div className="md:sticky md:top-4 md:self-start">
-              {selected ? (
-                <AlertDetail
-                  key={selected.id}
-                  alert={selected}
-                  triagePending={triageMutation.isPending}
-                  triageError={
-                    triageMutation.isError
-                      ? triageMutation.error instanceof Error
-                        ? triageMutation.error.message
-                        : "Could not save decision"
-                      : null
-                  }
-                  onTriage={(decision, note) =>
-                    triageMutation.mutate({
-                      id: selected.id,
-                      decision,
-                      note,
-                      vendorEventId: selected.vendorEventId,
-                    })
-                  }
-                />
-              ) : (
-                <p className="text-sm text-slate-500">Select an alert</p>
-              )}
-            </div>
+          <div className="flex flex-col gap-3">
+            {alerts.map((alert) => (
+              <AlertEventCard
+                key={alert.id}
+                alert={alert}
+                expanded={!collapsible || expandedId === alert.id}
+                collapsible={collapsible}
+                onToggle={() =>
+                  setExpandedId((current) => (current === alert.id ? null : alert.id))
+                }
+                triagePending={triageMutation.isPending && triageMutation.variables?.id === alert.id}
+                triageError={
+                  triageMutation.isError && triageMutation.variables?.id === alert.id
+                    ? triageMutation.error instanceof Error
+                      ? triageMutation.error.message
+                      : "Could not save decision"
+                    : null
+                }
+                onTriage={(decision, note) =>
+                  triageMutation.mutate({
+                    id: alert.id,
+                    decision,
+                    note,
+                    vendorEventId: alert.vendorEventId,
+                  })
+                }
+              />
+            ))}
           </div>
         )}
       </div>
