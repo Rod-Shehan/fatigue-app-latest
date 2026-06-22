@@ -5,8 +5,10 @@
 
 const VIDEO_EXT = /\.(mp4|webm|m3u8)(\?|$)/i;
 const VIDEO_PATH = /\/video|\/clip|\/playback|\/recording/i;
-const DRIVER_URL_HINTS = /driver|dsm|cab|face|inward|internal|operator/i;
-const ROAD_URL_HINTS = /road|forward|adas|outward|external|front/i;
+const DRIVER_CHANNEL_HINTS = /driver|dsm|cab|face|inward|internal|operator/i;
+const ROAD_CHANNEL_HINTS = /external|forward|road|adas|outward|front/i;
+const DRIVER_URL_HINTS = DRIVER_CHANNEL_HINTS;
+const ROAD_URL_HINTS = ROAD_CHANNEL_HINTS;
 
 function asUrl(value: unknown): string {
   if (!value) return "";
@@ -38,6 +40,71 @@ function firstUrl(...candidates: unknown[]): string {
 export function looksLikeVideoUrl(url: string): boolean {
   const u = String(url || "");
   return VIDEO_EXT.test(u) || VIDEO_PATH.test(u);
+}
+
+/** Autonomise `media[]` channel — Internal/DSM vs External/forward (VT3600). */
+export function classifyAutonomiseMediaChannel(row: Record<string, unknown>): "driver" | "road" | "unknown" {
+  const label = String(row.channelLabel ?? row.channel_label ?? row.type ?? row.name ?? "").toLowerCase();
+  if (label) {
+    if (DRIVER_CHANNEL_HINTS.test(label)) return "driver";
+    if (ROAD_CHANNEL_HINTS.test(label)) return "road";
+  }
+
+  const channel = row.channel;
+  if (channel === 1 || channel === "1") return "driver";
+  if (channel === 0 || channel === "0") return "road";
+
+  return "unknown";
+}
+
+type ParsedMediaList = {
+  driverVideoUrl: string;
+  roadVideoUrl: string;
+  driverImageUrl: string;
+  roadImageUrl: string;
+};
+
+/** Parse Autonomise `GET …/media` list — prefer Internal/driver channel for DSM fatigue. */
+export function parseAutonomiseMediaList(media: unknown[]): ParsedMediaList {
+  const result: ParsedMediaList = {
+    driverVideoUrl: "",
+    roadVideoUrl: "",
+    driverImageUrl: "",
+    roadImageUrl: "",
+  };
+  const unknownVideos: string[] = [];
+
+  for (const item of media) {
+    if (!item || typeof item !== "object") continue;
+    const row = item as Record<string, unknown>;
+    const url = asUrl(row.uri ?? row.url ?? row.href ?? row.link);
+    if (!url) continue;
+
+    const mime = String(row.mimeType ?? row.mime_type ?? "");
+    const isVideo = isVideoMime(mime) || looksLikeVideoUrl(url);
+    const channel = classifyAutonomiseMediaChannel(row);
+
+    if (isVideo) {
+      if (channel === "driver" && !result.driverVideoUrl) result.driverVideoUrl = url;
+      else if (channel === "road" && !result.roadVideoUrl) result.roadVideoUrl = url;
+      else if (channel === "unknown") unknownVideos.push(url);
+      continue;
+    }
+
+    if (isImageMime(mime) || !isVideo) {
+      if (channel === "driver" && !result.driverImageUrl) result.driverImageUrl = url;
+      else if (channel === "road" && !result.roadImageUrl) result.roadImageUrl = url;
+    }
+  }
+
+  if (!result.driverVideoUrl && unknownVideos.length === 1) {
+    result.driverVideoUrl = unknownVideos[0];
+  } else if (!result.driverVideoUrl && unknownVideos.length >= 2) {
+    result.roadVideoUrl = result.roadVideoUrl || unknownVideos[0];
+    result.driverVideoUrl = unknownVideos[1];
+  }
+
+  return result;
 }
 
 function rootOf(data: unknown): Record<string, unknown> {
@@ -117,6 +184,13 @@ export function scanMediaUrlsFromJson(data: unknown): {
 
 export function extractVideoFromJson(data: unknown): { eventVideoUrl: string } {
   const root = rootOf(data);
+
+  if (Array.isArray(root.media)) {
+    const parsed = parseAutonomiseMediaList(root.media);
+    const eventVideoUrl = parsed.driverVideoUrl || parsed.roadVideoUrl;
+    return { eventVideoUrl: looksLikeVideoUrl(eventVideoUrl) ? eventVideoUrl : "" };
+  }
+
   let eventVideoUrl = firstUrl(
     root.eventVideoUrl,
     root.event_video_url,
@@ -167,6 +241,15 @@ export type AutonomiseMediaUrls = {
 
 export function extractMediaFromJson(data: unknown): AutonomiseMediaUrls {
   const root = rootOf(data);
+
+  if (Array.isArray(root.media)) {
+    const parsed = parseAutonomiseMediaList(root.media);
+    return {
+      driverCameraUrl: parsed.driverVideoUrl || parsed.driverImageUrl,
+      roadCameraUrl: parsed.roadVideoUrl || parsed.roadImageUrl,
+      eventVideoUrl: parsed.driverVideoUrl || parsed.roadVideoUrl,
+    };
+  }
 
   const driver = firstUrl(
     root.driverCameraUrl,
@@ -258,6 +341,9 @@ export function extractDriverFromJson(data: unknown): { driverName: string; driv
 }
 
 export function pickBestMediaUrl(urls: AutonomiseMediaUrls): string | null {
-  const best = urls.eventVideoUrl || urls.driverCameraUrl || urls.roadCameraUrl;
-  return best || null;
+  if (urls.driverCameraUrl && looksLikeVideoUrl(urls.driverCameraUrl)) return urls.driverCameraUrl;
+  if (urls.eventVideoUrl) return urls.eventVideoUrl;
+  if (urls.driverCameraUrl) return urls.driverCameraUrl;
+  if (urls.roadCameraUrl && looksLikeVideoUrl(urls.roadCameraUrl)) return urls.roadCameraUrl;
+  return urls.roadCameraUrl || null;
 }
