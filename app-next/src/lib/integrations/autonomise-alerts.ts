@@ -5,7 +5,6 @@ import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-sett
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
-import { backfillMissingAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 
@@ -54,7 +53,7 @@ type IngestRow = Pick<
   | "accepted"
   | "rejectReason"
   | "receivedAt"
-> & { payload?: Prisma.JsonValue };
+> & { payload?: Prisma.JsonValue; deviceHardwareId?: string | null };
 
 function enrichMediaRow(row: IngestRow): IngestRow {
   if (!row.payload) return row;
@@ -66,6 +65,7 @@ function enrichMediaRow(row: IngestRow): IngestRow {
     mediaUrl: fields.mediaUrl ?? row.mediaUrl,
     vehicleRego: fields.vehicleRego ?? row.vehicleRego,
     driverName: fields.driverName ?? row.driverName,
+    deviceHardwareId: fields.deviceHardwareId ?? row.deviceHardwareId ?? null,
   };
 }
 
@@ -82,12 +82,14 @@ function enrichEventRow(row: IngestRow, enabledAlarmIds: ReadonlySet<string>): I
     linkedEventId: fields.linkedEventId ?? row.linkedEventId,
     vehicleRego: fields.vehicleRego ?? row.vehicleRego,
     driverName: fields.driverName ?? row.driverName,
+    deviceHardwareId: fields.deviceHardwareId ?? row.deviceHardwareId ?? null,
     accepted,
     rejectReason,
   };
 }
 
 function deviceHardwareIdFromRow(row: IngestRow, kind: "event" | "media"): string | null {
+  if (row.deviceHardwareId) return row.deviceHardwareId;
   if (!row.payload) return null;
   return extractAutonomiseFields(row.payload, kind).deviceHardwareId;
 }
@@ -203,12 +205,12 @@ export async function listCameraAlerts(
   diagnostics: CameraAlertsDiagnostics;
 }> {
   const hours = args.hours ?? 168;
-  const defaultLimit = hours > 48 ? 100 : 40;
+  const defaultLimit = hours > 48 ? 60 : 40;
   const limit = Math.min(Math.max(args.limit ?? defaultLimit, 1), 100);
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
   const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
 
-  const [allEventRows, mediaRows, ingestEvents, ingestMedia, anyIngestRow] = await Promise.all([
+  const [allEventRows, mediaRows, ingestEvents, ingestMedia] = await Promise.all([
     prisma.autonomiseWebhookIngest.findMany({
       where: { kind: "event", receivedAt: { gte: since } },
       orderBy: { receivedAt: "desc" },
@@ -231,7 +233,7 @@ export async function listCameraAlerts(
     prisma.autonomiseWebhookIngest.findMany({
       where: { kind: "media", receivedAt: { gte: since } },
       orderBy: { receivedAt: "desc" },
-      take: limit * 3,
+      take: Math.min(limit * 2, 120),
       select: {
         id: true,
         kind: true,
@@ -249,17 +251,14 @@ export async function listCameraAlerts(
     }),
     prisma.autonomiseWebhookIngest.count({ where: { kind: "event", receivedAt: { gte: since } } }),
     prisma.autonomiseWebhookIngest.count({ where: { kind: "media", receivedAt: { gte: since } } }),
-    prisma.autonomiseWebhookIngest.findFirst({ select: { id: true } }),
   ]);
 
   const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, enabledAlarmIds));
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
-  if (args.backfillMedia !== false) {
+  if (args.backfillMedia === true) {
     await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
   }
-
-  await backfillMissingAutonomiseIdentity(prisma, enrichedEvents);
 
   const triageByIngestId = await loadTriageByIngestIds(
     prisma,
@@ -290,7 +289,7 @@ export async function listCameraAlerts(
         : alerts;
 
   const configured =
-    Boolean(getAutonomiseWebhookSecretFromEnv()) || Boolean(anyIngestRow);
+    Boolean(getAutonomiseWebhookSecretFromEnv()) || ingestEvents > 0 || ingestMedia > 0;
   const apiConfigured = isAutonomiseApiConfigured();
 
   const visibleAlerts = args.acceptedOnly

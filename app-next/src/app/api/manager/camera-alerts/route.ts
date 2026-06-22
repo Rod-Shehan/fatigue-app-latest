@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     triageFilterRaw === "pending" || triageFilterRaw === "decided" || triageFilterRaw === "all"
       ? triageFilterRaw
       : "all";
-  const backfillMedia = searchParams.get("backfillMedia") !== "false";
+  const backfillMedia = searchParams.get("backfillMedia") === "true";
 
   try {
     const result = await listCameraAlerts(prisma, {

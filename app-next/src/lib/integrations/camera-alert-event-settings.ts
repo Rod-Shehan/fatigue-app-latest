@@ -95,8 +95,16 @@ export async function getCameraAlertEventSettings(
 }
 
 export async function getEnabledAlarmIdSet(prisma: PrismaClient): Promise<Set<string>> {
-  const settings = await getCameraAlertEventSettings(prisma);
-  return new Set(settings.enabledAlarmIds);
+  const row = await prisma.cameraAlertEventSettings.findUnique({
+    where: { id: SETTINGS_ID },
+  });
+  if (!row) {
+    await ensureCameraAlertEventSettingsRow(prisma);
+    return new Set((await getCameraAlertEventSettings(prisma)).enabledAlarmIds);
+  }
+  const parsed = parseEnabledIds(row.enabledAlarmIds);
+  const enabledAlarmIds = parsed?.length ? parsed : defaultEnabledAlarmIdsFromEnv();
+  return new Set(enabledAlarmIds);
 }
 
 export async function saveCameraAlertEventSettings(

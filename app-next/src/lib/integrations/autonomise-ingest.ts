@@ -10,6 +10,7 @@ import {
   fnolSlugFromPayload,
   resolveAndPersistAutonomiseMedia,
 } from "@/lib/integrations/autonomise-media-resolver";
+import { resolveAndPersistAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 
 import type { AutonomiseWebhookKind } from "@/lib/integrations/autonomise-payload";
 
@@ -123,6 +124,29 @@ export async function ingestAutonomiseWebhook(
     }
   }
 
+  let vehicleRego = fields.vehicleRego;
+  if (
+    args.kind === "event" &&
+    accepted &&
+    isAutonomiseApiConfigured() &&
+    (!vehicleRego || !driverName)
+  ) {
+    try {
+      const identity = await resolveAndPersistAutonomiseIdentity(prisma, {
+        ingestId: row.id,
+        payload: args.payload,
+      });
+      if (identity?.vehicleRego) vehicleRego = identity.vehicleRego;
+      if (identity?.driverName) driverName = identity.driverName;
+    } catch (e) {
+      console.warn(
+        "[autonomise-ingest] identity fetch failed",
+        row.id,
+        e instanceof Error ? e.message : e
+      );
+    }
+  }
+
   return {
     id: row.id,
     kind: args.kind,
@@ -131,7 +155,7 @@ export async function ingestAutonomiseWebhook(
     vendorAlarmId: fields.vendorAlarmId,
     displayName: entry?.displayName ?? null,
     rejectReason,
-    vehicleRego: fields.vehicleRego,
+    vehicleRego,
     driverName,
     linkedEventId: fields.linkedEventId,
     mediaUrl,

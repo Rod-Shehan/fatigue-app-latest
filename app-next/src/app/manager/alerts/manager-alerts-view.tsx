@@ -298,13 +298,9 @@ export function ManagerAlertsView() {
         acceptedOnly: !showFiltered,
         hours,
         triageFilter,
-        backfillMedia: true,
       }),
-    refetchInterval: (query) => {
-      const alerts = query.state.data?.alerts ?? [];
-      const anyMediaPending = alerts.some((a) => a.mediaPending);
-      return anyMediaPending ? 12_000 : 30_000;
-    },
+    staleTime: 15_000,
+    refetchInterval: 30_000,
   });
 
   const triageMutation = useMutation({
