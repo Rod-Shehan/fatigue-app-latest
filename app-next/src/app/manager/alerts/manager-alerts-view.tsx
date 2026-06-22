@@ -339,11 +339,7 @@ export function ManagerAlertsView() {
     });
   }, [alerts, defaultExpandedId]);
 
-  const liveLabel = data?.configured
-    ? isFetching
-      ? "Updating…"
-      : "Live"
-    : "Webhook not configured";
+  const liveLabel = isLoading ? "Loading…" : isFetching ? "Updating…" : "Live";
 
   const pendingCount =
     triageFilter === "pending"
@@ -397,7 +393,7 @@ export function ManagerAlertsView() {
             <Radio
               className={cn(
                 "h-4 w-4",
-                data?.configured ? "text-emerald-600" : "text-amber-600"
+                isLoading || isError ? "text-slate-400" : "text-emerald-600"
               )}
               aria-hidden
             />
@@ -431,12 +427,6 @@ export function ManagerAlertsView() {
             <code className="text-xs">…/api/integrations/autonomise/events</code> and Red events are included.
           </div>
         ) : null}
-
-        {!data?.configured && (
-          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            {MANAGER_EXPERIENCE.ALERTS_NOT_CONFIGURED}
-          </div>
-        )}
 
         {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

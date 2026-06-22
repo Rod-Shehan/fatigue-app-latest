@@ -198,8 +198,6 @@ export const MANAGER_EXPERIENCE = {
   ALERTS_EMPTY_TITLE: "No fatigue alerts in this period",
   ALERTS_EMPTY_BODY:
     "When Autonomise sends a fatigue-related event, it appears here automatically. Use Need review to work through past events, or widen the time range.",
-  ALERTS_NOT_CONFIGURED:
-    "Camera webhooks are not configured on the server yet — alerts will not arrive until AUTONOMISE_WEBHOOK_SECRET is set on Vercel.",
   ALERTS_WORKFLOW_HINT:
     "Authorize follow-up when coaching is warranted. Dismiss when the clip is a false positive. Your decision is recorded on file with timestamp.",
 } as const;

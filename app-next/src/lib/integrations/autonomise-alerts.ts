@@ -3,6 +3,7 @@ import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
+import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
 import { backfillMissingAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
@@ -207,7 +208,7 @@ export async function listCameraAlerts(
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
   const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
 
-  const [allEventRows, mediaRows, ingestEvents, ingestMedia] = await Promise.all([
+  const [allEventRows, mediaRows, ingestEvents, ingestMedia, anyIngestRow] = await Promise.all([
     prisma.autonomiseWebhookIngest.findMany({
       where: { kind: "event", receivedAt: { gte: since } },
       orderBy: { receivedAt: "desc" },
@@ -248,6 +249,7 @@ export async function listCameraAlerts(
     }),
     prisma.autonomiseWebhookIngest.count({ where: { kind: "event", receivedAt: { gte: since } } }),
     prisma.autonomiseWebhookIngest.count({ where: { kind: "media", receivedAt: { gte: since } } }),
+    prisma.autonomiseWebhookIngest.findFirst({ select: { id: true } }),
   ]);
 
   const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, enabledAlarmIds));
@@ -287,7 +289,8 @@ export async function listCameraAlerts(
         ? alerts.filter((a) => a.triageStatus !== "pending")
         : alerts;
 
-  const configured = Boolean(process.env.AUTONOMISE_WEBHOOK_SECRET?.trim());
+  const configured =
+    Boolean(getAutonomiseWebhookSecretFromEnv()) || Boolean(anyIngestRow);
   const apiConfigured = isAutonomiseApiConfigured();
 
   const visibleAlerts = args.acceptedOnly
