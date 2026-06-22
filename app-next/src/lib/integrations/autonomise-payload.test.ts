@@ -44,6 +44,25 @@ describe("autonomise-payload", () => {
     expect(fields.deviceHardwareId).toBe("00d20574eb");
   });
 
+  it("extracts MTS vehicle id when webhook has no VRN", () => {
+    const fields = extractAutonomiseFields({
+      id: "evt-1",
+      eventTypes: [18],
+      device: { hardwareId: "00d20574eb" },
+      vehicle: { id: "e82f7ba8-759f-f011-8e62-6045bdfcbf17" },
+    });
+    expect(fields.vendorVehicleId).toBe("e82f7ba8-759f-f011-8e62-6045bdfcbf17");
+    expect(fields.vehicleRego).toBeNull();
+  });
+
+  it("extracts vehicle VRN when present on webhook", () => {
+    const fields = extractAutonomiseFields({
+      eventId: "evt-2",
+      vehicle: { vrn: "1ITY959" },
+    });
+    expect(fields.vehicleRego).toBe("1ITY959");
+  });
+
   it("extracts media webhook nested event id (MTS pilot shape)", () => {
     const fields = extractAutonomiseFields(
       {

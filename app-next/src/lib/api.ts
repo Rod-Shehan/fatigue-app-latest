@@ -177,6 +177,7 @@ export type CameraAlertItem = {
   tier: string | null;
   vehicleRego: string | null;
   driverName: string | null;
+  deviceHardwareId: string | null;
   receivedAt: string;
   accepted: boolean;
   rejectReason: string | null;

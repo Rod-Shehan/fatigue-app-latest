@@ -375,12 +375,18 @@ export function extractDriverFromJson(data: unknown): { driverName: string; driv
   const driver =
     root.driver && typeof root.driver === "object" ? (root.driver as Record<string, unknown>) : root;
 
+  const composedName = [driver.firstName, driver.lastName]
+    .filter((p) => typeof p === "string" && p.trim())
+    .join(" ")
+    .trim();
+
   const driverName = String(
     driver.name ??
       driver.fullName ??
       driver.full_name ??
       driver.displayName ??
       driver.display_name ??
+      (composedName || undefined) ??
       root.driverName ??
       root.driver_name ??
       ""
@@ -389,6 +395,8 @@ export function extractDriverFromJson(data: unknown): { driverName: string; driv
   const driverPhone = String(
     driver.phone ??
       driver.mobile ??
+      driver.phoneNumber ??
+      driver.phone_number ??
       driver.contactNumber ??
       driver.contact_number ??
       root.driverPhone ??
@@ -397,6 +405,46 @@ export function extractDriverFromJson(data: unknown): { driverName: string; driv
   ).trim();
 
   return { driverName, driverPhone };
+}
+
+export function extractVehicleFromJson(data: unknown): {
+  vehicleRego: string;
+  driverId: string;
+  makeModel: string;
+} {
+  const root = rootOf(data);
+  const vehicle =
+    root.vehicle && typeof root.vehicle === "object"
+      ? (root.vehicle as Record<string, unknown>)
+      : root;
+
+  const vehicleRego = String(
+    vehicle.vrn ??
+      vehicle.VRN ??
+      vehicle.registration ??
+      vehicle.vehicleRegistration ??
+      vehicle.rego ??
+      root.vrn ??
+      root.registration ??
+      ""
+  ).trim();
+
+  const driver =
+    root.driver && typeof root.driver === "object" ? (root.driver as Record<string, unknown>) : {};
+  const driverId = String(driver.id ?? root.driverId ?? root.driver_id ?? "").trim();
+
+  const make = String(vehicle.make ?? root.make ?? "").trim();
+  const model = String(vehicle.model ?? root.model ?? "").trim();
+  const makeModel = [make, model].filter(Boolean).join(" ");
+
+  return { vehicleRego, driverId, makeModel };
+}
+
+export function extractDeviceVehicleIdFromJson(data: unknown): string {
+  const root = rootOf(data);
+  const vehicle =
+    root.vehicle && typeof root.vehicle === "object" ? (root.vehicle as Record<string, unknown>) : null;
+  return String(vehicle?.id ?? "").trim();
 }
 
 export function pickBestMediaUrl(urls: AutonomiseMediaUrls): string | null {

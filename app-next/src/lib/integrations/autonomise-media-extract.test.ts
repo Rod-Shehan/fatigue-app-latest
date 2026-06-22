@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractDriverFromJson,
   extractMediaFromJson,
+  extractVehicleFromJson,
   pickBestMediaUrl,
   scanMediaUrlsFromJson,
 } from "@/lib/integrations/autonomise-media-extract";
@@ -85,5 +87,28 @@ describe("autonomise-media-extract", () => {
       nested: { driverFace: "https://cdn.example/dsm-snap.jpg" },
     });
     expect(parsed.driverCameraUrl).toBe("https://cdn.example/dsm-snap.jpg");
+  });
+
+  it("extracts VRN and driver id from Autonomise vehicle API shape", () => {
+    const parsed = extractVehicleFromJson({
+      id: "e82f7ba8-759f-f011-8e62-6045bdfcbf17",
+      vrn: "1ITY959",
+      make: "UD",
+      model: "QUON",
+      driver: { id: "5eaa5163-11f0-f011-832e-6045bd11ae66" },
+    });
+    expect(parsed.vehicleRego).toBe("1ITY959");
+    expect(parsed.driverId).toBe("5eaa5163-11f0-f011-832e-6045bd11ae66");
+    expect(parsed.makeModel).toBe("UD QUON");
+  });
+
+  it("composes driver name from first and last name", () => {
+    const parsed = extractDriverFromJson({
+      firstName: "Rod",
+      lastName: "Shehan",
+      phoneNumber: "0458846442",
+    });
+    expect(parsed.driverName).toBe("Rod Shehan");
+    expect(parsed.driverPhone).toBe("0458846442");
   });
 });

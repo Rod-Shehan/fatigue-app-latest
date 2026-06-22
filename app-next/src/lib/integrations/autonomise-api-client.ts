@@ -4,7 +4,9 @@
 
 import {
   extractDriverFromJson,
+  extractDeviceVehicleIdFromJson,
   extractMediaFromJson,
+  extractVehicleFromJson,
   pickBestMediaUrl,
   type AutonomiseMediaUrls,
 } from "@/lib/integrations/autonomise-media-extract";
@@ -332,6 +334,83 @@ export async function fetchAutonomiseEventDriver(
   }
 
   return { driverName: "", driverPhone: "" };
+}
+
+export async function fetchAutonomiseVehicle(
+  vehicleId: string,
+  config: AutonomiseApiConfig = getAutonomiseApiConfigFromEnv()
+): Promise<{ vehicleRego: string; driverId: string; makeModel: string }> {
+  const id = String(vehicleId || "").trim();
+  if (!id) return { vehicleRego: "", driverId: "", makeModel: "" };
+
+  const data = await autonomiseGet(`/vehicle/${encodeURIComponent(id)}`, config, { apiOnly: true });
+  if (!data) return { vehicleRego: "", driverId: "", makeModel: "" };
+  return extractVehicleFromJson(data);
+}
+
+export async function fetchAutonomiseDriverById(
+  driverId: string,
+  config: AutonomiseApiConfig = getAutonomiseApiConfigFromEnv()
+): Promise<{ driverName: string; driverPhone: string }> {
+  const id = String(driverId || "").trim();
+  if (!id) return { driverName: "", driverPhone: "" };
+
+  const data = await autonomiseGet(`/driver/${encodeURIComponent(id)}`, config, { apiOnly: true });
+  if (!data) return { driverName: "", driverPhone: "" };
+  return extractDriverFromJson(data);
+}
+
+export async function fetchAutonomiseDeviceVehicleId(
+  hardwareId: string,
+  config: AutonomiseApiConfig = getAutonomiseApiConfigFromEnv()
+): Promise<string> {
+  const id = String(hardwareId || "").trim();
+  if (!id) return "";
+
+  const data = await autonomiseGet(`/device/${encodeURIComponent(id)}`, config, { apiOnly: true });
+  if (!data) return "";
+  return extractDeviceVehicleIdFromJson(data);
+}
+
+export type AutonomiseEventIdentity = {
+  vehicleRego: string;
+  driverName: string;
+  deviceHardwareId: string;
+};
+
+/** Resolve VRN + driver from Autonomise vehicle/device APIs (MTS webhooks often send ids only). */
+export async function fetchAutonomiseEventIdentity(args: {
+  vendorVehicleId?: string | null;
+  deviceHardwareId?: string | null;
+  config?: AutonomiseApiConfig;
+}): Promise<AutonomiseEventIdentity> {
+  const config = args.config ?? getAutonomiseApiConfigFromEnv();
+  if (!isAutonomiseApiConfigured(config)) {
+    return { vehicleRego: "", driverName: "", deviceHardwareId: args.deviceHardwareId?.trim() ?? "" };
+  }
+
+  let vehicleId = String(args.vendorVehicleId ?? "").trim();
+  const deviceHardwareId = String(args.deviceHardwareId ?? "").trim();
+
+  if (!vehicleId && deviceHardwareId) {
+    vehicleId = await fetchAutonomiseDeviceVehicleId(deviceHardwareId, config);
+  }
+  if (!vehicleId) {
+    return { vehicleRego: "", driverName: "", deviceHardwareId };
+  }
+
+  const vehicle = await fetchAutonomiseVehicle(vehicleId, config);
+  let driverName = "";
+  if (vehicle.driverId) {
+    const driver = await fetchAutonomiseDriverById(vehicle.driverId, config);
+    driverName = driver.driverName;
+  }
+
+  return {
+    vehicleRego: vehicle.vehicleRego,
+    driverName,
+    deviceHardwareId,
+  };
 }
 
 export type AutonomiseMediaFetchResult = AutonomiseMediaUrls & {

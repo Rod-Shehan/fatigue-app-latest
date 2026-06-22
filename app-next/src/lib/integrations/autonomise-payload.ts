@@ -253,6 +253,16 @@ function resolveVehicleRego(body: Record<string, unknown>): string | null {
   );
 }
 
+function resolveVendorVehicleId(body: Record<string, unknown>): string | null {
+  const nested = pickNested(body, "vehicle.id");
+  if (nested) return nested;
+  const vehicle = body.vehicle;
+  if (isRecord(vehicle)) {
+    return stringField(vehicle, ["id", "Id", "vehicleId", "vehicle_id"]);
+  }
+  return null;
+}
+
 function resolveDriverName(body: Record<string, unknown>): string | null {
   return (
     pickNested(body, "driver.name") ??
@@ -307,6 +317,7 @@ export type AutonomiseExtractedFields = {
   /** Media webhook row id — distinct from vendorEventId on media POSTs. */
   mediaRecordId: string | null;
   deviceHardwareId: string | null;
+  vendorVehicleId: string | null;
   vehicleRego: string | null;
   driverName: string | null;
   mediaUrl: string | null;
@@ -342,6 +353,7 @@ export function extractAutonomiseFields(
   }
 
   const vehicleRego = resolveVehicleRego(body);
+  const vendorVehicleId = resolveVendorVehicleId(body);
   const driverName = resolveDriverName(body);
   const mediaUrl = resolveMediaUrl(body, payload);
   const deviceHardwareId = extractDeviceHardwareId(payload);
@@ -354,6 +366,7 @@ export function extractAutonomiseFields(
     vendorEventId,
     mediaRecordId,
     deviceHardwareId,
+    vendorVehicleId,
     vehicleRego,
     driverName,
     mediaUrl,

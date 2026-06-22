@@ -19,6 +19,15 @@ const HOURS_OPTIONS = [
 
 type TriageFilter = "pending" | "all" | "decided";
 
+function formatVehicleDriverLine(alert: CameraAlertItem) {
+  const vehicle = alert.vehicleRego
+    ? `Rego ${alert.vehicleRego}`
+    : alert.deviceHardwareId
+      ? `Device ${alert.deviceHardwareId.toUpperCase()}`
+      : "Vehicle unknown";
+  return alert.driverName ? `${vehicle} · ${alert.driverName}` : vehicle;
+}
+
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString("en-AU", {
     weekday: "short",
@@ -88,8 +97,7 @@ function AlertCard({
             {alert.displayName ?? "Camera event"}
           </p>
           <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-            {alert.vehicleRego ? `Rego ${alert.vehicleRego}` : "Vehicle unknown"}
-            {alert.driverName ? ` · ${alert.driverName}` : ""}
+            {formatVehicleDriverLine(alert)}
           </p>
           <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
         </div>
@@ -150,8 +158,7 @@ function AlertDetail({
           {alert.displayName ?? "Camera event"}
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-          {alert.vehicleRego ? `Rego ${alert.vehicleRego}` : "Vehicle unknown"}
-          {alert.driverName ? ` · ${alert.driverName}` : ""}
+          {formatVehicleDriverLine(alert)}
         </p>
         <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
         {!alert.accepted && alert.rejectReason && (

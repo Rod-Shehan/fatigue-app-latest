@@ -4,6 +4,7 @@ import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getAutonomiseEventPresetFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
+import { backfillMissingAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
 import { getCatalogueEntry, type FatigueEventPresetId } from "@/lib/integrations/fatigue-event-catalogue";
 
@@ -17,6 +18,7 @@ export type CameraAlertItem = {
   tier: string | null;
   vehicleRego: string | null;
   driverName: string | null;
+  deviceHardwareId: string | null;
   receivedAt: string;
   accepted: boolean;
   rejectReason: string | null;
@@ -84,6 +86,11 @@ function enrichEventRow(row: IngestRow, preset: FatigueEventPresetId): IngestRow
   };
 }
 
+function deviceHardwareIdFromRow(row: IngestRow, kind: "event" | "media"): string | null {
+  if (!row.payload) return null;
+  return extractAutonomiseFields(row.payload, kind).deviceHardwareId;
+}
+
 export function buildCameraAlertsFromRows(
   events: IngestRow[],
   mediaRows: IngestRow[],
@@ -130,6 +137,7 @@ export function buildCameraAlertsFromRows(
       tier: entry?.tier ?? null,
       vehicleRego: event.vehicleRego,
       driverName: event.driverName,
+      deviceHardwareId: deviceHardwareIdFromRow(event, "event"),
       receivedAt: event.receivedAt.toISOString(),
       accepted: event.accepted,
       rejectReason: event.rejectReason,
@@ -160,6 +168,7 @@ export function buildCameraAlertsFromRows(
       tier: null,
       vehicleRego: row.vehicleRego,
       driverName: row.driverName,
+      deviceHardwareId: deviceHardwareIdFromRow(row, "media"),
       receivedAt: row.receivedAt.toISOString(),
       accepted: false,
       rejectReason: "event_webhook_missing",
@@ -247,6 +256,8 @@ export async function listCameraAlerts(
   if (args.backfillMedia !== false) {
     await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
   }
+
+  await backfillMissingAutonomiseIdentity(prisma, enrichedEvents);
 
   const triageByIngestId = await loadTriageByIngestIds(
     prisma,
