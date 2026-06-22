@@ -18,12 +18,20 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const acceptedOnly = searchParams.get("acceptedOnly") !== "false";
-  const hours = Number(searchParams.get("hours") ?? "48");
+  const hours = Number(searchParams.get("hours") ?? "168");
+  const triageFilterRaw = searchParams.get("triageFilter");
+  const triageFilter =
+    triageFilterRaw === "pending" || triageFilterRaw === "decided" || triageFilterRaw === "all"
+      ? triageFilterRaw
+      : "all";
+  const backfillMedia = searchParams.get("backfillMedia") !== "false";
 
   try {
     const result = await listCameraAlerts(prisma, {
       acceptedOnly,
-      hours: Number.isFinite(hours) ? hours : 48,
+      hours: Number.isFinite(hours) ? hours : 168,
+      triageFilter,
+      backfillMedia,
     });
     return NextResponse.json(result);
   } catch (e) {

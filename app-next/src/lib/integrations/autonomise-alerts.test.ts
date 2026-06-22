@@ -54,6 +54,38 @@ describe("buildCameraAlertsFromRows", () => {
       []
     );
     expect(alerts[0].mediaPending).toBe(true);
+    expect(alerts[0].triageStatus).toBe("pending");
+  });
+
+  it("maps triage decisions onto alerts", () => {
+    const decidedAt = new Date("2026-06-22T08:00:00Z");
+    const alerts = buildCameraAlertsFromRows(
+      [
+        {
+          ...base,
+          id: "e1",
+          kind: "event",
+          vendorEventId: "evt-3",
+          receivedAt: new Date(),
+        },
+      ],
+      [],
+      undefined,
+      new Map([
+        [
+          "e1",
+          {
+            decision: "authorized",
+            note: "Coaching booked",
+            decidedByEmail: "mgr@example.com",
+            decidedAt,
+          },
+        ],
+      ])
+    );
+    expect(alerts[0].triageStatus).toBe("authorized");
+    expect(alerts[0].triageNote).toBe("Coaching booked");
+    expect(alerts[0].triageDecidedBy).toBe("mgr@example.com");
   });
 
   it("surfaces orphan media when event webhook never arrived", () => {

@@ -266,3 +266,18 @@ model AutonomiseWebhookIngest {
   @@index([kind, accepted])
   @@index([vehicleRego, receivedAt])
 }
+
+/** Manager Authorize / Dismiss on camera fatigue events (audit trail). */
+model CameraAlertTriage {
+  id              String   @id @default(cuid())
+  ingestEventId   String   @unique
+  vendorEventId   String?
+  decision        String   // authorized | dismissed
+  note            String?
+  decidedByUserId String
+  decidedByEmail  String?
+  decidedAt       DateTime @default(now())
+
+  @@index([decidedAt])
+  @@index([decision])
+}

@@ -81,7 +81,7 @@ export async function backfillMissingAutonomiseMedia(
   let fetches = 0;
   for (const event of events) {
     if (fetches >= MAX_FETCH_PER_REQUEST) break;
-    if (!event.accepted || !event.vendorEventId) continue;
+    if (!event.accepted || !event.vendorEventId || event.mediaUrl) continue;
 
     fetches += 1;
     try {

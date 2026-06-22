@@ -167,6 +167,8 @@ export type RiskRegisterSummary = {
 };
 
 /** Camera fatigue alert from Autonomise webhook ingest (manager live inbox). */
+export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
+
 export type CameraAlertItem = {
   id: string;
   vendorEventId: string | null;
@@ -180,6 +182,10 @@ export type CameraAlertItem = {
   rejectReason: string | null;
   mediaUrl: string | null;
   mediaPending: boolean;
+  triageStatus: CameraAlertTriageStatus;
+  triageDecidedAt: string | null;
+  triageDecidedBy: string | null;
+  triageNote: string | null;
   eventWebhookPending?: boolean;
 };
 
@@ -408,15 +414,36 @@ export const api = {
       }>(`/api/manager/fleet-risk-timeline${q ? `?${q}` : ""}`);
     },
     /** Autonomise fatigue camera alerts (live inbox). */
-    cameraAlerts: (params?: { acceptedOnly?: boolean; hours?: number }) => {
+    cameraAlerts: (params?: {
+      acceptedOnly?: boolean;
+      hours?: number;
+      triageFilter?: "all" | "pending" | "decided";
+      backfillMedia?: boolean;
+    }) => {
       const sp = new URLSearchParams();
       if (params?.acceptedOnly === false) sp.set("acceptedOnly", "false");
       if (params?.hours != null) sp.set("hours", String(params.hours));
+      if (params?.triageFilter) sp.set("triageFilter", params.triageFilter);
+      if (params?.backfillMedia === false) sp.set("backfillMedia", "false");
       const q = sp.toString();
       return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestEventsRejected: number; ingestMedia: number; mediaWithoutMatchingEvent: number; apiConfigured: boolean } }>(
         `/api/manager/camera-alerts${q ? `?${q}` : ""}`
       );
     },
+    cameraAlertTriage: (
+      ingestEventId: string,
+      data: { decision: "authorized" | "dismissed"; note?: string | null; vendorEventId?: string | null }
+    ) =>
+      fetchApi<{
+        ok: boolean;
+        triage: {
+          ingestEventId: string;
+          decision: string;
+          note: string | null;
+          decidedByEmail: string | null;
+          decidedAt: string;
+        };
+      }>(`/api/manager/camera-alerts/${ingestEventId}/triage`, { method: "POST", body: data }),
   },
   messages: {
     threads: () => fetchApi<{ threads: MessageThreadSummary[] }>("/api/messages/threads"),

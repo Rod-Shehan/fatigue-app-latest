@@ -4,7 +4,10 @@ import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getAutonomiseEventPresetFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
+import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
 import { getCatalogueEntry, type FatigueEventPresetId } from "@/lib/integrations/fatigue-event-catalogue";
+
+export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
 export type CameraAlertItem = {
   id: string;
@@ -19,6 +22,10 @@ export type CameraAlertItem = {
   rejectReason: string | null;
   mediaUrl: string | null;
   mediaPending: boolean;
+  triageStatus: CameraAlertTriageStatus;
+  triageDecidedAt: string | null;
+  triageDecidedBy: string | null;
+  triageNote: string | null;
   /** Media arrived but matching event webhook row is missing (Autonomise config). */
   eventWebhookPending?: boolean;
 };
@@ -80,7 +87,16 @@ function enrichEventRow(row: IngestRow, preset: FatigueEventPresetId): IngestRow
 export function buildCameraAlertsFromRows(
   events: IngestRow[],
   mediaRows: IngestRow[],
-  eventKeysForMediaMatch?: Iterable<string | null | undefined>
+  eventKeysForMediaMatch?: Iterable<string | null | undefined>,
+  triageByIngestId?: Map<
+    string,
+    {
+      decision: string;
+      note: string | null;
+      decidedByEmail: string | null;
+      decidedAt: Date;
+    }
+  >
 ): CameraAlertItem[] {
   const enrichedMedia = mediaRows.map(enrichMediaRow);
   const mediaByEventKey = new Map<string, string>();
@@ -98,6 +114,13 @@ export function buildCameraAlertsFromRows(
     const mediaUrl = eventKey
       ? mediaByEventKey.get(eventKey) ?? event.mediaUrl ?? null
       : null;
+    const triage = triageByIngestId?.get(event.id);
+    const triageStatus: CameraAlertTriageStatus =
+      triage?.decision === "authorized"
+        ? "authorized"
+        : triage?.decision === "dismissed"
+          ? "dismissed"
+          : "pending";
 
     return {
       id: event.id,
@@ -112,6 +135,10 @@ export function buildCameraAlertsFromRows(
       rejectReason: event.rejectReason,
       mediaUrl,
       mediaPending: event.accepted && !mediaUrl,
+      triageStatus,
+      triageDecidedAt: triage?.decidedAt.toISOString() ?? null,
+      triageDecidedBy: triage?.decidedByEmail ?? null,
+      triageNote: triage?.note ?? null,
     };
   });
 
@@ -138,6 +165,10 @@ export function buildCameraAlertsFromRows(
       rejectReason: "event_webhook_missing",
       mediaUrl: row.mediaUrl,
       mediaPending: false,
+      triageStatus: "pending",
+      triageDecidedAt: null,
+      triageDecidedBy: null,
+      triageNote: null,
       eventWebhookPending: true,
     });
   }
@@ -149,14 +180,21 @@ export function buildCameraAlertsFromRows(
 
 export async function listCameraAlerts(
   prisma: PrismaClient,
-  args: { limit?: number; hours?: number; acceptedOnly?: boolean }
+  args: {
+    limit?: number;
+    hours?: number;
+    acceptedOnly?: boolean;
+    backfillMedia?: boolean;
+    triageFilter?: "all" | "pending" | "decided";
+  }
 ): Promise<{
   alerts: CameraAlertItem[];
   configured: boolean;
   diagnostics: CameraAlertsDiagnostics;
 }> {
-  const limit = Math.min(Math.max(args.limit ?? 40, 1), 100);
-  const hours = args.hours ?? 48;
+  const hours = args.hours ?? 168;
+  const defaultLimit = hours > 48 ? 100 : 40;
+  const limit = Math.min(Math.max(args.limit ?? defaultLimit, 1), 100);
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
   const preset = getAutonomiseEventPresetFromEnv();
 
@@ -206,7 +244,14 @@ export async function listCameraAlerts(
   const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, preset));
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
-  await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
+  if (args.backfillMedia !== false) {
+    await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
+  }
+
+  const triageByIngestId = await loadTriageByIngestIds(
+    prisma,
+    enrichedEvents.map((row) => row.id)
+  );
 
   for (const row of mediaRows) {
     const eventId = enrichedEvents.find(
@@ -220,15 +265,23 @@ export async function listCameraAlerts(
     : enrichedEvents;
   const matchEventKeys = enrichedEvents.map((row) => row.vendorEventId);
 
-  const alerts = buildCameraAlertsFromRows(displayEvents, mediaRows, matchEventKeys);
+  const alerts = buildCameraAlertsFromRows(displayEvents, mediaRows, matchEventKeys, triageByIngestId);
   const mediaWithoutMatchingEvent = alerts.filter((a) => a.eventWebhookPending).length;
+
+  const triageFilter = args.triageFilter ?? "all";
+  const triageFiltered =
+    triageFilter === "pending"
+      ? alerts.filter((a) => a.accepted && a.triageStatus === "pending")
+      : triageFilter === "decided"
+        ? alerts.filter((a) => a.triageStatus !== "pending")
+        : alerts;
 
   const configured = Boolean(process.env.AUTONOMISE_WEBHOOK_SECRET?.trim());
   const apiConfigured = isAutonomiseApiConfigured();
 
   const visibleAlerts = args.acceptedOnly
-    ? alerts.filter((a) => a.accepted || a.eventWebhookPending)
-    : alerts;
+    ? triageFiltered.filter((a) => a.accepted || a.eventWebhookPending)
+    : triageFiltered;
 
   return {
     alerts: visibleAlerts,

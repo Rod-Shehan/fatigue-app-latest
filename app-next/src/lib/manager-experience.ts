@@ -195,13 +195,13 @@ export const MANAGER_EXPERIENCE = {
 
   ALERTS_PAGE_SUBTITLE:
     "Camera fatigue signals from your fleet — review clips and decide next steps. Coaching workflow, not a signed compliance breach.",
-  ALERTS_EMPTY_TITLE: "No fatigue alerts in the last 48 hours",
+  ALERTS_EMPTY_TITLE: "No fatigue alerts in this period",
   ALERTS_EMPTY_BODY:
-    "When Autonomise sends a fatigue-related event, it appears here automatically. Keep this page open on your phone during after-hours cover.",
+    "When Autonomise sends a fatigue-related event, it appears here automatically. Use Need review to work through past events, or widen the time range.",
   ALERTS_NOT_CONFIGURED:
     "Camera webhooks are not configured on the server yet — alerts will not arrive until AUTONOMISE_WEBHOOK_SECRET is set on Vercel.",
   ALERTS_WORKFLOW_HINT:
-    "Authorize / dismiss actions will record your decision on file in a later update. For now, use this screen to review events and video as they arrive.",
+    "Authorize follow-up when coaching is warranted. Dismiss when the clip is a false positive. Your decision is recorded on file with timestamp.",
 } as const;
 
 export type ManagerRiskTier = "attention" | "elevated" | "monitor" | "clear";
