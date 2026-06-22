@@ -1,4 +1,7 @@
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
+import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
+import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
+import { getAutonomiseEventPresetFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 
 export type CameraAlertTriageDecision = "authorized" | "dismissed";
 
@@ -57,11 +60,48 @@ export async function recordCameraAlertTriage(
   }
 
   const eventRow = await prisma.autonomiseWebhookIngest.findFirst({
-    where: { id: args.ingestEventId, kind: "event", accepted: true },
-    select: { id: true },
+    where: { id: args.ingestEventId, kind: "event" },
+    select: {
+      id: true,
+      vendorAlarmId: true,
+      vendorEventId: true,
+      linkedEventId: true,
+      vehicleRego: true,
+      driverName: true,
+      accepted: true,
+      rejectReason: true,
+      payload: true,
+    },
   });
   if (!eventRow) {
     throw new Error("EVENT_NOT_FOUND");
+  }
+
+  const preset = getAutonomiseEventPresetFromEnv();
+  const fields = extractAutonomiseFields(eventRow.payload as Prisma.JsonValue, "event");
+  const vendorAlarmId = fields.vendorAlarmId ?? eventRow.vendorAlarmId;
+  const { accepted, rejectReason } = evaluateAutonomiseEventAcceptance(vendorAlarmId, preset);
+  if (!accepted) {
+    throw new Error("EVENT_NOT_FOUND");
+  }
+
+  if (
+    !eventRow.accepted ||
+    eventRow.rejectReason !== rejectReason ||
+    eventRow.vendorAlarmId !== vendorAlarmId
+  ) {
+    await prisma.autonomiseWebhookIngest.update({
+      where: { id: eventRow.id },
+      data: {
+        accepted: true,
+        rejectReason: null,
+        vendorAlarmId,
+        vendorEventId: fields.vendorEventId ?? eventRow.vendorEventId,
+        linkedEventId: fields.linkedEventId ?? eventRow.linkedEventId,
+        vehicleRego: fields.vehicleRego ?? eventRow.vehicleRego,
+        driverName: fields.driverName ?? eventRow.driverName,
+      },
+    });
   }
 
   const row = await prisma.cameraAlertTriage.create({
