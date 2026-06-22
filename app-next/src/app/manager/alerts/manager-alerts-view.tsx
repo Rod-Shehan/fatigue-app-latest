@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
 
 const HOURS_OPTIONS = [
+  { label: "24 hours", value: 24 },
   { label: "48 hours", value: 48 },
   { label: "7 days", value: 168 },
   { label: "30 days", value: 720 },

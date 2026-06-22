@@ -95,7 +95,7 @@ export function CameraAlertEventTypesPanel() {
       >
         <span className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-200">
           <SlidersHorizontal className="h-4 w-4 text-teal-700 dark:text-teal-400" aria-hidden />
-          Event types
+          Accepted alert types
           {!isLoading && settings && (
             <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
               · {enabledCount} of {totalCount} enabled
@@ -179,7 +179,7 @@ export function CameraAlertEventTypesPanel() {
                       Saving…
                     </>
                   ) : (
-                    "Save event types"
+                    "Save accepted types"
                   )}
                 </Button>
                 {dirty && (
