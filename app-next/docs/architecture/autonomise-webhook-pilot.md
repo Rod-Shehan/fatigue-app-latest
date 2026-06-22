@@ -46,10 +46,17 @@ Optional: `AUTONOMISE_SECONDARY_KEY`, `AUTONOMISE_API_BASE_URL`.
 GET /device/{hardwareId}/event/{eventId}/media
 ```
 
-- `{hardwareId}` = `device.hardwareId` from the webhook (e.g. `00d20574eb`)
-- `{eventId}` = canonical event UUID from the event webhook (or nested `event.id` on media webhooks)
+Auth is **OAuth2 client credentials** (not the raw Primary key on the request):
 
-Circadia calls this automatically when `AUTONOMISE_PRIMARY_KEY` is set. Optional override:
+```text
+POST https://login.autonomise.ai/connect/token
+  grant_type=client_credentials
+  client_id=<AUTONOMISE_CLIENT_ID>
+  client_secret=<AUTONOMISE_PRIMARY_KEY>
+  scope=vt.api
+```
+
+Then `Authorization: Bearer <access_token>` on the media GET. Circadia does this automatically when `AUTONOMISE_PRIMARY_KEY` and `AUTONOMISE_CLIENT_ID` are set.
 
 ```text
 AUTONOMISE_MEDIA_PATH_TEMPLATE=/device/{deviceId}/event/{eventId}/media

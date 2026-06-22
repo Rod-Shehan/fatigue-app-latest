@@ -10,6 +10,91 @@ import {
 } from "@/lib/integrations/autonomise-media-extract";
 
 const DOCUMENTED_DEVICE_MEDIA_PATH = "/device/{deviceId}/event/{eventId}/media";
+const DEFAULT_OAUTH_TOKEN_URL = "https://login.autonomise.ai/connect/token";
+const DEFAULT_OAUTH_SCOPE = "vt.api";
+
+type OAuthTokenCacheEntry = { token: string; expiresAt: number };
+
+const globalOAuth = globalThis as typeof globalThis & {
+  __autonomiseOAuthCache?: Map<string, OAuthTokenCacheEntry>;
+};
+
+function oauthTokenCache(): Map<string, OAuthTokenCacheEntry> {
+  if (!globalOAuth.__autonomiseOAuthCache) {
+    globalOAuth.__autonomiseOAuthCache = new Map();
+  }
+  return globalOAuth.__autonomiseOAuthCache;
+}
+
+export function getAutonomiseOAuthTokenUrl(): string {
+  return (process.env.AUTONOMISE_OAUTH_TOKEN_URL ?? DEFAULT_OAUTH_TOKEN_URL).trim();
+}
+
+export function getAutonomiseOAuthScope(): string {
+  return (process.env.AUTONOMISE_OAUTH_SCOPE ?? DEFAULT_OAUTH_SCOPE).trim();
+}
+
+/** Third Party API (`api.autonomise.ai`) uses OAuth2 client credentials — Primary key is client_secret. */
+export async function fetchAutonomiseOAuthAccessToken(
+  config: AutonomiseApiConfig = getAutonomiseApiConfigFromEnv()
+): Promise<string | null> {
+  if (!config.clientId) return null;
+
+  const cacheKey = config.clientId;
+  const cached = oauthTokenCache().get(cacheKey);
+  if (cached && cached.expiresAt > Date.now() + 30_000) {
+    return cached.token;
+  }
+
+  const secrets = [config.primaryKey, config.secondaryKey].filter(Boolean);
+  for (const clientSecret of secrets) {
+    const body = new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: config.clientId,
+      client_secret: clientSecret,
+      scope: getAutonomiseOAuthScope(),
+    });
+
+    try {
+      const res = await fetch(getAutonomiseOAuthTokenUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+        signal: AbortSignal.timeout(12_000),
+      });
+
+      if (!res.ok) continue;
+
+      const data = (await res.json()) as { access_token?: string; expires_in?: number };
+      if (!data.access_token) continue;
+
+      const expiresIn = Number(data.expires_in);
+      const ttlMs = Number.isFinite(expiresIn) && expiresIn > 0 ? expiresIn * 1000 : 3_600_000;
+      oauthTokenCache().set(cacheKey, {
+        token: data.access_token,
+        expiresAt: Date.now() + ttlMs,
+      });
+      return data.access_token;
+    } catch {
+      /* try next secret */
+    }
+  }
+
+  console.warn("[autonomise-api] OAuth client_credentials failed");
+  return null;
+}
+
+async function parseAutonomiseJsonResponse(res: Response): Promise<unknown | null> {
+  if (res.status === 204) return null;
+  if (!res.ok) return null;
+  const text = await res.text();
+  if (!text.trim()) return null;
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return null;
+  }
+}
 
 const DEFAULT_MEDIA_TEMPLATES = [
   DOCUMENTED_DEVICE_MEDIA_PATH,
@@ -127,15 +212,41 @@ async function autonomiseGet(
   options: { apiOnly?: boolean } = {}
 ): Promise<unknown | null> {
   const tokens = [config.primaryKey, config.secondaryKey].filter(Boolean);
-  if (tokens.length === 0) return null;
-
   const modes = ["api-key", "bearer", "x-custom", config.authMode].filter(
     (m, i, arr) => Boolean(m) && arr.indexOf(m) === i
   );
 
   const bases = options.apiOnly ? [config.baseUrl] : apiBaseUrls(config);
   let lastStatus = "";
+
   for (const base of bases) {
+    if (base === config.baseUrl) {
+      const oauthToken = await fetchAutonomiseOAuthAccessToken(config);
+      if (oauthToken) {
+        try {
+          const res = await fetch(buildUrl(path, base), {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${oauthToken}`,
+              Accept: "application/json",
+            },
+            signal: AbortSignal.timeout(12_000),
+          });
+          const data = await parseAutonomiseJsonResponse(res);
+          if (data) return data;
+          if (res.status === 204) return null;
+          lastStatus = `HTTP ${res.status} @ ${base}${path} (oauth)`;
+        } catch {
+          /* fall through */
+        }
+      } else {
+        lastStatus = `oauth_failed @ ${base}${path}`;
+      }
+      if (options.apiOnly) continue;
+    }
+
+    if (tokens.length === 0) continue;
+
     for (const token of tokens) {
       for (const mode of modes) {
         try {
@@ -149,17 +260,9 @@ async function autonomiseGet(
             signal: AbortSignal.timeout(12_000),
           });
 
+          const data = await parseAutonomiseJsonResponse(res);
+          if (data) return data;
           if (res.status === 204) return null;
-
-          if (res.ok) {
-            const text = await res.text();
-            if (!text.trim()) return null;
-            try {
-              return JSON.parse(text) as unknown;
-            } catch {
-              return null;
-            }
-          }
           lastStatus = `HTTP ${res.status} @ ${base}${path}`;
         } catch {
           /* try next auth mode */
