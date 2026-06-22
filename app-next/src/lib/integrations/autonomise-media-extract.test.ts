@@ -24,6 +24,27 @@ describe("autonomise-media-extract", () => {
     expect(parsed.roadCameraUrl).toContain("road");
   });
 
+  it("extracts documented Autonomise device media API response (media[].uri)", () => {
+    const parsed = extractMediaFromJson({
+      media: [
+        {
+          id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+          uri: "https://cdn.example/event-clip.mp4",
+          mimeType: "video/mp4",
+          channelLabel: "Event",
+        },
+        {
+          uri: "https://cdn.example/driver.jpg",
+          mimeType: "image/jpeg",
+          channelLabel: "Driver",
+        },
+      ],
+      missing: [],
+    });
+    expect(parsed.eventVideoUrl).toBe("https://cdn.example/event-clip.mp4");
+    expect(parsed.driverCameraUrl).toBe("https://cdn.example/driver.jpg");
+  });
+
   it("deep-scans unknown media webhook JSON for https urls", () => {
     const parsed = scanMediaUrlsFromJson({
       nested: { driverFace: "https://cdn.example/dsm-snap.jpg" },

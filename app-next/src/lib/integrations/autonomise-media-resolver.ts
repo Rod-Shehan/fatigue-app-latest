@@ -3,7 +3,7 @@ import {
   fetchAutonomiseEventMediaBundle,
   isAutonomiseApiConfigured,
 } from "@/lib/integrations/autonomise-api-client";
-import { parseFnolReference } from "@/lib/integrations/autonomise-payload";
+import { parseFnolReference, extractDeviceHardwareId } from "@/lib/integrations/autonomise-payload";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return v !== null && typeof v === "object" && !Array.isArray(v);
@@ -22,17 +22,23 @@ export type ResolveAutonomiseMediaResult = {
   fetched: boolean;
 };
 
+export function deviceHardwareIdFromPayload(payload: unknown): string {
+  return extractDeviceHardwareId(payload) ?? "";
+}
+
 /** Pull clip/snapshots from Autonomise API and persist on matching ingest rows. */
 export async function resolveAndPersistAutonomiseMedia(
   prisma: PrismaClient,
-  args: { eventId: string; fnolSlug?: string; payload?: unknown }
+  args: { eventId: string; fnolSlug?: string; deviceHardwareId?: string; payload?: unknown }
 ): Promise<ResolveAutonomiseMediaResult | null> {
   const eventId = String(args.eventId || "").trim();
   if (!eventId || !isAutonomiseApiConfigured()) return null;
 
   const fnolSlug = args.fnolSlug ?? fnolSlugFromPayload(args.payload) ?? "";
+  const deviceHardwareId =
+    args.deviceHardwareId?.trim() || deviceHardwareIdFromPayload(args.payload) || "";
 
-  const bundle = await fetchAutonomiseEventMediaBundle(eventId, { fnolSlug });
+  const bundle = await fetchAutonomiseEventMediaBundle(eventId, { fnolSlug, deviceHardwareId });
   if (!bundle.mediaUrl && !bundle.driverName) {
     return { eventId, mediaUrl: null, driverName: null, fetched: true };
   }

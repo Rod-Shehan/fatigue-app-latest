@@ -9,7 +9,10 @@ import {
   type AutonomiseMediaUrls,
 } from "@/lib/integrations/autonomise-media-extract";
 
+const DOCUMENTED_DEVICE_MEDIA_PATH = "/device/{deviceId}/event/{eventId}/media";
+
 const DEFAULT_MEDIA_TEMPLATES = [
+  DOCUMENTED_DEVICE_MEDIA_PATH,
   "/event/{eventId}/media?clientId={clientId}",
   "/events/{eventId}/media?clientId={clientId}",
   "/v1/events/{eventId}/media?clientId={clientId}",
@@ -51,7 +54,7 @@ export function getAutonomiseApiConfigFromEnv(): AutonomiseApiConfig {
     secondaryKey: (process.env.AUTONOMISE_SECONDARY_KEY ?? "").trim(),
     authMode: (process.env.AUTONOMISE_AUTH_MODE ?? "api-key").toLowerCase(),
     mediaPathTemplate: (
-      process.env.AUTONOMISE_MEDIA_PATH_TEMPLATE ?? "/event/{eventId}/media?clientId={clientId}"
+      process.env.AUTONOMISE_MEDIA_PATH_TEMPLATE ?? DOCUMENTED_DEVICE_MEDIA_PATH
     ).trim(),
     eventPathTemplate: (process.env.AUTONOMISE_EVENT_PATH_TEMPLATE ?? "").trim(),
   };
@@ -67,10 +70,20 @@ function authHeaders(token: string, mode: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` };
 }
 
-function applyTemplate(template: string, eventId: string, clientId: string): string {
+function applyTemplate(
+  template: string,
+  eventId: string,
+  clientId: string,
+  deviceId = ""
+): string {
   return template
     .replace("{eventId}", encodeURIComponent(eventId))
-    .replace("{clientId}", encodeURIComponent(clientId));
+    .replace("{clientId}", encodeURIComponent(clientId))
+    .replace("{deviceId}", encodeURIComponent(deviceId));
+}
+
+export function buildDeviceEventMediaPath(deviceHardwareId: string, eventId: string): string {
+  return applyTemplate(DOCUMENTED_DEVICE_MEDIA_PATH, eventId, "", deviceHardwareId);
 }
 
 function apiBaseUrls(config: AutonomiseApiConfig): string[] {
@@ -82,11 +95,14 @@ function buildUrl(path: string, baseUrl: string): string {
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
-function mediaPathCandidates(config: AutonomiseApiConfig): string[] {
+function mediaPathCandidates(config: AutonomiseApiConfig, deviceHardwareId: string): string[] {
   const list = config.mediaPathTemplate
     ? [config.mediaPathTemplate, ...DEFAULT_MEDIA_TEMPLATES]
     : DEFAULT_MEDIA_TEMPLATES;
-  return [...new Set(list)];
+  return [...new Set(list)].filter((template) => {
+    if (template.includes("{deviceId}") && !deviceHardwareId) return false;
+    return true;
+  });
 }
 
 function eventPathCandidates(config: AutonomiseApiConfig): string[] {
@@ -107,7 +123,8 @@ function mediaLookupIds(eventId: string, fnolSlug: string): string[] {
 
 async function autonomiseGet(
   path: string,
-  config: AutonomiseApiConfig
+  config: AutonomiseApiConfig,
+  options: { apiOnly?: boolean } = {}
 ): Promise<unknown | null> {
   const tokens = [config.primaryKey, config.secondaryKey].filter(Boolean);
   if (tokens.length === 0) return null;
@@ -116,8 +133,9 @@ async function autonomiseGet(
     (m, i, arr) => Boolean(m) && arr.indexOf(m) === i
   );
 
+  const bases = options.apiOnly ? [config.baseUrl] : apiBaseUrls(config);
   let lastStatus = "";
-  for (const base of apiBaseUrls(config)) {
+  for (const base of bases) {
     for (const token of tokens) {
       for (const mode of modes) {
         try {
@@ -131,8 +149,16 @@ async function autonomiseGet(
             signal: AbortSignal.timeout(12_000),
           });
 
+          if (res.status === 204) return null;
+
           if (res.ok) {
-            return await res.json();
+            const text = await res.text();
+            if (!text.trim()) return null;
+            try {
+              return JSON.parse(text) as unknown;
+            } catch {
+              return null;
+            }
           }
           lastStatus = `HTTP ${res.status} @ ${base}${path}`;
         } catch {
@@ -150,10 +176,15 @@ async function autonomiseGet(
 
 export async function fetchAutonomiseMediaUrls(
   eventId: string,
-  options: { fnolSlug?: string; config?: AutonomiseApiConfig } = {}
+  options: {
+    fnolSlug?: string;
+    deviceHardwareId?: string;
+    config?: AutonomiseApiConfig;
+  } = {}
 ): Promise<AutonomiseMediaUrls> {
   const config = options.config ?? getAutonomiseApiConfigFromEnv();
   const fnolSlug = options.fnolSlug ?? "";
+  const deviceHardwareId = (options.deviceHardwareId ?? "").trim();
 
   if (!eventId || eventId.startsWith("TEST-EVT-")) {
     return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
@@ -164,8 +195,11 @@ export async function fetchAutonomiseMediaUrls(
   let eventVideoUrl = "";
 
   for (const lookupId of mediaLookupIds(eventId, fnolSlug)) {
-    for (const template of mediaPathCandidates(config)) {
-      const data = await autonomiseGet(applyTemplate(template, lookupId, config.clientId), config);
+    for (const template of mediaPathCandidates(config, deviceHardwareId)) {
+      const path = applyTemplate(template, lookupId, config.clientId, deviceHardwareId);
+      const data = await autonomiseGet(path, config, {
+        apiOnly: template.includes("{deviceId}"),
+      });
       if (!data) continue;
       const parsed = extractMediaFromJson(data);
       driverCameraUrl = driverCameraUrl || parsed.driverCameraUrl;
@@ -205,7 +239,11 @@ export type AutonomiseMediaFetchResult = AutonomiseMediaUrls & {
 /** Fetch media + driver from Autonomise API for one event id. */
 export async function fetchAutonomiseEventMediaBundle(
   eventId: string,
-  options: { fnolSlug?: string; config?: AutonomiseApiConfig } = {}
+  options: {
+    fnolSlug?: string;
+    deviceHardwareId?: string;
+    config?: AutonomiseApiConfig;
+  } = {}
 ): Promise<AutonomiseMediaFetchResult> {
   const config = options.config ?? getAutonomiseApiConfigFromEnv();
   if (!isAutonomiseApiConfigured(config)) {
@@ -219,8 +257,9 @@ export async function fetchAutonomiseEventMediaBundle(
   }
 
   const fnolSlug = options.fnolSlug ?? "";
+  const deviceHardwareId = options.deviceHardwareId ?? "";
   const [media, driver] = await Promise.all([
-    fetchAutonomiseMediaUrls(eventId, { fnolSlug, config }),
+    fetchAutonomiseMediaUrls(eventId, { fnolSlug, deviceHardwareId, config }),
     fetchAutonomiseEventDriver(eventId, config),
   ]);
 

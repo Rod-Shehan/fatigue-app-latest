@@ -11,10 +11,20 @@ const ROAD_URL_HINTS = /road|forward|adas|outward|external|front/i;
 function asUrl(value: unknown): string {
   if (!value) return "";
   if (typeof value === "string" && /^https?:\/\//i.test(value)) return value;
-  if (typeof value === "object" && value !== null && typeof (value as { url?: string }).url === "string") {
-    return (value as { url: string }).url;
+  if (typeof value === "object" && value !== null) {
+    const row = value as { url?: string; uri?: string };
+    if (typeof row.url === "string" && /^https?:\/\//i.test(row.url)) return row.url;
+    if (typeof row.uri === "string" && /^https?:\/\//i.test(row.uri)) return row.uri;
   }
   return "";
+}
+
+function isVideoMime(mime: string): boolean {
+  return /^video\//i.test(mime);
+}
+
+function isImageMime(mime: string): boolean {
+  return /^image\//i.test(mime);
 }
 
 function firstUrl(...candidates: unknown[]): string {
@@ -127,10 +137,15 @@ export function extractVideoFromJson(data: unknown): { eventVideoUrl: string } {
     for (const item of root.media) {
       if (!item || typeof item !== "object") continue;
       const row = item as Record<string, unknown>;
-      const label = String(row.type ?? row.name ?? "").toLowerCase();
-      const url = asUrl(row.url ?? row.href ?? row.link);
+      const label = String(row.type ?? row.name ?? row.channelLabel ?? "").toLowerCase();
+      const mime = String(row.mimeType ?? row.mime_type ?? "");
+      const url = asUrl(row.uri ?? row.url ?? row.href ?? row.link);
       if (!url) continue;
-      if (/video|clip|recording|playback/.test(label) || looksLikeVideoUrl(url)) {
+      if (
+        isVideoMime(mime) ||
+        /video|clip|recording|playback/.test(label) ||
+        looksLikeVideoUrl(url)
+      ) {
         eventVideoUrl = url;
         break;
       }
@@ -189,11 +204,17 @@ export function extractMediaFromJson(data: unknown): AutonomiseMediaUrls {
     for (const item of root.media) {
       if (!item || typeof item !== "object") continue;
       const row = item as Record<string, unknown>;
-      const label = String(row.type ?? row.camera ?? row.name ?? "").toLowerCase();
-      const url = asUrl(row.url ?? row.href ?? row.link);
+      const label = String(row.type ?? row.camera ?? row.name ?? row.channelLabel ?? "").toLowerCase();
+      const mime = String(row.mimeType ?? row.mime_type ?? "");
+      const url = asUrl(row.uri ?? row.url ?? row.href ?? row.link);
       if (!url) continue;
-      if (!fromListDriver && /driver|dsm|cab|face|inward/.test(label)) fromListDriver = url;
-      if (!fromListRoad && /road|forward|adas|outward/.test(label)) fromListRoad = url;
+      const isVideo = isVideoMime(mime) || looksLikeVideoUrl(url);
+      if (!fromListDriver && !isVideo && (isImageMime(mime) || /driver|dsm|cab|face|inward/.test(label))) {
+        fromListDriver = url;
+      }
+      if (!fromListRoad && !isVideo && (isImageMime(mime) || /road|forward|adas|outward/.test(label))) {
+        fromListRoad = url;
+      }
     }
     const video = extractVideoFromJson(data);
     return {

@@ -281,12 +281,32 @@ function resolveNestedEventUuid(payload: Record<string, unknown>): string | null
   return stringField(nested, ["id", "eventId", "event_id"]);
 }
 
+/** Device hardware id for Autonomise `GET /device/{id}/event/{eventid}/media`. */
+export function extractDeviceHardwareId(payload: unknown): string | null {
+  const root = isRecord(payload) ? payload : {};
+  const body = unwrapAutonomiseBody(payload);
+
+  for (const source of [body, root]) {
+    const device = source.device;
+    if (isRecord(device)) {
+      const id =
+        stringField(device, ["hardwareId", "hardware_id", "HardwareId", "deviceId", "device_id"]) ??
+        stringField(device, ["id", "Id"]);
+      if (id) return id;
+    }
+    const direct = stringField(source, ["hardwareId", "hardware_id", "deviceHardwareId"]);
+    if (direct) return direct;
+  }
+  return null;
+}
+
 export type AutonomiseExtractedFields = {
   vendorAlarmId: string | null;
   /** Canonical fleet event id (UUID when Autonomise sends FNOL / nested event.id). */
   vendorEventId: string | null;
   /** Media webhook row id — distinct from vendorEventId on media POSTs. */
   mediaRecordId: string | null;
+  deviceHardwareId: string | null;
   vehicleRego: string | null;
   driverName: string | null;
   mediaUrl: string | null;
@@ -324,6 +344,7 @@ export function extractAutonomiseFields(
   const vehicleRego = resolveVehicleRego(body);
   const driverName = resolveDriverName(body);
   const mediaUrl = resolveMediaUrl(body, payload);
+  const deviceHardwareId = extractDeviceHardwareId(payload);
   const linkedEventId =
     stringField(body, ["linkedEventId", "linked_event_id", "parentEventId", "ParentEventId"]) ??
     vendorEventId;
@@ -332,6 +353,7 @@ export function extractAutonomiseFields(
     vendorAlarmId,
     vendorEventId,
     mediaRecordId,
+    deviceHardwareId,
     vehicleRego,
     driverName,
     mediaUrl,

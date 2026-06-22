@@ -38,7 +38,24 @@ AUTONOMISE_PRIMARY_KEY=<Primary API key from Autonomise → API Settings>
 AUTONOMISE_CLIENT_ID=5e5A9Zq2e7
 ```
 
-Optional: `AUTONOMISE_SECONDARY_KEY`, `AUTONOMISE_API_BASE_URL`, `AUTONOMISE_MEDIA_PATH_TEMPLATE`.
+Optional: `AUTONOMISE_SECONDARY_KEY`, `AUTONOMISE_API_BASE_URL`.
+
+**Media API** (when webhooks have no clip URL) — per [Autonomise API docs](https://api.autonomise.ai/docs/index.html):
+
+```text
+GET /device/{hardwareId}/event/{eventId}/media
+```
+
+- `{hardwareId}` = `device.hardwareId` from the webhook (e.g. `00d20574eb`)
+- `{eventId}` = canonical event UUID from the event webhook (or nested `event.id` on media webhooks)
+
+Circadia calls this automatically when `AUTONOMISE_PRIMARY_KEY` is set. Optional override:
+
+```text
+AUTONOMISE_MEDIA_PATH_TEMPLATE=/device/{deviceId}/event/{eventId}/media
+```
+
+Do **not** use the old `/event/{eventId}/media?clientId=…` template unless Autonomise support confirms it.
 
 After adding env vars, **redeploy** production.
 
