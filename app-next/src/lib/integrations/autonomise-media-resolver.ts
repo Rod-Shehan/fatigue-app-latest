@@ -133,9 +133,6 @@ export async function resolveAutonomiseMediaWithRetries(
   return { eventId, mediaUrl: null, driverName: null, fetched: true };
 }
 
-const DEFAULT_MAX_FETCH_PER_REQUEST = 3;
-const PENDING_INBOX_MAX_FETCH = 15;
-
 const DEFAULT_MAX_FETCH_PER_REQUEST = 8;
 const PENDING_INBOX_MAX_FETCH = 20;
 const BACKFILL_CONCURRENCY = 4;
