@@ -295,24 +295,27 @@ export async function fetchAutonomiseMediaUrls(
     return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
   }
 
-  if (!deviceHardwareId) {
-    console.warn("[autonomise-api] media fetch skipped — no device hardware id on payload");
-    return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
+  let driverCameraUrl = "";
+  let roadCameraUrl = "";
+  let eventVideoUrl = "";
+
+  for (const lookupId of mediaLookupIds(eventId, fnolSlug)) {
+    for (const template of mediaPathCandidates(config, deviceHardwareId)) {
+      const path = applyTemplate(template, lookupId, config.clientId, deviceHardwareId);
+      const data = await autonomiseGet(path, config, {
+        apiOnly: template.includes("{deviceId}"),
+      });
+      if (!data) continue;
+      const parsed = extractMediaFromJson(data);
+      driverCameraUrl = driverCameraUrl || parsed.driverCameraUrl;
+      roadCameraUrl = roadCameraUrl || parsed.roadCameraUrl;
+      eventVideoUrl = eventVideoUrl || parsed.eventVideoUrl;
+      if (driverCameraUrl && roadCameraUrl && eventVideoUrl) break;
+    }
+    if (driverCameraUrl || roadCameraUrl || eventVideoUrl) break;
   }
 
-  const deviceTemplate = config.mediaPathTemplate || DOCUMENTED_DEVICE_MEDIA_PATH;
-  const path = applyTemplate(deviceTemplate, eventId, config.clientId, deviceHardwareId);
-  const data = await autonomiseGet(path, config, { apiOnly: true });
-  if (data) {
-    const parsed = extractMediaFromJson(data);
-    return {
-      driverCameraUrl: parsed.driverCameraUrl,
-      roadCameraUrl: parsed.roadCameraUrl,
-      eventVideoUrl: parsed.eventVideoUrl,
-    };
-  }
-
-  return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
+  return { driverCameraUrl, roadCameraUrl, eventVideoUrl };
 }
 
 export async function fetchAutonomiseEventDriver(

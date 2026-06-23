@@ -121,7 +121,8 @@ export async function resolveAutonomiseMediaWithRetries(
   return { eventId, mediaUrl: null, driverName: null, fetched: true };
 }
 
-const MAX_FETCH_PER_REQUEST = 3;
+const DEFAULT_MAX_FETCH_PER_REQUEST = 3;
+const PENDING_INBOX_MAX_FETCH = 15;
 
 /** Backfill media for accepted events missing a clip URL (Live alerts poll). Mutates rows in place. */
 export async function backfillMissingAutonomiseMedia(
@@ -133,13 +134,14 @@ export async function backfillMissingAutonomiseMedia(
     driverName?: string | null;
     accepted?: boolean;
     payload?: unknown;
-  }>
+  }>,
+  maxFetches = DEFAULT_MAX_FETCH_PER_REQUEST
 ): Promise<number> {
   if (!isAutonomiseApiConfigured()) return 0;
 
   let fetches = 0;
   for (const event of events) {
-    if (fetches >= MAX_FETCH_PER_REQUEST) break;
+    if (fetches >= maxFetches) break;
     if (!event.accepted || !event.vendorEventId || event.mediaUrl) continue;
 
     fetches += 1;
@@ -160,3 +162,5 @@ export async function backfillMissingAutonomiseMedia(
   }
   return fetches;
 }
+
+export { DEFAULT_MAX_FETCH_PER_REQUEST, PENDING_INBOX_MAX_FETCH };

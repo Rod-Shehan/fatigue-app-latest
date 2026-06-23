@@ -4,7 +4,7 @@ import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
-import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
+import { backfillMissingAutonomiseMedia, PENDING_INBOX_MAX_FETCH } from "@/lib/integrations/autonomise-media-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 
@@ -257,7 +257,24 @@ export async function listCameraAlerts(
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
   if (args.backfillMedia !== false) {
-    await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
+    const maxBackfill = args.triageFilter === "pending" ? PENDING_INBOX_MAX_FETCH : undefined;
+    await backfillMissingAutonomiseMedia(prisma, enrichedEvents, maxBackfill);
+
+    const ids = enrichedEvents.map((row) => row.id);
+    if (ids.length > 0) {
+      const freshRows = await prisma.autonomiseWebhookIngest.findMany({
+        where: { id: { in: ids } },
+        select: { id: true, mediaUrl: true, driverName: true, vehicleRego: true },
+      });
+      const freshById = new Map(freshRows.map((row) => [row.id, row]));
+      for (const row of enrichedEvents) {
+        const fresh = freshById.get(row.id);
+        if (!fresh) continue;
+        if (fresh.mediaUrl) row.mediaUrl = fresh.mediaUrl;
+        if (fresh.driverName) row.driverName = fresh.driverName;
+        if (fresh.vehicleRego) row.vehicleRego = fresh.vehicleRego;
+      }
+    }
   }
 
   const triageByIngestId = await loadTriageByIngestIds(
