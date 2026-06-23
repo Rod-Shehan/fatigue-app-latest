@@ -26,10 +26,10 @@ Optional:
 
 ```text
 AUTONOMISE_TENANT_GUID=2bd17364-739f-f011-8e62-6045bdfcbf17
-AUTONOMISE_FATIGUE_EVENT_TYPE_CODES=2,18
+AUTONOMISE_FATIGUE_EVENT_TYPE_CODES=18,48,50
 ```
 
-`AUTONOMISE_FATIGUE_EVENT_TYPE_CODES` — extra numeric `eventTypes` values treated as DSM Fatigue (legacy MTS uses **2**; current enum is **18**).
+`AUTONOMISE_FATIGUE_EVENT_TYPE_CODES` — optional extra numeric `eventTypes` treated as DSM Fatigue. Autonomise enum **18** = Fatigue; **2** = Speed (do not include 2).
 
 Optional tenant override when Autonomise renumbers types:
 

@@ -1,17 +1,14 @@
 /**
  * Autonomise `eventTypes` numeric codes → VT3600 alarm ids.
  *
- * Source: VisionTrack.Api EventTypeDto in Autonomise swagger
+ * Source: VisionTrack.Domain.Enums.EventType in Autonomise swagger
  * (`GET https://api.autonomise.ai/swagger/v2/swagger.json`).
  *
- * MTS pilot note: legacy webhooks used code **2** for Fatigue before enum **18**
- * was adopted — we keep 2 → Fatigue for stored rows and older device configs.
+ * Important: code **2 = Speed**, **18 = Fatigue**. Do not map 2 to fatigue.
  */
 
 /** Default code → vendor alarm id (catalogue ids). */
 export const AUTONOMISE_DEFAULT_EVENT_TYPE_TO_ALARM: Readonly<Record<number, string>> = {
-  /** Legacy MTS / tenant mapping (swagger enum 2 = Speed). */
-  2: "VT3600AI_ALARM_DSM_Fatigue",
   7: "VT3600AI_ALARM_EMERGENCY",
   18: "VT3600AI_ALARM_DSM_Fatigue",
   19: "VT3600AI_ALARM_DSM_Smoking",
@@ -57,7 +54,7 @@ function parseEnvCodeMap(raw: string | undefined): Record<number, string> {
 export function getAutonomiseEventTypeCodeMap(): Readonly<Record<number, string>> {
   const merged: Record<number, string> = { ...AUTONOMISE_DEFAULT_EVENT_TYPE_TO_ALARM };
 
-  const fatigueCodes = parseCodeList(process.env.AUTONOMISE_FATIGUE_EVENT_TYPE_CODES, [2, 18]);
+  const fatigueCodes = parseCodeList(process.env.AUTONOMISE_FATIGUE_EVENT_TYPE_CODES, [18, 48, 50]);
   for (const code of fatigueCodes) {
     merged[code] = "VT3600AI_ALARM_DSM_Fatigue";
   }
@@ -80,5 +77,5 @@ export function resolveVendorAlarmFromEventTypeCodes(codes: readonly number[]): 
 
 /** @deprecated Prefer `getAutonomiseEventTypeCodeMap` — kept for env docs compatibility. */
 export function getAutonomiseFatigueEventTypeCodesFromEnv(): number[] {
-  return parseCodeList(process.env.AUTONOMISE_FATIGUE_EVENT_TYPE_CODES, [2, 18]);
+  return parseCodeList(process.env.AUTONOMISE_FATIGUE_EVENT_TYPE_CODES, [18, 48, 50]);
 }

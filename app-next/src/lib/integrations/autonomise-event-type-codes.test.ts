@@ -25,8 +25,13 @@ describe("autonomise-event-type-codes", () => {
     );
   });
 
-  it("keeps legacy MTS fatigue code 2", () => {
-    expect(resolveVendorAlarmFromEventTypeCodes([2])).toBe("VT3600AI_ALARM_DSM_Fatigue");
+  it("does not map Autonomise Speed code 2 to fatigue", () => {
+    expect(resolveVendorAlarmFromEventTypeCodes([2])).toBeNull();
+  });
+
+  it("maps physiological fatigue codes", () => {
+    expect(resolveVendorAlarmFromEventTypeCodes([48])).toBe("VT3600AI_ALARM_DSM_Fatigue");
+    expect(resolveVendorAlarmFromEventTypeCodes([50])).toBe("VT3600AI_ALARM_DSM_Fatigue");
   });
 
   it("maps excluded alarms for ingest rejection (not unknown)", () => {

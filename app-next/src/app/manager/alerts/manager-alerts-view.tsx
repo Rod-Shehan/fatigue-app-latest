@@ -248,7 +248,11 @@ function AlertEventHeader({
         <p className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
           {formatVehicleDriverLine(alert)}
         </p>
-        <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
+        <p className="text-xs text-slate-500 mt-1">
+          {alert.triggerAt && alert.triggerAt !== alert.receivedAt
+            ? `Detected ${formatWhen(alert.triggerAt)} · received ${formatWhen(alert.receivedAt)}`
+            : formatWhen(alert.receivedAt)}
+        </p>
         {!alert.mediaUrl && alert.mediaPending && (
           <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">Fetching clip…</p>
         )}

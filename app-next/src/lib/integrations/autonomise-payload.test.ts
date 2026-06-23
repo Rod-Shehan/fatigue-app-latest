@@ -22,13 +22,13 @@ describe("autonomise-payload", () => {
     expect(fields.driverName).toBe("Pat Driver");
   });
 
-  it("maps live Autonomise fatigue eventTypes code 2", () => {
+  it("does not treat Autonomise Speed eventTypes code 2 as fatigue", () => {
     const fields = extractAutonomiseFields({
       id: "MDBkMjA1NzRlYnwzZjBjZDliOC05ZTFkLTRlZjQtYTg2ZS02YTNhOGZkYWE3OWY=",
       eventTypes: [2],
       classification: 4,
     });
-    expect(fields.vendorAlarmId).toBe("VT3600AI_ALARM_DSM_Fatigue");
+    expect(fields.vendorAlarmId).toBeNull();
     expect(fields.vendorEventId).toBe("3f0cd9b8-9e1d-4ef4-a86e-6a3a8fdaa79f");
   });
 

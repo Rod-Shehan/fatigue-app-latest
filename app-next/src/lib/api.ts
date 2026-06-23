@@ -195,6 +195,7 @@ export type CameraAlertItem = {
   driverName: string | null;
   deviceHardwareId: string | null;
   receivedAt: string;
+  triggerAt?: string | null;
   accepted: boolean;
   rejectReason: string | null;
   mediaUrl: string | null;

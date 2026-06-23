@@ -20,6 +20,8 @@ export type CameraAlertItem = {
   driverName: string | null;
   deviceHardwareId: string | null;
   receivedAt: string;
+  /** When the device detected the event (Autonomise triggerTime), if known. */
+  triggerAt: string | null;
   accepted: boolean;
   rejectReason: string | null;
   mediaUrl: string | null;
@@ -56,6 +58,14 @@ type IngestRow = Pick<
   | "rejectReason"
   | "receivedAt"
 > & { payload?: Prisma.JsonValue; deviceHardwareId?: string | null; mediaUnavailable?: boolean };
+
+function triggerAtFromPayload(payload: Prisma.JsonValue | undefined): string | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const raw = (payload as Record<string, unknown>).triggerTime;
+  if (typeof raw !== "string" || !raw.trim()) return null;
+  const d = new Date(raw);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+}
 
 function enrichMediaRow(row: IngestRow): IngestRow {
   if (!row.payload) return row;
@@ -144,6 +154,7 @@ export function buildCameraAlertsFromRows(
       driverName: event.driverName,
       deviceHardwareId: deviceHardwareIdFromRow(event, "event"),
       receivedAt: event.receivedAt.toISOString(),
+      triggerAt: triggerAtFromPayload(event.payload),
       accepted: event.accepted,
       rejectReason: event.rejectReason,
       mediaUrl,
@@ -176,6 +187,7 @@ export function buildCameraAlertsFromRows(
       driverName: row.driverName,
       deviceHardwareId: deviceHardwareIdFromRow(row, "media"),
       receivedAt: row.receivedAt.toISOString(),
+      triggerAt: triggerAtFromPayload(row.payload),
       accepted: false,
       rejectReason: "event_webhook_missing",
       mediaUrl: row.mediaUrl,
