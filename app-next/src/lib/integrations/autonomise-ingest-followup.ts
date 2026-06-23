@@ -18,7 +18,6 @@ export async function runAutonomiseIngestFollowUp(
 
   const fields = extractAutonomiseFields(args.payload, args.kind);
   const eventId =
-    args.result.vendorEventId ??
     fields.vendorEventId ??
     args.result.linkedEventId ??
     fields.linkedEventId;
