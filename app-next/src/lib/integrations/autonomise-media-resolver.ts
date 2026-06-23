@@ -66,8 +66,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Delays before each media API attempt — clip is often not ready on first event webhook. */
-export const MEDIA_FETCH_RETRY_DELAYS_MS = [0, 45_000, 90_000, 180_000] as const;
+/** Delays before each follow-up media attempt (after sync ingest). Kept under typical Vercel after() budget. */
+export const MEDIA_FETCH_RETRY_DELAYS_MS = [10_000, 25_000, 45_000] as const;
 
 async function eventIngestHasMediaUrl(
   prisma: PrismaClient,

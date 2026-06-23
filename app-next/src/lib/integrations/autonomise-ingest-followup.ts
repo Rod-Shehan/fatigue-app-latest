@@ -1,11 +1,10 @@
 import type { PrismaClient } from "@prisma/client";
 import type { AutonomiseIngestResult } from "@/lib/integrations/autonomise-ingest";
-import { resolveAndPersistAutonomiseIdentity } from "@/lib/integrations/autonomise-identity-resolver";
 import { resolveAutonomiseMediaWithRetries } from "@/lib/integrations/autonomise-media-resolver";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 
-/** Background work after webhook row is saved — media retries + identity (does not block Autonomise). */
+/** Background clip retries when sync ingest fetch ran too early (Vercel after() — keep delays short). */
 export async function runAutonomiseIngestFollowUp(
   prisma: PrismaClient,
   args: {
@@ -15,6 +14,7 @@ export async function runAutonomiseIngestFollowUp(
   }
 ): Promise<void> {
   if (args.result.duplicate || !isAutonomiseApiConfigured()) return;
+  if (args.result.mediaUrl) return;
 
   const fields = extractAutonomiseFields(args.payload, args.kind);
   const eventId =
@@ -27,30 +27,10 @@ export async function runAutonomiseIngestFollowUp(
   const shouldFetchMedia =
     (args.kind === "event" && args.result.accepted) || args.kind === "media";
 
-  if (shouldFetchMedia && !args.result.mediaUrl) {
-    await resolveAutonomiseMediaWithRetries(prisma, {
-      eventId,
-      payload: args.payload,
-    });
-  }
+  if (!shouldFetchMedia) return;
 
-  if (
-    args.kind === "event" &&
-    args.result.accepted &&
-    args.result.id &&
-    (!args.result.vehicleRego || !args.result.driverName)
-  ) {
-    try {
-      await resolveAndPersistAutonomiseIdentity(prisma, {
-        ingestId: args.result.id,
-        payload: args.payload,
-      });
-    } catch (e) {
-      console.warn(
-        "[autonomise-ingest] identity fetch failed",
-        args.result.id,
-        e instanceof Error ? e.message : e
-      );
-    }
-  }
+  await resolveAutonomiseMediaWithRetries(prisma, {
+    eventId,
+    payload: args.payload,
+  });
 }

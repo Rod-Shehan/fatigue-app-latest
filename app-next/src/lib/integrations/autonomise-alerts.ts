@@ -256,7 +256,7 @@ export async function listCameraAlerts(
   const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, enabledAlarmIds));
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
-  if (args.backfillMedia === true) {
+  if (args.backfillMedia !== false) {
     await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
   }
 
