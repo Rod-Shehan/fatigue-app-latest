@@ -199,6 +199,7 @@ export type CameraAlertItem = {
   rejectReason: string | null;
   mediaUrl: string | null;
   mediaPending: boolean;
+  mediaUnavailable?: boolean;
   triageStatus: CameraAlertTriageStatus;
   triageDecidedAt: string | null;
   triageDecidedBy: string | null;

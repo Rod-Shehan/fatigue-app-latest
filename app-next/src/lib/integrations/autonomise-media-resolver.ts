@@ -20,6 +20,8 @@ export type ResolveAutonomiseMediaResult = {
   mediaUrl: string | null;
   driverName: string | null;
   fetched: boolean;
+  /** Autonomise API responded but returned no clip URLs. */
+  emptyFromApi?: boolean;
 };
 
 export function deviceHardwareIdFromPayload(payload: unknown): string {
@@ -40,7 +42,7 @@ export async function resolveAndPersistAutonomiseMedia(
 
   const bundle = await fetchAutonomiseEventMediaBundle(eventId, { fnolSlug, deviceHardwareId });
   if (!bundle.mediaUrl && !bundle.driverName) {
-    return { eventId, mediaUrl: null, driverName: null, fetched: true };
+    return { eventId, mediaUrl: null, driverName: null, fetched: true, emptyFromApi: true };
   }
 
   const patch: { mediaUrl?: string; driverName?: string } = {};
@@ -134,6 +136,7 @@ export async function backfillMissingAutonomiseMedia(
     driverName?: string | null;
     accepted?: boolean;
     payload?: unknown;
+    mediaUnavailable?: boolean;
   }>,
   maxFetches = DEFAULT_MAX_FETCH_PER_REQUEST
 ): Promise<number> {
@@ -152,6 +155,7 @@ export async function backfillMissingAutonomiseMedia(
       });
       if (result?.mediaUrl) event.mediaUrl = result.mediaUrl;
       if (result?.driverName && !event.driverName) event.driverName = result.driverName;
+      if (result?.emptyFromApi) event.mediaUnavailable = true;
     } catch (e) {
       console.warn(
         "[autonomise-media] backfill failed",

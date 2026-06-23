@@ -163,9 +163,11 @@ function AlertEventCard({
               />
             ) : (
               <div className="px-4 text-center text-sm text-slate-400">
-                {alert.mediaPending
-                  ? "Video not ready yet — Autonomise may send a media webhook shortly."
-                  : "No video for this event."}
+                {alert.mediaUnavailable
+                  ? "No clip from Autonomise for this event — check device alarm is set to Raise Media for fatigue."
+                  : alert.mediaPending
+                    ? "Fetching clip from Autonomise…"
+                    : "No video for this event."}
               </div>
             )}
           </div>
@@ -248,7 +250,10 @@ function AlertEventHeader({
         </p>
         <p className="text-xs text-slate-500 mt-1">{formatWhen(alert.receivedAt)}</p>
         {!alert.mediaUrl && alert.mediaPending && (
-          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">Video pending…</p>
+          <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">Fetching clip…</p>
+        )}
+        {!alert.mediaUrl && alert.mediaUnavailable && (
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">No clip on Autonomise</p>
         )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">

@@ -24,6 +24,8 @@ export type CameraAlertItem = {
   rejectReason: string | null;
   mediaUrl: string | null;
   mediaPending: boolean;
+  /** Clip fetch ran against Autonomise API; no video exists for this event id. */
+  mediaUnavailable?: boolean;
   triageStatus: CameraAlertTriageStatus;
   triageDecidedAt: string | null;
   triageDecidedBy: string | null;
@@ -53,7 +55,7 @@ type IngestRow = Pick<
   | "accepted"
   | "rejectReason"
   | "receivedAt"
-> & { payload?: Prisma.JsonValue; deviceHardwareId?: string | null };
+> & { payload?: Prisma.JsonValue; deviceHardwareId?: string | null; mediaUnavailable?: boolean };
 
 function enrichMediaRow(row: IngestRow): IngestRow {
   if (!row.payload) return row;
@@ -145,7 +147,8 @@ export function buildCameraAlertsFromRows(
       accepted: event.accepted,
       rejectReason: event.rejectReason,
       mediaUrl,
-      mediaPending: event.accepted && !mediaUrl,
+      mediaPending: event.accepted && !mediaUrl && !event.mediaUnavailable,
+      mediaUnavailable: event.mediaUnavailable,
       triageStatus,
       triageDecidedAt: triage?.decidedAt.toISOString() ?? null,
       triageDecidedBy: triage?.decidedByEmail ?? null,
