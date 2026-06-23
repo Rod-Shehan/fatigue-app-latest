@@ -279,12 +279,31 @@ async function autonomiseGet(
   return null;
 }
 
+/** Device media path only — fast enough for webhook ingest and inbox backfill. */
+export async function fetchAutonomiseDeviceEventMedia(
+  eventId: string,
+  deviceHardwareId: string,
+  config: AutonomiseApiConfig = getAutonomiseApiConfigFromEnv()
+): Promise<AutonomiseMediaUrls> {
+  const deviceId = deviceHardwareId.trim();
+  if (!eventId || !deviceId || eventId.startsWith("TEST-EVT-")) {
+    return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
+  }
+  const template = config.mediaPathTemplate || DOCUMENTED_DEVICE_MEDIA_PATH;
+  const path = applyTemplate(template, eventId, config.clientId, deviceId);
+  const data = await autonomiseGet(path, config, { apiOnly: true });
+  if (!data) return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
+  return extractMediaFromJson(data);
+}
+
 export async function fetchAutonomiseMediaUrls(
   eventId: string,
   options: {
     fnolSlug?: string;
     deviceHardwareId?: string;
     config?: AutonomiseApiConfig;
+    /** Inbox/webhook hot path — one OAuth + device GET only. */
+    fastOnly?: boolean;
   } = {}
 ): Promise<AutonomiseMediaUrls> {
   const config = options.config ?? getAutonomiseApiConfigFromEnv();
@@ -293,6 +312,17 @@ export async function fetchAutonomiseMediaUrls(
 
   if (!eventId || eventId.startsWith("TEST-EVT-")) {
     return { driverCameraUrl: "", roadCameraUrl: "", eventVideoUrl: "" };
+  }
+
+  if (options.fastOnly && deviceHardwareId) {
+    return fetchAutonomiseDeviceEventMedia(eventId, deviceHardwareId, config);
+  }
+
+  if (deviceHardwareId) {
+    const deviceMedia = await fetchAutonomiseDeviceEventMedia(eventId, deviceHardwareId, config);
+    if (deviceMedia.driverCameraUrl || deviceMedia.roadCameraUrl || deviceMedia.eventVideoUrl) {
+      return deviceMedia;
+    }
   }
 
   let driverCameraUrl = "";
@@ -425,6 +455,7 @@ export async function fetchAutonomiseEventMediaBundle(
     fnolSlug?: string;
     deviceHardwareId?: string;
     config?: AutonomiseApiConfig;
+    fastOnly?: boolean;
   } = {}
 ): Promise<AutonomiseMediaFetchResult> {
   const config = options.config ?? getAutonomiseApiConfigFromEnv();
@@ -440,15 +471,21 @@ export async function fetchAutonomiseEventMediaBundle(
 
   const fnolSlug = options.fnolSlug ?? "";
   const deviceHardwareId = options.deviceHardwareId ?? "";
-  const [media, driver] = await Promise.all([
-    fetchAutonomiseMediaUrls(eventId, { fnolSlug, deviceHardwareId, config }),
-    fetchAutonomiseEventDriver(eventId, config),
-  ]);
+  const media = await fetchAutonomiseMediaUrls(eventId, {
+    fnolSlug,
+    deviceHardwareId,
+    config,
+    fastOnly: options.fastOnly,
+  });
 
-  let driverName = driver.driverName;
-  if (!driverName && fnolSlug) {
-    const viaSlug = await fetchAutonomiseEventDriver(fnolSlug, config);
-    if (viaSlug.driverName) driverName = viaSlug.driverName;
+  let driverName = "";
+  if (!options.fastOnly) {
+    const driver = await fetchAutonomiseEventDriver(eventId, config);
+    driverName = driver.driverName;
+    if (!driverName && fnolSlug) {
+      const viaSlug = await fetchAutonomiseEventDriver(fnolSlug, config);
+      if (viaSlug.driverName) driverName = viaSlug.driverName;
+    }
   }
 
   return {

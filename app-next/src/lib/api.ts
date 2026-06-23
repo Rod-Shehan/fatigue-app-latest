@@ -445,7 +445,7 @@ export const api = {
       if (params?.triageFilter) sp.set("triageFilter", params.triageFilter);
       if (params?.backfillMedia === true) sp.set("backfillMedia", "true");
       const q = sp.toString();
-      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestEventsRejected: number; ingestMedia: number; mediaWithoutMatchingEvent: number; apiConfigured: boolean } }>(
+      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestEventsRejected: number; ingestMedia: number; mediaWithoutMatchingEvent: number; apiConfigured: boolean; clipsWithMediaFilteredOut?: number } }>(
         `/api/manager/camera-alerts${q ? `?${q}` : ""}`
       );
     },

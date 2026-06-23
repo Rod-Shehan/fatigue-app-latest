@@ -42,6 +42,8 @@ export type CameraAlertsDiagnostics = {
   ingestMedia: number;
   mediaWithoutMatchingEvent: number;
   apiConfigured: boolean;
+  /** Events in range with a stored clip but filtered out by Accepted alert types. */
+  clipsWithMediaFilteredOut: number;
 };
 
 type IngestRow = Pick<
@@ -298,11 +300,18 @@ export async function listCameraAlerts(
   );
 
   for (const row of mediaRows) {
-    const eventId = enrichedEvents.find(
-      (e) => e.vendorEventId && (e.vendorEventId === row.linkedEventId || e.vendorEventId === row.vendorEventId)
+    const linked = enrichedEvents.find(
+      (e) =>
+        e.vendorEventId &&
+        (e.vendorEventId === row.linkedEventId || e.vendorEventId === row.vendorEventId)
     );
-    if (eventId?.mediaUrl && !row.mediaUrl) row.mediaUrl = eventId.mediaUrl;
+    if (linked?.mediaUrl && !row.mediaUrl) row.mediaUrl = linked.mediaUrl;
+    if (linked && row.mediaUrl && !linked.mediaUrl) linked.mediaUrl = row.mediaUrl;
   }
+
+  const clipsWithMediaFilteredOut = enrichedEvents.filter(
+    (row) => !row.accepted && Boolean(row.mediaUrl)
+  ).length;
 
   const displayEvents = args.acceptedOnly
     ? enrichedEvents.filter((row) => row.accepted)
@@ -337,6 +346,7 @@ export async function listCameraAlerts(
       ingestMedia,
       mediaWithoutMatchingEvent,
       apiConfigured,
+      clipsWithMediaFilteredOut,
     },
   };
 }

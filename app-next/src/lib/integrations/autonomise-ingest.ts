@@ -104,7 +104,7 @@ export async function ingestAutonomiseWebhook(
   const shouldFetchMedia =
     eventIdForMedia &&
     isAutonomiseApiConfigured() &&
-    ((args.kind === "event" && accepted) || (args.kind === "media" && !mediaUrl));
+    (args.kind === "event" || (args.kind === "media" && !mediaUrl));
 
   if (shouldFetchMedia) {
     try {

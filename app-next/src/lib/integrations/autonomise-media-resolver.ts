@@ -31,7 +31,13 @@ export function deviceHardwareIdFromPayload(payload: unknown): string {
 /** Pull clip/snapshots from Autonomise API and persist on matching ingest rows. */
 export async function resolveAndPersistAutonomiseMedia(
   prisma: PrismaClient,
-  args: { eventId: string; fnolSlug?: string; deviceHardwareId?: string; payload?: unknown }
+  args: {
+    eventId: string;
+    fnolSlug?: string;
+    deviceHardwareId?: string;
+    payload?: unknown;
+    fastOnly?: boolean;
+  }
 ): Promise<ResolveAutonomiseMediaResult | null> {
   const eventId = String(args.eventId || "").trim();
   if (!eventId || !isAutonomiseApiConfigured()) return null;
@@ -40,7 +46,11 @@ export async function resolveAndPersistAutonomiseMedia(
   const deviceHardwareId =
     args.deviceHardwareId?.trim() || deviceHardwareIdFromPayload(args.payload) || "";
 
-  const bundle = await fetchAutonomiseEventMediaBundle(eventId, { fnolSlug, deviceHardwareId });
+  const bundle = await fetchAutonomiseEventMediaBundle(eventId, {
+    fnolSlug,
+    deviceHardwareId,
+    fastOnly: args.fastOnly ?? Boolean(deviceHardwareId),
+  });
   if (!bundle.mediaUrl && !bundle.driverName) {
     return { eventId, mediaUrl: null, driverName: null, fetched: true, emptyFromApi: true };
   }
@@ -126,6 +136,10 @@ export async function resolveAutonomiseMediaWithRetries(
 const DEFAULT_MAX_FETCH_PER_REQUEST = 3;
 const PENDING_INBOX_MAX_FETCH = 15;
 
+const DEFAULT_MAX_FETCH_PER_REQUEST = 8;
+const PENDING_INBOX_MAX_FETCH = 20;
+const BACKFILL_CONCURRENCY = 4;
+
 /** Backfill media for accepted events missing a clip URL (Live alerts poll). Mutates rows in place. */
 export async function backfillMissingAutonomiseMedia(
   prisma: PrismaClient,
@@ -142,27 +156,36 @@ export async function backfillMissingAutonomiseMedia(
 ): Promise<number> {
   if (!isAutonomiseApiConfigured()) return 0;
 
-  let fetches = 0;
-  for (const event of events) {
-    if (fetches >= maxFetches) break;
-    if (!event.accepted || !event.vendorEventId || event.mediaUrl) continue;
+  const queue = events.filter(
+    (event) => event.accepted && event.vendorEventId && !event.mediaUrl && !event.mediaUnavailable
+  );
+  const toFetch = queue.slice(0, maxFetches);
+  if (toFetch.length === 0) return 0;
 
-    fetches += 1;
-    try {
-      const result = await resolveAndPersistAutonomiseMedia(prisma, {
-        eventId: event.vendorEventId,
-        payload: event.payload,
-      });
-      if (result?.mediaUrl) event.mediaUrl = result.mediaUrl;
-      if (result?.driverName && !event.driverName) event.driverName = result.driverName;
-      if (result?.emptyFromApi) event.mediaUnavailable = true;
-    } catch (e) {
-      console.warn(
-        "[autonomise-media] backfill failed",
-        event.vendorEventId,
-        e instanceof Error ? e.message : e
-      );
-    }
+  let fetches = 0;
+  for (let i = 0; i < toFetch.length; i += BACKFILL_CONCURRENCY) {
+    const batch = toFetch.slice(i, i + BACKFILL_CONCURRENCY);
+    await Promise.all(
+      batch.map(async (event) => {
+        fetches += 1;
+        try {
+          const result = await resolveAndPersistAutonomiseMedia(prisma, {
+            eventId: event.vendorEventId!,
+            payload: event.payload,
+            fastOnly: true,
+          });
+          if (result?.mediaUrl) event.mediaUrl = result.mediaUrl;
+          if (result?.driverName && !event.driverName) event.driverName = result.driverName;
+          if (result?.emptyFromApi) event.mediaUnavailable = true;
+        } catch (e) {
+          console.warn(
+            "[autonomise-media] backfill failed",
+            event.vendorEventId,
+            e instanceof Error ? e.message : e
+          );
+        }
+      })
+    );
   }
   return fetches;
 }

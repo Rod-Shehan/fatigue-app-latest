@@ -88,10 +88,15 @@ function AlertEventCard({
   triageError: string | null;
 }) {
   const [note, setNote] = useState("");
+  const [videoError, setVideoError] = useState(false);
   const triage = triageBadge(alert.triageStatus);
   const TriageIcon = triage.icon;
   const canTriage = alert.accepted && !alert.eventWebhookPending && alert.triageStatus === "pending";
   const decided = alert.triageStatus !== "pending";
+
+  useEffect(() => {
+    setVideoError(false);
+  }, [alert.mediaUrl]);
 
   return (
     <article
@@ -152,7 +157,7 @@ function AlertEventCard({
           )}
 
           <div className="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-black/90 flex items-center justify-center">
-            {alert.mediaUrl ? (
+            {alert.mediaUrl && !videoError ? (
               <video
                 key={alert.mediaUrl}
                 src={alert.mediaUrl}
@@ -160,7 +165,21 @@ function AlertEventCard({
                 controls
                 playsInline
                 preload="metadata"
+                onError={() => setVideoError(true)}
               />
+            ) : alert.mediaUrl && videoError ? (
+              <div className="px-4 text-center text-sm text-slate-400">
+                <p>Clip could not play in the browser.</p>
+                <a
+                  href={alert.mediaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-teal-400 hover:underline"
+                >
+                  Open clip in new tab
+                  <ExternalLink className="h-3 w-3" aria-hidden />
+                </a>
+              </div>
             ) : (
               <div className="px-4 text-center text-sm text-slate-400">
                 {alert.mediaUnavailable
@@ -424,6 +443,16 @@ export function ManagerAlertsView() {
             {showFiltered ? "Accepted only" : "Show filtered"}
           </Button>
         </div>
+
+        {data?.diagnostics?.clipsWithMediaFilteredOut ? (
+          <div className="mb-4 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200">
+            {data.diagnostics.clipsWithMediaFilteredOut} alert
+            {data.diagnostics.clipsWithMediaFilteredOut === 1 ? "" : "s"} have video but{" "}
+            {data.diagnostics.clipsWithMediaFilteredOut === 1 ? "is" : "are"} hidden by your{" "}
+            <strong>Accepted alert types</strong> filter — expand the panel above and enable types like
+            Following Distance Warning to see them.
+          </div>
+        ) : null}
 
         {data?.diagnostics?.mediaWithoutMatchingEvent ? (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
