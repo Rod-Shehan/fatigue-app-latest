@@ -4,6 +4,7 @@ import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
+import { isCameraAlertDeleteEnabled } from "@/lib/integrations/camera-alert-ingest-delete";
 import { backfillMissingAutonomiseMedia, PENDING_INBOX_MAX_FETCH } from "@/lib/integrations/autonomise-media-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
@@ -219,6 +220,7 @@ export async function listCameraAlerts(
 ): Promise<{
   alerts: CameraAlertItem[];
   configured: boolean;
+  testingTools: { allowDelete: boolean };
   diagnostics: CameraAlertsDiagnostics;
 }> {
   const hours = args.hours ?? 168;
@@ -340,6 +342,7 @@ export async function listCameraAlerts(
   return {
     alerts: visibleAlerts,
     configured,
+    testingTools: { allowDelete: isCameraAlertDeleteEnabled() },
     diagnostics: {
       ingestEvents,
       ingestEventsRejected,

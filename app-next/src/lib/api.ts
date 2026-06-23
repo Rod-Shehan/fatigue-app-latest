@@ -445,10 +445,27 @@ export const api = {
       if (params?.triageFilter) sp.set("triageFilter", params.triageFilter);
       if (params?.backfillMedia === true) sp.set("backfillMedia", "true");
       const q = sp.toString();
-      return fetchApi<{ alerts: CameraAlertItem[]; configured: boolean; diagnostics?: { ingestEvents: number; ingestEventsRejected: number; ingestMedia: number; mediaWithoutMatchingEvent: number; apiConfigured: boolean; clipsWithMediaFilteredOut?: number } }>(
-        `/api/manager/camera-alerts${q ? `?${q}` : ""}`
-      );
+      return fetchApi<{
+        alerts: CameraAlertItem[];
+        configured: boolean;
+        testingTools?: { allowDelete: boolean };
+        diagnostics?: {
+          ingestEvents: number;
+          ingestEventsRejected: number;
+          ingestMedia: number;
+          mediaWithoutMatchingEvent: number;
+          apiConfigured: boolean;
+          clipsWithMediaFilteredOut?: number;
+        };
+      }>(`/api/manager/camera-alerts${q ? `?${q}` : ""}`);
     },
+    cameraAlertDelete: (ingestEventId: string) =>
+      fetchApi<{
+        ok: boolean;
+        deletedIngestIds: string[];
+        deletedMediaRows: number;
+        deletedTriageRows: number;
+      }>(`/api/manager/camera-alerts/${ingestEventId}`, { method: "DELETE" }),
     cameraAlertTriage: (
       ingestEventId: string,
       data: { decision: "authorized" | "dismissed"; note?: string | null; vendorEventId?: string | null }

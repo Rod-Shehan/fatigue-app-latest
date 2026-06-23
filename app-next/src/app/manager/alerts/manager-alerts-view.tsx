@@ -8,7 +8,7 @@ import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Video, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Trash2, Video, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
 
@@ -78,6 +78,9 @@ function AlertEventCard({
   onTriage,
   triagePending,
   triageError,
+  allowDelete,
+  onDelete,
+  deletePending,
 }: {
   alert: CameraAlertItem;
   expanded: boolean;
@@ -86,6 +89,9 @@ function AlertEventCard({
   onTriage: (decision: "authorized" | "dismissed", note: string) => void;
   triagePending: boolean;
   triageError: string | null;
+  allowDelete: boolean;
+  onDelete: () => void;
+  deletePending: boolean;
 }) {
   const [note, setNote] = useState("");
   const [videoError, setVideoError] = useState(false);
@@ -243,6 +249,35 @@ function AlertEventCard({
               <ExternalLink className="h-3 w-3" aria-hidden />
             </a>
           )}
+
+          {allowDelete && (
+            <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={deletePending || triagePending}
+                className="text-rose-700 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                onClick={() => {
+                  const label = alert.displayName ?? "this event";
+                  if (
+                    window.confirm(
+                      `Delete "${label}" from Circadia?\n\nThis removes the stored webhook row and any paired clip. It cannot be undone.`
+                    )
+                  ) {
+                    onDelete();
+                  }
+                }}
+              >
+                {deletePending ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1" aria-hidden />
+                ) : (
+                  <Trash2 className="h-4 w-4 mr-1" aria-hidden />
+                )}
+                Delete event (testing)
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </article>
@@ -342,6 +377,15 @@ export function ManagerAlertsView() {
       queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.manager.cameraAlertDelete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+    },
+  });
+
+  const allowDelete = data?.testingTools?.allowDelete === true;
 
   const alerts = data?.alerts ?? [];
   const collapsible = alerts.length > 1;
@@ -528,6 +572,9 @@ export function ManagerAlertsView() {
                     vendorEventId: alert.vendorEventId,
                   })
                 }
+                allowDelete={allowDelete}
+                deletePending={deleteMutation.isPending && deleteMutation.variables === alert.id}
+                onDelete={() => deleteMutation.mutate(alert.id)}
               />
             ))}
           </div>
