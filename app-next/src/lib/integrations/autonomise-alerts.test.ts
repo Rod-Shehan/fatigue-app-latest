@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildCameraAlertsFromRows } from "@/lib/integrations/autonomise-alerts";
+import {
+  buildCameraAlertsFromRows,
+  linkedEventKeysFromMediaRows,
+  missingEventKeysForMedia,
+} from "@/lib/integrations/autonomise-alerts";
 
 const base = {
   vendorAlarmId: "VT3600AI_ALARM_DSM_Fatigue",
@@ -133,5 +137,50 @@ describe("buildCameraAlertsFromRows", () => {
       [eventId]
     );
     expect(alerts.filter((a) => a.eventWebhookPending)).toHaveLength(0);
+  });
+
+  it("pairs ADAS media with hydrated event outside the initial event batch", () => {
+    const eventId = "4d9bedfc-hydrated-outside-batch";
+    const media = [
+      {
+        ...base,
+        id: "m1",
+        kind: "media",
+        vendorEventId: eventId,
+        linkedEventId: eventId,
+        mediaUrl: "https://video.autonomise.ai/clip.mp4",
+        receivedAt: new Date("2026-06-24T00:47:00Z"),
+      },
+    ];
+    const hydratedEvent = {
+      ...base,
+      id: "e-hydrated",
+      kind: "event",
+      vendorAlarmId: "VT3600AI_ALARM_ADAS_FollowingDistanceWarning",
+      vendorEventId: eventId,
+      receivedAt: new Date("2026-06-24T00:46:00Z"),
+    };
+
+    expect(missingEventKeysForMedia(media, [])).toEqual([eventId]);
+
+    const alerts = buildCameraAlertsFromRows([hydratedEvent], media, [eventId]);
+    expect(alerts.filter((a) => a.eventWebhookPending)).toHaveLength(0);
+    expect(alerts[0].displayName).toBe("Following Distance Warning");
+    expect(alerts[0].mediaUrl).toBe("https://video.autonomise.ai/clip.mp4");
+  });
+
+  it("collects linked event ids from media payload fields", () => {
+    const keys = linkedEventKeysFromMediaRows([
+      {
+        ...base,
+        id: "m1",
+        kind: "media",
+        vendorEventId: null,
+        linkedEventId: null,
+        receivedAt: new Date(),
+        payload: { linkedEventId: "from-payload" },
+      },
+    ]);
+    expect(keys).toEqual(["from-payload"]);
   });
 });

@@ -33,7 +33,7 @@ export type CameraAlertItem = {
   triageDecidedAt: string | null;
   triageDecidedBy: string | null;
   triageNote: string | null;
-  /** Media arrived but matching event webhook row is missing (Autonomise config). */
+  /** Media arrived but no matching event row in ingest (true webhook gap). */
   eventWebhookPending?: boolean;
 };
 
@@ -61,6 +61,57 @@ type IngestRow = Pick<
   | "rejectReason"
   | "receivedAt"
 > & { payload?: Prisma.JsonValue; deviceHardwareId?: string | null; mediaUnavailable?: boolean };
+
+const INGEST_LIST_SELECT = {
+  id: true,
+  kind: true,
+  vendorAlarmId: true,
+  vendorEventId: true,
+  vehicleRego: true,
+  driverName: true,
+  linkedEventId: true,
+  mediaUrl: true,
+  accepted: true,
+  rejectReason: true,
+  receivedAt: true,
+  payload: true,
+} as const satisfies Prisma.AutonomiseWebhookIngestSelect;
+
+/** Event ids referenced by media rows (after payload enrichment). */
+export function linkedEventKeysFromMediaRows(mediaRows: IngestRow[]): string[] {
+  const keys = new Set<string>();
+  for (const row of mediaRows) {
+    const enriched = enrichMediaRow(row);
+    for (const key of [enriched.linkedEventId, enriched.vendorEventId]) {
+      if (key) keys.add(key);
+    }
+  }
+  return [...keys];
+}
+
+/** Media-linked event ids missing from an already-loaded event batch. */
+export function missingEventKeysForMedia(
+  mediaRows: IngestRow[],
+  loadedEvents: IngestRow[]
+): string[] {
+  const loaded = new Set(
+    loadedEvents.flatMap((row) =>
+      [row.vendorEventId, row.linkedEventId].filter((id): id is string => Boolean(id))
+    )
+  );
+  return linkedEventKeysFromMediaRows(mediaRows).filter((key) => !loaded.has(key));
+}
+
+function dedupeIngestRowsById(rows: IngestRow[]): IngestRow[] {
+  const seen = new Set<string>();
+  const out: IngestRow[] = [];
+  for (const row of rows) {
+    if (seen.has(row.id)) continue;
+    seen.add(row.id);
+    out.push(row);
+  }
+  return out;
+}
 
 function triggerAtFromPayload(payload: Prisma.JsonValue | undefined): string | null {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
@@ -229,50 +280,42 @@ export async function listCameraAlerts(
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
   const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
 
+  const eventTake = Math.min(limit * 2, 120);
+
   const [allEventRows, mediaRows, ingestEvents, ingestMedia] = await Promise.all([
     prisma.autonomiseWebhookIngest.findMany({
       where: { kind: "event", receivedAt: { gte: since } },
       orderBy: { receivedAt: "desc" },
-      take: limit,
-      select: {
-        id: true,
-        kind: true,
-        vendorAlarmId: true,
-        vendorEventId: true,
-        vehicleRego: true,
-        driverName: true,
-        linkedEventId: true,
-        mediaUrl: true,
-        accepted: true,
-        rejectReason: true,
-        receivedAt: true,
-        payload: true,
-      },
+      take: eventTake,
+      select: INGEST_LIST_SELECT,
     }),
     prisma.autonomiseWebhookIngest.findMany({
       where: { kind: "media", receivedAt: { gte: since } },
       orderBy: { receivedAt: "desc" },
-      take: Math.min(limit * 2, 120),
-      select: {
-        id: true,
-        kind: true,
-        vendorAlarmId: true,
-        vendorEventId: true,
-        vehicleRego: true,
-        driverName: true,
-        linkedEventId: true,
-        mediaUrl: true,
-        accepted: true,
-        rejectReason: true,
-        receivedAt: true,
-        payload: true,
-      },
+      take: eventTake,
+      select: INGEST_LIST_SELECT,
     }),
     prisma.autonomiseWebhookIngest.count({ where: { kind: "event", receivedAt: { gte: since } } }),
     prisma.autonomiseWebhookIngest.count({ where: { kind: "media", receivedAt: { gte: since } } }),
   ]);
 
-  const enrichedEvents = allEventRows.map((row) => enrichEventRow(row, enabledAlarmIds));
+  const missingKeys = missingEventKeysForMedia(mediaRows, allEventRows);
+  const hydratedEventRows =
+    missingKeys.length > 0
+      ? await prisma.autonomiseWebhookIngest.findMany({
+          where: {
+            kind: "event",
+            OR: [
+              { vendorEventId: { in: missingKeys } },
+              { linkedEventId: { in: missingKeys } },
+            ],
+          },
+          select: INGEST_LIST_SELECT,
+        })
+      : [];
+
+  const mergedEventRows = dedupeIngestRowsById([...allEventRows, ...hydratedEventRows]);
+  const enrichedEvents = mergedEventRows.map((row) => enrichEventRow(row, enabledAlarmIds));
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
   if (args.backfillMedia !== false) {
