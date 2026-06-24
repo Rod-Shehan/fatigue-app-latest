@@ -21,53 +21,6 @@ const HOURS_OPTIONS = [
 
 type TriageFilter = "pending" | "all" | "decided";
 
-type CollapsibleDiagnosticsBannerProps = {
-  tone: "sky" | "amber";
-  summary: string;
-  children: React.ReactNode;
-};
-
-function CollapsibleDiagnosticsBanner({ tone, summary, children }: CollapsibleDiagnosticsBannerProps) {
-  const [open, setOpen] = useState(false);
-  const toneStyles =
-    tone === "sky"
-      ? {
-          border: "border-sky-300 dark:border-sky-800",
-          bg: "bg-sky-50 dark:bg-sky-950/40",
-          text: "text-sky-900 dark:text-sky-200",
-        }
-      : {
-          border: "border-amber-300 dark:border-amber-800",
-          bg: "bg-amber-50 dark:bg-amber-950/40",
-          text: "text-amber-900 dark:text-amber-200",
-        };
-
-  return (
-    <div className={cn("mb-4 overflow-hidden rounded-lg border", toneStyles.border, toneStyles.bg)}>
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className={cn(
-          "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm",
-          toneStyles.text
-        )}
-        aria-expanded={open}
-      >
-        <span className="min-w-0 flex-1 font-medium leading-snug">{summary}</span>
-        <ChevronDown
-          className={cn("h-4 w-4 shrink-0 opacity-70 transition-transform", open && "rotate-180")}
-          aria-hidden
-        />
-      </button>
-      {open ? (
-        <div className={cn("border-t px-4 py-3 text-sm leading-relaxed", toneStyles.border, toneStyles.text)}>
-          {children}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 function formatVehicleDriverLine(alert: CameraAlertItem) {
   const vehicle = alert.vehicleRego
     ? `Rego ${alert.vehicleRego}`
@@ -502,7 +455,7 @@ export function ManagerAlertsView() {
           </select>
         </div>
 
-        <CameraAlertEventTypesPanel />
+        <CameraAlertEventTypesPanel diagnostics={data?.diagnostics} />
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
@@ -534,34 +487,6 @@ export function ManagerAlertsView() {
             {showFiltered ? "Accepted only" : "Show filtered"}
           </Button>
         </div>
-
-        {data?.diagnostics?.clipsWithMediaFilteredOut ? (
-          <CollapsibleDiagnosticsBanner
-            tone="sky"
-            summary={`${data.diagnostics.clipsWithMediaFilteredOut} alert${
-              data.diagnostics.clipsWithMediaFilteredOut === 1 ? "" : "s"
-            } hidden by Accepted alert types`}
-          >
-            These alerts have video but{" "}
-            {data.diagnostics.clipsWithMediaFilteredOut === 1 ? "is" : "are"} hidden by your{" "}
-            <strong>Accepted alert types</strong> filter — expand the panel above and enable types like
-            Following Distance Warning to see them.
-          </CollapsibleDiagnosticsBanner>
-        ) : null}
-
-        {data?.diagnostics?.mediaWithoutMatchingEvent ? (
-          <CollapsibleDiagnosticsBanner
-            tone="amber"
-            summary={`${data.diagnostics.mediaWithoutMatchingEvent} clip${
-              data.diagnostics.mediaWithoutMatchingEvent === 1 ? "" : "s"
-            } missing event webhook`}
-          >
-            Media webhook received ({data.diagnostics.ingestMedia}) with no event row at all for these
-            clips. Check Autonomise Event URL is{" "}
-            <code className="text-xs">…/api/integrations/autonomise/events</code> and Red events are
-            included.
-          </CollapsibleDiagnosticsBanner>
-        ) : null}
 
         {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

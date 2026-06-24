@@ -19,6 +19,90 @@ const PRESET_BUTTONS = [
   { id: "core_plus_adas" as const, label: "Core + ADAS" },
 ] as const;
 
+export type CameraAlertOptionsDiagnostics = {
+  clipsWithMediaFilteredOut?: number;
+  mediaWithoutMatchingEvent?: number;
+  ingestMedia?: number;
+};
+
+type CollapsibleDiagnosticsBannerProps = {
+  tone: "sky" | "amber";
+  summary: string;
+  children: React.ReactNode;
+};
+
+function CollapsibleDiagnosticsBanner({ tone, summary, children }: CollapsibleDiagnosticsBannerProps) {
+  const [open, setOpen] = useState(false);
+  const toneStyles =
+    tone === "sky"
+      ? {
+          border: "border-sky-300 dark:border-sky-800",
+          bg: "bg-sky-50 dark:bg-sky-950/40",
+          text: "text-sky-900 dark:text-sky-200",
+        }
+      : {
+          border: "border-amber-300 dark:border-amber-800",
+          bg: "bg-amber-50 dark:bg-amber-950/40",
+          text: "text-amber-900 dark:text-amber-200",
+        };
+
+  return (
+    <div className={cn("overflow-hidden rounded-lg border", toneStyles.border, toneStyles.bg)}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm",
+          toneStyles.text
+        )}
+        aria-expanded={open}
+      >
+        <span className="min-w-0 flex-1 font-medium leading-snug">{summary}</span>
+        <ChevronDown
+          className={cn("h-4 w-4 shrink-0 opacity-70 transition-transform", open && "rotate-180")}
+          aria-hidden
+        />
+      </button>
+      {open ? (
+        <div className={cn("border-t px-4 py-3 text-sm leading-relaxed", toneStyles.border, toneStyles.text)}>
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AlertOptionsDiagnostics({ diagnostics }: { diagnostics: CameraAlertOptionsDiagnostics }) {
+  const hiddenCount = diagnostics.clipsWithMediaFilteredOut ?? 0;
+  const orphanCount = diagnostics.mediaWithoutMatchingEvent ?? 0;
+  if (hiddenCount === 0 && orphanCount === 0) return null;
+
+  return (
+    <div className="mb-4 space-y-2">
+      {hiddenCount > 0 ? (
+        <CollapsibleDiagnosticsBanner
+          tone="sky"
+          summary={`${hiddenCount} alert${hiddenCount === 1 ? "" : "s"} hidden by accepted types`}
+        >
+          These alerts have video but {hiddenCount === 1 ? "is" : "are"} hidden by your accepted type
+          filter — enable types below (for example Following Distance Warning) to see them.
+        </CollapsibleDiagnosticsBanner>
+      ) : null}
+      {orphanCount > 0 ? (
+        <CollapsibleDiagnosticsBanner
+          tone="amber"
+          summary={`${orphanCount} clip${orphanCount === 1 ? "" : "s"} missing event webhook`}
+        >
+          Media webhook received ({diagnostics.ingestMedia ?? 0}) with no event row at all for these
+          clips. Check Autonomise Event URL is{" "}
+          <code className="text-xs">…/api/integrations/autonomise/events</code> and Red events are
+          included.
+        </CollapsibleDiagnosticsBanner>
+      ) : null}
+    </div>
+  );
+}
+
 function groupEntriesByTier(entries: CameraAlertEventSettingsSnapshot["entries"]) {
   const groups = new Map<string, CameraAlertEventSettingsSnapshot["entries"]>();
   for (const entry of entries) {
@@ -32,7 +116,11 @@ function groupEntriesByTier(entries: CameraAlertEventSettingsSnapshot["entries"]
   });
 }
 
-export function CameraAlertEventTypesPanel() {
+type CameraAlertEventTypesPanelProps = {
+  diagnostics?: CameraAlertOptionsDiagnostics;
+};
+
+export function CameraAlertEventTypesPanel({ diagnostics }: CameraAlertEventTypesPanelProps) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [draftIds, setDraftIds] = useState<string[] | null>(null);
@@ -95,7 +183,7 @@ export function CameraAlertEventTypesPanel() {
       >
         <span className="flex items-center gap-2 text-sm font-medium text-slate-800 dark:text-slate-200">
           <SlidersHorizontal className="h-4 w-4 text-teal-700 dark:text-teal-400" aria-hidden />
-          Accepted alert types
+          Alert Options
           {!isLoading && settings && (
             <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
               · {enabledCount} of {totalCount} enabled
@@ -110,6 +198,7 @@ export function CameraAlertEventTypesPanel() {
 
       {open && (
         <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
+          {diagnostics ? <AlertOptionsDiagnostics diagnostics={diagnostics} /> : null}
           <p className="mb-3 text-xs text-slate-600 dark:text-slate-400">
             Choose which camera events appear in this inbox and are accepted from Autonomise. Changes
             apply to new webhooks and re-filter recent history.
