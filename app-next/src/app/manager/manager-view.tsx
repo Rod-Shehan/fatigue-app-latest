@@ -894,7 +894,7 @@ export function ManagerView() {
         </ManagerDomainSection>
 
         <ManagerDomainSection
-          id="compliance-records"
+          id="compliance-analysis"
           variant="compliance"
           title={MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}
           subtitle={MANAGER_EXPERIENCE.SECTION_COMPLIANCE_SUBTITLE}

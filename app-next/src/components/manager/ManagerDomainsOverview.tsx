@@ -22,7 +22,7 @@ const DOMAIN_META = {
     badgeActive:
       "bg-violet-700 text-white dark:bg-violet-600 dark:text-violet-50",
   },
-  "compliance-records": {
+  "compliance-analysis": {
     blurb: MANAGER_EXPERIENCE.DOMAIN_COMPLIANCE_BLURB,
     icon: Scale,
     className:
@@ -51,7 +51,7 @@ function kpiForDomain(
   kpis: ManagerDomainKpis
 ): DomainKpiBadge {
   if (id === "risk-analysis") return kpis.riskAnalysis;
-  if (id === "compliance-records") return kpis.complianceRecords;
+  if (id === "compliance-analysis") return kpis.complianceRecords;
   return kpis.recordEdits;
 }
 
@@ -68,7 +68,7 @@ export function ManagerDomainsOverview({ kpis }: ManagerDomainsOverviewProps) {
   return (
     <nav
       className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-      aria-label="Risk analysis, compliance records, and record editing"
+      aria-label="Risk analysis, compliance analysis, and record editing"
     >
       {MANAGER_DOMAIN_ANCHOR_LINKS.map(({ id, href, title }) => {
         const meta = DOMAIN_META[id as keyof typeof DOMAIN_META];

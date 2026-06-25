@@ -173,10 +173,10 @@ export const MANAGER_DOMAIN_ANCHOR_LINKS: NavLinkEntry[] = [
     kind: "anchor",
   },
   {
-    id: "compliance-records",
+    id: "compliance-analysis",
     surface: "manager-domains",
-    title: "2. Compliance records",
-    href: "#compliance-records",
+    title: "2. Compliance Analysis",
+    href: "#compliance-analysis",
     kind: "anchor",
   },
   {

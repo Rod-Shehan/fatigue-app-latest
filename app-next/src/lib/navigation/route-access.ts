@@ -16,7 +16,7 @@ const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 /** Section IDs on /manager — domain overview cards must target these. */
 export const MANAGER_PAGE_SECTION_IDS = [
   "risk-analysis",
-  "compliance-records",
+  "compliance-analysis",
   "record-edits",
   "manager-check-ins",
 ] as const;

@@ -10,12 +10,12 @@
 export const MANAGER_EXPERIENCE = {
   PAGE_TITLE: "Driver Overview",
   PAGE_SUBTITLE:
-    "Three areas on one page: risk analysis for coaching, compliance records for regulators, and sheet amendments for document control.",
+    "Three areas on one page: risk analysis for coaching, compliance analysis for regulators, and sheet amendments for document control.",
 
   DOMAIN_RISK_TITLE: "1. Risk analysis",
   DOMAIN_RISK_BLURB:
     "Future timeline modelling, live exposure, and 15-minute glance scores — assurance only, not a signed violation.",
-  DOMAIN_COMPLIANCE_TITLE: "2. Compliance records",
+  DOMAIN_COMPLIANCE_TITLE: "2. Compliance Analysis",
   DOMAIN_COMPLIANCE_BLURB:
     "Attested diary, rule outcomes, and regulatory references (the laws) auditors expect.",
 
@@ -38,7 +38,7 @@ export const MANAGER_EXPERIENCE = {
   SECTION_RISK_BOUNDARY:
     "Legal boundary: this section does not decide breaches. It models relative fatigue risk from diary patterns, camera blocks (when connected), and declared plans. Use it to prioritise supportive check-ins.",
 
-  SECTION_COMPLIANCE_TITLE: "Compliance records",
+  SECTION_COMPLIANCE_TITLE: "Compliance Analysis",
   SECTION_COMPLIANCE_SUBTITLE:
     "Complying with the law: attested work diary, live rule outcomes on signed weeks, the regulations that define those rules, and record amendments.",
   SECTION_COMPLIANCE_BOUNDARY:
@@ -74,7 +74,7 @@ export const MANAGER_EXPERIENCE = {
   HERO_EYEBROW: "This week at a glance",
   /** Shown only in the risk hero — not repeated under the page title. */
   HERO_WEEK_INTRO:
-    "Tier counts in this risk section combine near-term exposure signals with record-quality hints — open Compliance records below for attested rule outcomes.",
+    "Tier counts in this risk section combine near-term exposure signals with record-quality hints — open Compliance Analysis below for attested rule outcomes.",
   HERO_DISCLAIMER:
     "Guidance for operational decisions — not legal advice. Your policies and regulators (NHVR, state OSH) remain authoritative.",
 
