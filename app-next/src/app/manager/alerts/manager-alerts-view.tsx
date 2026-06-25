@@ -509,6 +509,8 @@ export function ManagerAlertsView() {
         />
         <ManagerSubnav compact />
 
+        <CameraAlertEventTypesPanel diagnostics={data?.diagnostics} />
+
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(["pending", "all", "decided"] as const).map((filter) => (
             <Button
@@ -534,8 +536,6 @@ export function ManagerAlertsView() {
             ))}
           </select>
         </div>
-
-        <CameraAlertEventTypesPanel diagnostics={data?.diagnostics} />
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
