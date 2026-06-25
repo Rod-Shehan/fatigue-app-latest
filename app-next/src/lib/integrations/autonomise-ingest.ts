@@ -4,7 +4,10 @@ import {
   extractAutonomiseFields,
 } from "@/lib/integrations/autonomise-payload";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
-import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
+import {
+  evaluateAutonomiseEventAcceptance,
+  evaluateAutonomiseMediaAcceptance,
+} from "@/lib/integrations/autonomise-event-evaluation";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import {
   fnolSlugFromPayload,
@@ -28,17 +31,6 @@ export type AutonomiseIngestResult = {
   mediaUrl: string | null;
 };
 
-function evaluateAcceptance(
-  kind: AutonomiseWebhookKind,
-  vendorAlarmId: string | null,
-  enabledAlarmIds: ReadonlySet<string>
-): { accepted: boolean; rejectReason: string | null } {
-  if (kind === "media") {
-    return { accepted: true, rejectReason: null };
-  }
-  return evaluateAutonomiseEventAcceptance(vendorAlarmId, enabledAlarmIds);
-}
-
 export async function ingestAutonomiseWebhook(
   prisma: PrismaClient,
   args: {
@@ -48,23 +40,8 @@ export async function ingestAutonomiseWebhook(
   }
 ): Promise<AutonomiseIngestResult> {
   const fields = extractAutonomiseFields(args.payload, args.kind);
-  const { accepted, rejectReason } = evaluateAcceptance(args.kind, fields.vendorAlarmId, args.enabledAlarmIds);
   const idempotencyKey = buildAutonomiseIdempotencyKey(args.kind, fields, args.payload);
   const entry = fields.vendorAlarmId ? getCatalogueEntry(fields.vendorAlarmId) : undefined;
-
-  const data: Prisma.AutonomiseWebhookIngestCreateInput = {
-    kind: args.kind,
-    idempotencyKey,
-    vendorAlarmId: fields.vendorAlarmId,
-    vendorEventId: fields.vendorEventId,
-    vehicleRego: fields.vehicleRego,
-    driverName: fields.driverName,
-    linkedEventId: fields.linkedEventId,
-    mediaUrl: fields.mediaUrl,
-    accepted,
-    rejectReason,
-    payload: args.payload as Prisma.InputJsonValue,
-  };
 
   if (idempotencyKey) {
     const existing = await prisma.autonomiseWebhookIngest.findUnique({
@@ -96,7 +73,42 @@ export async function ingestAutonomiseWebhook(
     }
   }
 
-  const row = await prisma.autonomiseWebhookIngest.create({ data });
+  const { accepted, rejectReason } =
+    args.kind === "media"
+      ? await evaluateAutonomiseMediaAcceptance(prisma, fields, args.enabledAlarmIds)
+      : evaluateAutonomiseEventAcceptance(fields.vendorAlarmId, args.enabledAlarmIds);
+
+  if (!accepted) {
+    return {
+      id: "",
+      kind: args.kind,
+      accepted: false,
+      duplicate: false,
+      vendorAlarmId: fields.vendorAlarmId,
+      displayName: entry?.displayName ?? null,
+      rejectReason,
+      vehicleRego: fields.vehicleRego,
+      driverName: fields.driverName,
+      linkedEventId: fields.linkedEventId,
+      mediaUrl: fields.mediaUrl,
+    };
+  }
+
+  const row = await prisma.autonomiseWebhookIngest.create({
+    data: {
+      kind: args.kind,
+      idempotencyKey,
+      vendorAlarmId: fields.vendorAlarmId,
+      vendorEventId: fields.vendorEventId,
+      vehicleRego: fields.vehicleRego,
+      driverName: fields.driverName,
+      linkedEventId: fields.linkedEventId,
+      mediaUrl: fields.mediaUrl,
+      accepted,
+      rejectReason,
+      payload: args.payload as Prisma.InputJsonValue,
+    },
+  });
 
   let mediaUrl = fields.mediaUrl;
   let driverName = fields.driverName;

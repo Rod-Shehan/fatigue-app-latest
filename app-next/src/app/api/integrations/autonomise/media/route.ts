@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * POST /api/integrations/autonomise/media
- * Autonomise Media webhook — clip-ready notifications; always stored when auth passes.
+ * Autonomise Media webhook — clip-ready notifications; stored only when the linked event type is accepted.
  */
 export async function POST(req: NextRequest) {
   const secret = getAutonomiseWebhookSecretFromEnv();

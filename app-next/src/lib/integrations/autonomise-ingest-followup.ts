@@ -13,7 +13,7 @@ export async function runAutonomiseIngestFollowUp(
     result: AutonomiseIngestResult;
   }
 ): Promise<void> {
-  if (args.result.duplicate || !isAutonomiseApiConfigured()) return;
+  if (args.result.duplicate || !args.result.accepted || !args.result.id || !isAutonomiseApiConfigured()) return;
   if (args.result.mediaUrl) return;
 
   const fields = extractAutonomiseFields(args.payload, args.kind);

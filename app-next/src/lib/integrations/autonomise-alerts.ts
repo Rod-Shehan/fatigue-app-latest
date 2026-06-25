@@ -160,6 +160,39 @@ function deviceHardwareIdFromRow(row: IngestRow, kind: "event" | "media"): strin
   return extractAutonomiseFields(row.payload, kind).deviceHardwareId;
 }
 
+export function countUnmatchedMediaRows(
+  mediaRows: IngestRow[],
+  eventKeysForMediaMatch: Iterable<string | null | undefined>
+): number {
+  const eventKeys = new Set(
+    [...eventKeysForMediaMatch].filter((id): id is string => Boolean(id))
+  );
+  let count = 0;
+  for (const row of mediaRows.map(enrichMediaRow)) {
+    const eventKey = row.linkedEventId ?? row.vendorEventId;
+    if (!eventKey || eventKeys.has(eventKey) || !row.mediaUrl) continue;
+    count++;
+  }
+  return count;
+}
+
+function mediaRowsLinkedToAcceptedEvents(
+  mediaRows: IngestRow[],
+  enrichedEvents: IngestRow[]
+): IngestRow[] {
+  const acceptedKeys = new Set(
+    enrichedEvents
+      .filter((row) => row.accepted && row.vendorEventId)
+      .map((row) => row.vendorEventId as string)
+  );
+  if (acceptedKeys.size === 0) return [];
+  return mediaRows.filter((row) => {
+    const enriched = enrichMediaRow(row);
+    const key = enriched.linkedEventId ?? enriched.vendorEventId;
+    return key && acceptedKeys.has(key);
+  });
+}
+
 export function buildCameraAlertsFromRows(
   events: IngestRow[],
   mediaRows: IngestRow[],
@@ -172,7 +205,8 @@ export function buildCameraAlertsFromRows(
       decidedByEmail: string | null;
       decidedAt: Date;
     }
-  >
+  >,
+  includeOrphanMedia = false
 ): CameraAlertItem[] {
   const enrichedMedia = mediaRows.map(enrichMediaRow);
   const mediaByEventKey = new Map<string, string>();
@@ -228,30 +262,32 @@ export function buildCameraAlertsFromRows(
   );
 
   const orphanMediaAlerts: CameraAlertItem[] = [];
-  for (const row of enrichedMedia) {
-    const eventKey = row.linkedEventId ?? row.vendorEventId;
-    if (!eventKey || eventKeys.has(eventKey)) continue;
-    orphanMediaAlerts.push({
-      id: row.id,
-      vendorEventId: eventKey,
-      vendorAlarmId: null,
-      displayName: "Camera event (media only)",
-      tier: null,
-      vehicleRego: row.vehicleRego,
-      driverName: row.driverName,
-      deviceHardwareId: deviceHardwareIdFromRow(row, "media"),
-      receivedAt: row.receivedAt.toISOString(),
-      triggerAt: triggerAtFromPayload(row.payload),
-      accepted: false,
-      rejectReason: "event_webhook_missing",
-      mediaUrl: row.mediaUrl,
-      mediaPending: false,
-      triageStatus: "pending",
-      triageDecidedAt: null,
-      triageDecidedBy: null,
-      triageNote: null,
-      eventWebhookPending: true,
-    });
+  if (includeOrphanMedia) {
+    for (const row of enrichedMedia) {
+      const eventKey = row.linkedEventId ?? row.vendorEventId;
+      if (!eventKey || eventKeys.has(eventKey)) continue;
+      orphanMediaAlerts.push({
+        id: row.id,
+        vendorEventId: eventKey,
+        vendorAlarmId: null,
+        displayName: "Camera event (media only)",
+        tier: null,
+        vehicleRego: row.vehicleRego,
+        driverName: row.driverName,
+        deviceHardwareId: deviceHardwareIdFromRow(row, "media"),
+        receivedAt: row.receivedAt.toISOString(),
+        triggerAt: triggerAtFromPayload(row.payload),
+        accepted: false,
+        rejectReason: "event_webhook_missing",
+        mediaUrl: row.mediaUrl,
+        mediaPending: false,
+        triageStatus: "pending",
+        triageDecidedAt: null,
+        triageDecidedBy: null,
+        triageNote: null,
+        eventWebhookPending: true,
+      });
+    }
   }
 
   return [...eventAlerts, ...orphanMediaAlerts].sort(
@@ -362,9 +398,17 @@ export async function listCameraAlerts(
     ? enrichedEvents.filter((row) => row.accepted)
     : enrichedEvents;
   const matchEventKeys = enrichedEvents.map((row) => row.vendorEventId);
+  const mediaForAlerts = args.acceptedOnly
+    ? mediaRowsLinkedToAcceptedEvents(mediaRows, enrichedEvents)
+    : mediaRows;
 
-  const alerts = buildCameraAlertsFromRows(displayEvents, mediaRows, matchEventKeys, triageByIngestId);
-  const mediaWithoutMatchingEvent = alerts.filter((a) => a.eventWebhookPending).length;
+  const alerts = buildCameraAlertsFromRows(
+    displayEvents,
+    mediaForAlerts,
+    matchEventKeys,
+    triageByIngestId
+  );
+  const mediaWithoutMatchingEvent = countUnmatchedMediaRows(mediaRows, matchEventKeys);
 
   const triageFilter = args.triageFilter ?? "all";
   const triageFiltered =
@@ -379,7 +423,7 @@ export async function listCameraAlerts(
   const apiConfigured = isAutonomiseApiConfigured();
 
   const visibleAlerts = args.acceptedOnly
-    ? triageFiltered.filter((a) => a.accepted || a.eventWebhookPending)
+    ? triageFiltered.filter((a) => a.accepted)
     : triageFiltered;
 
   return {
