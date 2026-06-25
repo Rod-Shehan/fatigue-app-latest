@@ -1,0 +1,37 @@
+---
+description: Require explicit owner confirmation before production endpoints, env, DB, or deploy changes
+alwaysApply: true
+---
+
+# Production & endpoint change gate
+
+**Do not execute** the actions below unless the user **explicitly confirms that specific action in the current message** — not implied by “make it work”, “deploy”, or “yes” to an earlier code-only step.
+
+## Requires confirmation (one step at a time)
+
+| Change | Examples |
+|--------|----------|
+| **Endpoint / URL / domain** | Autonomise webhook URLs, `circadia24.com` vs `*.vercel.app`, API base URLs in vendor config, DNS, Vercel domain aliases |
+| **Vercel env vars** | Adding, changing, or removing Production/Preview env (feature flags, secrets, `AUTONOMISE_*`, `CAMERA_*`, etc.) |
+| **Shared database** | Neon SQL migrations, `prisma db push` / `db execute` against production, seed on prod |
+| **Production deploy** | `vercel deploy --prod`, redeploy to pick up env changes |
+| **Rollback / purge on prod** | Purge APIs, bulk delete env-gated data, disable flags that affect live behaviour |
+
+## Allowed without extra confirmation
+
+- **Local-only**: dev server, local tests, read-only inspection of prod (GET health, `vercel env ls`, logs)
+- **Code + git** when the user **explicitly asked** to commit and/or push (still no prod env/DB/deploy unless they also confirm those steps)
+
+## Workflow
+
+1. **Propose** what will change, where (URL/env/table), and impact.
+2. **Wait** for explicit approval for **each** production step.
+3. **Execute only what was approved** — if they approved “commit”, do not also run migration, set env, or deploy unless they said so.
+
+## Example
+
+User: “commit and push the bridge code”  
+→ Commit and push only. Then ask: “Apply Neon migration?” and “Enable on production?” separately.
+
+User: “yes, make the nec changes” after a checklist  
+→ Treat as ambiguous; list the steps and ask which to run — do not assume all production steps.
