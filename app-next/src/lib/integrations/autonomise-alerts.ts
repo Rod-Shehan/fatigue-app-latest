@@ -311,12 +311,12 @@ export async function listCameraAlerts(
   diagnostics: CameraAlertsDiagnostics;
 }> {
   const hours = args.hours ?? 168;
-  const defaultLimit = hours > 48 ? 60 : 40;
-  const limit = Math.min(Math.max(args.limit ?? defaultLimit, 1), 100);
+  const defaultLimit = hours > 48 ? 100 : 60;
+  const limit = Math.min(Math.max(args.limit ?? defaultLimit, 1), 200);
   const since = new Date(Date.now() - hours * 60 * 60 * 1000);
   const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
 
-  const eventTake = Math.min(limit * 2, 120);
+  const eventTake = Math.min(limit * 2, 200);
 
   const [allEventRows, mediaRows, ingestEvents, ingestMedia] = await Promise.all([
     prisma.autonomiseWebhookIngest.findMany({

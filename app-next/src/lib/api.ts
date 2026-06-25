@@ -438,12 +438,14 @@ export const api = {
       hours?: number;
       triageFilter?: "all" | "pending" | "decided";
       backfillMedia?: boolean;
+      limit?: number;
     }) => {
       const sp = new URLSearchParams();
       if (params?.acceptedOnly === false) sp.set("acceptedOnly", "false");
       if (params?.hours != null) sp.set("hours", String(params.hours));
       if (params?.triageFilter) sp.set("triageFilter", params.triageFilter);
       if (params?.backfillMedia === true) sp.set("backfillMedia", "true");
+      if (params?.limit != null) sp.set("limit", String(params.limit));
       const q = sp.toString();
       return fetchApi<{
         alerts: CameraAlertItem[];
@@ -466,6 +468,18 @@ export const api = {
         deletedMediaRows: number;
         deletedTriageRows: number;
       }>(`/api/manager/camera-alerts/${ingestEventId}`, { method: "DELETE" }),
+    cameraAlertBulkDelete: (ids: string[]) =>
+      fetchApi<{
+        ok: boolean;
+        deletedIngestIds: string[];
+        deletedMediaRows: number;
+        deletedTriageRows: number;
+        notFoundIds: string[];
+        failedIds: string[];
+      }>(`/api/manager/camera-alerts/bulk-delete`, {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      }),
     cameraAlertTriage: (
       ingestEventId: string,
       data: { decision: "authorized" | "dismissed"; note?: string | null; vendorEventId?: string | null }

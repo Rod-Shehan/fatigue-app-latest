@@ -81,6 +81,9 @@ function AlertEventCard({
   allowDelete,
   onDelete,
   deletePending,
+  selectionMode,
+  selected,
+  onSelectChange,
 }: {
   alert: CameraAlertItem;
   expanded: boolean;
@@ -92,6 +95,9 @@ function AlertEventCard({
   allowDelete: boolean;
   onDelete: () => void;
   deletePending: boolean;
+  selectionMode: boolean;
+  selected: boolean;
+  onSelectChange: (selected: boolean) => void;
 }) {
   const [note, setNote] = useState("");
   const [videoError, setVideoError] = useState(false);
@@ -108,34 +114,49 @@ function AlertEventCard({
     <article
       className={cn(
         "rounded-xl border bg-white shadow-sm transition-colors dark:bg-slate-900",
-        expanded
-          ? "border-teal-600 dark:border-teal-500"
-          : "border-slate-200 dark:border-slate-700"
+        selected
+          ? "border-rose-400 ring-2 ring-rose-300/60 dark:border-rose-600 dark:ring-rose-900/60"
+          : expanded
+            ? "border-teal-600 dark:border-teal-500"
+            : "border-slate-200 dark:border-slate-700"
       )}
     >
-      {collapsible ? (
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex w-full items-start justify-between gap-2 p-4 text-left"
-          aria-expanded={expanded}
-        >
-          <AlertEventHeader alert={alert} triage={triage} TriageIcon={TriageIcon} />
-          <ChevronDown
-            className={cn(
-              "mt-1 h-5 w-5 shrink-0 text-slate-400 transition-transform",
-              expanded && "rotate-180"
-            )}
-            aria-hidden
+      <div className="flex items-start gap-3 p-4">
+        {selectionMode && allowDelete ? (
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+            checked={selected}
+            onChange={(e) => onSelectChange(e.target.checked)}
+            aria-label={`Select ${alert.displayName ?? "event"}`}
           />
-        </button>
-      ) : (
-        <div className="p-4 pb-0">
-          <AlertEventHeader alert={alert} triage={triage} TriageIcon={TriageIcon} />
-        </div>
-      )}
+        ) : null}
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={() => (selectionMode ? onSelectChange(!selected) : onToggle())}
+            className="flex min-w-0 flex-1 items-start justify-between gap-2 text-left"
+            aria-expanded={expanded}
+          >
+            <AlertEventHeader alert={alert} triage={triage} TriageIcon={TriageIcon} />
+            {!selectionMode ? (
+              <ChevronDown
+                className={cn(
+                  "mt-1 h-5 w-5 shrink-0 text-slate-400 transition-transform",
+                  expanded && "rotate-180"
+                )}
+                aria-hidden
+              />
+            ) : null}
+          </button>
+        ) : (
+          <div className="min-w-0 flex-1 pb-0">
+            <AlertEventHeader alert={alert} triage={triage} TriageIcon={TriageIcon} />
+          </div>
+        )}
+      </div>
 
-      {expanded && (
+      {expanded && !selectionMode && (
         <div className={cn("px-4 pb-4", collapsible && "border-t border-slate-100 pt-4 dark:border-slate-800")}>
           {!alert.accepted && alert.rejectReason && (
             <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
@@ -351,6 +372,8 @@ export function ManagerAlertsView() {
   const [showFiltered, setShowFiltered] = useState(false);
   const [hours, setHours] = useState(168);
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
 
   const queryKey = ["manager", "camera-alerts", showFiltered, hours, triageFilter] as const;
 
@@ -361,6 +384,7 @@ export function ManagerAlertsView() {
         acceptedOnly: !showFiltered,
         hours,
         triageFilter,
+        limit: showFiltered ? 200 : undefined,
       }),
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -385,10 +409,66 @@ export function ManagerAlertsView() {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const chunkSize = 100;
+      const summaries = [];
+      for (let i = 0; i < ids.length; i += chunkSize) {
+        summaries.push(await api.manager.cameraAlertBulkDelete(ids.slice(i, i + chunkSize)));
+      }
+      return summaries;
+    },
+    onSuccess: () => {
+      setSelectedIds(new Set());
+      setSelectionMode(false);
+      queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+    },
+  });
+
   const allowDelete = data?.testingTools?.allowDelete === true;
 
   const alerts = data?.alerts ?? [];
-  const collapsible = alerts.length > 1;
+  const filteredAlerts = alerts.filter((a) => !a.accepted);
+  const collapsible = alerts.length > 1 && !selectionMode;
+  const selectedCount = selectedIds.size;
+  const bulkDeletePending = bulkDeleteMutation.isPending;
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  }, [showFiltered, hours, triageFilter]);
+
+  function toggleSelected(id: string, next: boolean) {
+    setSelectedIds((current) => {
+      const copy = new Set(current);
+      if (next) copy.add(id);
+      else copy.delete(id);
+      return copy;
+    });
+  }
+
+  function selectAllVisible() {
+    setSelectedIds(new Set(alerts.map((alert) => alert.id)));
+  }
+
+  function selectAllFiltered() {
+    setSelectedIds(new Set(filteredAlerts.map((alert) => alert.id)));
+  }
+
+  function handleBulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    const batches = Math.ceil(ids.length / 100);
+    const batchNote = batches > 1 ? ` This runs in ${batches} batches.` : "";
+    if (
+      !window.confirm(
+        `Delete ${ids.length} event${ids.length === 1 ? "" : "s"} from Circadia?${batchNote}\n\nThis removes stored webhook rows and paired clips. It cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    bulkDeleteMutation.mutate(ids);
+  }
 
   const defaultExpandedId = useMemo(() => {
     if (alerts.length === 0) return null;
@@ -527,12 +607,87 @@ export function ManagerAlertsView() {
             </Link>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <>
+            {allowDelete ? (
+              <div className="mb-3 rounded-lg border border-slate-200 bg-white px-3 py-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                {!selectionMode ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setSelectionMode(true)}
+                    >
+                      Select to delete
+                    </Button>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Use <strong>Show filtered</strong> to load excess events for bulk cleanup.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setSelectionMode(false);
+                          setSelectedIds(new Set());
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={selectAllVisible}>
+                        Select all on screen ({alerts.length})
+                      </Button>
+                      {showFiltered && filteredAlerts.length > 0 ? (
+                        <Button type="button" size="sm" variant="outline" onClick={selectAllFiltered}>
+                          Select filtered ({filteredAlerts.length})
+                        </Button>
+                      ) : null}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={selectedCount === 0 || bulkDeletePending}
+                        className="text-rose-700 border-rose-200 hover:bg-rose-50 dark:text-rose-400 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                        onClick={handleBulkDelete}
+                      >
+                        {bulkDeletePending ? (
+                          <>
+                            <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
+                            Deleting…
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-1 h-4 w-4" aria-hidden />
+                            Delete selected ({selectedCount})
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    {bulkDeleteMutation.isError ? (
+                      <p className="text-xs text-rose-700 dark:text-rose-300">
+                        {bulkDeleteMutation.error instanceof Error
+                          ? bulkDeleteMutation.error.message
+                          : "Bulk delete failed"}
+                      </p>
+                    ) : null}
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Tap rows or use checkboxes to select. Up to 200 events load per screen; repeat after
+                      delete if more remain.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ) : null}
+            <div className="flex flex-col gap-3">
             {alerts.map((alert) => (
               <AlertEventCard
                 key={alert.id}
                 alert={alert}
-                expanded={!collapsible || expandedId === alert.id}
+                expanded={selectionMode ? false : !collapsible || expandedId === alert.id}
                 collapsible={collapsible}
                 onToggle={() =>
                   setExpandedId((current) => (current === alert.id ? null : alert.id))
@@ -556,9 +711,13 @@ export function ManagerAlertsView() {
                 allowDelete={allowDelete}
                 deletePending={deleteMutation.isPending && deleteMutation.variables === alert.id}
                 onDelete={() => deleteMutation.mutate(alert.id)}
+                selectionMode={selectionMode}
+                selected={selectedIds.has(alert.id)}
+                onSelectChange={(next) => toggleSelected(alert.id, next)}
               />
             ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
     </div>

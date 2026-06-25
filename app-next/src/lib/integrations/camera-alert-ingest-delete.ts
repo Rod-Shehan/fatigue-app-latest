@@ -12,6 +12,13 @@ export type DeleteCameraAlertResult = {
   deletedTriageRows: number;
 };
 
+export type BulkDeleteCameraAlertResult = DeleteCameraAlertResult & {
+  notFoundIds: string[];
+  failedIds: string[];
+};
+
+export const CAMERA_ALERT_BULK_DELETE_MAX = 100;
+
 /**
  * Remove one ingest row from Live alerts testing data.
  * Event rows also drop paired media webhooks and triage audit for that ingest id.
@@ -53,4 +60,37 @@ export async function deleteCameraAlertIngest(
     deletedMediaRows,
     deletedTriageRows: triageDelete.count,
   };
+}
+
+/** Remove many ingest rows (testing cleanup). Skips missing ids; continues on individual failures. */
+export async function deleteCameraAlertIngestBatch(
+  prisma: PrismaClient,
+  ingestIds: readonly string[]
+): Promise<BulkDeleteCameraAlertResult> {
+  const uniqueIds = [...new Set(ingestIds.map((id) => id.trim()).filter(Boolean))];
+  const out: BulkDeleteCameraAlertResult = {
+    deletedIngestIds: [],
+    deletedMediaRows: 0,
+    deletedTriageRows: 0,
+    notFoundIds: [],
+    failedIds: [],
+  };
+
+  for (const ingestId of uniqueIds) {
+    try {
+      const result = await deleteCameraAlertIngest(prisma, ingestId);
+      out.deletedIngestIds.push(...result.deletedIngestIds);
+      out.deletedMediaRows += result.deletedMediaRows;
+      out.deletedTriageRows += result.deletedTriageRows;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "DELETE_FAILED";
+      if (msg === "NOT_FOUND") {
+        out.notFoundIds.push(ingestId);
+      } else {
+        out.failedIds.push(ingestId);
+      }
+    }
+  }
+
+  return out;
 }

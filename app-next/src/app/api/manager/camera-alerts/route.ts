@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
       ? triageFilterRaw
       : "all";
   const backfillMedia = searchParams.get("backfillMedia") === "true";
+  const limitRaw = Number(searchParams.get("limit") ?? "");
+  const limit = Number.isFinite(limitRaw) ? limitRaw : undefined;
 
   try {
     const result = await listCameraAlerts(prisma, {
@@ -33,6 +35,7 @@ export async function GET(request: NextRequest) {
       hours: Number.isFinite(hours) ? hours : 168,
       triageFilter,
       backfillMedia,
+      limit,
     });
     return NextResponse.json(result);
   } catch (e) {
