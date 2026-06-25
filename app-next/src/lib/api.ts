@@ -478,7 +478,7 @@ export const api = {
         failedIds: string[];
       }>(`/api/manager/camera-alerts/bulk-delete`, {
         method: "POST",
-        body: JSON.stringify({ ids }),
+        body: { ids },
       }),
     cameraAlertTriage: (
       ingestEventId: string,

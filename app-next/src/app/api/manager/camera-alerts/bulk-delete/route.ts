@@ -36,7 +36,9 @@ export async function POST(request: Request) {
   }
 
   const ids = Array.isArray((body as { ids?: unknown }).ids)
-    ? (body as { ids: unknown[] }).ids.filter((id): id is string => typeof id === "string" && id.trim())
+    ? (body as { ids: unknown[] }).ids.filter(
+        (id): id is string => typeof id === "string" && id.trim().length > 0
+      )
     : [];
 
   if (ids.length === 0) {
