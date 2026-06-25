@@ -92,6 +92,43 @@ Do **not** use the old `/event/{eventId}/media?clientId=…` template unless Aut
 
 After adding env vars, **redeploy** production.
 
+## Metrics bridge (Autonomise → risk timeline) — pilot
+
+**Off by default.** When enabled, accepted **Fatigue** and **Distraction** events may update `DriverRiskBlock` (15-min assurance scores). This is separate from Live alerts triage.
+
+### Enable
+
+```text
+AUTONOMISE_BLOCK_BRIDGE_ENABLED=true
+```
+
+Apply DB migration: `prisma/sql/autonomise_metrics_attribution.sql` (or `npm run db:push`).
+
+### Attribution policy
+
+1. **Auto (sheet-duty only)** — VRN on day card + work minutes in the 15-min block at `triggerTime`. No Autonomise driver name required. Skips when ambiguous or sheet not caught up.
+2. **Manual backfill** — manager assigns events to a driver when auto-match missed:
+
+```bash
+curl -X POST "https://fatigue-app-latest.vercel.app/api/manager/autonomise-block-bridge/attribute" \
+  -H "Cookie: …" \
+  -H "Content-Type: application/json" \
+  -d '{"driverName":"Pat Driver","ingestIds":["clxxx"]}'
+```
+
+Driver must have a login user (email on Approved Drivers).
+
+### Rollback / undo
+
+1. **Stop new writes** — remove `AUTONOMISE_BLOCK_BRIDGE_ENABLED` or set `false`; redeploy.
+2. **Remove metrics data** (Live alert rows unchanged):
+
+```text
+AUTONOMISE_BLOCK_BRIDGE_ALLOW_PURGE=true
+```
+
+Then `POST /api/manager/autonomise-block-bridge/purge` (manager session). Deletes `DriverRiskBlock` rows with `fusionSources` containing `autonomise` and all `AutonomiseMetricsAttribution` rows.
+
 ## Database
 
 Run once after deploy (local or CI):

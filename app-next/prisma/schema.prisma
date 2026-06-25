@@ -261,10 +261,27 @@ model AutonomiseWebhookIngest {
   payload        Json
   receivedAt     DateTime @default(now())
 
+  metricsAttribution AutonomiseMetricsAttribution?
+
   @@unique([kind, idempotencyKey])
   @@index([receivedAt])
   @@index([kind, accepted])
   @@index([vehicleRego, receivedAt])
+}
+
+/** Manual + sheet-duty attribution for Autonomise → risk block bridge (metrics only). */
+model AutonomiseMetricsAttribution {
+  ingestEventId     String   @id
+  ingestEvent       AutonomiseWebhookIngest @relation(fields: [ingestEventId], references: [id], onDelete: Cascade)
+  driverName        String
+  source            String   // sheet_duty | manual
+  blockStartMs      BigInt
+  attributedByUserId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([driverName, blockStartMs])
+  @@index([source])
 }
 
 /** Manager Authorize / Dismiss on camera fatigue events (audit trail). */
