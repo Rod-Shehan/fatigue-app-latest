@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MessageSquare, Send, ExternalLink } from "lucide-react";
 import { MessageBubbleRow } from "@/components/messaging/MessageBubbleRow";
+import { cn } from "@/lib/utils";
 
 function formatWhen(iso: string) {
   const d = new Date(iso);
@@ -22,6 +23,73 @@ function formatWhen(iso: string) {
 
 function weekLabel(weekStarting: string) {
   return new Date(weekStarting + "T12:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
+}
+
+type ThreadRow = {
+  id: string;
+  subject: string;
+  updatedAt: string;
+  createdBy: { name: string | null; email: string | null };
+  sheet?: { id: string; week_starting: string; driver_name: string } | null;
+  lastMessage?: { body: string; createdAt: string; senderName: string | null } | null;
+};
+
+function ThreadListCard({
+  thread,
+  driverLabel,
+  active,
+  onSelect,
+}: {
+  thread: ThreadRow;
+  driverLabel: string;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const last = thread.lastMessage?.body?.trim() ?? "";
+  const contextLabel = thread.sheet
+    ? `Sheet · week of ${weekLabel(thread.sheet.week_starting)}`
+    : "General";
+
+  return (
+    <article
+      className={cn(
+        "rounded-xl border bg-white shadow-sm transition-colors dark:bg-slate-900",
+        active
+          ? "border-teal-600 dark:border-teal-500"
+          : "border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600"
+      )}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        className="w-full p-4 text-left"
+        aria-current={active ? "true" : undefined}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-slate-900 dark:text-slate-100">{thread.subject}</p>
+            <p className="mt-0.5 truncate text-sm text-slate-600 dark:text-slate-400">{driverLabel}</p>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{contextLabel}</p>
+          </div>
+          <span
+            className={cn(
+              "shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium whitespace-nowrap",
+              active
+                ? "bg-teal-50 text-teal-800 dark:bg-teal-950/50 dark:text-teal-200"
+                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            )}
+          >
+            {formatWhen(thread.updatedAt)}
+          </span>
+        </div>
+        {last ? (
+          <p className="mt-3 line-clamp-2 text-xs text-slate-600 dark:text-slate-300">{last}</p>
+        ) : (
+          <p className="mt-3 text-xs italic text-slate-400 dark:text-slate-500">No messages yet</p>
+        )}
+      </button>
+    </article>
+  );
 }
 
 export function ManagerMessagesView() {
@@ -122,59 +190,35 @@ export function ManagerMessagesView() {
                 </div>
               </div>
             </div>
-            <div className="max-h-[70vh] overflow-auto">
+            <div className="max-h-[70vh] overflow-auto p-3">
               {filteredThreads.length === 0 ? (
-                <div className="p-4 text-sm text-slate-600 dark:text-slate-300">No matching threads.</div>
+                <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-300">
+                  No matching threads.
+                </div>
               ) : (
-                <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                  {filteredThreads.map((t) => {
-                    const active = t.id === activeThreadId;
-                    const last = t.lastMessage?.body ? t.lastMessage.body : "";
-                    return (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => setActiveThreadId(t.id)}
-                        className={[
-                          "w-full text-left p-3 transition",
-                          active
-                            ? "bg-slate-900 text-white dark:bg-slate-800/90 dark:text-slate-100 dark:ring-1 dark:ring-inset dark:ring-cyan-700/35"
-                            : "hover:bg-slate-50 dark:hover:bg-slate-800/40",
-                        ].join(" ")}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <p className={["text-sm font-semibold", active ? "" : "text-slate-900 dark:text-slate-100"].join(" ")}>
-                              {threadDriverLabel(t)}: {t.subject}
-                            </p>
-                            {t.sheet ? (
-                              <p className={["text-xs mt-0.5", active ? "opacity-90" : "text-slate-500 dark:text-slate-400"].join(" ")}>
-                                Sheet: week of {weekLabel(t.sheet.week_starting)}
-                              </p>
-                            ) : (
-                              <p className={["text-xs mt-0.5", active ? "opacity-90" : "text-slate-500 dark:text-slate-400"].join(" ")}>
-                                General
-                              </p>
-                            )}
-                          </div>
-                          <span className={["text-[10px] whitespace-nowrap", active ? "opacity-90" : "text-slate-400"].join(" ")}>
-                            {formatWhen(t.updatedAt)}
-                          </span>
-                        </div>
-                        {last ? (
-                          <p className={["text-xs mt-2 line-clamp-2", active ? "opacity-90" : "text-slate-600 dark:text-slate-300"].join(" ")}>
-                            {last}
-                          </p>
-                        ) : null}
-                      </button>
-                    );
-                  })}
+                <div className="flex flex-col gap-3">
+                  {filteredThreads.map((t) => (
+                    <ThreadListCard
+                      key={t.id}
+                      thread={t}
+                      driverLabel={threadDriverLabel(t)}
+                      active={t.id === activeThreadId}
+                      onSelect={() => setActiveThreadId(t.id)}
+                    />
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden flex flex-col min-h-[520px]">
+          <div
+            className={cn(
+              "flex min-h-[520px] flex-col overflow-hidden rounded-xl border bg-white shadow-sm dark:bg-slate-900",
+              activeThreadId
+                ? "border-teal-600 dark:border-teal-500"
+                : "border-slate-200 dark:border-slate-700"
+            )}
+          >
             <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
