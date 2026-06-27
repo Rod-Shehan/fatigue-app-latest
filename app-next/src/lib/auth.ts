@@ -16,6 +16,13 @@ import {
 } from "./driver-login-gate";
 import { isFleetManagerRole, isOwnerRole } from "./roles";
 import { getSystemPolicy, loginBlockedForRole } from "./system-policy";
+import { ALPHA_RESTRICTED_ERROR, isEmailAllowedForAlphaAccess } from "./auth-alpha-allowlist";
+import { assertProductionAuthConfig, isSharedLoginPasswordAllowed, useSecureAuthCookies } from "./auth-env";
+import { logLoginAttempt, type LoginAuditOutcome } from "./auth-login-audit";
+
+assertProductionAuthConfig();
+
+const secureCookies = useSecureAuthCookies();
 
 /**
  * Production sign-in:
@@ -33,6 +40,35 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" as const, maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/" },
+  cookies: {
+    sessionToken: {
+      name: secureCookies ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: secureCookies,
+      },
+    },
+    callbackUrl: {
+      name: secureCookies ? "__Secure-next-auth.callback-url" : "next-auth.callback-url",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: secureCookies,
+      },
+    },
+    csrfToken: {
+      name: secureCookies ? "__Host-next-auth.csrf-token" : "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: secureCookies,
+      },
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Email and password",
@@ -43,9 +79,19 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         const email = normalizeLoginEmail(credentials?.email ?? "");
         const password = credentials?.password ?? "";
+
+        function reject(outcome: LoginAuditOutcome, role?: string | null): null {
+          logLoginAttempt({ outcome, email: email || undefined, role });
+          return null;
+        }
+
         const sharedPassRaw = process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
         const sharedPass =
-          typeof sharedPassRaw === "string" && sharedPassRaw.trim().length > 0 ? sharedPassRaw.trim() : "";
+          isSharedLoginPasswordAllowed() &&
+          typeof sharedPassRaw === "string" &&
+          sharedPassRaw.trim().length > 0
+            ? sharedPassRaw.trim()
+            : "";
         const sharedPasswordPriority =
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "false" &&
           process.env.NEXTAUTH_SHARED_PASSWORD_PRIORITY !== "0";
@@ -61,6 +107,9 @@ export const authOptions: NextAuthOptions = {
             return await finalizeCredentialsLogin(user);
           } catch (err) {
             if (err instanceof Error && err.message === ROSTER_LOGIN_ERROR) {
+              throw err;
+            }
+            if (err instanceof Error && err.message === ALPHA_RESTRICTED_ERROR) {
               throw err;
             }
             return null;
@@ -97,17 +146,19 @@ export const authOptions: NextAuthOptions = {
           return completeLogin(stagingUser);
         }
 
-        if (!email) return null;
+        if (!email) return reject("invalid_credentials");
 
         const existing = await prisma.user.findUnique({
           where: { email },
           select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
         });
 
-        if (existing?.disabledAt) return null;
+        if (existing?.disabledAt) return reject("account_disabled", existing.role);
 
         const policy = await getSystemPolicy();
-        if (loginBlockedForRole(policy, existing?.role)) return null;
+        if (loginBlockedForRole(policy, existing?.role)) {
+          return reject("policy_blocked", existing?.role);
+        }
 
         const sharedPasswordMatches = sharedPass.length > 0 && password.trim() === sharedPass;
 
@@ -119,19 +170,21 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (existing?.passwordHash) {
-          if (!password) return null;
+          if (!password) return reject("invalid_credentials", existing.role);
           const ok = await bcrypt.compare(password, existing.passwordHash);
-          if (!ok) return null;
+          if (!ok) return reject("invalid_credentials", existing.role);
           return completeLogin(existing);
         }
 
         if (sharedPasswordMatches) {
           const user = existing ?? (await resolveRosterDriverUserForLogin(email));
-          if (!user) return null;
-          if (loginBlockedForRole(policy, user.role)) return null;
+          if (!user) return reject("invalid_credentials");
+          if (loginBlockedForRole(policy, user.role)) {
+            return reject("policy_blocked", user.role);
+          }
           return completeLogin(user);
         }
-        return null;
+        return reject("invalid_credentials", existing?.role);
       },
     }),
   ],
@@ -151,9 +204,13 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, disabledAt: true },
+          select: { role: true, disabledAt: true, email: true },
         });
         if (dbUser?.disabledAt) {
+          return {};
+        }
+        const email = dbUser?.email ?? (token.email as string | undefined);
+        if (email && !isEmailAllowedForAlphaAccess(email)) {
           return {};
         }
         token.role = dbUser?.role ?? null;

@@ -10,7 +10,7 @@ const SENSITIVE_API_MAX_REQUESTS = 30;
 
 type Entry = { count: number; resetAt: number };
 
-function getClientIp(req: Request): string {
+export function getClientIp(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
   if (forwarded) return forwarded.split(",")[0]?.trim() ?? "unknown";
   const real = req.headers.get("x-real-ip");

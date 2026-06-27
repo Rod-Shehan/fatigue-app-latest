@@ -14,6 +14,7 @@ import {
 } from "./driver-login-gate";
 
 export function isDevLoginEnabled(): boolean {
+  if (process.env.NODE_ENV === "production") return false;
   return process.env.NEXTAUTH_ALLOW_DEV_LOGIN === "true";
 }
 

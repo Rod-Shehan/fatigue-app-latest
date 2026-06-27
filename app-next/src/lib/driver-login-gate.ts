@@ -6,6 +6,11 @@
 import { prisma } from "@/lib/prisma";
 import { isFleetManagerRole } from "@/lib/roles";
 import { getSystemPolicy, loginBlockedForRole } from "@/lib/system-policy";
+import {
+  ALPHA_RESTRICTED_ERROR,
+  isEmailAllowedForAlphaAccess,
+} from "@/lib/auth-alpha-allowlist";
+import { logLoginAttempt } from "@/lib/auth-login-audit";
 
 /** NextAuth credentials error code surfaced to the lobby sign-in form. */
 export const ROSTER_LOGIN_ERROR = "not_on_roster";
@@ -58,17 +63,50 @@ export async function ensureLoginUserForRosterDriver(
 export async function finalizeCredentialsLogin(
   user: CredentialsUserRow
 ): Promise<{ id: string; email: string; name: string | null } | null> {
-  if (!user.email || user.disabledAt) return null;
+  if (!user.email || user.disabledAt) {
+    logLoginAttempt({
+      outcome: "account_disabled",
+      email: user.email ?? undefined,
+      role: user.role,
+    });
+    return null;
+  }
 
   const policy = await getSystemPolicy();
-  if (loginBlockedForRole(policy, user.role)) return null;
+  if (loginBlockedForRole(policy, user.role)) {
+    logLoginAttempt({
+      outcome: "policy_blocked",
+      email: user.email,
+      role: user.role,
+    });
+    return null;
+  }
+
+  if (!isEmailAllowedForAlphaAccess(user.email)) {
+    logLoginAttempt({
+      outcome: "alpha_restricted",
+      email: user.email,
+      role: user.role,
+    });
+    throw new Error(ALPHA_RESTRICTED_ERROR);
+  }
 
   if (!requiresApprovedDriverRoster(user.role)) {
+    logLoginAttempt({
+      outcome: "success",
+      email: user.email,
+      role: user.role,
+    });
     return { id: user.id, email: user.email, name: user.name };
   }
 
   const roster = await findActiveDriverRosterByEmail(user.email);
   if (!roster) {
+    logLoginAttempt({
+      outcome: "roster_rejected",
+      email: user.email,
+      role: user.role,
+    });
     throw new Error(ROSTER_LOGIN_ERROR);
   }
 
@@ -78,6 +116,11 @@ export async function finalizeCredentialsLogin(
     name = roster.name;
   }
 
+  logLoginAttempt({
+    outcome: "success",
+    email: user.email,
+    role: user.role,
+  });
   return { id: user.id, email: user.email, name };
 }
 

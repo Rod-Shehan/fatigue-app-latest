@@ -18,6 +18,7 @@ import { isOnline } from "@/lib/offline-api";
 import { lobbyBranchFromCallback, type LobbyBranch } from "@/lib/lobby-url";
 import { canEnterLobbyBranch, normalizeUserRole } from "@/lib/roles";
 import { ROSTER_LOGIN_ERROR, ROSTER_LOGIN_MESSAGE } from "@/lib/driver-login-gate";
+import { ALPHA_RESTRICTED_ERROR } from "@/lib/auth-alpha-allowlist";
 import { clearOfflineAuth } from "@/lib/offline-auth";
 import { cn } from "@/lib/utils";
 
@@ -90,6 +91,8 @@ const LOBBY_ERROR_MESSAGES: Record<string, string> = {
     "Manager access needs a manager or owner account. Sign out and sign in with the right account, or choose Driver.",
   driver_role_required:
     "Driver sign-in needs a driver account (not manager or owner). Sign out and sign in with your driver email, or use the Manager card for fleet overview.",
+  [ALPHA_RESTRICTED_ERROR]:
+    "This email is not on the approved pilot list yet. Contact your fleet administrator if you should have access.",
 };
 
 function lobbyErrorMessage(searchParams: URLSearchParams): string | null {
@@ -220,9 +223,11 @@ export function AppLanding() {
         setError(
           res.error === ROSTER_LOGIN_ERROR
             ? ROSTER_LOGIN_MESSAGE
-            : res.error === "Configuration"
-              ? "Sign-in is misconfigured on the server (check NEXTAUTH_SECRET and NEXTAUTH_URL)."
-              : "Invalid email or password."
+            : res.error === ALPHA_RESTRICTED_ERROR
+              ? LOBBY_ERROR_MESSAGES[ALPHA_RESTRICTED_ERROR]
+              : res.error === "Configuration"
+                ? "Sign-in is misconfigured on the server (check NEXTAUTH_SECRET and NEXTAUTH_URL)."
+                : "Invalid email or password."
         );
         setLoading(false);
         return;
