@@ -38,6 +38,7 @@ model EdgeFatigueEvent {
   fatigueMetricType  String   @map("fatigue_metric_type") @db.VarChar(50)
   confidenceScore    Decimal  @map("confidence_score") @db.Decimal(3, 2)
   videoSnippetUrl    String   @map("video_snippet_url")
+  sourceIngestId     String?  @unique @map("source_ingest_id") @db.VarChar(64)
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   lifecycle FatigueIncidentLifecycle?

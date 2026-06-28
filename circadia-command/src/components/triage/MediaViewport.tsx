@@ -22,7 +22,7 @@ export function MediaViewport({ incident }: Props) {
         </span>
       </div>
       <div className="flex flex-1 flex-col items-center justify-center rounded border border-dashed border-command-border bg-black/40 p-4">
-        {incident.video_snippet_url ? (
+        {incident.video_snippet_url && !incident.video_snippet_url.startsWith("pending://") ? (
           <video
             key={incident.lifecycle_id}
             src={incident.video_snippet_url}

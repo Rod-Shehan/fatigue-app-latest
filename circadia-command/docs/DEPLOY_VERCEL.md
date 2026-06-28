@@ -2,7 +2,7 @@
 
 Target: **command.circadia24.com** (separate Vercel project from `app-next`).
 
-Production URL today: **https://circadia-command.vercel.app**
+Production URL: **https://command.circadia24.com** (Vercel alias: https://circadia-command.vercel.app)
 
 ## 1. Vercel project
 
@@ -49,4 +49,29 @@ Run once locally against Neon (not on every deploy):
 
 ```bash
 npm run db:apply-sql
+```
+
+Includes `010_edge_autonomise_source.sql` (links `edge_fatigue_events` to Autonomise ingest ids).
+
+## Manager ingest bridge (`app-next`)
+
+Command triage receives the **same accepted Autonomise webhook events** as manager Live alerts. On the **app-next** Vercel project, set:
+
+| Variable | Value |
+|----------|--------|
+| `COMMAND_PILOT_TENANT_ID_UUID` | Same UUID as Command (`circadia-command`) |
+| `COMMAND_LIFECYCLE_BRIDGE_ENABLED` | `true` (optional if tenant UUID is set) |
+
+Redeploy **app-next** after adding env vars. Optional one-time backfill of existing accepted events:
+
+```bash
+cd app-next
+COMMAND_PILOT_TENANT_ID_UUID=… npx tsx scripts/backfill-command-lifecycle.ts
+```
+
+Dev simulate ingests (`SIM*`) can be cleared from the queue with:
+
+```bash
+cd circadia-command
+npm run purge:simulated
 ```

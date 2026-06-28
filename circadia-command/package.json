@@ -16,7 +16,8 @@
     "db:studio": "prisma studio",
     "db:migrate-sql": "node scripts/print-migrate-sql.js",
     "simulate:ingest": "npx tsx scripts/simulate-ingest.ts",
-    "bootstrap:owner": "node scripts/bootstrap-owner.mjs"
+    "bootstrap:owner": "node scripts/bootstrap-owner.mjs",
+    "purge:simulated": "node scripts/purge-simulated-incidents.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.9.0",

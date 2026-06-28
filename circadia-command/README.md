@@ -59,7 +59,7 @@ Triage connects to `/api/v1/triage/stream` (Postgres `LISTEN`). Requires `DATABA
 
 ## Deploy
 
-See [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Production: https://circadia-command.vercel.app
+See [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Production: https://command.circadia24.com
 
 ## Safety boundaries
 
