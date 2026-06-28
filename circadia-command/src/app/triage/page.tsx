@@ -2,9 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { Shield } from "lucide-react";
 import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
 import { QueuePanel } from "@/components/triage/QueuePanel";
+import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
+import { CommandPageHeader } from "@/components/command/CommandPageHeader";
+import { CommandShell } from "@/components/command/CommandShell";
 import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
 import { useCommandSse } from "@/hooks/use-command-sse";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
@@ -109,61 +113,59 @@ export default function TriagePage() {
 
   if (!authReady || isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="animate-pulse text-slate-400">Loading command console…</p>
-      </main>
+      <CommandShell wide>
+        <p className="animate-pulse text-center text-slate-400">Loading command console…</p>
+      </CommandShell>
     );
   }
 
   if (isError) {
     return (
-      <main className="flex min-h-screen items-center justify-center p-6">
-        <div className="max-w-md rounded-lg border border-command-amber/50 bg-command-amber/10 p-6 text-center">
-          <p className="font-semibold text-command-amber">CONNECTION INTERRUPTED</p>
+      <CommandShell wide>
+        <div className="mx-auto max-w-md rounded-xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
+          <p className="font-semibold text-amber-300">CONNECTION INTERRUPTED</p>
           <p className="mt-2 text-sm text-slate-300">{(error as Error).message}</p>
           <p className="mt-3 text-xs text-slate-500">
             Check DATABASE_URL, run db:push, and apply SQL migrations 001–005.
           </p>
         </div>
-      </main>
+      </CommandShell>
     );
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-6">
-      <header className="mb-4 flex items-center justify-between border-b border-command-border pb-4">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight">Circadia Command</h1>
-          <p className="text-sm text-slate-400">
-            Live triage · {data?.queue_depth ?? 0} pending
-            {operatorName ? ` · ${operatorName}` : ""}
+    <CommandShell wide>
+      <CommandPageHeader
+        compact
+        title="Circadia Command"
+        subtitle={`Live triage · ${data?.queue_depth ?? 0} pending${operatorName ? ` · ${operatorName}` : ""}`}
+        icon={<Shield className="h-5 w-5" strokeWidth={2} aria-hidden />}
+        actions={
+          <>
             <span
-              className={`ml-2 inline-flex items-center gap-1 ${sseConnected ? "text-command-safe" : "text-command-amber"}`}
+              className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium ${
+                sseConnected
+                  ? "bg-emerald-950/50 text-emerald-300 ring-1 ring-emerald-800/60"
+                  : "bg-amber-950/50 text-amber-300 ring-1 ring-amber-800/60"
+              }`}
             >
               <span
-                className={`inline-block h-1.5 w-1.5 rounded-full ${sseConnected ? "bg-command-safe" : "bg-command-amber animate-pulse"}`}
+                className={`inline-block h-1.5 w-1.5 rounded-full ${
+                  sseConnected ? "bg-emerald-400" : "animate-pulse bg-amber-400"
+                }`}
               />
               {sseConnected ? "SSE live" : "Polling"}
             </span>
-          </p>
-        </div>
-        <div className="flex items-center gap-4">
-          {isOwner && (
-            <a href="/admin/users" className="text-xs text-command-amber hover:underline">
-              Users
-            </a>
-          )}
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            className="text-xs text-slate-500 hover:text-slate-300"
-          >
-            Sign out
-          </button>
-        </div>
-      </header>
+            <CommandHeaderActions
+              onSignOut={() => void signOut()}
+              showUsersLink={isOwner}
+              triageActive
+            />
+          </>
+        }
+      />
 
-      <div className="grid h-[calc(100vh-8rem)] grid-cols-1 gap-4 lg:grid-cols-12">
+      <div className="grid h-[calc(100vh-9rem)] grid-cols-1 gap-4 lg:grid-cols-12">
         <section className="lg:col-span-3">
           <QueuePanel incidents={incidents} selectedId={selectedId} onSelect={setSelectedId} />
         </section>
@@ -180,6 +182,6 @@ export default function TriagePage() {
           />
         </section>
       </div>
-    </main>
+    </CommandShell>
   );
 }

@@ -2,6 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Shield } from "lucide-react";
+import { CommandShell } from "@/components/command/CommandShell";
+import {
+  commandCard,
+  commandInput,
+  commandLabel,
+  commandPrimaryButton,
+} from "@/components/command/command-styles";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,13 +40,20 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="w-full max-w-md rounded-xl border border-command-border bg-command-panel p-8 shadow-xl">
-        <h1 className="text-2xl font-bold tracking-tight">Circadia Command</h1>
-        <p className="mt-2 text-sm text-slate-400">Sign in with username and password</p>
+    <CommandShell className="flex items-center">
+      <div className={`mx-auto w-full max-w-md ${commandCard} p-8`}>
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm ring-1 ring-slate-700/80">
+            <Shield className="h-5 w-5" strokeWidth={2} aria-hidden />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-100">Circadia Command</h1>
+            <p className="text-sm text-slate-400">Sign in with username and password</p>
+          </div>
+        </div>
 
         <form className="mt-8 space-y-4" onSubmit={(e) => void signIn(e)}>
-          <label className="block text-sm text-slate-300">
+          <label className={commandLabel}>
             Username
             <input
               type="text"
@@ -46,11 +61,11 @@ export default function LoginPage() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-command-border bg-command-bg px-3 py-2 text-slate-100 outline-none focus:border-command-amber"
+              className={commandInput}
               placeholder="your.username"
             />
           </label>
-          <label className="block text-sm text-slate-300">
+          <label className={commandLabel}>
             Password
             <input
               type="password"
@@ -58,25 +73,21 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-command-border bg-command-bg px-3 py-2 text-slate-100 outline-none focus:border-command-amber"
+              className={commandInput}
               placeholder="Min. 6 characters"
             />
           </label>
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full rounded-lg bg-command-amber px-4 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60"
-          >
+          <button type="submit" disabled={busy} className={`${commandPrimaryButton} w-full py-2.5`}>
             {busy ? "Signing in…" : "Sign in"}
           </button>
         </form>
 
         {error && (
-          <p className="mt-4 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+          <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
             {error}
           </p>
         )}
       </div>
-    </main>
+    </CommandShell>
   );
 }

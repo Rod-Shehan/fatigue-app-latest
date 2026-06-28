@@ -1,8 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { UserCog } from "lucide-react";
+import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
+import { CommandPageHeader } from "@/components/command/CommandPageHeader";
+import { CommandShell } from "@/components/command/CommandShell";
+import {
+  commandCard,
+  commandInput,
+  commandLabel,
+  commandLinkAction,
+  commandListItem,
+  commandPrimaryButton,
+  commandSectionTitle,
+} from "@/components/command/command-styles";
 
 type OperatorRow = {
   operator_id: string;
@@ -126,93 +138,78 @@ export default function AdminUsersPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center text-slate-400">
-        Loading…
-      </main>
+      <CommandShell>
+        <p className="text-center text-slate-400">Loading…</p>
+      </CommandShell>
     );
   }
 
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-command-border pb-4">
-        <div>
-          <h1 className="text-xl font-bold">Command users</h1>
-          <p className="text-sm text-slate-400">Owner console · create usernames and passwords</p>
-        </div>
-        <div className="flex gap-3 text-sm">
-          <Link href="/triage" className="text-command-amber hover:underline">
-            Triage
-          </Link>
-          <button type="button" onClick={() => void signOut()} className="text-slate-500 hover:text-slate-300">
-            Sign out
-          </button>
-        </div>
-      </header>
+    <CommandShell>
+      <CommandPageHeader
+        title="Command users"
+        subtitle="Owner console · create usernames and passwords"
+        icon={<UserCog className="h-5 w-5" strokeWidth={2} aria-hidden />}
+        actions={<CommandHeaderActions onSignOut={() => void signOut()} />}
+      />
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        <section className="rounded-xl border border-command-border bg-command-panel p-6">
-          <h2 className="font-semibold text-slate-100">Add user</h2>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section className={`${commandCard} p-6`}>
+          <h2 className={commandSectionTitle}>Add user</h2>
           <form className="mt-4 space-y-3" onSubmit={(e) => void createUser(e)}>
-            <label className="block text-sm text-slate-300">
+            <label className={commandLabel}>
               Username
               <input
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-command-border bg-command-bg px-3 py-2 text-slate-100"
+                className={commandInput}
                 placeholder="jane.ops"
               />
             </label>
-            <label className="block text-sm text-slate-300">
+            <label className={commandLabel}>
               Display name
               <input
                 required
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-command-border bg-command-bg px-3 py-2 text-slate-100"
+                className={commandInput}
                 placeholder="Jane Ops"
               />
             </label>
-            <label className="block text-sm text-slate-300">
+            <label className={commandLabel}>
               Password
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-command-border bg-command-bg px-3 py-2 text-slate-100"
+                className={commandInput}
                 placeholder="Min. 6 characters"
               />
             </label>
-            <label className="block text-sm text-slate-300">
+            <label className={commandLabel}>
               Role
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as "command_operator" | "command_owner")}
-                className="mt-1 w-full rounded-lg border border-command-border bg-command-bg px-3 py-2 text-slate-100"
+                className={commandInput}
               >
                 <option value="command_operator">Operator (triage only)</option>
                 <option value="command_owner">Owner (triage + manage users)</option>
               </select>
             </label>
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-lg bg-command-amber px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-60"
-            >
+            <button type="submit" disabled={busy} className={commandPrimaryButton}>
               Create user
             </button>
           </form>
         </section>
 
-        <section className="rounded-xl border border-command-border bg-command-panel p-6">
-          <h2 className="font-semibold text-slate-100">Existing users</h2>
+        <section className={`${commandCard} p-6`}>
+          <h2 className={commandSectionTitle}>Existing users</h2>
           <ul className="mt-4 space-y-3">
             {operators.map((op) => (
-              <li
-                key={op.operator_id}
-                className="rounded-lg border border-command-border bg-command-bg/50 p-3"
-              >
+              <li key={op.operator_id} className={commandListItem}>
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-medium text-slate-100">
@@ -224,7 +221,7 @@ export default function AdminUsersPage() {
                       {!op.is_active ? " · inactive" : ""}
                     </p>
                   </div>
-                  <div className="flex gap-2 text-xs">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       disabled={busy}
@@ -232,7 +229,7 @@ export default function AdminUsersPage() {
                         setResetId(op.operator_id);
                         setResetPassword("");
                       }}
-                      className="text-command-amber hover:underline disabled:opacity-50"
+                      className={`${commandLinkAction} disabled:opacity-50`}
                     >
                       Reset password
                     </button>
@@ -240,33 +237,33 @@ export default function AdminUsersPage() {
                       type="button"
                       disabled={busy}
                       onClick={() => void toggleActive(op)}
-                      className="text-slate-400 hover:text-slate-200 disabled:opacity-50"
+                      className="text-sm text-slate-400 transition-colors hover:text-slate-200 disabled:opacity-50"
                     >
                       {op.is_active ? "Deactivate" : "Activate"}
                     </button>
                   </div>
                 </div>
                 {resetId === op.operator_id && (
-                  <div className="mt-3 flex flex-wrap gap-2 border-t border-command-border pt-3">
+                  <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-700/80 pt-3">
                     <input
                       type="password"
                       value={resetPassword}
                       onChange={(e) => setResetPassword(e.target.value)}
                       placeholder="New password (min 6)"
-                      className="min-w-[200px] flex-1 rounded border border-command-border bg-command-bg px-2 py-1 text-sm text-slate-100"
+                      className="min-w-[200px] flex-1 rounded-lg border border-slate-600 bg-slate-900/80 px-2 py-1.5 text-sm text-slate-100 outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500"
                     />
                     <button
                       type="button"
                       disabled={busy}
                       onClick={() => void resetUserPassword(op.operator_id)}
-                      className="rounded bg-command-amber px-3 py-1 text-xs font-semibold text-black"
+                      className={`${commandPrimaryButton} px-3 py-1.5 text-xs`}
                     >
                       Save
                     </button>
                     <button
                       type="button"
                       onClick={() => setResetId(null)}
-                      className="text-xs text-slate-500"
+                      className="text-xs text-slate-500 hover:text-slate-300"
                     >
                       Cancel
                     </button>
@@ -279,10 +276,10 @@ export default function AdminUsersPage() {
       </div>
 
       {error && (
-        <p className="mt-4 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+        <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
           {error}
         </p>
       )}
-    </main>
+    </CommandShell>
   );
 }

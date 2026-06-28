@@ -6,10 +6,10 @@ const config: Config = {
     extend: {
       colors: {
         command: {
-          bg: "#0a0e14",
-          panel: "#121820",
-          border: "#1e2836",
-          amber: "#f59e0b",
+          bg: "#020617",
+          panel: "#0f172a",
+          border: "#334155",
+          accent: "#0f766e",
           safe: "#22c55e",
           danger: "#ef4444",
         },
