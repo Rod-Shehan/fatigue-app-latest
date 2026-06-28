@@ -11,6 +11,14 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, UserCheck, UserX, Loader2, Users, Pencil } from "lucide-react";
 import { COMMERCIAL_DRIVERS_MEDICAL, getCvdMedicalBannerKind } from "@/lib/cvd-medical";
+import { ShowOncePasswordDialog } from "@/components/auth/ShowOncePasswordDialog";
+
+function formatPasswordSetAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+}
 
 export function DriversList() {
   const queryClient = useQueryClient();
@@ -28,6 +36,17 @@ export function DriversList() {
   const [editCvdMedical, setEditCvdMedical] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editPassword, setEditPassword] = useState("");
+  const [showOnceOpen, setShowOnceOpen] = useState(false);
+  const [showOnceEmail, setShowOnceEmail] = useState("");
+  const [showOncePassword, setShowOncePassword] = useState("");
+  const [showOnceLabel, setShowOnceLabel] = useState("this driver");
+
+  function revealTemporaryPassword(email: string, temporaryPassword: string, label: string) {
+    setShowOnceEmail(email);
+    setShowOncePassword(temporaryPassword);
+    setShowOnceLabel(label);
+    setShowOnceOpen(true);
+  }
 
   const { data: drivers = [], isLoading } = useQuery({
     queryKey: ["drivers"],
@@ -47,13 +66,16 @@ export function DriversList() {
       cvd_medical_expiry?: string | null;
       password?: string;
     }) => api.drivers.create({ ...data, is_active: true }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       setNewName("");
       setNewEmail("");
       setNewLicence("");
       setNewCvdMedical("");
       setNewPassword("");
+      if (data.temporary_password && data.email) {
+        revealTemporaryPassword(data.email, data.temporary_password, data.name || "this driver");
+      }
     },
   });
   const toggleMutation = useMutation({
@@ -79,11 +101,14 @@ export function DriversList() {
         is_active: payload.is_active,
         ...(payload.password && payload.password.trim().length > 0 ? { password: payload.password } : null),
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
       setEditOpen(false);
       setActiveDriverId(null);
       setEditPassword("");
+      if (data.temporary_password && data.email) {
+        revealTemporaryPassword(data.email, data.temporary_password, data.name || "this driver");
+      }
     },
   });
   const deleteMutation = useMutation({
@@ -186,7 +211,7 @@ export function DriversList() {
           </div>
           <div className="col-span-2 min-w-0 space-y-1.5 max-md:col-span-1">
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
-              Password (optional)
+              Set login password
             </Label>
             <Input
               value={newPassword}
@@ -194,8 +219,11 @@ export function DriversList() {
               className="w-full min-w-0"
               type="text"
               autoComplete="off"
+              placeholder="Temporary password for first sign-in"
             />
-            <p className="text-[11px] text-slate-400">Minimum 6 characters if set.</p>
+            <p className="text-[11px] text-slate-400">
+              Minimum 6 characters. Shown once after save — share with the driver for sign-in.
+            </p>
           </div>
           <div className="col-span-3 flex justify-end max-md:col-span-1">
             <Button
@@ -340,15 +368,30 @@ export function DriversList() {
                 </p>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Set/reset password</Label>
+                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+                  Reset login password
+                </Label>
+                {activeDriver?.has_password ? (
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Password is set
+                    {formatPasswordSetAt(activeDriver.password_set_at)
+                      ? ` · last updated ${formatPasswordSetAt(activeDriver.password_set_at)}`
+                      : ""}
+                    . You cannot view the current password — enter a new one to reset.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                    No login password yet — set one so this driver can sign in.
+                  </p>
+                )}
                 <Input
                   value={editPassword}
                   onChange={(e) => setEditPassword(e.target.value)}
                   type="text"
                   autoComplete="off"
-                  placeholder="Leave blank to keep unchanged"
+                  placeholder="New temporary password"
                 />
-                <p className="text-[11px] text-slate-400">Minimum 6 characters.</p>
+                <p className="text-[11px] text-slate-400">Minimum 6 characters. Shown once after save.</p>
               </div>
               <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200">
                 <input type="checkbox" checked={editActive} onChange={(e) => setEditActive(e.target.checked)} />
@@ -381,6 +424,14 @@ export function DriversList() {
             </form>
           </DialogContent>
         </Dialog>
+
+        <ShowOncePasswordDialog
+          open={showOnceOpen}
+          onOpenChange={setShowOnceOpen}
+          accountLabel={showOnceLabel}
+          email={showOnceEmail}
+          temporaryPassword={showOncePassword}
+        />
 
         <Dialog
           open={deleteOpen}

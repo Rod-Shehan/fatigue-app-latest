@@ -13,6 +13,11 @@ model User {
   email         String?   @unique
   name          String?
   passwordHash  String?
+  /** When an admin or the user last set the login password (plaintext is never stored). */
+  passwordSetAt   DateTime?
+  passwordSetById String?
+  passwordSetBy   User?     @relation("UserPasswordSetBy", fields: [passwordSetById], references: [id], onDelete: SetNull)
+  passwordsSetFor User[]    @relation("UserPasswordSetBy")
   /** driver (null) | manager | owner — owner is org/IT governance above fleet managers */
   role          String?
   /** When set, sign-in is blocked until cleared by an owner */

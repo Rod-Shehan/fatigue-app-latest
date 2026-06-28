@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { DriverSettingsOptions } from "./driver-settings-options";
 import { DriverSettingsRecordsSection } from "./driver-settings-records";
+import { DriverSettingsChangePassword } from "./driver-settings-change-password";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { DriverSettingsDeviceSection } from "@/components/pwa/DriverSettingsDeviceSection";
@@ -112,7 +113,10 @@ export default async function DriverSettingsPage({
 
           <section>
             <h2 className={driverSectionLabel}>Account</h2>
-            <DriverSettingsSignOut />
+            <div className="space-y-3">
+              <DriverSettingsChangePassword />
+              <DriverSettingsSignOut />
+            </div>
           </section>
         </div>
       </div>

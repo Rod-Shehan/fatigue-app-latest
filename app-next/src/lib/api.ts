@@ -44,6 +44,20 @@ export type Driver = {
   /** WA Commercial Driver's Medical expiry (YYYY-MM-DD), optional. */
   cvd_medical_expiry?: string | null;
   is_active: boolean;
+  has_password?: boolean;
+  password_set_at?: string | null;
+};
+
+export type AdminPasswordSetResponse = {
+  temporary_password?: string;
+};
+
+export type ManagerAccount = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  has_password?: boolean;
+  password_set_at?: string | null;
 };
 export type Rego = { id: string; label: string; sort_order: number };
 
@@ -317,7 +331,7 @@ export const api = {
       cvd_medical_expiry?: string | null;
       is_active?: boolean;
       password?: string;
-    }) => fetchApi<Driver>("/api/drivers", { method: "POST", body: data }),
+    }) => fetchApi<Driver & AdminPasswordSetResponse>("/api/drivers", { method: "POST", body: data }),
     update: (
       id: string,
       data: {
@@ -328,11 +342,13 @@ export const api = {
         cvd_medical_expiry?: string | null;
         password?: string;
       }
-    ) => fetchApi<Driver>(`/api/drivers/${id}`, { method: "PATCH", body: data }),
+    ) => fetchApi<Driver & AdminPasswordSetResponse>(`/api/drivers/${id}`, { method: "PATCH", body: data }),
     delete: (id: string) =>
       fetchApi<void>(`/api/drivers/${id}`, { method: "DELETE" }),
   },
   driver: {
+    changePassword: (data: { currentPassword: string; newPassword: string }) =>
+      fetchApi<{ ok: true }>("/api/driver/change-password", { method: "POST", body: data }),
     roadsideProducePdfUrl: () => `${base}/api/driver/roadside-produce`,
     uploadRiskBlocks: (data: {
       blocks: Array<{
@@ -379,10 +395,15 @@ export const api = {
   },
   users: {
     listManagers: () =>
-      fetchApi<{ managers: { id: string; email: string | null; name: string | null }[] }>("/api/users"),
+      fetchApi<{ managers: ManagerAccount[] }>("/api/users"),
     create: (data: { email: string; name?: string; password?: string }) =>
-      fetchApi<{ id: string; email: string | null; name: string | null }>("/api/users", {
+      fetchApi<ManagerAccount & AdminPasswordSetResponse>("/api/users", {
         method: "POST",
+        body: data,
+      }),
+    update: (id: string, data: { name?: string; password?: string }) =>
+      fetchApi<ManagerAccount & AdminPasswordSetResponse>(`/api/users/${id}`, {
+        method: "PATCH",
         body: data,
       }),
   },

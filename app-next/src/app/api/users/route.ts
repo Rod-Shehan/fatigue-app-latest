@@ -1,18 +1,40 @@
 import { NextResponse } from "next/server";
-import { getManagerSession, getOwnerSession } from "@/lib/auth";
+import { getOwnerSession } from "@/lib/auth";
+import { upsertManagerAccount } from "@/lib/account-password-admin";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 
-/** List manager accounts (manager-only). */
+function mapManager(user: {
+  id: string;
+  email: string | null;
+  name: string | null;
+  passwordHash: string | null;
+  passwordSetAt: Date | null;
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    has_password: !!user.passwordHash,
+    password_set_at: user.passwordSetAt?.toISOString() ?? null,
+  };
+}
+
+/** List manager accounts (owner-only — identity admin). */
 export async function GET() {
-  const manager = await getManagerSession();
-  if (!manager) return NextResponse.json({ error: "Manager access required" }, { status: 403 });
+  const owner = await getOwnerSession();
+  if (!owner) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
   const managers = await prisma.user.findMany({
     where: { role: "manager" },
     orderBy: [{ email: "asc" }],
-    select: { id: true, email: true, name: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      passwordHash: true,
+      passwordSetAt: true,
+    },
   });
-  return NextResponse.json({ managers });
+  return NextResponse.json({ managers: managers.map(mapManager) });
 }
 
 export async function POST(req: Request) {
@@ -25,37 +47,37 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
     const trimmedEmail = email.trim().toLowerCase();
-    const displayName = typeof name === "string" && name.trim() ? name.trim() : trimmedEmail.split("@")[0];
-    const passwordStr = typeof password === "string" ? password : "";
-    if (password !== undefined && passwordStr.trim().length > 0 && passwordStr.trim().length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
-    }
-    const passwordHash =
-      passwordStr.trim().length > 0 ? await bcrypt.hash(passwordStr.trim(), 10) : undefined;
-    const existing = await prisma.user.findUnique({ where: { email: trimmedEmail } });
-    if (existing) {
-      await prisma.user.update({
-        where: { id: existing.id },
-        data: { role: "manager", name: displayName, ...(passwordHash ? { passwordHash } : null) },
-      });
-      return NextResponse.json({
-        id: existing.id,
-        email: existing.email,
-        name: displayName,
-      });
-    }
-    const user = await prisma.user.create({
-      data: {
+    const displayName =
+      typeof name === "string" && name.trim() ? name.trim() : trimmedEmail.split("@")[0];
+
+    let result;
+    try {
+      result = await upsertManagerAccount({
         email: trimmedEmail,
         name: displayName,
-        role: "manager",
-        ...(passwordHash ? { passwordHash } : null),
+        password,
+        setByUserId: owner.user.id,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Invalid password";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: result.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        passwordSetAt: true,
       },
     });
+    if (!user) return NextResponse.json({ error: "Failed to create user" }, { status: 500 });
+
     return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
+      ...mapManager(user),
+      ...(result.temporaryPassword ? { temporary_password: result.temporaryPassword } : null),
     });
   } catch {
     return NextResponse.json({ error: "Failed to create user" }, { status: 500 });

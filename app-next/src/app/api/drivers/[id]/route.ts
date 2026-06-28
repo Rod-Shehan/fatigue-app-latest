@@ -1,22 +1,41 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { getManagerSession } from "@/lib/auth";
-import { authOptions } from "@/lib/auth";
+import { syncDriverLoginUser } from "@/lib/account-password-admin";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { isInvalidCvdMedicalInput, parseCvdMedicalExpiryInput } from "@/lib/cvd-medical";
 
+function mapDriverRecord(
+  d: {
+    id: string;
+    name: string;
+    email: string | null;
+    licenceNumber: string | null;
+    cvdMedicalExpiry: Date | null;
+    isActive: boolean;
+  },
+  loginUser?: { passwordHash: string | null; passwordSetAt: Date | null } | null
+) {
+  return {
+    id: d.id,
+    name: d.name,
+    email: d.email,
+    licence_number: d.licenceNumber,
+    cvd_medical_expiry: d.cvdMedicalExpiry ? d.cvdMedicalExpiry.toISOString().slice(0, 10) : null,
+    is_active: d.isActive,
+    has_password: !!loginUser?.passwordHash,
+    password_set_at: loginUser?.passwordSetAt?.toISOString() ?? null,
+  };
+}
+
 export async function PATCH(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const manager = await getManagerSession();
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const { id } = await params;
-    const body = await _req.json();
+    const body = await req.json();
     const { is_active, email, name, licence_number, password, cvd_medical_expiry } = body;
 
     const normalizedEmail =
@@ -46,10 +65,6 @@ export async function PATCH(
     if (licence_number !== undefined && normalizedLicence === null) {
       return NextResponse.json({ error: "Valid licence number required" }, { status: 400 });
     }
-    const passwordStr = typeof password === "string" ? password : "";
-    if (password !== undefined && passwordStr.trim().length > 0 && passwordStr.trim().length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
-    }
 
     if (cvd_medical_expiry !== undefined) {
       if (isInvalidCvdMedicalInput(cvd_medical_expiry)) {
@@ -71,24 +86,32 @@ export async function PATCH(
       data,
     });
 
-    // Keep the login user record in sync when the roster email/name changes.
+    let temporaryPassword: string | undefined;
     if (driver.email) {
-      const passwordHash =
-        passwordStr.trim().length > 0 ? await bcrypt.hash(passwordStr.trim(), 10) : undefined;
-      await prisma.user.upsert({
-        where: { email: driver.email },
-        create: { email: driver.email, name: driver.name, ...(passwordHash ? { passwordHash } : null) },
-        update: { name: driver.name, ...(passwordHash ? { passwordHash } : null) },
-      });
+      try {
+        const synced = await syncDriverLoginUser({
+          email: driver.email,
+          name: driver.name,
+          password,
+          setByUserId: manager.user.id,
+        });
+        temporaryPassword = synced.temporaryPassword;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Invalid password";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
     }
 
+    const loginUser = driver.email
+      ? await prisma.user.findUnique({
+          where: { email: driver.email },
+          select: { passwordHash: true, passwordSetAt: true },
+        })
+      : null;
+
     return NextResponse.json({
-      id: driver.id,
-      name: driver.name,
-      email: driver.email,
-      licence_number: driver.licenceNumber,
-      cvd_medical_expiry: driver.cvdMedicalExpiry ? driver.cvdMedicalExpiry.toISOString().slice(0, 10) : null,
-      is_active: driver.isActive,
+      ...mapDriverRecord(driver, loginUser),
+      ...(temporaryPassword ? { temporary_password: temporaryPassword } : null),
     });
   } catch {
     return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
@@ -99,8 +122,6 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const manager = await getManagerSession();
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
