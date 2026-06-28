@@ -42,12 +42,25 @@ Apply in order on Neon:
 2. `prisma/sql/003_edge_ingress_triggers.sql`
 3. `prisma/sql/004_lifecycle_transition_log.sql`
 4. `prisma/sql/005_identity_map_extensions.sql`
+5. `prisma/sql/006_operator_passkeys.sql`
+6. `prisma/sql/007_operator_passwords.sql`
+7. `prisma/sql/008_operator_roles.sql`
 
 ## Authentication
 
-**Local dev (`npm run dev`):** passkey is **off** by default. Open **http://localhost:3001/login**, enter email, click **Sign in**.
+**Roles:** `command_owner` (manage users + triage) · `command_operator` (triage only)
 
-**Production:** passkey required at `/login`. Set `COMMAND_SKIP_WEBAUTHN=false` to test WebAuthn locally.
+Sign in at `/login` with **username + password** (bcrypt, min 6 characters).
+
+**Bootstrap the first owner** (once per environment):
+
+```bash
+OPERATOR_USERNAME=your.name OPERATOR_PASSWORD='your-secure-password' npm run bootstrap:owner
+```
+
+Owners manage users at **`/admin/users`** — create usernames, set passwords, assign roles.
+
+Operators cannot self-register; owners create all accounts.
 
 ## Live updates (SSE)
 
@@ -64,8 +77,8 @@ See [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md).
 
 | Done | Next |
 |------|------|
-| SSE + Vercel config | Railway SSE worker (multi-instance Redis) if ops scale |
-| WebAuthn + dev sign-in | Corporate OIDC (Auth0) |
+| Email + password auth | Corporate OIDC (Auth0) |
+| SSE + Vercel config | Railway SSE worker if ops scale |
 | MVP triage | Manager gate API, identity sync worker |
 
 ## Safety boundaries

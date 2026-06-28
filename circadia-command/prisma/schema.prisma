@@ -47,12 +47,16 @@ model EdgeFatigueEvent {
 }
 
 model CommandOperator {
-  operatorId          String   @id @default(uuid()) @map("operator_id") @db.Uuid
-  email               String   @unique @db.VarChar(255)
-  fullName            String   @map("full_name") @db.VarChar(255)
-  isActive            Boolean  @default(true) @map("is_active")
-  hardwareMfaVerified Boolean  @default(false) @map("hardware_mfa_verified")
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  operatorId          String    @id @default(uuid()) @map("operator_id") @db.Uuid
+  username            String?   @unique @db.VarChar(64)
+  email               String?   @unique @db.VarChar(255)
+  fullName            String    @map("full_name") @db.VarChar(255)
+  role                String    @default("command_operator") @db.VarChar(32)
+  passwordHash        String?   @map("password_hash") @db.VarChar(255)
+  passwordSetAt       DateTime? @map("password_set_at") @db.Timestamptz(6)
+  isActive            Boolean   @default(true) @map("is_active")
+  hardwareMfaVerified Boolean   @default(false) @map("hardware_mfa_verified")
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
   lifecycleEvents FatigueIncidentLifecycle[]
   passkeys          CommandOperatorPasskey[]

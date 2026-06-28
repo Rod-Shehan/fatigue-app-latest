@@ -16,14 +16,17 @@ Target: **command.circadia24.com** (separate Vercel project from customer `app-n
 | `DATABASE_URL` | Neon **pooled** connection string (Prisma / API routes) |
 | `DATABASE_URL_UNPOOLED` | Neon **direct** host (no `-pooler`) — required for SSE `LISTEN` |
 | `COMMAND_SESSION_SECRET` | `openssl rand -base64 32` |
-| `WEBAUTHN_RP_ID` | `command.circadia24.com` |
-| `WEBAUTHN_ORIGIN` | `https://command.circadia24.com` |
-| `COMMAND_SKIP_WEBAUTHN` | `false` |
-| `NEXT_PUBLIC_COMMAND_SKIP_WEBAUTHN` | `false` |
-| `COMMAND_OPERATOR_IP_WHITELIST` | Office static IPs (comma-separated) |
 | `COMMAND_PILOT_TENANT_ID_UUID` | Pilot tenant UUID |
+| `COMMAND_OPERATOR_IP_WHITELIST` | Office static IPs (comma-separated) |
+| `COMMAND_ALLOW_SIMULATE` | `false` |
 
-**Do not set** `COMMAND_ALLOW_DEV_LOGIN` in production.
+**Do not set** dev-only bypass flags in production.
+
+After deploy, bootstrap at least one operator against Neon:
+
+```bash
+OPERATOR_EMAIL=ops@yourcompany.com OPERATOR_PASSWORD='…' npm run bootstrap:operator
+```
 
 ### Neon direct URL
 
@@ -49,7 +52,7 @@ npx vercel --prod
 ## 5. Post-deploy checks
 
 - `https://command.circadia24.com/api/health` → `{ "ok": true }`
-- `/login` → passkey sign-in works with `WEBAUTHN_RP_ID` matching domain
+- `/login` → email + password sign-in
 - `/triage` → header shows **SSE live** (green) when stream connected
 - Simulate ingest (dev/staging only) updates queue within ~2s without manual refresh
 

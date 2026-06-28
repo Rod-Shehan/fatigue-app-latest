@@ -9,6 +9,8 @@ const files = [
   "prisma/sql/004_lifecycle_transition_log.sql",
   "prisma/sql/005_identity_map_extensions.sql",
   "prisma/sql/006_operator_passkeys.sql",
+  "prisma/sql/007_operator_passwords.sql",
+  "prisma/sql/008_operator_roles.sql",
 ];
 
 for (const f of files) {

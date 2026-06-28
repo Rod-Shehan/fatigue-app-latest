@@ -15,6 +15,7 @@ export default function TriagePage() {
   const [busy, setBusy] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   const { connected: sseConnected } = useCommandSse(authReady);
   const { data, isLoading, isError, error } = useTriageQueue(authReady, sseConnected);
@@ -31,6 +32,7 @@ export default function TriagePage() {
       const body = await res.json();
       if (!cancelled && body.authenticated) {
         setOperatorName(body.name ?? null);
+        setIsOwner(body.role === "command_owner");
         setAuthReady(true);
       }
     })();
@@ -145,13 +147,20 @@ export default function TriagePage() {
             </span>
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void signOut()}
-          className="text-xs text-slate-500 hover:text-slate-300"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-4">
+          {isOwner && (
+            <a href="/admin/users" className="text-xs text-command-amber hover:underline">
+              Users
+            </a>
+          )}
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="text-xs text-slate-500 hover:text-slate-300"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <div className="grid h-[calc(100vh-8rem)] grid-cols-1 gap-4 lg:grid-cols-12">

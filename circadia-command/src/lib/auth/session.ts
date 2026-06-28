@@ -1,16 +1,16 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { type CommandRole, isCommandRole } from "@/lib/auth/roles";
 
 export const SESSION_COOKIE = "command_session";
-export const CHALLENGE_COOKIE = "command_webauthn_challenge";
 const ISSUER = "https://auth.circadia24.internal";
 const MAX_AGE_SEC = 4 * 60 * 60;
 
 export type CommandSession = {
   sub: string;
   name: string;
-  role: "command_operator";
-  hardware_mfa_verified: boolean;
+  username: string | null;
+  role: CommandRole;
 };
 
 function getSecret(): Uint8Array {
@@ -24,16 +24,26 @@ function getSecret(): Uint8Array {
   return new TextEncoder().encode(raw);
 }
 
+function permissionsForRole(role: CommandRole): string[] {
+  const base = ["triage:global", "intervention:trigger", "audit:read"];
+  if (role === "command_owner") {
+    return [...base, "operators:read", "operators:write"];
+  }
+  return base;
+}
+
 export async function signSession(payload: {
   operatorId: string;
   name: string;
-  hardwareMfaVerified: boolean;
+  username: string | null;
+  role: CommandRole;
 }): Promise<string> {
   return new SignJWT({
     name: payload.name,
-    role: "command_operator",
-    hardware_mfa_verified: payload.hardwareMfaVerified,
-    permissions: ["triage:global", "intervention:trigger", "audit:read"],
+    username: payload.username,
+    role: payload.role,
+    authenticated: true,
+    permissions: permissionsForRole(payload.role),
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(payload.operatorId)
@@ -47,11 +57,18 @@ export async function verifySessionToken(token: string): Promise<CommandSession 
   try {
     const { payload } = await jwtVerify(token, getSecret(), { issuer: ISSUER });
     if (payload.sub == null || typeof payload.name !== "string") return null;
+    const authenticated =
+      payload.authenticated === true || payload.hardware_mfa_verified === true;
+    if (!authenticated) return null;
+
+    const roleRaw = typeof payload.role === "string" ? payload.role : "command_operator";
+    const role: CommandRole = isCommandRole(roleRaw) ? roleRaw : "command_operator";
+
     return {
       sub: payload.sub,
       name: payload.name,
-      role: "command_operator",
-      hardware_mfa_verified: payload.hardware_mfa_verified === true,
+      username: typeof payload.username === "string" ? payload.username : null,
+      role,
     };
   } catch {
     return null;
@@ -62,9 +79,7 @@ export async function getSession(): Promise<CommandSession | null> {
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
-  const session = await verifySessionToken(token);
-  if (!session?.hardware_mfa_verified) return null;
-  return session;
+  return verifySessionToken(token);
 }
 
 export async function setSessionCookie(token: string) {
@@ -81,60 +96,4 @@ export async function setSessionCookie(token: string) {
 export async function clearSessionCookie() {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
-}
-
-export type ChallengePayload = {
-  operatorId: string;
-  challenge: string;
-  flow: "register" | "login";
-};
-
-export async function signChallenge(payload: ChallengePayload): Promise<string> {
-  return new SignJWT(payload)
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("5m")
-    .sign(getSecret());
-}
-
-export async function verifyChallenge(token: string): Promise<ChallengePayload | null> {
-  try {
-    const { payload } = await jwtVerify(token, getSecret());
-    if (
-      typeof payload.operatorId !== "string" ||
-      typeof payload.challenge !== "string" ||
-      (payload.flow !== "register" && payload.flow !== "login")
-    ) {
-      return null;
-    }
-    return {
-      operatorId: payload.operatorId,
-      challenge: payload.challenge,
-      flow: payload.flow,
-    };
-  } catch {
-    return null;
-  }
-}
-
-export async function setChallengeCookie(token: string) {
-  const jar = await cookies();
-  jar.set(CHALLENGE_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 300,
-  });
-}
-
-export async function readChallengeCookie(): Promise<ChallengePayload | null> {
-  const jar = await cookies();
-  const token = jar.get(CHALLENGE_COOKIE)?.value;
-  if (!token) return null;
-  return verifyChallenge(token);
-}
-
-export async function clearChallengeCookie() {
-  const jar = await cookies();
-  jar.delete(CHALLENGE_COOKIE);
 }
