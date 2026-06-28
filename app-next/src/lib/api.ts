@@ -557,6 +557,7 @@ export const api = {
         `/api/admin/users/${id}`,
         { method: "PATCH", body: data }
       ),
+    deleteUser: (id: string) => fetchApi<void>(`/api/admin/users/${id}`, { method: "DELETE" }),
     auditExportUrl: (params?: { from?: string; to?: string }) => {
       const sp = new URLSearchParams();
       if (params?.from) sp.set("from", params.from);

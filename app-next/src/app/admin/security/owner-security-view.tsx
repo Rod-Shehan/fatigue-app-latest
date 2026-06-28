@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Shield, Loader2, Download, UserPlus, LogOut } from "lucide-react";
+import { Shield, Loader2, Download, UserPlus, LogOut, Trash2 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -73,7 +73,15 @@ function PolicyToggle({
   );
 }
 
-export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; userEmail: string }) {
+export function OwnerSecurityView({
+  isOwner,
+  userEmail,
+  currentUserId,
+}: {
+  isOwner: boolean;
+  userEmail: string;
+  currentUserId: string;
+}) {
   const queryClient = useQueryClient();
   const [claimError, setClaimError] = useState<string | null>(null);
 
@@ -100,6 +108,36 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: USERS_KEY }),
   });
 
+  const userDeleteMutation = useMutation({
+    mutationFn: (id: string) => api.admin.deleteUser(id),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: USERS_KEY }),
+  });
+
+  function confirmDeleteUser(u: { id: string; email: string | null; name: string | null; role: string }) {
+    const label = u.name || u.email || u.id;
+    const ok = window.confirm(
+      `Delete ${u.role} account "${label}"?\n\nThis removes their sign-in. Sheet history they created may remain.`
+    );
+    if (ok) userDeleteMutation.mutate(u.id);
+  }
+
+  function deleteUserButton(u: { id: string; email: string | null; name: string | null; role: string }) {
+    if (u.id === currentUserId) return null;
+    return (
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        className="text-red-600 dark:text-red-400"
+        disabled={userDeleteMutation.isPending}
+        onClick={() => confirmDeleteUser(u)}
+      >
+        <Trash2 className="w-3.5 h-3.5" />
+        Delete
+      </Button>
+    );
+  }
+
   const claimMutation = useMutation({
     mutationFn: () => api.admin.claimOwner(),
     onSuccess: () => {
@@ -121,8 +159,8 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
           <PageHeader
             backHref="/"
             backLabel={LOBBY_NAV_LABEL}
-            title={PRODUCT_NAME}
-            subtitle="Organisation security setup"
+            title="Owner console"
+            subtitle={`${PRODUCT_NAME} — claim organisation owner access`}
             icon={<Shield className="w-5 h-5" />}
           />
           <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-5 space-y-4">
@@ -156,8 +194,8 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
         <PageHeader
           backHref="/"
           backLabel={LOBBY_NAV_LABEL}
-          title={PRODUCT_NAME}
-          subtitle="Organisation security — lockdown, users, audit"
+          title="Owner console"
+          subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
         />
 
@@ -197,14 +235,15 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
         {owners.length > 0 ? (
           <section className="space-y-3">
             <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Organisation owner
+              Organisation owners
             </h2>
             <AccountList>
               {owners.map((u) => (
                 <AccountRow
                   key={u.id}
                   name={u.name || u.email || u.id}
-                  detail={`${u.email ?? ""} · owner`}
+                  detail={`${u.email ?? ""} · owner${u.id === currentUserId ? " · you" : ""}`}
+                  actions={deleteUserButton(u)}
                 />
               ))}
             </AccountList>
@@ -258,6 +297,7 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
                       >
                         {u.disabled ? "Enable" : "Disable"}
                       </Button>
+                      {deleteUserButton(u)}
                     </>
                   }
                 />
@@ -267,8 +307,10 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Users</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Driver accounts — field sign-in and weekly records.</p>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Driver accounts
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Field sign-in and weekly records.</p>
           {usersQuery.isLoading ? (
             <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
           ) : drivers.length === 0 ? (
@@ -302,6 +344,7 @@ export function OwnerSecurityView({ isOwner, userEmail }: { isOwner: boolean; us
                       >
                         {u.disabled ? "Enable" : "Disable"}
                       </Button>
+                      {deleteUserButton(u)}
                     </>
                   }
                 />

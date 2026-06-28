@@ -18,10 +18,13 @@ export function getDisplayNameFromSession(session: Session | null): string {
 }
 
 /**
- * Standard role pill: "Driver · Jane Smith" / "Manager · Alex Lee".
+ * Standard role pill: "Driver · Jane Smith" / "Manager · Alex Lee" / "Owner · IT Admin".
  * If no display name, returns just the role label.
  */
-export function formatRoleBadge(role: "Driver" | "Manager", displayName: string): string {
+export function formatRoleBadge(
+  role: "Driver" | "Manager" | "Owner",
+  displayName: string
+): string {
   const n = displayName.trim();
   if (!n) return role;
   return `${role}${ROLE_BADGE_NAME_SEPARATOR}${n}`;

@@ -60,11 +60,14 @@ export function PageHeader({
     (driverDisplayName?.trim() || sessionDisplayName) || "";
   const roleBadgeText =
     session?.user && role
-      ? role === "manager"
-        ? formatRoleBadge("Manager", sessionDisplayName)
-        : formatRoleBadge("Driver", driverSuffix)
+      ? role === "owner"
+        ? formatRoleBadge("Owner", sessionDisplayName)
+        : role === "manager"
+          ? formatRoleBadge("Manager", sessionDisplayName)
+          : formatRoleBadge("Driver", driverSuffix)
       : null;
   const isManagerBadge = role === "manager";
+  const isOwnerBadge = role === "owner";
 
   const di =
     driverIdentity != null && driverIdentity.name.trim() !== "" ? driverIdentity : null;
@@ -158,9 +161,11 @@ export function PageHeader({
                 {roleBadgeText && (
                   <span
                     className={`shrink-0 rounded-md px-2 py-0.5 max-w-[min(280px,55vw)] truncate ${
-                      isManagerBadge
-                        ? "text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
-                        : "text-[11px] font-semibold tracking-tight bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                      isOwnerBadge
+                        ? "text-[10px] font-extrabold uppercase tracking-wider bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200"
+                        : isManagerBadge
+                          ? "text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
+                          : "text-[11px] font-semibold tracking-tight bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
                     }`}
                     title={roleBadgeText}
                   >
