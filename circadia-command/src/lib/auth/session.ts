@@ -57,8 +57,7 @@ export async function verifySessionToken(token: string): Promise<CommandSession 
   try {
     const { payload } = await jwtVerify(token, getSecret(), { issuer: ISSUER });
     if (payload.sub == null || typeof payload.name !== "string") return null;
-    const authenticated =
-      payload.authenticated === true || payload.hardware_mfa_verified === true;
+    const authenticated = payload.authenticated === true;
     if (!authenticated) return null;
 
     const roleRaw = typeof payload.role === "string" ? payload.role : "command_operator";

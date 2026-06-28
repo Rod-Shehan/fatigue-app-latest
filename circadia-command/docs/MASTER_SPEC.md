@@ -4,9 +4,9 @@
 
 | Field | Value |
 |-------|-------|
-| Last updated | 2026-06-11 |
+| Last updated | 2026-06-28 |
 | Spec completeness | **A–I merged** (see [SCHEMA_ADAPTATIONS.md](./SCHEMA_ADAPTATIONS.md)) |
-| Implementation | Schema/SQL/OpenAPI only — app code not scaffolded |
+| Implementation | MVP live — triage, SSE, username/password auth, owner user admin |
 
 ---
 
@@ -14,19 +14,19 @@
 
 | Section | Topic | Spec | Code |
 |---------|-------|------|------|
-| 1 | Boundaries | Done | — |
-| 2 | Database core | Done | `001`–`005` SQL |
-| 3 | State machine + audit log | Done | `004_lifecycle_transition_log.sql` |
-| 4 | Operator auth | Done | — (implement in app) |
-| 5 | API gateway | Done | `openapi/command-api-v1.yaml` |
-| 6 | Edge ingress | Done | `003` + presign route |
-| 7 | Identity sync | Done | `005` + Railway worker spec |
-| 8 | Railway SSE | Done | `003` NOTIFY + Redis fan-out spec |
-| 9 | Frontend | Done | Page map + hooks spec |
-| 10 | Driver intervention | Done | WebSocket + HUD spec |
+| 1 | Boundaries | Done | Deployed |
+| 2 | Database core | Done | `001`–`005`, `007`–`009` SQL |
+| 3 | State machine + audit log | Done | `transition-incident.ts`, `004` SQL |
+| 4 | Operator auth | Done | Username/password + JWT session |
+| 5 | API gateway | Done | `/api/v1/triage/*`, `/api/v1/admin/*` |
+| 6 | Edge ingress | Partial | `003` trigger + simulate-ingest |
+| 7 | Identity sync | Spec only | `005` + proposed trigger SQL |
+| 8 | SSE | Done | Vercel SSE + Postgres NOTIFY |
+| 9 | Frontend | Done | `/login`, `/triage`, `/admin/users` |
+| 10 | Driver intervention | Spec only | — |
 | 11 | Product defaults | Done | Recommendations below |
 
-**Migrations apply order:** `001` → `002` (if needed) → `003` → `004` → `005`
+**Migrations apply order:** `001` → `003` → `004` → `005` → `007` → `008` → `009` (optional `002` for legacy upgrades)
 
 ---
 
@@ -46,7 +46,7 @@
 | `edge_fatigue_events` | Pi ingress |
 | `fatigue_incident_lifecycle` | Incident ledger (RLS) |
 | `lifecycle_transition_log` | Append-only audit (immutable trigger) |
-| `command_operators` | Operators + `hardware_mfa_verified` |
+| `command_operators` | Operators — username, password hash, role (`command_owner` \| `command_operator`) |
 | `tenant_compliance_policy_overrides` | Manager gate per tenant |
 
 ---
@@ -77,44 +77,54 @@
 
 ## Section 4 — Operator authentication
 
-**Stack:** `@simplewebauthn/server` — **not** NextAuth.
+**Stack:** bcrypt passwords + `jose` JWT session cookie — **not** NextAuth.
+
+### Roles
+
+| Role | Access |
+|------|--------|
+| `command_owner` | `/admin/users`, triage APIs |
+| `command_operator` | Triage APIs only |
 
 ### Flow
 
-1. OIDC corporate login (Auth0 Enterprise) → session with `hardware_mfa_verified = false`
-2. Force `/auth/register-hardware` → WebAuthn register (`cross-platform`, `userVerification: required`)
-3. Every login: `login-options` → passkey → `login-verify` (signature counter anti-clone)
+1. `POST /api/auth/login` — username + password → `command_session` cookie (4h, httpOnly)
+2. `GET /api/auth/me` — session check
+3. Owners bootstrap via `npm run bootstrap:owner`; further users created at `/admin/users`
 
-### JWT (`CommandOperatorSessionJWT`)
+### JWT claims
 
 | Claim | Value |
 |-------|-------|
 | `sub` | `command_operators.operator_id` |
-| `role` | `command_operator` (Neon RLS) |
-| `permissions` | `triage:global`, `intervention:trigger`, `audit:read` |
-| `hardware_mfa_verified` | must be `true` for API |
-| `network_whitelisted` | set at runtime |
-| `exp` | 4 hours max |
+| `role` | `command_owner` or `command_operator` |
+| `authenticated` | `true` |
+| `permissions` | triage + admin (owner only) |
 
 ### Neon transaction wrapper
 
 ```typescript
-await client.query("SELECT set_config('request.jwt.claim.role', $1, true), set_config('request.jwt.claim.sub', $2, true)", ['command_operator', operatorId]);
+await tx.$executeRaw`
+  SELECT set_config('request.jwt.claim.role', 'command_operator', true),
+         set_config('request.jwt.claim.sub', ${operatorId}, true)
+`;
 ```
+
+(RLS always uses `command_operator` claim — both roles can triage.)
 
 ### IP whitelist middleware
 
-`COMMAND_OPERATOR_IP_WHITELIST` — production 403 `ERR_IP_OUT_OF_BOUNDS` on `/triage` and `/api/v1`.
+`COMMAND_OPERATOR_IP_WHITELIST` — production 403 on `/triage`, `/admin`, `/api/v1` when set.
 
-### Auth routes
+### Auth routes (implemented)
 
 | Route | Purpose |
 |-------|---------|
-| `POST /api/auth/login` | OIDC → intermediate token |
-| `GET /api/auth/mfa-challenge` | WebAuthn options |
-| `POST /api/auth/mfa-verify` | Passkey verify → HTTP-only session JWT |
-| `GET /api/auth/register-options` | Hardware MFA enrollment |
-| `POST /api/auth/verify-register` | Set `hardware_mfa_verified = true` |
+| `POST /api/auth/login` | Sign in |
+| `GET /api/auth/me` | Session |
+| `POST /api/auth/logout` | Sign out |
+| `GET/POST /api/v1/admin/operators` | Owner user CRUD |
+| `PATCH /api/v1/admin/operators/:id` | Reset password, role, active |
 
 ---
 
@@ -158,7 +168,7 @@ const driverToken = crypto.createHmac('sha256', process.env.DRIVER_SECRET_SALT)
 | `ERR_TOKEN_EXPIRED` | 401 | Session expired |
 | `ERR_SCOPE_VIOLATION` | 403 | Wrong tenant/role |
 | `ERR_IP_OUT_OF_BOUNDS` | 403 | IP not whitelisted |
-| `ERR_MFA_CRYPTO_FAILURE` | 400 | WebAuthn failed |
+| `ERR_INVALID_CREDENTIALS` | 401 | Wrong username/password |
 | `ERR_STATE_CONCURRENCY_VIOLATION` | 409 | Status mismatch |
 | `ERR_INCIDENT_ALREADY_CLAIMED` | 409 | Claim race |
 | `ERR_INVALID_TRANSITION` | 409 | Closed incident |
@@ -196,11 +206,13 @@ Deactivation: sync sets `identity_uuid_map.is_active = false`.
 
 ## Section 8 — SSE (operators)
 
-- `GET stream-command.circadia24.com/v1/triage/stream?token=JWT`
-- Headers: `text/event-stream`, `Cache-Control: no-cache`, `X-Accel-Buffering: no`
-- Reconnect: `Last-Event-ID` → catchup query for missed `PENDING_TRIAGE`
-- Scale: Neon `NOTIFY` → primary Railway node → **Redis Pub/Sub** → all SSE nodes
-- Env: `PORT`, `NEON_DATABASE_URL`, `REDIS_URL`, `ENGINE_HEARTBEAT_INTERVAL_MS=15000`
+**Implemented:** same-origin `GET /api/v1/triage/stream` with session cookie auth.
+
+- Postgres `LISTEN channel_live_fatigue_events` (migration `003`)
+- Heartbeat + `Last-Event-ID` catchup
+- Vercel `maxDuration: 300` in `vercel.json`; client polling fallback
+
+**Roadmap:** Railway + Redis fan-out if multi-region scale needed.
 
 ---
 
@@ -208,7 +220,8 @@ Deactivation: sync sets `identity_uuid_map.is_active = false`.
 
 | Path | Purpose |
 |------|---------|
-| `/` | WebAuthn login |
+| `/login` | Username + password sign-in |
+| `/admin/users` | Owner user management |
 | `/triage` | 3-zone monitoring UI |
 | `QueuePanel` | Zone 1 — queue |
 | `MediaViewport` | Zone 2 — 3s video loop + graphs |
@@ -244,7 +257,7 @@ States: skeleton loading · amber reconnect banner · green “ALL ASSETS CLEAR�
 2. **Video:** isolated Cloudflare R2 bucket
 3. **Voice:** Twilio WebRTC (not custom Railway audio)
 4. **Parked alerts:** auto-suppress at 0 km/h
-5. **Network:** IP whitelist + WebAuthn (hybrid)
+5. **Network:** IP whitelist + username/password auth
 6. **Dispute lockout:** no manager pause — 15-min rest mandatory
 7. **Shifts:** stateless — audit via `lifecycle_transition_log` only
 
@@ -255,5 +268,5 @@ States: skeleton loading · amber reconnect banner · green “ALL ASSETS CLEAR�
 - [incident-routing-assembly.md](../../app-next/docs/architecture/incident-routing-assembly.md) — tenant routing modes (operator / manager / external), building blocks assembly
 
 - [SCHEMA_ADAPTATIONS.md](./SCHEMA_ADAPTATIONS.md) — Gemini vs app-next fixes
-- [MISSING_PARTS.md](./MISSING_PARTS.md) — was the gap list (now largely complete)
 - [COLLABORATION.md](./COLLABORATION.md) — inbox workflow
+- [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md) — production deploy

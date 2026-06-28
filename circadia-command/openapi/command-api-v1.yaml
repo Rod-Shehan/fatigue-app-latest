@@ -1,11 +1,59 @@
 openapi: 3.0.3
 info:
-  title: Circadia Command Core API
+  title: Circadia Command API
   version: 1.0.0
-  description: Privileged gateway at https://api-command.circadia24.com/v1
+  description: |
+    Implemented routes on the Next.js app (same origin as `/triage`).
+
+    **Roadmap (not implemented):** manager-validate, driver/respond, edge media presign, hardware provision.
+
 servers:
-  - url: https://api-command.circadia24.com/v1
+  - url: /api/v1
+    description: Triage and admin (session cookie)
+  - url: /api/auth
+    description: Authentication
+
 paths:
+  /auth/login:
+    post:
+      servers: [{ url: /api }]
+      summary: Username + password sign-in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Session cookie set
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/me:
+    get:
+      servers: [{ url: /api }]
+      summary: Current operator session
+      responses:
+        "200":
+          description: Authenticated operator
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      servers: [{ url: /api }]
+      summary: Clear session
+      responses:
+        "200":
+          description: Logged out
+
   /triage/queue:
     get:
       summary: Global active triage feed
@@ -28,12 +76,10 @@ paths:
                 $ref: "#/components/schemas/QueueResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
 
   /triage/claim:
     post:
-      summary: Assign incident to operator terminal
+      summary: Assign incident to operator
       requestBody:
         required: true
         content:
@@ -48,7 +94,7 @@ paths:
 
   /triage/mutate:
     post:
-      summary: Apply triage decision (Section 3 / 4 idempotency)
+      summary: Apply triage decision (F1/F2)
       requestBody:
         required: true
         content:
@@ -57,75 +103,55 @@ paths:
               $ref: "#/components/schemas/TriageMutateRequest"
       responses:
         "200":
-          description: INTERVENTION_SENT (gate off)
+          description: INTERVENTION_SENT or VERIFIED_FALSE_POSITIVE
         "202":
-          description: MANAGER_VALIDATION_PENDING (gate on)
+          description: MANAGER_VALIDATION_PENDING
         "409":
           $ref: "#/components/responses/IdempotencyConflict"
 
-  /triage/manager-validate:
-    post:
-      summary: Fleet manager authorize or dismiss (manager gate)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ManagerValidateRequest"
+  /triage/stream:
+    get:
+      summary: SSE live incident feed (Postgres LISTEN)
       responses:
         "200":
-          description: Processed
+          description: text/event-stream
+
+  /admin/operators:
+    get:
+      summary: List operators (command_owner only)
+      responses:
+        "200":
+          description: Operator list
         "403":
           $ref: "#/components/responses/Forbidden"
-
-  /driver/respond:
     post:
-      summary: In-cab driver ack or dispute (Section 10)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DriverRespondRequest"
+      summary: Create operator (command_owner only)
       responses:
-        "200":
-          description: Response recorded
-        "401":
-          $ref: "#/components/responses/Unauthorized"
+        "201":
+          description: Created
 
-  /hardware/provision:
-    get:
-      summary: Edge device identity lookup (QR login)
+  /admin/operators/{operatorId}:
+    patch:
+      summary: Update operator password, role, or active flag
       parameters:
-        - name: driver_cuid
-          in: query
+        - name: operatorId
+          in: path
           required: true
           schema:
             type: string
-        - name: vehicle_reg
-          in: query
-          required: true
-          schema:
-            type: string
+            format: uuid
       responses:
         "200":
-          description: UUID mapping for edge write
-
-  /ingress/media-token:
-    post:
-      summary: Presigned R2/S3 upload URL for edge video snippet
-      responses:
-        "200":
-          description: uploadUrl valid 120s
+          description: Updated
 
 components:
   responses:
     Unauthorized:
-      description: Missing or invalid operator/driver auth
+      description: Missing or invalid session
     Forbidden:
-      description: IP not whitelisted or insufficient tenant scope
+      description: IP not whitelisted or insufficient role
     IdempotencyConflict:
-      description: ERR_IDEMPOTENCY_CONFLICT — row state no longer matches expected status
+      description: ERR_STATE_CONCURRENCY_VIOLATION
   schemas:
     QueueResponse:
       type: object
@@ -169,7 +195,7 @@ components:
           nullable: true
     ClaimRequest:
       type: object
-      required: [lifecycle_id, idempotency_key]
+      required: [lifecycle_id]
       properties:
         lifecycle_id:
           type: string
@@ -190,27 +216,3 @@ components:
           type: string
         operator_notes:
           type: string
-    ManagerValidateRequest:
-      type: object
-      required: [lifecycle_id, manager_action, manager_user_cuid]
-      properties:
-        lifecycle_id:
-          type: string
-          format: uuid
-        manager_user_cuid:
-          type: string
-        manager_action:
-          type: string
-          enum: [APPROVE_INTERVENTION, OVERRIDE_AS_FALSE_POSITIVE]
-    DriverRespondRequest:
-      type: object
-      required: [lifecycle_id, driver_auth_token, response_vector]
-      properties:
-        lifecycle_id:
-          type: string
-          format: uuid
-        driver_auth_token:
-          type: string
-        response_vector:
-          type: string
-          enum: [DRIVER_ACKNOWLEDGED, DRIVER_DISPUTED]

@@ -4,26 +4,20 @@ Internal fatigue incident monitoring console. **Isolated from `app-next/`** — 
 
 **Spec:** [docs/MASTER_SPEC.md](docs/MASTER_SPEC.md)
 
-## Quick start (MVP)
+## Quick start
 
 ```bash
 cd circadia-command
 cp .env.example .env
-# Set DATABASE_URL to Neon (or local Postgres)
+# Set DATABASE_URL to Neon (shared with app-next)
 
 npm install
-cp .env.example .env   # or copy DATABASE_URL from app-next/.env.local
-
-# Shared Neon: SQL only (NEVER prisma db push — it would drop app-next tables)
 npm run db:apply-sql
-
+OPERATOR_USERNAME=your.name OPERATOR_PASSWORD='your-password' npm run bootstrap:owner
 npm run dev
 ```
 
-Open [http://localhost:3001/triage](http://localhost:3001/triage)
-
-1. Click **Simulate edge ingest (dev)** — creates a `PENDING_TRIAGE` row (if trigger `003` applied)
-2. Select incident · **F1** false positive · **F2** verified fatigue
+Open [http://localhost:3001/login](http://localhost:3001/login)
 
 ## Scripts
 
@@ -32,56 +26,42 @@ Open [http://localhost:3001/triage](http://localhost:3001/triage)
 | `npm run dev` | Next.js on :3001 |
 | `npm test` | Vitest |
 | `npm run simulate:ingest` | CLI edge event insert |
+| `npm run db:apply-sql` | Apply SQL migrations to Neon |
 | `npm run db:migrate-sql` | Print SQL apply order |
+| `npm run bootstrap:owner` | Create/update first owner account |
 
 ## Database migrations
 
-Apply in order on Neon:
+Applied via `npm run db:apply-sql` (idempotent):
 
-1. `prisma/sql/001_command_lifecycle.sql`
-2. `prisma/sql/003_edge_ingress_triggers.sql`
-3. `prisma/sql/004_lifecycle_transition_log.sql`
-4. `prisma/sql/005_identity_map_extensions.sql`
-5. `prisma/sql/006_operator_passkeys.sql`
-6. `prisma/sql/007_operator_passwords.sql`
-7. `prisma/sql/008_operator_roles.sql`
+1. `001_command_lifecycle.sql`
+2. `003_edge_ingress_triggers.sql`
+3. `004_lifecycle_transition_log.sql`
+4. `005_identity_map_extensions.sql`
+5. `007_operator_passwords.sql`
+6. `008_operator_roles.sql`
+7. `009_drop_passkeys.sql`
+
+Optional: `002_section3_state_machine.sql` if upgrading an old `001` install.
 
 ## Authentication
 
-**Roles:** `command_owner` (manage users + triage) · `command_operator` (triage only)
+| Role | Access |
+|------|--------|
+| `command_owner` | `/admin/users` + triage |
+| `command_operator` | Triage only |
 
-Sign in at `/login` with **username + password** (bcrypt, min 6 characters).
-
-**Bootstrap the first owner** (once per environment):
-
-```bash
-OPERATOR_USERNAME=your.name OPERATOR_PASSWORD='your-secure-password' npm run bootstrap:owner
-```
-
-Owners manage users at **`/admin/users`** — create usernames, set passwords, assign roles.
-
-Operators cannot self-register; owners create all accounts.
+Sign in with **username + password** (bcrypt, min 6 characters). Owners create all accounts at `/admin/users`.
 
 ## Live updates (SSE)
 
-Triage page connects to `/api/v1/triage/stream` (Postgres `LISTEN` on `channel_live_fatigue_events`).
+Triage connects to `/api/v1/triage/stream` (Postgres `LISTEN`). Requires `DATABASE_URL_UNPOOLED`.
 
-- Green **SSE live** = real-time; amber **Polling** = fallback every 5s
-- Requires `DATABASE_URL_UNPOOLED` (Neon direct, not pooler)
+## Deploy
 
-## Deploy to Vercel
-
-See [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md).
-
-## Roadmap
-
-| Done | Next |
-|------|------|
-| Email + password auth | Corporate OIDC (Auth0) |
-| SSE + Vercel config | Railway SSE worker if ops scale |
-| MVP triage | Manager gate API, identity sync worker |
+See [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Production: https://circadia-command.vercel.app
 
 ## Safety boundaries
 
-- Do **not** import from or modify `app-next/` driver, manager, or tenant-owner routes.
-- Command tables extend shared Neon without altering core customer tables.
+- Do **not** modify `app-next/` driver, manager, or tenant-owner routes.
+- Never run `prisma db push` on shared Neon.

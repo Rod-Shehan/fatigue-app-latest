@@ -9,7 +9,6 @@
     "dev": "next dev -p 3001",
     "build": "next build",
     "start": "next start -p 3001",
-    "lint": "eslint .",
     "test": "vitest run",
     "postinstall": "prisma generate",
     "db:push": "node -e \"console.error('Blocked: use npm run db:apply-sql on shared Neon (db push drops app-next tables)');process.exit(1)\"",
@@ -17,8 +16,7 @@
     "db:studio": "prisma studio",
     "db:migrate-sql": "node scripts/print-migrate-sql.js",
     "simulate:ingest": "npx tsx scripts/simulate-ingest.ts",
-    "bootstrap:owner": "node scripts/bootstrap-owner.mjs",
-    "bootstrap:operator": "node scripts/bootstrap-owner.mjs"
+    "bootstrap:owner": "node scripts/bootstrap-owner.mjs"
   },
   "dependencies": {
     "@prisma/client": "6.9.0",
