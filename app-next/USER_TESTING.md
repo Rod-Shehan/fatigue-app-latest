@@ -1,67 +1,69 @@
 # User testing guide
 
-Use this as a short brief for testers before they try the app.
+Short brief for testers. Full auth/role detail: **docs/AUTH_AND_ROLES.md**.
 
 ---
 
 ## 1. Where to go
 
-- **Local:** After you run the app, open **http://localhost:3000**
-- **Staging / hosted:** https://fatigue-app-latest.vercel.app (or the preview URL your team shares).
+| Environment | URL |
+|-------------|-----|
+| **Production (pilot)** | https://www.circadia24.com |
+| **Local** | http://localhost:3000 (after `npm run dev` in `app-next`) |
+| **Vercel preview** | URL your facilitator shares |
 
 ---
 
 ## 2. How to sign in
 
-- **Development (e.g. `npm run dev`):**
-  - You can sign in with **empty email and password** (leave both blank and click Sign in), **or**
-  - Use **any email** (e.g. `tester@example.com`) and the **shared test password** from your facilitator (set in `NEXTAUTH_CREDENTIALS_PASSWORD`).
-- **Production / staging:**
-  - Use **any email** (e.g. your name or `tester@example.com`) and the **shared test password** your facilitator gives you.  
-  - The first time you use an email, an account is created for you.
+1. Open the lobby.
+2. Tap **Driver**, **Manager**, or **Owner** (match your account type).
+3. Enter the **email and password** your facilitator gave you (each person has their own password).
 
-There are no per-user passwords yet; everyone uses the same test password for this round.
+**Drivers:** your email must be on **Approved Drivers** (active). If sign-in fails, ask your manager to add you or reset your password.
+
+**Do not** use a shared “fleet password” on production — that mode is disabled unless IT explicitly turns it on.
 
 ---
 
-## 3. First-time setup (managers)
+## 3. Roles and first-time setup
 
-If you’re testing **manager** features (dashboard, compliance, regos, drivers, event map):
+| Role | Facilitator setup before you test |
+|------|-----------------------------------|
+| **Driver** | On Approved Drivers: name, email, active, password set (you should change it under **Settings → Change password**) |
+| **Manager** | Owner creates account under **Add managers** with email + temporary password |
+| **Owner** | IT promotes an owner account; you use the **Owner** lobby card → **Owner console** (`/admin/security`) |
 
-1. Sign in with the shared test password.
-2. Go to **Manager dashboard** (link from the login page or `/manager`).
-3. If you see “Add managers”, use it to **add yourself (or a test user) as a manager**.  
-   Until someone is a manager, manager-only areas may be restricted.
-
-Drivers can use the app without being a manager; they only need to sign in and create/open their sheets.
+Managers manage drivers and fleet data. Owners manage managers and org lockdown. See **docs/AUTH_AND_ROLES.md** for the full hierarchy.
 
 ---
 
 ## 4. What to try (goals)
 
-- **Drivers:** Create a fatigue sheet, log work and breaks on the time grid, then **mark the sheet complete** and export a PDF.
-- **Managers:** Open the **Manager dashboard**, select a sheet, check **compliance** and **event map**, and (if allowed) add **drivers** and **regos** so drivers can select them on sheets.
+- **Drivers:** Create or open a fatigue sheet, log work and breaks, mark complete, export PDF; try **Settings → Change password**.
+- **Managers:** Manager dashboard, compliance, Approved Drivers, regos, event map / alerts as enabled.
+- **Owners:** Owner console — review user lists, optional lockdown toggles (do not enable without coordination).
 
-One-sentence goal: **Log a week of work/breaks and check that compliance and export work as you expect.**
+One-sentence goal: **Log a week of work/breaks and confirm compliance and export behave as expected.**
 
 ---
 
-## 5. Sample data (optional)
+## 5. Sample data (local only)
 
-Your facilitator can preload sample data so you can click around straight away. They run from the app folder:
+Facilitator runs from `app-next`:
 
 ```bash
 npm run db:seed
 ```
 
-This creates sample drivers, regos, test users (e.g. manager@test.local, driver@test.local), and one draft fatigue sheet. Sign in with one of those emails and the shared test password.
+Creates sample drivers, regos, `driver@test.local`, `manager@test.local`, and a draft sheet. Local sign-in uses `.env.local` → `NEXTAUTH_CREDENTIALS_PASSWORD` or passwords set in the UI — **not** the same as production.
+
+---
 
 ## 6. Empty app?
 
-If there are no sheets or no drivers/regos:
-
-- **Drivers:** Create a new sheet from **Your sheets** → **Start New Week** (or “Create your first sheet”).
-- **Managers:** Add **drivers** and **rego**s from the Manager dashboard (or **Manage regos** / **Drivers**). Compliance and map will show data once sheets exist and have events.
+- **Drivers:** **Your sheets** → **Start New Week**.
+- **Managers:** Add **drivers** and **regos** from the manager area. Compliance and map need sheets with logged time.
 
 ---
 

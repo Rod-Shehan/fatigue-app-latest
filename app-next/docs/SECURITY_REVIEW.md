@@ -8,7 +8,7 @@ This document summarizes a code security review focused on **reverse engineering
 
 | Area | Risk level | Notes |
 |------|------------|--------|
-| **Secrets & env** | Medium | `.env` not committed; dev backdoor (`NEXTAUTH_CREDENTIALS_PASSWORD`) must be disabled in production |
+| **Secrets & env** | Medium | `.env` not committed; shared fleet password blocked in production unless `CIRCADIA_ALLOW_SHARED_LOGIN_PASSWORD` |
 | **Authorization** | **High** | Any logged-in user can read/update **any** sheet; no per-driver or per-sheet ownership checks |
 | **IP / reverse engineering** | **High** | Full compliance logic (WA OSH Reg 3.132) is in the **client bundle**; easily extractable |
 | **Build & bundle** | Medium | Source maps and no obfuscation make client code easy to inspect |
@@ -89,23 +89,21 @@ This document summarizes a code security review focused on **reverse engineering
 
 ---
 
-## 5. High: Dev Backdoor in Production
+## 5. High: Shared fleet password in production
 
-**Finding:** In `src/lib/auth.ts`, when a user has no stored password hash, the code falls back to:
+**Finding:** `NEXTAUTH_CREDENTIALS_PASSWORD` allows a single password to sign in as users without a bcrypt hash (or when shared-password priority applies). If enabled on production, anyone who discovers it can impersonate accounts.
 
-```ts
-const devPass = process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
-if (devPass && password === devPass) { ... }
-```
+**Current mitigation (2026 pilot):**
 
-If `NEXTAUTH_CREDENTIALS_PASSWORD` is set in production, anyone who discovers or guesses it can sign in as any existing user (or create one) without a real password.
+- `isSharedLoginPasswordAllowed()` in `src/lib/auth-env.ts` — **off in production** unless `CIRCADIA_ALLOW_SHARED_LOGIN_PASSWORD=true`.
+- `isDevLoginEnabled()` — **always false** when `NODE_ENV=production`.
+- Production uses **per-user bcrypt passwords** set via Approved Drivers / Add managers.
 
 **Recommendations:**
 
-1. **Never set `NEXTAUTH_CREDENTIALS_PASSWORD` in production.** Use it only in local `.env` for development.
-2. **Guard in code (defence in depth):**
-   - In `auth.ts`, only allow the dev password when `process.env.NODE_ENV === "development"` (or a dedicated env like `ALLOW_DEV_CREDENTIALS=true` that is never set in prod).
-3. **Document** in `.env.example` and in runbooks that this variable must not be set in production.
+1. **Do not set `NEXTAUTH_CREDENTIALS_PASSWORD` on Vercel Production** for pilot/live fleets.
+2. **Do not set `CIRCADIA_ALLOW_SHARED_LOGIN_PASSWORD`** unless IT explicitly approves a controlled shared-password pilot.
+3. Document in **docs/AUTH_AND_ROLES.md** and `.env.example`.
 
 ---
 
@@ -116,14 +114,9 @@ If `NEXTAUTH_CREDENTIALS_PASSWORD` is set in production, anyone who discovers or
 **Recommendations:**
 
 1. **Add middleware** (`src/middleware.ts`) to:
-   - Enforce auth for protected paths (e.g. `/sheets`, `/drivers`, `/manager`, `/admin`) and redirect unauthenticated users to `/login`.
-   - Set security headers for all responses, e.g.:
-     - `X-Frame-Options: DENY` or `SAMEORIGIN`
-     - `X-Content-Type-Options: nosniff`
-     - `Referrer-Policy: strict-origin-when-cross-origin`
-     - Optional: Content-Security-Policy (CSP) once you’ve audited scripts and inline styles.
-
-2. **Keep API auth as-is** (session check in each route); middleware can add a second layer (e.g. reject unauthenticated requests to `/api/*` except `/api/auth/*`).
+   - Set security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy).
+   - When `CIRCADIA_ALPHA_ALLOWLIST` is set, redirect non-listed authenticated users from protected paths to `/access-restricted`.
+   - Session enforcement for protected routes remains primarily in page/API handlers; see **docs/AUTH_AND_ROLES.md**.
 
 ---
 
@@ -157,10 +150,10 @@ If `NEXTAUTH_CREDENTIALS_PASSWORD` is set in production, anyone who discovers or
 | 1 | Enforce sheet access control (list/read/update/export) by role and ownership | Critical |
 | 2 | Move compliance logic to server-only API; client calls API for results | Critical |
 | 3 | Disable production source maps in Next.js config | High |
-| 4 | Restrict `NEXTAUTH_CREDENTIALS_PASSWORD` to development only in code | High |
+| 4 | Restrict shared fleet password in production | High |
 | 5 | Add middleware for auth redirects and security headers | Medium |
 | 6 | Add rate limiting for login (and optionally sensitive APIs) | Medium |
-| 7 | Document that `NEXTAUTH_CREDENTIALS_PASSWORD` must not be set in production | Medium |
+| 7 | Document auth, roles, and production env | Medium |
 
 Implementing **1** and **2** addresses the largest security and IP risks; **3** and **4** are quick wins that reduce exposure to reverse engineering and misuse of the dev backdoor.
 
@@ -173,7 +166,7 @@ Implementing **1** and **2** addresses the largest security and IP risks; **3** 
 | 1 | Sheet access control (list/read/update/export) by role and ownership | Done: `getSessionForSheetAccess`, `canAccessSheet` in auth; all sheet API routes enforce driver vs manager |
 | 2 | Compliance logic server-only; client calls POST /api/compliance/check | Done: `src/app/api/compliance/check/route.ts`; client uses `api.compliance.check()`; `lib/hours.ts` for display totals only |
 | 3 | Production source maps disabled | Done: `next.config.js` `productionBrowserSourceMaps: false` |
-| 4 | NEXTAUTH_CREDENTIALS_PASSWORD development-only | Done: guarded by `NODE_ENV === "development"` in `auth.ts` |
-| 5 | Middleware: auth redirects + security headers | Done: `src/middleware.ts` protects /sheets, /drivers, /manager, /admin and /api/*; sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy |
-| 6 | Rate limiting: login + sensitive APIs | Done: `lib/rate-limit.ts`; login rate limit in auth route POST; sensitive API rate limit on POST /api/users and POST /api/sheets |
-| 7 | Document dev credentials | Done: `.env.example` and this doc |
+| 4 | Shared fleet password blocked in production (`auth-env.ts`) | Done |
+| 5 | Middleware: security headers + optional alpha allow-list | Done: `src/middleware.ts` |
+| 6 | Rate limiting: login + sensitive APIs | Done: `lib/rate-limit.ts`; login rate limit on auth POST |
+| 7 | Auth/roles documentation | Done: `docs/AUTH_AND_ROLES.md`, `.env.example`, USER_TESTING.md |

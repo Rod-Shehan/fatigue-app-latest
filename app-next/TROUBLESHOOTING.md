@@ -36,31 +36,26 @@
 
 ---
 
-## 4. Login page appears but sign-in does nothing / "Invalid email or password"
+## 4. Login page appears but sign-in fails / "Invalid email or password"
 
-**Cause:** No password is set for the app, or you are on **production Vercel** without the fleet password / dev bypass.
+**Cause:** Wrong password, driver not on Approved Drivers, account disabled, or production env misconfigured.
 
-**Fix (local — easiest while building UI):**
-- Run **`npm run dev`** in **app-next** (not the production URL).
-- Open **http://localhost:3000** and sign in with **both fields blank** (dev@localhost), or your email + **blank password** if you have no manager-set password in the DB.
+**Fix (production — https://www.circadia24.com):**
+- Each user needs a **per-user password** (minimum 6 characters).
+- **Drivers:** manager/owner sets password on **Approved Drivers**, or driver changes it under **Settings → Change password**.
+- **Managers:** owner sets/resets on **Add managers**.
+- Confirm `NEXTAUTH_SECRET` and `NEXTAUTH_URL=https://www.circadia24.com` on Vercel Production.
+- Do **not** rely on `NEXTAUTH_CREDENTIALS_PASSWORD` on Production (removed for pilot). See **docs/AUTH_AND_ROLES.md**.
 
-**Fix (local .env):**
-- In **app-next**, open **`.env.local`**.
-- Set **NEXTAUTH_CREDENTIALS_PASSWORD=** to a password you choose.
-- Set **NEXTAUTH_SECRET=** to any long random string.
-- Restart the dev server. Sign in with any email + that password.
+**Fix (local — `npm run dev`):**
+- Open **http://localhost:3000** (not the production URL).
+- After `npm run db:seed`: `driver@test.local` or `manager@test.local` + `NEXTAUTH_CREDENTIALS_PASSWORD` from `.env.local`.
+- Or blank email + blank password in dev when no per-user hash exists.
+- Set in **`.env.local`**: `NEXTAUTH_SECRET`, optional `NEXTAUTH_CREDENTIALS_PASSWORD`.
 
-**Fix (Vercel production / preview while still in dev):**
-1. In **Vercel → Project → Settings → Environment Variables**, add:
-   - `NEXTAUTH_ALLOW_DEV_LOGIN` = `true`
-   - `NEXTAUTH_DEV_BYPASS_SECRET` = a long random string (e.g. from `openssl rand -base64 32`)
-   - `NEXT_PUBLIC_AUTH_DEV_LOGIN_HINT` = `true` (shows instructions on the login page)
-2. **Redeploy** (env changes need a new deployment).
-3. Sign in with your email and paste **NEXTAUTH_DEV_BYPASS_SECRET** into the **Password** field.
-
-**Or** set `NEXTAUTH_CREDENTIALS_PASSWORD` on Vercel to a shared fleet password and use that instead.
-
-Remove `NEXTAUTH_ALLOW_DEV_LOGIN`, `NEXTAUTH_DEV_BYPASS_SECRET`, and `NEXT_PUBLIC_AUTH_DEV_LOGIN_HINT` before real users go live.
+**Fix (Vercel Preview only — not Production):**
+- Preview may use `NEXTAUTH_ALLOW_DEV_LOGIN` and `NEXTAUTH_DEV_BYPASS_SECRET` — **blocked automatically when `NODE_ENV=production`**.
+- Never set dev bypass vars on **Production**. See **docs/AUTH_AND_ROLES.md**.
 
 ---
 

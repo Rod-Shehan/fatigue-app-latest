@@ -11,8 +11,10 @@ This is the same app converted to **Next.js + TypeScript + Prisma + NextAuth**, 
    cp .env.example .env.local
    ```
    Edit `.env.local`:
-   - **NEXTAUTH_SECRET** (required): e.g. `openssl rand -base64 32`. Required in production; without it, auth may be insecure.
-   - **NEXTAUTH_CREDENTIALS_PASSWORD** (required for sign-in): set a shared test password; sign in with any email + this password.
+   - **NEXTAUTH_SECRET** (required): e.g. `openssl rand -base64 32`
+   - **NEXTAUTH_CREDENTIALS_PASSWORD** (local dev only): optional shared password for seed users without per-user hashes — see `.env.example`
+
+   **Auth & roles (production vs local):** see **docs/AUTH_AND_ROLES.md**
 
 2. **Database**
    ```bash
@@ -24,13 +26,13 @@ This is the same app converted to **Next.js + TypeScript + Prisma + NextAuth**, 
    ```bash
    npm run db:seed
    ```
-   Creates sample drivers, regos, test users (manager@test.local, driver@test.local), and one draft fatigue sheet. Sign in with those emails and your `NEXTAUTH_CREDENTIALS_PASSWORD`.
+   Creates sample drivers, regos, test users (`manager@test.local`, `driver@test.local`), and one draft sheet. Local sign-in: those emails + `NEXTAUTH_CREDENTIALS_PASSWORD` from `.env.local`, or set passwords via Approved Drivers.
 
 4. **Run**
    ```bash
    npm run dev
    ```
-   Open [http://localhost:3000](http://localhost:3000). Sign in with a driver or manager email on the Approved Drivers roster (after `npm run db:seed`, use `driver@test.local` or `manager@test.local` with your `NEXTAUTH_CREDENTIALS_PASSWORD`).
+   Open [http://localhost:3000](http://localhost:3000). Use the **Driver** or **Manager** lobby card with a seeded or roster email and password (see **docs/AUTH_AND_ROLES.md**).
 
 ## Stack
 
@@ -59,7 +61,9 @@ See **MIGRATION.md** in the repo root for the full conversion guide.
 
 ## User testing
 
-See **USER_TESTING.md** for a short tester brief: how to sign in, get manager access, and what to try. Run `npm run db:seed` first so testers see sample drivers, regos, and a sheet.
+See **USER_TESTING.md** for a short tester brief. Run `npm run db:seed` first for local sample data.
+
+**Auth, passwords, owner/manager/driver roles:** **docs/AUTH_AND_ROLES.md**
 
 ## Production (Vercel)
 
@@ -67,6 +71,10 @@ The app deploys from GitHub on push to **`main`**.
 
 - **Project:** `fatigue-app-latest`
 - **Root directory:** `app-next`
-- **Production URL:** https://fatigue-app-latest.vercel.app
+- **Production URL:** https://www.circadia24.com
 
-Set environment variables in Vercel (Production + Preview): `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (your Vercel URL), and `NEXTAUTH_CREDENTIALS_PASSWORD` or per-driver passwords via Approved Drivers. See `.env.example`.
+**Production env (required):** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL=https://www.circadia24.com`
+
+**Per-user passwords** — set on Approved Drivers / Add managers; do **not** set `NEXTAUTH_CREDENTIALS_PASSWORD` on Production unless IT explicitly opts in via `CIRCADIA_ALLOW_SHARED_LOGIN_PASSWORD`. Optional pilot lock: `CIRCADIA_ALPHA_ALLOWLIST`.
+
+Full checklist: **docs/AUTH_AND_ROLES.md** and **`.env.example`**.

@@ -32,12 +32,12 @@ Double-click **`Start App (Next).bat`** in the project root. It will install dep
 cd app-next
 npm install
 cp .env.example .env
-# Edit .env: set NEXTAUTH_SECRET and NEXTAUTH_CREDENTIALS_PASSWORD
+# Edit .env: set NEXTAUTH_SECRET; optional NEXTAUTH_CREDENTIALS_PASSWORD for local dev — see app-next/docs/AUTH_AND_ROLES.md
 npx prisma generate
 npx prisma db push
 npm run dev
 ```
-Open http://localhost:3000. Sign in with any email and the password you set in `NEXTAUTH_CREDENTIALS_PASSWORD`.
+Open http://localhost:3000. Sign in via the lobby (Driver/Manager/Owner) with seeded emails and local env password — see **app-next/docs/AUTH_AND_ROLES.md**.
 
 ## Data model (Prisma)
 
@@ -49,9 +49,9 @@ Open http://localhost:3000. Sign in with any email and the password you set in `
 
 ## Auth
 
-- Auth.js is configured in `app-next/src/app/api/auth/[...nextauth]/route.ts`.
-- Use **Credentials** (email + password) or add a provider (e.g. Google) in `.env`.
-- Session is used to restrict sheets/drivers by user or role if you add that later.
+- NextAuth Credentials (email + password) in `app-next/src/lib/auth.ts`.
+- **Production:** per-user passwords; roles driver / manager / owner — see **app-next/docs/AUTH_AND_ROLES.md**.
+- **Local:** optional `NEXTAUTH_CREDENTIALS_PASSWORD` in `.env.local` for seed users.
 
 ## Environment variables (app-next)
 
@@ -70,7 +70,7 @@ NEXTAUTH_URL="http://localhost:3000"
 # NEXTAUTH_CREDENTIALS_PASSWORD=secret
 ```
 
-For production, set `DATABASE_URL` to your PostgreSQL connection string and set `NEXTAUTH_URL` to your real domain.
+For production, set `DATABASE_URL` to PostgreSQL, `NEXTAUTH_URL=https://www.circadia24.com`, and per-user passwords (not shared fleet password). See **app-next/docs/AUTH_AND_ROLES.md**.
 
 ## API surface (replaces Base44 SDK calls)
 
