@@ -377,7 +377,7 @@ export function ManagerAlertsView() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showFiltered, setShowFiltered] = useState(false);
-  const [hours, setHours] = useState(168);
+  const [hours, setHours] = useState(24);
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
