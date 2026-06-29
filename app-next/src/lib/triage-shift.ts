@@ -83,10 +83,10 @@ export function parseAssignees(raw: unknown): TriageShiftAssignees {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return emptyAssignees();
   const o = raw as Record<string, unknown>;
   const userIds = Array.isArray(o.userIds)
-    ? [...new Set(o.userIds.filter((id): id is string => typeof id === "string" && id.trim()))]
+    ? [...new Set(o.userIds.filter((id): id is string => typeof id === "string" && id.trim() !== ""))]
     : [];
   const operatorIds = Array.isArray(o.operatorIds)
-    ? [...new Set(o.operatorIds.filter((id): id is string => typeof id === "string" && id.trim()))]
+    ? [...new Set(o.operatorIds.filter((id): id is string => typeof id === "string" && id.trim() !== ""))]
     : [];
   const roles = Array.isArray(o.roles)
     ? ([
