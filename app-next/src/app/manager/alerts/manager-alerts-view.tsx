@@ -772,10 +772,10 @@ export function ManagerAlertsView() {
                       : "Could not save decision"
                     : null
                 }
-                onTriage={(decision, note) =>
+                onTriage={(_decision, note) =>
                   triageMutation.mutate({
                     id: alert.id,
-                    decision,
+                    decision: "dismissed",
                     note,
                     vendorEventId: alert.vendorEventId,
                   })

@@ -23,7 +23,8 @@ export async function POST(request: Request) {
         400
       );
     }
-    if (!isIncidentResolutionActionType(body.action_type)) {
+    const actionType = body.action_type;
+    if (!isIncidentResolutionActionType(actionType)) {
       throw new CommandApiError("ERR_MALFORMED_PAYLOAD", "Invalid action_type.", 400);
     }
 
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
         lifecycleId: body.lifecycle_id!,
         operatorId,
         operatorName: session?.name ?? "Command operator",
-        actionType: body.action_type,
+        actionType,
         resolutionNotes: body.resolution_notes,
         idempotencyKey: body.idempotency_key!,
       })
