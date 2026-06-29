@@ -44,6 +44,47 @@ describe("buildCameraAlertsFromRows", () => {
     expect(alerts[0].displayName).toBe("Fatigue");
   });
 
+  it("prefers driver clip for DSM when media payload lists both cameras", () => {
+    const events = [
+      {
+        ...base,
+        id: "e1",
+        kind: "event",
+        vendorEventId: "evt-dsm",
+        receivedAt: new Date("2026-06-21T10:00:00Z"),
+      },
+    ];
+    const media = [
+      {
+        ...base,
+        id: "m1",
+        kind: "media",
+        vendorEventId: null,
+        linkedEventId: "evt-dsm",
+        mediaUrl: "https://cdn.example/forward.mp4",
+        receivedAt: new Date("2026-06-21T10:01:00Z"),
+        payload: {
+          media: [
+            {
+              uri: "https://cdn.example/forward.mp4",
+              mimeType: "video/mp4",
+              channelLabel: "Forward",
+              channel: 0,
+            },
+            {
+              uri: "https://cdn.example/driver.mp4",
+              mimeType: "video/mp4",
+              channelLabel: "Driver",
+              channel: 2,
+            },
+          ],
+        },
+      },
+    ];
+    const alerts = buildCameraAlertsFromRows(events, media);
+    expect(alerts[0].mediaUrl).toBe("https://cdn.example/driver.mp4");
+  });
+
   it("marks media pending when accepted event has no clip", () => {
     const alerts = buildCameraAlertsFromRows(
       [

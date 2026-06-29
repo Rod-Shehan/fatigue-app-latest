@@ -111,6 +111,18 @@ describe("autonomise-payload", () => {
     expect(fields.linkedEventId).toBe("evt-456");
   });
 
+  it("prefers driver clip for DSM when webhook lists both cameras", () => {
+    const fields = extractAutonomiseFields({
+      eventId: "evt-dsm",
+      alarmId: "VT3600AI_ALARM_DSM_Fatigue",
+      media: {
+        driverCameraUrl: "https://cdn.example/driver.mp4",
+        roadCameraUrl: "https://cdn.example/forward.mp4",
+      },
+    });
+    expect(fields.mediaUrl).toBe("https://cdn.example/driver.mp4");
+  });
+
   it("builds event idempotency key", () => {
     const fields = extractAutonomiseFields({ eventId: "abc" });
     expect(buildAutonomiseIdempotencyKey("event", fields, {})).toBe("event:abc");

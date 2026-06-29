@@ -5,6 +5,7 @@ import {
   extractVehicleFromJson,
   pickBestMediaUrl,
   pickReviewMediaUrl,
+  resolveReviewMediaUrl,
   scanMediaUrlsFromJson,
 } from "@/lib/integrations/autonomise-media-extract";
 
@@ -30,6 +31,32 @@ describe("autonomise-media-extract", () => {
     expect(pickReviewMediaUrl(urls, "VT3600AI_ALARM_ADAS_LaneDeparture")).toBe(
       "https://cdn.example/forward.mp4"
     );
+  });
+
+  it("resolveReviewMediaUrl swaps stored forward URL for DSM when payload has both cameras", () => {
+    const payload = {
+      media: [
+        {
+          uri: "https://cdn.example/forward.mp4",
+          mimeType: "video/mp4",
+          channelLabel: "Forward",
+          channel: 0,
+        },
+        {
+          uri: "https://cdn.example/driver.mp4",
+          mimeType: "video/mp4",
+          channelLabel: "Driver",
+          channel: 2,
+        },
+      ],
+    };
+    expect(
+      resolveReviewMediaUrl(
+        payload,
+        "VT3600AI_ALARM_DSM_Fatigue",
+        "https://cdn.example/forward.mp4"
+      )
+    ).toBe("https://cdn.example/driver.mp4");
   });
 
   it("extracts driver and road urls from API-shaped JSON", () => {

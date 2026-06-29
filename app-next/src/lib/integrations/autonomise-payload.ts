@@ -3,6 +3,7 @@
  * Handles VT3600 alarm ids, FNOL base64 ids, and numeric eventTypes (live MTS pilot).
  */
 
+import { resolveReviewMediaUrl } from "@/lib/integrations/autonomise-media-extract";
 import { resolveVendorAlarmFromEventTypeCodes } from "@/lib/integrations/autonomise-event-type-codes";
 
 export type AutonomiseWebhookKind = "event" | "media";
@@ -350,7 +351,11 @@ export function extractAutonomiseFields(
   const vehicleRego = resolveVehicleRego(body);
   const vendorVehicleId = resolveVendorVehicleId(body);
   const driverName = resolveDriverName(body);
-  const mediaUrl = resolveMediaUrl(body, payload);
+  const mediaUrl = resolveReviewMediaUrl(
+    payload,
+    vendorAlarmId,
+    resolveMediaUrl(body, payload)
+  );
   const deviceHardwareId = extractDeviceHardwareId(payload);
   const linkedEventId =
     stringField(body, ["linkedEventId", "linked_event_id", "parentEventId", "ParentEventId"]) ??

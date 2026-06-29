@@ -11,6 +11,7 @@ import {
   loadCommandLifecycleTriageByIngestIds,
   mergeTriageByIngestId,
 } from "@/lib/integrations/command-triage-sync";
+import { resolveReviewMediaUrl } from "@/lib/integrations/autonomise-media-extract";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
@@ -213,20 +214,28 @@ export function buildCameraAlertsFromRows(
   includeOrphanMedia = false
 ): CameraAlertItem[] {
   const enrichedMedia = mediaRows.map(enrichMediaRow);
-  const mediaByEventKey = new Map<string, string>();
+  const mediaByEventKey = new Map<string, { url: string; payload?: Prisma.JsonValue }>();
   for (const row of enrichedMedia) {
     if (!row.mediaUrl) continue;
     const keys = [row.linkedEventId, row.vendorEventId].filter(Boolean) as string[];
     for (const key of keys) {
-      if (!mediaByEventKey.has(key)) mediaByEventKey.set(key, row.mediaUrl);
+      if (!mediaByEventKey.has(key)) {
+        mediaByEventKey.set(key, { url: row.mediaUrl, payload: row.payload });
+      }
     }
   }
 
   const eventAlerts: CameraAlertItem[] = events.map((event) => {
     const entry = event.vendorAlarmId ? getCatalogueEntry(event.vendorAlarmId) : undefined;
     const eventKey = event.vendorEventId;
-    const mediaUrl = eventKey
-      ? mediaByEventKey.get(eventKey) ?? event.mediaUrl ?? null
+    const linkedMedia = eventKey ? mediaByEventKey.get(eventKey) : undefined;
+    const rawMediaUrl = linkedMedia?.url ?? event.mediaUrl ?? null;
+    const mediaUrl = rawMediaUrl
+      ? resolveReviewMediaUrl(
+          linkedMedia?.payload ?? event.payload,
+          event.vendorAlarmId,
+          rawMediaUrl
+        )
       : null;
     const triage = triageByIngestId?.get(event.id);
     const triageStatus: CameraAlertTriageStatus =
