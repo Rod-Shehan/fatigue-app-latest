@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   INCIDENT_RESOLUTION_ACTIONS,
+  INCIDENT_RESOLUTION_CATEGORIES,
   type IncidentResolutionActionType,
 } from "@/lib/triage-resolution";
 import {
@@ -23,7 +24,9 @@ export type ResolutionFormProps = {
 export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFormProps) {
   const groupId = useId();
   const notesRef = useRef<HTMLTextAreaElement>(null);
-  const [actionType, setActionType] = useState<IncidentResolutionActionType>("call_driver");
+  const [actionType, setActionType] = useState<IncidentResolutionActionType>(
+    INCIDENT_RESOLUTION_ACTIONS[0].value
+  );
   const [resolutionNotes, setResolutionNotes] = useState("");
 
   useEffect(() => {
@@ -42,30 +45,38 @@ export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFo
         </p>
       </div>
 
-      <fieldset className="space-y-2">
-        <legend className={`${commandLabel} mb-2`}>Action taken</legend>
-        <div className="grid grid-cols-1 gap-2">
-          {INCIDENT_RESOLUTION_ACTIONS.map((action) => (
-            <label
-              key={action.value}
-              className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                actionType === action.value
-                  ? "border-teal-500 bg-teal-950/40 text-teal-100"
-                  : "border-slate-600 bg-slate-950/30 text-slate-300 hover:border-slate-500"
-              }`}
-            >
-              <input
-                type="radio"
-                name={`${groupId}-action`}
-                className="h-4 w-4 border-slate-500 text-teal-600 focus:ring-teal-500"
-                checked={actionType === action.value}
-                onChange={() => setActionType(action.value)}
-                disabled={busy}
-              />
-              {action.label}
-            </label>
-          ))}
-        </div>
+      <fieldset className="space-y-4">
+        <legend className={`${commandLabel} mb-1`}>Action taken</legend>
+        {INCIDENT_RESOLUTION_CATEGORIES.map((category) => {
+          const actions = INCIDENT_RESOLUTION_ACTIONS.filter((action) => action.category === category);
+          return (
+            <div key={category} className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{category}</p>
+              <div className="grid grid-cols-1 gap-2">
+                {actions.map((action) => (
+                  <label
+                    key={action.value}
+                    className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-sm leading-snug transition-colors ${
+                      actionType === action.value
+                        ? "border-teal-500 bg-teal-950/40 text-teal-100"
+                        : "border-slate-600 bg-slate-950/30 text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`${groupId}-action`}
+                      className="mt-0.5 h-4 w-4 shrink-0 border-slate-500 text-teal-600 focus:ring-teal-500"
+                      checked={actionType === action.value}
+                      onChange={() => setActionType(action.value)}
+                      disabled={busy}
+                    />
+                    <span>{action.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </fieldset>
 
       <div>
@@ -78,7 +89,11 @@ export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFo
           value={resolutionNotes}
           onChange={(e) => setResolutionNotes(e.target.value)}
           rows={4}
-          placeholder="Who you spoke to, instructions given, follow-up planned…"
+          placeholder={
+            actionType === "other_outcome"
+              ? "Describe the outcome…"
+              : "Who you spoke to, instructions given, follow-up planned…"
+          }
           disabled={busy}
           className={`${commandInput} mt-1 resize-y`}
         />
