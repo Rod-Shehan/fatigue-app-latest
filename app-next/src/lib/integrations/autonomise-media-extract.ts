@@ -256,7 +256,7 @@ export function extractVideoFromJson(data: unknown): { eventVideoUrl: string } {
 
   if (Array.isArray(root.media)) {
     const parsed = parseAutonomiseMediaList(root.media);
-    const eventVideoUrl = parsed.driverVideoUrl || parsed.roadVideoUrl;
+    const eventVideoUrl = parsed.driverVideoUrl;
     return { eventVideoUrl: looksLikeVideoUrl(eventVideoUrl) ? eventVideoUrl : "" };
   }
 
@@ -316,7 +316,7 @@ export function extractMediaFromJson(data: unknown): AutonomiseMediaUrls {
     return {
       driverCameraUrl: parsed.driverVideoUrl || parsed.driverImageUrl,
       roadCameraUrl: parsed.roadVideoUrl || parsed.roadImageUrl,
-      eventVideoUrl: parsed.driverVideoUrl || parsed.roadVideoUrl,
+      eventVideoUrl: parsed.driverVideoUrl,
     };
   }
 
@@ -457,10 +457,65 @@ export function extractDeviceVehicleIdFromJson(data: unknown): string {
   return String(vehicle?.id ?? "").trim();
 }
 
-export function pickBestMediaUrl(urls: AutonomiseMediaUrls): string | null {
+/** DSM / operator triage — driver cab camera only (never forward/road fallback). */
+export function pickDriverReviewMediaUrl(urls: AutonomiseMediaUrls): string | null {
   if (urls.driverCameraUrl && looksLikeVideoUrl(urls.driverCameraUrl)) return urls.driverCameraUrl;
-  if (urls.eventVideoUrl) return urls.eventVideoUrl;
   if (urls.driverCameraUrl) return urls.driverCameraUrl;
+  if (urls.eventVideoUrl && urls.eventVideoUrl !== urls.roadCameraUrl) return urls.eventVideoUrl;
+  return null;
+}
+
+/** ADAS alerts — forward scene is usually the relevant clip. */
+export function pickRoadReviewMediaUrl(urls: AutonomiseMediaUrls): string | null {
   if (urls.roadCameraUrl && looksLikeVideoUrl(urls.roadCameraUrl)) return urls.roadCameraUrl;
-  return urls.roadCameraUrl || null;
+  if (urls.eventVideoUrl) return urls.eventVideoUrl;
+  if (urls.roadCameraUrl) return urls.roadCameraUrl;
+  if (urls.driverCameraUrl && looksLikeVideoUrl(urls.driverCameraUrl)) return urls.driverCameraUrl;
+  return urls.driverCameraUrl || null;
+}
+
+/** Choose review clip by alarm family (DSM → driver, ADAS → road). */
+export function pickReviewMediaUrl(
+  urls: AutonomiseMediaUrls,
+  vendorAlarmId: string | null | undefined
+): string | null {
+  const family = vendorAlarmId?.includes("_ADAS_") ? "ADAS" : vendorAlarmId?.includes("_DSM_") ? "DSM" : null;
+  if (family === "ADAS") return pickRoadReviewMediaUrl(urls);
+  if (family === "DSM") return pickDriverReviewMediaUrl(urls);
+  return pickDriverReviewMediaUrl(urls) ?? pickRoadReviewMediaUrl(urls);
+}
+
+/** @deprecated Prefer pickReviewMediaUrl with vendorAlarmId — defaults to driver-first for fatigue triage. */
+export function pickBestMediaUrl(urls: AutonomiseMediaUrls): string | null {
+  return pickDriverReviewMediaUrl(urls) ?? pickRoadReviewMediaUrl(urls);
+}
+
+export function resolveReviewMediaUrl(
+  payload: unknown,
+  vendorAlarmId: string | null | undefined,
+  storedMediaUrl?: string | null
+): string | null {
+  const parsed = extractMediaFromJson(payload);
+  const fromPayload = pickReviewMediaUrl(parsed, vendorAlarmId);
+  if (fromPayload) return fromPayload;
+  const stored = storedMediaUrl?.trim();
+  if (!stored) return null;
+  if (parsed.roadCameraUrl && stored === parsed.roadCameraUrl) {
+    return pickDriverReviewMediaUrl(parsed);
+  }
+  return stored;
+}
+
+export function shouldReplaceReviewClip(
+  currentUrl: string,
+  nextUrl: string,
+  payload: unknown,
+  vendorAlarmId: string | null | undefined
+): boolean {
+  if (!nextUrl || currentUrl === nextUrl) return false;
+  if (currentUrl.startsWith("pending://") || !currentUrl.trim()) return true;
+  const parsed = extractMediaFromJson(payload);
+  const family = vendorAlarmId?.includes("_ADAS_") ? "ADAS" : "DSM";
+  if (family === "DSM" && parsed.roadCameraUrl && currentUrl === parsed.roadCameraUrl) return true;
+  return false;
 }

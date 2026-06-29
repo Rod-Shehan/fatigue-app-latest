@@ -7,7 +7,7 @@ import {
   extractDeviceVehicleIdFromJson,
   extractMediaFromJson,
   extractVehicleFromJson,
-  pickBestMediaUrl,
+  pickReviewMediaUrl,
   type AutonomiseMediaUrls,
 } from "@/lib/integrations/autonomise-media-extract";
 
@@ -456,6 +456,7 @@ export async function fetchAutonomiseEventMediaBundle(
     deviceHardwareId?: string;
     config?: AutonomiseApiConfig;
     fastOnly?: boolean;
+    vendorAlarmId?: string | null;
   } = {}
 ): Promise<AutonomiseMediaFetchResult> {
   const config = options.config ?? getAutonomiseApiConfigFromEnv();
@@ -491,6 +492,6 @@ export async function fetchAutonomiseEventMediaBundle(
   return {
     ...media,
     driverName,
-    mediaUrl: pickBestMediaUrl(media),
+    mediaUrl: pickReviewMediaUrl(media, options.vendorAlarmId),
   };
 }

@@ -12,6 +12,10 @@ import {
   isCommandLifecycleBridgeEnabled,
 } from "@/lib/integrations/command-lifecycle-bridge-config";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
+import {
+  resolveReviewMediaUrl,
+  shouldReplaceReviewClip,
+} from "@/lib/integrations/autonomise-media-extract";
 
 export type CommandLifecycleBridgeResult = {
   promoted: boolean;
@@ -64,6 +68,10 @@ function placeholderVideoUrl(ingestId: string): string {
   return `pending://autonomise/${ingestId}`;
 }
 
+function resolveCommandClip(args: PromoteArgs): string | null {
+  return resolveReviewMediaUrl(args.payload, args.vendorAlarmId, args.mediaUrl);
+}
+
 type PromoteArgs = {
   ingestId: string;
   vendorAlarmId: string | null;
@@ -109,10 +117,10 @@ export async function maybePromoteAutonomiseToCommandLifecycle(
 
   if (existing.length > 0) {
     const row = existing[0]!;
-    const clip = args.mediaUrl?.trim();
+    const clip = resolveCommandClip(args);
     const needsMedia =
       clip &&
-      (row.video_snippet_url.startsWith("pending://") || !row.video_snippet_url.trim());
+      shouldReplaceReviewClip(row.video_snippet_url, clip, args.payload, args.vendorAlarmId);
 
     if (needsMedia) {
       await prisma.$executeRaw`
@@ -128,7 +136,7 @@ export async function maybePromoteAutonomiseToCommandLifecycle(
 
   const hardwareTimestamp = parseTriggerTime(args.payload);
   const driverIdUuid = deterministicDriverUuid(tenantIdUuid, args.driverName, rego);
-  const videoUrl = args.mediaUrl?.trim() || placeholderVideoUrl(args.ingestId);
+  const videoUrl = resolveCommandClip(args) || placeholderVideoUrl(args.ingestId);
 
   const inserted = await prisma.$queryRaw<Array<{ event_id: string; lifecycle_id: string | null }>>`
     INSERT INTO edge_fatigue_events (

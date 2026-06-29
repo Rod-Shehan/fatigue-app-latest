@@ -46,10 +46,20 @@ export async function resolveAndPersistAutonomiseMedia(
   const deviceHardwareId =
     args.deviceHardwareId?.trim() || deviceHardwareIdFromPayload(args.payload) || "";
 
+  const ingestRow = await prisma.autonomiseWebhookIngest.findFirst({
+    where: {
+      kind: "event",
+      OR: [{ vendorEventId: eventId }, { linkedEventId: eventId }],
+    },
+    orderBy: { receivedAt: "desc" },
+    select: { vendorAlarmId: true },
+  });
+
   const bundle = await fetchAutonomiseEventMediaBundle(eventId, {
     fnolSlug,
     deviceHardwareId,
     fastOnly: args.fastOnly ?? Boolean(deviceHardwareId),
+    vendorAlarmId: ingestRow?.vendorAlarmId,
   });
   if (!bundle.mediaUrl && !bundle.driverName) {
     return { eventId, mediaUrl: null, driverName: null, fetched: true, emptyFromApi: true };

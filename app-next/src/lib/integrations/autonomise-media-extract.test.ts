@@ -4,17 +4,32 @@ import {
   extractMediaFromJson,
   extractVehicleFromJson,
   pickBestMediaUrl,
+  pickReviewMediaUrl,
   scanMediaUrlsFromJson,
 } from "@/lib/integrations/autonomise-media-extract";
 
 describe("autonomise-media-extract", () => {
-  it("prefers event video over snapshots", () => {
+  it("prefers driver snapshot over forward event video for DSM review", () => {
     const best = pickBestMediaUrl({
-      eventVideoUrl: "https://cdn.example/clip.mp4",
+      eventVideoUrl: "https://cdn.example/forward-clip.mp4",
       driverCameraUrl: "https://cdn.example/driver.jpg",
-      roadCameraUrl: "https://cdn.example/road.jpg",
+      roadCameraUrl: "https://cdn.example/forward-clip.mp4",
     });
-    expect(best).toBe("https://cdn.example/clip.mp4");
+    expect(best).toBe("https://cdn.example/driver.jpg");
+  });
+
+  it("pickReviewMediaUrl uses road clip for ADAS alarms", () => {
+    const urls = {
+      eventVideoUrl: "https://cdn.example/forward.mp4",
+      driverCameraUrl: "https://cdn.example/driver.mp4",
+      roadCameraUrl: "https://cdn.example/forward.mp4",
+    };
+    expect(pickReviewMediaUrl(urls, "VT3600AI_ALARM_DSM_Fatigue")).toBe(
+      "https://cdn.example/driver.mp4"
+    );
+    expect(pickReviewMediaUrl(urls, "VT3600AI_ALARM_ADAS_LaneDeparture")).toBe(
+      "https://cdn.example/forward.mp4"
+    );
   });
 
   it("extracts driver and road urls from API-shaped JSON", () => {
