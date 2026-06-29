@@ -185,7 +185,7 @@ function AlertEventCard({
             <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
               {alert.eventWebhookPending
                 ? "Autonomise sent video metadata but not the event webhook — check Event URL in Autonomise API settings."
-                : `Not shown in coaching workflow: ${alert.rejectReason.replace(/_/g, " ")}`}
+                : `Excluded from pilot inbox: ${alert.rejectReason.replace(/_/g, " ")}`}
             </p>
           )}
 
@@ -374,7 +374,7 @@ function AlertEventHeader({
             tierChipClass(alert.tier, alert.accepted)
           )}
         >
-          {alert.accepted ? (alert.tier === "core" ? "Priority" : "Monitor") : "Filtered"}
+          {alert.accepted ? (alert.tier === "core" ? "Priority" : "Monitor") : "Excluded"}
         </span>
         {alert.accepted && (
           <span
@@ -401,23 +401,23 @@ function AlertEventHeader({
 export function ManagerAlertsView() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showFiltered, setShowFiltered] = useState(false);
+  const [showExcludedEvents, setShowExcludedEvents] = useState(false);
   const [hours, setHours] = useState(24);
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
 
-  const queryKey = ["manager", "camera-alerts", showFiltered, hours, triageFilter] as const;
+  const queryKey = ["manager", "camera-alerts", showExcludedEvents, hours, triageFilter] as const;
 
   const { data, isLoading, isError, dataUpdatedAt, isFetching } = useQuery({
     queryKey,
     queryFn: () =>
       api.manager.cameraAlerts({
-        acceptedOnly: !showFiltered,
+        acceptedOnly: !showExcludedEvents,
         hours,
         triageFilter,
-        limit: showFiltered ? 200 : undefined,
+        limit: showExcludedEvents ? 200 : undefined,
       }),
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -489,7 +489,7 @@ export function ManagerAlertsView() {
   const allowDelete = data?.testingTools?.allowDelete === true;
 
   const alerts = data?.alerts ?? [];
-  const filteredAlerts = alerts.filter((a) => !a.accepted);
+  const excludedAlerts = alerts.filter((a) => !a.accepted);
   const collapsible = alerts.length > 1 && !selectionMode;
   const selectedCount = selectedIds.size;
   const bulkDeletePending = bulkDeleteMutation.isPending;
@@ -498,7 +498,7 @@ export function ManagerAlertsView() {
     setSelectedIds(new Set());
     setSelectionMode(false);
     setResolvingAlertId(null);
-  }, [showFiltered, hours, triageFilter]);
+  }, [showExcludedEvents, hours, triageFilter]);
 
   function toggleSelected(id: string, next: boolean) {
     setSelectedIds((current) => {
@@ -513,8 +513,8 @@ export function ManagerAlertsView() {
     setSelectedIds(new Set(alerts.map((alert) => alert.id)));
   }
 
-  function selectAllFiltered() {
-    setSelectedIds(new Set(filteredAlerts.map((alert) => alert.id)));
+  function selectAllExcluded() {
+    setSelectedIds(new Set(excludedAlerts.map((alert) => alert.id)));
   }
 
   function handleBulkDelete() {
@@ -609,7 +609,7 @@ export function ManagerAlertsView() {
         </div>
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <Radio
               className={cn(
                 "h-4 w-4",
@@ -618,6 +618,14 @@ export function ManagerAlertsView() {
               aria-hidden
             />
             <span>{liveLabel}</span>
+            {showExcludedEvents ? (
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                · Including excluded
+                {excludedAlerts.length > 0 ? ` (${excludedAlerts.length})` : ""}
+              </span>
+            ) : (
+              <span className="text-xs text-slate-500 dark:text-slate-400">· Pilot alerts</span>
+            )}
             {triageFilter === "pending" && pendingCount > 0 && (
               <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
                 · {pendingCount} awaiting review
@@ -629,14 +637,21 @@ export function ManagerAlertsView() {
               </span>
             )}
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFiltered((v) => !v)}
-          >
-            {showFiltered ? "Accepted only" : "Show filtered"}
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowExcludedEvents((v) => !v)}
+            >
+              {showExcludedEvents ? "Hide excluded events" : "Show excluded events"}
+            </Button>
+            {!showExcludedEvents ? (
+              <p className="max-w-[14rem] text-right text-[11px] leading-snug text-slate-500 dark:text-slate-400">
+                Excluded = received from Autonomise but not in your enabled alert types.
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (
@@ -692,7 +707,7 @@ export function ManagerAlertsView() {
                       Select to delete
                     </Button>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Use <strong>Show filtered</strong> to load excess events for bulk cleanup.
+                      Use <strong>Show excluded events</strong> to load rejected ingest rows for bulk cleanup.
                     </p>
                   </div>
                 ) : (
@@ -712,9 +727,9 @@ export function ManagerAlertsView() {
                       <Button type="button" size="sm" variant="outline" onClick={selectAllVisible}>
                         Select all on screen ({alerts.length})
                       </Button>
-                      {showFiltered && filteredAlerts.length > 0 ? (
-                        <Button type="button" size="sm" variant="outline" onClick={selectAllFiltered}>
-                          Select filtered ({filteredAlerts.length})
+                      {showExcludedEvents && excludedAlerts.length > 0 ? (
+                        <Button type="button" size="sm" variant="outline" onClick={selectAllExcluded}>
+                          Select excluded ({excludedAlerts.length})
                         </Button>
                       ) : null}
                       <Button

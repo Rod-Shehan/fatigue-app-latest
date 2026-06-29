@@ -82,10 +82,11 @@ function AlertOptionsDiagnostics({ diagnostics }: { diagnostics: CameraAlertOpti
       {hiddenCount > 0 ? (
         <CollapsibleDiagnosticsBanner
           tone="sky"
-          summary={`${hiddenCount} alert${hiddenCount === 1 ? "" : "s"} hidden by accepted types`}
+          summary={`${hiddenCount} alert${hiddenCount === 1 ? "" : "s"} excluded by enabled types`}
         >
-          These alerts have video but {hiddenCount === 1 ? "is" : "are"} hidden by your accepted type
-          filter — enable types below (for example Following Distance Warning) to see them.
+          These alerts have video but {hiddenCount === 1 ? "is" : "are"} excluded because the alarm type
+          is not enabled below — turn on types (for example Following Distance Warning) to include them in
+          the pilot inbox.
         </CollapsibleDiagnosticsBanner>
       ) : null}
       {orphanCount > 0 ? (
