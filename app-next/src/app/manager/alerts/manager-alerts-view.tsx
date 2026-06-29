@@ -16,6 +16,9 @@ import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 const HOURS_OPTIONS = [
+  { label: "1 hour", value: 1 },
+  { label: "6 hours", value: 6 },
+  { label: "12 hours", value: 12 },
   { label: "24 hours", value: 24 },
   { label: "48 hours", value: 48 },
   { label: "7 days", value: 168 },
