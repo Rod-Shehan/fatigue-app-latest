@@ -20,7 +20,7 @@ export async function GET() {
   const viewer = buildViewerOnShift(snapshot, {
     viewer: "manager",
     userId: session.user.id,
-    userRole: session.user.role,
+    userRole: session.user.role ?? undefined,
     onShift: false,
   });
 
