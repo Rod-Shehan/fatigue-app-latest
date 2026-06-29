@@ -1,6 +1,7 @@
 import type { LifecycleStatus } from "@/lib/lifecycle-status";
 import type { TriageAction } from "@/lib/lifecycle-status";
 import type { TxClient } from "@/lib/privileged-db";
+import { syncManagerCameraAlertTriage } from "@/lib/sync-manager-triage";
 import { transitionIncidentState } from "@/lib/transition-incident";
 
 export async function applyOperatorTriageAction(
@@ -30,6 +31,7 @@ export async function applyOperatorTriageAction(
       notes: args.operatorNotes,
       snapshot: { idempotency_key: args.idempotencyKey, action: args.action },
     });
+    await syncManagerCameraAlertTriage(tx, args);
     return { status: "VERIFIED_FALSE_POSITIVE", managerValidationBypassed: true };
   }
 
@@ -48,6 +50,7 @@ export async function applyOperatorTriageAction(
       notes: args.operatorNotes,
       snapshot: { idempotency_key: args.idempotencyKey, action: args.action },
     });
+    await syncManagerCameraAlertTriage(tx, args);
     await transitionIncidentState(tx, {
       lifecycleId: args.lifecycleId,
       expectedCurrentStatus: "VERIFIED_TRUE_FATIGUE",
@@ -68,6 +71,7 @@ export async function applyOperatorTriageAction(
     notes: args.operatorNotes,
     snapshot: { idempotency_key: args.idempotencyKey, action: args.action },
   });
+  await syncManagerCameraAlertTriage(tx, args);
   await transitionIncidentState(tx, {
     lifecycleId: args.lifecycleId,
     expectedCurrentStatus: "VERIFIED_TRUE_FATIGUE",

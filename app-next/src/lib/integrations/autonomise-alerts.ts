@@ -7,6 +7,10 @@ import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise
 import { isCameraAlertDeleteEnabled } from "@/lib/integrations/camera-alert-ingest-delete";
 import { backfillMissingAutonomiseMedia, PENDING_INBOX_MAX_FETCH } from "@/lib/integrations/autonomise-media-resolver";
 import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
+import {
+  loadCommandLifecycleTriageByIngestIds,
+  mergeTriageByIngestId,
+} from "@/lib/integrations/command-triage-sync";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
@@ -375,9 +379,15 @@ export async function listCameraAlerts(
     }
   }
 
-  const triageByIngestId = await loadTriageByIngestIds(
-    prisma,
-    enrichedEvents.map((row) => row.id)
+  const triageByIngestId = mergeTriageByIngestId(
+    await loadTriageByIngestIds(
+      prisma,
+      enrichedEvents.map((row) => row.id)
+    ),
+    await loadCommandLifecycleTriageByIngestIds(
+      prisma,
+      enrichedEvents.map((row) => row.id)
+    )
   );
 
   for (const row of mediaRows) {
