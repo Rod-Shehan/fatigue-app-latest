@@ -45,7 +45,7 @@ export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFo
         </p>
       </div>
 
-      <fieldset className="space-y-4">
+      <fieldset className="min-w-0 space-y-4 border-0 p-0">
         <legend className={`${commandLabel} mb-1`}>Action taken</legend>
         {INCIDENT_RESOLUTION_CATEGORIES.map((category) => {
           const actions = INCIDENT_RESOLUTION_ACTIONS.filter((action) => action.category === category);

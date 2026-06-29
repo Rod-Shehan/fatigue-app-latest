@@ -17,7 +17,7 @@ export function MediaViewport({ incident, locked }: Props) {
 
   return (
     <div
-      className={`flex h-full flex-col p-4 ${commandCard} ${locked ? "ring-2 ring-teal-500/50" : ""}`}
+      className={`flex h-full min-h-0 flex-col overflow-hidden p-4 ${commandCard} ${locked ? "ring-2 ring-teal-500/50" : ""}`}
     >
       {locked ? (
         <p className="mb-2 text-xs font-medium uppercase tracking-wide text-teal-300">

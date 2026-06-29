@@ -311,8 +311,8 @@ export default function TriagePage() {
         </div>
       ) : null}
 
-      <div className="grid h-[calc(100vh-9rem)] grid-cols-1 gap-4 lg:grid-cols-12">
-        <section className="lg:col-span-3">
+      <div className="grid h-[calc(100vh-9rem)] min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
+        <section className="flex min-h-0 flex-col lg:col-span-3">
           <QueuePanel
             incidents={incidents}
             selectedId={selectedId}
@@ -320,10 +320,10 @@ export default function TriagePage() {
             onSelect={setSelectedId}
           />
         </section>
-        <section className="lg:col-span-6">
+        <section className="flex min-h-0 flex-col lg:col-span-6">
           <MediaViewport incident={selected} locked={resolutionMode} />
         </section>
-        <section className="lg:col-span-3">
+        <section className="flex min-h-0 flex-col lg:col-span-3">
           <ActionPanel
             selectedId={selectedId}
             busy={busy}

@@ -8,7 +8,7 @@ export const commandContainer = "mx-auto max-w-6xl px-4 py-8 md:py-12";
 export const commandContainerWide = "mx-auto max-w-[1600px] px-4 py-6 md:py-8";
 
 export const commandCard =
-  "rounded-xl border border-slate-700/80 bg-slate-900/60 shadow-sm backdrop-blur-sm";
+  "rounded-xl border border-slate-700/80 bg-slate-900 shadow-sm";
 
 export const commandInput =
   "mt-1 w-full rounded-lg border border-slate-600 bg-slate-900/80 px-3 py-2 text-slate-100 outline-none transition-colors focus:border-teal-500 focus:ring-1 focus:ring-teal-500";

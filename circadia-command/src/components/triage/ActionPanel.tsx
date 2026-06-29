@@ -31,7 +31,9 @@ export function ActionPanel({
 
   if (resolutionMode) {
     return (
-      <div className={`flex h-full flex-col p-4 ${commandCard} ring-2 ring-teal-500/40`}>
+      <div
+        className={`flex h-full min-h-0 flex-col overflow-y-auto p-4 ${commandCard} ring-2 ring-teal-500/40`}
+      >
         <ResolutionForm
           busy={busy}
           error={resolutionError}
@@ -43,7 +45,7 @@ export function ActionPanel({
   }
 
   return (
-    <div className={`flex h-full flex-col gap-4 p-4 ${commandCard}`}>
+    <div className={`flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4 ${commandCard}`}>
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Actions</h3>
         <p className="mt-1 text-xs text-slate-500">
