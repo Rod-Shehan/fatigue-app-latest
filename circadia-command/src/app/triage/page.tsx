@@ -14,11 +14,14 @@ import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
 import { useCommandSse } from "@/hooks/use-command-sse";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
 import type { TriageShiftSnapshot } from "@/lib/triage-shift";
+import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 export default function TriagePage() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [resolutionLifecycleId, setResolutionLifecycleId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
@@ -28,6 +31,10 @@ export default function TriagePage() {
   const { connected: sseConnected } = useCommandSse(authReady);
   const { data, isLoading, isError, error } = useTriageQueue(authReady, sseConnected);
   const invalidate = useInvalidateTriageQueue();
+
+  const resolutionMode = Boolean(
+    resolutionLifecycleId && selectedId && resolutionLifecycleId === selectedId
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -83,48 +90,137 @@ export default function TriagePage() {
     if (!selectedId && incidents[0]) setSelectedId(incidents[0].lifecycle_id);
   }, [incidents, selectedId]);
 
-  const runMutate = useCallback(
-    async (action: "VERIFIED_FALSE_POSITIVE" | "VERIFIED_TRUE_FATIGUE") => {
-      if (!selectedId || !triageDeskOnShift) return;
+  useEffect(() => {
+    if (resolutionLifecycleId && !incidents.some((i) => i.lifecycle_id === resolutionLifecycleId)) {
+      setResolutionLifecycleId(null);
+      setResolutionError(null);
+    }
+  }, [incidents, resolutionLifecycleId]);
+
+  const advanceQueue = useCallback(
+    (closedId: string) => {
+      const remaining = incidents.filter((i) => i.lifecycle_id !== closedId);
+      setSelectedId(remaining[0]?.lifecycle_id ?? null);
+      setResolutionLifecycleId(null);
+      setResolutionError(null);
+    },
+    [incidents]
+  );
+
+  const runDismiss = useCallback(async () => {
+    if (!selectedId || !triageDeskOnShift || resolutionMode) return;
+    setBusy(true);
+    try {
+      await fetch("/api/v1/triage/claim", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lifecycle_id: selectedId,
+          idempotency_key: `claim_${selectedId}`,
+        }),
+      });
+      const res = await fetch("/api/v1/triage/mutate", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lifecycle_id: selectedId,
+          action: "VERIFIED_FALSE_POSITIVE",
+          idempotency_key: `mutate_${selectedId}_VERIFIED_FALSE_POSITIVE`,
+          operator_notes: "Operator dismiss",
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        alert(body.message ?? "Mutation failed");
+        return;
+      }
+      await invalidate();
+      advanceQueue(selectedId);
+    } finally {
+      setBusy(false);
+    }
+  }, [selectedId, invalidate, triageDeskOnShift, resolutionMode, advanceQueue]);
+
+  const beginResolution = useCallback(async () => {
+    if (!selectedId || !triageDeskOnShift || resolutionMode) return;
+    setBusy(true);
+    setResolutionError(null);
+    try {
+      const claimRes = await fetch("/api/v1/triage/claim", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lifecycle_id: selectedId,
+          idempotency_key: `claim_${selectedId}`,
+        }),
+      });
+      if (!claimRes.ok) {
+        const body = await claimRes.json().catch(() => ({}));
+        alert(body.message ?? "Could not claim incident");
+        return;
+      }
+      setResolutionLifecycleId(selectedId);
+    } finally {
+      setBusy(false);
+    }
+  }, [selectedId, triageDeskOnShift, resolutionMode]);
+
+  const cancelResolution = useCallback(async () => {
+    if (!resolutionLifecycleId) return;
+    setBusy(true);
+    try {
+      await fetch("/api/v1/triage/resolve", {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lifecycle_id: resolutionLifecycleId }),
+      });
+    } finally {
+      setResolutionLifecycleId(null);
+      setResolutionError(null);
+      setBusy(false);
+    }
+  }, [resolutionLifecycleId]);
+
+  const submitResolution = useCallback(
+    async (actionType: IncidentResolutionActionType, resolutionNotes: string) => {
+      if (!resolutionLifecycleId) return;
       setBusy(true);
+      setResolutionError(null);
       try {
-        await fetch("/api/v1/triage/claim", {
+        const res = await fetch("/api/v1/triage/resolve", {
           method: "POST",
           credentials: "same-origin",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            lifecycle_id: selectedId,
-            idempotency_key: `claim_${selectedId}`,
-          }),
-        });
-        const res = await fetch("/api/v1/triage/mutate", {
-          method: "POST",
-          credentials: "same-origin",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lifecycle_id: selectedId,
-            action,
-            idempotency_key: `mutate_${selectedId}_${action}`,
-            operator_notes: action === "VERIFIED_FALSE_POSITIVE" ? "Operator dismiss" : "Operator escalate",
+            lifecycle_id: resolutionLifecycleId,
+            action_type: actionType,
+            resolution_notes: resolutionNotes,
+            idempotency_key: `resolve_${resolutionLifecycleId}_${actionType}`,
           }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          alert(body.message ?? "Mutation failed");
+          setResolutionError(body.message ?? "Could not record resolution");
+          return;
         }
+        const closedId = resolutionLifecycleId;
         await invalidate();
-        setSelectedId(null);
+        advanceQueue(closedId);
       } finally {
         setBusy(false);
       }
     },
-    [selectedId, invalidate, triageDeskOnShift]
+    [resolutionLifecycleId, invalidate, advanceQueue]
   );
 
   useKeyboardTriage(
-    triageDeskOnShift ? selectedId : null,
-    () => void runMutate("VERIFIED_FALSE_POSITIVE"),
-    () => void runMutate("VERIFIED_TRUE_FATIGUE")
+    triageDeskOnShift && !resolutionMode ? selectedId : null,
+    () => void runDismiss(),
+    () => void beginResolution()
   );
 
   const simulate = async () => {
@@ -204,18 +300,27 @@ export default function TriagePage() {
 
       <div className="grid h-[calc(100vh-9rem)] grid-cols-1 gap-4 lg:grid-cols-12">
         <section className="lg:col-span-3">
-          <QueuePanel incidents={incidents} selectedId={selectedId} onSelect={setSelectedId} />
+          <QueuePanel
+            incidents={incidents}
+            selectedId={selectedId}
+            lockedId={resolutionMode ? resolutionLifecycleId : null}
+            onSelect={setSelectedId}
+          />
         </section>
         <section className="lg:col-span-6">
-          <MediaViewport incident={selected} />
+          <MediaViewport incident={selected} locked={resolutionMode} />
         </section>
         <section className="lg:col-span-3">
           <ActionPanel
             selectedId={selectedId}
             busy={busy}
             triageDeskOnShift={triageDeskOnShift}
-            onDismiss={() => void runMutate("VERIFIED_FALSE_POSITIVE")}
-            onEscalate={() => void runMutate("VERIFIED_TRUE_FATIGUE")}
+            resolutionMode={resolutionMode}
+            resolutionError={resolutionError}
+            onDismiss={() => void runDismiss()}
+            onBeginResolution={() => void beginResolution()}
+            onResolve={(actionType, notes) => void submitResolution(actionType, notes)}
+            onCancelResolution={() => void cancelResolution()}
             onSimulate={() => void simulate()}
           />
         </section>

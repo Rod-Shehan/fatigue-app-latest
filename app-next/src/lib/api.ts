@@ -532,6 +532,26 @@ export const api = {
           decidedAt: string;
         };
       }>(`/api/manager/camera-alerts/${ingestEventId}/triage`, { method: "POST", body: data }),
+    cameraAlertResolve: (
+      ingestEventId: string,
+      data: {
+        actionType: import("@/lib/triage-resolution").IncidentResolutionActionType;
+        resolutionNotes?: string | null;
+        vendorEventId?: string | null;
+      }
+    ) =>
+      fetchApi<{
+        ok: boolean;
+        triage: {
+          ingestEventId: string;
+          decision: string;
+          note: string | null;
+          decidedByEmail: string | null;
+          decidedAt: string;
+        };
+        lifecycleId: string | null;
+        lifecycleStatus: string | null;
+      }>(`/api/manager/camera-alerts/${ingestEventId}/resolve`, { method: "POST", body: data }),
     cameraAlertEventSettings: () =>
       fetchApi<{ settings: CameraAlertEventSettingsSnapshot }>(
         "/api/manager/camera-alerts/event-settings"

@@ -12,6 +12,8 @@ import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Trash2, 
 import { cn } from "@/lib/utils";
 import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
 import { TriageShiftBanner } from "@/components/manager/TriageShiftBanner";
+import { ResolutionForm } from "@/components/triage/ResolutionForm";
+import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 const HOURS_OPTIONS = [
   { label: "24 hours", value: 24 },
@@ -79,6 +81,12 @@ function AlertEventCard({
   onTriage,
   triagePending,
   triageError,
+  resolutionMode,
+  onBeginResolution,
+  onResolve,
+  onCancelResolution,
+  resolvePending,
+  resolveError,
   allowDelete,
   triageDeskOnShift,
   onDelete,
@@ -94,6 +102,12 @@ function AlertEventCard({
   onTriage: (decision: "authorized" | "dismissed", note: string) => void;
   triagePending: boolean;
   triageError: string | null;
+  resolutionMode: boolean;
+  onBeginResolution: () => void;
+  onResolve: (actionType: IncidentResolutionActionType, resolutionNotes: string) => void;
+  onCancelResolution: () => void;
+  resolvePending: boolean;
+  resolveError: string | null;
   allowDelete: boolean;
   triageDeskOnShift: boolean;
   onDelete: () => void;
@@ -123,6 +137,8 @@ function AlertEventCard({
         "rounded-xl border bg-white shadow-sm transition-colors dark:bg-slate-900",
         selected
           ? "border-rose-400 ring-2 ring-rose-300/60 dark:border-rose-600 dark:ring-rose-900/60"
+          : resolutionMode
+            ? "border-teal-600 ring-2 ring-teal-400/50 dark:border-teal-500"
           : expanded
             ? "border-teal-600 dark:border-teal-500"
             : "border-slate-200 dark:border-slate-700"
@@ -176,7 +192,7 @@ function AlertEventCard({
           {decided && (
             <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
               <p className="font-medium text-slate-800 dark:text-slate-200">
-                {alert.triageStatus === "authorized" ? "Follow-up authorized" : "Dismissed as false positive"}
+                {alert.triageStatus === "authorized" ? "Verified fatigue — action recorded" : "Dismissed as false positive"}
               </p>
               {alert.triageDecidedBy && (
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -225,19 +241,19 @@ function AlertEventCard({
             )}
           </div>
 
-          {canTriage && (
+          {canTriage && !resolutionMode && (
             <>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
               </p>
               <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Note (optional)
+                Note for dismiss (optional)
               </label>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={2}
-                placeholder="e.g. spoke with driver, fatigue after long leg"
+                placeholder="e.g. glare, camera fault"
                 className="mb-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
               />
               {triageError && (
@@ -247,23 +263,32 @@ function AlertEventCard({
                 <Button
                   type="button"
                   className="flex-1"
-                  disabled={triagePending}
-                  onClick={() => onTriage("authorized", note)}
+                  disabled={triagePending || resolvePending}
+                  onClick={onBeginResolution}
                 >
-                  {triagePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-                  Authorize follow-up
+                  Verified fatigue
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   className="flex-1"
-                  disabled={triagePending}
+                  disabled={triagePending || resolvePending}
                   onClick={() => onTriage("dismissed", note)}
                 >
+                  {triagePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                   Dismiss as false positive
                 </Button>
               </div>
             </>
+          )}
+
+          {canTriage && resolutionMode && (
+            <ResolutionForm
+              busy={resolvePending}
+              error={resolveError}
+              onSubmit={onResolve}
+              onCancel={onCancelResolution}
+            />
           )}
 
           {alert.mediaUrl && (
@@ -381,6 +406,7 @@ export function ManagerAlertsView() {
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
 
   const queryKey = ["manager", "camera-alerts", showFiltered, hours, triageFilter] as const;
 
@@ -407,14 +433,33 @@ export function ManagerAlertsView() {
   const triageDeskOnShift = shiftQuery.data?.viewer.onShift ?? false;
 
   const triageMutation = useMutation({
-    mutationFn: (args: { id: string; decision: "authorized" | "dismissed"; note: string; vendorEventId: string | null }) =>
+    mutationFn: (args: { id: string; decision: "dismissed"; note: string; vendorEventId: string | null }) =>
       api.manager.cameraAlertTriage(args.id, {
         decision: args.decision,
         note: args.note || null,
         vendorEventId: args.vendorEventId,
       }),
+    onSuccess: (_data, variables) => {
+      setResolvingAlertId((current) => (current === variables.id ? null : current));
+      void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+    },
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: (args: {
+      id: string;
+      actionType: IncidentResolutionActionType;
+      resolutionNotes: string;
+      vendorEventId: string | null;
+    }) =>
+      api.manager.cameraAlertResolve(args.id, {
+        actionType: args.actionType,
+        resolutionNotes: args.resolutionNotes || null,
+        vendorEventId: args.vendorEventId,
+      }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+      setResolvingAlertId(null);
+      void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
     },
   });
 
@@ -452,6 +497,7 @@ export function ManagerAlertsView() {
   useEffect(() => {
     setSelectedIds(new Set());
     setSelectionMode(false);
+    setResolvingAlertId(null);
   }, [showFiltered, hours, triageFilter]);
 
   function toggleSelected(id: string, next: boolean) {
@@ -714,9 +760,10 @@ export function ManagerAlertsView() {
                 alert={alert}
                 expanded={selectionMode ? false : !collapsible || expandedId === alert.id}
                 collapsible={collapsible}
-                onToggle={() =>
-                  setExpandedId((current) => (current === alert.id ? null : alert.id))
-                }
+                onToggle={() => {
+                  if (resolvingAlertId === alert.id) return;
+                  setExpandedId((current) => (current === alert.id ? null : alert.id));
+                }}
                 triagePending={triageMutation.isPending && triageMutation.variables?.id === alert.id}
                 triageError={
                   triageMutation.isError && triageMutation.variables?.id === alert.id
@@ -732,6 +779,28 @@ export function ManagerAlertsView() {
                     note,
                     vendorEventId: alert.vendorEventId,
                   })
+                }
+                resolutionMode={resolvingAlertId === alert.id}
+                onBeginResolution={() => {
+                  setResolvingAlertId(alert.id);
+                  setExpandedId(alert.id);
+                }}
+                onResolve={(actionType, resolutionNotes) =>
+                  resolveMutation.mutate({
+                    id: alert.id,
+                    actionType,
+                    resolutionNotes,
+                    vendorEventId: alert.vendorEventId,
+                  })
+                }
+                onCancelResolution={() => setResolvingAlertId(null)}
+                resolvePending={resolveMutation.isPending && resolveMutation.variables?.id === alert.id}
+                resolveError={
+                  resolveMutation.isError && resolveMutation.variables?.id === alert.id
+                    ? resolveMutation.error instanceof Error
+                      ? resolveMutation.error.message
+                      : "Could not record resolution"
+                    : null
                 }
                 allowDelete={allowDelete}
                 triageDeskOnShift={triageDeskOnShift}

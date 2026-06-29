@@ -5,10 +5,11 @@ import { commandCard } from "@/components/command/command-styles";
 type Props = {
   incidents: QueueIncident[];
   selectedId: string | null;
+  lockedId?: string | null;
   onSelect: (id: string) => void;
 };
 
-export function QueuePanel({ incidents, selectedId, onSelect }: Props) {
+export function QueuePanel({ incidents, selectedId, lockedId, onSelect }: Props) {
   if (incidents.length === 0) {
     return (
       <div
@@ -26,6 +27,7 @@ export function QueuePanel({ incidents, selectedId, onSelect }: Props) {
         <li key={inc.lifecycle_id}>
           <button
             type="button"
+            disabled={Boolean(lockedId && lockedId !== inc.lifecycle_id)}
             onClick={() => onSelect(inc.lifecycle_id)}
             className={cn(
               "w-full rounded-xl border px-3 py-3 text-left shadow-sm transition-colors",

@@ -328,3 +328,20 @@ model TriageShift {
 
   @@index([startsAt, endsAt])
 }
+
+/** Operational actions after verified fatigue — shared queue audit (§3.5.4). */
+model IncidentActionLog {
+  id              String    @id @default(cuid())
+  lifecycleId     String?   @db.Uuid
+  ingestEventId   String?
+  actionType      String
+  resolutionNotes String?
+  actorType       String
+  actorId         String
+  actorLabel      String?
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([lifecycleId])
+  @@index([ingestEventId])
+  @@map("IncidentActionLog")
+}

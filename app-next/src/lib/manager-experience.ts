@@ -199,7 +199,7 @@ export const MANAGER_EXPERIENCE = {
   ALERTS_EMPTY_BODY:
     "When Autonomise sends a fatigue-related event, it appears here automatically. Use Need review to work through past events, or widen the time range.",
   ALERTS_WORKFLOW_HINT:
-    "Authorize follow-up when coaching is warranted. Dismiss when the clip is a false positive. Your decision is recorded on file with timestamp.",
+    "Verified fatigue opens resolution logging before the alert clears. Dismiss when the clip is a false positive.",
 } as const;
 
 export type ManagerRiskTier = "attention" | "elevated" | "monitor" | "clear";
