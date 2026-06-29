@@ -7,10 +7,12 @@ import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
 import { QueuePanel } from "@/components/triage/QueuePanel";
 import { TriageShiftBanner } from "@/components/triage/TriageShiftBanner";
+import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
 import { CommandPageHeader } from "@/components/command/CommandPageHeader";
 import { CommandShell } from "@/components/command/CommandShell";
 import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
+import { useFatigueAlertControls } from "@/hooks/use-fatigue-alert-controls";
 import { useCommandSse } from "@/hooks/use-command-sse";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
 import type { TriageShiftSnapshot } from "@/lib/triage-shift";
@@ -28,7 +30,12 @@ export default function TriagePage() {
   const [shiftSnapshot, setShiftSnapshot] = useState<TriageShiftSnapshot | null>(null);
   const [triageDeskOnShift, setTriageDeskOnShift] = useState(false);
 
-  const { connected: sseConnected } = useCommandSse(authReady);
+  const { muted: alertMuted, audioUnlocked, toggleMuted, enableAudio } = useFatigueAlertControls();
+  const { connected: sseConnected } = useCommandSse(authReady, {
+    onShift: triageDeskOnShift,
+    muted: alertMuted,
+    audioUnlocked,
+  });
   const { data, isLoading, isError, error } = useTriageQueue(authReady, sseConnected);
   const invalidate = useInvalidateTriageQueue();
 
@@ -283,6 +290,12 @@ export default function TriagePage() {
               />
               {sseConnected ? "SSE live" : "Polling"}
             </span>
+            <AlertSoundToggle
+              muted={alertMuted}
+              audioUnlocked={audioUnlocked}
+              onToggleMuted={toggleMuted}
+              onEnableAudio={() => void enableAudio()}
+            />
             <CommandHeaderActions
               onSignOut={() => void signOut()}
               showUsersLink={isOwner}

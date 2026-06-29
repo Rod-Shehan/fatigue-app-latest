@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
+import { maybePlayFatigueAlert } from "@/lib/fatigue-alert-audio";
 
 type QueueCache = {
   queue_depth: number;
@@ -10,11 +11,19 @@ type QueueCache = {
   pagination?: { next_cursor: string | null; has_more: boolean };
 };
 
-export function useCommandSse(enabled: boolean) {
+type FatigueAlertOptions = {
+  onShift: boolean;
+  muted: boolean;
+  audioUnlocked: boolean;
+};
+
+export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOptions) {
   const queryClient = useQueryClient();
   const [connected, setConnected] = useState(false);
   const lastEventIdRef = useRef<string | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fatigueAlertsRef = useRef(fatigueAlerts);
+  fatigueAlertsRef.current = fatigueAlerts;
 
   useEffect(() => {
     if (!enabled) return;
@@ -50,6 +59,10 @@ export function useCommandSse(enabled: boolean) {
       const onNew = (event: MessageEvent) => {
         rememberId(event);
         const data = JSON.parse(event.data) as QueueIncident;
+        const alertOpts = fatigueAlertsRef.current;
+        if (alertOpts) {
+          void maybePlayFatigueAlert(data, alertOpts);
+        }
         queryClient.setQueryData<QueueCache>(["triage", "live-queue"], (old) => {
           if (!old) {
             return { queue_depth: 1, incidents: [data], pagination: { next_cursor: null, has_more: false } };
