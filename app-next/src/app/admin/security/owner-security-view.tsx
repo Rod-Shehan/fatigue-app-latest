@@ -11,6 +11,7 @@ import { PRODUCT_NAME } from "@/lib/branding";
 import { LOBBY_NAV_LABEL } from "@/lib/lobby-url";
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
+import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
 
 const POLICY_KEY = ["admin", "policy"] as const;
 const USERS_KEY = ["admin", "users"] as const;
@@ -231,6 +232,8 @@ export function OwnerSecurityView({
             </div>
           ) : null}
         </section>
+
+        <TriageShiftAdminPanel />
 
         {owners.length > 0 ? (
           <section className="space-y-3">

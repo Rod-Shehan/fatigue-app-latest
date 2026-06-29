@@ -24,7 +24,7 @@ Circadia’s **on-call layer** is core product IP: when an accepted in-cab fatig
 | **R1** | **Break through silent / DND** | On-call person must not miss an alert because device settings were left wrong |
 | **R2** | **ADAS-grade full-screen** | One glance = fatigue incident — act now; not “another app notification” |
 | **R3** | **Roster fan-out** | Everyone on the **active duty roster** gets the alert — no per-person opt-out for that shift |
-| **R4** | **Evidence before decision** | Manager Authorize/Dismiss is a **legal decision**; Circadia retains vendor payloads + **own copy of video** — see [incident-evidence-retention.md](./incident-evidence-retention.md) |
+| **R4** | **Evidence before decision** | Manager **confirm** + **recorded actions** are legal/operational decisions; Circadia retains vendor payloads + **own copy of video** — see [incident-evidence-retention.md](./incident-evidence-retention.md). Workflow: [incident-routing-assembly.md](./incident-routing-assembly.md) **§3.5** (claim → confirm → action → close). |
 
 ---
 

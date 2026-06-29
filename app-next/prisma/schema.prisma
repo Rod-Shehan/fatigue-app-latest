@@ -313,3 +313,18 @@ model CameraAlertEventSettings {
   updatedAt       DateTime @updatedAt
   createdAt       DateTime @default(now())
 }
+
+/** Triage desk shift — names and/or roles on duty (manager + Command §3.5). */
+model TriageShift {
+  id              String   @id @default(cuid())
+  startsAt        DateTime @db.Timestamptz(6)
+  endsAt          DateTime @db.Timestamptz(6)
+  /** { userIds: string[], operatorIds: string[], roles: string[] } */
+  assignees       Json
+  handoffNote     String?
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([startsAt, endsAt])
+}

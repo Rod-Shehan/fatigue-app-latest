@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Trash2, Video, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
+import { TriageShiftBanner } from "@/components/manager/TriageShiftBanner";
 
 const HOURS_OPTIONS = [
   { label: "24 hours", value: 24 },
@@ -79,6 +80,7 @@ function AlertEventCard({
   triagePending,
   triageError,
   allowDelete,
+  triageDeskOnShift,
   onDelete,
   deletePending,
   selectionMode,
@@ -93,6 +95,7 @@ function AlertEventCard({
   triagePending: boolean;
   triageError: string | null;
   allowDelete: boolean;
+  triageDeskOnShift: boolean;
   onDelete: () => void;
   deletePending: boolean;
   selectionMode: boolean;
@@ -103,7 +106,11 @@ function AlertEventCard({
   const [videoError, setVideoError] = useState(false);
   const triage = triageBadge(alert.triageStatus);
   const TriageIcon = triage.icon;
-  const canTriage = alert.accepted && !alert.eventWebhookPending && alert.triageStatus === "pending";
+  const canTriage =
+    triageDeskOnShift &&
+    alert.accepted &&
+    !alert.eventWebhookPending &&
+    alert.triageStatus === "pending";
   const decided = alert.triageStatus !== "pending";
 
   useEffect(() => {
@@ -390,6 +397,15 @@ export function ManagerAlertsView() {
     refetchInterval: 30_000,
   });
 
+  const shiftQuery = useQuery({
+    queryKey: ["triage-shift", "current"],
+    queryFn: () => api.triageShiftCurrent(),
+    staleTime: 30_000,
+    refetchInterval: 60_000,
+  });
+
+  const triageDeskOnShift = shiftQuery.data?.viewer.onShift ?? false;
+
   const triageMutation = useMutation({
     mutationFn: (args: { id: string; decision: "authorized" | "dismissed"; note: string; vendorEventId: string | null }) =>
       api.manager.cameraAlertTriage(args.id, {
@@ -508,6 +524,15 @@ export function ManagerAlertsView() {
           showLobbyLink={false}
         />
         <ManagerSubnav compact />
+
+        {shiftQuery.data ? (
+          <div className="mb-4">
+            <TriageShiftBanner
+              snapshot={shiftQuery.data.snapshot}
+              onShift={shiftQuery.data.viewer.onShift}
+            />
+          </div>
+        ) : null}
 
         <CameraAlertEventTypesPanel diagnostics={data?.diagnostics} />
 
@@ -709,6 +734,7 @@ export function ManagerAlertsView() {
                   })
                 }
                 allowDelete={allowDelete}
+                triageDeskOnShift={triageDeskOnShift}
                 deletePending={deleteMutation.isPending && deleteMutation.variables === alert.id}
                 onDelete={() => deleteMutation.mutate(alert.id)}
                 selectionMode={selectionMode}

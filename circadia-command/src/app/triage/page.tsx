@@ -6,12 +6,14 @@ import { Shield } from "lucide-react";
 import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
 import { QueuePanel } from "@/components/triage/QueuePanel";
+import { TriageShiftBanner } from "@/components/triage/TriageShiftBanner";
 import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
 import { CommandPageHeader } from "@/components/command/CommandPageHeader";
 import { CommandShell } from "@/components/command/CommandShell";
 import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
 import { useCommandSse } from "@/hooks/use-command-sse";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
+import type { TriageShiftSnapshot } from "@/lib/triage-shift";
 
 export default function TriagePage() {
   const router = useRouter();
@@ -20,6 +22,8 @@ export default function TriagePage() {
   const [authReady, setAuthReady] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [shiftSnapshot, setShiftSnapshot] = useState<TriageShiftSnapshot | null>(null);
+  const [triageDeskOnShift, setTriageDeskOnShift] = useState(false);
 
   const { connected: sseConnected } = useCommandSse(authReady);
   const { data, isLoading, isError, error } = useTriageQueue(authReady, sseConnected);
@@ -45,6 +49,33 @@ export default function TriagePage() {
     };
   }, [router]);
 
+  useEffect(() => {
+    if (!authReady) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/v1/triage/shift/current", { credentials: "same-origin" });
+      if (!res.ok || cancelled) return;
+      const body = await res.json();
+      if (!cancelled) {
+        setShiftSnapshot(body.snapshot ?? null);
+        setTriageDeskOnShift(body.viewer?.onShift === true);
+      }
+    })();
+    const interval = window.setInterval(() => {
+      void fetch("/api/v1/triage/shift/current", { credentials: "same-origin" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((body) => {
+          if (!body || cancelled) return;
+          setShiftSnapshot(body.snapshot ?? null);
+          setTriageDeskOnShift(body.viewer?.onShift === true);
+        });
+    }, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [authReady]);
+
   const incidents = data?.incidents ?? [];
   const selected = incidents.find((i) => i.lifecycle_id === selectedId) ?? null;
 
@@ -54,7 +85,7 @@ export default function TriagePage() {
 
   const runMutate = useCallback(
     async (action: "VERIFIED_FALSE_POSITIVE" | "VERIFIED_TRUE_FATIGUE") => {
-      if (!selectedId) return;
+      if (!selectedId || !triageDeskOnShift) return;
       setBusy(true);
       try {
         await fetch("/api/v1/triage/claim", {
@@ -87,11 +118,11 @@ export default function TriagePage() {
         setBusy(false);
       }
     },
-    [selectedId, invalidate]
+    [selectedId, invalidate, triageDeskOnShift]
   );
 
   useKeyboardTriage(
-    selectedId,
+    triageDeskOnShift ? selectedId : null,
     () => void runMutate("VERIFIED_FALSE_POSITIVE"),
     () => void runMutate("VERIFIED_TRUE_FATIGUE")
   );
@@ -165,6 +196,12 @@ export default function TriagePage() {
         }
       />
 
+      {shiftSnapshot ? (
+        <div className="mb-4">
+          <TriageShiftBanner snapshot={shiftSnapshot} onShift={triageDeskOnShift} />
+        </div>
+      ) : null}
+
       <div className="grid h-[calc(100vh-9rem)] grid-cols-1 gap-4 lg:grid-cols-12">
         <section className="lg:col-span-3">
           <QueuePanel incidents={incidents} selectedId={selectedId} onSelect={setSelectedId} />
@@ -176,6 +213,7 @@ export default function TriagePage() {
           <ActionPanel
             selectedId={selectedId}
             busy={busy}
+            triageDeskOnShift={triageDeskOnShift}
             onDismiss={() => void runMutate("VERIFIED_FALSE_POSITIVE")}
             onEscalate={() => void runMutate("VERIFIED_TRUE_FATIGUE")}
             onSimulate={() => void simulate()}

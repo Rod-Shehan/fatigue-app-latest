@@ -113,3 +113,18 @@ model TenantCompliancePolicyOverride {
 
   @@map("tenant_compliance_policy_overrides")
 }
+
+/// Shared with app-next — triage desk windows (§3.5). Table owned by app-next migrations.
+model TriageShift {
+  id              String   @id
+  startsAt        DateTime @db.Timestamptz(6)
+  endsAt          DateTime @db.Timestamptz(6)
+  assignees       Json
+  handoffNote     String?
+  updatedByUserId String?
+  updatedAt       DateTime @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([startsAt, endsAt])
+  @@map("TriageShift")
+}

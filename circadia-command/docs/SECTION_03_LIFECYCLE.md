@@ -1,8 +1,25 @@
 # Section 3 — Incident lifecycle state machine
 
-WAHVA/NHVR compliance requires an immutable chronological record. Optional **`MANAGER_VALIDATION_PENDING`** step is controlled per tenant via `tenant_compliance_policy_overrides.enforce_manager_gate`.
+WAHVA/NHVR compliance requires an immutable chronological record.
 
-## State transition matrix
+> **Real-time fatigue path (2026-06-29):** See [incident-routing-assembly.md](../../app-next/docs/architecture/incident-routing-assembly.md) **§3.5** — shift, **claim**, **confirm → action → close**, handover timeline. That path **supersedes** the optional **`MANAGER_VALIDATION_PENDING`** approval gate for new builds. Legacy `enforce_manager_gate` remains in DB for older contracts only.
+
+## State transition matrix (legacy + target)
+
+### Real-time path (§3.5 — preferred for fatigue/distraction)
+
+| Step | Actor | Audit |
+|------|-------|-------|
+| Open / `PENDING_TRIAGE` | — | Ingest |
+| Viewed | On-shift manager or operator | `viewed_at`, actor |
+| Claimed | On-shift manager or operator | `claimed_by`, mutex |
+| Confirmed / Not confirmed | Claimer | outcome |
+| Action(s) or no action | Claimer | `incident_action_log` |
+| `CLOSED` | Claimer or system | `closed_at` |
+
+### Legacy matrix (manager gate — do not use for new MTS real-time)
+
+Optional **`MANAGER_VALIDATION_PENDING`** when `tenant_compliance_policy_overrides.enforce_manager_gate` is true:
 
 | Initial state | Target state | Actor | Side effect |
 |---------------|--------------|-------|-------------|

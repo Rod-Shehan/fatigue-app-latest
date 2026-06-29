@@ -16,7 +16,7 @@
 |---------|-------|------|------|
 | 1 | Boundaries | Done | Deployed |
 | 2 | Database core | Done | `001`–`005`, `007`–`009` SQL |
-| 3 | State machine + audit log | Done | `transition-incident.ts`, `004` SQL |
+| 3 | State machine + audit log | Done | `transition-incident.ts`, `004` SQL · **evolving per [§3.5](../../app-next/docs/architecture/incident-routing-assembly.md)** |
 | 4 | Operator auth | Done | Username/password + JWT session |
 | 5 | API gateway | Done | `/api/v1/triage/*`, `/api/v1/admin/*` |
 | 6 | Edge ingress | Partial | `003` trigger + simulate-ingest |

@@ -1,6 +1,6 @@
 # Incident routing — building blocks assembly
 
-**Status:** Architecture locked for planning · **Implementation blocked** on camera/telematics feed samples and per-customer call-handling contracts.
+**Status:** Architecture locked for planning · **Autonomise ingest + Live alerts pilot live** · **Triage shift / claim / confirm→action** specified in §3.5 (implementation next).
 
 **Related:**
 
@@ -8,8 +8,8 @@
 - [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm (DND bypass, ADAS full-screen, roster fan-out) — core product, not built yet
 - [camera-risk-stream.md](./camera-risk-stream.md) — 15-minute assurance blocks (no acceptance workflow)
 - [ADR 0003](../adr/0003-prospective-risk-engine.md) — assurance vs compliance
-- `circadia-command/docs/MASTER_SPEC.md` — operator triage, lifecycle, manager gate
-- `circadia-command/docs/SECTION_03_LIFECYCLE.md` — state machine
+- `circadia-command/docs/MASTER_SPEC.md` — operator triage, lifecycle (legacy gate — see §3.5)
+- `circadia-command/docs/SECTION_03_LIFECYCLE.md` — state machine (evolving per §3.5)
 
 ---
 
@@ -98,7 +98,7 @@ Pipeline **C** is documented in `circadia-command/`.
 |-------|--------|-----------------|------|
 | `/manager` | **Shipped** | Desktop-first | Risk overview, compliance, records |
 | `/manager/map`, `/manager/messages`, … | **Shipped** | Either | Supporting manager workflows |
-| `/manager/alerts` | **Planned** | **Mobile-first** | Live incident inbox: video + manager validate/dismiss |
+| `/manager/alerts` | **Pilot** | **Mobile-first** | Live incident inbox: confirm → action → close (§3.5) |
 
 Managers on duty keep **`/manager/alerts`** open on a phone; desk work stays on `/manager`.
 
@@ -176,6 +176,191 @@ flowchart TD
 ```
 
 \* `PENDING_MANAGER_TRIAGE` is an optional future status for cleaner reporting when M3 skips operators entirely. v1 may reuse `MANAGER_VALIDATION_PENDING` with `actor_type` / routing metadata in the transition log.
+
+### 3.5 Real-time triage — shift, claim, confirm, action (canonical)
+
+**Locked 2026-06-29** for fatigue/distraction pipeline **C**. Supersedes the **manager approval gate** (`MANAGER_VALIDATION_PENDING` / “authorize before intervention”) for the **real-time fatigue path**. Triage is measured in **seconds**, not hours — events should reach a human surface within ~1 minute when connectivity allows.
+
+**Principle:** One **shared incident queue** and one **audit ledger**; two UIs (`/manager/alerts` and Command `/triage`). **Who is on shift** is configured per tenant (names and/or roles), shown on **both** UIs. **Outcome and recorded actions** matter for WHS evidence; any eligible on-shift person may **claim** and complete the flow.
+
+#### 3.5.1 Workflow (end-to-end)
+
+```text
+Vendor event → Circadia ingest (Autonomise webhook / edge)
+  → Shared queue (tenant-scoped)
+  → Viewed (audit)
+  → Claimed (on-shift actor only)
+  → Confirmed | Not confirmed
+  → Action taken | No action required (dropdown)
+  → Closed
+  → Append-only activity timeline (handover + audit)
+```
+
+```mermaid
+flowchart LR
+  INGEST[Ingest] --> OPEN[Open / unclaimed]
+  OPEN --> VIEW[Viewed]
+  VIEW --> CLAIM[Claimed]
+  CLAIM --> CONF{Confirmed?}
+  CONF -->|No| NC[Not confirmed]
+  CONF -->|Yes| ACT[Action or no action]
+  NC --> CLOSED[CLOSED]
+  ACT --> CLOSED
+```
+
+| Step | Product meaning | Audit |
+|------|-----------------|-------|
+| **Ingest** | Accepted vendor event; clip fetch may lag | `source_ingest_id`, payload, `triggerTime` |
+| **Viewed** | Someone opened the incident card | actor, timestamp |
+| **Claimed** | Mutex — one actor owns confirm/action | claimer id, type (`manager` \| `command_operator`), time |
+| **Confirmed** | Credible fatigue/distraction — fleet should treat as real | outcome + optional reason code |
+| **Not confirmed** | False positive / no fleet action | outcome + optional reason code |
+| **Action** | What the fleet **did** (dropdown) | action type, note, optional outcome |
+| **Closed** | Terminal; timeline frozen for edits | `closed_at` |
+
+**No approval step** — do not block action behind a second supervisor “authorize.” Legacy `enforce_manager_gate` / M1 approval remains in schema for older contracts only; new fatigue real-time builds use §3.5.
+
+#### 3.5.2 Triage shift (who is on shift)
+
+**One record per tenant** (current + scheduled next). Owner admin (or Circadia ops) sets:
+
+| Field | Purpose |
+|-------|---------|
+| `startsAt` / `endsAt` | Window in **Australia/Perth** (wall clock) |
+| `assignees` | **Names** (user ids / operator ids) and/or **roles** (`manager`, `command_operator`, `owner`) |
+| `handoffNote` | Optional text for incoming shift |
+| `setBy` | Owner user or ops audit |
+
+**Rules**
+
+- **Not** prescriptive (e.g. overnight = Command, daytime = manager). Tenant chooses names/roles per window.
+- **Any** active user matching an on-shift **role** may claim (pool). Example: role `manager` → all active managers on Approved Drivers / `User.role = manager`.
+- **Outcome > identity** — audit still records who claimed/confirmed/acted; product copy emphasises **what was decided and done**.
+- Shift end does **not** auto-close open incidents; items stay in queue for the next shift.
+
+**Display (both UIs)** — persistent banner on `/manager/alerts` and Command `/triage`:
+
+```text
+On shift until Tue 06:00 AWST
+  Managers (role, 3 active) · Command: Jane K, Alex M
+```
+
+Tap/expand for full window, assignee list, handoff note. Off-shift signed-in users see the same banner plus **“You are not on shift — view only.”**
+
+**API shape (planned):** `GET /api/triage-shift/current` (app-next, tenant-scoped) — Command reads the same row from shared Neon.
+
+#### 3.5.3 Claim
+
+**Term:** **Claim** = short-lived lock so only one person confirms/acts (avoids duplicate calls to the driver).
+
+| Queue state | On-shift user | Off-shift user |
+|-------------|---------------|----------------|
+| **Unclaimed** | **Claim** button | View only |
+| **Claimed by you** | Confirm / action / close | — |
+| **Claimed by other** | Read-only; shows **“Claimed by Pat M. · 08:07”** | Same |
+
+- Claim requires **on shift** (name or role match).
+- Command today: `POST /api/v1/triage/claim` sets `operator_id` on `fatigue_incident_lifecycle`. Extend to **manager** `user_id` + `claimed_by_actor_type`.
+- **Release claim** (v1.1): claimer or owner can release; **auto-release** on claim timeout (§3.5.6).
+
+#### 3.5.4 Confirmation and actions
+
+Replace Live alerts **Authorize / Dismiss** labels with:
+
+| UI label | Meaning | Maps from (pilot) |
+|----------|---------|-------------------|
+| **Confirmed** | Real event; credible fatigue/distraction | `authorized` |
+| **Not confirmed** | False positive / no fleet action | `dismissed` |
+
+**Optional reason codes** (dropdown): glare, camera fault, duplicate, non-fatigue movement, other.
+
+**Actions** (dropdown after confirm — one or more; each append-only):
+
+| Action type | Typical actor |
+|-------------|----------------|
+| `no_action_required` | Either |
+| `call_driver` | Manager or operator |
+| `message_driver` | Manager (in-app thread) |
+| `call_on_call_manager` | Command operator |
+| `call_depot_supervisor` | Either |
+| `request_rest_break` | Either |
+| `escalate_emergency` | Either (rare; hard audit) |
+
+**No action required** must be selectable explicitly (not silent abandon).
+
+Store in **`incident_action_log`** (append-only) linked to `lifecycle_id` / `ingest_event_id`. Existing `lifecycle_transition_log` remains for state changes; action log holds operational detail for handover.
+
+#### 3.5.5 Handover — visibility for all staff
+
+**Activity timeline** on every incident — visible to **all** tenant managers and command operators (on shift or not):
+
+```text
+08:06:55  Event detected · SW16024 · Fatigue
+08:07:40  Viewed by Pat M.
+08:07:52  Claimed by Pat M.
+08:08:10  Confirmed — real fatigue
+08:08:22  Action: Called driver — advised rest break
+08:08:45  Closed · No further action
+```
+
+**Filters (both UIs)**
+
+| Filter | Purpose |
+|--------|---------|
+| **Active** | Unclaimed, claimed, confirmed awaiting action |
+| **Needs follow-up** | Confirmed with incomplete action / monitor flag |
+| **Closed last 24h** | Shift handover digest |
+| **Recent** | History window (§3.5.7) |
+
+Incoming shift reads **continuation** from timeline + “Needs follow-up” — not a separate inbox.
+
+#### 3.5.6 Timeouts
+
+| Timer | Default | Behaviour |
+|-------|---------|-----------|
+| **Claim timeout** | 3–5 min | Auto-**release claim** → unclaimed; log `claim_expired` |
+| **Unclaimed warning** | 2 min | Visual escalation (red); optional notify all on-shift (push/SMS later) |
+| **Shift end** | — | **No** auto-close; open incidents remain for next shift |
+
+**Never** auto-dismiss an unhandled fatigue event on timeout.
+
+Tenant overrides via policy table (future); defaults above for MTS pilot.
+
+#### 3.5.7 Review windows (UI vs retention)
+
+| List | Audience | Default | Notes |
+|------|----------|---------|-------|
+| **Active queue** | On-shift (mutate) | Now | Unclaimed + claimed + awaiting action |
+| **Recent / history** | All staff (read) | **7 days** | Matches Live alerts default; also 24h / 48h / 30d |
+| **Just closed** (optional) | All | ~1 h | Soft landing before drop from Active |
+
+Legal/evidence retention follows [incident-evidence-retention.md](./incident-evidence-retention.md) — UI window ≠ archive policy.
+
+#### 3.5.8 Target lifecycle states (evolution from §2.7)
+
+Map to existing Command enum where possible; add statuses or metadata as needed:
+
+| Status | Queue bucket |
+|--------|----------------|
+| `OPEN` / `PENDING_TRIAGE` | Active — unclaimed |
+| `CLAIMED` *(new or metadata)* | Active — claimed |
+| `CONFIRMED` / `NOT_CONFIRMED` | Align with `VERIFIED_TRUE_FATIGUE` / `VERIFIED_FALSE_POSITIVE` + action phase |
+| `CLOSED` | History |
+
+Deprecate **`MANAGER_VALIDATION_PENDING`** for new real-time builds (§3.5.1).
+
+#### 3.5.9 Implementation mapping (current → target)
+
+| Piece | Today | Target |
+|-------|-------|--------|
+| Ingest | `AutonomiseWebhookIngest` + bridge → `edge_fatigue_events` | Unchanged |
+| Manager triage | `CameraAlertTriage` authorize/dismiss | Confirm/not + proxy to lifecycle |
+| Claim | Command `operator_id` only | + manager claim; both UIs |
+| Shift banner | — | `TriageShift` + owner UI |
+| Actions | — | `incident_action_log` + dropdown |
+| History | Live alerts 7d filter | Active vs Recent tabs |
+
+**Build order:** (1) shift display both UIs → (2) claim for managers + shared queue → (3) confirm/action timeline → (4) timeouts.
 
 ---
 
@@ -507,19 +692,21 @@ Routing mode M1–M4, assurance-only vs incidents, intervention on/off — uncha
 
 Use this as a sales/ops worksheet before enabling camera integration:
 
-1. **Routing mode** — M1 / M2 / M3 / M4?
-2. **Manager gate** — required authorize before driver intervention? (M1 yes, M2/M4 no, M3 N/A)
-3. **Manager dismiss** — `allow_manager_override_dismissal`?
-4. **Who is on call** — named managers vs roster (future); mobile number for SMS fallback?
-5. **Operator desk** — Circadia 24/7 or customer self-serve (M3)?
-6. **External handoff** — M4 webhook URL and payload format?
-7. **Assurance-only** — fleet pulse without lifecycle (pipeline B only)?
-8. **Intervention** — in-cab HUD enabled or alerts for coaching only?
-9. **Integration model** — Circadia primary (A), Events Platform primary (B), or dual (C)? See §5b.
-10. **Camera sources** — Circadia edge only, Streamax only, or both? Per-vehicle map if mixed. See §5c.
-11. **Assurance vs incidents per source** — e.g. Streamax incidents only, Circadia 15‑min blocks only.
-12. **Fatigue event preset** — `core_only` · `core_plus_adas` · `custom`; see §5d and `fatigue-event-catalogue.ts`.
-13. **Evidence retention** — re-host video on Circadia storage; retention years; export for audit — see [incident-evidence-retention.md](./incident-evidence-retention.md).
+1. **Routing mode** — M1 / M2 / M3 / M4? (Legacy; real-time fatigue uses §3.5 shift + claim, not M1 approval.)
+2. **Triage shift** — who is on shift (names and/or roles); window; shown on both UIs (§3.5.2)
+3. **Claim timeout** — default 3–5 min; unclaimed warning 2 min (§3.5.6)
+4. **Action catalogue** — which dropdown actions enabled for tenant (§3.5.4)
+5. **Manager dismiss** — `allow_manager_override_dismissal`? (legacy gate only)
+6. **Who is on call** — push/SMS roster (future); separate from triage shift
+7. **Operator desk** — Circadia contracted operators vs customer-only managers
+8. **External handoff** — M4 webhook URL and payload format?
+9. **Assurance-only** — fleet pulse without lifecycle (pipeline B only)?
+10. **Intervention** — in-cab HUD enabled or coaching-only alerts?
+11. **Integration model** — Circadia primary (A), Events Platform primary (B), or dual (C)? See §5b.
+12. **Camera sources** — Circadia edge only, Streamax only, or both? Per-vehicle map if mixed. See §5c.
+13. **Assurance vs incidents per source** — e.g. Streamax incidents only, Circadia 15‑min blocks only.
+14. **Fatigue event preset** — `core_only` · `core_plus_adas` · `custom`; see §5d and `fatigue-event-catalogue.ts`.
+15. **Evidence retention** — re-host video on Circadia storage; retention years; export for audit — see [incident-evidence-retention.md](./incident-evidence-retention.md).
 
 ---
 
@@ -530,8 +717,8 @@ Use this as a sales/ops worksheet before enabling camera integration:
 | **0 — This doc** | — | Assembly agreement |
 | **1 — Feed mapping** | Vendor JSON + clip URL sample | Ingest mapper spec (which pipeline, which fields) |
 | **2 — Policy API** | Phase 1 + tenant contract | `routing_mode` storage + `GET /api/frms/policy` |
-| **3 — Manager alerts** | Phase 2, M1 or M3 | `/manager/alerts` + bridge routes (approval gate) |
-| **4 — Operator triage** | Phase 1, M1/M2/M4 | Command ingest + `/triage` production |
+| **3 — Manager alerts** | Phase 2 + §3.5 | `/manager/alerts` + shift banner + claim + confirm/action timeline |
+| **4 — Operator triage** | Phase 1 + §3.5 | Command `/triage` — same queue, same shift display, claim |
 | **5 — Driver intervention** | Phase 3–4 + HUD approval | WebSocket HUD, `/driver/respond` |
 | **6 — External handoff** | M4 customers | Webhook on escalate |
 
@@ -552,24 +739,26 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 ## 9. Open decisions (resolve with first pilot customer)
 
-1. **M3 entry status** — reuse `MANAGER_VALIDATION_PENDING` vs new `PENDING_MANAGER_TRIAGE`.
+1. **M3 entry status** — reuse `MANAGER_VALIDATION_PENDING` vs new `PENDING_MANAGER_TRIAGE` (legacy; §3.5 supersedes for real-time).
 2. **Push notifications** — polling/SSE enough for v1, or mobile push required for after-hours?
-3. **Multi-manager claim** — first-claim-wins (like operator `claim`) vs broadcast to all managers?
+3. ~~**Multi-manager claim**~~ — **Resolved:** claim mutex; any on-shift manager/command operator may claim (§3.5.3).
 4. **Assurance + incident link** — show heatmap context on alert card, or keep inbox minimal?
 5. **Circadia edge direct POST** — driver-app relay only vs cellular direct-to-backend for own hardware (§5c).
 6. **Mixed-source scoring** — when both feed pipeline B for one driver, fusion rules and precedence (highest risk vs blended).
+7. **Claim auto-release duration** — 3 vs 5 minutes default for MTS.
 
 ---
 
 ## 10. Summary
 
 - **Three pipelines** — compliance, assurance blocks, incident lifecycle — stay separate.
-- **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — same ledger, different queues.
-- **Four routing modes** — M1–M4 — per-tenant, driven by how the customer runs calls.
+- **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — **one queue**, §3.5 shift + claim + confirm→action→close.
+- **Triage shift** — names and/or roles; banner on both UIs; not fixed overnight/daytime routing.
+- **Four routing modes** — M1–M4 — legacy assembly; real-time fatigue uses §3.5.
 - **Dual ingest** — Circadia edge (primary IP) + Streamax adapter (optional); both can run per fleet/vehicle (§5c).
 - **Tenant setup** — four blocks only for Autonomise path; fatigue event catalogue with tier presets (§5d).
-- **Feed samples** unlock Streamax Phase 1 only; Circadia `CameraRiskPacketV1` path already defined.
-- **Next concrete step:** continue own-camera ingest; in parallel obtain FTCloud samples when Streamax deal is live.
+- **Autonomise pilot** — fatigue + distraction ingest live; bridge to Command optional (`COMMAND_LIFECYCLE_BRIDGE_ENABLED`).
+- **Next concrete step:** implement §3.5.9 build order (shift → claim → confirm/action → timeouts).
 
 ---
 
@@ -577,6 +766,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-06-29 | **§3.5** Real-time triage — shift (names/roles), claim, confirm→action→close, handover timeline, timeouts, review windows; supersedes manager approval gate for fatigue path |
 | 2026-06-21 | [incident-evidence-retention.md](./incident-evidence-retention.md) — legal evidence pack, re-host video, §6 item 13 |
 | 2026-06-21 | Link [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm product |
 | 2026-06-21 | §5d Autonomise tenant setup + `fatigue-event-catalogue.ts` (VT3600-AI tiers) |
