@@ -1,10 +1,26 @@
 import type { PrismaClient } from "@prisma/client";
+import {
+  syncCommandLifecycleForVendorEventId,
+  syncCommandLifecycleFromEventIngest,
+} from "@/lib/integrations/command-lifecycle-bridge";
 import type { AutonomiseIngestResult } from "@/lib/integrations/autonomise-ingest";
 import { maybeBridgeAutonomiseEventFromIngest } from "@/lib/integrations/autonomise-block-bridge";
-import { maybePromoteAutonomiseToCommandLifecycle } from "@/lib/integrations/command-lifecycle-bridge";
 import { resolveAutonomiseMediaWithRetries } from "@/lib/integrations/autonomise-media-resolver";
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
+
+async function logCommandLifecycleSync(
+  ingestId: string,
+  lifecycle: Awaited<ReturnType<typeof syncCommandLifecycleFromEventIngest>>
+): Promise<void> {
+  if (lifecycle.promoted) {
+    console.info("[command-lifecycle-bridge] promoted", ingestId, lifecycle.eventId);
+  } else if (lifecycle.mediaUpdated) {
+    console.info("[command-lifecycle-bridge] media updated", ingestId);
+  } else if (lifecycle.skippedReason && lifecycle.skippedReason !== "already_promoted") {
+    console.info("[command-lifecycle-bridge] skipped", ingestId, lifecycle.skippedReason);
+  }
+}
 
 /** Background clip retries when sync ingest fetch ran too early (Vercel after() — keep delays short). */
 export async function runAutonomiseIngestFollowUp(
@@ -37,61 +53,38 @@ export async function runAutonomiseIngestFollowUp(
     }
   }
 
-  if (isAutonomiseApiConfigured() && !args.result.mediaUrl) {
-    const fields = extractAutonomiseFields(args.payload, args.kind);
-    const eventId =
-      fields.vendorEventId ??
-      args.result.linkedEventId ??
-      fields.linkedEventId;
+  const fields = extractAutonomiseFields(args.payload, args.kind);
+  const vendorEventId =
+    fields.vendorEventId ?? args.result.linkedEventId ?? fields.linkedEventId ?? null;
 
+  if (isAutonomiseApiConfigured() && !args.result.mediaUrl) {
     const shouldFetchMedia =
-      Boolean(eventId) &&
+      Boolean(vendorEventId) &&
       ((args.kind === "event" && args.result.accepted) || args.kind === "media");
 
-    if (shouldFetchMedia && eventId) {
+    if (shouldFetchMedia && vendorEventId) {
       await resolveAutonomiseMediaWithRetries(prisma, {
-        eventId,
+        eventId: vendorEventId,
         payload: args.payload,
       });
     }
   }
 
-  if (args.kind === "event") {
-    try {
-      const latest = await prisma.autonomiseWebhookIngest.findUnique({
-        where: { id: args.result.id },
-        select: {
-          id: true,
-          vendorAlarmId: true,
-          vehicleRego: true,
-          driverName: true,
-          mediaUrl: true,
-          payload: true,
-        },
-      });
-      if (latest) {
-        const lifecycle = await maybePromoteAutonomiseToCommandLifecycle(prisma, {
-          ingestId: latest.id,
-          vendorAlarmId: latest.vendorAlarmId,
-          vehicleRego: latest.vehicleRego,
-          driverName: latest.driverName,
-          mediaUrl: latest.mediaUrl,
-          payload: latest.payload ?? args.payload,
-        });
-        if (lifecycle.promoted) {
-          console.info("[command-lifecycle-bridge] promoted", latest.id, lifecycle.eventId);
-        } else if (lifecycle.mediaUpdated) {
-          console.info("[command-lifecycle-bridge] media updated", latest.id);
-        } else if (lifecycle.skippedReason && lifecycle.skippedReason !== "already_promoted") {
-          console.info("[command-lifecycle-bridge] skipped", latest.id, lifecycle.skippedReason);
-        }
+  try {
+    if (args.kind === "event") {
+      const lifecycle = await syncCommandLifecycleFromEventIngest(prisma, args.result.id);
+      await logCommandLifecycleSync(args.result.id, lifecycle);
+    } else if (vendorEventId) {
+      const lifecycle = await syncCommandLifecycleForVendorEventId(prisma, vendorEventId);
+      if (lifecycle.mediaUpdated || lifecycle.promoted) {
+        console.info("[command-lifecycle-bridge] media webhook sync", vendorEventId);
       }
-    } catch (e) {
-      console.warn(
-        "[command-lifecycle-bridge] failed",
-        args.result.id,
-        e instanceof Error ? e.message : e
-      );
     }
+  } catch (e) {
+    console.warn(
+      "[command-lifecycle-bridge] failed",
+      args.result.id,
+      e instanceof Error ? e.message : e
+    );
   }
 }

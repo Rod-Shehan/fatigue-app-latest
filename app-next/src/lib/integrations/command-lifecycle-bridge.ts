@@ -81,6 +81,58 @@ type PromoteArgs = {
   payload: unknown;
 };
 
+/** Re-promote or refresh media on an existing event ingest row (idempotent). */
+export async function syncCommandLifecycleFromEventIngest(
+  prisma: PrismaClient,
+  ingestId: string
+): Promise<CommandLifecycleBridgeResult> {
+  const latest = await prisma.autonomiseWebhookIngest.findUnique({
+    where: { id: ingestId },
+    select: {
+      id: true,
+      kind: true,
+      accepted: true,
+      vendorAlarmId: true,
+      vehicleRego: true,
+      driverName: true,
+      mediaUrl: true,
+      payload: true,
+    },
+  });
+  if (!latest || latest.kind !== "event" || !latest.accepted) {
+    return { promoted: false, skippedReason: "no_accepted_event_ingest" };
+  }
+  return maybePromoteAutonomiseToCommandLifecycle(prisma, {
+    ingestId: latest.id,
+    vendorAlarmId: latest.vendorAlarmId,
+    vehicleRego: latest.vehicleRego,
+    driverName: latest.driverName,
+    mediaUrl: latest.mediaUrl,
+    payload: latest.payload,
+  });
+}
+
+/** Sync Command lifecycle clip after media lands on a vendor event id. */
+export async function syncCommandLifecycleForVendorEventId(
+  prisma: PrismaClient,
+  vendorEventId: string
+): Promise<CommandLifecycleBridgeResult> {
+  const eventId = vendorEventId.trim();
+  if (!eventId) return { promoted: false, skippedReason: "missing_event_id" };
+
+  const eventRow = await prisma.autonomiseWebhookIngest.findFirst({
+    where: {
+      kind: "event",
+      accepted: true,
+      OR: [{ vendorEventId: eventId }, { linkedEventId: eventId }],
+    },
+    orderBy: { receivedAt: "desc" },
+    select: { id: true },
+  });
+  if (!eventRow) return { promoted: false, skippedReason: "no_event_ingest" };
+  return syncCommandLifecycleFromEventIngest(prisma, eventRow.id);
+}
+
 export async function maybePromoteAutonomiseToCommandLifecycle(
   prisma: PrismaClient,
   args: PromoteArgs

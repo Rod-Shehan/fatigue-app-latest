@@ -1,4 +1,5 @@
 import type { TxClient } from "@/lib/privileged-db";
+import { hydratePendingEdgeMediaFromIngest } from "@/lib/hydrate-edge-media";
 
 export type QueueCursor = { lastTime: string; lastId: string };
 
@@ -54,6 +55,11 @@ export async function fetchTriageQueue(
   const hasMore = rows.length > limit;
   const page = hasMore ? rows.slice(0, limit) : rows;
 
+  const hydratedClips = await hydratePendingEdgeMediaFromIngest(
+    tx,
+    page.map((row) => row.eventId)
+  );
+
   return {
     hasMore,
     incidents: page.map((row) => ({
@@ -63,7 +69,7 @@ export async function fetchTriageQueue(
       fatigue_metric_type: row.event.fatigueMetricType,
       confidence_score: Number(row.event.confidenceScore),
       detected_at: row.detectedAt.toISOString(),
-      video_snippet_url: row.event.videoSnippetUrl,
+      video_snippet_url: hydratedClips.get(row.eventId) ?? row.event.videoSnippetUrl,
       lock_holder_id: row.operatorId,
     })),
   };

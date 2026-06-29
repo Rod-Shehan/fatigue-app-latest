@@ -35,12 +35,14 @@ export function MediaViewport({ incident, locked }: Props) {
           <video
             key={incident.lifecycle_id}
             src={incident.video_snippet_url}
-            className="max-h-48 w-full rounded object-contain"
+            className="max-h-[min(48vh,28rem)] w-full rounded object-contain"
             autoPlay
             loop
             muted
             playsInline
           />
+        ) : incident.video_snippet_url?.startsWith("pending://") ? (
+          <p className="text-sm text-amber-300/90">Clip syncing from Autonomise…</p>
         ) : (
           <p className="text-sm text-slate-500">No video snippet</p>
         )}

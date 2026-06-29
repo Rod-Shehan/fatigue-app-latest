@@ -3,6 +3,7 @@ import {
   fetchAutonomiseEventMediaBundle,
   isAutonomiseApiConfigured,
 } from "@/lib/integrations/autonomise-api-client";
+import { syncCommandLifecycleForVendorEventId } from "@/lib/integrations/command-lifecycle-bridge";
 import { parseFnolReference, extractDeviceHardwareId } from "@/lib/integrations/autonomise-payload";
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -75,6 +76,18 @@ export async function resolveAndPersistAutonomiseMedia(
     },
     data: patch,
   });
+
+  if (patch.mediaUrl) {
+    try {
+      await syncCommandLifecycleForVendorEventId(prisma, eventId);
+    } catch (e) {
+      console.warn(
+        "[autonomise-media] command clip sync failed",
+        eventId,
+        e instanceof Error ? e.message : e
+      );
+    }
+  }
 
   return {
     eventId,
