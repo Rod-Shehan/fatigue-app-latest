@@ -3,6 +3,8 @@ import { TRIAGE_ACTIONS, type TriageAction } from "@/lib/lifecycle-status";
 import { applyOperatorTriageAction } from "@/lib/manager-gate";
 import { requireOperatorId } from "@/lib/operator-context";
 import { withOperatorContext } from "@/lib/privileged-db";
+import { assertOperatorOnShift } from "@/lib/triage-shift";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +27,8 @@ export async function POST(request: Request) {
       throw new CommandApiError("ERR_MALFORMED_PAYLOAD", "Invalid triage action.", 400);
     }
 
+    await assertOperatorOnShift(prisma, operatorId);
+
     const result = await withOperatorContext(operatorId, async (tx) =>
       applyOperatorTriageAction(tx, {
         lifecycleId: body.lifecycle_id!,
@@ -35,25 +39,11 @@ export async function POST(request: Request) {
       })
     );
 
-    const payload = {
+    return Response.json({
       lifecycle_id: body.lifecycle_id,
       status_transitioned_to: result.status,
-      manager_validation_bypassed: result.managerValidationBypassed,
       timestamp: new Date().toISOString(),
-    };
-
-    if (result.status === "MANAGER_VALIDATION_PENDING") {
-      return Response.json(
-        {
-          ...payload,
-          message:
-            "Alert held matching tenant infrastructure rule. Awaiting fleet manager confirmation.",
-        },
-        { status: 202 }
-      );
-    }
-
-    return Response.json(payload);
+    });
   } catch (error) {
     return apiErrorResponse(error);
   }

@@ -109,23 +109,6 @@ export async function completeOperatorResolution(
     },
   });
 
-  const policy = await tx.tenantCompliancePolicyOverride.findUnique({
-    where: { tenantIdUuid: row.tenantIdUuid },
-  });
-  const gateOn = policy?.enforceManagerGate ?? false;
-
-  if (gateOn) {
-    await transitionIncidentState(tx, {
-      lifecycleId: args.lifecycleId,
-      expectedCurrentStatus: "VERIFIED_TRUE_FATIGUE",
-      targetStatus: "MANAGER_VALIDATION_PENDING",
-      actorId: "SYSTEM",
-      actorType: "SYSTEM",
-      snapshot: { reason: "enforce_manager_gate" },
-    });
-    return { status: "MANAGER_VALIDATION_PENDING" };
-  }
-
   await transitionIncidentState(tx, {
     lifecycleId: args.lifecycleId,
     expectedCurrentStatus: "VERIFIED_TRUE_FATIGUE",

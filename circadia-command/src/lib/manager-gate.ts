@@ -14,7 +14,7 @@ export async function applyOperatorTriageAction(
     operatorNotes?: string;
     idempotencyKey: string;
   }
-): Promise<{ status: LifecycleStatus; managerValidationBypassed: boolean }> {
+): Promise<{ status: LifecycleStatus }> {
   const row = await tx.fatigueIncidentLifecycle.findUnique({
     where: { lifecycleId: args.lifecycleId },
   });
@@ -47,34 +47,7 @@ export async function applyOperatorTriageAction(
       snapshot: { idempotency_key: args.idempotencyKey, action: args.action },
     });
     await syncManagerCameraAlertTriage(tx, args);
-    return { status: "VERIFIED_FALSE_POSITIVE", managerValidationBypassed: true };
-  }
-
-  const policy = await tx.tenantCompliancePolicyOverride.findUnique({
-    where: { tenantIdUuid: row.tenantIdUuid },
-  });
-  const gateOn = policy?.enforceManagerGate ?? false;
-
-  if (gateOn) {
-    await transitionIncidentState(tx, {
-      lifecycleId: args.lifecycleId,
-      expectedCurrentStatus: "PENDING_TRIAGE",
-      targetStatus: "VERIFIED_TRUE_FATIGUE",
-      actorId: args.operatorId,
-      actorType: "OPERATOR",
-      notes: args.operatorNotes,
-      snapshot: { idempotency_key: args.idempotencyKey, action: args.action },
-    });
-    await syncManagerCameraAlertTriage(tx, args);
-    await transitionIncidentState(tx, {
-      lifecycleId: args.lifecycleId,
-      expectedCurrentStatus: "VERIFIED_TRUE_FATIGUE",
-      targetStatus: "MANAGER_VALIDATION_PENDING",
-      actorId: "SYSTEM",
-      actorType: "SYSTEM",
-      snapshot: { reason: "enforce_manager_gate" },
-    });
-    return { status: "MANAGER_VALIDATION_PENDING", managerValidationBypassed: false };
+    return { status: "VERIFIED_FALSE_POSITIVE" };
   }
 
   await transitionIncidentState(tx, {
@@ -93,7 +66,16 @@ export async function applyOperatorTriageAction(
     targetStatus: "INTERVENTION_SENT",
     actorId: "SYSTEM",
     actorType: "SYSTEM",
-    snapshot: { reason: "manager_gate_off" },
+    snapshot: { reason: "operator_triage_confirmed" },
   });
-  return { status: "INTERVENTION_SENT", managerValidationBypassed: true };
+  await transitionIncidentState(tx, {
+    lifecycleId: args.lifecycleId,
+    expectedCurrentStatus: "INTERVENTION_SENT",
+    targetStatus: "CLOSED",
+    actorId: args.operatorId,
+    actorType: "OPERATOR",
+    notes: args.operatorNotes,
+    snapshot: { reason: "operator_triage_closed", action: args.action },
+  });
+  return { status: "CLOSED" };
 }

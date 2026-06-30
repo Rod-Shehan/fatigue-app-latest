@@ -4,6 +4,7 @@
  */
 
 import { Prisma, type PrismaClient } from "@prisma/client";
+import { CommandApiError } from "@/lib/errors";
 
 export const TRIAGE_SHIFT_TIMEZONE = "Australia/Perth";
 
@@ -276,6 +277,18 @@ export function buildOperatorOnShift(
     operatorId,
     onShift: isOperatorOnShift(shift.assignees, { operatorId }),
   };
+}
+
+/** Server-side gate — mirrors manager assertManagerOnShift in app-next. */
+export async function assertOperatorOnShift(
+  prisma: PrismaClient,
+  operatorId: string
+): Promise<void> {
+  const snapshot = await getTriageShiftSnapshot(prisma);
+  const viewer = buildOperatorOnShift(snapshot, operatorId);
+  if (!viewer.onShift) {
+    throw new CommandApiError("ERR_NOT_ON_SHIFT", "You are not on triage shift.", 403);
+  }
 }
 
 /** One-line summary for shift banners (both UIs). */

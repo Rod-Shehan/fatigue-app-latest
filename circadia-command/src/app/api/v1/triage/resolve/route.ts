@@ -4,6 +4,8 @@ import { completeOperatorResolution, releaseTriageClaim } from "@/lib/complete-r
 import { requireOperatorId } from "@/lib/operator-context";
 import { withOperatorContext } from "@/lib/privileged-db";
 import { getSession } from "@/lib/auth/session";
+import { assertOperatorOnShift } from "@/lib/triage-shift";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -27,6 +29,8 @@ export async function POST(request: Request) {
     if (!isIncidentResolutionActionType(actionType)) {
       throw new CommandApiError("ERR_MALFORMED_PAYLOAD", "Invalid action_type.", 400);
     }
+
+    await assertOperatorOnShift(prisma, operatorId);
 
     const result = await withOperatorContext(operatorId, async (tx) =>
       completeOperatorResolution(tx, {

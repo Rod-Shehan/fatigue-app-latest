@@ -3,7 +3,7 @@ import { claimIncidentForOperator } from "@/lib/incident-claim";
 import { requireOperatorId } from "@/lib/operator-context";
 import { withOperatorContext } from "@/lib/privileged-db";
 import { getSession } from "@/lib/auth/session";
-import { buildOperatorOnShift, getTriageShiftSnapshot } from "@/lib/triage-shift";
+import { assertOperatorOnShift } from "@/lib/triage-shift";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
@@ -15,15 +15,7 @@ export async function POST(request: Request) {
       throw new CommandApiError("ERR_MALFORMED_PAYLOAD", "lifecycle_id is required.", 400);
     }
 
-    const snapshot = await getTriageShiftSnapshot(prisma);
-    const viewer = buildOperatorOnShift(snapshot, operatorId);
-    if (!viewer.onShift) {
-      throw new CommandApiError(
-        "ERR_NOT_ON_SHIFT",
-        "You are not on triage shift.",
-        403
-      );
-    }
+    await assertOperatorOnShift(prisma, operatorId);
 
     const claim = await withOperatorContext(operatorId, async (tx) =>
       claimIncidentForOperator(tx, {
