@@ -147,6 +147,9 @@ export default function AdminUsersPage() {
   return (
     <CommandShell>
       <CommandPageHeader
+        backHref="/triage"
+        backLabel="Live triage"
+        backText="Triage"
         title="Command users"
         subtitle="Owner console · create usernames and passwords"
         icon={<UserCog className="h-5 w-5" strokeWidth={2} aria-hidden />}

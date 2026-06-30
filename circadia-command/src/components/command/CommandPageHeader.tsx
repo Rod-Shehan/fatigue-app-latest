@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 
@@ -8,6 +10,9 @@ type Props = {
   icon?: ReactNode;
   /** Full wordmark instead of icon + title (login / triage desk). */
   brandFull?: boolean;
+  backHref?: string;
+  backLabel?: string;
+  backText?: string;
   actions?: ReactNode;
   compact?: boolean;
 };
@@ -17,6 +22,9 @@ export function CommandPageHeader({
   subtitle,
   icon,
   brandFull = false,
+  backHref,
+  backLabel,
+  backText,
   actions,
   compact = false,
 }: Props) {
@@ -37,6 +45,22 @@ export function CommandPageHeader({
           </div>
         ) : (
           <>
+            <CircadiaLogo variant="icon" size={compact ? 36 : 40} className="shrink-0" />
+            {backHref != null ? (
+              <Link
+                href={backHref}
+                className="flex shrink-0 items-center rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                aria-label={backLabel ?? "Back"}
+                title={backLabel ?? "Back"}
+              >
+                <span className="flex h-10 w-10 items-center justify-center">
+                  <ArrowLeft className="h-5 w-5" strokeWidth={2.25} aria-hidden />
+                </span>
+                {backText ? (
+                  <span className="-ml-1 pr-2 text-sm font-medium whitespace-nowrap">{backText}</span>
+                ) : null}
+              </Link>
+            ) : null}
             {icon != null && (
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm ring-1 ring-slate-700/80">
                 {icon}

@@ -8,7 +8,7 @@ import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
-import { LOBBY_NAV_LABEL } from "@/lib/lobby-url";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
 import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
@@ -158,8 +158,9 @@ export function OwnerSecurityView({
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
         <div className="max-w-md mx-auto px-4 py-10 space-y-6">
           <PageHeader
-            backHref="/"
-            backLabel={LOBBY_NAV_LABEL}
+            backHref="/manager"
+            backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+            backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
             title="Owner console"
             subtitle={`${PRODUCT_NAME} — claim organisation owner access`}
             icon={<Shield className="w-5 h-5" />}
@@ -193,8 +194,9 @@ export function OwnerSecurityView({
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="max-w-2xl mx-auto px-4 py-8 md:py-12 space-y-8">
         <PageHeader
-          backHref="/"
-          backLabel={LOBBY_NAV_LABEL}
+          backHref="/manager"
+          backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
           title="Owner console"
           subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
