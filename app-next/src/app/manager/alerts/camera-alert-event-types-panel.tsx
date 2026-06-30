@@ -119,11 +119,16 @@ function groupEntriesByTier(entries: CameraAlertEventSettingsSnapshot["entries"]
 
 type CameraAlertEventTypesPanelProps = {
   diagnostics?: CameraAlertOptionsDiagnostics;
+  /** Render inside desk menu — no outer collapsible card. */
+  embedded?: boolean;
 };
 
-export function CameraAlertEventTypesPanel({ diagnostics }: CameraAlertEventTypesPanelProps) {
+export function CameraAlertEventTypesPanel({
+  diagnostics,
+  embedded = false,
+}: CameraAlertEventTypesPanelProps) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(embedded);
   const [draftIds, setDraftIds] = useState<string[] | null>(null);
 
   const { data, isLoading, isError } = useQuery({
@@ -174,6 +179,108 @@ export function CameraAlertEventTypesPanel({ diagnostics }: CameraAlertEventType
     setDraftIds(defaultEnabledAlarmIds(preset));
   }
 
+  const panelBody = (
+    <>
+      {diagnostics ? <AlertOptionsDiagnostics diagnostics={diagnostics} /> : null}
+      <p className="mb-3 text-xs text-slate-600 dark:text-slate-400">
+        Choose which camera events appear in this inbox and are accepted from Autonomise. Changes
+        apply to new webhooks and re-filter recent history.
+      </p>
+
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-4 text-sm text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          Loading event types…
+        </div>
+      ) : isError || !settings ? (
+        <p className="text-sm text-rose-700 dark:text-rose-300">Could not load event settings.</p>
+      ) : (
+        <>
+          <div className="mb-3 flex flex-wrap gap-2">
+            {PRESET_BUTTONS.map((preset) => (
+              <Button
+                key={preset.id}
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => applyPreset(preset.id)}
+              >
+                {preset.label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            {groupEntriesByTier(settings.entries).map(([tier, entries]) => (
+              <div key={tier}>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                  {TIER_LABELS[tier] ?? tier}
+                </p>
+                <ul className="space-y-2">
+                  {entries.map((entry) => (
+                    <li key={entry.vendorAlarmId}>
+                      <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-800 dark:text-slate-200">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                          checked={enabledIds.includes(entry.vendorAlarmId)}
+                          onChange={() => toggleId(entry.vendorAlarmId)}
+                        />
+                        <span>
+                          {entry.displayName}
+                          <span className="ml-1 text-xs text-slate-400">({entry.family})</span>
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={!dirty || saveMutation.isPending}
+              onClick={() => saveMutation.mutate(enabledIds)}
+            >
+              {saveMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
+                  Saving…
+                </>
+              ) : (
+                "Save accepted types"
+              )}
+            </Button>
+            {dirty && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                onClick={() => setDraftIds(settings.enabledAlarmIds)}
+              >
+                Reset
+              </Button>
+            )}
+            {saveMutation.isError && (
+              <span className="text-xs text-rose-700 dark:text-rose-300">
+                {saveMutation.error instanceof Error
+                  ? saveMutation.error.message
+                  : "Could not save"}
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="text-sm">{panelBody}</div>;
+  }
+
   return (
     <div className="mb-4 rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <button
@@ -198,101 +305,7 @@ export function CameraAlertEventTypesPanel({ diagnostics }: CameraAlertEventType
       </button>
 
       {open && (
-        <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">
-          {diagnostics ? <AlertOptionsDiagnostics diagnostics={diagnostics} /> : null}
-          <p className="mb-3 text-xs text-slate-600 dark:text-slate-400">
-            Choose which camera events appear in this inbox and are accepted from Autonomise. Changes
-            apply to new webhooks and re-filter recent history.
-          </p>
-
-          {isLoading ? (
-            <div className="flex items-center gap-2 py-4 text-sm text-slate-500">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Loading event types…
-            </div>
-          ) : isError || !settings ? (
-            <p className="text-sm text-rose-700 dark:text-rose-300">Could not load event settings.</p>
-          ) : (
-            <>
-              <div className="mb-3 flex flex-wrap gap-2">
-                {PRESET_BUTTONS.map((preset) => (
-                  <Button
-                    key={preset.id}
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => applyPreset(preset.id)}
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                {groupEntriesByTier(settings.entries).map(([tier, entries]) => (
-                  <div key={tier}>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                      {TIER_LABELS[tier] ?? tier}
-                    </p>
-                    <ul className="space-y-2">
-                      {entries.map((entry) => (
-                        <li key={entry.vendorAlarmId}>
-                          <label className="flex cursor-pointer items-start gap-2 text-sm text-slate-800 dark:text-slate-200">
-                            <input
-                              type="checkbox"
-                              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                              checked={enabledIds.includes(entry.vendorAlarmId)}
-                              onChange={() => toggleId(entry.vendorAlarmId)}
-                            />
-                            <span>
-                              {entry.displayName}
-                              <span className="ml-1 text-xs text-slate-400">({entry.family})</span>
-                            </span>
-                          </label>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 flex items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={!dirty || saveMutation.isPending}
-                  onClick={() => saveMutation.mutate(enabledIds)}
-                >
-                  {saveMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden />
-                      Saving…
-                    </>
-                  ) : (
-                    "Save accepted types"
-                  )}
-                </Button>
-                {dirty && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setDraftIds(settings.enabledAlarmIds)}
-                  >
-                    Reset
-                  </Button>
-                )}
-                {saveMutation.isError && (
-                  <span className="text-xs text-rose-700 dark:text-rose-300">
-                    {saveMutation.error instanceof Error
-                      ? saveMutation.error.message
-                      : "Could not save"}
-                  </span>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+        <div className="border-t border-slate-200 px-4 py-3 dark:border-slate-700">{panelBody}</div>
       )}
     </div>
   );

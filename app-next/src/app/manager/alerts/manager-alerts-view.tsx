@@ -3,17 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { PageHeader } from "@/components/PageHeader";
-import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
+import { AlertsDeskChrome } from "@/components/manager/AlertsDeskChrome";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Trash2, Video, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
-import { TriageShiftBanner } from "@/components/manager/TriageShiftBanner";
-import { TriageQueueBanner } from "@/components/manager/TriageQueueBanner";
-import { ResolutionForm } from "@/components/triage/ResolutionForm";
+import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Trash2, Video, XCircle } from "lucide-react";
+import { cn } from "@/lib/utils";import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
@@ -26,16 +21,6 @@ function readStoredHours(): number {
   const parsed = raw ? Number(raw) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_HISTORY_HOURS;
 }
-
-const HOURS_OPTIONS = [
-  { label: "1 hour", value: 1 },
-  { label: "6 hours", value: 6 },
-  { label: "12 hours", value: 12 },
-  { label: "24 hours", value: 24 },
-  { label: "48 hours", value: 48 },
-  { label: "7 days", value: 168 },
-  { label: "30 days", value: 720 },
-] as const;
 
 type TriageFilter = "pending" | "all" | "decided";
 
@@ -681,115 +666,24 @@ export function ManagerAlertsView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="mx-auto max-w-lg px-4 py-4 md:max-w-2xl md:px-6 md:py-5">
-        <PageHeader
-          backHref="/manager"
-          backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
-          backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
-          title={MANAGER_EXPERIENCE.NAV_ALERTS}
-          icon={<Bell className="h-5 w-5" />}
-          compact
-          showLobbyLink={false}
+      <div className="mx-auto max-w-lg px-4 py-3 md:max-w-2xl md:px-6">
+        <AlertsDeskChrome
+          triageFilter={triageFilter}
+          onTriageFilterChange={setTriageFilter}
+          hours={hours}
+          onHoursChange={setHours}
+          showExcludedEvents={showExcludedEvents}
+          onShowExcludedEventsChange={setShowExcludedEvents}
+          liveLabel={liveLabel}
+          dataUpdatedAt={dataUpdatedAt}
+          pendingCount={pendingCount}
+          activePending={activePending}
+          visibleCount={alerts.length}
+          browseHours={browseHours}
+          shiftSnapshot={shiftQuery.data?.snapshot ?? null}
+          onShift={shiftQuery.data?.viewer.onShift ?? false}
+          diagnostics={data?.diagnostics}
         />
-        <ManagerSubnav compact />
-
-        {shiftQuery.data ? (
-          <div className="mb-4">
-            <TriageShiftBanner
-              snapshot={shiftQuery.data.snapshot}
-              onShift={shiftQuery.data.viewer.onShift}
-            />
-          </div>
-        ) : null}
-
-        <CameraAlertEventTypesPanel diagnostics={data?.diagnostics} />
-
-        {data?.queueSummary ? (
-          <TriageQueueBanner
-            activePending={activePending}
-            visibleCount={alerts.length}
-            browseHours={browseHours}
-            triageFilter={triageFilter}
-          />
-        ) : null}
-
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          {(["pending", "all", "decided"] as const).map((filter) => (
-            <Button
-              key={filter}
-              type="button"
-              size="sm"
-              variant={triageFilter === filter ? "default" : "outline"}
-              onClick={() => setTriageFilter(filter)}
-            >
-              {filter === "pending" ? "Need review" : filter === "decided" ? "Closed" : "All"}
-            </Button>
-          ))}
-          {triageFilter !== "pending" ? (
-            <select
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
-              className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-              aria-label="History time range"
-            >
-              {HOURS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
-              Active queue · all pending
-            </span>
-          )}
-        </div>
-
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-            <Radio
-              className={cn(
-                "h-4 w-4",
-                isLoading || isError ? "text-slate-400" : "text-emerald-600"
-              )}
-              aria-hidden
-            />
-            <span>{liveLabel}</span>
-            {showExcludedEvents ? (
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                · Including excluded
-                {excludedAlerts.length > 0 ? ` (${excludedAlerts.length})` : ""}
-              </span>
-            ) : (
-              <span className="text-xs text-slate-500 dark:text-slate-400">· Pilot alerts</span>
-            )}
-            {triageFilter === "pending" && pendingCount > 0 && (
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                · {pendingCount} awaiting review
-              </span>
-            )}
-            {dataUpdatedAt > 0 && (
-              <span className="text-xs text-slate-400">
-                · {new Date(dataUpdatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })}
-              </span>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setShowExcludedEvents((v) => !v)}
-            >
-              {showExcludedEvents ? "Hide excluded events" : "Show excluded events"}
-            </Button>
-            {!showExcludedEvents ? (
-              <p className="max-w-[14rem] text-right text-[11px] leading-snug text-slate-500 dark:text-slate-400">
-                Excluded = received from Autonomise but not in your enabled alert types.
-              </p>
-            ) : null}
-          </div>
-        </div>
 
         {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
@@ -844,7 +738,7 @@ export function ManagerAlertsView() {
                       Select to delete
                     </Button>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Use <strong>Show excluded events</strong> to load rejected ingest rows for bulk cleanup.
+                      Use the <strong>Excluded</strong> toggle to load rejected ingest rows for bulk cleanup.
                     </p>
                   </div>
                 ) : (
