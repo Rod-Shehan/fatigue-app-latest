@@ -11,7 +11,6 @@ import {
   MANAGER_SUBNAV_WORKSPACE,
 } from "@/lib/navigation/navigation-links";
 import { isOwnerRole } from "@/lib/roles";
-import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 import {
   BookOpen,
   LayoutDashboard,
@@ -99,11 +98,10 @@ function NavGroup({
 
 type ManagerNavPanelProps = {
   dense?: boolean;
-  showLobby?: boolean;
   className?: string;
 };
 
-export function ManagerNavPanel({ dense = false, showLobby = true, className }: ManagerNavPanelProps) {
+export function ManagerNavPanel({ dense = false, className }: ManagerNavPanelProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const role = (session?.user as { role?: string | null } | undefined)?.role;
@@ -111,7 +109,6 @@ export function ManagerNavPanel({ dense = false, showLobby = true, className }: 
 
   return (
     <div className={cn("flex flex-col gap-2.5", className)}>
-      {showLobby ? <LobbyNavLink /> : null}
       <NavGroup items={MANAGER_SUBNAV_WORKSPACE} pathname={pathname} dense={dense} />
       <NavGroup items={MANAGER_SUBNAV_FLEET} pathname={pathname} dense={dense} />
       {isOwner ? (

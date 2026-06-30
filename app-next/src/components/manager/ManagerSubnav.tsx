@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
-import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { ManagerNavPanel } from "@/components/manager/ManagerNavPanel";
 import { Menu, X } from "lucide-react";
 import {
@@ -70,7 +70,7 @@ export function ManagerSubnav({ compact = false }: ManagerSubnavProps) {
         className={cn(navShellClass, "flex items-center gap-2")}
         aria-label="Manager navigation"
       >
-        <LobbyNavLink iconOnly className="h-9 w-9 min-h-9 min-w-9 rounded-lg" />
+        <CircadiaLogo variant="icon" size={32} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
           {pageLabel}
         </span>
@@ -112,7 +112,7 @@ export function ManagerSubnav({ compact = false }: ManagerSubnavProps) {
         </div>
       ) : null}
       <div id="manager-subnav-panel">
-        <ManagerNavPanel showLobby={!compact} />
+        <ManagerNavPanel />
       </div>
     </nav>
   );

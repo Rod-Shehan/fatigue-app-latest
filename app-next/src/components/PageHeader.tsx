@@ -6,7 +6,6 @@ import { ArrowLeft, UserRound } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { formatRoleBadge, getDisplayNameFromSession } from "@/lib/session-display-name";
-import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 
 /**
@@ -28,6 +27,7 @@ export function PageHeader({
   /** Slim header for sheet + LogBar (mobile-first). Hides driver tile and shrinks title. */
   compact = false,
   /** Set false when a page subnav already includes Lobby (e.g. ManagerSubnav). */
+  /** @deprecated Lobby link removed — brand icon is always top-left. */
   showLobbyLink = true,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
@@ -73,7 +73,8 @@ export function PageHeader({
   const di =
     driverIdentity != null && driverIdentity.name.trim() !== "" ? driverIdentity : null;
   const hasDriverTile = di != null && !compact;
-  const showRightColumn = hasDriverTile || showLobbyLink || actions != null;
+  const showRightColumn = hasDriverTile || actions != null;
+  void showLobbyLink;
 
   const driverTile = di ? (
     <div
@@ -111,6 +112,11 @@ export function PageHeader({
         )}
       >
         <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
+          <CircadiaLogo
+            variant="icon"
+            size={compact ? 36 : 40}
+            className="shrink-0"
+          />
           {backHref != null ? (
             <Link
               href={backHref}
@@ -137,12 +143,7 @@ export function PageHeader({
                 </span>
               ) : null}
             </Link>
-          ) : (
-            <span
-              className={cn("shrink-0", compact ? "w-9 h-9" : "w-10 h-10 sm:w-12 sm:h-12")}
-              aria-hidden
-            />
-          )}
+          ) : null}
           <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             {icon != null && !compact && (
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 dark:bg-slate-600 flex items-center justify-center text-white dark:text-slate-200 shrink-0">
@@ -198,14 +199,13 @@ export function PageHeader({
             )}
           >
             {driverTile}
-            {showLobbyLink || actions != null ? (
+            {actions != null ? (
               <div
                 className={cn(
                   "flex flex-wrap items-center gap-2",
                   hasDriverTile ? "justify-start lg:justify-end" : "min-w-0 justify-start sm:justify-end"
                 )}
               >
-                {showLobbyLink ? <LobbyNavLink /> : <CircadiaLogo variant="icon" size={36} />}
                 {actions}
               </div>
             ) : null}
