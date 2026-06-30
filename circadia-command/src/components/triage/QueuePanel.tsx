@@ -45,6 +45,12 @@ export function QueuePanel({ incidents, selectedId, lockedId, onSelect }: Props)
             <p className="mt-1 text-xs text-slate-400">
               {(inc.confidence_score * 100).toFixed(0)}% · {new Date(inc.detected_at).toLocaleTimeString()}
             </p>
+            {inc.claimed_by_label ? (
+              <p className="mt-1 text-xs text-amber-300/90">
+                Claimed by {inc.claimed_by_label}
+                {inc.claimed_at ? ` · ${new Date(inc.claimed_at).toLocaleTimeString()}` : ""}
+              </p>
+            ) : null}
           </button>
         </li>
       ))}

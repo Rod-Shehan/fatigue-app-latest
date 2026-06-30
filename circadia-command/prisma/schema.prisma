@@ -71,6 +71,9 @@ model FatigueIncidentLifecycle {
   driverIdUuid            String   @map("driver_id_uuid") @db.Uuid
   operatorId              String?  @map("operator_id") @db.Uuid
   operator                CommandOperator? @relation(fields: [operatorId], references: [operatorId], onDelete: SetNull)
+  claimedByUserId         String?  @map("claimed_by_user_id") @db.VarChar(30)
+  claimedAt               DateTime? @map("claimed_at") @db.Timestamptz(6)
+  claimedByActorType      String?  @map("claimed_by_actor_type") @db.VarChar(50)
 
   eventStatus             String   @map("event_status") @db.VarChar(50)
   operatorNotes           String?  @map("operator_notes")

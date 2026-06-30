@@ -1,3 +1,4 @@
+import { CommandApiError } from "@/lib/errors";
 import type { LifecycleStatus } from "@/lib/lifecycle-status";
 import type { TriageAction } from "@/lib/lifecycle-status";
 import type { TxClient } from "@/lib/privileged-db";
@@ -19,6 +20,20 @@ export async function applyOperatorTriageAction(
   });
   if (!row) {
     throw new Error("NOT_FOUND");
+  }
+  if (row.claimedByUserId) {
+    throw new CommandApiError(
+      "ERR_INCIDENT_ALREADY_CLAIMED",
+      "This safety event has been claimed on the manager desk.",
+      409
+    );
+  }
+  if (!row.operatorId || row.operatorId !== args.operatorId) {
+    throw new CommandApiError(
+      "ERR_STATE_CONCURRENCY_VIOLATION",
+      "Claim this incident before acting on it.",
+      409
+    );
   }
 
   if (args.action === "VERIFIED_FALSE_POSITIVE") {

@@ -13,6 +13,9 @@ export type QueueIncident = {
   detected_at: string;
   video_snippet_url: string;
   lock_holder_id: string | null;
+  claimed_by_actor_type: "manager" | "command_operator" | null;
+  claimed_by_label: string | null;
+  claimed_at: string | null;
 };
 
 export function encodeCursor(cursor: QueueCursor): string {
@@ -52,7 +55,7 @@ export async function fetchTriageQueue(
     },
     orderBy: [{ detectedAt: "desc" }, { lifecycleId: "desc" }],
     take: limit + 1,
-    include: { event: true },
+    include: { event: true, operator: true },
   });
 
   const hasMore = rows.length > limit;
@@ -65,18 +68,50 @@ export async function fetchTriageQueue(
     page.map((row) => row.eventId)
   );
 
+  const userIds = page
+    .map((row) => row.claimedByUserId)
+    .filter((id): id is string => Boolean(id));
+  const users =
+    userIds.length > 0
+      ? await tx.$queryRaw<Array<{ id: string; name: string | null; email: string | null }>>`
+          SELECT id, name, email FROM "User" WHERE id = ANY(${userIds})
+        `
+      : [];
+  const userById = new Map(users.map((u) => [u.id, u]));
+
   return {
     hasMore,
-    incidents: page.map((row) => ({
-      lifecycle_id: row.lifecycleId,
-      event_id: row.eventId,
-      vehicle_registration: row.event.vehicleRegistration,
-      fatigue_metric_type: row.event.fatigueMetricType,
-      confidence_score: Number(row.event.confidenceScore),
-      detected_at: row.detectedAt.toISOString(),
-      video_snippet_url: hydratedClips.get(row.eventId) ?? row.event.videoSnippetUrl,
-      lock_holder_id: row.operatorId,
-    })),
+    incidents: page.map((row) => {
+      const actorType =
+        row.claimedByActorType === "manager" || row.claimedByActorType === "command_operator"
+          ? row.claimedByActorType
+          : row.operatorId
+            ? "command_operator"
+            : row.claimedByUserId
+              ? "manager"
+              : null;
+      const managerUser = row.claimedByUserId ? userById.get(row.claimedByUserId) : null;
+      const claimedLabel =
+        actorType === "command_operator"
+          ? (row.operator?.fullName ?? null)
+          : actorType === "manager"
+            ? managerUser?.name?.trim() || managerUser?.email || "Manager"
+            : null;
+
+      return {
+        lifecycle_id: row.lifecycleId,
+        event_id: row.eventId,
+        vehicle_registration: row.event.vehicleRegistration,
+        fatigue_metric_type: row.event.fatigueMetricType,
+        confidence_score: Number(row.event.confidenceScore),
+        detected_at: row.detectedAt.toISOString(),
+        video_snippet_url: hydratedClips.get(row.eventId) ?? row.event.videoSnippetUrl,
+        lock_holder_id: row.operatorId ?? row.claimedByUserId,
+        claimed_by_actor_type: actorType,
+        claimed_by_label: claimedLabel,
+        claimed_at: row.claimedAt?.toISOString() ?? null,
+      };
+    }),
   };
 }
 

@@ -14,6 +14,7 @@ import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-ev
 import { TriageShiftBanner } from "@/components/manager/TriageShiftBanner";
 import { TriageQueueBanner } from "@/components/manager/TriageQueueBanner";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
+import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 const HOURS_STORAGE_KEY = "circadia.manager-alerts.hours";
@@ -108,6 +109,10 @@ function AlertEventCard({
   selectionMode,
   selected,
   onSelectChange,
+  onClaim,
+  claimPending,
+  onReleaseClaim,
+  releasePending,
 }: {
   alert: CameraAlertItem;
   expanded: boolean;
@@ -129,6 +134,10 @@ function AlertEventCard({
   selectionMode: boolean;
   selected: boolean;
   onSelectChange: (selected: boolean) => void;
+  onClaim: () => void;
+  claimPending: boolean;
+  onReleaseClaim: () => void;
+  releasePending: boolean;
 }) {
   const [note, setNote] = useState("");
   const [videoError, setVideoError] = useState(false);
@@ -139,7 +148,18 @@ function AlertEventCard({
     alert.accepted &&
     !alert.eventWebhookPending &&
     alert.triageStatus === "pending";
+  const claimedByYou = alert.claimedByYou === true;
+  const claimedByOther = Boolean(alert.claimedByActorType && !claimedByYou);
+  const needsClaim = canTriage && !alert.claimedByActorType;
+  const canAct = canTriage && claimedByYou;
   const decided = alert.triageStatus !== "pending";
+
+  const activityQuery = useQuery({
+    queryKey: ["manager", "camera-alert-activity", alert.id],
+    queryFn: () => api.manager.cameraAlertActivity(alert.id),
+    enabled: expanded && !selectionMode,
+    staleTime: 15_000,
+  });
 
   useEffect(() => {
     setVideoError(false);
@@ -255,7 +275,52 @@ function AlertEventCard({
             )}
           </div>
 
-          {canTriage && !resolutionMode && (
+          <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-800/40">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              Activity
+            </p>
+            {activityQuery.isLoading ? (
+              <p className="text-xs text-slate-500">Loading timeline…</p>
+            ) : (
+              <IncidentActivityTimeline entries={activityQuery.data?.entries ?? []} compact />
+            )}
+          </div>
+
+          {canTriage && claimedByOther ? (
+            <p className="mb-3 text-sm text-amber-800 dark:text-amber-300">
+              Claimed by {alert.claimedByLabel ?? "another desk"} — view only until released.
+            </p>
+          ) : null}
+
+          {needsClaim ? (
+            <div className="mb-3">
+              <p className="mb-2 text-xs text-slate-600 dark:text-slate-400">
+                Claim this event before confirming or dismissing (shared with Command desk).
+              </p>
+              <Button type="button" className="w-full" disabled={claimPending} onClick={onClaim}>
+                {claimPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
+                Claim for review
+              </Button>
+            </div>
+          ) : null}
+
+          {canAct && !resolutionMode ? (
+            <div className="mb-3 flex justify-end">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs"
+                disabled={releasePending || triagePending || resolvePending}
+                onClick={onReleaseClaim}
+              >
+                {releasePending ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> : null}
+                Release claim
+              </Button>
+            </div>
+          ) : null}
+
+          {canAct && !resolutionMode && (
             <>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
@@ -296,7 +361,7 @@ function AlertEventCard({
             </>
           )}
 
-          {canTriage && resolutionMode && (
+          {canAct && resolutionMode && (
             <ResolutionForm
               busy={resolvePending}
               error={resolveError}
@@ -377,6 +442,12 @@ function AlertEventHeader({
         {alert.queueBurstLabel ? (
           <p className="mt-1 text-xs font-medium text-amber-800 dark:text-amber-300">
             {alert.queueBurstLabel}
+          </p>
+        ) : null}
+        {alert.claimedByLabel ? (
+          <p className="mt-1 text-xs font-medium text-violet-800 dark:text-violet-300">
+            Claimed by {alert.claimedByLabel}
+            {alert.claimedAt ? ` · ${formatWhen(alert.claimedAt)}` : ""}
           </p>
         ) : null}
         {!alert.mediaUrl && alert.mediaPending && (
@@ -475,6 +546,20 @@ export function ManagerAlertsView() {
       }),
     onSuccess: (_data, variables) => {
       setResolvingAlertId((current) => (current === variables.id ? null : current));
+      void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+    },
+  });
+
+  const claimMutation = useMutation({
+    mutationFn: (id: string) => api.manager.cameraAlertClaim(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+    },
+  });
+
+  const releaseClaimMutation = useMutation({
+    mutationFn: (id: string) => api.manager.cameraAlertReleaseClaim(id),
+    onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
     },
   });
@@ -876,6 +961,12 @@ export function ManagerAlertsView() {
                 selectionMode={selectionMode}
                 selected={selectedIds.has(alert.id)}
                 onSelectChange={(next) => toggleSelected(alert.id, next)}
+                onClaim={() => claimMutation.mutate(alert.id)}
+                claimPending={claimMutation.isPending && claimMutation.variables === alert.id}
+                onReleaseClaim={() => releaseClaimMutation.mutate(alert.id)}
+                releasePending={
+                  releaseClaimMutation.isPending && releaseClaimMutation.variables === alert.id
+                }
               />
             ))}
             </div>

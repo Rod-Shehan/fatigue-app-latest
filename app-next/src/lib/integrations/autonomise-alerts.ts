@@ -19,6 +19,7 @@ import {
   fetchActiveTriageQueueRows,
   type TriageQueueSummary,
 } from "@/lib/integrations/triage-active-queue";
+import { loadIncidentClaimsByLifecycleIds } from "@/lib/integrations/incident-claim";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
@@ -50,6 +51,10 @@ export type CameraAlertItem = {
   lifecycleId?: string | null;
   /** Set when multiple active events share a rego (e.g. distraction burst). */
   queueBurstLabel?: string | null;
+  claimedByActorType?: "manager" | "command_operator" | null;
+  claimedByLabel?: string | null;
+  claimedAt?: string | null;
+  claimedByYou?: boolean;
 };
 
 export type CameraAlertsDiagnostics = {
@@ -320,7 +325,7 @@ export function buildCameraAlertsFromRows(
 
 async function listActiveTriageAsCameraAlerts(
   prisma: PrismaClient,
-  args: { limit?: number; backfillMedia?: boolean }
+  args: { limit?: number; backfillMedia?: boolean; viewerUserId?: string }
 ): Promise<CameraAlertItem[]> {
   const limit = Math.min(Math.max(args.limit ?? 100, 1), 200);
   const activeRows = await fetchActiveTriageQueueRows(prisma, limit);
@@ -384,6 +389,24 @@ async function listActiveTriageAsCameraAlerts(
   alerts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
 
   buildQueueBurstLabels(alerts);
+
+  const claimByLifecycle = await loadIncidentClaimsByLifecycleIds(
+    prisma,
+    activeRows.map((row) => row.lifecycle_id)
+  );
+  for (const alert of alerts) {
+    if (!alert.lifecycleId) continue;
+    const claim = claimByLifecycle.get(alert.lifecycleId);
+    if (!claim) continue;
+    alert.claimedByActorType = claim.claimedByActorType;
+    alert.claimedByLabel = claim.claimedByLabel;
+    alert.claimedAt = claim.claimedAt;
+    if (args.viewerUserId) {
+      alert.claimedByYou =
+        claim.claimedByActorType === "manager" && claim.claimedByUserId === args.viewerUserId;
+    }
+  }
+
   return alerts;
 }
 
@@ -397,6 +420,7 @@ export async function listCameraAlerts(
     acceptedOnly?: boolean;
     backfillMedia?: boolean;
     triageFilter?: "all" | "pending" | "decided";
+    viewerUserId?: string;
   }
 ): Promise<{
   alerts: CameraAlertItem[];
@@ -411,6 +435,7 @@ export async function listCameraAlerts(
     const alerts = await listActiveTriageAsCameraAlerts(prisma, {
       limit: args.limit ?? 100,
       backfillMedia: args.backfillMedia,
+      viewerUserId: args.viewerUserId,
     });
     const visibleAlerts = args.acceptedOnly === false ? alerts : alerts.filter((a) => a.accepted);
 

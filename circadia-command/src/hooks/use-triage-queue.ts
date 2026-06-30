@@ -11,6 +11,9 @@ export type QueueIncident = {
   detected_at: string;
   video_snippet_url: string;
   lock_holder_id: string | null;
+  claimed_by_actor_type: "manager" | "command_operator" | null;
+  claimed_by_label: string | null;
+  claimed_at: string | null;
 };
 
 type QueueResponse = {

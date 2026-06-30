@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { completeManagerIncidentResolution } from "@/lib/integrations/incident-resolution";
+import {
+  assertManagerHoldsClaim,
+  assertManagerOnShift,
+  IncidentClaimError,
+  resolveLifecycleIdForIngest,
+} from "@/lib/integrations/incident-claim";
 import { isIncidentResolutionActionType } from "@/lib/triage-resolution";
 import { prisma } from "@/lib/prisma";
 
@@ -38,6 +44,12 @@ export async function POST(
   }
 
   try {
+    await assertManagerOnShift(prisma, manager.user.id, manager.user.role);
+    const lifecycleId = await resolveLifecycleIdForIngest(prisma, ingestEventId);
+    if (lifecycleId) {
+      await assertManagerHoldsClaim(prisma, lifecycleId, manager.user.id);
+    }
+
     const result = await completeManagerIncidentResolution(prisma, {
       ingestEventId,
       vendorEventId: body.vendorEventId ?? null,
@@ -61,6 +73,15 @@ export async function POST(
       lifecycleStatus: result.lifecycleStatus,
     });
   } catch (e) {
+    if (e instanceof IncidentClaimError) {
+      const status =
+        e.code === "NOT_ON_SHIFT"
+          ? 403
+          : e.code === "NOT_CLAIMED_BY_YOU" || e.code === "ALREADY_CLAIMED"
+            ? 409
+            : 400;
+      return NextResponse.json({ error: e.message, code: e.code }, { status });
+    }
     const msg = e instanceof Error ? e.message : "Failed to record resolution";
     if (msg === "ALREADY_DECIDED") {
       return NextResponse.json({ error: "This event was already reviewed" }, { status: 409 });

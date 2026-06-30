@@ -16,7 +16,12 @@ export async function releaseTriageClaim(
       operatorId: args.operatorId,
       eventStatus: "PENDING_TRIAGE",
     },
-    data: { operatorId: null },
+    data: {
+      operatorId: null,
+      claimedAt: null,
+      claimedByActorType: null,
+      claimedByUserId: null,
+    },
   });
   return updated.count > 0;
 }
@@ -46,7 +51,21 @@ export async function completeOperatorResolution(
       409
     );
   }
-  if (row.operatorId && row.operatorId !== args.operatorId) {
+  if (row.claimedByUserId) {
+    throw new CommandApiError(
+      "ERR_INCIDENT_ALREADY_CLAIMED",
+      "This safety event has been claimed on the manager desk.",
+      409
+    );
+  }
+  if (!row.operatorId) {
+    throw new CommandApiError(
+      "ERR_STATE_CONCURRENCY_VIOLATION",
+      "Claim this incident before resolving.",
+      409
+    );
+  }
+  if (row.operatorId !== args.operatorId) {
     throw new CommandApiError(
       "ERR_INCIDENT_ALREADY_CLAIMED",
       "This safety event has already been claimed by another operations seat.",

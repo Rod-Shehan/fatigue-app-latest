@@ -81,6 +81,11 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
         void queryClient.invalidateQueries({ queryKey: ["triage", "live-queue"] });
       };
 
+      const onClaimReleased = (event: MessageEvent) => {
+        rememberId(event);
+        void queryClient.invalidateQueries({ queryKey: ["triage", "live-queue"] });
+      };
+
       const onClosed = (event: MessageEvent) => {
         rememberId(event);
         const data = JSON.parse(event.data) as { lifecycle_id: string };
@@ -104,6 +109,7 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
 
       es.addEventListener("INCIDENT_NEW", onNew);
       es.addEventListener("INCIDENT_CLAIMED", onRefresh);
+      es.addEventListener("INCIDENT_CLAIM_RELEASED", onClaimReleased);
       es.addEventListener("INCIDENT_CLOSED", onClosed);
       es.addEventListener("DRIVER_RESPONSE", onRefresh);
     };

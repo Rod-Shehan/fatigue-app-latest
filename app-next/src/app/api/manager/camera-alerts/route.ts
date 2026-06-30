@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
       triageFilter,
       backfillMedia,
       limit,
+      viewerUserId: manager.user.id,
     });
     return NextResponse.json(result);
   } catch (e) {

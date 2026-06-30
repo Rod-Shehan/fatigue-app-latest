@@ -239,6 +239,10 @@ export type CameraAlertItem = {
   eventWebhookPending?: boolean;
   lifecycleId?: string | null;
   queueBurstLabel?: string | null;
+  claimedByActorType?: "manager" | "command_operator" | null;
+  claimedByLabel?: string | null;
+  claimedAt?: string | null;
+  claimedByYou?: boolean;
 };
 
 export type ManagerComplianceItem = {
@@ -555,6 +559,20 @@ export const api = {
         lifecycleId: string | null;
         lifecycleStatus: string | null;
       }>(`/api/manager/camera-alerts/${ingestEventId}/resolve`, { method: "POST", body: data }),
+    cameraAlertClaim: (ingestEventId: string) =>
+      fetchApi<{ ok: boolean; claim: import("@/lib/integrations/incident-claim").IncidentClaimView }>(
+        `/api/manager/camera-alerts/${ingestEventId}/claim`,
+        { method: "POST" }
+      ),
+    cameraAlertReleaseClaim: (ingestEventId: string) =>
+      fetchApi<{ ok: boolean; lifecycleId: string }>(
+        `/api/manager/camera-alerts/${ingestEventId}/claim`,
+        { method: "DELETE" }
+      ),
+    cameraAlertActivity: (ingestEventId: string) =>
+      fetchApi<{
+        entries: import("@/lib/integrations/incident-activity-timeline").IncidentActivityEntry[];
+      }>(`/api/manager/camera-alerts/${ingestEventId}/activity`),
     cameraAlertEventSettings: () =>
       fetchApi<{ settings: CameraAlertEventSettingsSnapshot }>(
         "/api/manager/camera-alerts/event-settings"
