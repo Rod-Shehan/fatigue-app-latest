@@ -4,6 +4,7 @@ import {
   recordCameraAlertTriage,
   type CameraAlertTriageDecision,
 } from "@/lib/integrations/camera-alert-triage";
+import { syncCommandLifecycleFromManagerTriage } from "@/lib/integrations/manager-lifecycle-sync";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -49,6 +50,12 @@ export async function POST(
       decidedByEmail: manager.user.email,
     });
 
+    const lifecycle = await syncCommandLifecycleFromManagerTriage(prisma, {
+      ingestEventId,
+      decision: decision as CameraAlertTriageDecision,
+      note: body.note,
+    });
+
     return NextResponse.json({
       ok: true,
       triage: {
@@ -58,6 +65,8 @@ export async function POST(
         decidedByEmail: record.decidedByEmail,
         decidedAt: record.decidedAt.toISOString(),
       },
+      lifecycleId: lifecycle.lifecycleId,
+      lifecycleStatus: lifecycle.lifecycleStatus,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to record triage";

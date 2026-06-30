@@ -7,6 +7,7 @@ import {
   encodeCursor,
   fetchTriageQueue,
 } from "@/lib/triage-queue";
+import { reconcileStalePendingLifecycleFromManagerTriage } from "@/lib/reconcile-manager-triage";
 
 export async function GET(request: Request) {
   try {
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
     const cursor = decodeCursor(searchParams.get("cursor"));
 
     const result = await withOperatorContext(operatorId, async (tx) => {
+      await reconcileStalePendingLifecycleFromManagerTriage(tx);
       const [queue, queueDepth] = await Promise.all([
         fetchTriageQueue(tx, limit, cursor),
         countPendingTriage(tx),
