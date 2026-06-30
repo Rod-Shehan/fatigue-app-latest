@@ -119,6 +119,14 @@ export async function GET(request: Request) {
                 return;
               }
 
+              if (payload.event === "INCIDENT_CLOSED") {
+                push(payload.lifecycle_id, "INCIDENT_CLOSED", {
+                  lifecycle_id: payload.lifecycle_id,
+                  event_status: payload.event_status,
+                });
+                return;
+              }
+
               const incident = await withOperatorContext(operatorId, (tx) =>
                 fetchIncidentForSse(tx, payload.lifecycle_id)
               );

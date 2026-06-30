@@ -12,8 +12,19 @@ import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Radio, Trash2, 
 import { cn } from "@/lib/utils";
 import { CameraAlertEventTypesPanel } from "@/app/manager/alerts/camera-alert-event-types-panel";
 import { TriageShiftBanner } from "@/components/manager/TriageShiftBanner";
+import { TriageQueueBanner } from "@/components/manager/TriageQueueBanner";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
+
+const HOURS_STORAGE_KEY = "circadia.manager-alerts.hours";
+const DEFAULT_HISTORY_HOURS = 168;
+
+function readStoredHours(): number {
+  if (typeof window === "undefined") return DEFAULT_HISTORY_HOURS;
+  const raw = window.localStorage.getItem(HOURS_STORAGE_KEY);
+  const parsed = raw ? Number(raw) : NaN;
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_HISTORY_HOURS;
+}
 
 const HOURS_OPTIONS = [
   { label: "1 hour", value: 1 },
@@ -363,6 +374,11 @@ function AlertEventHeader({
             ? `Detected ${formatWhen(alert.triggerAt)} · received ${formatWhen(alert.receivedAt)}`
             : formatWhen(alert.receivedAt)}
         </p>
+        {alert.queueBurstLabel ? (
+          <p className="mt-1 text-xs font-medium text-amber-800 dark:text-amber-300">
+            {alert.queueBurstLabel}
+          </p>
+        ) : null}
         {!alert.mediaUrl && alert.mediaPending && (
           <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">Fetching clip…</p>
         )}
@@ -405,13 +421,28 @@ export function ManagerAlertsView() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showExcludedEvents, setShowExcludedEvents] = useState(false);
-  const [hours, setHours] = useState(24);
+  const [hours, setHours] = useState(DEFAULT_HISTORY_HOURS);
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
 
-  const queryKey = ["manager", "camera-alerts", showExcludedEvents, hours, triageFilter] as const;
+  useEffect(() => {
+    setHours(readStoredHours());
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(HOURS_STORAGE_KEY, String(hours));
+  }, [hours]);
+
+  const queryKey = [
+    "manager",
+    "camera-alerts",
+    showExcludedEvents,
+    triageFilter,
+    triageFilter === "pending" ? null : hours,
+  ] as const;
 
   const { data, isLoading, isError, dataUpdatedAt, isFetching } = useQuery({
     queryKey,
@@ -560,6 +591,9 @@ export function ManagerAlertsView() {
       ? alerts.length
       : alerts.filter((a) => a.accepted && a.triageStatus === "pending").length;
 
+  const activePending = data?.queueSummary?.activePending ?? pendingCount;
+  const browseHours = data?.queueSummary?.browseHours ?? (triageFilter === "pending" ? null : hours);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       <div className="mx-auto max-w-lg px-4 py-4 md:max-w-2xl md:px-6 md:py-5">
@@ -585,6 +619,15 @@ export function ManagerAlertsView() {
 
         <CameraAlertEventTypesPanel diagnostics={data?.diagnostics} />
 
+        {data?.queueSummary ? (
+          <TriageQueueBanner
+            activePending={activePending}
+            visibleCount={alerts.length}
+            browseHours={browseHours}
+            triageFilter={triageFilter}
+          />
+        ) : null}
+
         <div className="mb-3 flex flex-wrap items-center gap-2">
           {(["pending", "all", "decided"] as const).map((filter) => (
             <Button
@@ -597,18 +640,24 @@ export function ManagerAlertsView() {
               {filter === "pending" ? "Need review" : filter === "decided" ? "Closed" : "All"}
             </Button>
           ))}
-          <select
-            value={hours}
-            onChange={(e) => setHours(Number(e.target.value))}
-            className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
-            aria-label="Time range"
-          >
-            {HOURS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          {triageFilter !== "pending" ? (
+            <select
+              value={hours}
+              onChange={(e) => setHours(Number(e.target.value))}
+              className="ml-auto rounded-md border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+              aria-label="History time range"
+            >
+              {HOURS_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span className="ml-auto text-xs text-slate-500 dark:text-slate-400">
+              Active queue · all pending
+            </span>
+          )}
         </div>
 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">

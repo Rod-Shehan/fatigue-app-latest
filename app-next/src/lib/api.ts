@@ -237,6 +237,8 @@ export type CameraAlertItem = {
   triageDecidedBy: string | null;
   triageNote: string | null;
   eventWebhookPending?: boolean;
+  lifecycleId?: string | null;
+  queueBurstLabel?: string | null;
 };
 
 export type ManagerComplianceItem = {
@@ -489,6 +491,7 @@ export const api = {
         alerts: CameraAlertItem[];
         configured: boolean;
         testingTools?: { allowDelete: boolean };
+        queueSummary?: { activePending: number; browseHours: number | null };
         diagnostics?: {
           ingestEvents: number;
           ingestEventsRejected: number;

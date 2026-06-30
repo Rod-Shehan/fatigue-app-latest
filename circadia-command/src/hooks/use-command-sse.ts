@@ -81,8 +81,30 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
         void queryClient.invalidateQueries({ queryKey: ["triage", "live-queue"] });
       };
 
+      const onClosed = (event: MessageEvent) => {
+        rememberId(event);
+        const data = JSON.parse(event.data) as { lifecycle_id: string };
+        queryClient.setQueryData<QueueCache>(["triage", "live-queue"], (old) => {
+          if (!old) {
+            void queryClient.invalidateQueries({ queryKey: ["triage", "live-queue"] });
+            return old;
+          }
+          const remaining = old.incidents.filter((i) => i.lifecycle_id !== data.lifecycle_id);
+          if (remaining.length === old.incidents.length) {
+            void queryClient.invalidateQueries({ queryKey: ["triage", "live-queue"] });
+            return old;
+          }
+          return {
+            ...old,
+            queue_depth: Math.max(0, old.queue_depth - 1),
+            incidents: remaining,
+          };
+        });
+      };
+
       es.addEventListener("INCIDENT_NEW", onNew);
       es.addEventListener("INCIDENT_CLAIMED", onRefresh);
+      es.addEventListener("INCIDENT_CLOSED", onClosed);
       es.addEventListener("DRIVER_RESPONSE", onRefresh);
     };
 

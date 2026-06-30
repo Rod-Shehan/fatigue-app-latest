@@ -13,6 +13,12 @@ import {
 } from "@/lib/integrations/command-triage-sync";
 import { resolveReviewMediaUrl } from "@/lib/integrations/autonomise-media-extract";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
+import {
+  buildQueueBurstLabels,
+  countActiveTriagePending,
+  fetchActiveTriageQueueRows,
+  type TriageQueueSummary,
+} from "@/lib/integrations/triage-active-queue";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
@@ -40,6 +46,10 @@ export type CameraAlertItem = {
   triageNote: string | null;
   /** Media arrived but no matching event row in ingest (true webhook gap). */
   eventWebhookPending?: boolean;
+  /** Shared lifecycle row when surfaced from active triage queue. */
+  lifecycleId?: string | null;
+  /** Set when multiple active events share a rego (e.g. distraction burst). */
+  queueBurstLabel?: string | null;
 };
 
 export type CameraAlertsDiagnostics = {
@@ -141,7 +151,7 @@ function enrichMediaRow(row: IngestRow): IngestRow {
 }
 
 /** Re-evaluate stored event rows when mapper or tenant settings change. */
-function enrichEventRow(row: IngestRow, enabledAlarmIds: ReadonlySet<string>): IngestRow {
+export function enrichEventRow(row: IngestRow, enabledAlarmIds: ReadonlySet<string>): IngestRow {
   if (!row.payload) return row;
   const fields = extractAutonomiseFields(row.payload, "event");
   const vendorAlarmId = fields.vendorAlarmId ?? row.vendorAlarmId;
@@ -308,6 +318,77 @@ export function buildCameraAlertsFromRows(
   );
 }
 
+async function listActiveTriageAsCameraAlerts(
+  prisma: PrismaClient,
+  args: { limit?: number; backfillMedia?: boolean }
+): Promise<CameraAlertItem[]> {
+  const limit = Math.min(Math.max(args.limit ?? 100, 1), 200);
+  const activeRows = await fetchActiveTriageQueueRows(prisma, limit);
+  if (activeRows.length === 0) return [];
+
+  const ingestIds = activeRows.map((row) => row.source_ingest_id);
+  const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
+
+  const ingestRows = await prisma.autonomiseWebhookIngest.findMany({
+    where: { id: { in: ingestIds } },
+    select: INGEST_LIST_SELECT,
+  });
+  const ingestById = new Map(ingestRows.map((row) => [row.id, row]));
+
+  const enrichedEvents = activeRows
+    .map((row) => {
+      const ingest = ingestById.get(row.source_ingest_id);
+      if (!ingest) return null;
+      return enrichEventRow(ingest, enabledAlarmIds);
+    })
+    .filter((row): row is IngestRow => row !== null);
+
+  if (args.backfillMedia !== false) {
+    await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
+    const freshRows = await prisma.autonomiseWebhookIngest.findMany({
+      where: { id: { in: ingestIds } },
+      select: {
+        id: true,
+        mediaUrl: true,
+        driverName: true,
+        vehicleRego: true,
+        payload: true,
+        vendorAlarmId: true,
+      },
+    });
+    const freshById = new Map(freshRows.map((row) => [row.id, row]));
+    for (const row of enrichedEvents) {
+      const fresh = freshById.get(row.id);
+      if (!fresh) continue;
+      if (fresh.mediaUrl) row.mediaUrl = fresh.mediaUrl;
+      if (fresh.driverName) row.driverName = fresh.driverName;
+      if (fresh.vehicleRego) row.vehicleRego = fresh.vehicleRego;
+      const clip = fresh.mediaUrl
+        ? resolveReviewMediaUrl(fresh.payload, fresh.vendorAlarmId, fresh.mediaUrl)
+        : null;
+      if (clip) row.mediaUrl = clip;
+    }
+  }
+
+  const lifecycleByIngest = new Map(
+    activeRows.map((row) => [row.source_ingest_id, row.lifecycle_id])
+  );
+
+  const alerts = buildCameraAlertsFromRows(enrichedEvents, [], undefined, new Map());
+  for (const alert of alerts) {
+    alert.lifecycleId = lifecycleByIngest.get(alert.id) ?? null;
+    alert.triageStatus = "pending";
+  }
+
+  const order = new Map(ingestIds.map((id, index) => [id, index]));
+  alerts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+
+  buildQueueBurstLabels(alerts);
+  return alerts;
+}
+
+export type { TriageQueueSummary };
+
 export async function listCameraAlerts(
   prisma: PrismaClient,
   args: {
@@ -322,7 +403,33 @@ export async function listCameraAlerts(
   configured: boolean;
   testingTools: { allowDelete: boolean };
   diagnostics: CameraAlertsDiagnostics;
+  queueSummary: TriageQueueSummary;
 }> {
+  const activePending = await countActiveTriagePending(prisma);
+
+  if (args.triageFilter === "pending") {
+    const alerts = await listActiveTriageAsCameraAlerts(prisma, {
+      limit: args.limit ?? 100,
+      backfillMedia: args.backfillMedia,
+    });
+    const visibleAlerts = args.acceptedOnly === false ? alerts : alerts.filter((a) => a.accepted);
+
+    return {
+      alerts: visibleAlerts,
+      configured: Boolean(getAutonomiseWebhookSecretFromEnv()),
+      testingTools: { allowDelete: isCameraAlertDeleteEnabled() },
+      diagnostics: {
+        ingestEvents: visibleAlerts.length,
+        ingestEventsRejected: 0,
+        ingestMedia: 0,
+        mediaWithoutMatchingEvent: 0,
+        apiConfigured: isAutonomiseApiConfigured(),
+        clipsWithMediaFilteredOut: 0,
+      },
+      queueSummary: { activePending, browseHours: null },
+    };
+  }
+
   const hours = args.hours ?? 168;
   const defaultLimit = hours > 48 ? 100 : 60;
   const limit = Math.min(Math.max(args.limit ?? defaultLimit, 1), 200);
@@ -368,8 +475,7 @@ export async function listCameraAlerts(
   const ingestEventsRejected = enrichedEvents.filter((row) => !row.accepted).length;
 
   if (args.backfillMedia !== false) {
-    const maxBackfill = args.triageFilter === "pending" ? PENDING_INBOX_MAX_FETCH : undefined;
-    await backfillMissingAutonomiseMedia(prisma, enrichedEvents, maxBackfill);
+    await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
 
     const ids = enrichedEvents.map((row) => row.id);
     if (ids.length > 0) {
@@ -431,11 +537,9 @@ export async function listCameraAlerts(
 
   const triageFilter = args.triageFilter ?? "all";
   const triageFiltered =
-    triageFilter === "pending"
-      ? alerts.filter((a) => a.accepted && a.triageStatus === "pending")
-      : triageFilter === "decided"
-        ? alerts.filter((a) => a.triageStatus !== "pending")
-        : alerts;
+    triageFilter === "decided"
+      ? alerts.filter((a) => a.triageStatus !== "pending")
+      : alerts;
 
   const configured =
     Boolean(getAutonomiseWebhookSecretFromEnv()) || ingestEvents > 0 || ingestMedia > 0;
@@ -457,5 +561,6 @@ export async function listCameraAlerts(
       apiConfigured,
       clipsWithMediaFilteredOut,
     },
+    queueSummary: { activePending, browseHours: hours },
   };
 }

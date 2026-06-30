@@ -6,6 +6,7 @@ import { Shield } from "lucide-react";
 import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
 import { QueuePanel } from "@/components/triage/QueuePanel";
+import { TriageQueueBanner } from "@/components/triage/TriageQueueBanner";
 import { TriageShiftBanner } from "@/components/triage/TriageShiftBanner";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
@@ -310,6 +311,11 @@ export default function TriagePage() {
           <TriageShiftBanner snapshot={shiftSnapshot} onShift={triageDeskOnShift} />
         </div>
       ) : null}
+
+      <TriageQueueBanner
+        activePending={data?.queue_depth ?? 0}
+        visibleCount={incidents.length}
+      />
 
       <div className="grid h-[calc(100vh-9rem)] min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
         <section className="flex min-h-0 flex-col lg:col-span-3">

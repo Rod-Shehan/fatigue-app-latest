@@ -65,6 +65,19 @@ BEGIN
     END IF;
 
     IF TG_OP = 'UPDATE' AND OLD.event_status IS DISTINCT FROM NEW.event_status
+       AND OLD.event_status = 'PENDING_TRIAGE'
+       AND NEW.event_status IS DISTINCT FROM 'PENDING_TRIAGE' THEN
+        PERFORM pg_notify(
+            'channel_live_fatigue_events',
+            json_build_object(
+                'event', 'INCIDENT_CLOSED',
+                'lifecycle_id', NEW.lifecycle_id,
+                'event_status', NEW.event_status
+            )::text
+        );
+    END IF;
+
+    IF TG_OP = 'UPDATE' AND OLD.event_status IS DISTINCT FROM NEW.event_status
        AND NEW.event_status IN ('DRIVER_ACKNOWLEDGED', 'DRIVER_DISPUTED') THEN
         PERFORM pg_notify(
             'channel_live_fatigue_events',
