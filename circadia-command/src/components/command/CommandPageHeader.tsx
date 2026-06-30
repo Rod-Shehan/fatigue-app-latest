@@ -1,29 +1,57 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 
 type Props = {
   title: string;
   subtitle?: string;
   icon?: ReactNode;
+  /** Full wordmark instead of icon + title (login / triage desk). */
+  brandFull?: boolean;
   actions?: ReactNode;
   compact?: boolean;
 };
 
-export function CommandPageHeader({ title, subtitle, icon, actions, compact = false }: Props) {
+export function CommandPageHeader({
+  title,
+  subtitle,
+  icon,
+  brandFull = false,
+  actions,
+  compact = false,
+}: Props) {
   return (
-    <header className={cn("flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", compact ? "mb-4" : "mb-6")}>
+    <header
+      className={cn(
+        "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+        compact ? "mb-4" : "mb-6"
+      )}
+    >
       <div className="flex min-w-0 items-start gap-3">
-        {icon != null && (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm ring-1 ring-slate-700/80">
-            {icon}
+        {brandFull ? (
+          <div className="min-w-0">
+            <CircadiaLogo variant="full" href={null} priority />
+            {subtitle != null && (
+              <p className="mt-1 truncate text-sm text-slate-400">{subtitle}</p>
+            )}
           </div>
+        ) : (
+          <>
+            {icon != null && (
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm ring-1 ring-slate-700/80">
+                {icon}
+              </div>
+            )}
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-bold tracking-tight text-slate-100 md:text-xl">
+                {title}
+              </h1>
+              {subtitle != null && (
+                <p className="mt-0.5 truncate text-sm text-slate-400">{subtitle}</p>
+              )}
+            </div>
+          </>
         )}
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold tracking-tight text-slate-100 md:text-xl">{title}</h1>
-          {subtitle != null && (
-            <p className="mt-0.5 truncate text-sm text-slate-400">{subtitle}</p>
-          )}
-        </div>
       </div>
       {actions != null && (
         <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>

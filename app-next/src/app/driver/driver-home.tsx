@@ -6,15 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useDriverAuth } from "@/hooks/use-driver-auth";
 import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
-import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { InstallAndSetupCard } from "@/components/pwa/InstallAndSetupCard";
 import { DeviceBackupRestoreBanner } from "@/components/pwa/DeviceBackupRestoreBanner";
 import { useDeviceBackup } from "@/hooks/use-device-backup";
 import { driverListRow, driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
-import { PRODUCT_NAME } from "@/lib/branding";
 import { getDriverHomeShiftStatus, type DriverShiftActivity } from "@/lib/driver-home-status";
 import { getSheetOfflineFirst, listSheetsOfflineFirst } from "@/lib/offline-api";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
@@ -118,15 +117,17 @@ export function DriverHome() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-8">
       <header className="sticky top-0 z-20 border-b border-slate-200/90 bg-slate-50/95 dark:border-slate-800 dark:bg-slate-950/95 backdrop-blur-sm">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{PRODUCT_NAME}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-              {driverName ? `Hi, ${driverName}` : "Drive"}
-              {isOfflineSession ? " · offline" : ""}
-            </p>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <CircadiaLogo variant="icon" size={36} />
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">Drive</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                {driverName ? `Hi, ${driverName}` : "Your week"}
+                {isOfflineSession ? " · offline" : ""}
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <LobbyNavLink iconOnly />
             <DriverSettingsLink />
           </div>
         </div>

@@ -7,7 +7,8 @@ import { Briefcase, ChevronRight, LayoutDashboard, LogOut, Shield } from "lucide
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PRODUCT_NAME, TAGLINE_VEHICLE } from "@/lib/branding";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
+import { TAGLINE_VEHICLE } from "@/lib/branding";
 import {
   activateOfflineSession,
   deactivateOfflineSession,
@@ -262,10 +263,8 @@ export function AppLanding() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-10">
       <div className="w-full max-w-3xl space-y-8">
         <div className="flex flex-col items-center text-center">
-          <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-            {PRODUCT_NAME}
-          </h1>
-          <p className="text-sm text-slate-400 dark:text-slate-500 mt-1">{TAGLINE_VEHICLE}</p>
+          <CircadiaLogo variant="full" href={null} priority className="mx-auto" />
+          <p className="text-sm text-slate-400 dark:text-slate-500 mt-3">{TAGLINE_VEHICLE}</p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
             {signedInEmail
               ? "Choose how you want to use the app — your branch choice decides where you go."

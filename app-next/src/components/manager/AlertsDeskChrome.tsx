@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { formatRoleBadge, getDisplayNameFromSession } from "@/lib/session-display-name";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,7 @@ export function AlertsDeskChrome({
   return (
     <header className="mb-3 space-y-2">
       <div className="flex items-center gap-1.5">
+        <CircadiaLogo variant="icon" size={32} className="shrink-0" />
         <Link
           href="/manager"
           className="flex shrink-0 items-center rounded-md text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"

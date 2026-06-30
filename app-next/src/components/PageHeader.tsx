@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { formatRoleBadge, getDisplayNameFromSession } from "@/lib/session-display-name";
 import { LobbyNavLink } from "@/components/lobby/LobbyNavLink";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 
 /**
  * Consistent page header across the app.
@@ -204,7 +205,7 @@ export function PageHeader({
                   hasDriverTile ? "justify-start lg:justify-end" : "min-w-0 justify-start sm:justify-end"
                 )}
               >
-                {showLobbyLink ? <LobbyNavLink /> : null}
+                {showLobbyLink ? <LobbyNavLink /> : <CircadiaLogo variant="icon" size={36} />}
                 {actions}
               </div>
             ) : null}

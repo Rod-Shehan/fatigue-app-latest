@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { Shield } from "lucide-react";
 import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
 import { QueuePanel } from "@/components/triage/QueuePanel";
@@ -272,9 +271,9 @@ export default function TriagePage() {
     <CommandShell wide>
       <CommandPageHeader
         compact
+        brandFull
         title="Circadia Command"
         subtitle={`Live triage · ${data?.queue_depth ?? 0} pending${operatorName ? ` · ${operatorName}` : ""}`}
-        icon={<Shield className="h-5 w-5" strokeWidth={2} aria-hidden />}
         actions={
           <>
             <span

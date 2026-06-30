@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home } from "lucide-react";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { LOBBY_NAV_LABEL } from "@/lib/lobby-url";
 import { cn } from "@/lib/utils";
 
@@ -23,7 +23,7 @@ export function LobbyNavLink({ className, iconOnly = false }: Props) {
         className={cn(
           "inline-flex h-11 w-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl",
           "border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900",
-          "text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors",
+          "hover:opacity-90 transition-opacity",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-950",
           className
         )}
@@ -31,7 +31,7 @@ export function LobbyNavLink({ className, iconOnly = false }: Props) {
         title={LOBBY_NAV_LABEL}
         aria-current={active ? "page" : undefined}
       >
-        <Home className="h-5 w-5" aria-hidden />
+        <CircadiaLogo variant="icon" size={28} href={null} />
       </Link>
     );
   }
@@ -47,8 +47,9 @@ export function LobbyNavLink({ className, iconOnly = false }: Props) {
         className
       )}
       aria-current={active ? "page" : undefined}
+      title={LOBBY_NAV_LABEL}
     >
-      <Home className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+      <CircadiaLogo variant="icon" size={20} href={null} className="rounded-md" />
       {LOBBY_NAV_LABEL}
     </Link>
   );

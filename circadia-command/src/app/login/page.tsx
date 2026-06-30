@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Shield } from "lucide-react";
+import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { CommandShell } from "@/components/command/CommandShell";
 import {
   commandCard,
@@ -44,14 +44,9 @@ export default function LoginPage() {
   return (
     <CommandShell className="flex items-center">
       <div className={`mx-auto w-full max-w-md ${commandCard} p-8`}>
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm ring-1 ring-slate-700/80">
-            <Shield className="h-5 w-5" strokeWidth={2} aria-hidden />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-100">Circadia Command</h1>
-            <p className="text-sm text-slate-400">Sign in with username and password</p>
-          </div>
+        <div className="flex flex-col items-center text-center">
+          <CircadiaLogo variant="full" href={null} priority />
+          <p className="mt-3 text-sm text-slate-400">Command · sign in with username and password</p>
         </div>
 
         <form className="mt-8 space-y-4" onSubmit={(e) => void signIn(e)}>
