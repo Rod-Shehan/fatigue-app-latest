@@ -36,7 +36,7 @@ function currentPageLabel(pathname: string): string {
       if (item.id === "routes") return MANAGER_EXPERIENCE.NAV_ROUTES;
       if (item.id === "manager-guide") return MANAGER_EXPERIENCE.NAV_GUIDE;
       if (item.id === "add-managers") return MANAGER_EXPERIENCE.NAV_MANAGERS;
-      if (item.id === "security") return "Organisation security";
+      if (item.id === "security") return "Security";
     }
   }
   return MANAGER_EXPERIENCE.NAV_OVERVIEW;

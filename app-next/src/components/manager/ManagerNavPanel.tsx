@@ -50,7 +50,7 @@ const SUBNAV_LABELS: Record<string, string> = {
   routes: MANAGER_EXPERIENCE.NAV_ROUTES,
   "manager-guide": MANAGER_EXPERIENCE.NAV_GUIDE,
   "add-managers": MANAGER_EXPERIENCE.NAV_MANAGERS,
-  security: "Organisation security",
+  security: "Security",
 };
 
 function isActive(pathname: string, href: string, exact?: boolean): boolean {

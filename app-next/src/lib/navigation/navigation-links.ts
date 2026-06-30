@@ -159,7 +159,7 @@ export const MANAGER_SUBNAV_OWNER: NavLinkEntry[] = [
   {
     id: "security",
     surface: "manager-subnav",
-    title: "Organisation security",
+    title: "Security",
     href: "/admin/security",
   },
 ];
