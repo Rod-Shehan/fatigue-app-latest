@@ -64,7 +64,7 @@ function triageBadge(status: CameraAlertTriageStatus) {
   }
   if (status === "dismissed") {
     return {
-      label: "Dismissed",
+      label: "Dismissed as false positive",
       className: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
       icon: XCircle,
     };

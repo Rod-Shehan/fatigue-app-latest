@@ -49,7 +49,9 @@ export function ActionPanel({
       <div>
         <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Actions</h3>
         <p className="mt-1 text-xs text-slate-500">
-          {triageDeskOnShift ? "F1 dismiss · F2 verified fatigue" : "View only — not on triage shift"}
+          {triageDeskOnShift
+            ? "F1 dismiss as false positive · F2 verified fatigue"
+            : "View only — not on triage shift"}
         </p>
       </div>
 
@@ -59,7 +61,7 @@ export function ActionPanel({
         onClick={onDismiss}
         className={`${commandOutlineButton} w-full px-4 py-3 disabled:opacity-40`}
       >
-        F1 — False positive
+        F1 — Dismiss as false positive
       </button>
       <button
         type="button"

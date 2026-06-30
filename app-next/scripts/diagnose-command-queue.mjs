@@ -149,6 +149,51 @@ const closedByStatus = await prisma.$queryRaw`
   ORDER BY c DESC
 `;
 
+const lifecycleBuckets = await prisma.$queryRaw`
+  SELECT
+    CASE
+      WHEN l.event_status = 'PENDING_TRIAGE' AND EXISTS (
+        SELECT 1 FROM "CameraAlertTriage" t
+        WHERE t."ingestEventId" = e.source_ingest_id
+           OR (
+             t."vendorEventId" IS NOT NULL
+             AND EXISTS (
+               SELECT 1 FROM "AutonomiseWebhookIngest" i
+               WHERE i.id = e.source_ingest_id AND i."vendorEventId" = t."vendorEventId"
+             )
+           )
+      ) THEN 'reopen_bug_still_pending'
+      WHEN l.event_status = 'PENDING_TRIAGE' THEN 'never_triaged_pending'
+      WHEN l.event_status != 'PENDING_TRIAGE' AND EXISTS (
+        SELECT 1 FROM "CameraAlertTriage" t
+        WHERE t."ingestEventId" = e.source_ingest_id
+           OR (
+             t."vendorEventId" IS NOT NULL
+             AND EXISTS (
+               SELECT 1 FROM "AutonomiseWebhookIngest" i
+               WHERE i.id = e.source_ingest_id AND i."vendorEventId" = t."vendorEventId"
+             )
+           )
+      ) THEN 'manager_or_command_triaged_closed'
+      ELSE 'closed_no_triage_record'
+    END AS bucket,
+    COUNT(*)::int AS c
+  FROM fatigue_incident_lifecycle l
+  JOIN edge_fatigue_events e ON e.event_id = l.event_id
+  GROUP BY 1
+  ORDER BY c DESC
+`;
+
+const triageByActor = await prisma.$queryRaw`
+  SELECT
+    CASE WHEN "decidedByUserId" LIKE 'command:%' THEN 'command' ELSE 'manager' END AS actor,
+    decision,
+    COUNT(*)::int AS c
+  FROM "CameraAlertTriage"
+  GROUP BY 1, 2
+  ORDER BY 1, 2
+`;
+
 console.log(
   JSON.stringify(
     {
@@ -160,6 +205,8 @@ console.log(
       managerPendingMatchingCommand: managerPendingIngest[0]?.c,
       managerPending168h: managerPending[0]?.c,
       triageCount,
+      lifecycleBuckets,
+      triageByActor,
       recentTriage,
       closedByStatus,
       sample: pending,

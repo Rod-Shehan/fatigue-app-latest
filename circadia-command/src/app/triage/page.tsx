@@ -135,7 +135,7 @@ export default function TriagePage() {
           lifecycle_id: selectedId,
           action: "VERIFIED_FALSE_POSITIVE",
           idempotency_key: `mutate_${selectedId}_VERIFIED_FALSE_POSITIVE`,
-          operator_notes: "Operator dismiss",
+          operator_notes: "Dismissed as false positive",
         }),
       });
       if (!res.ok) {
