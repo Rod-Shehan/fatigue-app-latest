@@ -4,94 +4,14 @@
 
 import type { PrismaClient } from "@prisma/client";
 import type { CameraAlertTriageDecision } from "@/lib/integrations/camera-alert-triage";
+import {
+  applyManagerDismissFromPending,
+  applyManagerVerifiedResolutionFromPending,
+  listPendingLifecycleIdsForIngest,
+  type ManagerLifecycleCompleteResult,
+} from "@/lib/integrations/incident-lifecycle-transition";
 
-async function listPendingBridgedLifecycleIds(
-  prisma: PrismaClient,
-  ingestEventId: string
-): Promise<string[]> {
-  const ingest = await prisma.autonomiseWebhookIngest.findUnique({
-    where: { id: ingestEventId },
-    select: { vendorEventId: true },
-  });
-  const vendorEventId = ingest?.vendorEventId ?? null;
-
-  if (vendorEventId) {
-    const rows = await prisma.$queryRaw<Array<{ lifecycle_id: string }>>`
-      SELECT l.lifecycle_id::text AS lifecycle_id
-      FROM edge_fatigue_events e
-      INNER JOIN fatigue_incident_lifecycle l ON l.event_id = e.event_id
-      LEFT JOIN "AutonomiseWebhookIngest" i ON i.id = e.source_ingest_id
-      WHERE l.event_status = 'PENDING_TRIAGE'
-        AND (
-          e.source_ingest_id = ${ingestEventId}
-          OR i."vendorEventId" = ${vendorEventId}
-        )
-    `;
-    return rows.map((row) => row.lifecycle_id);
-  }
-
-  const rows = await prisma.$queryRaw<Array<{ lifecycle_id: string }>>`
-    SELECT l.lifecycle_id::text AS lifecycle_id
-    FROM edge_fatigue_events e
-    INNER JOIN fatigue_incident_lifecycle l ON l.event_id = e.event_id
-    WHERE l.event_status = 'PENDING_TRIAGE'
-      AND e.source_ingest_id = ${ingestEventId}
-  `;
-  return rows.map((row) => row.lifecycle_id);
-}
-
-export type ManagerLifecycleSyncResult = {
-  lifecycleId: string | null;
-  lifecycleStatus: string | null;
-  updatedCount: number;
-};
-
-async function closeDismissedLifecycle(
-  prisma: PrismaClient,
-  lifecycleId: string,
-  auditNote: string | null
-): Promise<void> {
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET
-      event_status = 'VERIFIED_FALSE_POSITIVE',
-      operator_notes = ${auditNote},
-      triaged_at = NOW(),
-      closed_at = NOW()
-    WHERE lifecycle_id = ${lifecycleId}::uuid
-      AND event_status = 'PENDING_TRIAGE'
-  `;
-}
-
-async function closeAuthorizedLifecycle(
-  prisma: PrismaClient,
-  lifecycleId: string,
-  auditNote: string | null
-): Promise<void> {
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET
-      event_status = 'VERIFIED_TRUE_FATIGUE',
-      operator_notes = ${auditNote},
-      triaged_at = NOW()
-    WHERE lifecycle_id = ${lifecycleId}::uuid
-      AND event_status = 'PENDING_TRIAGE'
-  `;
-
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET event_status = 'INTERVENTION_SENT', intervention_triggered_at = NOW()
-    WHERE lifecycle_id = ${lifecycleId}::uuid
-      AND event_status = 'VERIFIED_TRUE_FATIGUE'
-  `;
-
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET event_status = 'CLOSED', closed_at = NOW()
-    WHERE lifecycle_id = ${lifecycleId}::uuid
-      AND event_status = 'INTERVENTION_SENT'
-  `;
-}
+export type { ManagerLifecycleCompleteResult as ManagerLifecycleSyncResult };
 
 /** Close Command lifecycle row(s) after manager triage. */
 export async function syncCommandLifecycleFromManagerTriage(
@@ -100,32 +20,27 @@ export async function syncCommandLifecycleFromManagerTriage(
     ingestEventId: string;
     decision: CameraAlertTriageDecision;
     note?: string | null;
+    decidedByUserId: string;
+    resolutionActionType?: string;
   }
-): Promise<ManagerLifecycleSyncResult> {
-  const lifecycleIds = await listPendingBridgedLifecycleIds(prisma, args.ingestEventId);
-  if (lifecycleIds.length === 0) {
-    return { lifecycleId: null, lifecycleStatus: null, updatedCount: 0 };
-  }
-
-  const auditNote = args.note?.trim() || null;
-  let updatedCount = 0;
-
-  for (const lifecycleId of lifecycleIds) {
-    if (args.decision === "dismissed") {
-      await closeDismissedLifecycle(prisma, lifecycleId, auditNote);
-      updatedCount += 1;
-    } else {
-      await closeAuthorizedLifecycle(prisma, lifecycleId, auditNote);
-      updatedCount += 1;
-    }
+): Promise<ManagerLifecycleCompleteResult> {
+  if (args.decision === "dismissed") {
+    return applyManagerDismissFromPending(prisma, {
+      ingestEventId: args.ingestEventId,
+      actorId: args.decidedByUserId,
+      note: args.note,
+      idempotencyKey: `manager_triage_${args.ingestEventId}`,
+    });
   }
 
-  const lifecycleStatus = args.decision === "dismissed" ? "VERIFIED_FALSE_POSITIVE" : "CLOSED";
-  return {
-    lifecycleId: lifecycleIds[0] ?? null,
-    lifecycleStatus,
-    updatedCount,
-  };
+  const auditNote = args.note?.trim() || "Verified fatigue — action recorded";
+  return applyManagerVerifiedResolutionFromPending(prisma, {
+    ingestEventId: args.ingestEventId,
+    actorId: args.decidedByUserId,
+    auditNote,
+    resolutionActionType: args.resolutionActionType ?? "other_outcome",
+    idempotencyKey: `manager_triage_${args.ingestEventId}`,
+  });
 }
 
 /** Backfill lifecycle rows still pending after manager triage (pre-sync era). */
@@ -137,12 +52,14 @@ export async function reconcileStalePendingLifecycleFromManagerTriage(
       ingest_event_id: string;
       decision: string;
       note: string | null;
+      decided_by_user_id: string;
     }>
   >`
     SELECT DISTINCT ON (t."ingestEventId")
       t."ingestEventId" AS ingest_event_id,
       t.decision,
-      t.note
+      t.note,
+      t."decidedByUserId" AS decided_by_user_id
     FROM "CameraAlertTriage" t
     INNER JOIN edge_fatigue_events e ON (
       t."ingestEventId" = e.source_ingest_id
@@ -164,10 +81,15 @@ export async function reconcileStalePendingLifecycleFromManagerTriage(
 
   let updated = 0;
   for (const row of rows) {
+    const pendingIds = await listPendingLifecycleIdsForIngest(prisma, row.ingest_event_id);
+    if (pendingIds.length === 0) continue;
+
     const result = await syncCommandLifecycleFromManagerTriage(prisma, {
       ingestEventId: row.ingest_event_id,
       decision: row.decision as CameraAlertTriageDecision,
       note: row.note,
+      decidedByUserId: row.decided_by_user_id,
+      resolutionActionType: row.decision === "authorized" ? "other_outcome" : undefined,
     });
     updated += result.updatedCount;
   }

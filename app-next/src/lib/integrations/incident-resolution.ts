@@ -1,10 +1,9 @@
-import { randomUUID } from "crypto";
 import type { PrismaClient } from "@prisma/client";
 import {
   recordCameraAlertTriage,
   type CameraAlertTriageRecord,
 } from "@/lib/integrations/camera-alert-triage";
-import { syncCommandLifecycleFromManagerTriage } from "@/lib/integrations/manager-lifecycle-sync";
+import { applyManagerVerifiedResolutionFromPending } from "@/lib/integrations/incident-lifecycle-transition";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 import { formatResolutionAuditNote } from "@/lib/triage-resolution";
 
@@ -37,6 +36,14 @@ export async function completeManagerIncidentResolution(
     decidedByEmail: args.decidedByEmail,
   });
 
+  const lifecycle = await applyManagerVerifiedResolutionFromPending(prisma, {
+    ingestEventId: args.ingestEventId,
+    actorId: args.decidedByUserId,
+    auditNote,
+    resolutionActionType: args.actionType,
+    idempotencyKey: `manager_resolve_${args.ingestEventId}`,
+  });
+
   await prisma.incidentActionLog.create({
     data: {
       ingestEventId: args.ingestEventId,
@@ -45,21 +52,9 @@ export async function completeManagerIncidentResolution(
       actorType: "manager",
       actorId: args.decidedByUserId,
       actorLabel: args.decidedByName ?? args.decidedByEmail,
+      lifecycleId: lifecycle.lifecycleId,
     },
   });
-
-  const lifecycle = await syncCommandLifecycleFromManagerTriage(prisma, {
-    ingestEventId: args.ingestEventId,
-    decision: "authorized",
-    note: auditNote,
-  });
-
-  if (lifecycle.lifecycleId) {
-    await prisma.incidentActionLog.updateMany({
-      where: { ingestEventId: args.ingestEventId, lifecycleId: null },
-      data: { lifecycleId: lifecycle.lifecycleId },
-    });
-  }
 
   return {
     triage,

@@ -54,6 +54,7 @@ export async function POST(
       ingestEventId,
       decision: decision as CameraAlertTriageDecision,
       note: body.note,
+      decidedByUserId: manager.user.id,
     });
 
     return NextResponse.json({

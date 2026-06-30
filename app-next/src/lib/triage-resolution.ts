@@ -1,13 +1,73 @@
 /**
- * Verified-fatigue resolution actions — shared labels (§3.5.4).
+ * Verified-fatigue resolution actions — shared with Command (§3.5.4).
  */
 
+export const INCIDENT_RESOLUTION_CATEGORIES = ["Driver", "Manager", "Other"] as const;
+
+export type IncidentResolutionCategory = (typeof INCIDENT_RESOLUTION_CATEGORIES)[number];
+
 export const INCIDENT_RESOLUTION_ACTIONS = [
-  { value: "call_driver", label: "Phoned Driver" },
-  { value: "request_rest_break", label: "Ordered Rest Break" },
-  { value: "scheduled_stand_down", label: "Scheduled Stand-down" },
-  { value: "toolboxed", label: "Toolboxed" },
-] as const;
+  {
+    value: "driver_contacted_confirmed_ok",
+    category: "Driver",
+    label: "Driver - contacted by phone, confirmed ok",
+  },
+  {
+    value: "driver_contacted_rest_20min_next_stop",
+    category: "Driver",
+    label:
+      "Driver - contacted by phone, asked to pull into next stop and rest for 20 minute break",
+  },
+  {
+    value: "driver_contacted_pull_over_long_break",
+    category: "Driver",
+    label:
+      "Driver - contacted by phone, instructed to pull over and have longer than 20 minute break",
+  },
+  {
+    value: "driver_contacted_7h_break",
+    category: "Driver",
+    label: "Driver - contacted by phone, instructed to have 7 hour break",
+  },
+  {
+    value: "driver_no_contact",
+    category: "Driver",
+    label: "Driver - not able to make contact",
+  },
+  {
+    value: "manager_contacted_accepted_handover",
+    category: "Manager",
+    label: "Manager - contacted about driver event, they accepted handover",
+  },
+  {
+    value: "manager_contacted_disagreed_accepted_handover",
+    category: "Manager",
+    label:
+      "Manager - contacted about driver event, disagreed with event classification, they accept handover",
+  },
+  {
+    value: "manager_no_contact",
+    category: "Manager",
+    label: "Manager - not able to make contact",
+  },
+  {
+    value: "other_outcome",
+    category: "Other",
+    label: "Other - make note of other outcome",
+  },
+] as const satisfies ReadonlyArray<{
+  value: string;
+  category: IncidentResolutionCategory;
+  label: string;
+}>;
+
+/** @deprecated Legacy pilot values — still readable from historical audit rows. */
+const LEGACY_RESOLUTION_LABELS: Record<string, string> = {
+  call_driver: "Phoned Driver",
+  request_rest_break: "Ordered Rest Break",
+  scheduled_stand_down: "Scheduled Stand-down",
+  toolboxed: "Toolboxed",
+};
 
 export type IncidentResolutionActionType =
   (typeof INCIDENT_RESOLUTION_ACTIONS)[number]["value"];
@@ -18,8 +78,10 @@ export function isIncidentResolutionActionType(value: string): value is Incident
   return ACTION_VALUES.has(value);
 }
 
-export function resolutionActionLabel(actionType: IncidentResolutionActionType): string {
-  return INCIDENT_RESOLUTION_ACTIONS.find((a) => a.value === actionType)?.label ?? actionType;
+export function resolutionActionLabel(actionType: string): string {
+  const current = INCIDENT_RESOLUTION_ACTIONS.find((a) => a.value === actionType);
+  if (current) return current.label;
+  return LEGACY_RESOLUTION_LABELS[actionType] ?? actionType;
 }
 
 export function formatResolutionAuditNote(

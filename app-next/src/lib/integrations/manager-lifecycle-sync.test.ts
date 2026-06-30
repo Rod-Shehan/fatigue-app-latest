@@ -7,4 +7,10 @@ describe("manager-lifecycle-sync", () => {
     expect(typeof mod.syncCommandLifecycleFromManagerTriage).toBe("function");
     expect(typeof mod.reconcileStalePendingLifecycleFromManagerTriage).toBe("function");
   });
+
+  it("routes dismiss and authorized through lifecycle completion", async () => {
+    const sync = await import("@/lib/integrations/manager-lifecycle-sync");
+    const lifecycle = await import("@/lib/integrations/incident-lifecycle-transition");
+    expect(sync.syncCommandLifecycleFromManagerTriage).not.toBe(lifecycle.applyManagerDismissFromPending);
+  });
 });

@@ -57,7 +57,7 @@ function tierChipClass(tier: string | null, accepted: boolean) {
 function triageBadge(status: CameraAlertTriageStatus) {
   if (status === "authorized") {
     return {
-      label: "Authorized",
+      label: "Verified fatigue",
       className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
       icon: CheckCircle2,
     };
