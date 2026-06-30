@@ -61,7 +61,7 @@ export function ManagerSubnav({ compact = false }: ManagerSubnavProps) {
 
   const navShellClass = cn(
     "rounded-2xl border border-slate-200/90 bg-white/80 shadow-sm backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-900/60",
-    compact ? "mb-3 p-2" : "mb-8 p-3"
+    compact ? "mb-3 p-2" : "mb-6 p-2"
   );
 
   if (compact && !expanded) {
@@ -112,7 +112,7 @@ export function ManagerSubnav({ compact = false }: ManagerSubnavProps) {
         </div>
       ) : null}
       <div id="manager-subnav-panel">
-        <ManagerNavPanel />
+        <ManagerNavPanel fill={!compact} dense={compact} />
       </div>
     </nav>
   );

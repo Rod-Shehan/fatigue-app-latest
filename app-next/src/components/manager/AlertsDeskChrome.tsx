@@ -290,7 +290,7 @@ export function AlertsDeskChrome({
           </div>
 
           <div className="flex-1 overflow-y-auto p-4">
-            {menuSection === "nav" ? <ManagerNavPanel dense /> : null}
+            {menuSection === "nav" ? <ManagerNavPanel dense fill={false} /> : null}
             {menuSection === "shift" && shiftSnapshot ? (
               <TriageShiftBanner snapshot={shiftSnapshot} onShift={onShift} />
             ) : null}
