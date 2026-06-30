@@ -1,5 +1,5 @@
 /**
- * Deep-link into the Logbook map with the risk card's current scope.
+ * Deep-link into the Log map with the risk card's current scope.
  * `dayIndex` is not used by the map itself — it rides along so the map's
  * "← Overview" link can restore the exact day the manager was looking at.
  */

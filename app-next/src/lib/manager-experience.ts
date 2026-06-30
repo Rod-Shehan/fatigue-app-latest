@@ -62,7 +62,7 @@ export const MANAGER_EXPERIENCE = {
   NAV_LOBBY: "Log-in Page" as const,
   /** Short subnav label — avoids repeating the page title in the nav bar. */
   NAV_OVERVIEW: "Overview",
-  NAV_MAP: "Logbook map",
+  NAV_MAP: "Log map",
   NAV_MESSAGES: "Conversations",
   NAV_ALERTS: "Live alerts",
   NAV_DRIVERS: "Drivers",
@@ -138,7 +138,7 @@ export const MANAGER_EXPERIENCE = {
     "Click a fleet row or change Chart driver in Scope.",
   TIMELINE_AUTO_HINT: "Highest current risk",
   TIMELINE_VIEW_ON_MAP: "View on map",
-  MAP_LOCATE_DRIVER: "Locate on logbook map",
+  MAP_LOCATE_DRIVER: "Locate on Log map",
 
   FLEET_PULSE_EYEBROW: "Live fleet tracking",
   FLEET_PULSE_TITLE: "Fleet risk pulse",

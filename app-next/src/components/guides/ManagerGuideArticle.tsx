@@ -18,7 +18,7 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Navigation</h2>
         <GuideDiagram title="Manager menu">
-          {`  Overview ── Logbook map ── Conversations
+          {`  Overview ── Log map ── Conversations
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
