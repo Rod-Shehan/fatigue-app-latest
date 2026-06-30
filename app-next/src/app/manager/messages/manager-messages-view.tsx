@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
 import { resolveDriverBubbleName } from "@/lib/messaging-display";
 import { Button } from "@/components/ui/button";
@@ -165,7 +165,7 @@ export function ManagerMessagesView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
+      <div className={MANAGER_PAGE_SHELL}>
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}

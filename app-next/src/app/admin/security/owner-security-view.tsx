@@ -8,7 +8,7 @@ import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
 import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
@@ -156,7 +156,8 @@ export function OwnerSecurityView({
   if (!isOwner) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-md mx-auto px-4 py-10 space-y-6">
+        <div className={MANAGER_PAGE_SHELL}>
+          <div className="mx-auto max-w-md space-y-6">
           <PageHeader
             backHref="/manager"
             backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
@@ -185,6 +186,7 @@ export function OwnerSecurityView({
               {claimMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Claim owner access"}
             </Button>
           </div>
+          </div>
         </div>
       </div>
     );
@@ -192,7 +194,7 @@ export function OwnerSecurityView({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12 space-y-8">
+      <div className={`${MANAGER_PAGE_SHELL} space-y-8`}>
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}

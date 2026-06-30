@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
+import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { Loader2, Plus, Trash2, Truck } from "lucide-react";
 import { useState } from "react";
 
@@ -39,7 +40,7 @@ export function RegosAdmin() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+      <div className={MANAGER_PAGE_SHELL}>
         <PageHeader
           backHref="/manager"
           backLabel="Manager dashboard"

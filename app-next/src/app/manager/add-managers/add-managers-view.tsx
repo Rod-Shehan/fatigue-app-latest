@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { ShowOncePasswordDialog } from "@/components/auth/ShowOncePasswordDialog";
 import {
   Dialog,
@@ -111,7 +111,7 @@ export function AddManagersView() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-md mx-auto px-4 py-8 md:py-12">
+      <div className={MANAGER_PAGE_SHELL}>
         <PageHeader
           backHref="/manager"
           backLabel="Manager dashboard"

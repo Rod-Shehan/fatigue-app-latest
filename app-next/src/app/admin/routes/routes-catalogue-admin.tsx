@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
+import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { formatRoutePresetOption } from "@/lib/route-preset";
 import { Loader2, MapPin, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -74,7 +75,11 @@ export function RoutesCatalogue({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-2xl mx-auto px-4 py-8 md:py-12">
+      <div
+        className={
+          isDriver ? "mx-auto max-w-2xl px-4 py-8 md:py-12" : MANAGER_PAGE_SHELL
+        }
+      >
         <PageHeader
           backHref={backHref}
           backLabel={backLabel}

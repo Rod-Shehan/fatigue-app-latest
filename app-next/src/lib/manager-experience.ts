@@ -7,6 +7,12 @@
  * `.cursor/rules/responsive-priority.mdc`.
  */
 
+/** Shared content width for manager desk pages (matches Driver Overview /manager). */
+export const MANAGER_PAGE_SHELL = "mx-auto max-w-6xl px-4 py-8 md:py-12" as const;
+
+/** Live alerts — mobile-first triage queue; intentionally narrower than the desk shell. */
+export const MANAGER_ALERTS_SHELL = "mx-auto max-w-lg px-4 py-3 md:max-w-2xl md:px-6" as const;
+
 export const MANAGER_EXPERIENCE = {
   PAGE_TITLE: "Driver Overview",
   PAGE_SUBTITLE:

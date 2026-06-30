@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
+import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, UserCheck, UserX, Loader2, Users, Pencil } from "lucide-react";
@@ -152,7 +153,7 @@ export function DriversList() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="mx-auto max-w-5xl px-4 py-8 md:py-12">
+      <div className={MANAGER_PAGE_SHELL}>
         <PageHeader
           backHref="/manager"
           backLabel="Manager dashboard"

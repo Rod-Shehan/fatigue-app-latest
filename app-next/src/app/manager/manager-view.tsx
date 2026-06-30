@@ -24,7 +24,7 @@ import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { isSheetOwnedByDriver } from "@/lib/sheet-ownership";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
   buildManagerDomainKpis,
   countUnsignedSheetsForWeek,
@@ -778,7 +778,7 @@ export function ManagerView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+      <div className={MANAGER_PAGE_SHELL}>
         <PageHeader
           title={MANAGER_EXPERIENCE.PAGE_TITLE}
           subtitle={MANAGER_EXPERIENCE.PAGE_SUBTITLE}

@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ManagerGuideArticle } from "@/components/guides/ManagerGuideArticle";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { PRODUCT_NAME } from "@/lib/branding";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { BookOpen } from "lucide-react";
 
 export default async function ManagerHelpPage() {
@@ -13,7 +13,7 @@ export default async function ManagerHelpPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="mx-auto max-w-4xl px-4 py-8 md:py-12">
+      <div className={MANAGER_PAGE_SHELL}>
         <PageHeader
           backHref="/manager"
           backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}

@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertsDeskChrome } from "@/components/manager/AlertsDeskChrome";
-import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_ALERTS_SHELL } from "@/lib/manager-experience";
 import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Trash2, Video, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";import { ResolutionForm } from "@/components/triage/ResolutionForm";
+import { cn } from "@/lib/utils";
+import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
@@ -666,7 +667,7 @@ export function ManagerAlertsView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className="mx-auto max-w-lg px-4 py-3 md:max-w-2xl md:px-6">
+      <div className={MANAGER_ALERTS_SHELL}>
         <AlertsDeskChrome
           triageFilter={triageFilter}
           onTriageFilterChange={setTriageFilter}
