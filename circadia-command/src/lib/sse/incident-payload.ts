@@ -1,5 +1,6 @@
 import type { QueueIncident } from "@/hooks/use-triage-queue";
 import type { TxClient } from "@/lib/privileged-db";
+import { isEdgeManagerTriaged } from "@/lib/reconcile-manager-triage";
 
 export async function fetchIncidentForSse(
   tx: TxClient,
@@ -9,7 +10,8 @@ export async function fetchIncidentForSse(
     where: { lifecycleId },
     include: { event: true },
   });
-  if (!row) return null;
+  if (!row || row.eventStatus !== "PENDING_TRIAGE") return null;
+  if (await isEdgeManagerTriaged(tx, row.event.sourceIngestId)) return null;
 
   return {
     lifecycle_id: row.lifecycleId,

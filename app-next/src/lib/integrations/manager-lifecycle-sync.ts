@@ -1,40 +1,99 @@
 /**
  * Manager → Command lifecycle sync (shared queue §3.5).
- * Command→manager write-through lives in circadia-command sync-manager-triage.
  */
 
 import type { PrismaClient } from "@prisma/client";
 import type { CameraAlertTriageDecision } from "@/lib/integrations/camera-alert-triage";
 
-type BridgedLifecycle = {
-  lifecycleId: string;
-  tenantIdUuid: string;
-};
-
-async function lookupPendingBridgedLifecycle(
+async function listPendingBridgedLifecycleIds(
   prisma: PrismaClient,
   ingestEventId: string
-): Promise<BridgedLifecycle | null> {
-  const rows = await prisma.$queryRaw<
-    Array<{ lifecycle_id: string; tenant_id_uuid: string; event_status: string }>
-  >`
-    SELECT l.lifecycle_id::text AS lifecycle_id, l.tenant_id_uuid::text AS tenant_id_uuid, l.event_status
+): Promise<string[]> {
+  const ingest = await prisma.autonomiseWebhookIngest.findUnique({
+    where: { id: ingestEventId },
+    select: { vendorEventId: true },
+  });
+  const vendorEventId = ingest?.vendorEventId ?? null;
+
+  if (vendorEventId) {
+    const rows = await prisma.$queryRaw<Array<{ lifecycle_id: string }>>`
+      SELECT l.lifecycle_id::text AS lifecycle_id
+      FROM edge_fatigue_events e
+      INNER JOIN fatigue_incident_lifecycle l ON l.event_id = e.event_id
+      LEFT JOIN "AutonomiseWebhookIngest" i ON i.id = e.source_ingest_id
+      WHERE l.event_status = 'PENDING_TRIAGE'
+        AND (
+          e.source_ingest_id = ${ingestEventId}
+          OR i."vendorEventId" = ${vendorEventId}
+        )
+    `;
+    return rows.map((row) => row.lifecycle_id);
+  }
+
+  const rows = await prisma.$queryRaw<Array<{ lifecycle_id: string }>>`
+    SELECT l.lifecycle_id::text AS lifecycle_id
     FROM edge_fatigue_events e
     INNER JOIN fatigue_incident_lifecycle l ON l.event_id = e.event_id
-    WHERE e.source_ingest_id = ${ingestEventId}
-    LIMIT 1
+    WHERE l.event_status = 'PENDING_TRIAGE'
+      AND e.source_ingest_id = ${ingestEventId}
   `;
-  const row = rows[0];
-  if (!row || row.event_status !== "PENDING_TRIAGE") return null;
-  return { lifecycleId: row.lifecycle_id, tenantIdUuid: row.tenant_id_uuid };
+  return rows.map((row) => row.lifecycle_id);
 }
 
 export type ManagerLifecycleSyncResult = {
   lifecycleId: string | null;
   lifecycleStatus: string | null;
+  updatedCount: number;
 };
 
-/** Close or dismiss the Command lifecycle row after manager triage. */
+async function closeDismissedLifecycle(
+  prisma: PrismaClient,
+  lifecycleId: string,
+  auditNote: string | null
+): Promise<void> {
+  await prisma.$executeRaw`
+    UPDATE fatigue_incident_lifecycle
+    SET
+      event_status = 'VERIFIED_FALSE_POSITIVE',
+      operator_notes = ${auditNote},
+      triaged_at = NOW(),
+      closed_at = NOW()
+    WHERE lifecycle_id = ${lifecycleId}::uuid
+      AND event_status = 'PENDING_TRIAGE'
+  `;
+}
+
+async function closeAuthorizedLifecycle(
+  prisma: PrismaClient,
+  lifecycleId: string,
+  auditNote: string | null
+): Promise<void> {
+  await prisma.$executeRaw`
+    UPDATE fatigue_incident_lifecycle
+    SET
+      event_status = 'VERIFIED_TRUE_FATIGUE',
+      operator_notes = ${auditNote},
+      triaged_at = NOW()
+    WHERE lifecycle_id = ${lifecycleId}::uuid
+      AND event_status = 'PENDING_TRIAGE'
+  `;
+
+  await prisma.$executeRaw`
+    UPDATE fatigue_incident_lifecycle
+    SET event_status = 'INTERVENTION_SENT', intervention_triggered_at = NOW()
+    WHERE lifecycle_id = ${lifecycleId}::uuid
+      AND event_status = 'VERIFIED_TRUE_FATIGUE'
+  `;
+
+  await prisma.$executeRaw`
+    UPDATE fatigue_incident_lifecycle
+    SET event_status = 'CLOSED', closed_at = NOW()
+    WHERE lifecycle_id = ${lifecycleId}::uuid
+      AND event_status = 'INTERVENTION_SENT'
+  `;
+}
+
+/** Close Command lifecycle row(s) after manager triage. */
 export async function syncCommandLifecycleFromManagerTriage(
   prisma: PrismaClient,
   args: {
@@ -43,52 +102,30 @@ export async function syncCommandLifecycleFromManagerTriage(
     note?: string | null;
   }
 ): Promise<ManagerLifecycleSyncResult> {
-  const bridged = await lookupPendingBridgedLifecycle(prisma, args.ingestEventId);
-  if (!bridged) {
-    return { lifecycleId: null, lifecycleStatus: null };
+  const lifecycleIds = await listPendingBridgedLifecycleIds(prisma, args.ingestEventId);
+  if (lifecycleIds.length === 0) {
+    return { lifecycleId: null, lifecycleStatus: null, updatedCount: 0 };
   }
 
   const auditNote = args.note?.trim() || null;
+  let updatedCount = 0;
 
-  if (args.decision === "dismissed") {
-    await prisma.$executeRaw`
-      UPDATE fatigue_incident_lifecycle
-      SET
-        event_status = 'VERIFIED_FALSE_POSITIVE',
-        operator_notes = ${auditNote},
-        triaged_at = NOW(),
-        closed_at = NOW()
-      WHERE lifecycle_id = ${bridged.lifecycleId}::uuid
-        AND event_status = 'PENDING_TRIAGE'
-    `;
-    return { lifecycleId: bridged.lifecycleId, lifecycleStatus: "VERIFIED_FALSE_POSITIVE" };
+  for (const lifecycleId of lifecycleIds) {
+    if (args.decision === "dismissed") {
+      await closeDismissedLifecycle(prisma, lifecycleId, auditNote);
+      updatedCount += 1;
+    } else {
+      await closeAuthorizedLifecycle(prisma, lifecycleId, auditNote);
+      updatedCount += 1;
+    }
   }
 
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET
-      event_status = 'VERIFIED_TRUE_FATIGUE',
-      operator_notes = ${auditNote},
-      triaged_at = NOW()
-    WHERE lifecycle_id = ${bridged.lifecycleId}::uuid
-      AND event_status = 'PENDING_TRIAGE'
-  `;
-
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET event_status = 'INTERVENTION_SENT', intervention_triggered_at = NOW()
-    WHERE lifecycle_id = ${bridged.lifecycleId}::uuid
-      AND event_status = 'VERIFIED_TRUE_FATIGUE'
-  `;
-
-  await prisma.$executeRaw`
-    UPDATE fatigue_incident_lifecycle
-    SET event_status = 'CLOSED', closed_at = NOW()
-    WHERE lifecycle_id = ${bridged.lifecycleId}::uuid
-      AND event_status = 'INTERVENTION_SENT'
-  `;
-
-  return { lifecycleId: bridged.lifecycleId, lifecycleStatus: "CLOSED" };
+  const lifecycleStatus = args.decision === "dismissed" ? "VERIFIED_FALSE_POSITIVE" : "CLOSED";
+  return {
+    lifecycleId: lifecycleIds[0] ?? null,
+    lifecycleStatus,
+    updatedCount,
+  };
 }
 
 /** Backfill lifecycle rows still pending after manager triage (pre-sync era). */
@@ -102,15 +139,27 @@ export async function reconcileStalePendingLifecycleFromManagerTriage(
       note: string | null;
     }>
   >`
-    SELECT
+    SELECT DISTINCT ON (t."ingestEventId")
       t."ingestEventId" AS ingest_event_id,
       t.decision,
       t.note
     FROM "CameraAlertTriage" t
-    INNER JOIN edge_fatigue_events e ON e.source_ingest_id = t."ingestEventId"
+    INNER JOIN edge_fatigue_events e ON (
+      t."ingestEventId" = e.source_ingest_id
+      OR (
+        t."vendorEventId" IS NOT NULL
+        AND EXISTS (
+          SELECT 1
+          FROM "AutonomiseWebhookIngest" i
+          WHERE i.id = e.source_ingest_id
+            AND i."vendorEventId" = t."vendorEventId"
+        )
+      )
+    )
     INNER JOIN fatigue_incident_lifecycle l ON l.event_id = e.event_id
     WHERE l.event_status = 'PENDING_TRIAGE'
       AND t.decision IN ('authorized', 'dismissed')
+    ORDER BY t."ingestEventId", t."decidedAt" DESC
   `;
 
   let updated = 0;
@@ -120,7 +169,7 @@ export async function reconcileStalePendingLifecycleFromManagerTriage(
       decision: row.decision as CameraAlertTriageDecision,
       note: row.note,
     });
-    if (result.lifecycleId) updated += 1;
+    updated += result.updatedCount;
   }
   return updated;
 }

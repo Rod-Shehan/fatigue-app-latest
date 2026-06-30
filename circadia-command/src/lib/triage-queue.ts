@@ -1,5 +1,6 @@
 import type { TxClient } from "@/lib/privileged-db";
 import { hydratePendingEdgeMediaFromIngest } from "@/lib/hydrate-edge-media";
+import { listManagerTriagedPendingLifecycleIds } from "@/lib/reconcile-manager-triage";
 
 export type QueueCursor = { lastTime: string; lastId: string };
 
@@ -32,6 +33,8 @@ export async function fetchTriageQueue(
   limit: number,
   cursor: QueueCursor | null
 ): Promise<{ incidents: QueueIncident[]; hasMore: boolean }> {
+  const hideLifecycleIds = new Set(await listManagerTriagedPendingLifecycleIds(tx));
+
   const rows = await tx.fatigueIncidentLifecycle.findMany({
     where: {
       eventStatus: "PENDING_TRIAGE",
@@ -53,7 +56,9 @@ export async function fetchTriageQueue(
   });
 
   const hasMore = rows.length > limit;
-  const page = hasMore ? rows.slice(0, limit) : rows;
+  const page = (hasMore ? rows.slice(0, limit) : rows).filter(
+    (row) => !hideLifecycleIds.has(row.lifecycleId)
+  );
 
   const hydratedClips = await hydratePendingEdgeMediaFromIngest(
     tx,
@@ -76,5 +81,25 @@ export async function fetchTriageQueue(
 }
 
 export async function countPendingTriage(tx: TxClient): Promise<number> {
-  return tx.fatigueIncidentLifecycle.count({ where: { eventStatus: "PENDING_TRIAGE" } });
+  const rows = await tx.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count
+    FROM fatigue_incident_lifecycle l
+    INNER JOIN edge_fatigue_events e ON e.event_id = l.event_id
+    WHERE l.event_status = 'PENDING_TRIAGE'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM "CameraAlertTriage" t
+        WHERE t."ingestEventId" = e.source_ingest_id
+           OR (
+             t."vendorEventId" IS NOT NULL
+             AND EXISTS (
+               SELECT 1
+               FROM "AutonomiseWebhookIngest" i
+               WHERE i.id = e.source_ingest_id
+                 AND i."vendorEventId" = t."vendorEventId"
+             )
+           )
+      )
+  `;
+  return rows[0]?.count ?? 0;
 }

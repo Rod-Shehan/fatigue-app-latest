@@ -160,6 +160,14 @@ export async function maybePromoteAutonomiseToCommandLifecycle(
     return { promoted: false, skippedReason: "missing_vehicle_rego" };
   }
 
+  const managerTriage = await prisma.cameraAlertTriage.findUnique({
+    where: { ingestEventId: args.ingestId },
+    select: { decision: true },
+  });
+  if (managerTriage) {
+    return { promoted: false, skippedReason: "manager_already_triaged" };
+  }
+
   const existing = await prisma.$queryRaw<Array<{ event_id: string; video_snippet_url: string }>>`
     SELECT event_id, video_snippet_url
     FROM edge_fatigue_events
