@@ -44,9 +44,42 @@ export async function syncCommandLifecycleFromManagerTriage(
 }
 
 /** Backfill lifecycle rows still pending after manager triage (pre-sync era). */
+export async function hasStalePendingLifecycleFromManagerTriage(
+  prisma: PrismaClient
+): Promise<boolean> {
+  const rows = await prisma.$queryRaw<Array<{ exists: boolean }>>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM "CameraAlertTriage" t
+      INNER JOIN edge_fatigue_events e ON (
+        t."ingestEventId" = e.source_ingest_id
+        OR (
+          t."vendorEventId" IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM "AutonomiseWebhookIngest" i
+            WHERE i.id = e.source_ingest_id
+              AND i."vendorEventId" = t."vendorEventId"
+          )
+        )
+      )
+      INNER JOIN fatigue_incident_lifecycle l ON l.event_id = e.event_id
+      WHERE l.event_status = 'PENDING_TRIAGE'
+        AND t.decision IN ('authorized', 'dismissed')
+      LIMIT 1
+    ) AS exists
+  `;
+  return rows[0]?.exists === true;
+}
+
+/** Backfill lifecycle rows still pending after manager triage (pre-sync era). */
 export async function reconcileStalePendingLifecycleFromManagerTriage(
   prisma: PrismaClient
 ): Promise<number> {
+  if (!(await hasStalePendingLifecycleFromManagerTriage(prisma))) {
+    return 0;
+  }
+
   const rows = await prisma.$queryRaw<
     Array<{
       ingest_event_id: string;

@@ -234,15 +234,15 @@ export function ManagerView() {
     second_driver: "",
   });
 
-  const { data: sheets = [], isLoading: sheetsLoading } = useQuery({
-    queryKey: ["sheets"],
-    queryFn: () => api.sheets.list(),
+  const { data: sheetMeta = [], isLoading: metaLoading } = useQuery({
+    queryKey: ["sheets", "meta"],
+    queryFn: () => api.sheets.list({ meta: true }),
   });
 
   const weekOptions = useMemo(() => {
-    const weeks = [...new Set(sheets.map((s) => s.week_starting).filter(Boolean))];
+    const weeks = [...new Set(sheetMeta.map((s) => s.week_starting).filter(Boolean))];
     return weeks.sort().reverse();
-  }, [sheets]);
+  }, [sheetMeta]);
 
   const firstWeekOption = weekOptions[0];
 
@@ -253,6 +253,54 @@ export function ManagerView() {
     if (activeWeekStarting) set.add(activeWeekStarting);
     return [...set].sort().reverse();
   }, [weekOptions, activeWeekStarting]);
+
+  /** Open the calendar on the month that contains the selected work day (not just week Sunday). */
+  useEffect(() => {
+    if (activeWeekStarting) {
+      const workDay = parseYMD(activeWeekStarting);
+      workDay.setDate(workDay.getDate() + activeDayIndex);
+      setCalView({ y: workDay.getFullYear(), m: workDay.getMonth() });
+      return;
+    }
+    const n = new Date();
+    setCalView({ y: n.getFullYear(), m: n.getMonth() });
+  }, [activeWeekStarting, activeDayIndex]);
+
+  const calendarWeekAnchor = useMemo(() => {
+    return (
+      activeWeekStarting ||
+      firstWeekOption ||
+      toYMD(startOfWeekSunday(new Date()))
+    );
+  }, [activeWeekStarting, firstWeekOption]);
+
+  /** Week used for the violations snapshot (selected work week, or calendar anchor). */
+  const weekForSnapshot = activeWeekStarting || calendarWeekAnchor;
+
+  const weeksToLoad = useMemo(() => {
+    const set = new Set<string>();
+    if (activeWeekStarting) set.add(activeWeekStarting);
+    if (weekForSnapshot) set.add(weekForSnapshot);
+    return [...set];
+  }, [activeWeekStarting, weekForSnapshot]);
+
+  const { data: weekSheets = [], isLoading: weekSheetsLoading } = useQuery({
+    queryKey: ["sheets", "weeks", [...weeksToLoad].sort().join("\0")],
+    queryFn: async () => {
+      const batches = await Promise.all(
+        weeksToLoad.map((w) => api.sheets.list({ weekStarting: w }))
+      );
+      const byId = new Map<string, FatigueSheet>();
+      for (const sheet of batches.flat()) {
+        byId.set(sheet.id, sheet);
+      }
+      return [...byId.values()];
+    },
+    enabled: weeksToLoad.length > 0,
+  });
+
+  const sheets = weekSheets;
+  const sheetsLoading = metaLoading || weekSheetsLoading;
 
   const { driverOptions, regoOptions } = useMemo(() => {
     if (!activeWeekStarting) {
@@ -312,29 +360,6 @@ export function ManagerView() {
       setSelectedSheetId("");
     }
   }, [selectedSheetId, filteredSheetsForPicker]);
-
-  /** Open the calendar on the month that contains the selected work day (not just week Sunday). */
-  useEffect(() => {
-    if (activeWeekStarting) {
-      const workDay = parseYMD(activeWeekStarting);
-      workDay.setDate(workDay.getDate() + activeDayIndex);
-      setCalView({ y: workDay.getFullYear(), m: workDay.getMonth() });
-      return;
-    }
-    const n = new Date();
-    setCalView({ y: n.getFullYear(), m: n.getMonth() });
-  }, [activeWeekStarting, activeDayIndex]);
-
-  const calendarWeekAnchor = useMemo(() => {
-    return (
-      activeWeekStarting ||
-      firstWeekOption ||
-      toYMD(startOfWeekSunday(new Date()))
-    );
-  }, [activeWeekStarting, firstWeekOption]);
-
-  /** Week used for the violations snapshot (selected work week, or calendar anchor). */
-  const weekForSnapshot = activeWeekStarting || calendarWeekAnchor;
 
   const prevWeekForSnapshot = useMemo(
     () => (weekForSnapshot ? getPreviousWeekSunday(weekForSnapshot) : ""),
@@ -970,7 +995,7 @@ export function ManagerView() {
                       placeholder={
                         complianceSheetsForPicker.length === 0 && activeWeekStarting
                           ? MANAGER_EXPERIENCE.RECORDS_SHEET_EMPTY_DAY
-                          : sheets.length === 0
+                          : sheetMeta.length === 0
                             ? MANAGER_EXPERIENCE.RECORDS_SHEET_EMPTY_FLEET
                             : MANAGER_EXPERIENCE.RECORDS_SHEET_PLACEHOLDER
                       }
@@ -999,7 +1024,7 @@ export function ManagerView() {
                       Change the calendar day, filters, or work week.
                     </p>
                   )}
-                {sheets.length === 0 && !sheetsLoading && (
+                {sheetMeta.length === 0 && !sheetsLoading && (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     No sheets yet. Ask drivers to create a sheet from the driver app first.
                   </p>

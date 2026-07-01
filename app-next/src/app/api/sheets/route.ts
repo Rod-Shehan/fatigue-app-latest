@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getSessionForSheetAccess } from "@/lib/auth";
 import { getSystemPolicy, sheetWritesBlocked } from "@/lib/system-policy";
 import { prisma } from "@/lib/prisma";
@@ -51,20 +51,81 @@ function sheetToJson(row: {
   };
 }
 
-export async function GET() {
+function sheetToJsonMeta(row: {
+  id: string;
+  jurisdictionCode: string;
+  driverName: string;
+  secondDriver: string | null;
+  driverType: string;
+  destination: string | null;
+  last24hBreak: string | null;
+  weekStarting: string;
+  status: string;
+  signature: string | null;
+  signedAt: Date | null;
+  createdById: string | null;
+  createdAt: Date;
+}) {
+  return {
+    id: row.id,
+    jurisdiction_code: parseJurisdictionCode(row.jurisdictionCode),
+    driver_name: row.driverName,
+    second_driver: row.secondDriver,
+    driver_type: row.driverType,
+    destination: row.destination,
+    last_24h_break: row.last24hBreak,
+    week_starting: row.weekStarting,
+    days: [] as ReturnType<typeof normalizeSheetDaysForApi>,
+    status: row.status,
+    signature: row.signature,
+    signed_at: row.signedAt?.toISOString() ?? null,
+    created_by: row.createdById,
+    created_date: row.createdAt.toISOString(),
+  };
+}
+
+const sheetMetaSelect = {
+  id: true,
+  jurisdictionCode: true,
+  driverName: true,
+  secondDriver: true,
+  driverType: true,
+  destination: true,
+  last24hBreak: true,
+  weekStarting: true,
+  status: true,
+  signature: true,
+  signedAt: true,
+  createdById: true,
+  createdAt: true,
+} as const;
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const weekStarting = searchParams.get("weekStarting")?.trim();
+  const metaOnly = searchParams.get("meta") === "1";
   const access = await getSessionForSheetAccess();
   if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     if (!access.isManager) {
       await autoCloseStaleDraftSheetsForUser(access.userId);
     }
-    const where = access.isManager
-      ? {}
-      : { createdById: access.userId };
+    const where = {
+      ...(access.isManager ? {} : { createdById: access.userId }),
+      ...(weekStarting ? { weekStarting } : {}),
+    };
+    if (metaOnly) {
+      const rows = await prisma.fatigueSheet.findMany({
+        where,
+        orderBy: { weekStarting: "desc" },
+        ...(access.isManager ? {} : { take: 50 }),
+        select: sheetMetaSelect,
+      });
+      return NextResponse.json(rows.map((s) => sheetToJsonMeta(s)));
+    }
     let sheets = await prisma.fatigueSheet.findMany({
       where,
       orderBy: { weekStarting: "desc" },
-      // Managers need every work week in the picker; drivers keep a recent window.
       ...(access.isManager ? {} : { take: 50 }),
     });
     sheets = await Promise.all(

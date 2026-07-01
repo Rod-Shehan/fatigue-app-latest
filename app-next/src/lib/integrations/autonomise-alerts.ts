@@ -5,7 +5,7 @@ import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-sett
 import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-client";
 import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 import { isCameraAlertDeleteEnabled } from "@/lib/integrations/camera-alert-ingest-delete";
-import { backfillMissingAutonomiseMedia, PENDING_INBOX_MAX_FETCH } from "@/lib/integrations/autonomise-media-resolver";
+import { backfillMissingAutonomiseMedia } from "@/lib/integrations/autonomise-media-resolver";
 import { loadTriageByIngestIds, type CameraAlertTriageRecord } from "@/lib/integrations/camera-alert-triage";
 import {
   loadCommandLifecycleTriageByIngestIds,
@@ -23,7 +23,9 @@ import {
 import { loadIncidentClaimsByLifecycleIds } from "@/lib/integrations/incident-claim";
 import { reconcileStalePendingLifecycleFromManagerTriage } from "@/lib/integrations/manager-lifecycle-sync";
 import {
+  countUnpromotedAcceptedIngest,
   promoteAcceptedIngestBacklog,
+  PROMOTE_BACKLOG_PER_INBOX_REQUEST,
   TRIAGE_QUEUE_PLACEHOLDER_REGO,
 } from "@/lib/integrations/command-lifecycle-bridge";
 import type { FalsePositiveReasonId } from "@/lib/integrations/false-positive-reasons";
@@ -507,16 +509,22 @@ export async function listCameraAlerts(
   queueSummary: TriageQueueSummary;
 }> {
   if (args.triageFilter === "pending") {
-    await promoteAcceptedIngestBacklog(prisma, { limit: 500 });
+    const backlog = await countUnpromotedAcceptedIngest(prisma);
+    if (backlog > 0) {
+      await promoteAcceptedIngestBacklog(prisma, {
+        limit: Math.min(backlog, PROMOTE_BACKLOG_PER_INBOX_REQUEST),
+      });
+    }
     await reconcileStalePendingLifecycleFromManagerTriage(prisma);
 
-    const alerts = await listActiveTriageAsCameraAlerts(prisma, {
-      limit: args.limit ?? 200,
-      backfillMedia: args.backfillMedia,
-      viewerUserId: args.viewerUserId,
-    });
-
-    const activePending = await countActiveTriagePending(prisma);
+    const [alerts, activePending] = await Promise.all([
+      listActiveTriageAsCameraAlerts(prisma, {
+        limit: args.limit ?? 200,
+        backfillMedia: args.backfillMedia,
+        viewerUserId: args.viewerUserId,
+      }),
+      countActiveTriagePending(prisma),
+    ]);
 
     return {
       alerts,

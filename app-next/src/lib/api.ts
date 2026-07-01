@@ -393,7 +393,13 @@ export const api = {
       }>("/api/driver/risk-blocks", { method: "POST", body: data }),
   },
   sheets: {
-    list: () => fetchApi<FatigueSheet[]>("/api/sheets"),
+    list: (options?: { meta?: boolean; weekStarting?: string }) => {
+      const params = new URLSearchParams();
+      if (options?.meta) params.set("meta", "1");
+      if (options?.weekStarting) params.set("weekStarting", options.weekStarting);
+      const q = params.toString();
+      return fetchApi<FatigueSheet[]>(`/api/sheets${q ? `?${q}` : ""}`);
+    },
     get: (id: string) => fetchApi<FatigueSheet>(`/api/sheets/${id}`),
     complianceHistory: (id: string) =>
       fetchApi<{

@@ -155,6 +155,26 @@ export async function syncCommandLifecycleForVendorEventId(
 }
 
 /** Promote accepted ingest rows not yet on the shared triage queue (e.g. pre-rego-fix backlog). */
+export async function countUnpromotedAcceptedIngest(prisma: PrismaClient): Promise<number> {
+  if (!isCommandLifecycleBridgeEnabled()) return 0;
+  const rows = await prisma.$queryRaw<Array<{ count: number }>>`
+    SELECT COUNT(*)::int AS count
+    FROM "AutonomiseWebhookIngest" i
+    WHERE i.kind = 'event'
+      AND i.accepted = true
+      AND NOT EXISTS (
+        SELECT 1
+        FROM edge_fatigue_events e
+        WHERE e.source_ingest_id = i.id
+      )
+  `;
+  return rows[0]?.count ?? 0;
+}
+
+/** Cap per inbox refresh — avoid scanning hundreds of rows on every poll. */
+export const PROMOTE_BACKLOG_PER_INBOX_REQUEST = 15;
+
+/** Promote accepted ingest rows not yet on the shared triage queue (e.g. pre-rego-fix backlog). */
 export async function promoteAcceptedIngestBacklog(
   prisma: PrismaClient,
   args: { limit?: number } = {}

@@ -66,9 +66,9 @@ function ManagerMapViewInner() {
     stop: "Shift ended",
   };
 
-  const { data: sheets = [] } = useQuery({
-    queryKey: ["sheets"],
-    queryFn: () => api.sheets.list(),
+  const { data: sheetMeta = [] } = useQuery({
+    queryKey: ["sheets", "meta"],
+    queryFn: () => api.sheets.list({ meta: true }),
   });
 
   const { data: mapEventsData, isLoading: mapEventsLoading } = useQuery({
@@ -82,13 +82,13 @@ function ManagerMapViewInner() {
   const mapEvents = mapEventsData?.events ?? [];
 
   const mapWeeks = useMemo(() => {
-    const weeks = [...new Set(sheets.map((s) => s.week_starting).filter(Boolean))];
+    const weeks = [...new Set(sheetMeta.map((s) => s.week_starting).filter(Boolean))];
     return weeks.sort().reverse();
-  }, [sheets]);
+  }, [sheetMeta]);
   const mapDrivers = useMemo(() => {
-    const names = [...new Set(sheets.map((s) => s.driver_name).filter(Boolean))];
+    const names = [...new Set(sheetMeta.map((s) => s.driver_name).filter(Boolean))];
     return names.sort((a, b) => a.localeCompare(b));
-  }, [sheets]);
+  }, [sheetMeta]);
 
   const mapEventTypesSet = useMemo(() => {
     const checked = (["work", "break", "stop"] as const).filter(
