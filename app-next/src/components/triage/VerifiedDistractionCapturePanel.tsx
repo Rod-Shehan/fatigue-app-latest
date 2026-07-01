@@ -28,7 +28,7 @@ function VerifiedDistractionReasonCapture({
   return (
     <fieldset className="space-y-2" disabled={disabled}>
       <legend className="text-xs font-medium text-slate-600 dark:text-slate-400">
-        What triggered the distraction alert? (select all that apply)
+        What triggered the alert? (select all that apply)
       </legend>
       <ul className="space-y-2">
         {VERIFIED_DISTRACTION_REASONS.map((reason) => (

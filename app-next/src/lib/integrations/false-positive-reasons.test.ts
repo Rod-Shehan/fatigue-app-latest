@@ -66,6 +66,7 @@ describe("false-positive-export", () => {
     expect(csv.startsWith("\uFEFFingest_event_id")).toBe(true);
     expect(csv).toContain("driver looking left");
     expect(csv).toContain("hand over face");
+    expect(csv).toContain("mobile phone use");
     expect(csv).toContain("undetermined");
   });
 });

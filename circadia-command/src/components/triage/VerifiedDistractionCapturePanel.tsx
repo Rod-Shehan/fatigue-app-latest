@@ -46,7 +46,7 @@ export function VerifiedDistractionCapturePanel({
       <p className="mb-3 text-sm font-medium text-violet-100">Verified distraction — reason capture</p>
       <fieldset className="space-y-2" disabled={pending}>
         <legend className="text-xs font-medium text-slate-400">
-          What triggered the distraction alert? (select all that apply)
+          What triggered the alert? (select all that apply)
         </legend>
         <ul className="space-y-2">
           {VERIFIED_DISTRACTION_REASONS.map((reason) => (
