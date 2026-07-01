@@ -3,15 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Menu,
-  Radio,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Menu, Radio, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
@@ -43,8 +35,6 @@ type Props = {
   onTriageFilterChange: (filter: TriageFilter) => void;
   hours: number;
   onHoursChange: (hours: number) => void;
-  showExcludedEvents: boolean;
-  onShowExcludedEventsChange: (next: boolean) => void;
   liveLabel: string;
   dataUpdatedAt: number;
   pendingCount: number;
@@ -61,8 +51,6 @@ export function AlertsDeskChrome({
   onTriageFilterChange,
   hours,
   onHoursChange,
-  showExcludedEvents,
-  onShowExcludedEventsChange,
   liveLabel,
   dataUpdatedAt,
   pendingCount,
@@ -225,25 +213,6 @@ export function AlertsDeskChrome({
             ))}
           </select>
         ) : null}
-
-        <Button
-          type="button"
-          size="sm"
-          variant={showExcludedEvents ? "default" : "outline"}
-          className={cn(
-            "h-8 gap-1 px-2 text-xs",
-            triageFilter === "pending" ? "ml-auto" : undefined
-          )}
-          onClick={() => onShowExcludedEventsChange(!showExcludedEvents)}
-          title="Events received from Autonomise but not in your enabled alert types"
-        >
-          {showExcludedEvents ? (
-            <EyeOff className="h-3.5 w-3.5" aria-hidden />
-          ) : (
-            <Eye className="h-3.5 w-3.5" aria-hidden />
-          )}
-          {showExcludedEvents ? "Hide excluded" : "Excluded"}
-        </Button>
       </div>
 
       <Dialog open={menuOpen} onOpenChange={setMenuOpen}>

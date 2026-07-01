@@ -477,7 +477,6 @@ function AlertEventHeader({
 export function ManagerAlertsView() {
   const queryClient = useQueryClient();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [showExcludedEvents, setShowExcludedEvents] = useState(false);
   const [hours, setHours] = useState(DEFAULT_HISTORY_HOURS);
   const [triageFilter, setTriageFilter] = useState<TriageFilter>("pending");
   const [selectionMode, setSelectionMode] = useState(false);
@@ -496,7 +495,6 @@ export function ManagerAlertsView() {
   const queryKey = [
     "manager",
     "camera-alerts",
-    showExcludedEvents,
     triageFilter,
     triageFilter === "pending" ? null : hours,
   ] as const;
@@ -505,10 +503,8 @@ export function ManagerAlertsView() {
     queryKey,
     queryFn: () =>
       api.manager.cameraAlerts({
-        acceptedOnly: !showExcludedEvents,
         hours,
         triageFilter,
-        limit: showExcludedEvents ? 200 : undefined,
       }),
     staleTime: 15_000,
     refetchInterval: 30_000,
@@ -594,7 +590,6 @@ export function ManagerAlertsView() {
   const allowDelete = data?.testingTools?.allowDelete === true;
 
   const alerts = data?.alerts ?? [];
-  const excludedAlerts = alerts.filter((a) => !a.accepted);
   const collapsible = alerts.length > 1 && !selectionMode;
   const selectedCount = selectedIds.size;
   const bulkDeletePending = bulkDeleteMutation.isPending;
@@ -603,7 +598,7 @@ export function ManagerAlertsView() {
     setSelectedIds(new Set());
     setSelectionMode(false);
     setResolvingAlertId(null);
-  }, [showExcludedEvents, hours, triageFilter]);
+  }, [hours, triageFilter]);
 
   function toggleSelected(id: string, next: boolean) {
     setSelectedIds((current) => {
@@ -616,10 +611,6 @@ export function ManagerAlertsView() {
 
   function selectAllVisible() {
     setSelectedIds(new Set(alerts.map((alert) => alert.id)));
-  }
-
-  function selectAllExcluded() {
-    setSelectedIds(new Set(excludedAlerts.map((alert) => alert.id)));
   }
 
   function handleBulkDelete() {
@@ -673,8 +664,6 @@ export function ManagerAlertsView() {
           onTriageFilterChange={setTriageFilter}
           hours={hours}
           onHoursChange={setHours}
-          showExcludedEvents={showExcludedEvents}
-          onShowExcludedEventsChange={setShowExcludedEvents}
           liveLabel={liveLabel}
           dataUpdatedAt={dataUpdatedAt}
           pendingCount={pendingCount}
@@ -739,7 +728,7 @@ export function ManagerAlertsView() {
                       Select to delete
                     </Button>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Use the <strong>Excluded</strong> toggle to load rejected ingest rows for bulk cleanup.
+                      Pilot testing — remove stored webhook rows from Circadia.
                     </p>
                   </div>
                 ) : (
@@ -759,11 +748,6 @@ export function ManagerAlertsView() {
                       <Button type="button" size="sm" variant="outline" onClick={selectAllVisible}>
                         Select all on screen ({alerts.length})
                       </Button>
-                      {showExcludedEvents && excludedAlerts.length > 0 ? (
-                        <Button type="button" size="sm" variant="outline" onClick={selectAllExcluded}>
-                          Select excluded ({excludedAlerts.length})
-                        </Button>
-                      ) : null}
                       <Button
                         type="button"
                         size="sm"
