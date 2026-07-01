@@ -216,6 +216,10 @@ export async function claimIncidentForManager(
     if (row.event_status !== "PENDING_TRIAGE") {
       throw new IncidentClaimError("Incident is no longer awaiting triage.", "NOT_PENDING");
     }
+    const existing = mapClaimRow(row);
+    if (isClaimHeldBy(existing, { type: "manager", userId: args.userId })) {
+      return existing;
+    }
     throw new IncidentClaimError(
       "This safety event has already been claimed by another desk.",
       "ALREADY_CLAIMED"

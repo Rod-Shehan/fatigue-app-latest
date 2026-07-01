@@ -118,10 +118,10 @@ function AlertEventCard({
   selectionMode,
   selected,
   onSelectChange,
-  onClaim,
-  claimPending,
   onReleaseClaim,
   releasePending,
+  beginResolutionPending,
+  beginResolutionError,
   dismissCaptureMode,
   onBeginDismissCapture,
   onCancelDismissCapture,
@@ -168,10 +168,10 @@ function AlertEventCard({
   selectionMode: boolean;
   selected: boolean;
   onSelectChange: (selected: boolean) => void;
-  onClaim: () => void;
-  claimPending: boolean;
   onReleaseClaim: () => void;
   releasePending: boolean;
+  beginResolutionPending: boolean;
+  beginResolutionError: string | null;
 }) {
   const [note, setNote] = useState("");
   const [dismissReasons, setDismissReasons] = useState<FalsePositiveReasonId[]>([]);
@@ -190,8 +190,7 @@ function AlertEventCard({
     alert.triageStatus === "pending";
   const claimedByYou = alert.claimedByYou === true;
   const claimedByOther = Boolean(alert.claimedByActorType && !claimedByYou);
-  const needsClaim = canTriage && !alert.claimedByActorType;
-  const canAct = canTriage && claimedByYou;
+  const canAct = canTriage && !claimedByOther;
   const decided = alert.triageStatus !== "pending";
 
   const activityQuery = useQuery({
@@ -363,19 +362,7 @@ function AlertEventCard({
             </p>
           ) : null}
 
-          {needsClaim ? (
-            <div className="mb-3">
-              <p className="mb-2 text-xs text-slate-600 dark:text-slate-400">
-                Claim this event before confirming or dismissing (shared with Command desk).
-              </p>
-              <Button type="button" className="w-full" disabled={claimPending} onClick={onClaim}>
-                {claimPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
-                Claim for review
-              </Button>
-            </div>
-          ) : null}
-
-          {canAct && !resolutionMode ? (
+          {canAct && claimedByYou && !resolutionMode ? (
             <div className="mb-3 flex justify-end">
               <Button
                 type="button"
@@ -396,14 +383,25 @@ function AlertEventCard({
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
               </p>
+              {beginResolutionError ? (
+                <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">{beginResolutionError}</p>
+              ) : null}
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 {showFatigueAction ? (
                   <Button
                     type="button"
                     className="flex-1 sm:min-w-[10rem]"
-                    disabled={triagePending || resolvePending || verifyDistractionPending}
+                    disabled={
+                      triagePending ||
+                      resolvePending ||
+                      verifyDistractionPending ||
+                      beginResolutionPending
+                    }
                     onClick={onBeginResolution}
                   >
+                    {beginResolutionPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    ) : null}
                     Verified fatigue
                   </Button>
                 ) : null}
@@ -611,6 +609,11 @@ export function ManagerAlertsView() {
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
   const [dismissCaptureAlertId, setDismissCaptureAlertId] = useState<string | null>(null);
   const [distractionCaptureAlertId, setDistractionCaptureAlertId] = useState<string | null>(null);
+  const [beginResolutionAlertId, setBeginResolutionAlertId] = useState<string | null>(null);
+  const [beginResolutionError, setBeginResolutionError] = useState<{
+    id: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     setHours(readStoredHours());
@@ -649,19 +652,21 @@ export function ManagerAlertsView() {
   const triageDeskOnShift = shiftQuery.data?.viewer.onShift ?? false;
 
   const triageMutation = useMutation({
-    mutationFn: (args: {
+    mutationFn: async (args: {
       id: string;
       decision: "dismissed";
       note: string;
       falsePositiveReasons: FalsePositiveReasonId[];
       vendorEventId: string | null;
-    }) =>
-      api.manager.cameraAlertTriage(args.id, {
+    }) => {
+      await api.manager.cameraAlertClaim(args.id);
+      return api.manager.cameraAlertTriage(args.id, {
         decision: args.decision,
         note: args.note || null,
         falsePositiveReasons: args.falsePositiveReasons,
         vendorEventId: args.vendorEventId,
-      }),
+      });
+    },
     onSuccess: (_data, variables) => {
       setResolvingAlertId((current) => (current === variables.id ? null : current));
       setDismissCaptureAlertId((current) => (current === variables.id ? null : current));
@@ -671,17 +676,19 @@ export function ManagerAlertsView() {
   });
 
   const verifyDistractionMutation = useMutation({
-    mutationFn: (args: {
+    mutationFn: async (args: {
       id: string;
       verifiedDistractionReasons: VerifiedDistractionReasonId[];
       note: string;
       vendorEventId: string | null;
-    }) =>
-      api.manager.cameraAlertVerifyDistraction(args.id, {
+    }) => {
+      await api.manager.cameraAlertClaim(args.id);
+      return api.manager.cameraAlertVerifyDistraction(args.id, {
         verifiedDistractionReasons: args.verifiedDistractionReasons,
         note: args.note || null,
         vendorEventId: args.vendorEventId,
-      }),
+      });
+    },
     onSuccess: (_data, variables) => {
       setDistractionCaptureAlertId((current) => (current === variables.id ? null : current));
       void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
@@ -756,6 +763,7 @@ export function ManagerAlertsView() {
     setResolvingAlertId(null);
     setDismissCaptureAlertId(null);
     setDistractionCaptureAlertId(null);
+    setBeginResolutionError(null);
   }, [hours, triageFilter]);
 
   function toggleSelected(id: string, next: boolean) {
@@ -1008,12 +1016,28 @@ export function ManagerAlertsView() {
                     : null
                 }
                 resolutionMode={resolvingAlertId === alert.id}
-                onBeginResolution={() => {
-                  setResolvingAlertId(alert.id);
-                  setDismissCaptureAlertId(null);
-                  setDistractionCaptureAlertId(null);
-                  setExpandedId(alert.id);
+                onBeginResolution={async () => {
+                  setBeginResolutionError(null);
+                  setBeginResolutionAlertId(alert.id);
+                  try {
+                    await claimMutation.mutateAsync(alert.id);
+                    setResolvingAlertId(alert.id);
+                    setDismissCaptureAlertId(null);
+                    setDistractionCaptureAlertId(null);
+                    setExpandedId(alert.id);
+                  } catch (e) {
+                    setBeginResolutionError({
+                      id: alert.id,
+                      message: e instanceof Error ? e.message : "Could not claim this event",
+                    });
+                  } finally {
+                    setBeginResolutionAlertId(null);
+                  }
                 }}
+                beginResolutionPending={beginResolutionAlertId === alert.id}
+                beginResolutionError={
+                  beginResolutionError?.id === alert.id ? beginResolutionError.message : null
+                }
                 onResolve={(actionType, resolutionNotes) =>
                   resolveMutation.mutate({
                     id: alert.id,
@@ -1038,8 +1062,6 @@ export function ManagerAlertsView() {
                 selectionMode={selectionMode}
                 selected={selectedIds.has(alert.id)}
                 onSelectChange={(next) => toggleSelected(alert.id, next)}
-                onClaim={() => claimMutation.mutate(alert.id)}
-                claimPending={claimMutation.isPending && claimMutation.variables === alert.id}
                 onReleaseClaim={() => releaseClaimMutation.mutate(alert.id)}
                 releasePending={
                   releaseClaimMutation.isPending && releaseClaimMutation.variables === alert.id
