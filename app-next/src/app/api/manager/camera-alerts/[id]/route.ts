@@ -4,6 +4,7 @@ import {
   deleteCameraAlertIngest,
   isCameraAlertDeleteEnabled,
 } from "@/lib/integrations/camera-alert-ingest-delete";
+import { resolveManagerAlertTarget } from "@/lib/integrations/manager-alert-target";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -29,9 +30,15 @@ export async function DELETE(
     );
   }
 
-  const { id: ingestId } = await context.params;
+  const { id } = await context.params;
 
   try {
+    const target = await resolveManagerAlertTarget(prisma, id);
+    const ingestId = target?.ingestEventId;
+    if (!ingestId) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
     const result = await deleteCameraAlertIngest(prisma, ingestId);
     return NextResponse.json({ ok: true, ...result });
   } catch (e) {

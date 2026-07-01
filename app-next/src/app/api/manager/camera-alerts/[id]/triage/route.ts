@@ -8,8 +8,8 @@ import {
   assertManagerHoldsClaim,
   assertManagerOnShift,
   IncidentClaimError,
-  resolveLifecycleIdForIngest,
 } from "@/lib/integrations/incident-claim";
+import { resolveManagerAlertTarget } from "@/lib/integrations/manager-alert-target";
 import { syncCommandLifecycleFromManagerTriage } from "@/lib/integrations/manager-lifecycle-sync";
 import { prisma } from "@/lib/prisma";
 
@@ -29,7 +29,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: ingestEventId } = await context.params;
+  const { id } = await context.params;
 
   let body: { decision?: string; note?: string | null; vendorEventId?: string | null };
   try {
@@ -48,9 +48,13 @@ export async function POST(
 
   try {
     await assertManagerOnShift(prisma, manager.user.id, manager.user.role);
-    const lifecycleId = await resolveLifecycleIdForIngest(prisma, ingestEventId);
-    if (lifecycleId) {
-      await assertManagerHoldsClaim(prisma, lifecycleId, manager.user.id);
+    const target = await resolveManagerAlertTarget(prisma, id);
+    if (!target?.ingestEventId) {
+      return NextResponse.json({ error: "Event not found or not eligible for triage" }, { status: 404 });
+    }
+    const ingestEventId = target.ingestEventId;
+    if (target.lifecycleId) {
+      await assertManagerHoldsClaim(prisma, target.lifecycleId, manager.user.id);
     }
 
     const record = await recordCameraAlertTriage(prisma, {

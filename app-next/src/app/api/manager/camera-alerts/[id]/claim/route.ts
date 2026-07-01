@@ -4,8 +4,8 @@ import {
   claimIncidentForManager,
   IncidentClaimError,
   releaseIncidentClaimForManager,
-  resolveLifecycleIdForIngest,
 } from "@/lib/integrations/incident-claim";
+import { resolveManagerAlertTarget } from "@/lib/integrations/manager-alert-target";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -24,16 +24,16 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: ingestEventId } = await context.params;
+  const { id } = await context.params;
 
   try {
-    const lifecycleId = await resolveLifecycleIdForIngest(prisma, ingestEventId);
-    if (!lifecycleId) {
+    const target = await resolveManagerAlertTarget(prisma, id);
+    if (!target?.lifecycleId) {
       return NextResponse.json({ error: "No active incident for this event" }, { status: 404 });
     }
 
     const claim = await claimIncidentForManager(prisma, {
-      lifecycleId,
+      lifecycleId: target.lifecycleId,
       userId: manager.user.id,
       userRole: manager.user.role,
       userLabel: manager.user.name ?? manager.user.email ?? "Manager",
@@ -69,22 +69,22 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: ingestEventId } = await context.params;
+  const { id } = await context.params;
 
   try {
-    const lifecycleId = await resolveLifecycleIdForIngest(prisma, ingestEventId);
-    if (!lifecycleId) {
+    const target = await resolveManagerAlertTarget(prisma, id);
+    if (!target?.lifecycleId) {
       return NextResponse.json({ error: "No active incident for this event" }, { status: 404 });
     }
 
     const released = await releaseIncidentClaimForManager(prisma, {
-      lifecycleId,
+      lifecycleId: target.lifecycleId,
       userId: manager.user.id,
     });
     if (!released) {
       return NextResponse.json({ error: "Could not release claim" }, { status: 409 });
     }
-    return NextResponse.json({ ok: true, lifecycleId });
+    return NextResponse.json({ ok: true, lifecycleId: target.lifecycleId });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Failed to release claim";
     return NextResponse.json({ error: msg }, { status: 500 });

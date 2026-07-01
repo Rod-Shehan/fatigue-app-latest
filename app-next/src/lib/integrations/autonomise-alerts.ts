@@ -21,6 +21,7 @@ import {
   type TriageQueueSummary,
 } from "@/lib/integrations/triage-active-queue";
 import { loadIncidentClaimsByLifecycleIds } from "@/lib/integrations/incident-claim";
+import { reconcileStalePendingLifecycleFromManagerTriage } from "@/lib/integrations/manager-lifecycle-sync";
 import {
   promoteAcceptedIngestBacklog,
   TRIAGE_QUEUE_PLACEHOLDER_REGO,
@@ -30,6 +31,8 @@ export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
 export type CameraAlertItem = {
   id: string;
+  /** Autonomise ingest row when bridged; use for triage APIs when present. */
+  ingestEventId?: string | null;
   vendorEventId: string | null;
   vendorAlarmId: string | null;
   displayName: string | null;
@@ -347,7 +350,8 @@ function cameraAlertFromEdgeQueueRow(row: ActiveTriageQueueRow): CameraAlertItem
       ? null
       : row.video_snippet_url;
   return {
-    id: row.source_ingest_id ?? `lifecycle:${row.lifecycle_id}`,
+    id: row.lifecycle_id,
+    ingestEventId: row.source_ingest_id,
     vendorEventId: null,
     vendorAlarmId: null,
     displayName: displayNameFromFatigueMetric(row.fatigue_metric_type),
@@ -439,6 +443,8 @@ async function listActiveTriageAsCameraAlerts(
       if (fromIngest) {
         alerts.push({
           ...fromIngest,
+          id: row.lifecycle_id,
+          ingestEventId: row.source_ingest_id,
           accepted: true,
           triageStatus: "pending",
           lifecycleId: row.lifecycle_id,
@@ -449,6 +455,8 @@ async function listActiveTriageAsCameraAlerts(
     }
     alerts.push({
       ...cameraAlertFromEdgeQueueRow(row),
+      id: row.lifecycle_id,
+      ingestEventId: row.source_ingest_id,
       lifecycleId: row.lifecycle_id,
     });
   }
@@ -494,16 +502,17 @@ export async function listCameraAlerts(
   diagnostics: CameraAlertsDiagnostics;
   queueSummary: TriageQueueSummary;
 }> {
-  const activePending = await countActiveTriagePending(prisma);
-
   if (args.triageFilter === "pending") {
-    await promoteAcceptedIngestBacklog(prisma, { limit: 200 });
+    await promoteAcceptedIngestBacklog(prisma, { limit: 500 });
+    await reconcileStalePendingLifecycleFromManagerTriage(prisma);
 
     const alerts = await listActiveTriageAsCameraAlerts(prisma, {
-      limit: args.limit ?? 100,
+      limit: args.limit ?? 200,
       backfillMedia: args.backfillMedia,
       viewerUserId: args.viewerUserId,
     });
+
+    const activePending = await countActiveTriagePending(prisma);
 
     return {
       alerts,
@@ -520,6 +529,8 @@ export async function listCameraAlerts(
       queueSummary: { activePending, browseHours: null },
     };
   }
+
+  const activePending = await countActiveTriagePending(prisma);
 
   const hours = args.hours ?? 168;
   const defaultLimit = hours > 48 ? 100 : 60;

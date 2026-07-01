@@ -25,6 +25,11 @@ function readStoredHours(): number {
 
 type TriageFilter = "pending" | "all" | "decided";
 
+/** Queue cards use lifecycle id; delete still targets ingest row. */
+function managerAlertIngestId(alert: CameraAlertItem): string {
+  return alert.ingestEventId ?? alert.id;
+}
+
 function formatVehicleDriverLine(alert: CameraAlertItem) {
   const vehicle = alert.vehicleRego
     ? `Rego ${alert.vehicleRego}`
@@ -614,7 +619,10 @@ export function ManagerAlertsView() {
   }
 
   function handleBulkDelete() {
-    const ids = [...selectedIds];
+    const ids = [...selectedIds].map((rowId) => {
+      const alert = alerts.find((a) => a.id === rowId);
+      return alert ? managerAlertIngestId(alert) : rowId;
+    });
     if (ids.length === 0) return;
     const batches = Math.ceil(ids.length / 100);
     const batchNote = batches > 1 ? ` This runs in ${batches} batches.` : "";
@@ -835,8 +843,8 @@ export function ManagerAlertsView() {
                 }
                 allowDelete={allowDelete}
                 triageDeskOnShift={triageDeskOnShift}
-                deletePending={deleteMutation.isPending && deleteMutation.variables === alert.id}
-                onDelete={() => deleteMutation.mutate(alert.id)}
+                deletePending={deleteMutation.isPending && deleteMutation.variables === managerAlertIngestId(alert)}
+                onDelete={() => deleteMutation.mutate(managerAlertIngestId(alert))}
                 selectionMode={selectionMode}
                 selected={selectedIds.has(alert.id)}
                 onSelectChange={(next) => toggleSelected(alert.id, next)}

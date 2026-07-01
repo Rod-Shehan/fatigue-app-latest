@@ -218,6 +218,8 @@ export type TriageShiftCurrentResponse = {
 
 export type CameraAlertItem = {
   id: string;
+  /** Autonomise ingest row when bridged; required for delete when id is lifecycle. */
+  ingestEventId?: string | null;
   vendorEventId: string | null;
   vendorAlarmId: string | null;
   displayName: string | null;

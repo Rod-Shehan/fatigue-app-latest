@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { fetchIncidentActivityTimeline } from "@/lib/integrations/incident-activity-timeline";
+import { resolveManagerAlertTarget } from "@/lib/integrations/manager-alert-target";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -18,7 +19,15 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: ingestEventId } = await context.params;
-  const entries = await fetchIncidentActivityTimeline(prisma, { ingestEventId });
+  const { id } = await context.params;
+  const target = await resolveManagerAlertTarget(prisma, id);
+  if (!target?.lifecycleId && !target?.ingestEventId) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  const entries = await fetchIncidentActivityTimeline(prisma, {
+    lifecycleId: target.lifecycleId,
+    ingestEventId: target.ingestEventId,
+  });
   return NextResponse.json({ entries });
 }

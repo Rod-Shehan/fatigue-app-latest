@@ -2,7 +2,8 @@
  * Active triage queue — same pending definition as circadia-command triage-queue.ts (§3.5 Phase 1).
  */
 
-import type { PrismaClient } from "@prisma/client";
+import { Prisma, type PrismaClient } from "@prisma/client";
+import { pilotTenantIdForQueue } from "@/lib/integrations/manager-alert-target";
 
 export type TriageQueueSummary = {
   /** Pending on shared lifecycle queue (matches Command queue_depth). */
@@ -28,27 +29,40 @@ export type QueueBurstTarget = {
   queueBurstLabel?: string | null;
 };
 
+/** Pilot tenant + bridged Autonomise ingest only (excludes Command simulate rows). */
+function queueScopeSql(tenantId: string | null): Prisma.Sql {
+  const tenantClause = tenantId
+    ? Prisma.sql`AND l.tenant_id_uuid = ${tenantId}::uuid`
+    : Prisma.empty;
+  return Prisma.sql`
+    l.event_status = 'PENDING_TRIAGE'
+    AND e.source_ingest_id IS NOT NULL
+    ${tenantClause}
+    AND NOT EXISTS (
+      SELECT 1
+      FROM "CameraAlertTriage" t
+      WHERE t."ingestEventId" = e.source_ingest_id
+         OR (
+           t."vendorEventId" IS NOT NULL
+           AND EXISTS (
+             SELECT 1
+             FROM "AutonomiseWebhookIngest" i
+             WHERE i.id = e.source_ingest_id
+               AND i."vendorEventId" = t."vendorEventId"
+           )
+         )
+    )
+  `;
+}
+
 /** Exclude rows manager already decided (same SQL as Command countPendingTriage). */
 export async function countActiveTriagePending(prisma: PrismaClient): Promise<number> {
+  const tenantId = pilotTenantIdForQueue();
   const rows = await prisma.$queryRaw<Array<{ count: number }>>`
     SELECT COUNT(*)::int AS count
     FROM fatigue_incident_lifecycle l
     INNER JOIN edge_fatigue_events e ON e.event_id = l.event_id
-    WHERE l.event_status = 'PENDING_TRIAGE'
-      AND NOT EXISTS (
-        SELECT 1
-        FROM "CameraAlertTriage" t
-        WHERE t."ingestEventId" = e.source_ingest_id
-           OR (
-             t."vendorEventId" IS NOT NULL
-             AND EXISTS (
-               SELECT 1
-               FROM "AutonomiseWebhookIngest" i
-               WHERE i.id = e.source_ingest_id
-                 AND i."vendorEventId" = t."vendorEventId"
-             )
-           )
-      )
+    WHERE ${queueScopeSql(tenantId)}
   `;
   return rows[0]?.count ?? 0;
 }
@@ -57,6 +71,7 @@ export async function fetchActiveTriageQueueRows(
   prisma: PrismaClient,
   limit: number
 ): Promise<ActiveTriageQueueRow[]> {
+  const tenantId = pilotTenantIdForQueue();
   return prisma.$queryRaw<ActiveTriageQueueRow[]>`
     SELECT
       l.lifecycle_id::text AS lifecycle_id,
@@ -68,21 +83,7 @@ export async function fetchActiveTriageQueueRows(
       e.hardware_timestamp
     FROM fatigue_incident_lifecycle l
     INNER JOIN edge_fatigue_events e ON e.event_id = l.event_id
-    WHERE l.event_status = 'PENDING_TRIAGE'
-      AND NOT EXISTS (
-        SELECT 1
-        FROM "CameraAlertTriage" t
-        WHERE t."ingestEventId" = e.source_ingest_id
-           OR (
-             t."vendorEventId" IS NOT NULL
-             AND EXISTS (
-               SELECT 1
-               FROM "AutonomiseWebhookIngest" i
-               WHERE i.id = e.source_ingest_id
-                 AND i."vendorEventId" = t."vendorEventId"
-             )
-           )
-      )
+    WHERE ${queueScopeSql(tenantId)}
     ORDER BY l.detected_at DESC, l.lifecycle_id DESC
     LIMIT ${limit}
   `;
