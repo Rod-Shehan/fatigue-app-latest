@@ -16,10 +16,10 @@ export function cameraAlertEventKind(args: {
   return "unknown";
 }
 
-export function showVerifiedFatigueAction(kind: CameraAlertEventKind): boolean {
-  return kind === "fatigue" || kind === "unknown";
+export function showVerifiedFatigueAction(_kind?: CameraAlertEventKind): boolean {
+  return true;
 }
 
-export function showVerifiedDistractionAction(kind: CameraAlertEventKind): boolean {
-  return kind === "distraction" || kind === "unknown";
+export function showVerifiedDistractionAction(_kind?: CameraAlertEventKind): boolean {
+  return true;
 }

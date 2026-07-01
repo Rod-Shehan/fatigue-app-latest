@@ -4,14 +4,10 @@ import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import { VerifiedDistractionCapturePanel } from "@/components/triage/VerifiedDistractionCapturePanel";
 import type { FalsePositiveReasonId } from "@/lib/false-positive-reasons";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
-import {
-  cameraAlertEventKindFromMetric,
-  type VerifiedDistractionReasonId,
-} from "@/lib/verified-distraction-reasons";
+import type { VerifiedDistractionReasonId } from "@/lib/verified-distraction-reasons";
 
 type Props = {
   selectedId: string | null;
-  fatigueMetricType: string | null;
   busy: boolean;
   triageDeskOnShift: boolean;
   resolutionMode: boolean;
@@ -42,7 +38,6 @@ type Props = {
 
 export function ActionPanel({
   selectedId,
-  fatigueMetricType,
   busy,
   triageDeskOnShift,
   resolutionMode,
@@ -71,9 +66,6 @@ export function ActionPanel({
   onSimulate,
 }: Props) {
   const actionsDisabled = !triageDeskOnShift || !selectedId || busy;
-  const eventKind = cameraAlertEventKindFromMetric(fatigueMetricType ?? "");
-  const showFatigue = eventKind === "fatigue" || eventKind === "unknown";
-  const showDistraction = eventKind === "distraction" || eventKind === "unknown";
 
   if (resolutionMode) {
     return (
@@ -143,26 +135,22 @@ export function ActionPanel({
       >
         F1 — Dismiss as false positive
       </button>
-      {showFatigue ? (
-        <button
-          type="button"
-          disabled={actionsDisabled}
-          onClick={onBeginResolution}
-          className="w-full rounded-lg border border-red-500/50 bg-red-950/40 px-4 py-3 text-sm font-medium text-red-200 transition-colors hover:bg-red-950/60 disabled:opacity-40"
-        >
-          F2 — Verified fatigue
-        </button>
-      ) : null}
-      {showDistraction ? (
-        <button
-          type="button"
-          disabled={actionsDisabled}
-          onClick={onBeginDistractionCapture}
-          className="w-full rounded-lg border border-violet-500/50 bg-violet-950/40 px-4 py-3 text-sm font-medium text-violet-200 transition-colors hover:bg-violet-950/60 disabled:opacity-40"
-        >
-          F3 — Verified distraction
-        </button>
-      ) : null}
+      <button
+        type="button"
+        disabled={actionsDisabled}
+        onClick={onBeginResolution}
+        className="w-full rounded-lg border border-red-500/50 bg-red-950/40 px-4 py-3 text-sm font-medium text-red-200 transition-colors hover:bg-red-950/60 disabled:opacity-40"
+      >
+        F2 — Verified fatigue
+      </button>
+      <button
+        type="button"
+        disabled={actionsDisabled}
+        onClick={onBeginDistractionCapture}
+        className="w-full rounded-lg border border-violet-500/50 bg-violet-950/40 px-4 py-3 text-sm font-medium text-violet-200 transition-colors hover:bg-violet-950/60 disabled:opacity-40"
+      >
+        F3 — Verified distraction
+      </button>
 
       <div className="mt-auto border-t border-slate-700/80 pt-4">
         <button

@@ -467,7 +467,6 @@ export default function TriagePage() {
         <section className="flex min-h-0 flex-col lg:col-span-3">
           <ActionPanel
             selectedId={selectedId}
-            fatigueMetricType={selected?.fatigue_metric_type ?? null}
             busy={busy}
             triageDeskOnShift={triageDeskOnShift}
             resolutionMode={resolutionMode}
