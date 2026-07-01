@@ -1,6 +1,10 @@
 import { randomUUID } from "crypto";
 import type { TriageAction } from "@/lib/lifecycle-status";
 import type { TxClient } from "@/lib/privileged-db";
+import {
+  formatFalsePositiveReasonsForNote,
+  type FalsePositiveReasonId,
+} from "@/lib/false-positive-reasons";
 
 function managerDecisionFromAction(action: TriageAction): "authorized" | "dismissed" {
   return action === "VERIFIED_FALSE_POSITIVE" ? "dismissed" : "authorized";
@@ -23,6 +27,7 @@ export async function syncManagerCameraAlertTriage(
     action: TriageAction;
     operatorId: string;
     operatorNotes?: string;
+    falsePositiveReasons?: FalsePositiveReasonId[];
   }
 ): Promise<void> {
   const rows = await tx.$queryRaw<
@@ -45,6 +50,14 @@ export async function syncManagerCameraAlertTriage(
 
   const decision = managerDecisionFromAction(args.action);
   const decidedByEmail = operatorLabel(row.full_name, row.email);
+  const falsePositiveReasons =
+    decision === "dismissed" ? (args.falsePositiveReasons ?? []) : [];
+  const note =
+    decision === "dismissed"
+      ? formatFalsePositiveReasonsForNote(falsePositiveReasons, args.operatorNotes)
+      : args.operatorNotes?.trim() || null;
+  const reasonsJson =
+    falsePositiveReasons.length > 0 ? JSON.stringify(falsePositiveReasons) : null;
 
   await tx.$executeRaw`
     INSERT INTO "CameraAlertTriage" (
@@ -53,6 +66,7 @@ export async function syncManagerCameraAlertTriage(
       "vendorEventId",
       "decision",
       "note",
+      "falsePositiveReasons",
       "decidedByUserId",
       "decidedByEmail",
       "decidedAt"
@@ -61,7 +75,8 @@ export async function syncManagerCameraAlertTriage(
       ${row.source_ingest_id},
       NULL,
       ${decision},
-      ${args.operatorNotes?.trim() || null},
+      ${note},
+      ${reasonsJson}::jsonb,
       ${`command:${args.operatorId}`},
       ${decidedByEmail},
       NOW()

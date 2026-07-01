@@ -17,11 +17,16 @@ import { useCommandSse } from "@/hooks/use-command-sse";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
 import type { TriageShiftSnapshot } from "@/lib/triage-shift";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
+import type { FalsePositiveReasonId } from "@/lib/false-positive-reasons";
 
 export default function TriagePage() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [resolutionLifecycleId, setResolutionLifecycleId] = useState<string | null>(null);
+  const [dismissCaptureLifecycleId, setDismissCaptureLifecycleId] = useState<string | null>(null);
+  const [dismissNote, setDismissNote] = useState("");
+  const [dismissReasons, setDismissReasons] = useState<FalsePositiveReasonId[]>([]);
+  const [dismissError, setDismissError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -41,6 +46,9 @@ export default function TriagePage() {
 
   const resolutionMode = Boolean(
     resolutionLifecycleId && selectedId && resolutionLifecycleId === selectedId
+  );
+  const dismissCaptureMode = Boolean(
+    dismissCaptureLifecycleId && selectedId && dismissCaptureLifecycleId === selectedId
   );
 
   useEffect(() => {
@@ -102,21 +110,48 @@ export default function TriagePage() {
       setResolutionLifecycleId(null);
       setResolutionError(null);
     }
-  }, [incidents, resolutionLifecycleId]);
+    if (dismissCaptureLifecycleId && !incidents.some((i) => i.lifecycle_id === dismissCaptureLifecycleId)) {
+      setDismissCaptureLifecycleId(null);
+      setDismissNote("");
+      setDismissReasons([]);
+      setDismissError(null);
+    }
+  }, [incidents, resolutionLifecycleId, dismissCaptureLifecycleId]);
 
   const advanceQueue = useCallback(
     (closedId: string) => {
       const remaining = incidents.filter((i) => i.lifecycle_id !== closedId);
       setSelectedId(remaining[0]?.lifecycle_id ?? null);
       setResolutionLifecycleId(null);
+      setDismissCaptureLifecycleId(null);
+      setDismissNote("");
+      setDismissReasons([]);
+      setDismissError(null);
       setResolutionError(null);
     },
     [incidents]
   );
 
+  const beginDismissCapture = useCallback(() => {
+    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode) return;
+    setDismissError(null);
+    setDismissNote("");
+    setDismissReasons([]);
+    setDismissCaptureLifecycleId(selectedId);
+    setResolutionLifecycleId(null);
+  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode]);
+
+  const cancelDismissCapture = useCallback(() => {
+    setDismissCaptureLifecycleId(null);
+    setDismissNote("");
+    setDismissReasons([]);
+    setDismissError(null);
+  }, []);
+
   const runDismiss = useCallback(async () => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode) return;
+    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissReasons.length === 0) return;
     setBusy(true);
+    setDismissError(null);
     try {
       await fetch("/api/v1/triage/claim", {
         method: "POST",
@@ -135,12 +170,13 @@ export default function TriagePage() {
           lifecycle_id: selectedId,
           action: "VERIFIED_FALSE_POSITIVE",
           idempotency_key: `mutate_${selectedId}_VERIFIED_FALSE_POSITIVE`,
-          operator_notes: "Dismissed as false positive",
+          operator_notes: dismissNote.trim() || undefined,
+          false_positive_reasons: dismissReasons,
         }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.message ?? "Mutation failed");
+        setDismissError(body.message ?? "Mutation failed");
         return;
       }
       await invalidate();
@@ -148,10 +184,18 @@ export default function TriagePage() {
     } finally {
       setBusy(false);
     }
-  }, [selectedId, invalidate, triageDeskOnShift, resolutionMode, advanceQueue]);
+  }, [
+    selectedId,
+    invalidate,
+    triageDeskOnShift,
+    resolutionMode,
+    dismissReasons,
+    dismissNote,
+    advanceQueue,
+  ]);
 
   const beginResolution = useCallback(async () => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode) return;
+    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode) return;
     setBusy(true);
     setResolutionError(null);
     try {
@@ -170,10 +214,11 @@ export default function TriagePage() {
         return;
       }
       setResolutionLifecycleId(selectedId);
+      setDismissCaptureLifecycleId(null);
     } finally {
       setBusy(false);
     }
-  }, [selectedId, triageDeskOnShift, resolutionMode]);
+  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode]);
 
   const cancelResolution = useCallback(async () => {
     if (!resolutionLifecycleId) return;
@@ -225,8 +270,8 @@ export default function TriagePage() {
   );
 
   useKeyboardTriage(
-    triageDeskOnShift && !resolutionMode ? selectedId : null,
-    () => void runDismiss(),
+    triageDeskOnShift && !resolutionMode && !dismissCaptureMode ? selectedId : null,
+    () => beginDismissCapture(),
     () => void beginResolution()
   );
 
@@ -334,8 +379,16 @@ export default function TriagePage() {
             busy={busy}
             triageDeskOnShift={triageDeskOnShift}
             resolutionMode={resolutionMode}
+            dismissCaptureMode={dismissCaptureMode}
+            dismissNote={dismissNote}
+            dismissReasons={dismissReasons}
+            dismissError={dismissError}
             resolutionError={resolutionError}
-            onDismiss={() => void runDismiss()}
+            onBeginDismissCapture={beginDismissCapture}
+            onDismissNoteChange={setDismissNote}
+            onDismissReasonsChange={setDismissReasons}
+            onConfirmDismiss={() => void runDismiss()}
+            onCancelDismissCapture={cancelDismissCapture}
             onBeginResolution={() => void beginResolution()}
             onResolve={(actionType, notes) => void submitResolution(actionType, notes)}
             onCancelResolution={() => void cancelResolution()}

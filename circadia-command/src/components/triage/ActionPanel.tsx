@@ -1,5 +1,7 @@
 import { commandCard, commandOutlineButton } from "@/components/command/command-styles";
+import { FalsePositiveDismissPanel } from "@/components/triage/FalsePositiveDismissPanel";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
+import type { FalsePositiveReasonId } from "@/lib/false-positive-reasons";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 type Props = {
@@ -7,8 +9,16 @@ type Props = {
   busy: boolean;
   triageDeskOnShift: boolean;
   resolutionMode: boolean;
+  dismissCaptureMode: boolean;
+  dismissNote: string;
+  dismissReasons: FalsePositiveReasonId[];
+  dismissError: string | null;
   resolutionError: string | null;
-  onDismiss: () => void;
+  onBeginDismissCapture: () => void;
+  onDismissNoteChange: (value: string) => void;
+  onDismissReasonsChange: (next: FalsePositiveReasonId[]) => void;
+  onConfirmDismiss: () => void;
+  onCancelDismissCapture: () => void;
   onBeginResolution: () => void;
   onResolve: (actionType: IncidentResolutionActionType, resolutionNotes: string) => void;
   onCancelResolution: () => void;
@@ -20,8 +30,16 @@ export function ActionPanel({
   busy,
   triageDeskOnShift,
   resolutionMode,
+  dismissCaptureMode,
+  dismissNote,
+  dismissReasons,
+  dismissError,
   resolutionError,
-  onDismiss,
+  onBeginDismissCapture,
+  onDismissNoteChange,
+  onDismissReasonsChange,
+  onConfirmDismiss,
+  onCancelDismissCapture,
   onBeginResolution,
   onResolve,
   onCancelResolution,
@@ -44,6 +62,23 @@ export function ActionPanel({
     );
   }
 
+  if (dismissCaptureMode) {
+    return (
+      <div className={`flex h-full min-h-0 flex-col overflow-y-auto p-4 ${commandCard} ring-2 ring-amber-500/30`}>
+        <FalsePositiveDismissPanel
+          note={dismissNote}
+          onNoteChange={onDismissNoteChange}
+          reasons={dismissReasons}
+          onReasonsChange={onDismissReasonsChange}
+          pending={busy}
+          error={dismissError}
+          onCancel={onCancelDismissCapture}
+          onConfirm={onConfirmDismiss}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className={`flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4 ${commandCard}`}>
       <div>
@@ -58,7 +93,7 @@ export function ActionPanel({
       <button
         type="button"
         disabled={actionsDisabled}
-        onClick={onDismiss}
+        onClick={onBeginDismissCapture}
         className={`${commandOutlineButton} w-full px-4 py-3 disabled:opacity-40`}
       >
         F1 — Dismiss as false positive

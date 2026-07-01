@@ -1,4 +1,6 @@
 import { CommandApiError } from "@/lib/errors";
+import type { FalsePositiveReasonId } from "@/lib/false-positive-reasons";
+import { formatFalsePositiveReasonsForNote } from "@/lib/false-positive-reasons";
 import type { LifecycleStatus } from "@/lib/lifecycle-status";
 import type { TriageAction } from "@/lib/lifecycle-status";
 import type { TxClient } from "@/lib/privileged-db";
@@ -12,6 +14,7 @@ export async function applyOperatorTriageAction(
     action: TriageAction;
     operatorId: string;
     operatorNotes?: string;
+    falsePositiveReasons?: FalsePositiveReasonId[];
     idempotencyKey: string;
   }
 ): Promise<{ status: LifecycleStatus }> {
@@ -37,16 +40,30 @@ export async function applyOperatorTriageAction(
   }
 
   if (args.action === "VERIFIED_FALSE_POSITIVE") {
+    const dismissNote = formatFalsePositiveReasonsForNote(
+      args.falsePositiveReasons ?? [],
+      args.operatorNotes
+    );
     await transitionIncidentState(tx, {
       lifecycleId: args.lifecycleId,
       expectedCurrentStatus: "PENDING_TRIAGE",
       targetStatus: "VERIFIED_FALSE_POSITIVE",
       actorId: args.operatorId,
       actorType: "OPERATOR",
-      notes: args.operatorNotes,
-      snapshot: { idempotency_key: args.idempotencyKey, action: args.action },
+      notes: dismissNote ?? args.operatorNotes,
+      snapshot: {
+        idempotency_key: args.idempotencyKey,
+        action: args.action,
+        false_positive_reasons: args.falsePositiveReasons ?? [],
+      },
     });
-    await syncManagerCameraAlertTriage(tx, args);
+    await syncManagerCameraAlertTriage(tx, {
+      lifecycleId: args.lifecycleId,
+      action: args.action,
+      operatorId: args.operatorId,
+      operatorNotes: args.operatorNotes,
+      falsePositiveReasons: args.falsePositiveReasons,
+    });
     return { status: "VERIFIED_FALSE_POSITIVE" };
   }
 
