@@ -13,8 +13,12 @@ export type TriageQueueSummary = {
 
 export type ActiveTriageQueueRow = {
   lifecycle_id: string;
-  source_ingest_id: string;
+  source_ingest_id: string | null;
   detected_at: Date;
+  vehicle_registration: string;
+  fatigue_metric_type: string;
+  video_snippet_url: string;
+  hardware_timestamp: Date;
 };
 
 export type QueueBurstTarget = {
@@ -24,25 +28,6 @@ export type QueueBurstTarget = {
   queueBurstLabel?: string | null;
 };
 
-const PENDING_NOT_MANAGER_TRIAGED = `
-  l.event_status = 'PENDING_TRIAGE'
-  AND e.source_ingest_id IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1
-    FROM "CameraAlertTriage" t
-    WHERE t."ingestEventId" = e.source_ingest_id
-       OR (
-         t."vendorEventId" IS NOT NULL
-         AND EXISTS (
-           SELECT 1
-           FROM "AutonomiseWebhookIngest" i
-           WHERE i.id = e.source_ingest_id
-             AND i."vendorEventId" = t."vendorEventId"
-         )
-       )
-  )
-`;
-
 /** Exclude rows manager already decided (same SQL as Command countPendingTriage). */
 export async function countActiveTriagePending(prisma: PrismaClient): Promise<number> {
   const rows = await prisma.$queryRaw<Array<{ count: number }>>`
@@ -50,7 +35,6 @@ export async function countActiveTriagePending(prisma: PrismaClient): Promise<nu
     FROM fatigue_incident_lifecycle l
     INNER JOIN edge_fatigue_events e ON e.event_id = l.event_id
     WHERE l.event_status = 'PENDING_TRIAGE'
-      AND e.source_ingest_id IS NOT NULL
       AND NOT EXISTS (
         SELECT 1
         FROM "CameraAlertTriage" t
@@ -77,11 +61,14 @@ export async function fetchActiveTriageQueueRows(
     SELECT
       l.lifecycle_id::text AS lifecycle_id,
       e.source_ingest_id,
-      l.detected_at
+      l.detected_at,
+      e.vehicle_registration,
+      e.fatigue_metric_type,
+      e.video_snippet_url,
+      e.hardware_timestamp
     FROM fatigue_incident_lifecycle l
     INNER JOIN edge_fatigue_events e ON e.event_id = l.event_id
     WHERE l.event_status = 'PENDING_TRIAGE'
-      AND e.source_ingest_id IS NOT NULL
       AND NOT EXISTS (
         SELECT 1
         FROM "CameraAlertTriage" t
@@ -122,6 +109,3 @@ export function buildQueueBurstLabels(alerts: QueueBurstTarget[]): void {
     });
   }
 }
-
-// Reference for cross-repo parity with Command queue filter.
-void PENDING_NOT_MANAGER_TRIAGED;

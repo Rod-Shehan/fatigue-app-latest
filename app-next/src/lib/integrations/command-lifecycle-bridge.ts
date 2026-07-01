@@ -11,11 +11,22 @@ import {
   commandPilotTenantIdUuid,
   isCommandLifecycleBridgeEnabled,
 } from "@/lib/integrations/command-lifecycle-bridge-config";
+import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { getCatalogueEntry } from "@/lib/integrations/fatigue-event-catalogue";
 import {
   resolveReviewMediaUrl,
   shouldReplaceReviewClip,
 } from "@/lib/integrations/autonomise-media-extract";
+
+/** Stored on edge_fatigue_events when Autonomise omits VRN — triage queue still works. */
+export const TRIAGE_QUEUE_PLACEHOLDER_REGO = "UNKNOWN";
+
+export function resolveVehicleRegistrationForQueue(
+  vehicleRego: string | null | undefined
+): string {
+  const trimmed = vehicleRego?.trim().toUpperCase();
+  return trimmed || TRIAGE_QUEUE_PLACEHOLDER_REGO;
+}
 
 export type CommandLifecycleBridgeResult = {
   promoted: boolean;
@@ -81,6 +92,16 @@ type PromoteArgs = {
   payload: unknown;
 };
 
+function normalizePromoteArgs(args: PromoteArgs): PromoteArgs {
+  const fields = extractAutonomiseFields(args.payload, "event");
+  return {
+    ...args,
+    vendorAlarmId: fields.vendorAlarmId ?? args.vendorAlarmId,
+    vehicleRego: fields.vehicleRego ?? args.vehicleRego,
+    driverName: fields.driverName ?? args.driverName,
+  };
+}
+
 /** Re-promote or refresh media on an existing event ingest row (idempotent). */
 export async function syncCommandLifecycleFromEventIngest(
   prisma: PrismaClient,
@@ -133,6 +154,62 @@ export async function syncCommandLifecycleForVendorEventId(
   return syncCommandLifecycleFromEventIngest(prisma, eventRow.id);
 }
 
+/** Promote accepted ingest rows not yet on the shared triage queue (e.g. pre-rego-fix backlog). */
+export async function promoteAcceptedIngestBacklog(
+  prisma: PrismaClient,
+  args: { limit?: number } = {}
+): Promise<{ promoted: number; skipped: number }> {
+  if (!isCommandLifecycleBridgeEnabled()) {
+    return { promoted: 0, skipped: 0 };
+  }
+
+  const limit = Math.min(Math.max(args.limit ?? 100, 1), 500);
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: string;
+      vendorAlarmId: string | null;
+      vehicleRego: string | null;
+      driverName: string | null;
+      mediaUrl: string | null;
+      payload: unknown;
+    }>
+  >`
+    SELECT
+      i.id,
+      i."vendorAlarmId",
+      i."vehicleRego",
+      i."driverName",
+      i."mediaUrl",
+      i.payload
+    FROM "AutonomiseWebhookIngest" i
+    WHERE i.kind = 'event'
+      AND i.accepted = true
+      AND NOT EXISTS (
+        SELECT 1
+        FROM edge_fatigue_events e
+        WHERE e.source_ingest_id = i.id
+      )
+    ORDER BY i."receivedAt" DESC
+    LIMIT ${limit}
+  `;
+
+  let promoted = 0;
+  let skipped = 0;
+  for (const row of rows) {
+    const result = await maybePromoteAutonomiseToCommandLifecycle(prisma, {
+      ingestId: row.id,
+      vendorAlarmId: row.vendorAlarmId,
+      vehicleRego: row.vehicleRego,
+      driverName: row.driverName,
+      mediaUrl: row.mediaUrl,
+      payload: row.payload,
+    });
+    if (result.promoted) promoted += 1;
+    else skipped += 1;
+  }
+  return { promoted, skipped };
+}
+
 export async function maybePromoteAutonomiseToCommandLifecycle(
   prisma: PrismaClient,
   args: PromoteArgs
@@ -140,6 +217,8 @@ export async function maybePromoteAutonomiseToCommandLifecycle(
   if (!isCommandLifecycleBridgeEnabled()) {
     return { promoted: false, skippedReason: "bridge_disabled" };
   }
+
+  args = normalizePromoteArgs(args);
 
   const tenantIdUuid = commandPilotTenantIdUuid();
   if (!tenantIdUuid) {
@@ -155,10 +234,7 @@ export async function maybePromoteAutonomiseToCommandLifecycle(
     return { promoted: false, skippedReason: rejectReason ?? "not_accepted" };
   }
 
-  const rego = args.vehicleRego?.trim().toUpperCase();
-  if (!rego) {
-    return { promoted: false, skippedReason: "missing_vehicle_rego" };
-  }
+  const rego = resolveVehicleRegistrationForQueue(args.vehicleRego);
 
   const managerTriage = await prisma.cameraAlertTriage.findUnique({
     where: { ingestEventId: args.ingestId },

@@ -17,9 +17,14 @@ import {
   buildQueueBurstLabels,
   countActiveTriagePending,
   fetchActiveTriageQueueRows,
+  type ActiveTriageQueueRow,
   type TriageQueueSummary,
 } from "@/lib/integrations/triage-active-queue";
 import { loadIncidentClaimsByLifecycleIds } from "@/lib/integrations/incident-claim";
+import {
+  promoteAcceptedIngestBacklog,
+  TRIAGE_QUEUE_PLACEHOLDER_REGO,
+} from "@/lib/integrations/command-lifecycle-bridge";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
@@ -323,6 +328,47 @@ export function buildCameraAlertsFromRows(
   );
 }
 
+function displayRegoFromQueue(stored: string | null | undefined): string | null {
+  const trimmed = stored?.trim().toUpperCase();
+  if (!trimmed || trimmed === TRIAGE_QUEUE_PLACEHOLDER_REGO) return null;
+  return trimmed;
+}
+
+function displayNameFromFatigueMetric(fatigueMetricType: string): string {
+  const normalized = fatigueMetricType.trim().toUpperCase();
+  if (normalized === "FATIGUE") return "Fatigue";
+  if (normalized === "DISTRACTION") return "Distraction";
+  return fatigueMetricType.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function cameraAlertFromEdgeQueueRow(row: ActiveTriageQueueRow): CameraAlertItem {
+  const clip =
+    row.video_snippet_url.startsWith("pending://") || !row.video_snippet_url.trim()
+      ? null
+      : row.video_snippet_url;
+  return {
+    id: row.source_ingest_id ?? `lifecycle:${row.lifecycle_id}`,
+    vendorEventId: null,
+    vendorAlarmId: null,
+    displayName: displayNameFromFatigueMetric(row.fatigue_metric_type),
+    tier: null,
+    vehicleRego: displayRegoFromQueue(row.vehicle_registration),
+    driverName: null,
+    deviceHardwareId: null,
+    receivedAt: row.detected_at.toISOString(),
+    triggerAt: row.hardware_timestamp.toISOString(),
+    accepted: true,
+    rejectReason: null,
+    mediaUrl: clip,
+    mediaPending: !clip,
+    triageStatus: "pending",
+    triageDecidedAt: null,
+    triageDecidedBy: null,
+    triageNote: null,
+    lifecycleId: row.lifecycle_id,
+  };
+}
+
 async function listActiveTriageAsCameraAlerts(
   prisma: PrismaClient,
   args: { limit?: number; backfillMedia?: boolean; viewerUserId?: string }
@@ -331,24 +377,32 @@ async function listActiveTriageAsCameraAlerts(
   const activeRows = await fetchActiveTriageQueueRows(prisma, limit);
   if (activeRows.length === 0) return [];
 
-  const ingestIds = activeRows.map((row) => row.source_ingest_id);
+  const ingestIds = activeRows
+    .map((row) => row.source_ingest_id)
+    .filter((id): id is string => Boolean(id));
   const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
 
-  const ingestRows = await prisma.autonomiseWebhookIngest.findMany({
-    where: { id: { in: ingestIds } },
-    select: INGEST_LIST_SELECT,
-  });
+  const ingestRows =
+    ingestIds.length > 0
+      ? await prisma.autonomiseWebhookIngest.findMany({
+          where: { id: { in: ingestIds } },
+          select: INGEST_LIST_SELECT,
+        })
+      : [];
   const ingestById = new Map(ingestRows.map((row) => [row.id, row]));
 
-  const enrichedEvents = activeRows
-    .map((row) => {
-      const ingest = ingestById.get(row.source_ingest_id);
-      if (!ingest) return null;
-      return enrichEventRow(ingest, enabledAlarmIds);
-    })
-    .filter((row): row is IngestRow => row !== null);
+  const enrichedByIngestId = new Map<string, IngestRow>();
+  for (const ingestId of ingestIds) {
+    const ingest = ingestById.get(ingestId);
+    if (!ingest) continue;
+    const enriched = enrichEventRow(ingest, enabledAlarmIds);
+    enriched.accepted = true;
+    enrichedByIngestId.set(ingestId, enriched);
+  }
 
-  if (args.backfillMedia !== false) {
+  const enrichedEvents = [...enrichedByIngestId.values()];
+
+  if (args.backfillMedia !== false && enrichedEvents.length > 0) {
     await backfillMissingAutonomiseMedia(prisma, enrichedEvents);
     const freshRows = await prisma.autonomiseWebhookIngest.findMany({
       where: { id: { in: ingestIds } },
@@ -375,18 +429,29 @@ async function listActiveTriageAsCameraAlerts(
     }
   }
 
-  const lifecycleByIngest = new Map(
-    activeRows.map((row) => [row.source_ingest_id, row.lifecycle_id])
-  );
+  const ingestAlerts = buildCameraAlertsFromRows(enrichedEvents, [], undefined, new Map());
+  const ingestAlertById = new Map(ingestAlerts.map((alert) => [alert.id, alert]));
 
-  const alerts = buildCameraAlertsFromRows(enrichedEvents, [], undefined, new Map());
-  for (const alert of alerts) {
-    alert.lifecycleId = lifecycleByIngest.get(alert.id) ?? null;
-    alert.triageStatus = "pending";
+  const alerts: CameraAlertItem[] = [];
+  for (const row of activeRows) {
+    if (row.source_ingest_id) {
+      const fromIngest = ingestAlertById.get(row.source_ingest_id);
+      if (fromIngest) {
+        alerts.push({
+          ...fromIngest,
+          accepted: true,
+          triageStatus: "pending",
+          lifecycleId: row.lifecycle_id,
+          vehicleRego: fromIngest.vehicleRego ?? displayRegoFromQueue(row.vehicle_registration),
+        });
+        continue;
+      }
+    }
+    alerts.push({
+      ...cameraAlertFromEdgeQueueRow(row),
+      lifecycleId: row.lifecycle_id,
+    });
   }
-
-  const order = new Map(ingestIds.map((id, index) => [id, index]));
-  alerts.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
 
   buildQueueBurstLabels(alerts);
 
@@ -432,19 +497,20 @@ export async function listCameraAlerts(
   const activePending = await countActiveTriagePending(prisma);
 
   if (args.triageFilter === "pending") {
+    await promoteAcceptedIngestBacklog(prisma, { limit: 200 });
+
     const alerts = await listActiveTriageAsCameraAlerts(prisma, {
       limit: args.limit ?? 100,
       backfillMedia: args.backfillMedia,
       viewerUserId: args.viewerUserId,
     });
-    const visibleAlerts = args.acceptedOnly === false ? alerts : alerts.filter((a) => a.accepted);
 
     return {
-      alerts: visibleAlerts,
+      alerts,
       configured: Boolean(getAutonomiseWebhookSecretFromEnv()),
       testingTools: { allowDelete: isCameraAlertDeleteEnabled() },
       diagnostics: {
-        ingestEvents: visibleAlerts.length,
+        ingestEvents: alerts.length,
         ingestEventsRejected: 0,
         ingestMedia: 0,
         mediaWithoutMatchingEvent: 0,

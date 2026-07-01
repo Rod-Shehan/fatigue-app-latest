@@ -3,6 +3,8 @@ import {
   confidenceScoreFromVendorAlarm,
   deterministicDriverUuid,
   fatigueMetricTypeFromVendorAlarm,
+  resolveVehicleRegistrationForQueue,
+  TRIAGE_QUEUE_PLACEHOLDER_REGO,
 } from "@/lib/integrations/command-lifecycle-bridge";
 
 describe("command-lifecycle-bridge helpers", () => {
@@ -23,5 +25,11 @@ describe("command-lifecycle-bridge helpers", () => {
     const c = deterministicDriverUuid(tenant, "John Doe", "ABC123");
     expect(a).toBe(b);
     expect(a).not.toBe(c);
+  });
+
+  it("uses placeholder rego when VRN is missing so triage queue promotion is not blocked", () => {
+    expect(resolveVehicleRegistrationForQueue(null)).toBe(TRIAGE_QUEUE_PLACEHOLDER_REGO);
+    expect(resolveVehicleRegistrationForQueue("  ")).toBe(TRIAGE_QUEUE_PLACEHOLDER_REGO);
+    expect(resolveVehicleRegistrationForQueue("1abc999")).toBe("1ABC999");
   });
 });

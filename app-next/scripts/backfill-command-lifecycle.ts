@@ -3,7 +3,7 @@
  * Usage: npx tsx scripts/backfill-command-lifecycle.ts [--limit=200]
  */
 import { PrismaClient } from "@prisma/client";
-import { maybePromoteAutonomiseToCommandLifecycle } from "../src/lib/integrations/command-lifecycle-bridge";
+import { promoteAcceptedIngestBacklog } from "../src/lib/integrations/command-lifecycle-bridge";
 import { isCommandLifecycleBridgeEnabled } from "../src/lib/integrations/command-lifecycle-bridge-config";
 
 const prisma = new PrismaClient();
@@ -22,41 +22,8 @@ async function main() {
   }
 
   const limit = parseLimit(process.argv.slice(2));
-  const rows = await prisma.autonomiseWebhookIngest.findMany({
-    where: { kind: "event", accepted: true },
-    orderBy: { receivedAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      vendorAlarmId: true,
-      vehicleRego: true,
-      driverName: true,
-      mediaUrl: true,
-      payload: true,
-    },
-  });
-
-  let promoted = 0;
-  let skipped = 0;
-  let mediaUpdated = 0;
-
-  for (const row of rows) {
-    const result = await maybePromoteAutonomiseToCommandLifecycle(prisma, {
-      ingestId: row.id,
-      vendorAlarmId: row.vendorAlarmId,
-      vehicleRego: row.vehicleRego,
-      driverName: row.driverName,
-      mediaUrl: row.mediaUrl,
-      payload: row.payload,
-    });
-    if (result.promoted) promoted += 1;
-    else if (result.mediaUpdated) mediaUpdated += 1;
-    else skipped += 1;
-  }
-
-  console.log(
-    `Processed ${rows.length} accepted event ingests: promoted=${promoted}, mediaUpdated=${mediaUpdated}, skipped=${skipped}`
-  );
+  const { promoted, skipped } = await promoteAcceptedIngestBacklog(prisma, { limit });
+  console.log(`Processed up to ${limit} unqueued accepted event ingests: promoted=${promoted}, skipped=${skipped}`);
 }
 
 main()
