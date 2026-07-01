@@ -52,6 +52,7 @@ Each upload includes client `upload_id` (UUID). Server unique key: `(userId, upl
 ## Related
 
 - [incident-routing-assembly.md](./incident-routing-assembly.md) — tenant routing M1–M4; §5c dual ingest; §5d fatigue event catalogue
+- [autonomise-fleet-risk-stream.md](./autonomise-fleet-risk-stream.md) — **proposed** parallel Autonomise VRN heatmap (not sheet-attributed)
 - `src/lib/integrations/fatigue-event-catalogue.ts` — VT3600-AI alarm tiers for tenant setup
 - [ADR 0003](./adr/0003-prospective-risk-engine.md) — assurance vs compliance
 - `src/lib/manager-risk-timeline.ts` — chart scoring

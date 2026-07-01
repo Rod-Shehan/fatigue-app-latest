@@ -129,6 +129,10 @@ AUTONOMISE_BLOCK_BRIDGE_ALLOW_PURGE=true
 
 Then `POST /api/manager/autonomise-block-bridge/purge` (manager session). Deletes `DriverRiskBlock` rows with `fusionSources` containing `autonomise` and all `AutonomiseMetricsAttribution` rows.
 
+### Future — parallel Autonomise fleet risk (not built)
+
+A separate **vehicle/rego-keyed** assurance timeline on `/manager` — independent of sheet duty and TPMA — is specified in [autonomise-fleet-risk-stream.md](./autonomise-fleet-risk-stream.md). Potential product path for Autonomise-native fleets. Do not conflate with the metrics bridge above.
+
 ## Database
 
 Run once after deploy (local or CI):

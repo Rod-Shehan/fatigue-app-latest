@@ -76,10 +76,10 @@ These are **not** interchangeable. A vendor feed may feed one, two, or all three
 | Pipeline | Store | Question it answers | Human acceptance? |
 |----------|-------|---------------------|-------------------|
 | **A — Compliance** | Attested sheet / `compliance.ts` | Did the **signed record** breach law? | No (driver attestation only) |
-| **B — Assurance / fleet pulse** | `DriverRiskBlock` | What is **relative fatigue exposure** in 15-min blocks? | No (coaching / glance only) |
+| **B — Assurance / fleet pulse** | `DriverRiskBlock` (driver + diary/TPMA); optional **Autonomise fleet stream** (VRN axis — [proposed](./autonomise-fleet-risk-stream.md)) | What is **relative fatigue exposure** in 15-min blocks? | No (coaching / glance only) |
 | **C — Incident lifecycle** | `fatigue_incident_lifecycle` (+ `lifecycle_transition_log`) | Was this **camera/event** triaged, validated, and intervened? | **Yes** — operator and/or manager |
 
-Pipeline **B** is documented in [camera-risk-stream.md](./camera-risk-stream.md).  
+Pipeline **B** is documented in [camera-risk-stream.md](./camera-risk-stream.md) (Circadia cab-camera → driver axis) and [autonomise-fleet-risk-stream.md](./autonomise-fleet-risk-stream.md) (proposed Autonomise → VRN axis, parallel manager view).  
 Pipeline **C** is documented in `circadia-command/`.  
 **Direct video + accept/dismiss** always belongs to **C**, never to the heatmap alone.
 
