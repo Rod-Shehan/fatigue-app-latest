@@ -70,7 +70,8 @@ export function isIncidentResolutionActionType(value: string): value is Incident
   return ACTION_VALUES.has(value);
 }
 
-export function resolutionActionLabel(actionType: IncidentResolutionActionType): string {
+export function resolutionActionLabel(actionType: string): string {
+  if (actionType === "verified_distraction") return "Verified distraction";
   return INCIDENT_RESOLUTION_ACTIONS.find((a) => a.value === actionType)?.label ?? actionType;
 }
 

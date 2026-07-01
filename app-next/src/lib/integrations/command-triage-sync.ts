@@ -80,6 +80,7 @@ export async function loadCommandLifecycleTriageByIngestIds(
       decision,
       note: row.operator_notes,
       falsePositiveReasons: [],
+      verifiedDistractionReasons: [],
       decidedByUserId: row.operator_id ? `command:${row.operator_id}` : "command:unknown",
       decidedByEmail: commandOperatorDisplayName({
         fullName: row.full_name,

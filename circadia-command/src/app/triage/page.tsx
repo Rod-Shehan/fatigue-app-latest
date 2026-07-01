@@ -18,15 +18,20 @@ import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-que
 import type { TriageShiftSnapshot } from "@/lib/triage-shift";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 import type { FalsePositiveReasonId } from "@/lib/false-positive-reasons";
+import type { VerifiedDistractionReasonId } from "@/lib/verified-distraction-reasons";
 
 export default function TriagePage() {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [resolutionLifecycleId, setResolutionLifecycleId] = useState<string | null>(null);
   const [dismissCaptureLifecycleId, setDismissCaptureLifecycleId] = useState<string | null>(null);
+  const [distractionCaptureLifecycleId, setDistractionCaptureLifecycleId] = useState<string | null>(null);
   const [dismissNote, setDismissNote] = useState("");
   const [dismissReasons, setDismissReasons] = useState<FalsePositiveReasonId[]>([]);
   const [dismissError, setDismissError] = useState<string | null>(null);
+  const [distractionNote, setDistractionNote] = useState("");
+  const [distractionReasons, setDistractionReasons] = useState<VerifiedDistractionReasonId[]>([]);
+  const [distractionError, setDistractionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -49,6 +54,9 @@ export default function TriagePage() {
   );
   const dismissCaptureMode = Boolean(
     dismissCaptureLifecycleId && selectedId && dismissCaptureLifecycleId === selectedId
+  );
+  const distractionCaptureMode = Boolean(
+    distractionCaptureLifecycleId && selectedId && distractionCaptureLifecycleId === selectedId
   );
 
   useEffect(() => {
@@ -116,7 +124,16 @@ export default function TriagePage() {
       setDismissReasons([]);
       setDismissError(null);
     }
-  }, [incidents, resolutionLifecycleId, dismissCaptureLifecycleId]);
+    if (
+      distractionCaptureLifecycleId &&
+      !incidents.some((i) => i.lifecycle_id === distractionCaptureLifecycleId)
+    ) {
+      setDistractionCaptureLifecycleId(null);
+      setDistractionNote("");
+      setDistractionReasons([]);
+      setDistractionError(null);
+    }
+  }, [incidents, resolutionLifecycleId, dismissCaptureLifecycleId, distractionCaptureLifecycleId]);
 
   const advanceQueue = useCallback(
     (closedId: string) => {
@@ -124,22 +141,46 @@ export default function TriagePage() {
       setSelectedId(remaining[0]?.lifecycle_id ?? null);
       setResolutionLifecycleId(null);
       setDismissCaptureLifecycleId(null);
+      setDistractionCaptureLifecycleId(null);
       setDismissNote("");
       setDismissReasons([]);
       setDismissError(null);
+      setDistractionNote("");
+      setDistractionReasons([]);
+      setDistractionError(null);
       setResolutionError(null);
     },
     [incidents]
   );
 
   const beginDismissCapture = useCallback(() => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode) return;
+    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode || distractionCaptureMode)
+      return;
     setDismissError(null);
     setDismissNote("");
     setDismissReasons([]);
     setDismissCaptureLifecycleId(selectedId);
     setResolutionLifecycleId(null);
-  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode]);
+    setDistractionCaptureLifecycleId(null);
+  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
+
+  const beginDistractionCapture = useCallback(() => {
+    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode || distractionCaptureMode)
+      return;
+    setDistractionError(null);
+    setDistractionNote("");
+    setDistractionReasons([]);
+    setDistractionCaptureLifecycleId(selectedId);
+    setResolutionLifecycleId(null);
+    setDismissCaptureLifecycleId(null);
+  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
+
+  const cancelDistractionCapture = useCallback(() => {
+    setDistractionCaptureLifecycleId(null);
+    setDistractionNote("");
+    setDistractionReasons([]);
+    setDistractionError(null);
+  }, []);
 
   const cancelDismissCapture = useCallback(() => {
     setDismissCaptureLifecycleId(null);
@@ -194,8 +235,54 @@ export default function TriagePage() {
     advanceQueue,
   ]);
 
+  const runVerifyDistraction = useCallback(async () => {
+    if (!selectedId || !triageDeskOnShift || resolutionMode || distractionReasons.length === 0) return;
+    setBusy(true);
+    setDistractionError(null);
+    try {
+      await fetch("/api/v1/triage/claim", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lifecycle_id: selectedId,
+          idempotency_key: `claim_${selectedId}`,
+        }),
+      });
+      const res = await fetch("/api/v1/triage/verify-distraction", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          lifecycle_id: selectedId,
+          verified_distraction_reasons: distractionReasons,
+          note: distractionNote.trim() || undefined,
+          idempotency_key: `verify_distraction_${selectedId}`,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setDistractionError(body.message ?? "Could not record verified distraction");
+        return;
+      }
+      await invalidate();
+      advanceQueue(selectedId);
+    } finally {
+      setBusy(false);
+    }
+  }, [
+    selectedId,
+    invalidate,
+    triageDeskOnShift,
+    resolutionMode,
+    distractionReasons,
+    distractionNote,
+    advanceQueue,
+  ]);
+
   const beginResolution = useCallback(async () => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode) return;
+    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode || distractionCaptureMode)
+      return;
     setBusy(true);
     setResolutionError(null);
     try {
@@ -215,10 +302,11 @@ export default function TriagePage() {
       }
       setResolutionLifecycleId(selectedId);
       setDismissCaptureLifecycleId(null);
+      setDistractionCaptureLifecycleId(null);
     } finally {
       setBusy(false);
     }
-  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode]);
+  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
 
   const cancelResolution = useCallback(async () => {
     if (!resolutionLifecycleId) return;
@@ -270,9 +358,12 @@ export default function TriagePage() {
   );
 
   useKeyboardTriage(
-    triageDeskOnShift && !resolutionMode && !dismissCaptureMode ? selectedId : null,
+    triageDeskOnShift && !resolutionMode && !dismissCaptureMode && !distractionCaptureMode
+      ? selectedId
+      : null,
     () => beginDismissCapture(),
-    () => void beginResolution()
+    () => void beginResolution(),
+    () => beginDistractionCapture()
   );
 
   const simulate = async () => {
@@ -376,19 +467,29 @@ export default function TriagePage() {
         <section className="flex min-h-0 flex-col lg:col-span-3">
           <ActionPanel
             selectedId={selectedId}
+            fatigueMetricType={selected?.fatigue_metric_type ?? null}
             busy={busy}
             triageDeskOnShift={triageDeskOnShift}
             resolutionMode={resolutionMode}
             dismissCaptureMode={dismissCaptureMode}
+            distractionCaptureMode={distractionCaptureMode}
             dismissNote={dismissNote}
             dismissReasons={dismissReasons}
             dismissError={dismissError}
+            distractionNote={distractionNote}
+            distractionReasons={distractionReasons}
+            distractionError={distractionError}
             resolutionError={resolutionError}
             onBeginDismissCapture={beginDismissCapture}
             onDismissNoteChange={setDismissNote}
             onDismissReasonsChange={setDismissReasons}
             onConfirmDismiss={() => void runDismiss()}
             onCancelDismissCapture={cancelDismissCapture}
+            onBeginDistractionCapture={beginDistractionCapture}
+            onDistractionNoteChange={setDistractionNote}
+            onDistractionReasonsChange={setDistractionReasons}
+            onConfirmDistraction={() => void runVerifyDistraction()}
+            onCancelDistractionCapture={cancelDistractionCapture}
             onBeginResolution={() => void beginResolution()}
             onResolve={(actionType, notes) => void submitResolution(actionType, notes)}
             onCancelResolution={() => void cancelResolution()}

@@ -11,9 +11,19 @@ import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Trash2, Video, 
 import { cn } from "@/lib/utils";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import { FalsePositiveDismissPanel } from "@/components/triage/FalsePositiveReasonCapture";
+import { VerifiedDistractionCapturePanel } from "@/components/triage/VerifiedDistractionCapturePanel";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
+import {
+  cameraAlertEventKind,
+  showVerifiedDistractionAction,
+  showVerifiedFatigueAction,
+} from "@/lib/integrations/camera-alert-event-kind";
 import { falsePositiveReasonLabels } from "@/lib/integrations/false-positive-reasons";
 import type { FalsePositiveReasonId } from "@/lib/integrations/false-positive-reasons";
+import {
+  verifiedDistractionReasonLabels,
+  type VerifiedDistractionReasonId,
+} from "@/lib/integrations/verified-distraction-reasons";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 const HOURS_STORAGE_KEY = "circadia.manager-alerts.hours";
@@ -60,15 +70,20 @@ function tierChipClass(tier: string | null, accepted: boolean) {
   return "bg-sky-600 text-white";
 }
 
-function triageBadge(status: CameraAlertTriageStatus) {
-  if (status === "authorized") {
+function triageBadge(
+  alert: Pick<CameraAlertItem, "triageStatus" | "triageVerifiedDistractionReasons">
+) {
+  if (alert.triageStatus === "authorized") {
+    const isDistraction = (alert.triageVerifiedDistractionReasons?.length ?? 0) > 0;
     return {
-      label: "Verified fatigue",
-      className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
+      label: isDistraction ? "Verified distraction" : "Verified fatigue",
+      className: isDistraction
+        ? "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300"
+        : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300",
       icon: CheckCircle2,
     };
   }
-  if (status === "dismissed") {
+  if (alert.triageStatus === "dismissed") {
     return {
       label: "Dismissed as false positive",
       className: "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
@@ -110,6 +125,12 @@ function AlertEventCard({
   dismissCaptureMode,
   onBeginDismissCapture,
   onCancelDismissCapture,
+  distractionCaptureMode,
+  onBeginDistractionCapture,
+  onCancelDistractionCapture,
+  onVerifyDistraction,
+  verifyDistractionPending,
+  verifyDistractionError,
 }: {
   alert: CameraAlertItem;
   expanded: boolean;
@@ -123,6 +144,15 @@ function AlertEventCard({
   dismissCaptureMode: boolean;
   onBeginDismissCapture: () => void;
   onCancelDismissCapture: () => void;
+  distractionCaptureMode: boolean;
+  onBeginDistractionCapture: () => void;
+  onCancelDistractionCapture: () => void;
+  onVerifyDistraction: (args: {
+    note: string;
+    verifiedDistractionReasons: VerifiedDistractionReasonId[];
+  }) => void;
+  verifyDistractionPending: boolean;
+  verifyDistractionError: string | null;
   triagePending: boolean;
   triageError: string | null;
   resolutionMode: boolean;
@@ -145,8 +175,13 @@ function AlertEventCard({
 }) {
   const [note, setNote] = useState("");
   const [dismissReasons, setDismissReasons] = useState<FalsePositiveReasonId[]>([]);
+  const [distractionNote, setDistractionNote] = useState("");
+  const [distractionReasons, setDistractionReasons] = useState<VerifiedDistractionReasonId[]>([]);
   const [videoError, setVideoError] = useState(false);
-  const triage = triageBadge(alert.triageStatus);
+  const triage = triageBadge(alert);
+  const eventKind = cameraAlertEventKind({ displayName: alert.displayName });
+  const showFatigueAction = showVerifiedFatigueAction(eventKind);
+  const showDistractionAction = showVerifiedDistractionAction(eventKind);
   const TriageIcon = triage.icon;
   const canTriage =
     triageDeskOnShift &&
@@ -173,8 +208,16 @@ function AlertEventCard({
   useEffect(() => {
     if (!dismissCaptureMode) {
       setDismissReasons([]);
+      setNote("");
     }
   }, [dismissCaptureMode]);
+
+  useEffect(() => {
+    if (!distractionCaptureMode) {
+      setDistractionReasons([]);
+      setDistractionNote("");
+    }
+  }, [distractionCaptureMode]);
 
   return (
     <article
@@ -237,7 +280,11 @@ function AlertEventCard({
           {decided && (
             <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
               <p className="font-medium text-slate-800 dark:text-slate-200">
-                {alert.triageStatus === "authorized" ? "Verified fatigue — action recorded" : "Dismissed as false positive"}
+                {alert.triageStatus === "authorized"
+                  ? (alert.triageVerifiedDistractionReasons?.length ?? 0) > 0
+                    ? "Verified distraction — action recorded"
+                    : "Verified fatigue — action recorded"
+                  : "Dismissed as false positive"}
               </p>
               {alert.triageDecidedBy && (
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -251,6 +298,14 @@ function AlertEventCard({
               {alert.triageStatus === "dismissed" && alert.triageFalsePositiveReasons?.length ? (
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   Trigger: {falsePositiveReasonLabels(alert.triageFalsePositiveReasons as FalsePositiveReasonId[]).join(", ")}
+                </p>
+              ) : null}
+              {alert.triageStatus === "authorized" && alert.triageVerifiedDistractionReasons?.length ? (
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  Trigger:{" "}
+                  {verifiedDistractionReasonLabels(
+                    alert.triageVerifiedDistractionReasons as VerifiedDistractionReasonId[]
+                  ).join(", ")}
                 </p>
               ) : null}
             </div>
@@ -336,25 +391,37 @@ function AlertEventCard({
             </div>
           ) : null}
 
-          {canAct && !resolutionMode && !dismissCaptureMode && (
+          {canAct && !resolutionMode && !dismissCaptureMode && !distractionCaptureMode && (
             <>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
               </p>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button
-                  type="button"
-                  className="flex-1"
-                  disabled={triagePending || resolvePending}
-                  onClick={onBeginResolution}
-                >
-                  Verified fatigue
-                </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {showFatigueAction ? (
+                  <Button
+                    type="button"
+                    className="flex-1 sm:min-w-[10rem]"
+                    disabled={triagePending || resolvePending || verifyDistractionPending}
+                    onClick={onBeginResolution}
+                  >
+                    Verified fatigue
+                  </Button>
+                ) : null}
+                {showDistractionAction ? (
+                  <Button
+                    type="button"
+                    className="flex-1 sm:min-w-[10rem]"
+                    disabled={triagePending || resolvePending || verifyDistractionPending}
+                    onClick={onBeginDistractionCapture}
+                  >
+                    Verified distraction
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
-                  disabled={triagePending || resolvePending}
+                  className="flex-1 sm:min-w-[10rem]"
+                  disabled={triagePending || resolvePending || verifyDistractionPending}
                   onClick={onBeginDismissCapture}
                 >
                   Dismiss as false positive
@@ -380,6 +447,28 @@ function AlertEventCard({
                   decision: "dismissed",
                   note,
                   falsePositiveReasons: dismissReasons,
+                })
+              }
+            />
+          )}
+
+          {canAct && !resolutionMode && distractionCaptureMode && (
+            <VerifiedDistractionCapturePanel
+              note={distractionNote}
+              onNoteChange={setDistractionNote}
+              reasons={distractionReasons}
+              onReasonsChange={setDistractionReasons}
+              pending={verifyDistractionPending}
+              error={verifyDistractionError}
+              onCancel={() => {
+                onCancelDistractionCapture();
+                setDistractionReasons([]);
+                setDistractionNote("");
+              }}
+              onConfirm={() =>
+                onVerifyDistraction({
+                  note: distractionNote,
+                  verifiedDistractionReasons: distractionReasons,
                 })
               }
             />
@@ -521,6 +610,7 @@ export function ManagerAlertsView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
   const [dismissCaptureAlertId, setDismissCaptureAlertId] = useState<string | null>(null);
+  const [distractionCaptureAlertId, setDistractionCaptureAlertId] = useState<string | null>(null);
 
   useEffect(() => {
     setHours(readStoredHours());
@@ -575,6 +665,25 @@ export function ManagerAlertsView() {
     onSuccess: (_data, variables) => {
       setResolvingAlertId((current) => (current === variables.id ? null : current));
       setDismissCaptureAlertId((current) => (current === variables.id ? null : current));
+      setDistractionCaptureAlertId((current) => (current === variables.id ? null : current));
+      void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
+    },
+  });
+
+  const verifyDistractionMutation = useMutation({
+    mutationFn: (args: {
+      id: string;
+      verifiedDistractionReasons: VerifiedDistractionReasonId[];
+      note: string;
+      vendorEventId: string | null;
+    }) =>
+      api.manager.cameraAlertVerifyDistraction(args.id, {
+        verifiedDistractionReasons: args.verifiedDistractionReasons,
+        note: args.note || null,
+        vendorEventId: args.vendorEventId,
+      }),
+    onSuccess: (_data, variables) => {
+      setDistractionCaptureAlertId((current) => (current === variables.id ? null : current));
       void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
     },
   });
@@ -646,6 +755,7 @@ export function ManagerAlertsView() {
     setSelectionMode(false);
     setResolvingAlertId(null);
     setDismissCaptureAlertId(null);
+    setDistractionCaptureAlertId(null);
   }, [hours, triageFilter]);
 
   function toggleSelected(id: string, next: boolean) {
@@ -867,12 +977,41 @@ export function ManagerAlertsView() {
                 onBeginDismissCapture={() => {
                   setDismissCaptureAlertId(alert.id);
                   setResolvingAlertId(null);
+                  setDistractionCaptureAlertId(null);
                   setExpandedId(alert.id);
                 }}
                 onCancelDismissCapture={() => setDismissCaptureAlertId(null)}
+                distractionCaptureMode={distractionCaptureAlertId === alert.id}
+                onBeginDistractionCapture={() => {
+                  setDistractionCaptureAlertId(alert.id);
+                  setResolvingAlertId(null);
+                  setDismissCaptureAlertId(null);
+                  setExpandedId(alert.id);
+                }}
+                onCancelDistractionCapture={() => setDistractionCaptureAlertId(null)}
+                onVerifyDistraction={(args) =>
+                  verifyDistractionMutation.mutate({
+                    id: alert.id,
+                    verifiedDistractionReasons: args.verifiedDistractionReasons,
+                    note: args.note,
+                    vendorEventId: alert.vendorEventId,
+                  })
+                }
+                verifyDistractionPending={
+                  verifyDistractionMutation.isPending && verifyDistractionMutation.variables?.id === alert.id
+                }
+                verifyDistractionError={
+                  verifyDistractionMutation.isError && verifyDistractionMutation.variables?.id === alert.id
+                    ? verifyDistractionMutation.error instanceof Error
+                      ? verifyDistractionMutation.error.message
+                      : "Could not record verified distraction"
+                    : null
+                }
                 resolutionMode={resolvingAlertId === alert.id}
                 onBeginResolution={() => {
                   setResolvingAlertId(alert.id);
+                  setDismissCaptureAlertId(null);
+                  setDistractionCaptureAlertId(null);
                   setExpandedId(alert.id);
                 }}
                 onResolve={(actionType, resolutionNotes) =>

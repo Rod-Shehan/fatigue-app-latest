@@ -27,6 +27,7 @@ import {
   TRIAGE_QUEUE_PLACEHOLDER_REGO,
 } from "@/lib/integrations/command-lifecycle-bridge";
 import type { FalsePositiveReasonId } from "@/lib/integrations/false-positive-reasons";
+import type { VerifiedDistractionReasonId } from "@/lib/integrations/verified-distraction-reasons";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
@@ -55,6 +56,7 @@ export type CameraAlertItem = {
   triageDecidedBy: string | null;
   triageNote: string | null;
   triageFalsePositiveReasons?: FalsePositiveReasonId[];
+  triageVerifiedDistractionReasons?: VerifiedDistractionReasonId[];
   /** Media arrived but no matching event row in ingest (true webhook gap). */
   eventWebhookPending?: boolean;
   /** Shared lifecycle row when surfaced from active triage queue. */
@@ -285,6 +287,10 @@ export function buildCameraAlertsFromRows(
       triageFalsePositiveReasons:
         triage?.falsePositiveReasons && triage.falsePositiveReasons.length > 0
           ? [...triage.falsePositiveReasons]
+          : undefined,
+      triageVerifiedDistractionReasons:
+        triage?.verifiedDistractionReasons && triage.verifiedDistractionReasons.length > 0
+          ? [...triage.verifiedDistractionReasons]
           : undefined,
     };
   });

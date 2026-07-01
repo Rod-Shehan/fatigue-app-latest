@@ -239,6 +239,7 @@ export type CameraAlertItem = {
   triageDecidedBy: string | null;
   triageNote: string | null;
   triageFalsePositiveReasons?: string[];
+  triageVerifiedDistractionReasons?: string[];
   eventWebhookPending?: boolean;
   lifecycleId?: string | null;
   queueBurstLabel?: string | null;
@@ -548,6 +549,30 @@ export const api = {
           decidedAt: string;
         };
       }>(`/api/manager/camera-alerts/${ingestEventId}/triage`, { method: "POST", body: data }),
+    cameraAlertVerifyDistraction: (
+      ingestEventId: string,
+      data: {
+        verifiedDistractionReasons: string[];
+        note?: string | null;
+        vendorEventId?: string | null;
+      }
+    ) =>
+      fetchApi<{
+        ok: boolean;
+        triage: {
+          ingestEventId: string;
+          decision: string;
+          note: string | null;
+          verifiedDistractionReasons?: string[];
+          decidedByEmail: string | null;
+          decidedAt: string;
+        };
+        lifecycleId: string | null;
+        lifecycleStatus: string | null;
+      }>(`/api/manager/camera-alerts/${ingestEventId}/verify-distraction`, {
+        method: "POST",
+        body: data,
+      }),
     cameraAlertResolve: (
       ingestEventId: string,
       data: {

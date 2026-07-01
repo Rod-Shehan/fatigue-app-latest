@@ -79,6 +79,7 @@ export function isIncidentResolutionActionType(value: string): value is Incident
 }
 
 export function resolutionActionLabel(actionType: string): string {
+  if (actionType === "verified_distraction") return "Verified distraction";
   const current = INCIDENT_RESOLUTION_ACTIONS.find((a) => a.value === actionType);
   if (current) return current.label;
   return LEGACY_RESOLUTION_LABELS[actionType] ?? actionType;

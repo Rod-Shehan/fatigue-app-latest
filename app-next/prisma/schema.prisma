@@ -298,6 +298,8 @@ model CameraAlertTriage {
   note            String?
   /** Canonical false-positive trigger ids when decision = dismissed. */
   falsePositiveReasons Json?
+  /** Canonical verified-distraction trigger ids when decision = authorized (distraction). */
+  verifiedDistractionReasons Json?
   decidedByUserId String
   decidedByEmail  String?
   decidedAt       DateTime @default(now())

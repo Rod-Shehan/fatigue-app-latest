@@ -5,6 +5,10 @@ import {
   formatFalsePositiveReasonsForNote,
   type FalsePositiveReasonId,
 } from "@/lib/false-positive-reasons";
+import {
+  formatVerifiedDistractionReasonsForNote,
+  type VerifiedDistractionReasonId,
+} from "@/lib/verified-distraction-reasons";
 
 function managerDecisionFromAction(action: TriageAction): "authorized" | "dismissed" {
   return action === "VERIFIED_FALSE_POSITIVE" ? "dismissed" : "authorized";
@@ -28,6 +32,7 @@ export async function syncManagerCameraAlertTriage(
     operatorId: string;
     operatorNotes?: string;
     falsePositiveReasons?: FalsePositiveReasonId[];
+    verifiedDistractionReasons?: VerifiedDistractionReasonId[];
   }
 ): Promise<void> {
   const rows = await tx.$queryRaw<
@@ -52,12 +57,18 @@ export async function syncManagerCameraAlertTriage(
   const decidedByEmail = operatorLabel(row.full_name, row.email);
   const falsePositiveReasons =
     decision === "dismissed" ? (args.falsePositiveReasons ?? []) : [];
+  const verifiedDistractionReasons =
+    decision === "authorized" ? (args.verifiedDistractionReasons ?? []) : [];
   const note =
     decision === "dismissed"
       ? formatFalsePositiveReasonsForNote(falsePositiveReasons, args.operatorNotes)
-      : args.operatorNotes?.trim() || null;
-  const reasonsJson =
+      : verifiedDistractionReasons.length > 0
+        ? formatVerifiedDistractionReasonsForNote(verifiedDistractionReasons, args.operatorNotes)
+        : args.operatorNotes?.trim() || null;
+  const falsePositiveJson =
     falsePositiveReasons.length > 0 ? JSON.stringify(falsePositiveReasons) : null;
+  const verifiedDistractionJson =
+    verifiedDistractionReasons.length > 0 ? JSON.stringify(verifiedDistractionReasons) : null;
 
   await tx.$executeRaw`
     INSERT INTO "CameraAlertTriage" (
@@ -67,6 +78,7 @@ export async function syncManagerCameraAlertTriage(
       "decision",
       "note",
       "falsePositiveReasons",
+      "verifiedDistractionReasons",
       "decidedByUserId",
       "decidedByEmail",
       "decidedAt"
@@ -76,7 +88,8 @@ export async function syncManagerCameraAlertTriage(
       NULL,
       ${decision},
       ${note},
-      ${reasonsJson}::jsonb,
+      ${falsePositiveJson}::jsonb,
+      ${verifiedDistractionJson}::jsonb,
       ${`command:${args.operatorId}`},
       ${decidedByEmail},
       NOW()

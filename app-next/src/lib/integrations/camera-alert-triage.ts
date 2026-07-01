@@ -8,6 +8,12 @@ import {
   requireFalsePositiveReasonsForDismiss,
   type FalsePositiveReasonId,
 } from "@/lib/integrations/false-positive-reasons";
+import {
+  formatVerifiedDistractionReasonsForNote,
+  normalizeVerifiedDistractionReasons,
+  requireVerifiedDistractionReasons,
+  type VerifiedDistractionReasonId,
+} from "@/lib/integrations/verified-distraction-reasons";
 
 export type CameraAlertTriageDecision = "authorized" | "dismissed";
 
@@ -17,6 +23,7 @@ export type CameraAlertTriageRecord = {
   decision: CameraAlertTriageDecision;
   note: string | null;
   falsePositiveReasons: FalsePositiveReasonId[];
+  verifiedDistractionReasons: VerifiedDistractionReasonId[];
   decidedByUserId: string;
   decidedByEmail: string | null;
   decidedAt: Date;
@@ -41,6 +48,7 @@ export async function loadTriageByIngestIds(
       decision: row.decision,
       note: row.note,
       falsePositiveReasons: normalizeFalsePositiveReasons(row.falsePositiveReasons),
+      verifiedDistractionReasons: normalizeVerifiedDistractionReasons(row.verifiedDistractionReasons),
       decidedByUserId: row.decidedByUserId,
       decidedByEmail: row.decidedByEmail,
       decidedAt: row.decidedAt,
@@ -141,6 +149,79 @@ export async function recordCameraAlertTriage(
     decision: row.decision as CameraAlertTriageDecision,
     note: row.note,
     falsePositiveReasons: normalizeFalsePositiveReasons(row.falsePositiveReasons),
+    verifiedDistractionReasons: normalizeVerifiedDistractionReasons(row.verifiedDistractionReasons),
+    decidedByUserId: row.decidedByUserId,
+    decidedByEmail: row.decidedByEmail,
+    decidedAt: row.decidedAt,
+  };
+}
+
+export async function recordCameraAlertVerifiedDistraction(
+  prisma: PrismaClient,
+  args: {
+    ingestEventId: string;
+    vendorEventId: string | null;
+    note?: string | null;
+    verifiedDistractionReasons: unknown;
+    decidedByUserId: string;
+    decidedByEmail: string | null;
+  }
+): Promise<CameraAlertTriageRecord> {
+  const existing = await prisma.cameraAlertTriage.findUnique({
+    where: { ingestEventId: args.ingestEventId },
+  });
+  if (existing) {
+    throw new Error("ALREADY_DECIDED");
+  }
+
+  const eventRow = await prisma.autonomiseWebhookIngest.findFirst({
+    where: { id: args.ingestEventId, kind: "event" },
+    select: {
+      id: true,
+      vendorAlarmId: true,
+      vendorEventId: true,
+      linkedEventId: true,
+      vehicleRego: true,
+      driverName: true,
+      accepted: true,
+      rejectReason: true,
+      payload: true,
+    },
+  });
+  if (!eventRow) {
+    throw new Error("EVENT_NOT_FOUND");
+  }
+
+  const enabledAlarmIds = await getEnabledAlarmIdSet(prisma);
+  const fields = extractAutonomiseFields(eventRow.payload as Prisma.JsonValue, "event");
+  const vendorAlarmId = fields.vendorAlarmId ?? eventRow.vendorAlarmId;
+  const { accepted, rejectReason } = evaluateAutonomiseEventAcceptance(vendorAlarmId, enabledAlarmIds);
+  if (!accepted) {
+    throw new Error("EVENT_NOT_FOUND");
+  }
+
+  const verifiedDistractionReasons = requireVerifiedDistractionReasons(args.verifiedDistractionReasons);
+  const note = formatVerifiedDistractionReasonsForNote(verifiedDistractionReasons, args.note);
+
+  const row = await prisma.cameraAlertTriage.create({
+    data: {
+      ingestEventId: args.ingestEventId,
+      vendorEventId: args.vendorEventId,
+      decision: "authorized",
+      note,
+      verifiedDistractionReasons: verifiedDistractionReasons as Prisma.InputJsonValue,
+      decidedByUserId: args.decidedByUserId,
+      decidedByEmail: args.decidedByEmail,
+    },
+  });
+
+  return {
+    ingestEventId: row.ingestEventId,
+    vendorEventId: row.vendorEventId,
+    decision: "authorized",
+    note: row.note,
+    falsePositiveReasons: [],
+    verifiedDistractionReasons: normalizeVerifiedDistractionReasons(row.verifiedDistractionReasons),
     decidedByUserId: row.decidedByUserId,
     decidedByEmail: row.decidedByEmail,
     decidedAt: row.decidedAt,

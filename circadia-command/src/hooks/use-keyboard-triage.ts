@@ -5,7 +5,8 @@ import { useEffect } from "react";
 export function useKeyboardTriage(
   selectedId: string | null,
   onDismiss: () => void,
-  onEscalate: () => void
+  onVerifyFatigue: () => void,
+  onVerifyDistraction: () => void
 ) {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -16,10 +17,14 @@ export function useKeyboardTriage(
       }
       if (event.key === "F2" || event.key === "2") {
         event.preventDefault();
-        onEscalate();
+        onVerifyFatigue();
+      }
+      if (event.key === "F3" || event.key === "3") {
+        event.preventDefault();
+        onVerifyDistraction();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedId, onDismiss, onEscalate]);
+  }, [selectedId, onDismiss, onVerifyFatigue, onVerifyDistraction]);
 }
