@@ -10,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Trash2, Video, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
+import { FalsePositiveDismissPanel } from "@/components/triage/FalsePositiveReasonCapture";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
+import { falsePositiveReasonLabels } from "@/lib/integrations/false-positive-reasons";
+import type { FalsePositiveReasonId } from "@/lib/integrations/false-positive-reasons";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 
 const HOURS_STORAGE_KEY = "circadia.manager-alerts.hours";
@@ -104,12 +107,22 @@ function AlertEventCard({
   claimPending,
   onReleaseClaim,
   releasePending,
+  dismissCaptureMode,
+  onBeginDismissCapture,
+  onCancelDismissCapture,
 }: {
   alert: CameraAlertItem;
   expanded: boolean;
   onToggle: () => void;
   collapsible: boolean;
-  onTriage: (decision: "authorized" | "dismissed", note: string) => void;
+  onTriage: (args: {
+    decision: "dismissed";
+    note: string;
+    falsePositiveReasons: FalsePositiveReasonId[];
+  }) => void;
+  dismissCaptureMode: boolean;
+  onBeginDismissCapture: () => void;
+  onCancelDismissCapture: () => void;
   triagePending: boolean;
   triageError: string | null;
   resolutionMode: boolean;
@@ -131,6 +144,7 @@ function AlertEventCard({
   releasePending: boolean;
 }) {
   const [note, setNote] = useState("");
+  const [dismissReasons, setDismissReasons] = useState<FalsePositiveReasonId[]>([]);
   const [videoError, setVideoError] = useState(false);
   const triage = triageBadge(alert.triageStatus);
   const TriageIcon = triage.icon;
@@ -155,6 +169,12 @@ function AlertEventCard({
   useEffect(() => {
     setVideoError(false);
   }, [alert.mediaUrl]);
+
+  useEffect(() => {
+    if (!dismissCaptureMode) {
+      setDismissReasons([]);
+    }
+  }, [dismissCaptureMode]);
 
   return (
     <article
@@ -228,6 +248,11 @@ function AlertEventCard({
               {alert.triageNote && (
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{alert.triageNote}</p>
               )}
+              {alert.triageStatus === "dismissed" && alert.triageFalsePositiveReasons?.length ? (
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  Trigger: {falsePositiveReasonLabels(alert.triageFalsePositiveReasons as FalsePositiveReasonId[]).join(", ")}
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -311,24 +336,11 @@ function AlertEventCard({
             </div>
           ) : null}
 
-          {canAct && !resolutionMode && (
+          {canAct && !resolutionMode && !dismissCaptureMode && (
             <>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 {MANAGER_EXPERIENCE.ALERTS_WORKFLOW_HINT}
               </p>
-              <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                Note for dismiss (optional)
-              </label>
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                rows={2}
-                placeholder="e.g. glare, camera fault"
-                className="mb-3 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-100"
-              />
-              {triageError && (
-                <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">{triageError}</p>
-              )}
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
@@ -343,13 +355,34 @@ function AlertEventCard({
                   variant="outline"
                   className="flex-1"
                   disabled={triagePending || resolvePending}
-                  onClick={() => onTriage("dismissed", note)}
+                  onClick={onBeginDismissCapture}
                 >
-                  {triagePending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : null}
                   Dismiss as false positive
                 </Button>
               </div>
             </>
+          )}
+
+          {canAct && !resolutionMode && dismissCaptureMode && (
+            <FalsePositiveDismissPanel
+              note={note}
+              onNoteChange={setNote}
+              reasons={dismissReasons}
+              onReasonsChange={setDismissReasons}
+              pending={triagePending}
+              error={triageError}
+              onCancel={() => {
+                onCancelDismissCapture();
+                setDismissReasons([]);
+              }}
+              onConfirm={() =>
+                onTriage({
+                  decision: "dismissed",
+                  note,
+                  falsePositiveReasons: dismissReasons,
+                })
+              }
+            />
           )}
 
           {canAct && resolutionMode && (
@@ -487,6 +520,7 @@ export function ManagerAlertsView() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
+  const [dismissCaptureAlertId, setDismissCaptureAlertId] = useState<string | null>(null);
 
   useEffect(() => {
     setHours(readStoredHours());
@@ -525,14 +559,22 @@ export function ManagerAlertsView() {
   const triageDeskOnShift = shiftQuery.data?.viewer.onShift ?? false;
 
   const triageMutation = useMutation({
-    mutationFn: (args: { id: string; decision: "dismissed"; note: string; vendorEventId: string | null }) =>
+    mutationFn: (args: {
+      id: string;
+      decision: "dismissed";
+      note: string;
+      falsePositiveReasons: FalsePositiveReasonId[];
+      vendorEventId: string | null;
+    }) =>
       api.manager.cameraAlertTriage(args.id, {
         decision: args.decision,
         note: args.note || null,
+        falsePositiveReasons: args.falsePositiveReasons,
         vendorEventId: args.vendorEventId,
       }),
     onSuccess: (_data, variables) => {
       setResolvingAlertId((current) => (current === variables.id ? null : current));
+      setDismissCaptureAlertId((current) => (current === variables.id ? null : current));
       void queryClient.invalidateQueries({ queryKey: ["manager", "camera-alerts"] });
     },
   });
@@ -603,6 +645,7 @@ export function ManagerAlertsView() {
     setSelectedIds(new Set());
     setSelectionMode(false);
     setResolvingAlertId(null);
+    setDismissCaptureAlertId(null);
   }, [hours, triageFilter]);
 
   function toggleSelected(id: string, next: boolean) {
@@ -811,14 +854,22 @@ export function ManagerAlertsView() {
                       : "Could not save decision"
                     : null
                 }
-                onTriage={(_decision, note) =>
+                onTriage={(args) =>
                   triageMutation.mutate({
                     id: alert.id,
                     decision: "dismissed",
-                    note,
+                    note: args.note,
+                    falsePositiveReasons: args.falsePositiveReasons,
                     vendorEventId: alert.vendorEventId,
                   })
                 }
+                dismissCaptureMode={dismissCaptureAlertId === alert.id}
+                onBeginDismissCapture={() => {
+                  setDismissCaptureAlertId(alert.id);
+                  setResolvingAlertId(null);
+                  setExpandedId(alert.id);
+                }}
+                onCancelDismissCapture={() => setDismissCaptureAlertId(null)}
                 resolutionMode={resolvingAlertId === alert.id}
                 onBeginResolution={() => {
                   setResolvingAlertId(alert.id);

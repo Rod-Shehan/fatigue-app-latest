@@ -12,6 +12,7 @@ function triageRecord(ingestEventId: string, decision: "authorized" | "dismissed
     vendorEventId: null,
     decision,
     note: null,
+    falsePositiveReasons: [],
     decidedByUserId: "u1",
     decidedByEmail: "test@example.com",
     decidedAt: new Date("2026-06-29T10:00:00Z"),

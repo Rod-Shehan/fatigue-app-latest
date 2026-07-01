@@ -6,7 +6,7 @@ import { isAutonomiseApiConfigured } from "@/lib/integrations/autonomise-api-cli
 import { getAutonomiseWebhookSecretFromEnv } from "@/lib/integrations/autonomise-webhook-auth";
 import { isCameraAlertDeleteEnabled } from "@/lib/integrations/camera-alert-ingest-delete";
 import { backfillMissingAutonomiseMedia, PENDING_INBOX_MAX_FETCH } from "@/lib/integrations/autonomise-media-resolver";
-import { loadTriageByIngestIds } from "@/lib/integrations/camera-alert-triage";
+import { loadTriageByIngestIds, type CameraAlertTriageRecord } from "@/lib/integrations/camera-alert-triage";
 import {
   loadCommandLifecycleTriageByIngestIds,
   mergeTriageByIngestId,
@@ -26,6 +26,7 @@ import {
   promoteAcceptedIngestBacklog,
   TRIAGE_QUEUE_PLACEHOLDER_REGO,
 } from "@/lib/integrations/command-lifecycle-bridge";
+import type { FalsePositiveReasonId } from "@/lib/integrations/false-positive-reasons";
 
 export type CameraAlertTriageStatus = "pending" | "authorized" | "dismissed";
 
@@ -53,6 +54,7 @@ export type CameraAlertItem = {
   triageDecidedAt: string | null;
   triageDecidedBy: string | null;
   triageNote: string | null;
+  triageFalsePositiveReasons?: FalsePositiveReasonId[];
   /** Media arrived but no matching event row in ingest (true webhook gap). */
   eventWebhookPending?: boolean;
   /** Shared lifecycle row when surfaced from active triage queue. */
@@ -225,15 +227,7 @@ export function buildCameraAlertsFromRows(
   events: IngestRow[],
   mediaRows: IngestRow[],
   eventKeysForMediaMatch?: Iterable<string | null | undefined>,
-  triageByIngestId?: Map<
-    string,
-    {
-      decision: string;
-      note: string | null;
-      decidedByEmail: string | null;
-      decidedAt: Date;
-    }
-  >,
+  triageByIngestId?: Map<string, CameraAlertTriageRecord>,
   includeOrphanMedia = false
 ): CameraAlertItem[] {
   const enrichedMedia = mediaRows.map(enrichMediaRow);
@@ -288,6 +282,10 @@ export function buildCameraAlertsFromRows(
       triageDecidedAt: triage?.decidedAt.toISOString() ?? null,
       triageDecidedBy: triage?.decidedByEmail ?? null,
       triageNote: triage?.note ?? null,
+      triageFalsePositiveReasons:
+        triage?.falsePositiveReasons && triage.falsePositiveReasons.length > 0
+          ? [...triage.falsePositiveReasons]
+          : undefined,
     };
   });
 

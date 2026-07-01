@@ -296,6 +296,8 @@ model CameraAlertTriage {
   vendorEventId   String?
   decision        String   // authorized | dismissed
   note            String?
+  /** Canonical false-positive trigger ids when decision = dismissed. */
+  falsePositiveReasons Json?
   decidedByUserId String
   decidedByEmail  String?
   decidedAt       DateTime @default(now())

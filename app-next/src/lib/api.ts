@@ -238,6 +238,7 @@ export type CameraAlertItem = {
   triageDecidedAt: string | null;
   triageDecidedBy: string | null;
   triageNote: string | null;
+  triageFalsePositiveReasons?: string[];
   eventWebhookPending?: boolean;
   lifecycleId?: string | null;
   queueBurstLabel?: string | null;
@@ -529,7 +530,12 @@ export const api = {
       }),
     cameraAlertTriage: (
       ingestEventId: string,
-      data: { decision: "authorized" | "dismissed"; note?: string | null; vendorEventId?: string | null }
+      data: {
+        decision: "authorized" | "dismissed";
+        note?: string | null;
+        vendorEventId?: string | null;
+        falsePositiveReasons?: string[];
+      }
     ) =>
       fetchApi<{
         ok: boolean;
@@ -537,6 +543,7 @@ export const api = {
           ingestEventId: string;
           decision: string;
           note: string | null;
+          falsePositiveReasons?: string[];
           decidedByEmail: string | null;
           decidedAt: string;
         };

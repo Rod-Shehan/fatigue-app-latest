@@ -31,7 +31,12 @@ export async function POST(
 
   const { id } = await context.params;
 
-  let body: { decision?: string; note?: string | null; vendorEventId?: string | null };
+  let body: {
+    decision?: string;
+    note?: string | null;
+    vendorEventId?: string | null;
+    falsePositiveReasons?: string[];
+  };
   try {
     body = await request.json();
   } catch {
@@ -62,6 +67,7 @@ export async function POST(
       vendorEventId: body.vendorEventId ?? null,
       decision: decision as CameraAlertTriageDecision,
       note: body.note,
+      falsePositiveReasons: body.falsePositiveReasons,
       decidedByUserId: manager.user.id,
       decidedByEmail: manager.user.email,
     });
@@ -69,7 +75,7 @@ export async function POST(
     const lifecycle = await syncCommandLifecycleFromManagerTriage(prisma, {
       ingestEventId,
       decision: decision as CameraAlertTriageDecision,
-      note: body.note,
+      note: record.note,
       decidedByUserId: manager.user.id,
     });
 
@@ -79,6 +85,7 @@ export async function POST(
         ingestEventId: record.ingestEventId,
         decision: record.decision,
         note: record.note,
+        falsePositiveReasons: record.falsePositiveReasons,
         decidedByEmail: record.decidedByEmail,
         decidedAt: record.decidedAt.toISOString(),
       },
@@ -101,6 +108,12 @@ export async function POST(
     }
     if (msg === "EVENT_NOT_FOUND") {
       return NextResponse.json({ error: "Event not found or not eligible for triage" }, { status: 404 });
+    }
+    if (msg === "FALSE_POSITIVE_REASONS_REQUIRED") {
+      return NextResponse.json(
+        { error: "Select at least one false positive trigger reason" },
+        { status: 400 }
+      );
     }
     return NextResponse.json({ error: msg }, { status: 500 });
   }

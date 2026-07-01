@@ -7,6 +7,7 @@ import { defaultEnabledAlarmIds } from "@/lib/integrations/fatigue-event-catalog
 import { Button } from "@/components/ui/button";
 import { ChevronDown, Loader2, SlidersHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FalsePositiveExportPanel } from "@/app/manager/alerts/false-positive-export-panel";
 
 const TIER_LABELS: Record<string, string> = {
   core: "Core — fatigue & distraction",
@@ -271,6 +272,9 @@ export function CameraAlertEventTypesPanel({
                   : "Could not save"}
               </span>
             )}
+          </div>
+          <div className="mt-6 border-t border-slate-200 pt-4 dark:border-slate-700">
+            <FalsePositiveExportPanel embedded />
           </div>
         </>
       )}

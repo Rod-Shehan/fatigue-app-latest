@@ -2,6 +2,12 @@ import type { Prisma, PrismaClient } from "@prisma/client";
 import { extractAutonomiseFields } from "@/lib/integrations/autonomise-payload";
 import { evaluateAutonomiseEventAcceptance } from "@/lib/integrations/autonomise-event-evaluation";
 import { getEnabledAlarmIdSet } from "@/lib/integrations/camera-alert-event-settings";
+import {
+  formatFalsePositiveReasonsForNote,
+  normalizeFalsePositiveReasons,
+  requireFalsePositiveReasonsForDismiss,
+  type FalsePositiveReasonId,
+} from "@/lib/integrations/false-positive-reasons";
 
 export type CameraAlertTriageDecision = "authorized" | "dismissed";
 
@@ -10,6 +16,7 @@ export type CameraAlertTriageRecord = {
   vendorEventId: string | null;
   decision: CameraAlertTriageDecision;
   note: string | null;
+  falsePositiveReasons: FalsePositiveReasonId[];
   decidedByUserId: string;
   decidedByEmail: string | null;
   decidedAt: Date;
@@ -33,6 +40,7 @@ export async function loadTriageByIngestIds(
       vendorEventId: row.vendorEventId,
       decision: row.decision,
       note: row.note,
+      falsePositiveReasons: normalizeFalsePositiveReasons(row.falsePositiveReasons),
       decidedByUserId: row.decidedByUserId,
       decidedByEmail: row.decidedByEmail,
       decidedAt: row.decidedAt,
@@ -48,6 +56,7 @@ export async function recordCameraAlertTriage(
     vendorEventId: string | null;
     decision: CameraAlertTriageDecision;
     note?: string | null;
+    falsePositiveReasons?: unknown;
     decidedByUserId: string;
     decidedByEmail: string | null;
   }
@@ -104,12 +113,23 @@ export async function recordCameraAlertTriage(
     });
   }
 
+  const falsePositiveReasons = requireFalsePositiveReasonsForDismiss(
+    args.decision,
+    args.falsePositiveReasons
+  );
+  const note =
+    args.decision === "dismissed"
+      ? formatFalsePositiveReasonsForNote(falsePositiveReasons, args.note)
+      : args.note?.trim() || null;
+
   const row = await prisma.cameraAlertTriage.create({
     data: {
       ingestEventId: args.ingestEventId,
       vendorEventId: args.vendorEventId,
       decision: args.decision,
-      note: args.note?.trim() || null,
+      note,
+      falsePositiveReasons:
+        args.decision === "dismissed" ? (falsePositiveReasons as Prisma.InputJsonValue) : undefined,
       decidedByUserId: args.decidedByUserId,
       decidedByEmail: args.decidedByEmail,
     },
@@ -120,6 +140,7 @@ export async function recordCameraAlertTriage(
     vendorEventId: row.vendorEventId,
     decision: row.decision as CameraAlertTriageDecision,
     note: row.note,
+    falsePositiveReasons: normalizeFalsePositiveReasons(row.falsePositiveReasons),
     decidedByUserId: row.decidedByUserId,
     decidedByEmail: row.decidedByEmail,
     decidedAt: row.decidedAt,
