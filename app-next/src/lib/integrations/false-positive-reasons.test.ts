@@ -58,12 +58,14 @@ describe("false-positive-export", () => {
     expect(cells[10]).toBe("Y");
     expect(cells[11]).toBe("N");
     expect(cells[14]).toBe("N");
+    expect(cells[15]).toBe("N");
   });
 
   it("includes UTF-8 BOM and header row", () => {
     const csv = buildFalsePositiveExportCsv([]);
     expect(csv.startsWith("\uFEFFingest_event_id")).toBe(true);
     expect(csv).toContain("driver looking left");
+    expect(csv).toContain("hand over face");
     expect(csv).toContain("undetermined");
   });
 });

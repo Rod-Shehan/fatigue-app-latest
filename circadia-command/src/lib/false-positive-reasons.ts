@@ -24,6 +24,11 @@ export const FALSE_POSITIVE_REASONS = [
     exportHeader: "driver looking up",
   },
   {
+    id: "hand_over_face",
+    label: "Hand over face",
+    exportHeader: "hand over face",
+  },
+  {
     id: "undetermined",
     label: "Undetermined",
     exportHeader: "undetermined",
