@@ -14,6 +14,7 @@
 - [camera-risk-stream.md](./camera-risk-stream.md) — driver-axis `DriverRiskBlock`
 - [ADR 0003](../adr/0003-prospective-risk-engine.md) — assurance vs compliance
 - `src/lib/integrations/fatigue-event-catalogue.ts` — alarm tier / pipeline pattern to mirror
+- **Command desk:** [circadia-command/docs/zenduit-one-integration-outline.md](../../circadia-command/docs/zenduit-one-integration-outline.md)
 
 ---
 
@@ -230,6 +231,67 @@ ZENDUIT_LIFECYCLE_BRIDGE_ENABLED=true
 ZENDUIT_FLEET_RISK_ENABLED=false
 ```
 
+### 5.5 Command center (`circadia-command`) — operator desk
+
+Command is a **first-class consumer** of Zenduit exceptions for the same market reason as Manager: fleets on ZenduONE may buy **Circadia-operated triage** (routing **M1** / **M2**) without adopting Zenduit’s in-portal coaching as the only workflow.
+
+**Hard rule (unchanged):** Command does not leak into `app-next` driver/manager routes. Zenduit incidents still land in the **shared Neon ledger**; Command reads `edge_fatigue_events` + `fatigue_incident_lifecycle` like Autonomise today.
+
+```text
+Zenduit poll (app-next worker)
+        │
+        ▼
+ZenduitExceptionIngest  ──►  command-lifecycle-bridge
+        │                           │
+        │                           ▼
+        │                    edge_fatigue_events
+        │                    fatigue_incident_lifecycle (PENDING_TRIAGE)
+        │                           │
+        │              Postgres NOTIFY (SSE fan-out)
+        │                           │
+        └──────────────────────────►▼
+                          circadia-command /triage
+                          QueuePanel · MediaViewport · ActionPanel (F1/F2/F3)
+```
+
+| Concern | Autonomise (live) | Zenduit (proposed) |
+|---------|-------------------|---------------------|
+| **Ingress** | Webhook → `app-next` | **Poll job → `app-next`** (credentials stay off Command) |
+| **Ledger** | Shared `edge_fatigue_events` | Same — vendor-agnostic row |
+| **Queue** | `fetchTriageQueue` + SSE | Same — no forked queue |
+| **Media** | `hydrate-edge-media` from ingest | **Zenduit Media API** on open (session auth) |
+| **Operator actions** | F1/F2/F3 + `triage-trigger-reasons` | Same — unified trigger catalog already deployed |
+| **Manager sync** | `CameraAlertTriage` + lifecycle sync | Same bridge pattern |
+
+**Command does not need** a separate Zenduit API client for v1 if ingest + promote runs in `app-next` (mirrors [DEPLOY_VERCEL.md](../../circadia-command/docs/DEPLOY_VERCEL.md) Manager ingest bridge). Optional later: Command-side media refresh only.
+
+**Operator UX (minimal change):**
+
+- Queue card: show rule display name + optional **Zenduit** source badge (vs Autonomise).
+- `MediaViewport`: speed/location from exception payload when present (Zenduit often includes these on exception detail).
+- **Do not** surface Zenduit coaching statuses (Needs Review / Coached) — Circadia lifecycle is authoritative once ingested.
+
+**Routing modes where Command is essential:**
+
+| Mode | Command role with Zenduit |
+|------|---------------------------|
+| **M1** | Operator triages first → manager validation on verified fatigue |
+| **M2** | Operator triage + auto intervention |
+| **M4** | Operator triage → external SOC webhook |
+| **M3** | Command queue unused — poll promotes directly to manager scope only |
+
+**Command package deliverables** (see [circadia-command companion doc](../../circadia-command/docs/zenduit-one-integration-outline.md)):
+
+| # | Item |
+|---|------|
+| C1 | `hydrate-edge-media` (or sibling) reads `ZenduitExceptionIngest` + Media API |
+| C2 | Queue/SSE payload includes `source_vendor: zenduit` when `source_ingest_id` links to Zenduit table |
+| C3 | Simulate-ingest dev path for Zenduit-shaped fixtures |
+| C4 | Operator runbook: Zenduit media latency, session expiry during shift |
+| C5 | No compliance or sheet UI in Command — lifecycle only |
+
+**Market framing:** Zenduit resellers / fleets get **optional Circadia Command** as the fatigue-focused operator desk; Zenduit Safety dashboard remains for general scorecard/coaching; Circadia owns WA fatigue incident acceptance and evidence retention.
+
 ---
 
 ## 6. Project phases
@@ -271,19 +333,21 @@ ZENDUIT_FLEET_RISK_ENABLED=false
 
 ### Phase 2 — Pipeline C: incident lifecycle (3–4 weeks)
 
-**Goal:** Zenduit exceptions appear on Manager alerts + Command triage.
+**Goal:** Zenduit exceptions appear on Manager alerts **and Command `/triage`** (shared ledger).
 
-| # | Deliverable |
-|---|-------------|
-| 2.1 | Lifecycle bridge: ingest → `edge_fatigue_events` + `PENDING_TRIAGE` |
-| 2.2 | Map `fatigue_metric_type` + display labels for queue cards |
-| 2.3 | Media resolver on expand/open (Zenduit session + Media API) |
-| 2.4 | Manager `/manager/alerts` — no UX fork; vendor badge optional |
-| 2.5 | Command `/triage` — same F1/F2/F3 flow |
-| 2.6 | Duplicate / multi-camera policy (rego + rearm window) — align with Autonomise discussion |
-| 2.7 | E2E test: poll → queue → dismiss with trigger reasons |
+| # | Deliverable | Package |
+|---|-------------|---------|
+| 2.1 | Lifecycle bridge: ingest → `edge_fatigue_events` + `PENDING_TRIAGE` | `app-next` |
+| 2.2 | Map `fatigue_metric_type` + display labels for queue cards | `app-next` + `circadia-command` |
+| 2.3 | Media resolver on expand/open (Zenduit session + Media API) | `app-next` (+ Command hydrate) |
+| 2.4 | Manager `/manager/alerts` — no UX fork; vendor badge optional | `app-next` |
+| 2.5 | Command `/triage` — same F1/F2/F3; SSE on new lifecycle rows | `circadia-command` |
+| 2.6 | `source_vendor` / ingest link on `edge_fatigue_events` for Zenduit | shared SQL |
+| 2.7 | Duplicate / multi-camera policy (rego + rearm window) | `app-next` |
+| 2.8 | E2E: poll → Command queue → operator dismiss with trigger reasons | both |
+| 2.9 | E2E: poll → manager inbox when routing **M3** (Command bypass) | `app-next` |
 
-**Exit criteria:** Pilot fleet managers can triage Zenduit fatigue/distraction like Autonomise; audit trail complete.
+**Exit criteria:** Pilot operators and managers can triage Zenduit fatigue/distraction like Autonomise; Command SSE receives polled incidents within lag target; audit trail complete.
 
 ---
 
@@ -351,6 +415,8 @@ Same assembly as [incident-routing-assembly.md](./incident-routing-assembly.md) 
 | Q5 | Zenduit coaching status vs Circadia lifecycle — sync or ignore? | Avoid double workflow confusion |
 | Q6 | Geotab-only fleets without camera — in scope? | Likely exclude v1 (no DSM exceptions) |
 | Q7 | Rule name stability across Zenduit releases? | Catalogue versioning strategy |
+| Q8 | Does poll insert fire Postgres NOTIFY for Command SSE, or need explicit notify? | Command real-time queue |
+| Q9 | Operator desk for Zenduit-only fleets without Circadia manager users? | M2 Command-only pilot |
 
 ---
 
@@ -372,6 +438,8 @@ Same assembly as [incident-routing-assembly.md](./incident-routing-assembly.md) 
 | Media playable on triage open | > 95% within 30s |
 | False duplicate incidents | < 5% after bundle rules |
 | Manager time-to-first-action | Comparable to Autonomise pilot |
+| **Command queue lag** (poll → SSE visible) | < 5 min p95 |
+| Operator media ready on first open | > 95% within 30s |
 | Compliance engine regression | Zero — no Zenduit input to Pipeline A |
 
 ---
@@ -401,3 +469,4 @@ Requires explicit owner approval before:
 | Date | Change |
 |------|--------|
 | 2026-06 | Initial outline from Zenduit API review + Circadia pipeline mapping |
+| 2026-06 | §5.5 Command center mapping; Phase 2 Command deliverables |
