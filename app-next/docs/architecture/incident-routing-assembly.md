@@ -81,6 +81,7 @@ These are **not** interchangeable. A vendor feed may feed one, two, or all three
 
 Pipeline **B** is documented in [camera-risk-stream.md](./camera-risk-stream.md) (Circadia cab-camera → driver axis) and [autonomise-fleet-risk-stream.md](./autonomise-fleet-risk-stream.md) (proposed Autonomise → VRN axis, parallel manager view).  
 Pipeline **C** is documented in `circadia-command/`.  
+**Zenduit One** (proposed second vendor): [zenduit-one-integration-outline.md](./zenduit-one-integration-outline.md).  
 **Direct video + accept/dismiss** always belongs to **C**, never to the heatmap alone.
 
 ### 2.3 Actor surfaces
