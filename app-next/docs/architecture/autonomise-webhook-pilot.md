@@ -2,6 +2,8 @@
 
 **Purpose:** Connect Miocevich Transport Services (Autonomise.ai) Event + Media webhooks to Circadia for capture and fatigue filtering.
 
+**Architecture:** Autonomise is a **Streamax-class inbound avenue** — webhooks map to the [canonical vendor event model](./incident-routing-assembly.md#5e-canonical-vendor-event-model-streamax-class-feeds) (§5e) before lifecycle and triage.
+
 **Production base:** `https://fatigue-app-latest.vercel.app`
 
 ## Circadia endpoints

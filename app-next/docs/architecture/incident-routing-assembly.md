@@ -540,6 +540,9 @@ Both sources normalize into the **same three pipelines** (§2.2). Compliance (pi
 |--------|-------------------|------------------------|-------------------------|
 | **Circadia edge** | Device JSON → driver app (BT) → `POST /api/driver/risk-blocks`; optional direct cellular to edge API later | **`CameraRiskPacketV1`** → `DriverRiskBlock` — [camera-risk-stream.md](./camera-risk-stream.md) | Discrete FMS alarms → `edge_fatigue_events` / lifecycle (Command spec) |
 | **Streamax / FTCloud** | Device → FTCloud → Circadia server adapter (poll/webhook) | Mapper → same block shape as B (if feed has rolling metrics) | FTCloud / Events Platform discrete events → lifecycle |
+| **Zenduit / other portals** | Marketplace API (e.g. poll **Exception**) → adapter | Same — discrete events → blocks | Same — normalised per §5e → lifecycle |
+
+See **§5e** for why Autonomise, Zenduit, and FTCloud are one **Streamax-class** family with separate adapters.
 
 ```text
                          ┌─ circadia-edge ──→ CameraRiskPacketV1 ──→ DriverRiskBlock (B)
@@ -552,7 +555,7 @@ Tenant fleet / vehicle ──┼─ streamax-ftcloud ─→ normalized blocks �
 
 ### Adapter rule (do not merge vendors in one blob)
 
-1. **Tag provenance** on every row — e.g. `source: "circadia_edge" | "streamax_ftcloud"`; raw payload in `vendor` / `telemetry_snapshot_json`.
+1. **Tag provenance** on every row — `source_avenue` + raw payload (§5e); e.g. `circadia_edge` · `autonomise` · `zenduit` · `streamax_ftcloud`.
 2. **One driver, one manager timeline** — fleet pulse and individual chart fuse all **B** sources; scoring may extend `fusionSources` beyond `["camera", "diary"]`.
 3. **One incident inbox** — pipeline **C** from either source; alert card shows source badge + video state (ready / pending / unavailable).
 4. **One operator desk** — Command `/triage` queue is source-agnostic; M1–M4 routing applies to all pipeline C events.
@@ -689,6 +692,114 @@ Routing mode M1–M4, assurance-only vs incidents, intervention on/off — uncha
 
 ---
 
+## 5e. Canonical vendor event model (Streamax-class feeds)
+
+**Product intent:** Apart from Circadia’s **own camera** (`CameraRiskPacketV1` — §5c), external platforms are **transport and portal layers**, not different product semantics. Autonomise, Zenduit, FTCloud / Events Platform, and similar aggregators deliver the **same class of data**: discrete **Streamax / VT3600-AI-style** camera safety events (DSM fatigue & distraction, selected ADAS proxies, optional clip).
+
+Circadia builds **one canonical event shape** and **thin adapters** per inbound avenue. Triage desks, lifecycle, and assurance scoring consume the canonical model — not raw vendor JSON.
+
+### Two input families
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│  A. Circadia edge camera (own IP)                                 │
+│     CameraRiskPacketV1 · 15-min metrics · BT → driver app         │
+│     NOT Streamax-shaped — separate schema and firmware path       │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│  B. Streamax-class vendor feeds (external platforms)              │
+│     Discrete alarms/events + optional media                       │
+│     Same *meaning* (fatigue, distraction, FCW, …)                   │
+│     Different *wire* (webhook, poll, JSON-RPC, portal names)      │
+└──────────────────────────────────────────────────────────────────┘
+                              │
+         ┌────────────────────┼────────────────────┐
+         ▼                    ▼                    ▼
+   autonomise            zenduit              ftcloud / …
+   (webhook, live)       (poll, proposed)    (poll/webhook, planned)
+         │                    │                    │
+         └────────────────────┴────────────────────┘
+                              ▼
+              Circadia canonical vendor event (this section)
+                              │
+         ┌────────────────────┼────────────────────┐
+         ▼                    ▼                    ▼
+   Pipeline C            Pipeline B           Pipeline A
+   lifecycle             assurance            (sheets only —
+   Command + Manager      heatmap / blocks      no vendor feed)
+```
+
+### Canonical fields (adapter output)
+
+Every **Streamax-class** adapter normalises inbound payloads to:
+
+| Field | Purpose | Notes |
+|-------|---------|-------|
+| `source_avenue` | Which adapter ingested | e.g. `autonomise` · `zenduit` · `streamax_ftcloud` |
+| `source_ingest_id` | FK to raw capture row | `AutonomiseWebhookIngest`, `ZenduitExceptionIngest`, … |
+| `vendor_event_id` | Stable vendor id | Idempotency key component |
+| `vendor_alarm_id` | Catalogue lookup key | e.g. `VT3600AI_ALARM_DSM_Fatigue` or Zenduit rule name → mapped id |
+| `trigger_time` | Event time (UTC) | Lifecycle ordering, 15-min block alignment |
+| `vehicle_rego` | VRN when present | Queue + fleet risk row key |
+| `device_id` | Hardware / asset id | Fallback when VRN missing |
+| `driver_name` | If portal provides | **Hint only** — not WA compliance attestation |
+| `fatigue_metric_type` | `FATIGUE` · `DISTRACTION` · `ADAS` · `OTHER` | Derived from catalogue family |
+| `media_state` | `ready` · `pending` · `unavailable` | Resolver fetches per avenue |
+| `raw_payload` | JSON blob | Audit, mapper upgrades, evidence pack |
+
+Optional later: `source_vendor` column on `edge_fatigue_events` for fast UI badges (see [zenduit-one-integration-outline.md](./zenduit-one-integration-outline.md) §5.5).
+
+### Catalogue is the semantic layer
+
+Alarm **meaning** is defined once in `fatigue-event-catalogue.ts` (tiers: core, fatigue_adjacent, safety_other, excluded). Adapters only **map** vendor-specific ids/names to that catalogue:
+
+| Vendor surface | Example alarm key | Maps to |
+|----------------|-------------------|---------|
+| Autonomise webhook | `VT3600AI_ALARM_DSM_Fatigue` | core · FATIGUE |
+| Autonomise webhook | `VT3600AI_ALARM_DSM_Distracted` | core · DISTRACTION |
+| Zenduit rule | `Camera (ZenduCAM) > Driver Fatigue` | core · FATIGUE (proposed `zenduit-rule-catalogue.ts`) |
+| Zenduit rule | `Camera (ZenduCAM) > Driver Distracted` | core · DISTRACTION |
+
+**Adding a platform** = new adapter + mapper rows — **not** a new triage UI, lifecycle enum, or compliance module.
+
+### Inbound avenues (reference)
+
+| Avenue | Transport | Raw store (today / planned) | Doc |
+|--------|-----------|----------------------------|-----|
+| **Autonomise** | Event + Media webhooks | `AutonomiseWebhookIngest` | [autonomise-webhook-pilot.md](./autonomise-webhook-pilot.md) |
+| **Zenduit One** | Exception poll + Media on demand | `ZenduitExceptionIngest` (proposed) | [zenduit-one-integration-outline.md](./zenduit-one-integration-outline.md) |
+| **FTCloud / Events Platform** | TBD (poll/webhook) | TBD | [events-platform-vendor-request.md](./events-platform-vendor-request.md) |
+| **Circadia edge** | `CameraRiskPacketV1` | `DriverRiskBlock` | [camera-risk-stream.md](./camera-risk-stream.md) — **outside** this model |
+
+### One desk, many feeds (identification)
+
+| Layer | Behaviour |
+|-------|-----------|
+| **Ingest** | Separate table + credentials per `source_avenue` |
+| **Promote** | `edge_fatigue_events.source_ingest_id` links ledger → raw row |
+| **Queue** | Command `/triage` and Manager `/manager/alerts` are **source-agnostic** |
+| **UI** | Optional badge (`Autonomise` / `Zenduit` / …); same F1/F2/F3 + [triage-trigger-reasons](../src/lib/integrations/triage-trigger-reasons.ts) |
+| **Compliance** | Pipeline **A** never reads vendor feeds — attested sheets only |
+
+Zenduit and Autonomise coaching workflows (Needs Review, Coached, etc.) are **not** mirrored — Circadia lifecycle is authoritative after ingest.
+
+### Adapter implementation rule
+
+1. **Parse** vendor JSON → canonical fields (fail closed if required ids missing).
+2. **Evaluate** `isVendorAlarmAccepted(catalogue id, tenant enabled set)` — same gate for all avenues.
+3. **Persist** raw row + idempotency key scoped to avenue (`event:{id}`, `zenduit:exception:{id}`, …).
+4. **Promote** to `edge_fatigue_events` + lifecycle when pipeline **C** enabled for tenant.
+5. **Aggregate** into assurance blocks when pipeline **B** enabled — discrete events → 15-min windows unless rolling metrics exist.
+
+Do **not** branch business logic in Command or Manager by vendor — only ingest, media resolver, and export columns.
+
+### Relation to §5c dual ingest
+
+§5c covers **Circadia edge + Streamax** on the same fleet. §5e covers **why** multiple **portals** (Autonomise, Zenduit, FTCloud) do not multiply product surfaces: they converge on the same Streamax-class canonical event before the shared three pipelines.
+
+---
+
 ## 6. Assembly checklist (per tenant go-live)
 
 Use this as a sales/ops worksheet before enabling camera integration:
@@ -704,7 +815,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 9. **Assurance-only** — fleet pulse without lifecycle (pipeline B only)?
 10. **Intervention** — in-cab HUD enabled or coaching-only alerts?
 11. **Integration model** — Circadia primary (A), Events Platform primary (B), or dual (C)? See §5b.
-12. **Camera sources** — Circadia edge only, Streamax only, or both? Per-vehicle map if mixed. See §5c.
+12. **Camera sources** — Circadia edge only, Streamax-class portal(s), or both? Per-vehicle map if mixed. See §5c, §5e.
 13. **Assurance vs incidents per source** — e.g. Streamax incidents only, Circadia 15‑min blocks only.
 14. **Fatigue event preset** — `core_only` · `core_plus_adas` · `custom`; see §5d and `fatigue-event-catalogue.ts`.
 15. **Evidence retention** — re-host video on Circadia storage; retention years; export for audit — see [incident-evidence-retention.md](./incident-evidence-retention.md).
@@ -756,7 +867,8 @@ Use this as a sales/ops worksheet before enabling camera integration:
 - **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — **one queue**, §3.5 shift + claim + confirm→action→close.
 - **Triage shift** — names and/or roles; banner on both UIs; not fixed overnight/daytime routing.
 - **Four routing modes** — M1–M4 — legacy assembly; real-time fatigue uses §3.5.
-- **Dual ingest** — Circadia edge (primary IP) + Streamax adapter (optional); both can run per fleet/vehicle (§5c).
+- **Canonical vendor event** — Streamax-class feeds via thin adapters; Circadia edge separate (§5e).
+- **Dual ingest** — Circadia edge (primary IP) + Streamax-class adapters (Autonomise live, Zenduit/FTCloud planned); §5c.
 - **Tenant setup** — four blocks only for Autonomise path; fatigue event catalogue with tier presets (§5d).
 - **Autonomise pilot** — fatigue + distraction ingest live; bridge to Command optional (`COMMAND_LIFECYCLE_BRIDGE_ENABLED`).
 - **Next concrete step:** implement §3.5.9 build order (shift → claim → confirm/action → timeouts).
@@ -767,6 +879,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-07 | **§5e** Canonical vendor event model — Streamax-class feeds, one desk many adapters |
 | 2026-06-29 | **§3.5** Real-time triage — shift (names/roles), claim, confirm→action→close, handover timeline, timeouts, review windows; supersedes manager approval gate for fatigue path |
 | 2026-06-21 | [incident-evidence-retention.md](./incident-evidence-retention.md) — legal evidence pack, re-host video, §6 item 13 |
 | 2026-06-21 | Link [manager-critical-alert-spec.md](./manager-critical-alert-spec.md) — on-call alarm product |

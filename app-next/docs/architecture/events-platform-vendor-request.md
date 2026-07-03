@@ -2,7 +2,7 @@
 
 **Purpose:** Send to VisionTrack / FTCloud / Events Platform Technical Support or your integration contact to unblock Circadia Phase 1 ingest mapping.
 
-**Related:** [incident-routing-assembly.md](./incident-routing-assembly.md) §5a–5b.
+**Related:** [incident-routing-assembly.md](./incident-routing-assembly.md) §5a–5b · **§5e canonical vendor event model**
 
 **Reference on file:** *Events Platform User Guide* version 20231011.32 — confirms Events tab workflow and Organisation → Integration Details, but not API wire format.
 

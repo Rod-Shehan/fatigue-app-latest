@@ -8,7 +8,7 @@
 
 **Related:**
 
-- [incident-routing-assembly.md](./incident-routing-assembly.md) — three pipelines (A/B/C), tenant routing M1–M4
+- [incident-routing-assembly.md](./incident-routing-assembly.md) — three pipelines; **§5e canonical vendor event model**
 - [autonomise-webhook-pilot.md](./autonomise-webhook-pilot.md) — live Autonomise ingest (reference adapter)
 - [autonomise-fleet-risk-stream.md](./autonomise-fleet-risk-stream.md) — proposed VRN-keyed assurance stream
 - [camera-risk-stream.md](./camera-risk-stream.md) — driver-axis `DriverRiskBlock`
@@ -22,7 +22,7 @@
 
 **Zenduit One** is a multi-vendor fleet marketplace (Geotab, ZenCAM, SurfSight, Smartwitness, Teltonika, etc.) with a **Zendu Connect** JSON-RPC/REST API. It exposes **safety exceptions**, **GPS logs**, **trips**, **devices**, **users**, and **camera media** — not attested work diaries.
 
-**Circadia fit:** Zenduit is a strong second **camera/telematics vendor** alongside Autonomise. It can feed:
+**Circadia fit:** Zenduit is a **Streamax-class adapter avenue** (§5e) — same discrete safety event semantics as Autonomise, different API (poll vs webhook). It can feed:
 
 | Pipeline | Zenduit role |
 |----------|----------------|

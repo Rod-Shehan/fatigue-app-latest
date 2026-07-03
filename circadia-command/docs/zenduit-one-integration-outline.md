@@ -2,7 +2,7 @@
 
 **Status:** Proposed — **not implemented**.
 
-**Canonical spec:** [app-next/docs/architecture/zenduit-one-integration-outline.md](../../app-next/docs/architecture/zenduit-one-integration-outline.md)
+**Canonical spec:** [app-next/docs/architecture/zenduit-one-integration-outline.md](../../app-next/docs/architecture/zenduit-one-integration-outline.md) · [incident-routing-assembly.md §5e](../../app-next/docs/architecture/incident-routing-assembly.md#5e-canonical-vendor-event-model-streamax-class-feeds)
 
 **Related:** [MASTER_SPEC.md](./MASTER_SPEC.md) · [SECTION_03_LIFECYCLE.md](./SECTION_03_LIFECYCLE.md) · [DEPLOY_VERCEL.md](./DEPLOY_VERCEL.md)
 
