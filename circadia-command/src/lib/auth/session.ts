@@ -4,7 +4,8 @@ import { type CommandRole, isCommandRole } from "@/lib/auth/roles";
 
 export const SESSION_COOKIE = "command_session";
 const ISSUER = "https://auth.circadia24.internal";
-const MAX_AGE_SEC = 4 * 60 * 60;
+/** Desk sessions stay open until explicit logout (not idle timeout). */
+export const PERSISTENT_SESSION_MAX_AGE_SEC = 10 * 365 * 24 * 60 * 60;
 
 export type CommandSession = {
   sub: string;
@@ -49,7 +50,6 @@ export async function signSession(payload: {
     .setSubject(payload.operatorId)
     .setIssuer(ISSUER)
     .setIssuedAt()
-    .setExpirationTime(`${MAX_AGE_SEC}s`)
     .sign(getSecret());
 }
 
@@ -88,7 +88,7 @@ export async function setSessionCookie(token: string) {
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: MAX_AGE_SEC,
+    maxAge: PERSISTENT_SESSION_MAX_AGE_SEC,
   });
 }
 

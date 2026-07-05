@@ -68,6 +68,6 @@ describe("offline-auth", () => {
   });
 
   it("max age is 30 days", () => {
-    expect(OFFLINE_AUTH_MAX_AGE_MS).toBe(30 * 24 * 60 * 60 * 1000);
+    expect(OFFLINE_AUTH_MAX_AGE_MS).toBe(10 * 365 * 24 * 60 * 60 * 1000);
   });
 });

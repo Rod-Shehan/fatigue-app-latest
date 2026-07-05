@@ -12,8 +12,8 @@ export type OfflineAuthSnapshot = {
   expiresAt: number;
 };
 
-/** Align with NextAuth JWT maxAge (30 days). */
-export const OFFLINE_AUTH_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+/** Align with NextAuth session maxAge (persistent until sign-out). */
+export const OFFLINE_AUTH_MAX_AGE_MS = 10 * 365 * 24 * 60 * 60 * 1000;
 
 const SNAPSHOT_KEY = "fatigue-offline-auth";
 const ACTIVE_KEY = "fatigue-offline-auth-active";

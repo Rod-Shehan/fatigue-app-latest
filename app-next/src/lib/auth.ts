@@ -24,6 +24,9 @@ assertProductionAuthConfig();
 
 const secureCookies = useSecureAuthCookies();
 
+/** Stay signed in until explicit logout (not idle timeout). */
+const PERSISTENT_SESSION_MAX_AGE_SEC = 10 * 365 * 24 * 60 * 60;
+
 /**
  * Production sign-in:
  * - Field drivers must be on the Approved Drivers roster (active, matching email).
@@ -38,7 +41,7 @@ const secureCookies = useSecureAuthCookies();
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
-  session: { strategy: "jwt" as const, maxAge: 30 * 24 * 60 * 60 },
+  session: { strategy: "jwt" as const, maxAge: PERSISTENT_SESSION_MAX_AGE_SEC },
   pages: { signIn: "/" },
   cookies: {
     sessionToken: {
