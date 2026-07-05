@@ -5,6 +5,7 @@ import {
   VERIFIED_DISTRACTION_REASONS,
   type VerifiedDistractionReasonId,
 } from "@/lib/integrations/verified-distraction-reasons";
+import { triageTriggerReasonRequiresFreeNote } from "@/lib/integrations/triage-trigger-reasons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +75,8 @@ export function VerifiedDistractionCapturePanel({
 }: Props) {
   const [showValidation, setShowValidation] = useState(false);
   const reasonsMissing = reasons.length === 0;
+  const noteRequired = triageTriggerReasonRequiresFreeNote(reasons);
+  const noteMissing = noteRequired && !note.trim();
 
   return (
     <div
@@ -91,7 +94,7 @@ export function VerifiedDistractionCapturePanel({
         disabled={pending}
       />
       <label className="mt-3 block text-xs font-medium text-slate-600 dark:text-slate-400">
-        Additional note (optional)
+        {noteRequired ? "Details (required when Other is selected)" : "Additional note (optional)"}
       </label>
       <textarea
         value={note}
@@ -107,6 +110,9 @@ export function VerifiedDistractionCapturePanel({
           Select at least one trigger reason before confirming.
         </p>
       ) : null}
+      {showValidation && noteMissing ? (
+        <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">Enter details below when Other is selected.</p>
+      ) : null}
       <div className="flex flex-col gap-2 sm:flex-row">
         <Button type="button" variant="outline" className="flex-1" disabled={pending} onClick={onCancel}>
           Cancel
@@ -116,7 +122,7 @@ export function VerifiedDistractionCapturePanel({
           className="flex-1"
           disabled={pending}
           onClick={() => {
-            if (reasonsMissing) {
+            if (reasonsMissing || noteMissing) {
               setShowValidation(true);
               return;
             }

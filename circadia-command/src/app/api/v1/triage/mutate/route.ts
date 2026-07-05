@@ -1,5 +1,6 @@
 import { CommandApiError, apiErrorResponse } from "@/lib/errors";
 import { requireFalsePositiveReasonsForDismiss } from "@/lib/false-positive-reasons";
+import { assertTriageTriggerFreeNoteWhenRequired } from "@/lib/triage-trigger-reasons";
 import { TRIAGE_ACTIONS, type TriageAction } from "@/lib/lifecycle-status";
 import { applyOperatorTriageAction } from "@/lib/manager-gate";
 import { requireOperatorId } from "@/lib/operator-context";
@@ -42,6 +43,21 @@ export async function POST(request: Request) {
         throw new CommandApiError(
           "ERR_MALFORMED_PAYLOAD",
           "Select at least one false positive trigger reason.",
+          400
+        );
+      }
+      throw e;
+    }
+
+    try {
+      if (body.action === "VERIFIED_FALSE_POSITIVE") {
+        assertTriageTriggerFreeNoteWhenRequired(falsePositiveReasons, body.operator_notes);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message === "TRIAGE_TRIGGER_FREE_NOTE_REQUIRED") {
+        throw new CommandApiError(
+          "ERR_MALFORMED_PAYLOAD",
+          "Enter details below when Other is selected.",
           400
         );
       }

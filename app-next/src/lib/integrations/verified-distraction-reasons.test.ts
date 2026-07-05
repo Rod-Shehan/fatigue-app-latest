@@ -13,8 +13,8 @@ describe("verified-distraction-reasons", () => {
 
   it("normalises and dedupes reason ids", () => {
     expect(
-      normalizeVerifiedDistractionReasons(["eating", "invalid", "eating", "paperwork"])
-    ).toEqual(["eating", "paperwork"]);
+      normalizeVerifiedDistractionReasons(["eating", "invalid", "eating", "paperwork_reading"])
+    ).toEqual(["eating", "paperwork_reading"]);
   });
 
   it("formats note with trigger labels", () => {

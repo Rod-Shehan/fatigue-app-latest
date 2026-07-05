@@ -8,6 +8,7 @@ import { withOperatorContext } from "@/lib/privileged-db";
 import { getSession } from "@/lib/auth/session";
 import { assertOperatorOnShift } from "@/lib/triage-shift";
 import { requireVerifiedDistractionReasons } from "@/lib/verified-distraction-reasons";
+import { assertTriageTriggerFreeNoteWhenRequired } from "@/lib/triage-trigger-reasons";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
@@ -37,6 +38,19 @@ export async function POST(request: Request) {
         throw new CommandApiError(
           "ERR_MALFORMED_PAYLOAD",
           "Select at least one verified distraction trigger reason.",
+          400
+        );
+      }
+      throw e;
+    }
+
+    try {
+      assertTriageTriggerFreeNoteWhenRequired(verifiedDistractionReasons, body.note);
+    } catch (e) {
+      if (e instanceof Error && e.message === "TRIAGE_TRIGGER_FREE_NOTE_REQUIRED") {
+        throw new CommandApiError(
+          "ERR_MALFORMED_PAYLOAD",
+          "Enter details below when Other is selected.",
           400
         );
       }

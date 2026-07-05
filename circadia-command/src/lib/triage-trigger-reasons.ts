@@ -5,24 +5,29 @@
 
 export const TRIAGE_TRIGGER_REASONS = [
   {
-    id: "driver_looking_left",
-    label: "Driver looking left",
-    exportHeader: "driver looking left",
+    id: "driver_looking_left_mirror",
+    label: "Driver looking in left mirror",
+    exportHeader: "driver looking in left mirror",
   },
   {
-    id: "driver_looking_right",
-    label: "Driver looking right",
-    exportHeader: "driver looking right",
+    id: "driver_looking_right_mirror",
+    label: "Driver looking in right mirror",
+    exportHeader: "driver looking in right mirror",
   },
   {
-    id: "driver_looking_down",
-    label: "Driver looking down",
-    exportHeader: "driver looking down",
+    id: "driver_looking_down_at_dash",
+    label: "Driver looking down at dash",
+    exportHeader: "driver looking down at dash",
   },
   {
-    id: "driver_looking_up",
-    label: "Driver looking up",
-    exportHeader: "driver looking up",
+    id: "driver_looking_up_at_two_way_radio",
+    label: "Driver looking up at two way radio",
+    exportHeader: "driver looking up at two way radio",
+  },
+  {
+    id: "hand_near_face",
+    label: "Hand near face",
+    exportHeader: "hand near face",
   },
   {
     id: "hand_over_face",
@@ -35,23 +40,55 @@ export const TRIAGE_TRIGGER_REASONS = [
     exportHeader: "mobile phone use",
   },
   {
+    id: "reaching_behind",
+    label: "Reaching behind",
+    exportHeader: "reaching behind",
+  },
+  {
+    id: "reaching_over",
+    label: "Reaching over",
+    exportHeader: "reaching over",
+  },
+  {
+    id: "sitting_forward_camera_angle",
+    label: "Sitting forward (camera angle)",
+    exportHeader: "sitting forward (camera angle)",
+  },
+  {
+    id: "sitting_to_one_side_camera_angle",
+    label: "Sitting to one side (camera angle)",
+    exportHeader: "sitting to one side (camera angle)",
+  },
+  {
     id: "eating",
     label: "Eating",
     exportHeader: "eating",
   },
   {
-    id: "paperwork",
-    label: "Paperwork",
-    exportHeader: "paperwork",
+    id: "paperwork_completing",
+    label: "Paperwork - completing",
+    exportHeader: "paperwork - completing",
   },
   {
-    id: "undetermined",
-    label: "Undetermined",
-    exportHeader: "undetermined",
+    id: "paperwork_reading",
+    label: "Paperwork - reading",
+    exportHeader: "paperwork - reading",
+  },
+  {
+    id: "unknown_cause",
+    label: "Unknown cause",
+    exportHeader: "unknown cause",
+  },
+  {
+    id: "other",
+    label: "Other (write below)",
+    exportHeader: "other",
   },
 ] as const;
 
 export type TriageTriggerReasonId = (typeof TRIAGE_TRIGGER_REASONS)[number]["id"];
+
+export const TRIAGE_TRIGGER_OTHER_REASON_ID: TriageTriggerReasonId = "other";
 
 const REASON_ID_SET = new Set<string>(TRIAGE_TRIGGER_REASONS.map((r) => r.id));
 
@@ -78,6 +115,19 @@ export function triageTriggerReasonLabels(ids: readonly TriageTriggerReasonId[])
     if (label) labels.push(label);
   }
   return labels;
+}
+
+export function triageTriggerReasonRequiresFreeNote(reasons: readonly TriageTriggerReasonId[]): boolean {
+  return reasons.includes(TRIAGE_TRIGGER_OTHER_REASON_ID);
+}
+
+export function assertTriageTriggerFreeNoteWhenRequired(
+  reasons: readonly TriageTriggerReasonId[],
+  freeNote?: string | null
+): void {
+  if (triageTriggerReasonRequiresFreeNote(reasons) && !freeNote?.trim()) {
+    throw new Error("TRIAGE_TRIGGER_FREE_NOTE_REQUIRED");
+  }
 }
 
 export function formatTriageTriggerReasonsForNote(

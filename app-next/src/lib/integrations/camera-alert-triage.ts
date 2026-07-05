@@ -14,6 +14,7 @@ import {
   requireVerifiedDistractionReasons,
   type VerifiedDistractionReasonId,
 } from "@/lib/integrations/verified-distraction-reasons";
+import { assertTriageTriggerFreeNoteWhenRequired } from "@/lib/integrations/triage-trigger-reasons";
 
 export type CameraAlertTriageDecision = "authorized" | "dismissed";
 
@@ -125,6 +126,9 @@ export async function recordCameraAlertTriage(
     args.decision,
     args.falsePositiveReasons
   );
+  if (args.decision === "dismissed") {
+    assertTriageTriggerFreeNoteWhenRequired(falsePositiveReasons, args.note);
+  }
   const note =
     args.decision === "dismissed"
       ? formatFalsePositiveReasonsForNote(falsePositiveReasons, args.note)
@@ -201,6 +205,7 @@ export async function recordCameraAlertVerifiedDistraction(
   }
 
   const verifiedDistractionReasons = requireVerifiedDistractionReasons(args.verifiedDistractionReasons);
+  assertTriageTriggerFreeNoteWhenRequired(verifiedDistractionReasons, args.note);
   const note = formatVerifiedDistractionReasonsForNote(verifiedDistractionReasons, args.note);
 
   const row = await prisma.cameraAlertTriage.create({

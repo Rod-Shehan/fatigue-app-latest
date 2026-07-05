@@ -12,6 +12,7 @@ import {
   VERIFIED_DISTRACTION_REASONS,
   type VerifiedDistractionReasonId,
 } from "@/lib/verified-distraction-reasons";
+import { triageTriggerReasonRequiresFreeNote } from "@/lib/triage-trigger-reasons";
 import { cn } from "@/lib/utils";
 
 export function VerifiedDistractionCapturePanel({
@@ -35,6 +36,8 @@ export function VerifiedDistractionCapturePanel({
 }) {
   const [showValidation, setShowValidation] = useState(false);
   const reasonsMissing = reasons.length === 0;
+  const noteRequired = triageTriggerReasonRequiresFreeNote(reasons);
+  const noteMissing = noteRequired && !note.trim();
 
   function toggle(id: VerifiedDistractionReasonId, checked: boolean) {
     if (checked) {
@@ -69,7 +72,9 @@ export function VerifiedDistractionCapturePanel({
           ))}
         </ul>
       </fieldset>
-      <label className={cn("mt-3 block text-xs font-medium", commandTextMuted)}>Additional note (optional)</label>
+      <label className={cn("mt-3 block text-xs font-medium", commandTextMuted)}>
+        {noteRequired ? "Details (required when Other is selected)" : "Additional note (optional)"}
+      </label>
       <textarea
         value={note}
         onChange={(e) => onNoteChange(e.target.value)}
@@ -84,6 +89,9 @@ export function VerifiedDistractionCapturePanel({
           Select at least one trigger reason before confirming.
         </p>
       ) : null}
+      {showValidation && noteMissing ? (
+        <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">Enter details below when Other is selected.</p>
+      ) : null}
       <div className="flex flex-col gap-2">
         <button type="button" disabled={pending} onClick={onCancel} className={`${commandOutlineButton} w-full py-2.5`}>
           Cancel
@@ -92,7 +100,7 @@ export function VerifiedDistractionCapturePanel({
           type="button"
           disabled={pending}
           onClick={() => {
-            if (reasonsMissing) {
+            if (reasonsMissing || noteMissing) {
               setShowValidation(true);
               return;
             }

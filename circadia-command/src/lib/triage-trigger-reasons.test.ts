@@ -7,8 +7,9 @@ describe("triage-trigger-reasons", () => {
   it("shares one catalog across dismiss and verified distraction", () => {
     const ids = TRIAGE_TRIGGER_REASONS.map((r) => r.id);
     expect(ids).toContain("hand_over_face");
-    expect(ids).toContain("paperwork");
-    const raw = ["eating", "driver_looking_up"];
+    expect(ids).toContain("paperwork_reading");
+    expect(ids).toContain("other");
+    const raw = ["eating", "driver_looking_up_at_two_way_radio"];
     expect(normalizeFalsePositiveReasons(raw)).toEqual(raw);
     expect(normalizeVerifiedDistractionReasons(raw)).toEqual(raw);
   });

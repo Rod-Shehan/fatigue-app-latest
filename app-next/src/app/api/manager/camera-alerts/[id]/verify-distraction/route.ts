@@ -95,6 +95,12 @@ export async function POST(
         { status: 400 }
       );
     }
+    if (msg === "TRIAGE_TRIGGER_FREE_NOTE_REQUIRED") {
+      return NextResponse.json(
+        { error: "Enter details below when Other is selected" },
+        { status: 400 }
+      );
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
