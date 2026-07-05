@@ -7,9 +7,16 @@ type Props = {
   selectedId: string | null;
   lockedId?: string | null;
   onSelect: (id: string) => void;
+  /** Mobile stack: hide the open incident from the list below. */
+  hideSelected?: boolean;
 };
 
-export function QueuePanel({ incidents, selectedId, lockedId, onSelect }: Props) {
+export function QueuePanel({ incidents, selectedId, lockedId, onSelect, hideSelected }: Props) {
+  const visibleIncidents =
+    hideSelected && selectedId
+      ? incidents.filter((inc) => inc.lifecycle_id !== selectedId)
+      : incidents;
+
   if (incidents.length === 0) {
     return (
       <div
@@ -21,9 +28,17 @@ export function QueuePanel({ incidents, selectedId, lockedId, onSelect }: Props)
     );
   }
 
+  if (hideSelected && visibleIncidents.length === 0) {
+    return (
+      <div className={`rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3 text-center lg:hidden ${commandCard}`}>
+        <p className="text-sm text-slate-400">No other pending incidents</p>
+      </div>
+    );
+  }
+
   return (
-    <ul className="flex h-full flex-col gap-2 overflow-y-auto">
-      {incidents.map((inc) => (
+    <ul className="flex h-full flex-col gap-2 overflow-y-auto lg:max-h-none">
+      {visibleIncidents.map((inc) => (
         <li key={inc.lifecycle_id}>
           <button
             type="button"

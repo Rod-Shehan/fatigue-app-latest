@@ -463,8 +463,8 @@ export default function TriagePage() {
         visibleCount={incidents.length}
       />
 
-      <div className="grid h-[calc(100vh-9rem)] min-h-0 grid-cols-1 gap-4 lg:grid-cols-12">
-        <section className="flex min-h-0 flex-col lg:col-span-3">
+      <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-9rem)] lg:min-h-0 lg:grid-cols-12">
+        <section className="hidden min-h-0 flex-col lg:col-span-3 lg:flex">
           <QueuePanel
             incidents={incidents}
             selectedId={selectedId}
@@ -472,10 +472,10 @@ export default function TriagePage() {
             onSelect={setSelectedId}
           />
         </section>
-        <section className="flex min-h-0 flex-col lg:col-span-6">
+        <section className="order-1 flex min-h-0 flex-col lg:order-none lg:col-span-6">
           <MediaViewport incident={selected} locked={resolutionMode} />
         </section>
-        <section className="flex min-h-0 flex-col lg:col-span-3">
+        <section className="order-2 flex min-h-0 flex-col lg:order-none lg:col-span-3">
           <ActionPanel
             selectedId={selectedId}
             busy={busy}
@@ -504,6 +504,18 @@ export default function TriagePage() {
             onResolve={(actionType, notes) => void submitResolution(actionType, notes)}
             onCancelResolution={() => void cancelResolution()}
             onSimulate={() => void simulate()}
+          />
+        </section>
+        <section className="order-3 flex min-h-0 flex-col lg:hidden">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Other pending
+          </p>
+          <QueuePanel
+            incidents={incidents}
+            selectedId={selectedId}
+            lockedId={resolutionMode ? resolutionLifecycleId : null}
+            onSelect={setSelectedId}
+            hideSelected
           />
         </section>
       </div>
