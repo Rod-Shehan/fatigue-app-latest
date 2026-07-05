@@ -13,7 +13,7 @@ import {
   commandLabel,
   commandPrimaryButton,
 } from "@/components/command/command-styles";
-import { unlockFatigueAlertAudio } from "@/lib/fatigue-alert-audio";
+import { rearmFatigueAlertsOnUserGesture } from "@/lib/fatigue-alert-audio";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    await unlockFatigueAlertAudio();
+    await rearmFatigueAlertsOnUserGesture();
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",

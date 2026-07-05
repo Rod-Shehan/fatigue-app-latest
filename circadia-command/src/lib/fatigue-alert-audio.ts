@@ -54,16 +54,33 @@ export function shouldPlayFatigueAlert(
   return true;
 }
 
+function readFatigueAlertsArmedAt(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const legacy = window.sessionStorage.getItem(ARMED_AT_STORAGE_KEY);
+    if (legacy) {
+      window.localStorage.setItem(ARMED_AT_STORAGE_KEY, legacy);
+      window.sessionStorage.removeItem(ARMED_AT_STORAGE_KEY);
+    }
+  } catch {
+    /* ignore quota / private mode */
+  }
+  const raw = window.localStorage.getItem(ARMED_AT_STORAGE_KEY);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function markFatigueAlertsArmed(): void {
   if (typeof window === "undefined") return;
-  window.sessionStorage.setItem(ARMED_AT_STORAGE_KEY, String(Date.now()));
+  try {
+    window.localStorage.setItem(ARMED_AT_STORAGE_KEY, String(Date.now()));
+  } catch {
+    /* ignore */
+  }
 }
 
 export function getFatigueAlertsArmedAt(): number {
-  if (typeof window === "undefined") return 0;
-  const raw = window.sessionStorage.getItem(ARMED_AT_STORAGE_KEY);
-  const n = raw ? Number(raw) : 0;
-  return Number.isFinite(n) ? n : 0;
+  return readFatigueAlertsArmedAt();
 }
 
 export function isFatigueAlertsArmed(): boolean {
@@ -162,6 +179,14 @@ export async function playCommandAlarmSound(): Promise<void> {
   if (audioContext?.state === "running") {
     playFatigueAlarmTone(audioContext);
   }
+}
+
+/** Restore audio unlock during a user gesture if this device already opted in. */
+export async function rearmFatigueAlertsOnUserGesture(): Promise<boolean> {
+  if (!isFatigueAlertsArmed()) return false;
+  const unlocked = await unlockFatigueAlertAudio();
+  if (unlocked) markFatigueAlertsArmed();
+  return unlocked;
 }
 
 /** Audible confirmation after the operator enables sounds. */
