@@ -57,6 +57,22 @@ Sign in with **username + password** (bcrypt, min 6 characters). Owners create a
 
 Triage connects to `/api/v1/triage/stream` (Postgres `LISTEN`). Requires `DATABASE_URL_UNPOOLED`.
 
+## Install as app (PWA)
+
+Circadia Command is an installable web app — no app store required.
+
+**Production:** https://command.circadia24.com/install
+
+| Device | How to install |
+|--------|----------------|
+| **Android (Chrome)** | Open the site → tap **Install app** on the login page, or Chrome menu → Add to Home screen |
+| **iPhone / iPad (Safari)** | Share → **Add to Home Screen** (see steps on `/install`) |
+| **Desktop (Chrome / Edge)** | Install icon in the address bar, or menu → Install Circadia Command |
+
+After install, the app opens full-screen from your home screen or launcher. Sign in once per session (4h cookie).
+
+Service worker caches the app shell only — live triage and SSE still need network.
+
 ## Deploy
 
 See [docs/DEPLOY_VERCEL.md](docs/DEPLOY_VERCEL.md). Production: https://command.circadia24.com

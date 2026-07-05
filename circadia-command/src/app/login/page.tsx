@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { CommandShell } from "@/components/command/CommandShell";
+import { InstallCommandApp } from "@/components/pwa/InstallCommandApp";
 import {
   commandCard,
   commandInput,
@@ -43,7 +44,8 @@ export default function LoginPage() {
 
   return (
     <CommandShell className="flex items-center">
-      <div className={`mx-auto w-full max-w-md ${commandCard} p-8`}>
+      <div className="mx-auto w-full max-w-md space-y-4">
+        <div className={`${commandCard} p-8`}>
         <div className="flex flex-col items-center text-center">
           <CircadiaLogo variant="full" href={null} priority />
           <p className="mt-3 text-sm text-slate-400">Command · sign in with username and password</p>
@@ -84,6 +86,9 @@ export default function LoginPage() {
             {error}
           </p>
         )}
+        </div>
+
+        <InstallCommandApp compact />
       </div>
     </CommandShell>
   );

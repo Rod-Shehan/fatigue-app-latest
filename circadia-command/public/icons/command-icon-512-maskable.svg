@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Circadia Command">
+  <rect width="512" height="512" fill="#020617"/>
+  <path fill="#0f766e" d="M256 96 380 152v108c0 84-52 142-124 168-72-26-124-84-124-168V152L256 96z"/>
+  <path fill="#f8fafc" d="M256 168 320 192v68c0 48-28 82-64 96-36-14-64-48-64-96v-68l64-24zm0 40-28 12v32c0 18 12 32 28 38 16-6 28-20 28-38v-32l-28-12z"/>
+</svg>
