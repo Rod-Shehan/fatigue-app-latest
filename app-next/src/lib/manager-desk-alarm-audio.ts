@@ -70,7 +70,6 @@ function getAlarmAudioElement(): HTMLAudioElement | null {
   if (!alarmAudio) {
     alarmAudio = new Audio(MANAGER_DESK_ALARM_SOUND_URL);
     alarmAudio.preload = "auto";
-    alarmAudio.playsInline = true;
     alarmAudio.setAttribute("playsinline", "");
   }
   return alarmAudio;
