@@ -15,7 +15,6 @@ type FatigueAlertOptions = {
   onShift: boolean;
   hasActiveShift: boolean;
   muted: boolean;
-  audioUnlocked: boolean;
 };
 
 export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOptions) {

@@ -28,7 +28,6 @@ const alertOpts = {
   onShift: true,
   hasActiveShift: true,
   muted: false,
-  audioUnlocked: true,
 };
 
 describe("fatigue-alert-audio", () => {

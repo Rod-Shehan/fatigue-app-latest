@@ -1,6 +1,7 @@
 import type { QueueIncident } from "@/hooks/use-triage-queue";
 
 const MUTE_STORAGE_KEY = "command:fatigueAlertMuted";
+const ARMED_AT_STORAGE_KEY = "command:fatigueAlertArmedAt";
 /** SSE reconnect catch-up: only ring if the event is this recent. */
 export const FATIGUE_ALERT_CATCH_UP_MS = 90_000;
 
@@ -39,20 +40,34 @@ export function shouldPlayFatigueAlert(
   incident: QueueIncident,
   options: {
     onShift: boolean;
-    /** When false (no shift roster), desk is open — still ring for pilot / off-hours monitoring. */
     hasActiveShift: boolean;
     muted: boolean;
-    audioUnlocked: boolean;
     alreadyPlayed?: (lifecycleId: string) => boolean;
   }
 ): boolean {
   const deskActive = options.onShift || !options.hasActiveShift;
-  if (!deskActive || options.muted || !options.audioUnlocked) return false;
+  if (!deskActive || options.muted) return false;
   if (!isTriageAlertMetricType(incident.fatigue_metric_type)) return false;
   if (!isFatigueAlertCatchUpIncident(incident)) return false;
   if (options.alreadyPlayed?.(incident.lifecycle_id)) return false;
   if (playedLifecycleIds.has(incident.lifecycle_id)) return false;
   return true;
+}
+
+export function markFatigueAlertsArmed(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(ARMED_AT_STORAGE_KEY, String(Date.now()));
+}
+
+export function getFatigueAlertsArmedAt(): number {
+  if (typeof window === "undefined") return 0;
+  const raw = window.sessionStorage.getItem(ARMED_AT_STORAGE_KEY);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function isFatigueAlertsArmed(): boolean {
+  return getFatigueAlertsArmedAt() > 0;
 }
 
 export function isFatigueAlertMuted(): boolean {
@@ -74,6 +89,8 @@ function getAlarmAudioElement(): HTMLAudioElement | null {
   if (!alarmAudio) {
     alarmAudio = new Audio(COMMAND_ALARM_SOUND_URL);
     alarmAudio.preload = "auto";
+    alarmAudio.playsInline = true;
+    alarmAudio.setAttribute("playsinline", "");
   }
   return alarmAudio;
 }
@@ -152,8 +169,21 @@ export async function playCommandAlarmSound(): Promise<void> {
 export async function playFatigueAlertTestSound(): Promise<boolean> {
   const unlocked = await unlockFatigueAlertAudio();
   if (!unlocked) return false;
+  markFatigueAlertsArmed();
   await playCommandAlarmSound();
   return true;
+}
+
+export async function resumeFatigueAlertAudio(): Promise<boolean> {
+  if (!audioContext) return isFatigueAlertsArmed();
+  if (audioContext.state === "suspended") {
+    try {
+      await audioContext.resume();
+    } catch {
+      return false;
+    }
+  }
+  return audioContext.state === "running";
 }
 
 export async function maybePlayFatigueAlert(
@@ -162,12 +192,13 @@ export async function maybePlayFatigueAlert(
     onShift: boolean;
     hasActiveShift: boolean;
     muted: boolean;
-    audioUnlocked: boolean;
   }
 ): Promise<boolean> {
   if (!shouldPlayFatigueAlert(incident, options)) return false;
+  if (!isFatigueAlertsArmed()) return false;
 
-  const unlocked = options.audioUnlocked || (await unlockFatigueAlertAudio());
+  await resumeFatigueAlertAudio();
+  const unlocked = await unlockFatigueAlertAudio();
   if (!unlocked) return false;
 
   playedLifecycleIds.add(incident.lifecycle_id);

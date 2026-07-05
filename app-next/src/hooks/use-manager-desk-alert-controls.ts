@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import {
   isManagerDeskAlertAudioUnlocked,
   isManagerDeskAlertMuted,
+  isManagerDeskAlertsArmed,
   playManagerDeskAlertTestSound,
+  resumeManagerDeskAlertAudio,
   setManagerDeskAlertMuted,
 } from "@/lib/manager-desk-alarm-audio";
 
@@ -14,7 +16,15 @@ export function useManagerDeskAlertControls() {
 
   useEffect(() => {
     setMuted(isManagerDeskAlertMuted());
-    setAudioUnlocked(isManagerDeskAlertAudioUnlocked());
+    const armed = isManagerDeskAlertsArmed();
+    setAudioUnlocked(armed || isManagerDeskAlertAudioUnlocked());
+    if (armed) void resumeManagerDeskAlertAudio();
+
+    const onVisible = () => {
+      if (isManagerDeskAlertsArmed()) void resumeManagerDeskAlertAudio();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const toggleMuted = useCallback(() => {

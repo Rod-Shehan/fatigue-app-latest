@@ -47,7 +47,6 @@ export default function TriagePage() {
     onShift: triageDeskOnShift,
     hasActiveShift,
     muted: alertMuted,
-    audioUnlocked,
   });
   const { data, isLoading, isError, error } = useTriageQueue(authReady, sseConnected);
   const invalidate = useInvalidateTriageQueue();
@@ -115,7 +114,6 @@ export default function TriagePage() {
     onShift: triageDeskOnShift,
     hasActiveShift,
     muted: alertMuted,
-    audioUnlocked,
   });
 
   const selected = incidents.find((i) => i.lifecycle_id === selectedId) ?? null;
@@ -463,6 +461,20 @@ export default function TriagePage() {
         activePending={data?.queue_depth ?? 0}
         visibleCount={incidents.length}
       />
+
+      {!audioUnlocked ? (
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-600/50 bg-amber-950/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-amber-100">
+            Tap <strong>Enable sounds</strong> so this device plays the desk alarm on new incidents.
+          </p>
+          <AlertSoundToggle
+            muted={alertMuted}
+            audioUnlocked={audioUnlocked}
+            onToggleMuted={toggleMuted}
+            onEnableAudio={() => void enableAudio()}
+          />
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4 lg:grid lg:h-[calc(100vh-9rem)] lg:min-h-0 lg:grid-cols-12">
         <section className="hidden min-h-0 flex-col lg:col-span-3 lg:flex">

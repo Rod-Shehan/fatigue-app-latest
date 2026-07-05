@@ -662,7 +662,6 @@ export function ManagerAlertsView() {
     onShift: triageDeskOnShift,
     hasActiveShift,
     muted: alertMuted,
-    audioUnlocked,
   });
 
   const triageMutation = useMutation({
@@ -864,6 +863,20 @@ export function ManagerAlertsView() {
             />
           }
         />
+
+        {!audioUnlocked && triageFilter === "pending" ? (
+          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-amber-950 dark:text-amber-100">
+              Tap <strong>Enable sounds</strong> so this phone plays a desk alarm when new alerts arrive.
+            </p>
+            <ManagerAlertSoundToggle
+              muted={alertMuted}
+              audioUnlocked={audioUnlocked}
+              onToggleMuted={toggleMuted}
+              onEnableAudio={() => void enableAudio()}
+            />
+          </div>
+        ) : null}
 
         {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (
           <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">

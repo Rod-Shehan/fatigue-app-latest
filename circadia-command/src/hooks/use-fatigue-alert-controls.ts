@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import {
   isFatigueAlertAudioUnlocked,
   isFatigueAlertMuted,
+  isFatigueAlertsArmed,
   playFatigueAlertTestSound,
+  resumeFatigueAlertAudio,
   setFatigueAlertMuted,
 } from "@/lib/fatigue-alert-audio";
 
@@ -14,7 +16,15 @@ export function useFatigueAlertControls() {
 
   useEffect(() => {
     setMuted(isFatigueAlertMuted());
-    setAudioUnlocked(isFatigueAlertAudioUnlocked());
+    const armed = isFatigueAlertsArmed();
+    setAudioUnlocked(armed || isFatigueAlertAudioUnlocked());
+    if (armed) void resumeFatigueAlertAudio();
+
+    const onVisible = () => {
+      if (isFatigueAlertsArmed()) void resumeFatigueAlertAudio();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const toggleMuted = useCallback(() => {

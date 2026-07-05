@@ -127,7 +127,7 @@ export function AlertsDeskChrome({
           </span>
         ) : null}
 
-        {alertSoundToggle ? <div className="hidden shrink-0 sm:block">{alertSoundToggle}</div> : null}
+        {alertSoundToggle ? <div className="shrink-0">{alertSoundToggle}</div> : null}
 
         <Link
           href="/manager/test-desk"

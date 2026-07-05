@@ -1,6 +1,7 @@
 import type { CameraAlertItem } from "@/lib/api";
 
 const MUTE_STORAGE_KEY = "manager:deskAlertMuted";
+const ARMED_AT_STORAGE_KEY = "manager:deskAlertArmedAt";
 /** Poll catch-up: only ring if the alert is this recent. */
 export const MANAGER_DESK_ALERT_CATCH_UP_MS = 90_000;
 
@@ -24,15 +25,30 @@ export function shouldPlayManagerDeskAlert(
     onShift: boolean;
     hasActiveShift: boolean;
     muted: boolean;
-    audioUnlocked: boolean;
   }
 ): boolean {
   const deskActive = options.onShift || !options.hasActiveShift;
-  if (!deskActive || options.muted || !options.audioUnlocked) return false;
+  if (!deskActive || options.muted) return false;
   if (!alert.accepted || alert.triageStatus !== "pending") return false;
   if (!isManagerDeskAlertCatchUp(alert)) return false;
   if (playedAlertIds.has(alert.id)) return false;
   return true;
+}
+
+export function markManagerDeskAlertsArmed(): void {
+  if (typeof window === "undefined") return;
+  window.sessionStorage.setItem(ARMED_AT_STORAGE_KEY, String(Date.now()));
+}
+
+export function getManagerDeskAlertsArmedAt(): number {
+  if (typeof window === "undefined") return 0;
+  const raw = window.sessionStorage.getItem(ARMED_AT_STORAGE_KEY);
+  const n = raw ? Number(raw) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function isManagerDeskAlertsArmed(): boolean {
+  return getManagerDeskAlertsArmedAt() > 0;
 }
 
 export function isManagerDeskAlertMuted(): boolean {
@@ -54,6 +70,8 @@ function getAlarmAudioElement(): HTMLAudioElement | null {
   if (!alarmAudio) {
     alarmAudio = new Audio(MANAGER_DESK_ALARM_SOUND_URL);
     alarmAudio.preload = "auto";
+    alarmAudio.playsInline = true;
+    alarmAudio.setAttribute("playsinline", "");
   }
   return alarmAudio;
 }
@@ -129,8 +147,21 @@ export async function playManagerDeskAlarmSound(): Promise<void> {
 export async function playManagerDeskAlertTestSound(): Promise<boolean> {
   const unlocked = await unlockManagerDeskAlertAudio();
   if (!unlocked) return false;
+  markManagerDeskAlertsArmed();
   await playManagerDeskAlarmSound();
   return true;
+}
+
+export async function resumeManagerDeskAlertAudio(): Promise<boolean> {
+  if (!audioContext) return isManagerDeskAlertsArmed();
+  if (audioContext.state === "suspended") {
+    try {
+      await audioContext.resume();
+    } catch {
+      return false;
+    }
+  }
+  return audioContext.state === "running";
 }
 
 export async function maybePlayManagerDeskAlert(
@@ -139,12 +170,13 @@ export async function maybePlayManagerDeskAlert(
     onShift: boolean;
     hasActiveShift: boolean;
     muted: boolean;
-    audioUnlocked: boolean;
   }
 ): Promise<boolean> {
   if (!shouldPlayManagerDeskAlert(alert, options)) return false;
+  if (!isManagerDeskAlertsArmed()) return false;
 
-  const unlocked = options.audioUnlocked || (await unlockManagerDeskAlertAudio());
+  await resumeManagerDeskAlertAudio();
+  const unlocked = await unlockManagerDeskAlertAudio();
   if (!unlocked) return false;
 
   playedAlertIds.add(alert.id);
