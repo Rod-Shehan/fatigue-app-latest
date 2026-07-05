@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Radio, Users } from "lucide-react";
+import { FlaskConical, LogOut, Radio, Users } from "lucide-react";
 import {
   commandNavLinkActive,
   commandNavLinkGhost,
@@ -11,15 +11,19 @@ import {
 type Props = {
   onSignOut: () => void;
   showUsersLink?: boolean;
+  showTestDeskLink?: boolean;
   triageHref?: string;
   triageActive?: boolean;
+  testDeskActive?: boolean;
 };
 
 export function CommandHeaderActions({
   onSignOut,
   showUsersLink = false,
+  showTestDeskLink = false,
   triageHref = "/triage",
   triageActive = false,
+  testDeskActive = false,
 }: Props) {
   return (
     <>
@@ -40,6 +44,18 @@ export function CommandHeaderActions({
           Users
         </Link>
       )}
+      {showTestDeskLink &&
+        (testDeskActive ? (
+          <span className={commandNavLinkActive} aria-current="page">
+            <FlaskConical className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+            Test desk
+          </span>
+        ) : (
+          <Link href="/admin/test-desk" className={commandNavLinkGhost}>
+            <FlaskConical className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+            Test desk
+          </Link>
+        ))}
       <button type="button" onClick={onSignOut} className={commandOutlineButton}>
         <LogOut className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
         Sign out

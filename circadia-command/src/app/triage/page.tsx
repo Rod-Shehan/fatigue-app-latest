@@ -446,6 +446,7 @@ export default function TriagePage() {
             <CommandHeaderActions
               onSignOut={() => void signOut()}
               showUsersLink={isOwner}
+              showTestDeskLink={isOwner}
               triageActive
             />
           </>

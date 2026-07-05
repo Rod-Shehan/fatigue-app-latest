@@ -19,6 +19,10 @@ Production URL: **https://command.circadia24.com** (Vercel alias: https://circad
 | `COMMAND_PILOT_TENANT_ID_UUID` | Pilot tenant UUID |
 | `COMMAND_OPERATOR_IP_WHITELIST` | Office IPs (comma-separated), optional |
 | `COMMAND_ALLOW_SIMULATE` | `false` in production |
+| `TEST_INCIDENT_INTERNAL_SECRET` | Shared with app-next — enables owner **Test desk** |
+| `APP_NEXT_URL` | `https://www.circadia24.com` |
+
+See [TEST_DESK.md](./TEST_DESK.md) for live drill setup (also set `TEST_INCIDENTS_ENABLED=true` on **app-next**).
 
 Remove obsolete vars if present: `WEBAUTHN_*`, `COMMAND_SKIP_WEBAUTHN`, `COMMAND_ALLOW_DEV_LOGIN`.
 

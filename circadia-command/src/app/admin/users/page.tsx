@@ -153,7 +153,13 @@ export default function AdminUsersPage() {
         title="Command users"
         subtitle="Owner console · create usernames and passwords"
         icon={<UserCog className="h-5 w-5" strokeWidth={2} aria-hidden />}
-        actions={<CommandHeaderActions onSignOut={() => void signOut()} />}
+        actions={
+          <CommandHeaderActions
+            onSignOut={() => void signOut()}
+            showUsersLink
+            showTestDeskLink
+          />
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

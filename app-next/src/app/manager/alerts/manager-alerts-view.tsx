@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ManagerAlertSoundToggle } from "@/components/manager/ManagerAlertSoundToggle";
 import { AlertsDeskChrome } from "@/components/manager/AlertsDeskChrome";
+import { useManagerDeskAlertControls } from "@/hooks/use-manager-desk-alert-controls";
+import { useManagerPendingAlerts } from "@/hooks/use-manager-pending-alerts";
 import { MANAGER_EXPERIENCE, MANAGER_ALERTS_SHELL } from "@/lib/manager-experience";
 import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -650,6 +653,17 @@ export function ManagerAlertsView() {
   });
 
   const triageDeskOnShift = shiftQuery.data?.viewer.onShift ?? false;
+  const hasActiveShift = Boolean(shiftQuery.data?.snapshot?.current);
+  const { muted: alertMuted, audioUnlocked, toggleMuted, enableAudio } = useManagerDeskAlertControls();
+
+  const alerts = data?.alerts ?? [];
+
+  useManagerPendingAlerts(alerts, triageFilter === "pending" && !isLoading, {
+    onShift: triageDeskOnShift,
+    hasActiveShift,
+    muted: alertMuted,
+    audioUnlocked,
+  });
 
   const triageMutation = useMutation({
     mutationFn: async (args: {
@@ -752,7 +766,6 @@ export function ManagerAlertsView() {
 
   const allowDelete = data?.testingTools?.allowDelete === true;
 
-  const alerts = data?.alerts ?? [];
   const collapsible = alerts.length > 1 && !selectionMode;
   const selectedCount = selectedIds.size;
   const bulkDeletePending = bulkDeleteMutation.isPending;
@@ -842,6 +855,14 @@ export function ManagerAlertsView() {
           shiftSnapshot={shiftQuery.data?.snapshot ?? null}
           onShift={shiftQuery.data?.viewer.onShift ?? false}
           diagnostics={data?.diagnostics}
+          alertSoundToggle={
+            <ManagerAlertSoundToggle
+              muted={alertMuted}
+              audioUnlocked={audioUnlocked}
+              onToggleMuted={toggleMuted}
+              onEnableAudio={() => void enableAudio()}
+            />
+          }
         />
 
         {data?.configured && data?.diagnostics?.apiConfigured === false && alerts.some((a) => a.mediaPending) ? (

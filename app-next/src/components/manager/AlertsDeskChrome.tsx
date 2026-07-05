@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, Menu, Radio, SlidersHorizontal, X } from "lucide-react";
+import { ArrowLeft, FlaskConical, Menu, Radio, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
@@ -44,6 +44,7 @@ type Props = {
   shiftSnapshot: TriageShiftSnapshot | null;
   onShift: boolean;
   diagnostics?: CameraAlertOptionsDiagnostics;
+  alertSoundToggle?: ReactNode;
 };
 
 export function AlertsDeskChrome({
@@ -60,6 +61,7 @@ export function AlertsDeskChrome({
   shiftSnapshot,
   onShift,
   diagnostics,
+  alertSoundToggle,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuSection, setMenuSection] = useState<"nav" | "shift" | "options">("nav");
@@ -124,6 +126,17 @@ export function AlertsDeskChrome({
             {roleBadgeText}
           </span>
         ) : null}
+
+        {alertSoundToggle ? <div className="hidden shrink-0 sm:block">{alertSoundToggle}</div> : null}
+
+        <Link
+          href="/manager/test-desk"
+          className="hidden h-8 shrink-0 items-center gap-1 rounded-md border border-slate-200 px-2 text-xs font-medium text-slate-600 hover:bg-slate-50 sm:inline-flex dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+          title="Live alert test desk"
+        >
+          <FlaskConical className="h-3.5 w-3.5" aria-hidden />
+          Test
+        </Link>
 
         <Button
           type="button"
