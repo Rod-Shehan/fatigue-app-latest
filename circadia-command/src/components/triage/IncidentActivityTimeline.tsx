@@ -1,4 +1,6 @@
 import type { IncidentActivityEntry } from "@/lib/incident-activity-timeline";
+import { commandTextMuted, commandTextPrimary } from "@/components/command/command-styles";
+import { cn } from "@/lib/utils";
 
 type Props = {
   entries: IncidentActivityEntry[];
@@ -19,17 +21,17 @@ function formatWhen(iso: string): string {
 
 export function IncidentActivityTimeline({ entries }: Props) {
   if (entries.length === 0) {
-    return <p className="text-xs text-slate-500">No activity recorded yet.</p>;
+    return <p className={cn("text-xs", commandTextMuted)}>No activity recorded yet.</p>;
   }
 
   return (
     <ol className="space-y-2">
       {entries.map((entry, index) => (
-        <li key={`${entry.at}-${entry.kind}-${index}`} className="flex gap-2 text-xs text-slate-400">
-          <span className="shrink-0 font-mono text-slate-500">{formatWhen(entry.at)}</span>
+        <li key={`${entry.at}-${entry.kind}-${index}`} className={cn("flex gap-2 text-xs", commandTextMuted)}>
+          <span className={cn("shrink-0 font-mono", commandTextMuted)}>{formatWhen(entry.at)}</span>
           <span className="min-w-0">
-            <span className="font-medium text-slate-200">{entry.label}</span>
-            {entry.detail ? <span className="text-slate-500"> · {entry.detail}</span> : null}
+            <span className={cn("font-medium", commandTextPrimary)}>{entry.label}</span>
+            {entry.detail ? <span className={cn(commandTextMuted)}> · {entry.detail}</span> : null}
           </span>
         </li>
       ))}

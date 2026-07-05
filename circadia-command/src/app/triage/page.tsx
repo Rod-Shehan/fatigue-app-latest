@@ -11,6 +11,8 @@ import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
 import { CommandPageHeader } from "@/components/command/CommandPageHeader";
 import { CommandShell } from "@/components/command/CommandShell";
+import { commandTextMuted } from "@/components/command/command-styles";
+import { cn } from "@/lib/utils";
 import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
 import { useFatigueAlertControls } from "@/hooks/use-fatigue-alert-controls";
 import { useCommandSse } from "@/hooks/use-command-sse";
@@ -393,7 +395,7 @@ export default function TriagePage() {
   if (!authReady || isLoading) {
     return (
       <CommandShell wide>
-        <p className="animate-pulse text-center text-slate-400">Loading command console…</p>
+        <p className={cn("animate-pulse text-center", commandTextMuted)}>Loading command console…</p>
       </CommandShell>
     );
   }
@@ -401,10 +403,10 @@ export default function TriagePage() {
   if (isError) {
     return (
       <CommandShell wide>
-        <div className="mx-auto max-w-md rounded-xl border border-amber-500/40 bg-amber-500/10 p-6 text-center">
-          <p className="font-semibold text-amber-300">CONNECTION INTERRUPTED</p>
-          <p className="mt-2 text-sm text-slate-300">{(error as Error).message}</p>
-          <p className="mt-3 text-xs text-slate-500">
+        <div className="mx-auto max-w-md rounded-xl border border-amber-400 bg-amber-50 p-6 text-center dark:border-amber-500/40 dark:bg-amber-500/10">
+          <p className="font-semibold text-amber-900 dark:text-amber-300">CONNECTION INTERRUPTED</p>
+          <p className="mt-2 text-sm text-amber-950 dark:text-slate-300">{(error as Error).message}</p>
+          <p className={cn("mt-3 text-xs", commandTextMuted)}>
             Check DATABASE_URL, run db:push, and apply SQL migrations 001–005.
           </p>
         </div>
@@ -424,8 +426,8 @@ export default function TriagePage() {
             <span
               className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium ${
                 sseConnected
-                  ? "bg-emerald-950/50 text-emerald-300 ring-1 ring-emerald-800/60"
-                  : "bg-amber-950/50 text-amber-300 ring-1 ring-amber-800/60"
+                  ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-800/60"
+                  : "bg-amber-100 text-amber-900 ring-1 ring-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:ring-amber-800/60"
               }`}
             >
               <span
@@ -463,8 +465,8 @@ export default function TriagePage() {
       />
 
       {!audioUnlocked ? (
-        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-600/50 bg-amber-950/30 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-amber-100">
+        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-600/50 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-amber-950 dark:text-amber-100">
             Tap <strong>Enable sounds</strong> so this device plays the desk alarm on new incidents.
           </p>
           <AlertSoundToggle
@@ -520,7 +522,7 @@ export default function TriagePage() {
           />
         </section>
         <section className="order-3 flex min-h-0 flex-col lg:hidden">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className={cn("mb-2 text-xs font-semibold uppercase tracking-wide", commandTextMuted)}>
             Other pending
           </p>
           <QueuePanel

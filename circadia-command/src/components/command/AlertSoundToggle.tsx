@@ -16,7 +16,7 @@ export function AlertSoundToggle({ muted, audioUnlocked, onToggleMuted, onEnable
       <button
         type="button"
         onClick={() => void onEnableAudio()}
-        className={`${commandOutlineButton} border-amber-600/50 text-amber-200 hover:border-amber-500`}
+        className={`${commandOutlineButton} border-amber-500/60 text-amber-900 hover:border-amber-600 dark:border-amber-600/50 dark:text-amber-200 dark:hover:border-amber-500`}
         title="Enable triage alert sounds (plays a test alarm)"
       >
         <Volume2 className="h-4 w-4 shrink-0 opacity-90" aria-hidden />

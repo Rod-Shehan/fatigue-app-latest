@@ -2,7 +2,7 @@
  * Shell-only service worker — caches static assets, not API or SSE.
  * Bump SHELL_VERSION when precache list changes.
  */
-const SHELL_VERSION = "command-v2";
+const SHELL_VERSION = "command-v3";
 const SHELL_CACHE = `circadia-command-shell-${SHELL_VERSION}`;
 const STATIC_CACHE = `circadia-command-static-${SHELL_VERSION}`;
 

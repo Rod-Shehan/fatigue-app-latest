@@ -1,4 +1,5 @@
-import { commandCard, commandOutlineButton } from "@/components/command/command-styles";
+import { commandCard, commandOutlineButton, commandTextMuted } from "@/components/command/command-styles";
+import { cn } from "@/lib/utils";
 import { FalsePositiveDismissPanel } from "@/components/triage/FalsePositiveDismissPanel";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import { VerifiedDistractionCapturePanel } from "@/components/triage/VerifiedDistractionCapturePanel";
@@ -119,8 +120,8 @@ export function ActionPanel({
   return (
     <div className={`flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4 ${commandCard}`}>
       <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-400">Actions</h3>
-        <p className="mt-1 text-xs text-slate-500">
+        <h3 className={cn("text-sm font-semibold uppercase tracking-wide", commandTextMuted)}>Actions</h3>
+        <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
           {triageDeskOnShift
             ? "F1 false positive · F2 verified fatigue · F3 verified distraction"
             : "View only — not on triage shift"}
@@ -139,7 +140,7 @@ export function ActionPanel({
         type="button"
         disabled={actionsDisabled}
         onClick={onBeginResolution}
-        className="w-full rounded-lg border border-red-500/50 bg-red-950/40 px-4 py-3 text-sm font-medium text-red-200 transition-colors hover:bg-red-950/60 disabled:opacity-40"
+        className="w-full rounded-lg border border-red-400 bg-red-50 px-4 py-3 text-sm font-medium text-red-800 transition-colors hover:bg-red-100 disabled:opacity-40 dark:border-red-500/50 dark:bg-red-950/40 dark:text-red-200 dark:hover:bg-red-950/60"
       >
         F2 — Verified fatigue
       </button>
@@ -147,17 +148,21 @@ export function ActionPanel({
         type="button"
         disabled={actionsDisabled}
         onClick={onBeginDistractionCapture}
-        className="w-full rounded-lg border border-violet-500/50 bg-violet-950/40 px-4 py-3 text-sm font-medium text-violet-200 transition-colors hover:bg-violet-950/60 disabled:opacity-40"
+        className="w-full rounded-lg border border-violet-400 bg-violet-50 px-4 py-3 text-sm font-medium text-violet-900 transition-colors hover:bg-violet-100 disabled:opacity-40 dark:border-violet-500/50 dark:bg-violet-950/40 dark:text-violet-200 dark:hover:bg-violet-950/60"
       >
         F3 — Verified distraction
       </button>
 
-      <div className="mt-auto border-t border-slate-700/80 pt-4">
+      <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-700/80">
         <button
           type="button"
           disabled={busy}
           onClick={onSimulate}
-          className="w-full rounded-lg border border-dashed border-slate-600 px-3 py-2 text-xs text-slate-400 transition-colors hover:border-slate-500 hover:text-slate-300"
+          className={cn(
+            "w-full rounded-lg border border-dashed px-3 py-2 text-xs transition-colors",
+            commandTextMuted,
+            "border-slate-300 hover:border-slate-400 hover:text-slate-700 dark:border-slate-600 dark:hover:border-slate-500 dark:hover:text-slate-300"
+          )}
         >
           Simulate edge ingest (dev)
         </button>

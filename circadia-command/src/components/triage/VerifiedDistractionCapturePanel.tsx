@@ -5,11 +5,14 @@ import {
   commandInput,
   commandOutlineButton,
   commandPrimaryButton,
+  commandTextMuted,
+  commandTextPrimary,
 } from "@/components/command/command-styles";
 import {
   VERIFIED_DISTRACTION_REASONS,
   type VerifiedDistractionReasonId,
 } from "@/lib/verified-distraction-reasons";
+import { cn } from "@/lib/utils";
 
 export function VerifiedDistractionCapturePanel({
   note,
@@ -42,19 +45,21 @@ export function VerifiedDistractionCapturePanel({
   }
 
   return (
-    <div className="rounded-lg border border-violet-500/30 bg-violet-950/20 p-3">
-      <p className="mb-3 text-sm font-medium text-violet-100">Verified distraction — reason capture</p>
+    <div className="rounded-lg border border-violet-300 bg-violet-50 p-3 dark:border-violet-500/30 dark:bg-violet-950/20">
+      <p className="mb-3 text-sm font-medium text-violet-950 dark:text-violet-100">
+        Verified distraction — reason capture
+      </p>
       <fieldset className="space-y-2" disabled={pending}>
-        <legend className="text-xs font-medium text-slate-400">
+        <legend className={cn("text-xs font-medium", commandTextMuted)}>
           What triggered the alert? (select all that apply)
         </legend>
         <ul className="space-y-2">
           {VERIFIED_DISTRACTION_REASONS.map((reason) => (
             <li key={reason.id}>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-200">
+              <label className={cn("flex cursor-pointer items-center gap-2 text-sm", commandTextPrimary)}>
                 <input
                   type="checkbox"
-                  className="h-4 w-4 rounded border-slate-500 bg-slate-900 text-teal-600 focus:ring-teal-500"
+                  className="h-4 w-4 rounded border-slate-400 bg-white text-teal-600 focus:ring-teal-500 dark:border-slate-500 dark:bg-slate-900"
                   checked={reasons.includes(reason.id)}
                   onChange={(e) => toggle(reason.id, e.target.checked)}
                 />
@@ -64,7 +69,7 @@ export function VerifiedDistractionCapturePanel({
           ))}
         </ul>
       </fieldset>
-      <label className="mt-3 block text-xs font-medium text-slate-400">Additional note (optional)</label>
+      <label className={cn("mt-3 block text-xs font-medium", commandTextMuted)}>Additional note (optional)</label>
       <textarea
         value={note}
         onChange={(e) => onNoteChange(e.target.value)}
@@ -73,9 +78,11 @@ export function VerifiedDistractionCapturePanel({
         disabled={pending}
         className={`${commandInput} mb-3 text-sm`}
       />
-      {error ? <p className="mb-2 text-sm text-rose-400">{error}</p> : null}
+      {error ? <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">{error}</p> : null}
       {showValidation && reasonsMissing ? (
-        <p className="mb-2 text-sm text-rose-400">Select at least one trigger reason before confirming.</p>
+        <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">
+          Select at least one trigger reason before confirming.
+        </p>
       ) : null}
       <div className="flex flex-col gap-2">
         <button type="button" disabled={pending} onClick={onCancel} className={`${commandOutlineButton} w-full py-2.5`}>

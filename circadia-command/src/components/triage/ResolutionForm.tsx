@@ -7,11 +7,13 @@ import {
   INCIDENT_RESOLUTION_CATEGORIES,
   type IncidentResolutionActionType,
 } from "@/lib/triage-resolution";
+import { cn } from "@/lib/utils";
 import {
   commandInput,
   commandLabel,
   commandOutlineButton,
   commandPrimaryButton,
+  commandTextMuted,
 } from "@/components/command/command-styles";
 
 export type ResolutionFormProps = {
@@ -37,10 +39,10 @@ export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFo
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-teal-300">
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-teal-700 dark:text-teal-300">
           Resolution &amp; logging
         </h3>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className={cn("mt-1 text-xs", commandTextMuted)}>
           Record what the fleet did before this incident is cleared.
         </p>
       </div>
@@ -51,15 +53,15 @@ export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFo
           const actions = INCIDENT_RESOLUTION_ACTIONS.filter((action) => action.category === category);
           return (
             <div key={category} className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{category}</p>
+              <p className={cn("text-xs font-semibold uppercase tracking-wide", commandTextMuted)}>{category}</p>
               <div className="grid grid-cols-1 gap-2">
                 {actions.map((action) => (
                   <label
                     key={action.value}
                     className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2.5 text-sm leading-snug transition-colors ${
                       actionType === action.value
-                        ? "border-teal-500 bg-teal-950/40 text-teal-100"
-                        : "border-slate-600 bg-slate-950/30 text-slate-300 hover:border-slate-500"
+                        ? "border-teal-500 bg-teal-50 text-teal-900 dark:bg-teal-950/40 dark:text-teal-100"
+                        : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-950/30 dark:text-slate-300 dark:hover:border-slate-500"
                     }`}
                   >
                     <input
@@ -100,7 +102,7 @@ export function ResolutionForm({ busy, error, onSubmit, onCancel }: ResolutionFo
       </div>
 
       {error ? (
-        <p className="text-sm text-rose-400" role="alert">
+        <p className="text-sm text-rose-700 dark:text-rose-400" role="alert">
           {error}
         </p>
       ) : null}

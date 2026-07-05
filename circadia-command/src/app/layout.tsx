@@ -22,12 +22,29 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0f766e",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f1f5f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+  ],
 };
+
+const themeScript = `
+(function() {
+  var key = 'circadia-theme';
+  var stored = localStorage.getItem(key);
+  var system = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var dark = stored === 'dark' || (stored !== 'light' && system);
+  if (dark) document.documentElement.classList.add('dark');
+  else document.documentElement.classList.remove('dark');
+})();
+`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
       </body>

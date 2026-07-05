@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
+import { commandTextMuted } from "@/components/command/command-styles";
+import { cn } from "@/lib/utils";
 import { CommandShell } from "@/components/command/CommandShell";
 import { InstallCommandApp } from "@/components/pwa/InstallCommandApp";
 import {
@@ -48,7 +50,7 @@ export default function LoginPage() {
         <div className={`${commandCard} p-8`}>
         <div className="flex flex-col items-center text-center">
           <CircadiaLogo variant="full" href={null} priority />
-          <p className="mt-3 text-sm text-slate-400">Command · sign in with username and password</p>
+          <p className={cn("mt-3 text-sm", commandTextMuted)}>Command · sign in with username and password</p>
         </div>
 
         <form className="mt-8 space-y-4" onSubmit={(e) => void signIn(e)}>

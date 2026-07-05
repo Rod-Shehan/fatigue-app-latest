@@ -3,12 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme/theme-provider";
 
-const BRAND_ICON_PATH = "/branding/circadia24-icon.png";
-const BRAND_FULL_PATH = "/branding/circadia24-full.png";
+const BRAND_LIGHT_FULL_PATH = "/branding/circadia24-full.png";
+const BRAND_LIGHT_ICON_PATH = "/branding/circadia24-icon.png";
+const BRAND_DARK_FULL_PATH = "/branding/circadia24-command-dark-full.png";
+const BRAND_DARK_ICON_PATH = "/branding/circadia24-command-dark-icon.png";
 const PRODUCT_NAME = "Circadia 24 Command";
-/** Bust Next/image and CDN caches when the wordmark file changes. */
-const BRAND_ASSET_VERSION = "command-wordmark-v2";
+const BRAND_ASSET_VERSION = "command-wordmark-v3";
 
 type Props = {
   variant: "icon" | "full";
@@ -25,20 +27,27 @@ export function CircadiaLogo({
   size = 36,
   priority = false,
 }: Props) {
+  const { resolved } = useTheme();
+  const isDark = resolved === "dark";
+  const fullPath = isDark ? BRAND_DARK_FULL_PATH : BRAND_LIGHT_FULL_PATH;
+  const iconPath = isDark ? BRAND_DARK_ICON_PATH : BRAND_LIGHT_ICON_PATH;
+  const fullWidth = isDark ? 1024 : 878;
+  const fullHeight = isDark ? 344 : 372;
+
   const image =
     variant === "full" ? (
       <Image
-        src={`${BRAND_FULL_PATH}?v=${BRAND_ASSET_VERSION}`}
+        src={`${fullPath}?v=${BRAND_ASSET_VERSION}`}
         alt={PRODUCT_NAME}
-        width={878}
-        height={372}
+        width={fullWidth}
+        height={fullHeight}
         priority={priority}
         unoptimized
         className={cn("h-auto w-[min(320px,85vw)]", className)}
       />
     ) : (
       <Image
-        src={`${BRAND_ICON_PATH}?v=${BRAND_ASSET_VERSION}`}
+        src={`${iconPath}?v=${BRAND_ASSET_VERSION}`}
         alt=""
         width={size}
         height={size}

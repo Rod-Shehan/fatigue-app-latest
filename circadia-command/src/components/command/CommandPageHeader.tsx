@@ -3,6 +3,12 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
+import {
+  commandBackLink,
+  commandIconBadge,
+  commandTextMuted,
+  commandTextPrimary,
+} from "@/components/command/command-styles";
 
 type Props = {
   title: string;
@@ -40,7 +46,7 @@ export function CommandPageHeader({
           <div className="min-w-0">
             <CircadiaLogo variant="full" href={null} priority />
             {subtitle != null && (
-              <p className="mt-1 truncate text-sm text-slate-400">{subtitle}</p>
+              <p className={cn("mt-1 truncate text-sm", commandTextMuted)}>{subtitle}</p>
             )}
           </div>
         ) : (
@@ -49,7 +55,7 @@ export function CommandPageHeader({
             {backHref != null ? (
               <Link
                 href={backHref}
-                className="flex shrink-0 items-center rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors"
+                className={commandBackLink}
                 aria-label={backLabel ?? "Back"}
                 title={backLabel ?? "Back"}
               >
@@ -61,24 +67,20 @@ export function CommandPageHeader({
                 ) : null}
               </Link>
             ) : null}
-            {icon != null && (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white shadow-sm ring-1 ring-slate-700/80">
-                {icon}
-              </div>
-            )}
+            {icon != null && <div className={commandIconBadge}>{icon}</div>}
             <div className="min-w-0">
-              <h1 className="truncate text-lg font-bold tracking-tight text-slate-100 md:text-xl">
+              <h1 className={cn("truncate text-lg font-bold tracking-tight md:text-xl", commandTextPrimary)}>
                 {title}
               </h1>
               {subtitle != null && (
-                <p className="mt-0.5 truncate text-sm text-slate-400">{subtitle}</p>
+                <p className={cn("mt-0.5 truncate text-sm", commandTextMuted)}>{subtitle}</p>
               )}
             </div>
           </>
         )}
       </div>
       {actions != null && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2 pr-12 sm:pr-0">{actions}</div>
       )}
     </header>
   );
