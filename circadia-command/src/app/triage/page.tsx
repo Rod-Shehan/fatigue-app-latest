@@ -8,8 +8,7 @@ import { QueuePanel } from "@/components/triage/QueuePanel";
 import { TriageQueueBanner } from "@/components/triage/TriageQueueBanner";
 import { TriageShiftBanner } from "@/components/triage/TriageShiftBanner";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
-import { CommandHeaderActions } from "@/components/command/CommandHeaderActions";
-import { CommandPageHeader } from "@/components/command/CommandPageHeader";
+import { CommandDeskTopBar } from "@/components/command/CommandDeskTopBar";
 import { CommandShell } from "@/components/command/CommandShell";
 import { commandTextMuted } from "@/components/command/command-styles";
 import { cn } from "@/lib/utils";
@@ -416,65 +415,44 @@ export default function TriagePage() {
 
   return (
     <CommandShell wide>
-      <CommandPageHeader
-        compact
-        brandFull
-        title="Circadia Command"
-        subtitle={`Live triage · ${data?.queue_depth ?? 0} pending${operatorName ? ` · ${operatorName}` : ""}`}
-        actions={
-          <>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium ${
-                sseConnected
-                  ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:ring-emerald-800/60"
-                  : "bg-amber-100 text-amber-900 ring-1 ring-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:ring-amber-800/60"
-              }`}
-            >
-              <span
-                className={`inline-block h-1.5 w-1.5 rounded-full ${
-                  sseConnected ? "bg-emerald-400" : "animate-pulse bg-amber-400"
-                }`}
-              />
-              {sseConnected ? "SSE live" : "Polling"}
-            </span>
+      <CommandDeskTopBar
+        pendingCount={data?.queue_depth ?? 0}
+        operatorName={operatorName}
+        sseConnected={sseConnected}
+        alertMuted={alertMuted}
+        audioUnlocked={audioUnlocked}
+        onToggleMuted={toggleMuted}
+        onEnableAudio={() => void enableAudio()}
+        isOwner={isOwner}
+        onSignOut={() => void signOut()}
+      />
+
+      {shiftSnapshot ? (
+        <div className="mb-3 md:mb-4">
+          <TriageShiftBanner snapshot={shiftSnapshot} onShift={triageDeskOnShift} />
+        </div>
+      ) : null}
+
+      <div className="hidden md:block">
+        <TriageQueueBanner
+          activePending={data?.queue_depth ?? 0}
+          visibleCount={incidents.length}
+        />
+      </div>
+
+      {!audioUnlocked ? (
+        <div className="mb-3 flex flex-col gap-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-600/50 dark:bg-amber-950/30 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-amber-950 dark:text-amber-100">
+            Tap the <strong>speaker icon</strong> in the top bar so this device plays the desk alarm on new incidents.
+          </p>
+          <div className="hidden sm:block">
             <AlertSoundToggle
               muted={alertMuted}
               audioUnlocked={audioUnlocked}
               onToggleMuted={toggleMuted}
               onEnableAudio={() => void enableAudio()}
             />
-            <CommandHeaderActions
-              onSignOut={() => void signOut()}
-              showUsersLink={isOwner}
-              showTestDeskLink={isOwner}
-              triageActive
-            />
-          </>
-        }
-      />
-
-      {shiftSnapshot ? (
-        <div className="mb-4">
-          <TriageShiftBanner snapshot={shiftSnapshot} onShift={triageDeskOnShift} />
-        </div>
-      ) : null}
-
-      <TriageQueueBanner
-        activePending={data?.queue_depth ?? 0}
-        visibleCount={incidents.length}
-      />
-
-      {!audioUnlocked ? (
-        <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-600/50 dark:bg-amber-950/30 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-amber-950 dark:text-amber-100">
-            Tap <strong>Enable sounds</strong> so this device plays the desk alarm on new incidents.
-          </p>
-          <AlertSoundToggle
-            muted={alertMuted}
-            audioUnlocked={audioUnlocked}
-            onToggleMuted={toggleMuted}
-            onEnableAudio={() => void enableAudio()}
-          />
+          </div>
         </div>
       ) : null}
 

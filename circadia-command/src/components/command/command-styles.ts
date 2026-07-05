@@ -5,7 +5,7 @@ export const commandPageShell =
 
 export const commandContainer = "mx-auto max-w-6xl px-4 py-8 md:py-12";
 
-export const commandContainerWide = "mx-auto max-w-[1600px] px-4 py-6 md:py-8";
+export const commandContainerWide = "mx-auto max-w-[1600px] px-4 py-3 md:py-8";
 
 export const commandCard =
   "rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700/80 dark:bg-slate-900";
