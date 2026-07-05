@@ -166,7 +166,7 @@ export function TestDeskPanel({
           </Button>
           <Button
             type="button"
-            variant="secondary"
+            variant="outline"
             disabled={Boolean(busy) || !status?.enabled}
             onClick={() => void inject("distraction")}
           >
