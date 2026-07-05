@@ -24,7 +24,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    void unlockFatigueAlertAudio();
+    await unlockFatigueAlertAudio();
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",

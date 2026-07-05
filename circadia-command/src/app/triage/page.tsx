@@ -14,6 +14,7 @@ import { CommandShell } from "@/components/command/CommandShell";
 import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
 import { useFatigueAlertControls } from "@/hooks/use-fatigue-alert-controls";
 import { useCommandSse } from "@/hooks/use-command-sse";
+import { useTriageIncidentAlerts } from "@/hooks/use-triage-incident-alerts";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
 import type { TriageShiftSnapshot } from "@/lib/triage-shift";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
@@ -41,8 +42,10 @@ export default function TriagePage() {
   const [triageDeskOnShift, setTriageDeskOnShift] = useState(false);
 
   const { muted: alertMuted, audioUnlocked, toggleMuted, enableAudio } = useFatigueAlertControls();
+  const hasActiveShift = Boolean(shiftSnapshot?.current);
   const { connected: sseConnected } = useCommandSse(authReady, {
     onShift: triageDeskOnShift,
+    hasActiveShift,
     muted: alertMuted,
     audioUnlocked,
   });
@@ -107,6 +110,14 @@ export default function TriagePage() {
   }, [authReady]);
 
   const incidents = data?.incidents ?? [];
+
+  useTriageIncidentAlerts(incidents, authReady, {
+    onShift: triageDeskOnShift,
+    hasActiveShift,
+    muted: alertMuted,
+    audioUnlocked,
+  });
+
   const selected = incidents.find((i) => i.lifecycle_id === selectedId) ?? null;
 
   useEffect(() => {

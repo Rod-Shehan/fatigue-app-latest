@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   isFatigueAlertAudioUnlocked,
   isFatigueAlertMuted,
+  playFatigueAlertTestSound,
   setFatigueAlertMuted,
-  unlockFatigueAlertAudio,
 } from "@/lib/fatigue-alert-audio";
 
 export function useFatigueAlertControls() {
@@ -26,8 +26,8 @@ export function useFatigueAlertControls() {
   }, []);
 
   const enableAudio = useCallback(async () => {
-    const ok = await unlockFatigueAlertAudio();
-    setAudioUnlocked(ok);
+    const ok = await playFatigueAlertTestSound();
+    setAudioUnlocked(ok || isFatigueAlertAudioUnlocked());
     return ok;
   }, []);
 

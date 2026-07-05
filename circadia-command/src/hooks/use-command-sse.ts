@@ -13,6 +13,7 @@ type QueueCache = {
 
 type FatigueAlertOptions = {
   onShift: boolean;
+  hasActiveShift: boolean;
   muted: boolean;
   audioUnlocked: boolean;
 };
