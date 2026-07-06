@@ -28,22 +28,28 @@ function configureWebPush(): boolean {
 }
 
 async function claimPushDispatch(lifecycleId: string): Promise<boolean> {
-  const rows = await prisma.$queryRaw<Array<{ lifecycle_id: string }>>`
-    INSERT INTO push_dispatch_log (lifecycle_id)
-    VALUES (${lifecycleId}::uuid)
-    ON CONFLICT DO NOTHING
-    RETURNING lifecycle_id::text AS lifecycle_id
-  `;
-  return rows.length > 0;
+  try {
+    const rows = await prisma.$queryRaw<Array<{ lifecycle_id: string }>>`
+      INSERT INTO push_dispatch_log (lifecycle_id)
+      VALUES (${lifecycleId}::uuid)
+      ON CONFLICT DO NOTHING
+      RETURNING lifecycle_id::text AS lifecycle_id
+    `;
+    return rows.length > 0;
+  } catch (err) {
+    console.error("push_dispatch_log claim failed", err);
+    return false;
+  }
 }
 
 export async function dispatchNewIncidentPush(payload: PushIncidentPayload): Promise<void> {
-  if (!configureWebPush()) return;
+  try {
+    if (!configureWebPush()) return;
 
-  const claimed = await claimPushDispatch(payload.lifecycleId);
-  if (!claimed) return;
+    const claimed = await claimPushDispatch(payload.lifecycleId);
+    if (!claimed) return;
 
-  const subs = await prisma.operatorPushSubscription.findMany({
+    const subs = await prisma.operatorPushSubscription.findMany({
     select: {
       id: true,
       endpoint: true,
@@ -85,4 +91,7 @@ export async function dispatchNewIncidentPush(payload: PushIncidentPayload): Pro
       }
     })
   );
+  } catch (err) {
+    console.error("dispatchNewIncidentPush failed", err);
+  }
 }

@@ -35,6 +35,7 @@ type Props = {
   onResolve: (actionType: IncidentResolutionActionType, resolutionNotes: string) => void;
   onCancelResolution: () => void;
   onSimulate: () => void;
+  simulateError?: string | null;
 };
 
 export function ActionPanel({
@@ -65,6 +66,7 @@ export function ActionPanel({
   onResolve,
   onCancelResolution,
   onSimulate,
+  simulateError,
 }: Props) {
   const actionsDisabled = !triageDeskOnShift || !selectedId || busy;
 
@@ -154,6 +156,11 @@ export function ActionPanel({
       </button>
 
       <div className="mt-auto border-t border-slate-200 pt-4 dark:border-slate-700/80">
+        {simulateError ? (
+          <p className="mb-2 rounded-lg border border-red-400/50 bg-red-50 px-3 py-2 text-xs text-red-800 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-200">
+            {simulateError}
+          </p>
+        ) : null}
         <button
           type="button"
           disabled={busy}

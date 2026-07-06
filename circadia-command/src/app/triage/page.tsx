@@ -36,6 +36,7 @@ export default function TriagePage() {
   const [distractionNote, setDistractionNote] = useState("");
   const [distractionReasons, setDistractionReasons] = useState<VerifiedDistractionReasonId[]>([]);
   const [distractionError, setDistractionError] = useState<string | null>(null);
+  const [simulateError, setSimulateError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [authReady, setAuthReady] = useState(false);
@@ -423,9 +424,22 @@ export default function TriagePage() {
 
   const simulate = async () => {
     setBusy(true);
+    setSimulateError(null);
     try {
-      await fetch("/api/internal/simulate-ingest", { method: "POST", credentials: "same-origin" });
+      const res = await fetch("/api/internal/simulate-ingest", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+      if (!res.ok) {
+        setSimulateError(body.message ?? body.error ?? `Simulate failed (${res.status})`);
+        return;
+      }
       await invalidate();
+    } catch {
+      setSimulateError("Network error — could not reach simulate ingest.");
     } finally {
       setBusy(false);
     }
@@ -565,6 +579,7 @@ export default function TriagePage() {
             onResolve={(actionType, notes) => void submitResolution(actionType, notes)}
             onCancelResolution={() => void cancelResolution()}
             onSimulate={() => void simulate()}
+            simulateError={simulateError}
           />
         </section>
         <section className="order-3 flex min-h-0 flex-col lg:hidden">

@@ -1,11 +1,31 @@
 import { randomUUID } from "crypto";
-import { apiErrorResponse } from "@/lib/errors";
+import { apiErrorResponse, CommandApiError } from "@/lib/errors";
+import { getSession } from "@/lib/auth/session";
 import { withServiceContext } from "@/lib/privileged-db";
+
+function simulateAllowedInProduction(session: NonNullable<Awaited<ReturnType<typeof getSession>>>): boolean {
+  if (process.env.COMMAND_ALLOW_SIMULATE === "true") return true;
+  return session.role === "command_owner" || session.role === "command_operator";
+}
 
 /** Dev MVP: simulate Pi edge insert (requires SQL trigger 003 on Neon). */
 export async function POST(request: Request) {
-  if (process.env.NODE_ENV === "production" && process.env.COMMAND_ALLOW_SIMULATE !== "true") {
-    return Response.json({ error: "ERR_FORBIDDEN" }, { status: 403 });
+  const session = await getSession();
+  if (!session) {
+    return Response.json(
+      { error: "ERR_TOKEN_EXPIRED", message: "Sign in required to simulate ingest." },
+      { status: 401 }
+    );
+  }
+
+  if (process.env.NODE_ENV === "production" && !simulateAllowedInProduction(session)) {
+    return Response.json(
+      {
+        error: "ERR_FORBIDDEN",
+        message: "Simulate ingest is disabled in production for this account.",
+      },
+      { status: 403 }
+    );
   }
 
   try {
@@ -31,7 +51,7 @@ export async function POST(request: Request) {
           laneDeviationIndex: 0.42,
           brakingPressurePsi: 0,
           aiModelVersion: "yolov8n-circadia-dev",
-          fatigueMetricType: "MICROSLEEP",
+          fatigueMetricType: "FATIGUE",
           confidenceScore: 0.94,
           videoSnippetUrl: `https://media.circadia24.com/clips/sim-${Date.now()}.mp4`,
         },
@@ -39,13 +59,19 @@ export async function POST(request: Request) {
       })
     );
 
+    if (!event.lifecycle) {
+      throw new CommandApiError(
+        "ERR_LIFECYCLE_TRIGGER",
+        "Edge event created but no lifecycle row — apply prisma/sql/003_edge_ingress_triggers.sql on Neon.",
+        503
+      );
+    }
+
     return Response.json({
       event_id: event.eventId,
-      lifecycle_id: event.lifecycle?.lifecycleId ?? null,
+      lifecycle_id: event.lifecycle.lifecycleId,
       vehicle_registration: rego,
-      note: event.lifecycle
-        ? "Lifecycle row created (trigger active)."
-        : "No lifecycle row — apply prisma/sql/003_edge_ingress_triggers.sql",
+      note: "Lifecycle row created (trigger active).",
     });
   } catch (error) {
     return apiErrorResponse(error);
