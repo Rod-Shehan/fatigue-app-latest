@@ -21,10 +21,10 @@ type TransitionRow = {
 };
 
 type ActionRow = {
-  created_at: Date;
-  action_type: string;
-  actor_label: string | null;
-  actor_type: string;
+  createdAt: Date;
+  actionType: string;
+  actorLabel: string | null;
+  actorType: string;
 };
 
 function payloadAction(snapshot: unknown): string | null {
@@ -70,10 +70,10 @@ export async function fetchIncidentActivityTimeline(
       ORDER BY transition_timestamp ASC
     `,
     prisma.$queryRaw<ActionRow[]>`
-      SELECT created_at, action_type, actor_label, actor_type
+      SELECT "createdAt", "actionType", "actorLabel", "actorType"
       FROM "IncidentActionLog"
-      WHERE lifecycle_id = ${lifecycleId}::uuid
-      ORDER BY created_at ASC
+      WHERE "lifecycleId" = ${lifecycleId}::uuid
+      ORDER BY "createdAt" ASC
     `,
   ]);
 
@@ -92,13 +92,13 @@ export async function fetchIncidentActivityTimeline(
     });
   }
   for (const row of actions) {
-    const actionLabel = isIncidentResolutionActionType(row.action_type)
-      ? resolutionActionLabel(row.action_type)
-      : row.action_type.replace(/_/g, " ");
+    const actionLabel = isIncidentResolutionActionType(row.actionType)
+      ? resolutionActionLabel(row.actionType)
+      : row.actionType.replace(/_/g, " ");
     entries.push({
-      at: row.created_at.toISOString(),
+      at: row.createdAt.toISOString(),
       label: `Action: ${actionLabel}`,
-      detail: row.actor_label ?? formatActorType(row.actor_type),
+      detail: row.actorLabel ?? formatActorType(row.actorType),
       kind: "action",
     });
   }
