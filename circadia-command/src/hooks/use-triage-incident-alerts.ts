@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
-import { maybePlayFatigueAlert } from "@/lib/fatigue-alert-audio";
+import {
+  getFatigueAlertsArmedAt,
+  isFatigueAlertsArmed,
+  maybePlayFatigueAlert,
+} from "@/lib/fatigue-alert-audio";
 
 type AlertOptions = {
   onShift: boolean;
@@ -24,7 +28,24 @@ export function useTriageIncidentAlerts(
     if (!enabled) return;
 
     if (!baselineRef.current) {
-      baselineRef.current = new Set(incidents.map((i) => i.lifecycle_id));
+      const armedAt = getFatigueAlertsArmedAt();
+      const baseline = new Set(incidents.map((i) => i.lifecycle_id));
+
+      if (isFatigueAlertsArmed() && armedAt > 0) {
+        for (const incident of incidents) {
+          const detectedMs = Date.parse(incident.detected_at);
+          const arrivedAfterArm =
+            Number.isFinite(detectedMs) && detectedMs >= armedAt - 5_000;
+          if (arrivedAfterArm) {
+            void maybePlayFatigueAlert(incident, {
+              ...optionsRef.current,
+              source: "poll",
+            });
+          }
+        }
+      }
+
+      baselineRef.current = baseline;
       return;
     }
 

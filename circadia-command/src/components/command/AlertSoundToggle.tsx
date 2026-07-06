@@ -73,7 +73,7 @@ export function AlertSoundToggle({
         type="button"
         onClick={() => void resume()}
         className={`${commandOutlineButton} border-amber-500/60 text-amber-900 hover:border-amber-600 dark:border-amber-600/50 dark:text-amber-200`}
-        title="Tap to resume sounds (iOS suspended audio)"
+        title="Tap to resume sounds (browser suspended audio)"
       >
         <Volume2 className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
         Resume sounds

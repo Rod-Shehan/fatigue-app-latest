@@ -2,6 +2,7 @@ import type { QueueIncident } from "@/hooks/use-triage-queue";
 
 const MUTE_STORAGE_KEY = "command:fatigueAlertMuted";
 const ARMED_AT_STORAGE_KEY = "command:fatigueAlertArmedAt";
+const SESSION_UNLOCK_KEY = "command:audioSessionUnlocked";
 /** Optional safety gate for stale catch-up only — not applied to live SSE or new poll IDs. */
 export const FATIGUE_ALERT_CATCH_UP_MS = 90_000;
 
@@ -124,8 +125,8 @@ export function setFatigueAlertMuted(muted: boolean): void {
   notifyStateListeners();
 }
 
-/** In-memory: browser can play audio right now (not suspended). */
 export function isRuntimeAudioUnlocked(): boolean {
+  if (!isAudioSessionUnlocked()) return false;
   if (runtimePlayReady) return true;
   return audioContext?.state === "running";
 }
@@ -137,6 +138,51 @@ export function isFatigueAlertAudioUnlocked(): boolean {
 
 export function needsFatigueAlertRearm(): boolean {
   return isFatigueAlertsArmed() && !isRuntimeAudioUnlocked();
+}
+
+function isAndroidBrowser(): boolean {
+  return typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+}
+
+export function isAudioSessionUnlocked(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.sessionStorage.getItem(SESSION_UNLOCK_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function markAudioSessionUnlocked(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(SESSION_UNLOCK_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+  markRuntimeUnlocked();
+}
+
+function vibrateDeskAlert(): void {
+  if (typeof navigator === "undefined" || !navigator.vibrate) return;
+  navigator.vibrate([0, 250, 120, 250, 120, 250]);
+}
+
+async function ensureAudioContext(): Promise<AudioContext | null> {
+  if (typeof window === "undefined") return null;
+  const Ctx =
+    window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return null;
+  if (!audioContext) audioContext = new Ctx();
+  if (audioContext.state === "suspended") {
+    try {
+      await audioContext.resume();
+    } catch {
+      return null;
+    }
+  }
+  return audioContext.state === "running" ? audioContext : null;
 }
 
 export function markRuntimeUnlocked(): void {
@@ -158,10 +204,16 @@ function markLastAlarmPlayed(): void {
   notifyStateListeners();
 }
 
-function getAlarmAudioElement(): HTMLAudioElement | null {
+function getAlarmAudioElement(forceNew = false): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
-  if (!alarmAudio) {
-    alarmAudio = new Audio(COMMAND_ALARM_SOUND_URL);
+  if (forceNew || !alarmAudio) {
+    if (!forceNew) alarmAudio = new Audio(COMMAND_ALARM_SOUND_URL);
+    else {
+      const el = new Audio(COMMAND_ALARM_SOUND_URL);
+      el.preload = "auto";
+      el.setAttribute("playsinline", "");
+      return el;
+    }
     alarmAudio.preload = "auto";
     alarmAudio.setAttribute("playsinline", "");
   }
@@ -171,35 +223,44 @@ function getAlarmAudioElement(): HTMLAudioElement | null {
 /** Call from a user gesture (login, enable-sounds button). */
 export async function unlockFatigueAlertAudio(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  const Ctx =
-    window.AudioContext ??
-    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!Ctx) return false;
 
-  if (!audioContext) audioContext = new Ctx();
-  if (audioContext.state === "suspended") {
-    await audioContext.resume();
-  }
-
+  const ctx = await ensureAudioContext();
   const el = getAlarmAudioElement();
+
   if (el) {
     try {
-      el.muted = true;
-      el.currentTime = 0;
-      await el.play();
-      el.pause();
-      el.muted = false;
-      el.currentTime = 0;
-      markRuntimeUnlocked();
+      if (isAndroidBrowser()) {
+        // Android often ignores muted unlock — brief low-volume play during gesture.
+        el.muted = false;
+        el.volume = 0.05;
+        el.currentTime = 0;
+        await el.play();
+        el.pause();
+        el.volume = 1;
+        el.currentTime = 0;
+      } else {
+        el.muted = true;
+        el.currentTime = 0;
+        await el.play();
+        el.pause();
+        el.muted = false;
+        el.currentTime = 0;
+      }
+      if (ctx) playFatigueAlarmTone(ctx);
+      markAudioSessionUnlocked();
       return true;
     } catch {
-      // iOS may still block until a visible play(); fall through to Web Audio check.
+      // fall through
     }
   }
 
-  const ok = audioContext.state === "running";
-  if (ok) markRuntimeUnlocked();
-  return ok;
+  if (ctx) {
+    playFatigueAlarmTone(ctx);
+    markAudioSessionUnlocked();
+    return true;
+  }
+
+  return false;
 }
 
 function scheduleBeep(ctx: AudioContext, startTime: number, frequencyHz: number, durationSec: number): void {
@@ -227,22 +288,45 @@ export function playFatigueAlarmTone(ctx: AudioContext): void {
 
 /** Play the bundled native alarm clip (preferred) with Web Audio fallback. */
 export async function playCommandAlarmSound(): Promise<boolean> {
+  const ctx = await ensureAudioContext();
+
+  // Android: HTMLAudio from async SSE callbacks is often blocked — Web Audio first.
+  if (isAndroidBrowser() && ctx) {
+    playFatigueAlarmTone(ctx);
+    markRuntimeUnlocked();
+    vibrateDeskAlert();
+    return true;
+  }
+
   const el = getAlarmAudioElement();
   if (el) {
     try {
       el.currentTime = 0;
       el.volume = 1;
+      el.muted = false;
       await el.play();
       markRuntimeUnlocked();
       return true;
     } catch {
-      // fall through to Web Audio
+      try {
+        const fresh = getAlarmAudioElement(true);
+        if (fresh) {
+          fresh.currentTime = 0;
+          fresh.volume = 1;
+          await fresh.play();
+          markRuntimeUnlocked();
+          return true;
+        }
+      } catch {
+        // fall through
+      }
     }
   }
 
-  if (audioContext?.state === "running") {
-    playFatigueAlarmTone(audioContext);
+  if (ctx) {
+    playFatigueAlarmTone(ctx);
     markRuntimeUnlocked();
+    if (isAndroidBrowser()) vibrateDeskAlert();
     return true;
   }
 
@@ -256,25 +340,17 @@ export async function rearmFatigueAlertsOnUserGesture(): Promise<boolean> {
   const unlocked = await unlockFatigueAlertAudio();
   if (unlocked) {
     markFatigueAlertsArmed();
-    markRuntimeUnlocked();
+    markAudioSessionUnlocked();
   }
   return unlocked;
 }
 
-/** Attempt resume without user gesture — may fail on iOS. */
+/** Attempt resume without user gesture — may fail on mobile without a prior gesture this session. */
 export async function tryResumeFatigueAlertAudio(): Promise<boolean> {
-  if (!isFatigueAlertsArmed()) return false;
+  if (!isFatigueAlertsArmed() || !isAudioSessionUnlocked()) return false;
 
-  if (audioContext?.state === "suspended") {
-    try {
-      await audioContext.resume();
-    } catch {
-      markNeedsRearm();
-      return false;
-    }
-  }
-
-  if (audioContext?.state === "running") {
+  const ctx = await ensureAudioContext();
+  if (ctx) {
     markRuntimeUnlocked();
     return true;
   }
@@ -288,6 +364,7 @@ export async function playFatigueAlertTestSound(): Promise<boolean> {
   const unlocked = await unlockFatigueAlertAudio();
   if (!unlocked) return false;
   markFatigueAlertsArmed();
+  markAudioSessionUnlocked();
   const played = await playCommandAlarmSound();
   if (played) markLastAlarmPlayed();
   return played;
@@ -308,12 +385,12 @@ export async function maybePlayFatigueAlert(
 ): Promise<boolean> {
   if (!shouldPlayFatigueAlert(incident, options)) return false;
   if (!isFatigueAlertsArmed()) return false;
-
-  const resumed = await tryResumeFatigueAlertAudio();
-  if (!resumed && !isRuntimeAudioUnlocked()) {
+  if (!isAudioSessionUnlocked()) {
     markNeedsRearm();
     return false;
   }
+
+  void tryResumeFatigueAlertAudio();
 
   playedLifecycleIds.add(incident.lifecycle_id);
   const played = await playCommandAlarmSound();
@@ -323,6 +400,7 @@ export async function maybePlayFatigueAlert(
   }
 
   playedLifecycleIds.delete(incident.lifecycle_id);
+  markNeedsRearm();
   return false;
 }
 
@@ -331,6 +409,13 @@ export function resetFatigueAlertAudioForTests(): void {
   playedLifecycleIds.clear();
   runtimePlayReady = false;
   lastAlarmAt = null;
+  if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage.removeItem(SESSION_UNLOCK_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
   if (audioContext) {
     void audioContext.close();
     audioContext = null;
