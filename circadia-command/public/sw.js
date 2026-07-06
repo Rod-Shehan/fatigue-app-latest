@@ -2,7 +2,7 @@
  * Shell-only service worker — caches static assets, not API or SSE.
  * Bump SHELL_VERSION when precache list changes.
  */
-const SHELL_VERSION = "command-v4";
+const SHELL_VERSION = "command-v5";
 const SHELL_CACHE = `circadia-command-shell-${SHELL_VERSION}`;
 const STATIC_CACHE = `circadia-command-static-${SHELL_VERSION}`;
 
@@ -60,6 +60,7 @@ self.addEventListener("push", (event) => {
       tag: payload.lifecycleId || "command-incident",
       renotify: true,
       silent: false,
+      vibrate: [0, 250, 120, 250, 120, 250],
       data: { url: payload.url || "/triage" },
     })
   );

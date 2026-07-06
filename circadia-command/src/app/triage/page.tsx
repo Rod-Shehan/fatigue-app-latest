@@ -59,6 +59,7 @@ export default function TriagePage() {
     permission: pushPermission,
     subscribed: pushSubscribed,
     busy: pushBusy,
+    lastError: pushError,
     subscribe: subscribePush,
     unsubscribe: unsubscribePush,
   } = useCommandPushSubscribe();
@@ -491,6 +492,7 @@ export default function TriagePage() {
         pushPermission={pushPermission}
         pushSubscribed={pushSubscribed}
         pushBusy={pushBusy}
+        pushError={pushError}
         onSubscribePush={() => void subscribePush()}
         onUnsubscribePush={() => void unsubscribePush()}
         onToggleMuted={toggleMuted}

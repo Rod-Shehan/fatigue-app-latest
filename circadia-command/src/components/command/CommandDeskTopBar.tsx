@@ -34,6 +34,7 @@ type Props = {
   pushPermission: NotificationPermission | "unsupported";
   pushSubscribed: boolean;
   pushBusy: boolean;
+  pushError?: string | null;
   onSubscribePush: () => void;
   onUnsubscribePush: () => void;
   onToggleMuted: () => void;
@@ -117,6 +118,7 @@ function OverflowExtras({
   pushPermission,
   pushSubscribed,
   pushBusy,
+  pushError,
   onSubscribePush,
   onUnsubscribePush,
 }: Pick<
@@ -127,6 +129,7 @@ function OverflowExtras({
   | "pushPermission"
   | "pushSubscribed"
   | "pushBusy"
+  | "pushError"
   | "onSubscribePush"
   | "onUnsubscribePush"
 >) {
@@ -148,16 +151,21 @@ function OverflowExtras({
         </button>
       ) : null}
       {pushPermission !== "unsupported" ? (
-        <button
-          type="button"
-          role="menuitem"
-          disabled={pushBusy}
-          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60 dark:text-slate-200 dark:hover:bg-slate-800"
-          onClick={() => void (pushSubscribed ? onUnsubscribePush() : onSubscribePush())}
-        >
-          <BellIcon />
-          {pushSubscribed ? "Background alerts on" : "Enable background alerts"}
-        </button>
+        <>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={pushBusy}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60 dark:text-slate-200 dark:hover:bg-slate-800"
+            onClick={() => void (pushSubscribed ? onUnsubscribePush() : onSubscribePush())}
+          >
+            <BellIcon />
+            {pushSubscribed ? "Background alerts on" : "Enable background alerts"}
+          </button>
+          {pushError ? (
+            <p className="px-3 pb-2 text-xs text-red-600 dark:text-red-400">{pushError}</p>
+          ) : null}
+        </>
       ) : null}
     </>
   );
@@ -189,6 +197,8 @@ function MobileOverflowMenu(props: Props) {
     triageDeskOnShift: props.triageDeskOnShift,
     hasActiveShift: props.hasActiveShift,
     lastAlarmAt: props.lastAlarmAt,
+    pushPermission: props.pushPermission,
+    pushSubscribed: props.pushSubscribed,
   });
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { apiErrorResponse, CommandApiError } from "@/lib/errors";
 import { getSession } from "@/lib/auth/session";
 import { withServiceContext } from "@/lib/privileged-db";
+import { dispatchNewIncidentPush } from "@/lib/push-notifications";
 
 function simulateAllowedInProduction(session: NonNullable<Awaited<ReturnType<typeof getSession>>>): boolean {
   if (process.env.COMMAND_ALLOW_SIMULATE === "true") return true;
@@ -66,6 +67,13 @@ export async function POST(request: Request) {
         503
       );
     }
+
+    void dispatchNewIncidentPush({
+      lifecycleId: event.lifecycle.lifecycleId,
+      vehicleRegistration: rego,
+      fatigueMetricType: event.fatigueMetricType,
+      detectedAt: event.hardwareTimestamp.toISOString(),
+    });
 
     return Response.json({
       event_id: event.eventId,
