@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
-import { getFatigueAlertsArmedAt, maybePlayFatigueAlert } from "@/lib/fatigue-alert-audio";
+import { maybePlayFatigueAlert } from "@/lib/fatigue-alert-audio";
 
 type AlertOptions = {
   onShift: boolean;
@@ -10,7 +10,7 @@ type AlertOptions = {
   muted: boolean;
 };
 
-/** Poll fallback: ring when the queue grows and SSE missed an event. */
+/** Poll fallback: ring when a new lifecycle id appears since the last poll baseline. */
 export function useTriageIncidentAlerts(
   incidents: QueueIncident[],
   enabled: boolean,
@@ -18,31 +18,23 @@ export function useTriageIncidentAlerts(
 ) {
   const optionsRef = useRef(options);
   optionsRef.current = options;
-  const seededRef = useRef(false);
-  const seenRef = useRef<Set<string>>(new Set());
-  const armedAtRef = useRef(getFatigueAlertsArmedAt());
-
-  useEffect(() => {
-    armedAtRef.current = getFatigueAlertsArmedAt();
-  });
+  const baselineRef = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
 
-    for (const incident of incidents) {
-      if (seenRef.current.has(incident.lifecycle_id)) continue;
-
-      const detectedMs = Date.parse(incident.detected_at);
-      const arrivedAfterArm =
-        Number.isFinite(detectedMs) && detectedMs >= armedAtRef.current - 3_000;
-      const shouldRing = seededRef.current || arrivedAfterArm;
-
-      seenRef.current.add(incident.lifecycle_id);
-      if (shouldRing) {
-        void maybePlayFatigueAlert(incident, optionsRef.current);
-      }
+    if (!baselineRef.current) {
+      baselineRef.current = new Set(incidents.map((i) => i.lifecycle_id));
+      return;
     }
 
-    seededRef.current = true;
+    for (const incident of incidents) {
+      if (baselineRef.current.has(incident.lifecycle_id)) continue;
+      baselineRef.current.add(incident.lifecycle_id);
+      void maybePlayFatigueAlert(incident, {
+        ...optionsRef.current,
+        source: "poll",
+      });
+    }
   }, [incidents, enabled]);
 }

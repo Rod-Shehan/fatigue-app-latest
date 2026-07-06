@@ -133,6 +133,19 @@ model TriageShift {
 }
 
 /// Append-only resolution actions — shared with app-next (§3.5.4).
+model OperatorPushSubscription {
+  id         String   @id @default(uuid()) @map("id") @db.Uuid
+  operatorId String   @map("operator_id") @db.Uuid
+  endpoint   String   @unique @db.Text
+  p256dh     String   @db.Text
+  auth       String   @db.Text
+  userAgent  String?  @map("user_agent") @db.VarChar(512)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([operatorId], map: "idx_operator_push_subscriptions_operator")
+  @@map("operator_push_subscriptions")
+}
+
 model IncidentActionLog {
   id              String   @id
   lifecycleId     String?  @db.Uuid

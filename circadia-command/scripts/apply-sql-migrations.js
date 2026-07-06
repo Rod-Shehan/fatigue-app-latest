@@ -12,6 +12,7 @@ const files = [
   "prisma/sql/008_operator_roles.sql",
   "prisma/sql/009_drop_passkeys.sql",
   "prisma/sql/010_edge_autonomise_source.sql",
+  "prisma/sql/011_operator_push_subscriptions.sql",
 ];
 
 for (const f of files) {

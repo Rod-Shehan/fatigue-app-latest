@@ -8,10 +8,15 @@ End-to-end drills for **Manager Live alerts** and **Command triage** (events, so
 |---------|----------|--------|
 | **app-next** | `TEST_INCIDENTS_ENABLED` | `true` |
 | **app-next** | `TEST_INCIDENT_INTERNAL_SECRET` | Shared secret (`openssl rand -base64 32`) |
+| **app-next** | `COMMAND_APP_URL` | `https://command.circadia24.com` (for background push dispatch) |
 | **circadia-command** | `TEST_INCIDENT_INTERNAL_SECRET` | Same secret |
 | **circadia-command** | `APP_NEXT_URL` | `https://www.circadia24.com` |
+| **circadia-command** | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` |
+| **circadia-command** | `VAPID_SUBJECT` | `mailto:command@circadia24.com` |
 
 Also required for Command queue: `COMMAND_PILOT_TENANT_ID_UUID`, `DATABASE_URL_UNPOOLED` (SSE).
+
+Apply SQL migration `011_operator_push_subscriptions.sql` on shared Neon (`npm run db:apply-sql` from `circadia-command`).
 
 ## UI entry points
 
@@ -23,18 +28,20 @@ Also required for Command queue: `COMMAND_PILOT_TENANT_ID_UUID`, `DATABASE_URL_U
 
 ## Drill checklist
 
-1. **Phone A** — https://www.circadia24.com/manager/alerts → **Needs review** → **Enable sounds**
-2. **Phone B** — https://command.circadia24.com/triage → **Enable sounds** → **SSE live**
-3. Inject **fatigue** or **distraction** from either test desk
-4. Confirm same `TEST*` rego on both desks within ~30s (Manager poll) / instantly (Command SSE)
-5. Confirm desk alarms on both devices (foreground tab, sounds enabled)
-6. **Purge test incidents** when done
+1. **Phone B** — https://command.circadia24.com/triage → tap **speaker icon** → allow notifications when prompted → confirm **SSE live**
+2. Optional: overflow menu (⋮) → **Keep screen on** for overnight foreground desk use
+3. Inject **fatigue** or **distraction** from Command or Manager test desk
+4. **Foreground:** desk alarm plays; status in ⋮ menu shows Sounds: On, Last alarm: time
+5. **Background:** lock phone → inject again → notification appears (iOS: install PWA to home screen first)
+6. Wake phone → tap notification → opens triage with incident selected
+7. **Purge test incidents** when done
 
 ## What inject does
 
 - Creates an **Autonomise-shaped** event ingest (`drill-*` id, `TEST*` rego)
 - Runs the same follow-up as production webhooks (media placeholder, **Command lifecycle bridge**)
 - Appears on **Manager** (shared ingest) and **Command** (lifecycle queue)
+- Dispatches Web Push to subscribed Command operators (deduped per lifecycle id)
 - Does **not** use Command-only `SIM*` simulate-ingest
 
 ## API (automation)
@@ -57,11 +64,20 @@ curl -sS -X POST -H "x-test-incident-secret: $SECRET" \
 
 Command owners can call the same routes on `command.circadia24.com` (server proxies to app-next).
 
-## Sound limits (current)
+## Sound and notification behaviour
 
-- Browser tab must be open; user must click **Enable sounds** once per session/device
-- Does not override system silent / DND
-- Push notifications when backgrounded: **not implemented** (see `app-next/docs/architecture/manager-critical-alert-spec.md`)
+| Scenario | Expected |
+|----------|----------|
+| Triage tab open, sounds enabled | Desk alarm WAV on every new lifecycle id |
+| iOS suspended audio after hours | Amber “resume sounds” banner; tap speaker icon |
+| Screen off / app backgrounded | Web Push notification (if subscribed + VAPID configured) |
+| View only shift | Queue updates but no sound (by design) |
+
+Limits:
+
+- Does not override iPhone silent switch or DND
+- iOS push requires PWA installed to home screen (iOS 16.4+)
+- Foreground alarms require operator to enable sounds once per device (persisted in localStorage)
 
 ## Optional clip URL
 

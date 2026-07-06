@@ -2,9 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FlaskConical, LogOut, MoreVertical, Users } from "lucide-react";
+import { FlaskConical, LogOut, Moon, MoreVertical, Sun, Users } from "lucide-react";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
+import {
+  buildDeskStatusLabels,
+  CommandDeskStatusPanel,
+} from "@/components/command/CommandDeskStatusPanel";
 import {
   commandNavLinkGhost,
   commandOutlineButton,
@@ -18,9 +22,23 @@ type Props = {
   operatorName: string | null;
   sseConnected: boolean;
   alertMuted: boolean;
+  armed: boolean;
+  needsRearm: boolean;
   audioUnlocked: boolean;
+  lastAlarmAt: number | null;
+  triageDeskOnShift: boolean;
+  hasActiveShift: boolean;
+  wakeLockSupported: boolean;
+  wakeLockActive: boolean;
+  onToggleWakeLock: () => void;
+  pushPermission: NotificationPermission | "unsupported";
+  pushSubscribed: boolean;
+  pushBusy: boolean;
+  onSubscribePush: () => void;
+  onUnsubscribePush: () => void;
   onToggleMuted: () => void;
   onEnableAudio: () => void;
+  onResumeAudio: () => void;
   isOwner: boolean;
   onSignOut: () => void;
 };
@@ -92,12 +110,86 @@ function DesktopNav({ isOwner, onSignOut }: Pick<Props, "isOwner" | "onSignOut">
   );
 }
 
-function MobileOverflowMenu({
-  isOwner,
-  onSignOut,
-}: Pick<Props, "isOwner" | "onSignOut">) {
+function OverflowExtras({
+  wakeLockSupported,
+  wakeLockActive,
+  onToggleWakeLock,
+  pushPermission,
+  pushSubscribed,
+  pushBusy,
+  onSubscribePush,
+  onUnsubscribePush,
+}: Pick<
+  Props,
+  | "wakeLockSupported"
+  | "wakeLockActive"
+  | "onToggleWakeLock"
+  | "pushPermission"
+  | "pushSubscribed"
+  | "pushBusy"
+  | "onSubscribePush"
+  | "onUnsubscribePush"
+>) {
+  return (
+    <>
+      {wakeLockSupported ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+          onClick={onToggleWakeLock}
+        >
+          {wakeLockActive ? (
+            <Sun className="h-4 w-4 opacity-90" aria-hidden />
+          ) : (
+            <Moon className="h-4 w-4 opacity-90" aria-hidden />
+          )}
+          {wakeLockActive ? "Keep screen on" : "Allow screen sleep"}
+        </button>
+      ) : null}
+      {pushPermission !== "unsupported" ? (
+        <button
+          type="button"
+          role="menuitem"
+          disabled={pushBusy}
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 disabled:opacity-60 dark:text-slate-200 dark:hover:bg-slate-800"
+          onClick={() => void (pushSubscribed ? onUnsubscribePush() : onSubscribePush())}
+        >
+          <BellIcon />
+          {pushSubscribed ? "Background alerts on" : "Enable background alerts"}
+        </button>
+      ) : null}
+    </>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg className="h-4 w-4 opacity-90" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3a5 5 0 00-5 5v2.5c0 .6-.2 1.2-.6 1.7L5 14.5h14l-1.4-2.3c-.4-.5-.6-1.1-.6-1.7V8a5 5 0 00-5-5z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <path d="M10 17a2 2 0 004 0" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MobileOverflowMenu(props: Props) {
+  const { isOwner, onSignOut } = props;
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const status = buildDeskStatusLabels({
+    armed: props.armed,
+    needsRearm: props.needsRearm,
+    muted: props.alertMuted,
+    sseConnected: props.sseConnected,
+    triageDeskOnShift: props.triageDeskOnShift,
+    hasActiveShift: props.hasActiveShift,
+    lastAlarmAt: props.lastAlarmAt,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -125,8 +217,9 @@ function MobileOverflowMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-full z-50 mt-1 min-w-[10.5rem] overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
+          className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
+          <CommandDeskStatusPanel {...status} />
           {isOwner ? (
             <>
               <Link
@@ -149,6 +242,7 @@ function MobileOverflowMenu({
               </Link>
             </>
           ) : null}
+          <OverflowExtras {...props} />
           <button
             type="button"
             role="menuitem"
@@ -167,17 +261,21 @@ function MobileOverflowMenu({
   );
 }
 
-export function CommandDeskTopBar({
-  pendingCount,
-  operatorName,
-  sseConnected,
-  alertMuted,
-  audioUnlocked,
-  onToggleMuted,
-  onEnableAudio,
-  isOwner,
-  onSignOut,
-}: Props) {
+export function CommandDeskTopBar(props: Props) {
+  const {
+    pendingCount,
+    operatorName,
+    sseConnected,
+    alertMuted,
+    armed,
+    needsRearm,
+    audioUnlocked,
+    onToggleMuted,
+    onEnableAudio,
+    onResumeAudio,
+    isOwner,
+    onSignOut,
+  } = props;
   const subtitle = `Live triage · ${pendingCount} pending${operatorName ? ` · ${operatorName}` : ""}`;
 
   return (
@@ -196,13 +294,16 @@ export function CommandDeskTopBar({
           <SseStatus connected={sseConnected} compact />
           <AlertSoundToggle
             compact
+            armed={armed}
+            needsRearm={needsRearm}
             muted={alertMuted}
             audioUnlocked={audioUnlocked}
             onToggleMuted={onToggleMuted}
             onEnableAudio={onEnableAudio}
+            onResumeAudio={onResumeAudio}
           />
           <CommandThemeToggle className="h-9 w-9 shrink-0" />
-          <MobileOverflowMenu isOwner={isOwner} onSignOut={onSignOut} />
+          <MobileOverflowMenu {...props} onSignOut={onSignOut} isOwner={isOwner} />
         </div>
       </header>
 
@@ -215,10 +316,13 @@ export function CommandDeskTopBar({
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <SseStatus connected={sseConnected} />
             <AlertSoundToggle
+              armed={armed}
+              needsRearm={needsRearm}
               muted={alertMuted}
               audioUnlocked={audioUnlocked}
               onToggleMuted={onToggleMuted}
               onEnableAudio={onEnableAudio}
+              onResumeAudio={onResumeAudio}
             />
             <DesktopNav isOwner={isOwner} onSignOut={onSignOut} />
           </div>

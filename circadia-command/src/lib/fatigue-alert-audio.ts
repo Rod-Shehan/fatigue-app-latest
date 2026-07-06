@@ -2,16 +2,32 @@ import type { QueueIncident } from "@/hooks/use-triage-queue";
 
 const MUTE_STORAGE_KEY = "command:fatigueAlertMuted";
 const ARMED_AT_STORAGE_KEY = "command:fatigueAlertArmedAt";
-/** SSE reconnect catch-up: only ring if the event is this recent. */
+/** Optional safety gate for stale catch-up only — not applied to live SSE or new poll IDs. */
 export const FATIGUE_ALERT_CATCH_UP_MS = 90_000;
 
 /** Bundled desk alarm (850 Hz square @ 120 BPM, ~2.5 s). */
 export const COMMAND_ALARM_SOUND_URL = "/sounds/command-alarm.wav";
 
+export type FatigueAlertRingSource = "sse-live" | "sse-replay" | "poll";
+
 const playedLifecycleIds = new Set<string>();
 
 let audioContext: AudioContext | null = null;
 let alarmAudio: HTMLAudioElement | null = null;
+let runtimePlayReady = false;
+let lastAlarmAt: number | null = null;
+
+type StateListener = () => void;
+const stateListeners = new Set<StateListener>();
+
+function notifyStateListeners(): void {
+  stateListeners.forEach((listener) => listener());
+}
+
+export function subscribeFatigueAlertState(listener: StateListener): () => void {
+  stateListeners.add(listener);
+  return () => stateListeners.delete(listener);
+}
 
 export function isFatigueMetricType(fatigueMetricType: string | null | undefined): boolean {
   const normalized = String(fatigueMetricType ?? "")
@@ -36,22 +52,31 @@ export function isFatigueAlertCatchUpIncident(incident: Pick<QueueIncident, "det
   return Date.now() - detectedMs <= FATIGUE_ALERT_CATCH_UP_MS;
 }
 
+export function hasPlayedFatigueAlert(lifecycleId: string): boolean {
+  return playedLifecycleIds.has(lifecycleId);
+}
+
 export function shouldPlayFatigueAlert(
   incident: QueueIncident,
   options: {
     onShift: boolean;
     hasActiveShift: boolean;
     muted: boolean;
+    source: FatigueAlertRingSource;
     alreadyPlayed?: (lifecycleId: string) => boolean;
   }
 ): boolean {
   const deskActive = options.onShift || !options.hasActiveShift;
   if (!deskActive || options.muted) return false;
   if (!isTriageAlertMetricType(incident.fatigue_metric_type)) return false;
-  if (!isFatigueAlertCatchUpIncident(incident)) return false;
   if (options.alreadyPlayed?.(incident.lifecycle_id)) return false;
   if (playedLifecycleIds.has(incident.lifecycle_id)) return false;
-  return true;
+
+  if (options.source === "sse-live" || options.source === "sse-replay" || options.source === "poll") {
+    return true;
+  }
+
+  return isFatigueAlertCatchUpIncident(incident);
 }
 
 function readFatigueAlertsArmedAt(): number {
@@ -77,6 +102,7 @@ export function markFatigueAlertsArmed(): void {
   } catch {
     /* ignore */
   }
+  notifyStateListeners();
 }
 
 export function getFatigueAlertsArmedAt(): number {
@@ -95,10 +121,41 @@ export function isFatigueAlertMuted(): boolean {
 export function setFatigueAlertMuted(muted: boolean): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(MUTE_STORAGE_KEY, muted ? "1" : "0");
+  notifyStateListeners();
 }
 
-export function isFatigueAlertAudioUnlocked(): boolean {
+/** In-memory: browser can play audio right now (not suspended). */
+export function isRuntimeAudioUnlocked(): boolean {
+  if (runtimePlayReady) return true;
   return audioContext?.state === "running";
+}
+
+/** @deprecated Use isRuntimeAudioUnlocked — kept for gradual migration. */
+export function isFatigueAlertAudioUnlocked(): boolean {
+  return isRuntimeAudioUnlocked();
+}
+
+export function needsFatigueAlertRearm(): boolean {
+  return isFatigueAlertsArmed() && !isRuntimeAudioUnlocked();
+}
+
+export function markRuntimeUnlocked(): void {
+  runtimePlayReady = true;
+  notifyStateListeners();
+}
+
+export function markNeedsRearm(): void {
+  runtimePlayReady = false;
+  notifyStateListeners();
+}
+
+export function getLastAlarmAt(): number | null {
+  return lastAlarmAt;
+}
+
+function markLastAlarmPlayed(): void {
+  lastAlarmAt = Date.now();
+  notifyStateListeners();
 }
 
 function getAlarmAudioElement(): HTMLAudioElement | null {
@@ -114,7 +171,9 @@ function getAlarmAudioElement(): HTMLAudioElement | null {
 /** Call from a user gesture (login, enable-sounds button). */
 export async function unlockFatigueAlertAudio(): Promise<boolean> {
   if (typeof window === "undefined") return false;
-  const Ctx = window.AudioContext ?? (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  const Ctx =
+    window.AudioContext ??
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctx) return false;
 
   if (!audioContext) audioContext = new Ctx();
@@ -131,12 +190,16 @@ export async function unlockFatigueAlertAudio(): Promise<boolean> {
       el.pause();
       el.muted = false;
       el.currentTime = 0;
+      markRuntimeUnlocked();
+      return true;
     } catch {
-      // iOS may still block until a visible play(); Web Audio unlock above is enough on desktop.
+      // iOS may still block until a visible play(); fall through to Web Audio check.
     }
   }
 
-  return audioContext.state === "running";
+  const ok = audioContext.state === "running";
+  if (ok) markRuntimeUnlocked();
+  return ok;
 }
 
 function scheduleBeep(ctx: AudioContext, startTime: number, frequencyHz: number, durationSec: number): void {
@@ -163,14 +226,15 @@ export function playFatigueAlarmTone(ctx: AudioContext): void {
 }
 
 /** Play the bundled native alarm clip (preferred) with Web Audio fallback. */
-export async function playCommandAlarmSound(): Promise<void> {
+export async function playCommandAlarmSound(): Promise<boolean> {
   const el = getAlarmAudioElement();
   if (el) {
     try {
       el.currentTime = 0;
       el.volume = 1;
       await el.play();
-      return;
+      markRuntimeUnlocked();
+      return true;
     } catch {
       // fall through to Web Audio
     }
@@ -178,15 +242,45 @@ export async function playCommandAlarmSound(): Promise<void> {
 
   if (audioContext?.state === "running") {
     playFatigueAlarmTone(audioContext);
+    markRuntimeUnlocked();
+    return true;
   }
+
+  markNeedsRearm();
+  return false;
 }
 
 /** Restore audio unlock during a user gesture if this device already opted in. */
 export async function rearmFatigueAlertsOnUserGesture(): Promise<boolean> {
   if (!isFatigueAlertsArmed()) return false;
   const unlocked = await unlockFatigueAlertAudio();
-  if (unlocked) markFatigueAlertsArmed();
+  if (unlocked) {
+    markFatigueAlertsArmed();
+    markRuntimeUnlocked();
+  }
   return unlocked;
+}
+
+/** Attempt resume without user gesture — may fail on iOS. */
+export async function tryResumeFatigueAlertAudio(): Promise<boolean> {
+  if (!isFatigueAlertsArmed()) return false;
+
+  if (audioContext?.state === "suspended") {
+    try {
+      await audioContext.resume();
+    } catch {
+      markNeedsRearm();
+      return false;
+    }
+  }
+
+  if (audioContext?.state === "running") {
+    markRuntimeUnlocked();
+    return true;
+  }
+
+  markNeedsRearm();
+  return false;
 }
 
 /** Audible confirmation after the operator enables sounds. */
@@ -194,20 +288,13 @@ export async function playFatigueAlertTestSound(): Promise<boolean> {
   const unlocked = await unlockFatigueAlertAudio();
   if (!unlocked) return false;
   markFatigueAlertsArmed();
-  await playCommandAlarmSound();
-  return true;
+  const played = await playCommandAlarmSound();
+  if (played) markLastAlarmPlayed();
+  return played;
 }
 
 export async function resumeFatigueAlertAudio(): Promise<boolean> {
-  if (!audioContext) return isFatigueAlertsArmed();
-  if (audioContext.state === "suspended") {
-    try {
-      await audioContext.resume();
-    } catch {
-      return false;
-    }
-  }
-  return audioContext.state === "running";
+  return tryResumeFatigueAlertAudio();
 }
 
 export async function maybePlayFatigueAlert(
@@ -216,26 +303,38 @@ export async function maybePlayFatigueAlert(
     onShift: boolean;
     hasActiveShift: boolean;
     muted: boolean;
+    source: FatigueAlertRingSource;
   }
 ): Promise<boolean> {
   if (!shouldPlayFatigueAlert(incident, options)) return false;
   if (!isFatigueAlertsArmed()) return false;
 
-  await resumeFatigueAlertAudio();
-  const unlocked = await unlockFatigueAlertAudio();
-  if (!unlocked) return false;
+  const resumed = await tryResumeFatigueAlertAudio();
+  if (!resumed && !isRuntimeAudioUnlocked()) {
+    markNeedsRearm();
+    return false;
+  }
 
   playedLifecycleIds.add(incident.lifecycle_id);
-  await playCommandAlarmSound();
-  return true;
+  const played = await playCommandAlarmSound();
+  if (played) {
+    markLastAlarmPlayed();
+    return true;
+  }
+
+  playedLifecycleIds.delete(incident.lifecycle_id);
+  return false;
 }
 
 /** Test helper */
 export function resetFatigueAlertAudioForTests(): void {
   playedLifecycleIds.clear();
+  runtimePlayReady = false;
+  lastAlarmAt = null;
   if (audioContext) {
     void audioContext.close();
     audioContext = null;
   }
   alarmAudio = null;
+  stateListeners.clear();
 }

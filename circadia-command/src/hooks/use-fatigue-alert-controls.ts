@@ -2,30 +2,64 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  isFatigueAlertAudioUnlocked,
+  getLastAlarmAt,
   isFatigueAlertMuted,
   isFatigueAlertsArmed,
+  isRuntimeAudioUnlocked,
+  needsFatigueAlertRearm,
   playFatigueAlertTestSound,
-  resumeFatigueAlertAudio,
+  rearmFatigueAlertsOnUserGesture,
   setFatigueAlertMuted,
+  subscribeFatigueAlertState,
+  tryResumeFatigueAlertAudio,
 } from "@/lib/fatigue-alert-audio";
+
+function readAudioUiState() {
+  const armed = isFatigueAlertsArmed();
+  const runtimeUnlocked = isRuntimeAudioUnlocked();
+  return {
+    armed,
+    runtimeUnlocked,
+    needsRearm: armed && !runtimeUnlocked,
+    audioUnlocked: armed && runtimeUnlocked,
+    lastAlarmAt: getLastAlarmAt(),
+  };
+}
 
 export function useFatigueAlertControls() {
   const [muted, setMuted] = useState(false);
-  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [armed, setArmed] = useState(false);
+  const [runtimeUnlocked, setRuntimeUnlocked] = useState(false);
+  const [lastAlarmAt, setLastAlarmAt] = useState<number | null>(null);
+
+  const syncState = useCallback(() => {
+    const next = readAudioUiState();
+    setArmed(next.armed);
+    setRuntimeUnlocked(next.runtimeUnlocked);
+    setLastAlarmAt(next.lastAlarmAt);
+  }, []);
 
   useEffect(() => {
     setMuted(isFatigueAlertMuted());
-    const armed = isFatigueAlertsArmed();
-    setAudioUnlocked(armed || isFatigueAlertAudioUnlocked());
-    if (armed) void resumeFatigueAlertAudio();
+    syncState();
+    if (isFatigueAlertsArmed()) void tryResumeFatigueAlertAudio().then(() => syncState());
 
-    const onVisible = () => {
-      if (isFatigueAlertsArmed()) void resumeFatigueAlertAudio();
+    const onLifecycle = () => {
+      void tryResumeFatigueAlertAudio().then(() => syncState());
     };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
-  }, []);
+
+    document.addEventListener("visibilitychange", onLifecycle);
+    window.addEventListener("pageshow", onLifecycle);
+    window.addEventListener("focus", onLifecycle);
+    const unsubscribe = subscribeFatigueAlertState(syncState);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onLifecycle);
+      window.removeEventListener("pageshow", onLifecycle);
+      window.removeEventListener("focus", onLifecycle);
+      unsubscribe();
+    };
+  }, [syncState]);
 
   const toggleMuted = useCallback(() => {
     setMuted((prev) => {
@@ -37,9 +71,27 @@ export function useFatigueAlertControls() {
 
   const enableAudio = useCallback(async () => {
     const ok = await playFatigueAlertTestSound();
-    setAudioUnlocked(ok || isFatigueAlertAudioUnlocked());
+    syncState();
     return ok;
-  }, []);
+  }, [syncState]);
 
-  return { muted, audioUnlocked, toggleMuted, enableAudio };
+  const resumeAudio = useCallback(async () => {
+    const ok = await rearmFatigueAlertsOnUserGesture();
+    syncState();
+    return ok;
+  }, [syncState]);
+
+  const needsRearm = armed && !runtimeUnlocked;
+
+  return {
+    muted,
+    armed,
+    runtimeUnlocked,
+    needsRearm,
+    audioUnlocked: armed && runtimeUnlocked,
+    lastAlarmAt,
+    toggleMuted,
+    enableAudio,
+    resumeAudio,
+  };
 }

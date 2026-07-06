@@ -3,6 +3,7 @@ import {
   isFatigueAlertCatchUpIncident,
   isFatigueMetricType,
   isTriageAlertMetricType,
+  resetFatigueAlertAudioForTests,
   shouldPlayFatigueAlert,
 } from "@/lib/fatigue-alert-audio";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
@@ -28,6 +29,7 @@ const alertOpts = {
   onShift: true,
   hasActiveShift: true,
   muted: false,
+  source: "sse-live" as const,
 };
 
 describe("fatigue-alert-audio", () => {
@@ -44,12 +46,49 @@ describe("fatigue-alert-audio", () => {
     expect(isTriageAlertMetricType("")).toBe(false);
   });
 
-  it("skips stale incidents on SSE catch-up", () => {
+  it("skips stale incidents on optional catch-up path", () => {
     const old = incident({
       detected_at: new Date(Date.now() - 5 * 60_000).toISOString(),
     });
     expect(isFatigueAlertCatchUpIncident(old)).toBe(false);
     expect(isFatigueAlertCatchUpIncident(incident())).toBe(true);
+  });
+
+  it("rings on live SSE even when detected_at is old", () => {
+    const stale = incident({
+      detected_at: new Date(Date.now() - 10 * 60_000).toISOString(),
+    });
+    expect(
+      shouldPlayFatigueAlert(stale, {
+        ...alertOpts,
+        source: "sse-live",
+      })
+    ).toBe(true);
+  });
+
+  it("rings on poll for new lifecycle ids regardless of detected_at", () => {
+    const stale = incident({
+      lifecycle_id: "lc-poll-new",
+      detected_at: new Date(Date.now() - 10 * 60_000).toISOString(),
+    });
+    expect(
+      shouldPlayFatigueAlert(stale, {
+        ...alertOpts,
+        source: "poll",
+      })
+    ).toBe(true);
+  });
+
+  it("skips already played lifecycle ids", () => {
+    resetFatigueAlertAudioForTests();
+    const first = incident({ lifecycle_id: "lc-dedupe" });
+    expect(shouldPlayFatigueAlert(first, alertOpts)).toBe(true);
+    expect(
+      shouldPlayFatigueAlert(first, {
+        ...alertOpts,
+        alreadyPlayed: () => true,
+      })
+    ).toBe(false);
   });
 
   it("plays on shift for fatigue and distraction events", () => {

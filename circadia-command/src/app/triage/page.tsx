@@ -13,6 +13,8 @@ import { CommandShell } from "@/components/command/CommandShell";
 import { commandTextMuted } from "@/components/command/command-styles";
 import { cn } from "@/lib/utils";
 import { useKeyboardTriage } from "@/hooks/use-keyboard-triage";
+import { useCommandPushSubscribe } from "@/hooks/use-command-push-subscribe";
+import { useScreenWakeLock } from "@/hooks/use-screen-wake-lock";
 import { useFatigueAlertControls } from "@/hooks/use-fatigue-alert-controls";
 import { useCommandSse } from "@/hooks/use-command-sse";
 import { useTriageIncidentAlerts } from "@/hooks/use-triage-incident-alerts";
@@ -42,8 +44,25 @@ export default function TriagePage() {
   const [shiftSnapshot, setShiftSnapshot] = useState<TriageShiftSnapshot | null>(null);
   const [triageDeskOnShift, setTriageDeskOnShift] = useState(false);
 
-  const { muted: alertMuted, audioUnlocked, toggleMuted, enableAudio } = useFatigueAlertControls();
+  const {
+    muted: alertMuted,
+    armed,
+    needsRearm,
+    audioUnlocked,
+    lastAlarmAt,
+    toggleMuted,
+    enableAudio,
+    resumeAudio,
+  } = useFatigueAlertControls();
+  const {
+    permission: pushPermission,
+    subscribed: pushSubscribed,
+    busy: pushBusy,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
+  } = useCommandPushSubscribe();
   const hasActiveShift = Boolean(shiftSnapshot?.current);
+  const wakeLock = useScreenWakeLock(authReady && triageDeskOnShift && armed);
   const { connected: sseConnected } = useCommandSse(authReady, {
     onShift: triageDeskOnShift,
     hasActiveShift,
@@ -110,6 +129,32 @@ export default function TriagePage() {
   }, [authReady]);
 
   const incidents = data?.incidents ?? [];
+
+  useEffect(() => {
+    const readSelect = () => {
+      const select = new URLSearchParams(window.location.search).get("select");
+      if (select) setSelectedId(select);
+    };
+    readSelect();
+    window.addEventListener("popstate", readSelect);
+    return () => window.removeEventListener("popstate", readSelect);
+  }, []);
+
+  const handleEnableAudio = useCallback(async () => {
+    const ok = await enableAudio();
+    if (ok && pushPermission === "default") {
+      await subscribePush();
+    }
+    return ok;
+  }, [enableAudio, pushPermission, subscribePush]);
+
+  const handleResumeAudio = useCallback(async () => {
+    const ok = await resumeAudio();
+    if (ok && pushPermission === "default") {
+      await subscribePush();
+    }
+    return ok;
+  }, [resumeAudio, pushPermission, subscribePush]);
 
   useTriageIncidentAlerts(incidents, authReady, {
     onShift: triageDeskOnShift,
@@ -420,9 +465,23 @@ export default function TriagePage() {
         operatorName={operatorName}
         sseConnected={sseConnected}
         alertMuted={alertMuted}
+        armed={armed}
+        needsRearm={needsRearm}
         audioUnlocked={audioUnlocked}
+        lastAlarmAt={lastAlarmAt}
+        triageDeskOnShift={triageDeskOnShift}
+        hasActiveShift={hasActiveShift}
+        wakeLockSupported={wakeLock.supported}
+        wakeLockActive={wakeLock.active}
+        onToggleWakeLock={wakeLock.toggle}
+        pushPermission={pushPermission}
+        pushSubscribed={pushSubscribed}
+        pushBusy={pushBusy}
+        onSubscribePush={() => void subscribePush()}
+        onUnsubscribePush={() => void unsubscribePush()}
         onToggleMuted={toggleMuted}
-        onEnableAudio={() => void enableAudio()}
+        onEnableAudio={() => void handleEnableAudio()}
+        onResumeAudio={() => void handleResumeAudio()}
         isOwner={isOwner}
         onSignOut={() => void signOut()}
       />
@@ -440,19 +499,28 @@ export default function TriagePage() {
         />
       </div>
 
-      {!audioUnlocked ? (
+      {!armed ? (
         <div className="mb-3 flex flex-col gap-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-600/50 dark:bg-amber-950/30 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-amber-950 dark:text-amber-100">
-            Tap the <strong>speaker icon</strong> in the top bar so this device plays the desk alarm on new incidents.
+            Tap the <strong>speaker icon</strong> in the top bar so this device plays the desk alarm on new
+            incidents. Allow notifications when prompted for alerts while the screen is off.
           </p>
           <div className="hidden sm:block">
             <AlertSoundToggle
+              armed={armed}
+              needsRearm={needsRearm}
               muted={alertMuted}
               audioUnlocked={audioUnlocked}
               onToggleMuted={toggleMuted}
-              onEnableAudio={() => void enableAudio()}
+              onEnableAudio={() => void handleEnableAudio()}
+              onResumeAudio={() => void handleResumeAudio()}
             />
           </div>
+        </div>
+      ) : needsRearm ? (
+        <div className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-100 sm:mb-4">
+          Sounds are enabled but iOS suspended audio. Tap the <strong>speaker icon</strong> to resume the desk
+          alarm.
         </div>
       ) : null}
 

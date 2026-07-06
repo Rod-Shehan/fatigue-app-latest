@@ -5,20 +5,26 @@ import { commandOutlineButton } from "@/components/command/command-styles";
 
 type Props = {
   muted: boolean;
+  armed: boolean;
+  needsRearm: boolean;
   audioUnlocked: boolean;
   onToggleMuted: () => void;
   onEnableAudio: () => void;
+  onResumeAudio?: () => void;
   compact?: boolean;
 };
 
 export function AlertSoundToggle({
   muted,
+  armed,
+  needsRearm,
   audioUnlocked,
   onToggleMuted,
   onEnableAudio,
+  onResumeAudio,
   compact = false,
 }: Props) {
-  if (!audioUnlocked) {
+  if (!armed) {
     if (compact) {
       return (
         <button
@@ -42,6 +48,35 @@ export function AlertSoundToggle({
       >
         <Volume2 className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
         Enable sounds
+      </button>
+    );
+  }
+
+  if (needsRearm) {
+    const resume = onResumeAudio ?? onEnableAudio;
+    if (compact) {
+      return (
+        <button
+          type="button"
+          onClick={() => void resume()}
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-amber-500/60 bg-amber-50 text-amber-900 ring-2 ring-amber-400/50 dark:border-amber-600/50 dark:bg-amber-950/40 dark:text-amber-200"
+          title="Tap to resume sounds"
+          aria-label="Tap to resume sounds"
+        >
+          <Volume2 className="h-4 w-4" aria-hidden />
+        </button>
+      );
+    }
+
+    return (
+      <button
+        type="button"
+        onClick={() => void resume()}
+        className={`${commandOutlineButton} border-amber-500/60 text-amber-900 hover:border-amber-600 dark:border-amber-600/50 dark:text-amber-200`}
+        title="Tap to resume sounds (iOS suspended audio)"
+      >
+        <Volume2 className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        Resume sounds
       </button>
     );
   }

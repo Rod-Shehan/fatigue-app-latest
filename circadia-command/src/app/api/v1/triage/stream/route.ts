@@ -1,6 +1,7 @@
 import { Client } from "pg";
 import { getSession } from "@/lib/auth/session";
 import { getDirectDatabaseUrl } from "@/lib/db-direct-url";
+import { dispatchNewIncidentPush } from "@/lib/push-notifications";
 import { withOperatorContext } from "@/lib/privileged-db";
 import { fetchIncidentForSse } from "@/lib/sse/incident-payload";
 import { formatSseMessage, SSE_HEADERS } from "@/lib/sse/format";
@@ -131,6 +132,15 @@ export async function GET(request: Request) {
                 fetchIncidentForSse(tx, payload.lifecycle_id)
               );
               if (!incident) return;
+
+              if (payload.event === "INCIDENT_NEW") {
+                void dispatchNewIncidentPush({
+                  lifecycleId: incident.lifecycle_id,
+                  vehicleRegistration: incident.vehicle_registration,
+                  fatigueMetricType: incident.fatigue_metric_type,
+                  detectedAt: incident.detected_at,
+                });
+              }
 
               push(payload.lifecycle_id, payload.event, incident);
             } catch (err) {

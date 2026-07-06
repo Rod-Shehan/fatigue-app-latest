@@ -337,6 +337,16 @@ export async function maybePromoteAutonomiseToCommandLifecycle(
     return { promoted: false, skippedReason: "insert_failed" };
   }
 
+  if (row.lifecycle_id) {
+    const { notifyCommandIncidentPush } = await import("@/lib/integrations/command-push-dispatch");
+    notifyCommandIncidentPush({
+      lifecycleId: row.lifecycle_id,
+      vehicleRegistration: rego,
+      fatigueMetricType: fatigueMetricTypeFromVendorAlarm(args.vendorAlarmId),
+      detectedAt: hardwareTimestamp.toISOString(),
+    });
+  }
+
   return {
     promoted: true,
     eventId: row.event_id,

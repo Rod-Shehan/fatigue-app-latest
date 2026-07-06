@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
+import type { FatigueAlertRingSource } from "@/lib/fatigue-alert-audio";
 import { maybePlayFatigueAlert } from "@/lib/fatigue-alert-audio";
 
 type QueueCache = {
@@ -23,6 +24,8 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
   const lastEventIdRef = useRef<string | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fatigueAlertsRef = useRef(fatigueAlerts);
+  const baselineAtConnectRef = useRef<Set<string>>(new Set());
+  const isReconnectRef = useRef(false);
   fatigueAlertsRef.current = fatigueAlerts;
 
   useEffect(() => {
@@ -31,8 +34,24 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
     let es: EventSource | null = null;
     let cancelled = false;
 
+    const snapshotBaseline = () => {
+      const cache = queryClient.getQueryData<QueueCache>(["triage", "live-queue"]);
+      baselineAtConnectRef.current = new Set(cache?.incidents.map((i) => i.lifecycle_id) ?? []);
+    };
+
+    const ringSourceForIncident = (lifecycleId: string): FatigueAlertRingSource => {
+      if (baselineAtConnectRef.current.has(lifecycleId)) {
+        return "sse-replay";
+      }
+      return isReconnectRef.current ? "sse-replay" : "sse-live";
+    };
+
     const connect = () => {
       if (cancelled) return;
+
+      const hadPriorConnection = lastEventIdRef.current != null;
+      isReconnectRef.current = hadPriorConnection;
+      snapshotBaseline();
 
       const lastId = lastEventIdRef.current;
       const url = lastId
@@ -41,7 +60,10 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
 
       es = new EventSource(url);
 
-      es.onopen = () => setConnected(true);
+      es.onopen = () => {
+        setConnected(true);
+        isReconnectRef.current = false;
+      };
 
       es.onerror = () => {
         setConnected(false);
@@ -61,7 +83,10 @@ export function useCommandSse(enabled: boolean, fatigueAlerts?: FatigueAlertOpti
         const data = JSON.parse(event.data) as QueueIncident;
         const alertOpts = fatigueAlertsRef.current;
         if (alertOpts) {
-          void maybePlayFatigueAlert(data, alertOpts);
+          void maybePlayFatigueAlert(data, {
+            ...alertOpts,
+            source: ringSourceForIncident(data.lifecycle_id),
+          });
         }
         queryClient.setQueryData<QueueCache>(["triage", "live-queue"], (old) => {
           if (!old) {
