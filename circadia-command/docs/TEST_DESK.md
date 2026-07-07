@@ -69,9 +69,28 @@ Command owners can call the same routes on `command.circadia24.com` (server prox
 | Scenario | Expected |
 |----------|----------|
 | Triage tab open, sounds enabled | Desk alarm WAV on every new lifecycle id |
-| iOS suspended audio after hours | Amber “resume sounds” banner; tap speaker icon |
+| Browser suspended audio after hours | Amber “resume sounds” banner; tap speaker icon |
 | Screen off / app backgrounded | Web Push notification (if subscribed + VAPID configured) |
+| Screen on, tab open overnight | Push also pings open tab to play desk alarm (after deploy) |
 | View only shift | Queue updates but no sound (by design) |
+
+### Android overnight sound
+
+Background alerts use **system notifications**, not the in-page desk alarm WAV. Chrome on Android does **not** support custom notification sounds from web apps — only the phone’s default notification chime (if enabled).
+
+**Phone locked / screen off**
+
+1. **Settings → Apps → Chrome → Notifications** — ensure notifications are on and not set to Silent.
+2. Open the **command.circadia24.com** channel (or “Circadia Command” if installed to home screen) and turn **Sound** on.
+3. Check **Do Not Disturb** and the physical silent switch — they block notification sounds.
+4. You should get vibration + default notification tone; the loud desk alarm WAV cannot play while the screen is off (platform limit).
+
+**Screen on overnight (recommended for audible desk alarm)**
+
+1. In Command ⋮ menu, enable **Keep screen on** (wake lock).
+2. Leave triage open; enable sounds via the speaker icon before your shift.
+3. If the amber “resume sounds” banner appears, tap the speaker icon again.
+4. Push + open tab will attempt the desk alarm WAV when incidents arrive.
 
 Limits:
 

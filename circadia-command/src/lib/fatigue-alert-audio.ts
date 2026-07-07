@@ -404,6 +404,28 @@ export async function maybePlayFatigueAlert(
   return false;
 }
 
+/**
+ * Play desk alarm when a Web Push arrives and a triage client is open (e.g. overnight with screen on).
+ * Relaxed vs maybePlayFatigueAlert: does not require a fresh gesture this session — push is the wake signal.
+ */
+export async function playCommandAlarmFromPush(lifecycleId: string): Promise<boolean> {
+  if (!isFatigueAlertsArmed() || isFatigueAlertMuted()) return false;
+  if (hasPlayedFatigueAlert(lifecycleId)) return false;
+
+  playedLifecycleIds.add(lifecycleId);
+  void tryResumeFatigueAlertAudio();
+  const played = await playCommandAlarmSound();
+  if (played) {
+    markLastAlarmPlayed();
+    markAudioSessionUnlocked();
+    return true;
+  }
+
+  playedLifecycleIds.delete(lifecycleId);
+  markNeedsRearm();
+  return false;
+}
+
 /** Test helper */
 export function resetFatigueAlertAudioForTests(): void {
   playedLifecycleIds.clear();

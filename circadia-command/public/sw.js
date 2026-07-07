@@ -2,7 +2,7 @@
  * Shell-only service worker — caches static assets, not API or SSE.
  * Bump SHELL_VERSION when precache list changes.
  */
-const SHELL_VERSION = "command-v5";
+const SHELL_VERSION = "command-v6";
 const SHELL_CACHE = `circadia-command-shell-${SHELL_VERSION}`;
 const STATIC_CACHE = `circadia-command-static-${SHELL_VERSION}`;
 
@@ -53,16 +53,28 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      icon: "/icons/command-icon-192.svg",
-      badge: "/icons/command-icon-192.svg",
-      tag: payload.lifecycleId || "command-incident",
-      renotify: true,
-      silent: false,
-      vibrate: [0, 250, 120, 250, 120, 250],
-      data: { url: payload.url || "/triage" },
-    })
+    (async () => {
+      await self.registration.showNotification(payload.title, {
+        body: payload.body,
+        icon: "/icons/command-icon-192.svg",
+        badge: "/icons/command-icon-192.svg",
+        tag: payload.lifecycleId || "command-incident",
+        renotify: true,
+        silent: false,
+        requireInteraction: true,
+        vibrate: [0, 250, 120, 250, 120, 250],
+        data: { url: payload.url || "/triage", lifecycleId: payload.lifecycleId },
+      });
+
+      const clients = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      for (const client of clients) {
+        client.postMessage({
+          type: "COMMAND_INCIDENT_PUSH",
+          lifecycleId: payload.lifecycleId,
+          url: payload.url || "/triage",
+        });
+      }
+    })()
   );
 });
 

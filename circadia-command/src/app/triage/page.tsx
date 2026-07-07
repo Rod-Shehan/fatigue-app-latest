@@ -535,8 +535,8 @@ export default function TriagePage() {
         </div>
       ) : needsRearm ? (
         <div className="mb-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-100 sm:mb-4">
-          Sounds are enabled but iOS suspended audio. Tap the <strong>speaker icon</strong> to resume the desk
-          alarm.
+          Sounds are enabled but the browser suspended audio. Tap the <strong>speaker icon</strong> to resume the
+          desk alarm.
         </div>
       ) : null}
 
