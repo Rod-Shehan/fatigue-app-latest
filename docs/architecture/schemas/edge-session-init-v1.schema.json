@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://circadia24.com/schemas/edge-session-init-v1.json",
+  "title": "EdgeSessionInitV1",
+  "description": "Shift-start fit-for-work acknowledgement and optional 5-minute enrollment audit (Engine 1).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "session_id",
+    "device_id",
+    "fit_for_work_acknowledged",
+    "acknowledged_at",
+    "operational_flags"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "session_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "device_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "driver_id_uuid": { "type": "string", "format": "uuid" },
+    "tenant_id_uuid": { "type": "string", "format": "uuid" },
+    "fit_for_work_acknowledged": { "type": "boolean" },
+    "acknowledged_at": { "type": "string", "format": "date-time" },
+    "tpma_process_s_baseline": {
+      "type": "number",
+      "const": 0,
+      "description": "Homeostatic S baseline when fit-for-work ack is true"
+    },
+    "enrollment_audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["completed", "frames_analyzed"],
+      "properties": {
+        "departure_detected_at": { "type": "string", "format": "date-time" },
+        "completed": { "type": "boolean" },
+        "frames_analyzed": { "type": "integer", "minimum": 0, "maximum": 30000 },
+        "duration_seconds": { "type": "number", "minimum": 0, "maximum": 600 },
+        "eyelid_velocity_mean": { "type": "number", "minimum": 0 },
+        "steering_entropy_mean": { "type": "number", "minimum": 0, "maximum": 1 },
+        "eyelid_velocity_ratio_vs_baseline": { "type": "number", "minimum": 0, "maximum": 2 },
+        "steering_entropy_ratio_vs_baseline": { "type": "number", "minimum": 0, "maximum": 2 },
+        "suspect_pre_fatigue": { "type": "boolean" },
+        "process_s_accumulation_multiplier": {
+          "type": "number",
+          "enum": [1, 1.4],
+          "description": "1.4 when suspect_pre_fatigue"
+        }
+      }
+    },
+    "operational_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["silent_observation_mode"],
+      "properties": {
+        "silent_observation_mode": { "type": "boolean" }
+      }
+    }
+  }
+}

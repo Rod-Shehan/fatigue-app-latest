@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://circadia24.com/schemas/evidence-capsule-v1.json",
+  "title": "EvidenceCapsuleV1",
+  "description": "30-second protected vault bundle from Pi edge (Scope V3 Engines 4–5).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capsule_id",
+    "device_id",
+    "session_id",
+    "created_at",
+    "duration_seconds",
+    "trigger_type",
+    "technical",
+    "operational_flags"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "capsule_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "device_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "session_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "driver_id_uuid": { "type": "string", "format": "uuid" },
+    "tenant_id_uuid": { "type": "string", "format": "uuid" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "duration_seconds": { "const": 30 },
+    "trigger_type": {
+      "type": "string",
+      "enum": [
+        "fatigue_milestone",
+        "drift_anomaly",
+        "suspect_pre_fatigue",
+        "driver_dispute",
+        "cognitive_tunneling",
+        "main_sequence_decoupling",
+        "nodding_micro_sleep"
+      ]
+    },
+    "technical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary_metrics"],
+      "properties": {
+        "summary_metrics": {
+          "type": "object",
+          "properties": {
+            "ear_mean_min": { "type": "number" },
+            "ear_mean_max": { "type": "number" },
+            "eyelid_velocity_min": { "type": "number" },
+            "eyelid_velocity_max": { "type": "number" },
+            "steering_entropy_min": { "type": "number" },
+            "steering_entropy_max": { "type": "number" },
+            "steering_flatline_seconds": { "type": "number", "minimum": 0 },
+            "distraction_clock_seconds": { "type": "number", "minimum": 0 },
+            "fixation_duration_max_seconds": { "type": "number", "minimum": 0 },
+            "saccade_peak_velocity_ratio_vs_baseline": { "type": "number", "minimum": 0, "maximum": 2 },
+            "head_yaw_velocity_mean": { "type": "number", "minimum": 0 }
+          }
+        },
+        "ear_samples_hz": { "type": "number", "description": "Downsampled EAR series rate" },
+        "frame_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "narrative": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "manager_summary": { "type": "string", "maxLength": 2000 },
+        "driver_summary": { "type": "string", "maxLength": 2000 }
+      },
+      "description": "Edge may omit; server may generate via Engine 4"
+    },
+    "media_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["ref_id", "media_type", "sha256"],
+        "properties": {
+          "ref_id": { "type": "string" },
+          "media_type": { "type": "string", "enum": ["ir_frame", "mjpeg_snippet", "telemetry_json"] },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "bytes": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "telemetry_snapshot": { "type": "object" },
+    "operational_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["silent_observation_mode"],
+      "properties": {
+        "silent_observation_mode": { "type": "boolean" },
+        "promote_to_command": { "type": "boolean" }
+      }
+    },
+    "linked_lifecycle_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Server-filled after Command bridge"
+    }
+  }
+}

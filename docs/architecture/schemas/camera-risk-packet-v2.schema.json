@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://circadia24.com/schemas/camera-risk-packet-v2.json",
+  "title": "CameraRiskPacketV2",
+  "description": "15-minute aggregated cabin telemetry from Pi edge (Scope V3 Engines 1–3). Extends v1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "packet_id",
+    "device_id",
+    "block_start",
+    "block_minutes",
+    "metrics",
+    "operational_flags"
+  ],
+  "properties": {
+    "schema_version": { "const": 2 },
+    "packet_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "device_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "session_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "block_start": { "type": "string", "format": "date-time" },
+    "block_minutes": { "const": 15 },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "drowsiness_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "distraction_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "eyes_off_road_seconds": { "type": "number", "minimum": 0, "maximum": 900 },
+        "yawn_count": { "type": "integer", "minimum": 0 },
+        "head_nod_count": { "type": "integer", "minimum": 0 },
+        "sample_coverage_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "steering_entropy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "940nm marker coordinate variance normalised 0–1"
+        },
+        "control_entropy_1_3hz": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Micro-correction energy in 1–3 Hz band"
+        },
+        "eyelid_velocity_mean": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Mean involuntary eyelid opening velocity (arbitrary units, fleet-calibrated)"
+        },
+        "eyelid_velocity_ratio_vs_baseline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Ratio vs driver historical baseline; <0.75 triggers suspect_pre_fatigue"
+        },
+        "steering_entropy_ratio_vs_baseline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Ratio vs baseline; <0.60 triggers suspect_pre_fatigue"
+        },
+        "distraction_clock_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Accumulated distraction time in block (mirror check, etc.)"
+        },
+        "ear_mean": { "type": "number", "minimum": 0, "maximum": 1, "description": "Eye aspect ratio mean" },
+        "steering_flatline_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Seconds steering entropy below flatline threshold in block"
+        },
+        "gaze_shift_velocity_mean": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Engine 3: mean macro-saccade gaze shift velocity (fleet-calibrated units)"
+        },
+        "fixation_duration_max_seconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Engine 3: longest single-vector fixation in block; >3.5s suggests cognitive tunneling"
+        },
+        "head_yaw_velocity_mean": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Engine 3: mean head yaw rate (deg/s or fleet-calibrated)"
+        },
+        "inter_movement_latency_mean_ms": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Engine 3: mean inter-saccade latency in milliseconds"
+        },
+        "saccade_peak_velocity_ratio_vs_baseline": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Engine 3: peak saccade velocity vs baseline; <0.70 suggests main sequence decoupling"
+        }
+      }
+    },
+    "operational_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["silent_observation_mode"],
+      "properties": {
+        "silent_observation_mode": { "type": "boolean" },
+        "suspect_pre_fatigue": { "type": "boolean" },
+        "unintended_drift_anomaly": { "type": "boolean" },
+        "haptic_fired_in_block": { "type": "boolean" },
+        "main_sequence_decoupling": {
+          "type": "boolean",
+          "description": "Engine 3: saccade peak velocity >30% below baseline with stable amplitude"
+        },
+        "cognitive_tunneling": {
+          "type": "boolean",
+          "description": "Engine 3: prolonged fixation + reduced head movement"
+        },
+        "nodding_micro_sleep": {
+          "type": "boolean",
+          "description": "Engine 3: downward head pitch without corrective saccade"
+        }
+      }
+    },
+    "vendor": { "type": "object" }
+  }
+}

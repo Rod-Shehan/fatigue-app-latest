@@ -1,0 +1,26 @@
+{
+  "schema_version": 2,
+  "packet_id": "pkt-v2-suspect-001",
+  "device_id": "pi5-hailo-demo-01",
+  "session_id": "sess-2026-07-09-shift-b",
+  "block_start": "2026-07-09T05:05:00+08:00",
+  "block_minutes": 15,
+  "metrics": {
+    "drowsiness_score": 0.35,
+    "distraction_score": 0.2,
+    "eyes_off_road_seconds": 30,
+    "sample_coverage_pct": 91,
+    "steering_entropy": 0.28,
+    "eyelid_velocity_mean": 0.52,
+    "eyelid_velocity_ratio_vs_baseline": 0.68,
+    "steering_entropy_ratio_vs_baseline": 0.55,
+    "distraction_clock_seconds": 8,
+    "ear_mean": 0.24
+  },
+  "operational_flags": {
+    "silent_observation_mode": true,
+    "suspect_pre_fatigue": true,
+    "unintended_drift_anomaly": false,
+    "haptic_fired_in_block": false
+  }
+}

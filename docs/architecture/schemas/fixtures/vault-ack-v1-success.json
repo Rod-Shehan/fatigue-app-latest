@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "capsule_id": "cap-drift-2026-07-09-0815",
+  "ack_token": "vault-ack-demo-token-replace-with-hmac-in-production-min-32-chars",
+  "vault_path_acknowledged": "/mnt/circadia_ssd/evidence/cap-drift-2026-07-09-0815",
+  "acknowledged_at": "2026-07-09T08:16:05+08:00",
+  "status": "stored",
+  "server_storage_key": "neon/evidence-capsules/2026/07/cap-drift-2026-07-09-0815"
+}

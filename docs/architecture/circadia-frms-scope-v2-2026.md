@@ -1,5 +1,9 @@
 # Project Circadia FRMS — Case Specification (Scope V2)
 
+> **Superseded by [circadia-frms-scope-v3-2026.md](./circadia-frms-scope-v3-2026.md)** (9 July 2026).  
+> V3 adds **Engine 3 — Oculomotor & head kinematics** and renumbers storage, triage, and silent trial to engines 4–6.  
+> Retained for history and V2→V3 diff reference.
+
 **Document ref:** CIRCADIA-SCOPE-V2-2026  
 **Date:** 9 July 2026  
 **Status:** Architecture specification — not yet implemented  
@@ -217,7 +221,9 @@ When implementing changes:
 
 ### Phase 0 — Contracts (server, no edge hardware)
 
-1. Define `EvidenceCapsuleV1` and `CameraRiskPacketV2` schemas (steering entropy, eyelid velocity, flags).
+**Draft complete:** [schemas/README.md](./schemas/README.md) — see [circadia-frms-scope-v3-2026.md](./circadia-frms-scope-v3-2026.md) for full six-engine spec.
+
+1. ~~Define `EvidenceCapsuleV1` and `CameraRiskPacketV2` schemas~~ — done in `docs/architecture/schemas/`; TypeScript validators in `app-next/src/lib/circadia-contracts/`.
 2. Add `evidence-capsule-narrative.ts` stub with plain-English templates.
 3. Document deprecation path for `alertness_level` 1–5 in TPMA when edge gate ships.
 

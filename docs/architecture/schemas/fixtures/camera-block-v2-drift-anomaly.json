@@ -1,0 +1,30 @@
+{
+  "schema_version": 2,
+  "packet_id": "pkt-v2-drift-001",
+  "device_id": "pi5-hailo-demo-01",
+  "session_id": "sess-2026-07-09-shift-a",
+  "block_start": "2026-07-09T08:15:00+08:00",
+  "block_minutes": 15,
+  "metrics": {
+    "drowsiness_score": 0.58,
+    "distraction_score": 0.72,
+    "eyes_off_road_seconds": 18,
+    "yawn_count": 1,
+    "head_nod_count": 0,
+    "sample_coverage_pct": 88,
+    "steering_entropy": 0.03,
+    "control_entropy_1_3hz": 0.02,
+    "eyelid_velocity_mean": 0.65,
+    "eyelid_velocity_ratio_vs_baseline": 0.58,
+    "steering_entropy_ratio_vs_baseline": 0.07,
+    "distraction_clock_seconds": 14,
+    "ear_mean": 0.18,
+    "steering_flatline_seconds": 2.4
+  },
+  "operational_flags": {
+    "silent_observation_mode": false,
+    "suspect_pre_fatigue": false,
+    "unintended_drift_anomaly": true,
+    "haptic_fired_in_block": true
+  }
+}

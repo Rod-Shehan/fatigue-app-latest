@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "capsule_id": "cap-silent-2026-07-09-1200",
+  "device_id": "pi5-hailo-fleet-trial-02",
+  "session_id": "sess-2026-07-09-silent-trial",
+  "created_at": "2026-07-09T12:00:00+08:00",
+  "duration_seconds": 30,
+  "trigger_type": "fatigue_milestone",
+  "technical": {
+    "summary_metrics": {
+      "ear_mean_min": 0.12,
+      "ear_mean_max": 0.22,
+      "eyelid_velocity_min": 0.35,
+      "eyelid_velocity_max": 0.55,
+      "steering_entropy_min": 0.15,
+      "steering_entropy_max": 0.28
+    },
+    "frame_count": 3000
+  },
+  "operational_flags": {
+    "silent_observation_mode": true,
+    "promote_to_command": false
+  }
+}

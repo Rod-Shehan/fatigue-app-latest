@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "session_id": "sess-2026-07-09-shift-a",
+  "device_id": "pi5-hailo-demo-01",
+  "driver_id_uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "tenant_id_uuid": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "fit_for_work_acknowledged": true,
+  "acknowledged_at": "2026-07-09T04:45:00+08:00",
+  "tpma_process_s_baseline": 0,
+  "enrollment_audit": {
+    "departure_detected_at": "2026-07-09T04:52:00+08:00",
+    "completed": true,
+    "frames_analyzed": 30000,
+    "duration_seconds": 300,
+    "eyelid_velocity_mean": 1.08,
+    "steering_entropy_mean": 0.44,
+    "eyelid_velocity_ratio_vs_baseline": 0.92,
+    "steering_entropy_ratio_vs_baseline": 0.88,
+    "suspect_pre_fatigue": false,
+    "process_s_accumulation_multiplier": 1
+  },
+  "operational_flags": {
+    "silent_observation_mode": false
+  }
+}

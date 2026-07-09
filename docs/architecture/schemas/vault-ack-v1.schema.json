@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://circadia24.com/schemas/vault-ack-v1.json",
+  "title": "VaultAckV1",
+  "description": "Server response authorising edge deletion of a vault file (Engine 3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "capsule_id",
+    "ack_token",
+    "vault_path_acknowledged",
+    "acknowledged_at",
+    "status"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "capsule_id": { "type": "string", "minLength": 1 },
+    "ack_token": { "type": "string", "minLength": 32, "maxLength": 512 },
+    "vault_path_acknowledged": { "type": "string", "minLength": 1 },
+    "acknowledged_at": { "type": "string", "format": "date-time" },
+    "status": { "const": "stored" },
+    "server_storage_key": { "type": "string" }
+  }
+}

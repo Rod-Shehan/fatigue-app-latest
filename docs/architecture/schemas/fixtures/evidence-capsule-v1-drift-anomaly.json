@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "capsule_id": "cap-drift-2026-07-09-0815",
+  "device_id": "pi5-hailo-demo-01",
+  "session_id": "sess-2026-07-09-shift-a",
+  "driver_id_uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "tenant_id_uuid": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "created_at": "2026-07-09T08:15:22+08:00",
+  "duration_seconds": 30,
+  "trigger_type": "drift_anomaly",
+  "technical": {
+    "summary_metrics": {
+      "ear_mean_min": 0.14,
+      "ear_mean_max": 0.29,
+      "eyelid_velocity_min": 0.41,
+      "eyelid_velocity_max": 0.72,
+      "steering_entropy_min": 0.01,
+      "steering_entropy_max": 0.04,
+      "steering_flatline_seconds": 2.4,
+      "distraction_clock_seconds": 14
+    },
+    "ear_samples_hz": 10,
+    "frame_count": 3000
+  },
+  "narrative": {
+    "manager_summary": "Involuntary eye-opening speed dropped 42% below this driver's baseline during a circadian low point, while steering micro-corrections flatlined for 2.4 seconds during an active mirror-check distraction window.",
+    "driver_summary": "Your autonomic steering reflexes briefly stalled while you were checking the mirror. The cabin vibration was a biological safety buffer, not a compliance penalty."
+  },
+  "media_refs": [
+    {
+      "ref_id": "telemetry.json",
+      "media_type": "telemetry_json",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 18432
+    },
+    {
+      "ref_id": "clip_ir_081522.mjpeg",
+      "media_type": "mjpeg_snippet",
+      "sha256": "a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3",
+      "bytes": 524288
+    }
+  ],
+  "telemetry_snapshot": {
+    "speed_kmh": 92,
+    "lane_deviation_index": 0.38
+  },
+  "operational_flags": {
+    "silent_observation_mode": false,
+    "promote_to_command": true
+  }
+}
