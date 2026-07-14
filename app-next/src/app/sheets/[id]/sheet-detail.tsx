@@ -43,6 +43,7 @@ import {
   deriveDaysWithRollover,
   applyLast24hBreakNonWorkRule,
   resolveOpenActivityBeforeFirstDay,
+  type OpenActivityAtDayEnd,
 } from "@/components/fatigue/EventLogger";
 import {
   getContinuedShiftRoutePrompt,
@@ -249,6 +250,7 @@ export function SheetDetail({
   const [heroExpandRequest, setHeroExpandRequest] = useState(0);
   const sheetDataRef = useRef(sheetData);
   sheetDataRef.current = sheetData;
+  const openActivityBeforeFirstDayRef = useRef<OpenActivityAtDayEnd | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dayCardsRef = useRef<HTMLDivElement>(null);
   /** One ref per day card (e.g. scroll to current day from LogBar) */
@@ -435,7 +437,7 @@ export function SheetDetail({
       });
       return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
     });
-  }, [slotMinute, isManager, openActivityBeforeFirstDay]);
+  }, [slotMinute, isManager]);
 
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
   const driverPageIdentity = useMemo(() => {
@@ -623,8 +625,21 @@ export function SheetDetail({
       ),
     [compliancePayload.prevWeekDays, compliancePayload.prevWeekStarting, todayYmd]
   );
-  const openActivityBeforeFirstDayRef = useRef(openActivityBeforeFirstDay);
   openActivityBeforeFirstDayRef.current = openActivityBeforeFirstDay;
+
+  // When prior-week continuity becomes known, re-derive day 0 without waiting for the minute tick.
+  useEffect(() => {
+    setSheetData((prev) => {
+      if (!canDriverEditSheetContent(prev.week_starting, prev.status, prev.signature) && !isManager) {
+        return prev;
+      }
+      const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting, {
+        todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+        openActivityBeforeFirstDay,
+      });
+      return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
+    });
+  }, [openActivityBeforeFirstDay, isManager]);
 
   const hasComplianceViolations = complianceResults.some((r) => r.type === "violation");
   const hasComplianceWarnings = complianceResults.some((r) => r.type === "warning");
