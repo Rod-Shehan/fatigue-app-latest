@@ -39,7 +39,11 @@ import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { DriverSheetActions } from "@/components/driver/DriverSheetActions";
 import { driverDialogBtn, driverToolbarBtn } from "@/components/driver/driver-ui-classes";
-import { deriveDaysWithRollover, applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
+import {
+  deriveDaysWithRollover,
+  applyLast24hBreakNonWorkRule,
+  resolveOpenActivityBeforeFirstDay,
+} from "@/components/fatigue/EventLogger";
 import {
   getContinuedShiftRoutePrompt,
   getPriorDayUnclosedShiftPrompt,
@@ -427,10 +431,11 @@ export function SheetDetail({
       }
       const reDerived = deriveDaysWithRollover(prev.days, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+        openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
       return { ...prev, days: applyLast24hBreakNonWorkRule(reDerived, prev.week_starting, prev.last_24h_break || undefined) };
     });
-  }, [slotMinute, isManager]);
+  }, [slotMinute, isManager, openActivityBeforeFirstDay]);
 
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
   const driverPageIdentity = useMemo(() => {
@@ -470,7 +475,19 @@ export function SheetDetail({
         deriveDaysWithRollover(
           (sheet.days || []).map((d) => normalizeDayCoverageArrays({ ...EMPTY_DAY(), ...d })),
           weekStart,
-          { todayStr }
+          {
+            todayStr,
+            openActivityBeforeFirstDay: resolveOpenActivityBeforeFirstDay(
+              allSheets.find(
+                (s) =>
+                  s.id !== sheetId &&
+                  s.driver_name?.toLowerCase() === (sheet.driver_name || "").toLowerCase() &&
+                  s.week_starting === getPreviousWeekSunday(weekStart)
+              )?.days ?? null,
+              getPreviousWeekSunday(weekStart),
+              todayStr
+            ),
+          }
         ),
         weekStart,
         sheet.last_24h_break || undefined
@@ -595,6 +612,19 @@ export function SheetDetail({
     }
     return slices;
   }, [compliancePayload.historyDays, compliancePayload.prevWeekDays]);
+
+  /** Prior calendar bucket’s open type — weekStarting UI seam must not cut driver-logged continuity. */
+  const openActivityBeforeFirstDay = useMemo(
+    () =>
+      resolveOpenActivityBeforeFirstDay(
+        compliancePayload.prevWeekDays,
+        compliancePayload.prevWeekStarting,
+        todayYmd
+      ),
+    [compliancePayload.prevWeekDays, compliancePayload.prevWeekStarting, todayYmd]
+  );
+  const openActivityBeforeFirstDayRef = useRef(openActivityBeforeFirstDay);
+  openActivityBeforeFirstDayRef.current = openActivityBeforeFirstDay;
 
   const hasComplianceViolations = complianceResults.some((r) => r.type === "violation");
   const hasComplianceWarnings = complianceResults.some((r) => r.type === "warning");
@@ -882,6 +912,7 @@ export function SheetDetail({
       newDays[dayIndex] = dayData;
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+        openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
@@ -974,6 +1005,7 @@ export function SheetDetail({
       newDays[dayIndex] = { ...day, events: newEvents };
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+        openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
       return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
     });
@@ -1049,6 +1081,7 @@ export function SheetDetail({
       });
       const withGrids = deriveDaysWithRollover(corrected, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
+        openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
       const finalDays = applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined);
       daysAfterEndShift = finalDays;
@@ -1125,6 +1158,7 @@ export function SheetDetail({
     (days: DayData[]) => {
       const withGrids = deriveDaysWithRollover(days, sheetDataRef.current.week_starting, {
         todayStr: getRegulatoryTodayYmd(sheetDataRef.current.jurisdiction_code),
+        openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
       return applyLast24hBreakNonWorkRule(
         withGrids,

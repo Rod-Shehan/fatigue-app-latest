@@ -1,0 +1,42 @@
+---
+description: Rolling timeline is absolute — never invent calendar/week boundaries in rule logic
+alwaysApply: true
+---
+
+# Rolling timeline — owner primary rules
+
+These are **non-negotiable product rules** from the owner. Treat breaches as defects, not design options.
+
+## 1. No timeline rule change without express permission
+
+**NEVER** change any timeline / coverage / fatigue-time behaviour unless the owner has **explicitly approved that specific change** in the current chat or a linked ticket.
+
+That includes: carry across midnight, gap filling, event→minute derivation, shift open/close deduction, break/work/non-work continuity, week seams, and tests that encode those outcomes.
+
+If unsure → **diagnose and propose only**. Do not “helpfully” fix or tweak.
+
+## 2. All timelines are rolling unless the owner says otherwise
+
+Every compliance, LogBar, manager risk, and coverage path is a **single rolling timeline** of driver events (and derived minutes) ending at evaluation `now`.
+
+Do **not** introduce special cases that treat clock midnight, “today”, Sunday week-start, or month boundaries as activity resets — unless the owner **specifically** states an exception.
+
+## 3. Day / week / month are descriptors only
+
+Calendar day, weekStarting, month, PDF sections, and day cards exist **only** to help the UI/PDF show *where* an event sits for humans.
+
+They are **not** identifiers that change meaning on the timeline:
+
+- Open **work / break / non-work** continues until the **next driver-logged event** (or End shift stops carry).
+- Driver **input events are the first source of truth**.
+- Filling gaps as a different type at midnight/week-start without a driver event is **wrong**.
+
+```ts
+// ❌ BAD — calendar day resets open work to non-work
+if (!loggedWorkToday) carryOverType = null; // then fill as non_work
+
+// ✅ GOOD — last logged type continues until next event
+carryOverType = getEffectiveOpenActivityAtDayEnd(prevDay);
+```
+
+Related: `.cursor/rules/time-rules-ip.mdc` (module list + approval workflow).

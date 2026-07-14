@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin } from "lucide-react";
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
-import { todayHasLoggedWorkOrBreak } from "@/lib/day-route-carry";
 import { getTodayLocalDateString, getSheetDayDateString } from "@/lib/weeks";
 import { deriveMinuteGridFromEvents, MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
@@ -82,6 +81,32 @@ export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; 
 export type OpenActivityAtDayEnd = "work" | "break" | "non_work";
 
 /**
+ * Open activity on the calendar day before `days[0]` of a sheet week (e.g. prior
+ * week Saturday → this week's Sunday). WeekStarting is a label only; continuity
+ * still comes from the last driver-logged type (or End shift ends carry).
+ */
+export function resolveOpenActivityBeforeFirstDay(
+  prevWeekDays:
+    | {
+        work_time?: boolean[];
+        breaks?: boolean[];
+        non_work?: boolean[];
+        events?: { time: string; type: string }[];
+      }[]
+    | null
+    | undefined,
+  prevWeekStarting: string | undefined,
+  todayStr: string
+): OpenActivityAtDayEnd | null {
+  if (!prevWeekDays?.length || !prevWeekStarting?.trim()) return null;
+  const lastIdx = prevWeekDays.length - 1;
+  const last = prevWeekDays[lastIdx];
+  if (!last) return null;
+  const dateStr = getSheetDayDateString(prevWeekStarting, lastIdx);
+  return getEffectiveOpenActivityAtDayEnd(last, dateStr, todayStr);
+}
+
+/**
  * Activity still open at end of this calendar day (for rollover into the next day view).
  * Driven by the last non–End shift event; End shift means nothing carries forward.
  */
@@ -122,14 +147,24 @@ export function getEffectiveOpenActivityAtDayEnd(
 }
 
 /**
- * Derive work_time, breaks, non_work for all days with rollover: when the previous
- * day ended with an open segment (work, break, or non-work — no End shift), that
- * activity rolls into the next day from 00:00 until the first event on that day.
+ * Derive work_time, breaks, non_work for all days with rollover.
+ *
+ * Rolling timeline: calendar day / weekStarting are UI buckets only. An open
+ * driver-logged segment (work, break, or non-work — no End shift) continues
+ * into the next bucket from 00:00 until the first event on that bucket (or
+ * until "now" on today). Do not invent a type change at midnight.
  */
 export function deriveDaysWithRollover<T extends { events?: { time: string; type: string }[] }>(
   days: T[],
   weekStarting: string,
-  options?: { todayStr?: string }
+  options?: {
+    todayStr?: string;
+    /**
+     * Open activity on the calendar day before `days[0]` (e.g. prior week Saturday).
+     * Required so Sunday week-start is not a false timeline cut.
+     */
+    openActivityBeforeFirstDay?: OpenActivityAtDayEnd | null;
+  }
 ): (T & { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] })[] {
   const todayStr = options?.todayStr ?? getTodayLocalDateString();
   const result = days.map((d) => ({ ...d })) as (T & { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] })[];
@@ -146,12 +181,10 @@ export function deriveDaysWithRollover<T extends { events?: { time: string; type
       : MINUTES_PER_DAY;
 
     const prevDateStr = i > 0 ? getSheetDayDateString(weekStarting, i - 1) : "";
-    let carryOverType =
-      i > 0 ? getEffectiveOpenActivityAtDayEnd(result[i - 1], prevDateStr, todayStr) : null;
-    // Open work/break on the prior day does not roll into today until the driver logs work/break today.
-    if (carryOverType === "work" || carryOverType === "break") {
-      if (!todayHasLoggedWorkOrBreak(result[i])) carryOverType = null;
-    }
+    const carryOverType: OpenActivityAtDayEnd | null =
+      i > 0
+        ? getEffectiveOpenActivityAtDayEnd(result[i - 1], prevDateStr, todayStr)
+        : (options?.openActivityBeforeFirstDay ?? null);
     let carryOverEndMinute = 0;
     if (carryOverType) {
       const firstEv = currentEvents[0];

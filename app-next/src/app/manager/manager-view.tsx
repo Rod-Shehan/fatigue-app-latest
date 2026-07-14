@@ -17,9 +17,9 @@ import { pickHighestCurrentRiskDriver } from "@/lib/frms/fleet-risk-timeline";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 import type { ShiftLaneDayCoverage } from "@/lib/manager-risk-shift-lane";
 import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
-import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
+import { deriveDaysWithRollover, resolveOpenActivityBeforeFirstDay } from "@/components/fatigue/EventLogger";
 import { sheetDayYmdFromIndex } from "@/lib/route-plan";
-import { getRegulatoryTodayYmd } from "@/lib/weeks";
+import { getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { isSheetOwnedByDriver } from "@/lib/sheet-ownership";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
@@ -436,8 +436,21 @@ export function ManagerView() {
         assume_idle_from: day?.assume_idle_from,
         events: getSheetOwnerEventsInOrder([{ events: day?.events }]),
       }));
+      const prevWeekStarting = getPreviousWeekSunday(weekForSnapshot);
+      const prevWeekSheet = sheets.find(
+        (s) =>
+          s.id !== sheet.id &&
+          s.week_starting === prevWeekStarting &&
+          isSheetOwnedByDriver(s, chartDriverName)
+      );
+      const todayStr = getRegulatoryTodayYmd(sheet.jurisdiction_code);
       const rolled = deriveDaysWithRollover(daysInput, weekForSnapshot, {
-        todayStr: getRegulatoryTodayYmd(sheet.jurisdiction_code),
+        todayStr,
+        openActivityBeforeFirstDay: resolveOpenActivityBeforeFirstDay(
+          prevWeekSheet?.days ?? null,
+          prevWeekStarting,
+          todayStr
+        ),
       });
       const out: ShiftLaneDayCoverage[] = [];
       for (let dayIndex = 0; dayIndex < rolled.length; dayIndex++) {

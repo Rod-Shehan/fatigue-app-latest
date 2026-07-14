@@ -7,13 +7,18 @@ alwaysApply: true
 
 Fatigue **time and compliance rule logic** is the product's core intellectual property.
 
+**Also read:** `.cursor/rules/rolling-timeline.mdc` (rolling timeline is absolute; day/week are descriptors only).
+
 ## Do not change without explicit owner approval
 
-Never modify rule **behaviour**, **thresholds**, **evaluation order**, **reset conditions**, or **regulatory interpretations** unless the user has **explicitly approved** that change in the current chat or a linked ticket.
+**NEVER** modify rule **behaviour**, **thresholds**, **evaluation order**, **reset conditions**, **carry/continuity**, or **regulatory interpretations** unless the user has **explicitly approved that change in the current chat** or a linked ticket.
+
+Do **not** invent calendar midnight, day, week, or month cuts in timeline logic. If a “fix” appears to need a day/week boundary, stop and ask — that is almost certainly wrong.
 
 This applies to:
 
 - Implementations under `app-next/src/lib/` listed below
+- **Coverage / event→grid derivation** (`EventLogger` rollover helpers, `derive-minute-coverage`)
 - **Tests** for those modules (they encode expected rule outcomes)
 - **Duplicated rule logic** in UI (e.g. `LogBar.tsx` break warnings) — treat as rule IP, not casual UI
 - `frms-engine/app/math_engine.py` (TPMA / alertness time model)
@@ -28,8 +33,10 @@ This applies to:
 | `rolling-events.ts` | Rolling timeline; shift-gap / non-work between shifts |
 | `rolling-168h-metrics.ts` | 14-day / 168h work limits |
 | `shift-change.ts` | Reg 184E shift-pattern change / 24h gap |
-| `weeks.ts` | Regulatory week boundaries and rule “today” (Perth) |
+| `weeks.ts` | Regulatory week labels / “today” (Perth) — **display/regulatory clock only**, not activity boundaries |
 | `coverage/derive-minute-coverage.ts` | Minute coverage that feeds rule engines |
+| `components/fatigue/EventLogger.tsx` | `deriveDaysWithRollover` / open activity carry (driver event continuity) |
+| `day-route-carry.ts` | Overnight continuation helpers tied to open activity |
 | `compliance-state.ts` | Retrospective compliance snapshots |
 | `compliance-history.ts` | Multi-week lookback for rolling rules |
 | `sheet-compliance-local.ts` | Client compliance runner (same engines as API) |
@@ -50,3 +57,4 @@ This applies to:
 1. **Diagnose** and explain using current code — do not “fix” yet.
 2. **Propose** the minimal change and wait for explicit approval.
 3. Only then implement, with tests that lock the approved behaviour.
+4. Never land an unsolicited “safety” cut at midnight/week-start that contradicts driver-logged continuity.
