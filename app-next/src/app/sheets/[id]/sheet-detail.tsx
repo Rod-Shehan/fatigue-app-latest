@@ -151,6 +151,8 @@ const BREAK_COMPLETE_MIN = 20;
 const BREAK_LONG_MIN = 60;
 
 const AUTO_SAVE_DEBOUNCE_MS = 5000;
+/** After Start/End shift (and other log taps), persist sooner than normal field edits. */
+const LOG_EVENT_SAVE_MS = 400;
 
 function getForgottenActionReminder(
   days: DayData[],
@@ -256,6 +258,7 @@ export function SheetDetail({
   /** One ref per day card (e.g. scroll to current day from LogBar) */
   const dayCardElsRef = useRef<(HTMLDivElement | null)[]>([]);
   const isDirtyRef = useRef(isDirty);
+  const lastHydratedSheetIdRef = useRef<string | null>(null);
   useEffect(() => {
     isDirtyRef.current = isDirty;
   }, [isDirty]);
@@ -469,60 +472,66 @@ export function SheetDetail({
   }, [rosterDrivers, sheetData.second_driver]);
 
   useEffect(() => {
-    if (sheet) {
-      const weekStart = sheet.week_starting || getThisWeekSunday();
-      const jurisdiction = sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE;
-      const todayStr = getRegulatoryTodayYmd(jurisdiction);
-      let days = applyLast24hBreakNonWorkRule(
-        deriveDaysWithRollover(
-          (sheet.days || []).map((d) => normalizeDayCoverageArrays({ ...EMPTY_DAY(), ...d })),
-          weekStart,
-          {
-            todayStr,
-            openActivityBeforeFirstDay: resolveOpenActivityBeforeFirstDay(
-              allSheets.find(
-                (s) =>
-                  s.id !== sheetId &&
-                  s.driver_name?.toLowerCase() === (sheet.driver_name || "").toLowerCase() &&
-                  s.week_starting === getPreviousWeekSunday(weekStart)
-              )?.days ?? null,
-              getPreviousWeekSunday(weekStart),
-              todayStr
-            ),
-          }
-        ),
-        weekStart,
-        sheet.last_24h_break || undefined
-      );
-      let defaultsApplied = false;
-      if (!isManager && driverUserKey) {
-        const stored = loadDriverRouteDefaults(driverUserKey);
-        const applied = applyRouteDefaultsToWeekDays(days, weekStart, todayStr, stored);
-        days = applied.days;
-        defaultsApplied = applied.changed;
-      }
-      let status = sheet.status || "draft";
-      let signature = sheet.signature;
-      let signed_at = sheet.signed_at;
-      if (isPrematureCurrentWeekAttestation(weekStart, status, signature)) {
-        status = PREMATURE_ATTESTATION_REOPEN.status;
-        signature = undefined;
-        signed_at = undefined;
-      }
-      setSheetData({
-        driver_name: sheet.driver_name || "",
-        second_driver: sheet.second_driver || "",
-        driver_type: sheet.driver_type || "solo",
-        jurisdiction_code: jurisdiction,
-        last_24h_break: sheet.last_24h_break || "",
-        week_starting: weekStart,
-        days,
-        status,
-        signature,
-        signed_at,
-      });
-      setIsDirty(defaultsApplied);
+    if (!sheet) return;
+    // Never replace in-progress local edits with a stale refetch of the same sheet.
+    // Unsaved Start shift was wiped when the query refreshed empty before autosave.
+    if (isDirtyRef.current && lastHydratedSheetIdRef.current === sheet.id) {
+      return;
     }
+    lastHydratedSheetIdRef.current = sheet.id;
+    const weekStart = sheet.week_starting || getThisWeekSunday();
+    const jurisdiction = sheet.jurisdiction_code || DEFAULT_JURISDICTION_CODE;
+    const todayStr = getRegulatoryTodayYmd(jurisdiction);
+    let days = applyLast24hBreakNonWorkRule(
+      deriveDaysWithRollover(
+        (sheet.days || []).map((d) => normalizeDayCoverageArrays({ ...EMPTY_DAY(), ...d })),
+        weekStart,
+        {
+          todayStr,
+          openActivityBeforeFirstDay: resolveOpenActivityBeforeFirstDay(
+            allSheets.find(
+              (s) =>
+                s.id !== sheetId &&
+                s.driver_name?.toLowerCase() === (sheet.driver_name || "").toLowerCase() &&
+                s.week_starting === getPreviousWeekSunday(weekStart)
+            )?.days ?? null,
+            getPreviousWeekSunday(weekStart),
+            todayStr
+          ),
+        }
+      ),
+      weekStart,
+      sheet.last_24h_break || undefined
+    );
+    let defaultsApplied = false;
+    if (!isManager && driverUserKey) {
+      const stored = loadDriverRouteDefaults(driverUserKey);
+      const applied = applyRouteDefaultsToWeekDays(days, weekStart, todayStr, stored);
+      days = applied.days;
+      defaultsApplied = applied.changed;
+    }
+    let status = sheet.status || "draft";
+    let signature = sheet.signature;
+    let signed_at = sheet.signed_at;
+    if (isPrematureCurrentWeekAttestation(weekStart, status, signature)) {
+      status = PREMATURE_ATTESTATION_REOPEN.status;
+      signature = undefined;
+      signed_at = undefined;
+    }
+    setSheetData({
+      driver_name: sheet.driver_name || "",
+      second_driver: sheet.second_driver || "",
+      driver_type: sheet.driver_type || "solo",
+      jurisdiction_code: jurisdiction,
+      last_24h_break: sheet.last_24h_break || "",
+      week_starting: weekStart,
+      days,
+      status,
+      signature,
+      signed_at,
+    });
+    isDirtyRef.current = defaultsApplied;
+    setIsDirty(defaultsApplied);
   }, [sheet, isManager, driverUserKey]);
 
   const prevWeekSheet = useMemo(() => {
@@ -1015,16 +1024,31 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const day = newDays[dayIndex];
       const events = day.events || [];
-        const newEvent = { time: new Date().toISOString(), type };
+      const newEvent = { time: new Date().toISOString(), type };
       const newEvents = [...events, newEvent];
       newDays[dayIndex] = { ...day, events: newEvents };
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
         openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
-      return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
+      const next = {
+        ...prev,
+        days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined),
+      };
+      sheetDataRef.current = next;
+      return next;
     });
+    isDirtyRef.current = true;
     setIsDirty(true);
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      if (!isDirtyRef.current) return;
+      if (saveMutation.isPending) return;
+      const d = sheetDataRef.current;
+      if (!d.driver_name) return;
+      if (!canDriverEditSheetContent(d.week_starting, d.status, d.signature)) return;
+      saveMutation.mutate(buildSavePayload());
+    }, LOG_EVENT_SAVE_MS);
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
         if (!loc) return;
@@ -1035,13 +1059,24 @@ export function SheetDetail({
           const last = events[events.length - 1];
           if (last) events[events.length - 1] = { ...last, lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy };
           newDays[dayIndex] = { ...day, events };
-          return { ...prev, days: newDays };
+          const next = { ...prev, days: newDays };
+          sheetDataRef.current = next;
+          return next;
         });
+        isDirtyRef.current = true;
         setIsDirty(true);
       })
       .catch(() => {});
   },
-  [driverContentLocked, priorTimelineSlices, currentDayIndex, scrollToCurrentDayCard, storedRouteDefaults]);
+  [
+    driverContentLocked,
+    priorTimelineSlices,
+    currentDayIndex,
+    scrollToCurrentDayCard,
+    storedRouteDefaults,
+    buildSavePayload,
+    saveMutation,
+  ]);
 
   const handleEndShiftConfirm = useCallback(async () => {
     if (endShiftDialog == null) return;
