@@ -53,9 +53,9 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
 
   const days = sheet.days ?? [];
   const weekStarting = sheet.week_starting ?? "";
+  const sheetDriverName = (sheet.driver_name || "").trim();
 
   const subtitle = [
-    sheet.driver_name,
     weekStarting && `Week starting ${new Date(weekStarting + "T12:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" })}`,
   ]
     .filter(Boolean)
@@ -63,7 +63,14 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
 
   const driverDisplayName = isManager
     ? undefined
-    : getDisplayNameFromSession(session ?? null) || (sheet.driver_name || "").trim() || undefined;
+    : getDisplayNameFromSession(session ?? null) || sheetDriverName || undefined;
+
+  const driverIdentity = sheetDriverName || driverDisplayName
+    ? {
+        name: (isManager ? sheetDriverName : driverDisplayName || sheetDriverName) || "—",
+        isManagerView: isManager,
+      }
+    : undefined;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
@@ -74,6 +81,7 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
           title="Shift Log"
           subtitle={subtitle || undefined}
           driverDisplayName={driverDisplayName}
+          driverIdentity={driverIdentity}
           icon={<FileText className="w-5 h-5" />}
         />
         <ShiftLogView days={days} weekStarting={weekStarting} />

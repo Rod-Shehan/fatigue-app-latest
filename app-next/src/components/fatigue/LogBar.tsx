@@ -16,6 +16,7 @@ import {
   CircleX,
   ChevronDown,
   ChevronUp,
+  UserRound,
 } from "lucide-react";
 import { type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -144,6 +145,7 @@ export default function LogBar({
   currentDayDisplay,
   driverType,
   reliefDriverName,
+  driverName,
   forgottenActionReminder,
   /** True when this sheet/day is "live now" (today); otherwise hide live elapsed/timers. */
   isLiveNow,
@@ -178,6 +180,8 @@ export default function LogBar({
   driverType?: string;
   /** Relief driver name when two_up (metadata only — not logged on this sheet). */
   reliefDriverName?: string;
+  /** Primary driver display name — shown so the live sheet is clearly theirs (and for manager cross-check). */
+  driverName?: string | null;
   /** Reminder banner content (e.g. forgot end shift). Rendered prominently inside fixed header. */
   forgottenActionReminder?: { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null;
   isLiveNow?: boolean;
@@ -1029,12 +1033,41 @@ export default function LogBar({
         )}
         <div
           className={cn(
-            "mx-auto w-full",
+            "mx-auto w-full flex flex-col gap-2",
             sessionDimmed
-              ? "flex shrink-0 flex-col items-center justify-center"
-              : "max-w-[1400px] flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
+              ? "shrink-0 items-center justify-center"
+              : "max-w-[1400px]"
           )}
         >
+          {driverName?.trim() ? (
+            <p
+              className={cn(
+                "pointer-events-none flex w-full min-w-0 items-center gap-1.5 text-xs font-semibold tracking-tight",
+                sessionDimmed
+                  ? "justify-center text-white/85"
+                  : "text-slate-700 dark:text-slate-200"
+              )}
+              role="status"
+              aria-label={`Driver name: ${driverName.trim()}`}
+            >
+              <UserRound
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  sessionDimmed ? "text-white/70" : "text-slate-500 dark:text-slate-400"
+                )}
+                aria-hidden
+              />
+              <span className="truncate">{driverName.trim()}</span>
+            </p>
+          ) : null}
+          <div
+            className={cn(
+              "w-full",
+              sessionDimmed
+                ? "flex shrink-0 flex-col items-center justify-center"
+                : "flex flex-col gap-2 md:flex-row md:items-start md:gap-3"
+            )}
+          >
           <div
             className={cn(
               "min-w-0 w-full",
@@ -1164,6 +1197,7 @@ export default function LogBar({
                 <ThemeToggle className={touchHeaderBtn} iconClassName={touchHeaderIcon} />
               </div>
             ) : null}
+          </div>
           </div>
         </div>
         {shiftSegmentOpen && legacyMobileToolsOpen && !hideSecondaryToolbar && (

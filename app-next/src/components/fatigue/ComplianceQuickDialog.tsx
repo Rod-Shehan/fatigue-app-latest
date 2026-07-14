@@ -18,17 +18,20 @@ export function ComplianceQuickDialog({
   sheetId,
   loading,
   results,
+  driverName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sheetId: string;
   loading?: boolean;
   results: ComplianceCheckResult[];
+  driverName?: string | null;
 }) {
   const href = `/sheets/${sheetId}/compliance`;
   const violations = results.filter((r) => r.type === "violation");
   const warnings = results.filter((r) => r.type === "warning");
   const issues = [...violations, ...warnings];
+  const name = driverName?.trim() || "";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,6 +49,9 @@ export function ComplianceQuickDialog({
           </DialogTitle>
           <DialogDescription asChild>
             <div className="text-left space-y-2 pt-1">
+              {name ? (
+                <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Driver · {name}</p>
+              ) : null}
               {loading && <p>Checking your record against WA solo rules…</p>}
               {!loading && violations.length === 0 && warnings.length === 0 && (
                 <p>No issues detected on this sheet right now.</p>

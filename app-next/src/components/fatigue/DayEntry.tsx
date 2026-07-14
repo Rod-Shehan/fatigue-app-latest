@@ -46,6 +46,7 @@ export type DayCardToolsConfig = {
   complianceTone: "ok" | "warn" | "issue";
   unsignedPastWeeksCount?: number;
   onOpenGear: () => void;
+  driverName?: string | null;
 };
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -128,6 +129,7 @@ export default function DayEntry({
   dayTools,
   setupOpenRequest,
   onDetailsDialogClosed,
+  driverName,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -158,6 +160,8 @@ export default function DayEntry({
   setupOpenRequest?: number;
   /** Fired when Set up / Edit day dialog closes. */
   onDetailsDialogClosed?: () => void;
+  /** Shown in Edit day so the form is clearly for this driver. */
+  driverName?: string | null;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -593,6 +597,7 @@ export default function DayEntry({
           onOpenGear={dayTools.onOpenGear}
           onOpenDaySetup={() => setDetailsOpen(true)}
           last24hUnset={!dayTools.last24hBreak?.trim()}
+          driverName={dayTools.driverName ?? driverName}
         />
       )}
 
@@ -602,6 +607,7 @@ export default function DayEntry({
           onOpenChange={handleDetailsOpenChange}
           dayTitle={DAY_NAMES[dayIndex] ?? "Day"}
           dateLabel={getDateStr()}
+          driverName={driverName}
           initial={{
             truck_rego: dayData.truck_rego,
             start_location: dayData.start_location,

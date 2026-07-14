@@ -27,6 +27,7 @@ export function DayCardToolsSheet({
   onOpenGear,
   onOpenDaySetup,
   last24hUnset,
+  driverName,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,10 +41,12 @@ export function DayCardToolsSheet({
   onOpenGear: () => void;
   onOpenDaySetup?: () => void;
   last24hUnset?: boolean;
+  driverName?: string | null;
 }) {
   if (!open) return null;
 
   const complianceHref = `/sheets/${sheetId}/compliance`;
+  const name = driverName?.trim() || "";
 
   return (
     <div
@@ -60,9 +63,16 @@ export function DayCardToolsSheet({
       />
       <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xl pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="sticky top-0 flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-4">
-          <h2 id="day-card-tools-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
-            Day tools
-          </h2>
+          <div className="min-w-0">
+            <h2 id="day-card-tools-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              Day tools
+            </h2>
+            {name ? (
+              <p className="mt-0.5 text-sm font-semibold text-slate-600 dark:text-slate-300 truncate">
+                Driver · {name}
+              </p>
+            ) : null}
+          </div>
           <button
             type="button"
             onClick={() => onOpenChange(false)}
@@ -77,6 +87,15 @@ export function DayCardToolsSheet({
           <section>
             <h3 className={driverSectionLabel}>Week record</h3>
             <div className="space-y-2 text-sm">
+              {name ? (
+                <p className="text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
+                    Driver
+                  </span>
+                  <br />
+                  {name}
+                </p>
+              ) : null}
               <p className="text-slate-700 dark:text-slate-300">
                 <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
                   Week

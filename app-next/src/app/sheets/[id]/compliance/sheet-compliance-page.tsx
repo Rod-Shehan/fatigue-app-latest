@@ -145,22 +145,26 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
 
   const sheetDriverName = (sheet?.driver_name || "").trim();
 
+  const sessionDriverNameForCompliance = getDisplayNameFromSession(session ?? null);
+
   const driverPageIdentity = useMemo(() => {
-    if (!isManager || !sheetDriverName) return null;
-    return { name: sheetDriverName, isManagerView: true as const };
-  }, [isManager, sheetDriverName]);
+    const name = isManager
+      ? sheetDriverName
+      : (sessionDriverNameForCompliance || sheetDriverName || "").trim();
+    if (!name) return null;
+    return { name, isManagerView: isManager };
+  }, [isManager, sheetDriverName, sessionDriverNameForCompliance]);
 
   const driverDisplayName = isManager
     ? undefined
-    : getDisplayNameFromSession(session ?? null) || sheetDriverName || undefined;
+    : sessionDriverNameForCompliance || sheetDriverName || undefined;
 
   const pageSubtitle = useMemo(() => {
     const parts: string[] = [];
-    if (isManager && sheetDriverName) parts.push(sheetDriverName);
     parts.push(PRODUCT_NAME);
     if (weekLabel) parts.push(`Week of ${weekLabel}`);
     return parts.join(" · ");
-  }, [isManager, sheetDriverName, weekLabel]);
+  }, [weekLabel]);
 
   if (isLoading || !sheet) {
     return (

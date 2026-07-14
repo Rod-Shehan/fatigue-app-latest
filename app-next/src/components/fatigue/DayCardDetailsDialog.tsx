@@ -81,6 +81,7 @@ export function DayCardDetailsDialog({
   onOpenChange,
   dayTitle,
   dateLabel,
+  driverName,
   initial,
   regos,
   dayIndex,
@@ -102,6 +103,8 @@ export function DayCardDetailsDialog({
   onOpenChange: (open: boolean) => void;
   dayTitle: string;
   dateLabel: string;
+  /** Shown so Edit day is clearly for this driver (and for manager cross-check). */
+  driverName?: string | null;
   initial: DayCardFields;
   regos: Rego[];
   /** Index of this day in sheetDays (for rolling km validation). */
@@ -400,6 +403,11 @@ export function DayCardDetailsDialog({
           <DialogTitle className="text-lg">{dayTitle}</DialogTitle>
           <DialogDescription className="text-base text-slate-600 dark:text-slate-300">
             {dateLabel} — crew, route, kilometres, and work / break / non-work times for this day
+            {driverName?.trim() ? (
+              <span className="mt-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Driver · {driverName.trim()}
+              </span>
+            ) : null}
           </DialogDescription>
         </DialogHeader>
 

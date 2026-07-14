@@ -624,6 +624,7 @@ export function SheetDetail({
       complianceTone,
       unsignedPastWeeksCount: unsignedPastWeeksForDriver.length,
       onOpenGear: () => setGearDrawerOpen(true),
+      driverName: driverPageIdentity.name,
     };
   }, [
     isManager,
@@ -633,6 +634,7 @@ export function SheetDetail({
     sheetData.week_starting,
     sheetData.last_24h_break,
     unsignedPastWeeksForDriver.length,
+    driverPageIdentity.name,
   ]);
 
   const prospectiveWorkWarnings = useMemo(() => {
@@ -1266,7 +1268,12 @@ export function SheetDetail({
   }
 
   const getDriverDayEntryExtras = (dayIndex: number) => {
-    if (isManager) return { driverType: sheetData.driver_type };
+    if (isManager) {
+      return {
+        driverType: sheetData.driver_type,
+        driverName: driverPageIdentity.name,
+      };
+    }
     const isTodayCard = getSheetDayDateString(sheetData.week_starting, dayIndex) === todayYmd;
     const isCurrent = dayIndex === currentDayIndex;
     const crew = resolveDayCrew(sheetData.days[dayIndex], sheetData);
@@ -1274,6 +1281,7 @@ export function SheetDetail({
       ...driverSheetMetaProps,
       driverType: crew.driver_type,
       secondDriver: crew.second_driver,
+      driverName: driverPageIdentity.name,
       onCrewMetaSync: isTodayCard
         ? (meta: { driver_type: "solo" | "two_up"; second_driver: string }) => {
             handleHeaderChange({
@@ -1321,6 +1329,7 @@ export function SheetDetail({
             )}
             driverType={todayCrew.driver_type}
             reliefDriverName={todayCrew.second_driver}
+            driverName={driverPageIdentity.name}
             forgottenActionReminder={forgottenActionReminder}
             isLiveNow={getSheetDayDateString(sheetData.week_starting, currentDayIndex) === todayYmd}
             complianceButton={{
@@ -1366,7 +1375,7 @@ export function SheetDetail({
           subtitle={pageSubtitle}
           compact={canShowLogBar}
           driverDisplayName={headerDriverDisplayName}
-          driverIdentity={canShowLogBar ? undefined : driverPageIdentity}
+          driverIdentity={driverPageIdentity}
           actions={
             sheetData.status === "completed" ? (
               <>
@@ -1707,6 +1716,7 @@ export function SheetDetail({
         sheetId={sheetId}
         loading={complianceLoading}
         results={complianceResults}
+        driverName={driverPageIdentity.name}
       />
       <SignatureDialog
         open={showSignatureDialog}
