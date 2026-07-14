@@ -13,6 +13,8 @@ import { api } from "@/lib/api";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DEFAULT_JURISDICTION_CODE, getJurisdictionOptions } from "@/lib/jurisdiction";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { isFleetManagerRole } from "@/lib/roles";
+import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { cn } from "@/lib/utils";
 import {
   driverDateChip,
@@ -113,6 +115,11 @@ export default function SheetHeader({
   readOnly = false,
   /** When true, primary driver is shown elsewhere (e.g. page title tile); keep second driver + rest. */
   hidePrimaryDriverField = false,
+  /**
+   * Parent-known fleet oversight (manager/owner). Prefer this over session role alone so
+   * owners on the manager desk never sync their login name onto the driver’s sheet.
+   */
+  fleetOversight = false,
   /** Right side of the compact row (e.g. gear drawer, save status). */
   headerActions,
 }: {
@@ -120,6 +127,7 @@ export default function SheetHeader({
   onChange: (s: Partial<SheetData>) => void;
   readOnly?: boolean;
   hidePrimaryDriverField?: boolean;
+  fleetOversight?: boolean;
   headerActions?: React.ReactNode;
 }) {
   const last24hDateInputRef = useRef<HTMLInputElement>(null);
@@ -153,16 +161,22 @@ export default function SheetHeader({
 
   const { data: session, status: sessionStatus } = useSession();
   const role = (session?.user as { role?: string | null } | undefined)?.role ?? null;
-  const isManager = role === "manager";
+  const isFleetOversight = fleetOversight || isFleetManagerRole(role);
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
+  const primaryDriverDisplay = resolveSheetDriverDisplayName({
+    sheetDriverName: sheetData.driver_name,
+    sessionDisplayName: sessionDriverName,
+    isFleetOversight,
+    sessionLoading: sessionStatus === "loading",
+  });
 
-  /** Drivers: primary name always comes from the account; managers see the name stored on the sheet. */
+  /** Field drivers only: primary name comes from the account. Never rewrite under fleet oversight. */
   useEffect(() => {
-    if (readOnly || isManager || sessionStatus !== "authenticated") return;
+    if (readOnly || isFleetOversight || sessionStatus !== "authenticated") return;
     if (!sessionDriverName) return;
     if (sheetData.driver_name === sessionDriverName) return;
     onChange({ driver_name: sessionDriverName });
-  }, [readOnly, isManager, sessionStatus, sessionDriverName, sheetData.driver_name, onChange]);
+  }, [readOnly, isFleetOversight, sessionStatus, sessionDriverName, sheetData.driver_name, onChange]);
 
   /** Auto-select when only one rule set exists (keeps picker hidden). */
   useEffect(() => {
@@ -291,16 +305,12 @@ export default function SheetHeader({
           </Label>
           <div
             className="flex h-10 flex-1 min-w-[10rem] items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-sm font-medium text-slate-800 dark:border-slate-600 dark:bg-slate-800/50 dark:text-slate-100"
-            title={isManager ? "Driver name on this sheet" : "From your account (login name)"}
+            title={isFleetOversight ? "Driver name on this sheet" : "From your account (login name)"}
           >
             <span className="truncate">
-              {readOnly
-                ? sheetData.driver_name || "—"
-                : isManager
-                  ? sheetData.driver_name || "—"
-                  : sessionStatus === "loading"
-                    ? "…"
-                    : sessionDriverName || sheetData.driver_name || "—"}
+              {readOnly || isFleetOversight
+                ? sheetData.driver_name?.trim() || "—"
+                : primaryDriverDisplay}
             </span>
           </div>
         </div>

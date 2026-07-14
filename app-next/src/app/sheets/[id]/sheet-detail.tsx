@@ -108,6 +108,8 @@ import { setActiveSheetDiaryContext } from "@/lib/risk-block-diary";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import { MINUTES_PER_DAY, normalizeDayCoverageArrays } from "@/lib/coverage/derive-minute-coverage";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { isFleetManagerRole } from "@/lib/roles";
+import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { cn } from "@/lib/utils";
 import { formatPastWeekArchiveSubtitle } from "@/lib/product-copy";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
@@ -189,9 +191,9 @@ export function SheetDetail({
 }) {
   const queryClient = useQueryClient();
   const { data: session, status: sessionStatus } = useSession();
+  const sessionRole = (session?.user as { role?: string | null } | undefined)?.role ?? null;
   const isManager =
-    canAccessManager ||
-    (session?.user as { role?: string | null } | undefined)?.role === "manager";
+    canAccessManager || isFleetManagerRole(sessionRole);
   const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
 
   const [sheetData, setSheetData] = useState<{
@@ -432,11 +434,12 @@ export function SheetDetail({
 
   const sessionDriverName = getDisplayNameFromSession(session ?? null);
   const driverPageIdentity = useMemo(() => {
-    const name = isManager
-      ? (sheetData.driver_name || "").trim() || "—"
-      : sessionStatus === "loading"
-        ? "…"
-        : (sessionDriverName || sheetData.driver_name || "").trim() || "—";
+    const name = resolveSheetDriverDisplayName({
+      sheetDriverName: sheetData.driver_name,
+      sessionDisplayName: sessionDriverName,
+      isFleetOversight: isManager,
+      sessionLoading: sessionStatus === "loading",
+    });
     return { name, isManagerView: isManager };
   }, [isManager, sessionStatus, sessionDriverName, sheetData.driver_name]);
 
@@ -1452,6 +1455,7 @@ export function SheetDetail({
                 sheetData={sheetData}
                 onChange={handleHeaderChange}
                 hidePrimaryDriverField
+                fleetOversight={isManager}
                 readOnly={driverContentLocked}
                 headerActions={
                     <>

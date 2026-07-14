@@ -70,13 +70,15 @@ export function PageHeader({
   const isManagerBadge = role === "manager";
   const isOwnerBadge = role === "owner";
 
-  /** Explicit prop wins; otherwise drivers get session name so every driver page shows who it’s for. */
+  /** Explicit prop wins; drivers get session name when omitted. Never invent a name for fleet oversight. */
   const resolvedIdentityName =
     driverIdentity != null && driverIdentity.name.trim() !== ""
       ? driverIdentity.name.trim()
-      : role === "driver" && (driverDisplayName?.trim() || sessionDisplayName)
-        ? (driverDisplayName?.trim() || sessionDisplayName)
-        : "";
+      : driverIdentity?.isManagerView
+        ? ""
+        : role === "driver" && (driverDisplayName?.trim() || sessionDisplayName)
+          ? (driverDisplayName?.trim() || sessionDisplayName)
+          : "";
   const di =
     resolvedIdentityName !== ""
       ? {

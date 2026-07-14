@@ -16,6 +16,8 @@ import {
   runLocalSheetComplianceCheck,
 } from "@/lib/sheet-compliance-local";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { isFleetManagerRole } from "@/lib/roles";
+import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { formatSheetDisplayDate, getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";
 import { useSession } from "next-auth/react";
 
@@ -31,8 +33,9 @@ function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
 
 export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
   const router = useRouter();
-  const { data: session } = useSession();
-  const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
+  const { data: session, status: sessionStatus } = useSession();
+  const sessionRole = (session?.user as { role?: string | null } | undefined)?.role ?? null;
+  const isManager = isFleetManagerRole(sessionRole);
 
   useEffect(() => {
     if (sheetId) {
@@ -144,16 +147,18 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
   const weekLabel = sheet?.week_starting ? formatSheetDisplayDate(sheet.week_starting) : "";
 
   const sheetDriverName = (sheet?.driver_name || "").trim();
-
   const sessionDriverNameForCompliance = getDisplayNameFromSession(session ?? null);
 
   const driverPageIdentity = useMemo(() => {
-    const name = isManager
-      ? sheetDriverName
-      : (sessionDriverNameForCompliance || sheetDriverName || "").trim();
-    if (!name) return null;
+    const name = resolveSheetDriverDisplayName({
+      sheetDriverName: sheetDriverName,
+      sessionDisplayName: sessionDriverNameForCompliance,
+      isFleetOversight: isManager,
+      sessionLoading: sessionStatus === "loading",
+    });
+    if (!name || name === "—") return null;
     return { name, isManagerView: isManager };
-  }, [isManager, sheetDriverName, sessionDriverNameForCompliance]);
+  }, [isManager, sheetDriverName, sessionDriverNameForCompliance, sessionStatus]);
 
   const driverDisplayName = isManager
     ? undefined

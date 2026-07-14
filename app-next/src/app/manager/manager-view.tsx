@@ -687,6 +687,16 @@ export function ManagerView() {
   });
 
   useEffect(() => {
+    if (!selectedSheetId) {
+      setForm({
+        last_24h_break: "",
+        driver_type: "solo",
+        week_starting: "",
+        driver_name: "",
+        second_driver: "",
+      });
+      return;
+    }
     if (!selectedSheet || selectedSheet.id !== selectedSheetId) return;
     setForm({
       last_24h_break: selectedSheet.last_24h_break ?? "",
@@ -761,7 +771,7 @@ export function ManagerView() {
       form.second_driver !== (selectedSheet.second_driver ?? ""));
 
   const handleSave = () => {
-    if (!selectedSheetId) return;
+    if (!selectedSheetId || !selectedSheet || selectedSheet.id !== selectedSheetId) return;
     const reason = amendmentReason.trim();
     if (managerEditNeedsReason && hasChanges && !reason) {
       window.alert("Enter an amendment reason before saving changes to a past or completed sheet.");
@@ -1033,7 +1043,7 @@ export function ManagerView() {
 
               {selectedSheetId && (
                 <>
-                  {sheetLoading ? (
+                  {sheetLoading || !selectedSheet || selectedSheet.id !== selectedSheetId ? (
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-4">
                       <div className="flex items-center gap-2 text-slate-500 text-sm">
                         <Loader2 className="w-4 h-4 animate-spin shrink-0" />
@@ -1047,6 +1057,17 @@ export function ManagerView() {
                     </div>
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                      <div className="space-y-1.5 sm:col-span-2 rounded-lg border border-teal-200/80 bg-teal-50/50 px-3 py-2 dark:border-teal-800/50 dark:bg-teal-950/30">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-800 dark:text-teal-200">
+                          Sheet driver
+                        </p>
+                        <p className="text-base font-bold text-slate-900 dark:text-slate-50">
+                          {(selectedSheet.driver_name || "").trim() || "—"}
+                        </p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          From this sheet record. Edit “Driver name” below only to correct the stored name.
+                        </p>
+                      </div>
                       <div className="space-y-1.5 sm:col-span-2">
                         <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                           Last 24 hour break

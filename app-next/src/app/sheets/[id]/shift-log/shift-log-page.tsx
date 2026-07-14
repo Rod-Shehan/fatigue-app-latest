@@ -7,14 +7,17 @@ import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { useSession } from "next-auth/react";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
+import { isFleetManagerRole } from "@/lib/roles";
+import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { FileText, Loader2 } from "lucide-react";
 import ShiftLogView from "@/components/fatigue/ShiftLogView";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
 
 export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
-  const { data: session } = useSession();
-  const isManager = (session?.user as { role?: string | null } | undefined)?.role === "manager";
+  const { data: session, status: sessionStatus } = useSession();
+  const sessionRole = (session?.user as { role?: string | null } | undefined)?.role ?? null;
+  const isManager = isFleetManagerRole(sessionRole);
   useEffect(() => {
     if (sheetId) {
       try {
@@ -61,16 +64,23 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
     .filter(Boolean)
     .join(" · ");
 
-  const driverDisplayName = isManager
-    ? undefined
-    : getDisplayNameFromSession(session ?? null) || sheetDriverName || undefined;
+  const sessionDisplayName = getDisplayNameFromSession(session ?? null);
+  const resolvedDriverName = resolveSheetDriverDisplayName({
+    sheetDriverName,
+    sessionDisplayName,
+    isFleetOversight: isManager,
+    sessionLoading: sessionStatus === "loading",
+  });
 
-  const driverIdentity = sheetDriverName || driverDisplayName
-    ? {
-        name: (isManager ? sheetDriverName : driverDisplayName || sheetDriverName) || "—",
-        isManagerView: isManager,
-      }
-    : undefined;
+  const driverDisplayName = isManager ? undefined : sessionDisplayName || sheetDriverName || undefined;
+
+  const driverIdentity =
+    resolvedDriverName && resolvedDriverName !== "—"
+      ? {
+          name: resolvedDriverName,
+          isManagerView: isManager,
+        }
+      : undefined;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-6">
