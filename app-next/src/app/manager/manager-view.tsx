@@ -19,7 +19,7 @@ import type { ShiftLaneDayCoverage } from "@/lib/manager-risk-shift-lane";
 import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import { deriveDaysWithRollover, resolveOpenActivityBeforeFirstDay } from "@/components/fatigue/EventLogger";
 import { sheetDayYmdFromIndex } from "@/lib/route-plan";
-import { getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";
+import { getPreviousWeekSunday, getRegulatoryTodayYmd, isPastRegulatoryWeek } from "@/lib/weeks";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { isSheetOwnedByDriver } from "@/lib/sheet-ownership";
 import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection";
@@ -36,7 +36,6 @@ import {
 } from "@/lib/manager-risk-scoring";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type DayData, type FatigueSheet, type SheetUpdatePayload } from "@/lib/api";
-import { isPastRegulatoryWeek } from "@/lib/weeks";
 import { MANAGER_PAST_WEEK_AMEND_HINT, SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,7 +64,6 @@ import {
   startOfWeekSunday,
   toYMD,
 } from "@/app/manager/manager-month-calendar";
-import { getPreviousWeekSunday } from "@/lib/weeks";
 import type { ManagerComplianceItem } from "@/lib/api";
 import { getEventsInTimeOrder, getLastShiftEndTime, getNonWorkHoursSinceLastShiftEnd } from "@/lib/rolling-events";
 import { getBreakDueByTime } from "@/lib/five-hour-break-rule";
