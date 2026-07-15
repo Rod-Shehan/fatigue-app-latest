@@ -188,6 +188,20 @@ export async function offlineEnqueue(write: PendingWriteEnqueue): Promise<void> 
   });
 }
 
+/** Drop prior pending updates for the same sheet so the queue stays one write deep. */
+export async function offlineEnqueueSheetUpdate(
+  sheetId: string,
+  data: Partial<FatigueSheet>
+): Promise<void> {
+  const pending = await offlineGetPending();
+  for (const item of pending) {
+    if (item.type === "update" && item.sheetId === sheetId) {
+      await offlineRemovePending(item.id);
+    }
+  }
+  await offlineEnqueue({ type: "update", sheetId, data });
+}
+
 /** Remove a single pending write by id (IDB key). */
 export async function offlineRemovePending(id: number): Promise<void> {
   const db = await openDB();

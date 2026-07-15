@@ -1,7 +1,8 @@
 /**
  * Offline-first API layer for sheets and regos.
  * - GET: try network first; on failure or when offline, read from IndexedDB.
- * - UPDATE: write to IndexedDB immediately (optimistic), enqueue for sync; when online, sync runs.
+ *   Never overwrite a local sheet that still has pending updates with a network GET.
+ * - UPDATE: write to IndexedDB immediately (optimistic), coalesce enqueue; sync when online.
  * - CREATE: when offline, create local sheet with temp id and enqueue; when online, POST and replace temp with server id.
  */
 
@@ -16,26 +17,66 @@ import {
   offlineSetRegos,
   offlineGetPending,
   offlineEnqueue,
+  offlineEnqueueSheetUpdate,
   offlineRemovePending,
   offlineDeleteSheet,
+  type PendingWrite,
 } from "./offline";
 import { scheduleDeviceBackupAfterWrite, writeDeviceSnapshot } from "./device-backup";
+import {
+  hasPendingUpdateForSheet,
+  isNotFoundError,
+  mergeLocalSheetWithPendingUpdates,
+  pendingUpdatesForSheet,
+  toSheetUpdatePayload,
+} from "./offline-sync-merge";
 
 export { isOnline };
 
+export type SyncResult = {
+  synced: number;
+  error?: string;
+  replacedTempId?: { tempId: string; realId: string };
+};
+
 /** Try to run sync (process pending queue). Call when online. Returns list of synced ids and any error. */
-export async function runSync(): Promise<{ synced: number; error?: string; replacedTempId?: { tempId: string; realId: string } }> {
+export async function runSync(): Promise<SyncResult> {
+  // Refresh list so remapping after deleted sheet ids can find the live week sheet.
+  if (isOnline()) {
+    try {
+      const sheets = await api.sheets.list();
+      await offlineSetSheetsList(sheets);
+    } catch {
+      /* keep cached list */
+    }
+  }
+
   const pending = await offlineGetPending();
   let synced = 0;
   let replacedTempId: { tempId: string; realId: string } | undefined;
+  const removedIds = new Set<number>();
+
   for (const item of pending) {
-    const id = item.id;
+    if (removedIds.has(item.id)) continue;
     try {
       if (item.type === "update") {
-        await api.sheets.update(item.sheetId, item.data);
+        const siblings = pendingUpdatesForSheet(pending, item.sheetId).filter(
+          (p) => !removedIds.has(p.id)
+        );
+        const local = await offlineGetSheet(item.sheetId);
+        const merged = mergeLocalSheetWithPendingUpdates(local, siblings, item.sheetId);
+        const payload = toSheetUpdatePayload(merged ?? item.data);
+
+        // Keep cache aligned with what we intend to push (recover wiped IDB from pending).
+        if (merged) await offlineSetSheet(merged);
+
+        await api.sheets.update(item.sheetId, payload);
         await offlineSetSheet(await api.sheets.get(item.sheetId));
-        await offlineRemovePending(id);
-        synced++;
+        for (const s of siblings) {
+          await offlineRemovePending(s.id);
+          removedIds.add(s.id);
+        }
+        synced += siblings.length;
       } else if (item.type === "create") {
         const latest = await offlineGetSheet(item.tempId);
         const payload = latest
@@ -59,11 +100,51 @@ export async function runSync(): Promise<{ synced: number; error?: string; repla
         const newList = list.filter((s) => s.id !== item.tempId);
         newList.push(created);
         await offlineSetSheetsList(newList);
-        await offlineRemovePending(id);
+        await offlineRemovePending(item.id);
+        removedIds.add(item.id);
         replacedTempId = { tempId: item.tempId, realId: created.id };
         synced++;
       }
     } catch (e) {
+      // Orphaned writes after a server purge / deleted sheet: remap to the live sheet
+      // for the same driver + week when we can, then drop the dead id.
+      if (item.type === "update" && isNotFoundError(e)) {
+        const siblings = pendingUpdatesForSheet(pending, item.sheetId).filter(
+          (p) => !removedIds.has(p.id)
+        );
+        const local = await offlineGetSheet(item.sheetId);
+        const merged = mergeLocalSheetWithPendingUpdates(local, siblings, item.sheetId);
+        const list = await offlineGetSheetsList();
+        const driver = (merged?.driver_name || "").trim().toLowerCase();
+        const week = merged?.week_starting || "";
+        const replacement =
+          driver && week
+            ? list.find(
+                (s) =>
+                  s.id !== item.sheetId &&
+                  (s.driver_name || "").trim().toLowerCase() === driver &&
+                  s.week_starting === week
+              )
+            : undefined;
+        for (const s of siblings) {
+          await offlineRemovePending(s.id);
+          removedIds.add(s.id);
+        }
+        await offlineDeleteSheet(item.sheetId).catch(() => {});
+        if (replacement && merged) {
+          const payload = toSheetUpdatePayload(merged);
+          const remapped: FatigueSheet = { ...merged, id: replacement.id };
+          await offlineSetSheet(remapped);
+          try {
+            await api.sheets.update(replacement.id, payload);
+            await offlineSetSheet(await api.sheets.get(replacement.id));
+            synced += siblings.length || 1;
+          } catch {
+            await offlineEnqueueSheetUpdate(replacement.id, payload);
+          }
+        }
+        continue;
+      }
       const msg = e instanceof Error ? e.message : "Sync failed";
       return { synced, error: msg, replacedTempId };
     }
@@ -74,7 +155,10 @@ export async function runSync(): Promise<{ synced: number; error?: string; repla
   return { synced, replacedTempId };
 }
 
-/** Get sheet: network first, fallback to IndexedDB when offline or request fails. Local temp ids are cache-only. */
+/**
+ * Get sheet: network first when nothing is pending locally; otherwise prefer (and restore)
+ * the local/pending merge so a stale GET cannot wipe driver work still waiting to sync.
+ */
 export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
   const isLocalTemp = id.startsWith("local-");
   if (isLocalTemp) {
@@ -82,9 +166,31 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
     if (cached) return cached;
     throw new Error("Local sheet not found.");
   }
+
+  const pending = await offlineGetPending();
+  if (hasPendingUpdateForSheet(pending, id)) {
+    const local = await offlineGetSheet(id);
+    const merged = mergeLocalSheetWithPendingUpdates(local, pending, id);
+    if (merged) {
+      await offlineSetSheet(merged);
+      if (isOnline()) void runSync().catch(() => {});
+      return merged;
+    }
+  }
+
   if (isOnline()) {
     try {
       const sheet = await api.sheets.get(id);
+      // Re-check: a write may have enqueued while we were fetching.
+      const pendingAfter = await offlineGetPending();
+      if (hasPendingUpdateForSheet(pendingAfter, id)) {
+        const local = await offlineGetSheet(id);
+        const merged = mergeLocalSheetWithPendingUpdates(local, pendingAfter, id);
+        if (merged) {
+          await offlineSetSheet(merged);
+          return merged;
+        }
+      }
       await offlineSetSheet(sheet);
       return sheet;
     } catch {
@@ -112,15 +218,15 @@ export async function listSheetsOfflineFirst(): Promise<FatigueSheet[]> {
   return offlineGetSheetsList();
 }
 
-/** Update sheet: write to IndexedDB immediately, then enqueue (unless local temp) and try sync if online. */
+/** Update sheet: write to IndexedDB immediately, then coalesce-enqueue and try sync if online. */
 export async function updateSheetOfflineFirst(sheetId: string, data: Partial<FatigueSheet>): Promise<FatigueSheet> {
   const existing = await offlineGetSheet(sheetId).catch(() => null);
   const merged: FatigueSheet = existing
     ? { ...existing, ...data, id: sheetId }
-    : { ...data, id: sheetId } as FatigueSheet;
+    : ({ ...data, id: sheetId } as FatigueSheet);
   await offlineSetSheet(merged);
   const isLocalTemp = sheetId.startsWith("local-");
-  if (!isLocalTemp) await offlineEnqueue({ type: "update", sheetId, data });
+  if (!isLocalTemp) await offlineEnqueueSheetUpdate(sheetId, data);
 
   // Try sync opportunistically; some devices misreport navigator.onLine.
   if (!isLocalTemp) await runSync().catch(() => {});
@@ -169,4 +275,9 @@ export async function listRegosOfflineFirst(): Promise<Rego[]> {
 export async function getPendingCount(): Promise<number> {
   const pending = await offlineGetPending();
   return pending.length;
+}
+
+/** Inspect pending (debug / support). */
+export async function getPendingWrites(): Promise<PendingWrite[]> {
+  return offlineGetPending();
 }

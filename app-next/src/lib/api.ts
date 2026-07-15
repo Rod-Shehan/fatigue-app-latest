@@ -28,8 +28,9 @@ async function fetchApi<T>(path: string, options?: FetchApiOptions): Promise<T> 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     const msg = (err as { error?: string }).error ?? "Request failed";
-    const e = new Error(msg) as Error & { body?: Record<string, unknown> };
+    const e = new Error(msg) as Error & { body?: Record<string, unknown>; status?: number };
     e.body = err as Record<string, unknown>;
+    e.status = res.status;
     throw e;
   }
   if (res.status === 204) return undefined as T;

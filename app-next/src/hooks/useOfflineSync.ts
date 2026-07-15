@@ -12,6 +12,7 @@ export function useOfflineSync() {
   const queryClient = useQueryClient();
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const probeOnline = async (): Promise<boolean> => {
     try {
@@ -24,6 +25,11 @@ export function useOfflineSync() {
 
   const doSync = async () => {
     const result = await runSync();
+    if (result.error) {
+      setSyncError(result.error);
+    } else {
+      setSyncError(null);
+    }
     if (result.replacedTempId) {
       const { tempId, realId } = result.replacedTempId;
       if (typeof window !== "undefined" && window.location.pathname === `/sheets/${tempId}`) {
@@ -44,7 +50,10 @@ export function useOfflineSync() {
   const refreshPendingAndMaybeSync = async () => {
     const count = await getPendingCount();
     setPendingCount(count);
-    if (count === 0) return count;
+    if (count === 0) {
+      setSyncError(null);
+      return count;
+    }
     const navOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
     if (navOnline) {
       setOnline(true);
@@ -105,6 +114,7 @@ export function useOfflineSync() {
           schedule(ACTIVE_SYNC_MS);
           return;
         }
+        setSyncError(null);
         if (typeof navigator !== "undefined" && !navigator.onLine) {
           const ok = await probeOnline();
           setOnline(ok);
@@ -122,5 +132,5 @@ export function useOfflineSync() {
     };
   }, []);
 
-  return { online, pendingCount, runSync: doSync };
+  return { online, pendingCount, syncError, runSync: doSync };
 }
