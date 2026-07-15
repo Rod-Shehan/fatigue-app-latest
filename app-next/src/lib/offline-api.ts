@@ -28,6 +28,7 @@ import {
   isNotFoundError,
   mergeLocalSheetWithPendingUpdates,
   pendingUpdatesForSheet,
+  shouldPreferLocalSheet,
   toSheetUpdatePayload,
 } from "./offline-sync-merge";
 
@@ -190,6 +191,14 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
           await offlineSetSheet(merged);
           return merged;
         }
+      }
+      // Device backup restore / wiped pending can leave richer local data than Neon.
+      // Never replace that with a emptier server copy — push local instead.
+      const local = await offlineGetSheet(id);
+      if (local && shouldPreferLocalSheet(local, sheet)) {
+        await offlineEnqueueSheetUpdate(id, toSheetUpdatePayload(local));
+        void runSync().catch(() => {});
+        return local;
       }
       await offlineSetSheet(sheet);
       return sheet;

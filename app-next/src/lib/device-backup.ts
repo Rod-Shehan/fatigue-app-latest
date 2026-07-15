@@ -223,7 +223,19 @@ export async function restoreDeviceBackup(
   }
   await offlineSetSheetsList(snapshot.sheetsList);
   await offlineSetRegos(snapshot.regos);
-  await offlineReplacePending(snapshot.pending);
+  // Only restore pending writes that still belong to restored sheet ids, and
+  // coalesce to one update per sheet so we do not re-poison the sync queue.
+  const knownIds = new Set(snapshot.sheets.map((s) => s.id).filter(Boolean));
+  const coalesced = new Map<string, PendingWriteEnqueue>();
+  for (const item of snapshot.pending) {
+    if (item.type === "create") {
+      coalesced.set(`create:${item.tempId}`, item);
+      continue;
+    }
+    if (!knownIds.has(item.sheetId)) continue;
+    coalesced.set(`update:${item.sheetId}`, item);
+  }
+  await offlineReplacePending([...coalesced.values()]);
   if (snapshot.offlineAuth) {
     saveOfflineAuth({
       id: snapshot.offlineAuth.userId,
@@ -237,13 +249,18 @@ export async function restoreDeviceBackup(
 
 /**
  * If live cache is empty but a snapshot exists, restore the latest for this driver.
+ * Skip when sheets or pending writes already exist — never clobber live capture.
  */
 export async function tryAutoRestoreDeviceBackup(driverEmail?: string | null): Promise<{
   restored: boolean;
   weekCount: number;
 } | null> {
-  const list = await offlineGetSheetsList();
-  if (list.length > 0) return null;
+  const [list, sheets, pending] = await Promise.all([
+    offlineGetSheetsList(),
+    offlineGetAllSheets(),
+    offlineGetPending(),
+  ]);
+  if (list.length > 0 || sheets.length > 0 || pending.length > 0) return null;
 
   const latest = await getLatestDeviceBackup(driverEmail);
   if (!latest || latest.sheetsList.length === 0) return null;

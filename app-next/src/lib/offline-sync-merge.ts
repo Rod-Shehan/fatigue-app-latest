@@ -31,6 +31,18 @@ export function countSheetEvents(sheet: Pick<FatigueSheet, "days"> | null | unde
 }
 
 /**
+ * Prefer on-device sheet when it has more logged events than the server copy.
+ * Protects auto-restored / unsynced driver work from being wiped by an empty GET
+ * even when the pending queue was cleared or never restored.
+ */
+export function shouldPreferLocalSheet(
+  local: Pick<FatigueSheet, "days"> | null | undefined,
+  server: Pick<FatigueSheet, "days"> | null | undefined
+): boolean {
+  return countSheetEvents(local) > countSheetEvents(server);
+}
+
+/**
  * Merge local cached sheet with ordered pending update payloads (oldest → newest).
  * Each save already includes a full `days` array when present, so later wins for those fields.
  */

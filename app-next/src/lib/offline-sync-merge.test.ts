@@ -6,6 +6,7 @@ import {
   hasPendingUpdateForSheet,
   isNotFoundError,
   mergeLocalSheetWithPendingUpdates,
+  shouldPreferLocalSheet,
   toSheetUpdatePayload,
 } from "./offline-sync-merge";
 
@@ -83,5 +84,22 @@ describe("offline-sync-merge", () => {
   it("recognises not-found sync errors", () => {
     expect(isNotFoundError(Object.assign(new Error("Not found"), { status: 404 }))).toBe(true);
     expect(isNotFoundError(new Error("Forbidden"))).toBe(false);
+  });
+
+  it("keeps richer local sheet over empty server after backup restore", () => {
+    const local = sheet({
+      id: "s1",
+      days: [
+        {
+          events: [
+            { time: "2026-07-14T10:00:00.000Z", type: "work" },
+            { time: "2026-07-14T13:55:00.000Z", type: "break" },
+          ],
+        },
+      ],
+    });
+    const server = sheet({ id: "s1", days: [{ events: [] }] });
+    expect(shouldPreferLocalSheet(local, server)).toBe(true);
+    expect(shouldPreferLocalSheet(server, local)).toBe(false);
   });
 });
