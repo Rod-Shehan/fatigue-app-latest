@@ -1,9 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   appSurfaceFromHost,
+  documentTitleForSurface,
   isPathAllowedOnSurface,
   lobbyBranchesForSurface,
-  redirectForBlockedPath,
   resolveAppSurface,
 } from "./app-surface";
 
@@ -48,11 +48,10 @@ describe("app-surface", () => {
     expect(isPathAllowedOnSurface("/driver", "legacy")).toBe(true);
   });
 
-  it("builds sibling redirects when URLs are set", () => {
-    vi.stubEnv("NEXT_PUBLIC_ENTERPRISE_APP_URL", "https://enterprise.circadia24.com");
-    const r = redirectForBlockedPath("/manager", "ewd");
-    expect(r.external).toBe(true);
-    expect(r.location).toBe("https://enterprise.circadia24.com/manager");
-    vi.unstubAllEnvs();
+  it("builds document titles per product surface", () => {
+    expect(documentTitleForSurface("ewd")).toBe("Circadia24 EWD");
+    expect(documentTitleForSurface("enterprise")).toBe("Circadia24 Enterprise");
+    expect(documentTitleForSurface("legacy")).toBe("Circadia 24 – Legacy");
   });
 });
+

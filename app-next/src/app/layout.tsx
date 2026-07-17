@@ -1,13 +1,30 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
-import { PRODUCT_NAME, TAGLINE_VEHICLE } from "@/lib/branding";
+import {
+  documentDescriptionForSurface,
+  documentTitleForSurface,
+  getAppSurface,
+} from "@/lib/app-surface";
 import { Providers } from "@/components/providers";
 import { ThemeToggleInLayout } from "@/components/theme-toggle-in-layout";
 
-export const metadata: Metadata = {
-  title: `${PRODUCT_NAME} – WA`,
-  description: `${PRODUCT_NAME} — ${TAGLINE_VEHICLE}`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const surface = getAppSurface(host);
+  const title = documentTitleForSurface(surface);
+  return {
+    title,
+    description: documentDescriptionForSurface(surface),
+    applicationName: title,
+    appleWebApp: {
+      title,
+      capable: true,
+      statusBarStyle: "black-translucent",
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -27,15 +44,20 @@ const themeScript = `
 })();
 `;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const surface = getAppSurface(host);
+  const appName = documentTitleForSurface(surface);
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
         <meta name="theme-color" content="#0f172a" />
-        <meta name="application-name" content={PRODUCT_NAME} />
-        <meta name="apple-mobile-web-app-title" content={PRODUCT_NAME} />
+        <meta name="application-name" content={appName} />
+        <meta name="apple-mobile-web-app-title" content={appName} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />

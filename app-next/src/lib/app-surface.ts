@@ -78,6 +78,23 @@ export function appSurfaceLabel(surface: AppSurface): string {
   }
 }
 
+/** Browser tab / PWA short title for this product surface. */
+export function documentTitleForSurface(surface: AppSurface): string {
+  switch (surface) {
+    case "ewd":
+      return "Circadia24 EWD";
+    case "enterprise":
+      return "Circadia24 Enterprise";
+    case "legacy":
+    default:
+      return "Circadia 24 – Legacy";
+  }
+}
+
+export function documentDescriptionForSurface(surface: AppSurface): string {
+  return `${documentTitleForSurface(surface)} — ${appSurfaceTagline(surface)}`;
+}
+
 export function appSurfaceTagline(surface: AppSurface): string {
   switch (surface) {
     case "legacy":
