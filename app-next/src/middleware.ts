@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { isEmailAllowedForAlphaAccess, isAlphaAllowlistEnabled } from "@/lib/auth-alpha-allowlist";
+import {
+  getAppSurface,
+  isPathAllowedOnSurface,
+  redirectForBlockedPath,
+} from "@/lib/app-surface";
 
 const PROTECTED_PREFIXES = [
   "/driver",
@@ -28,9 +33,24 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const host = request.headers.get("host");
+  const surface = getAppSurface(host);
 
   if (pathname.startsWith("/api/auth")) {
     return applySecurityHeaders(NextResponse.next());
+  }
+
+  // Soft product split: send wrong-audience pages to sibling host or lobby.
+  if (!pathname.startsWith("/api/") && !isPathAllowedOnSurface(pathname, surface)) {
+    const target = redirectForBlockedPath(pathname, surface);
+    if (target.external) {
+      return applySecurityHeaders(NextResponse.redirect(target.location));
+    }
+    const url = request.nextUrl.clone();
+    const [pathOnly, query] = target.location.split("?");
+    url.pathname = pathOnly || "/";
+    url.search = query ? `?${query}` : "";
+    return applySecurityHeaders(NextResponse.redirect(url));
   }
 
   if (!isAlphaAllowlistEnabled() || !isProtectedPath(pathname)) {
@@ -72,5 +92,7 @@ export const config = {
     "/admin/:path*",
     "/access-restricted",
     "/api/:path*",
+    // Lobby + surface redirects need Host / APP_SURFACE on `/` only via explicit visit;
+    // blocked paths above cover cross-surface navigations.
   ],
 };

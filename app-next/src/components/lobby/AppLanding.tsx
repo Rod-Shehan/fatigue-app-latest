@@ -22,6 +22,13 @@ import { ROSTER_LOGIN_ERROR, ROSTER_LOGIN_MESSAGE } from "@/lib/driver-login-gat
 import { ALPHA_RESTRICTED_ERROR } from "@/lib/auth-alpha-allowlist";
 import { clearOfflineAuth } from "@/lib/offline-auth";
 import { cn } from "@/lib/utils";
+import {
+  appSurfaceLabel,
+  appSurfaceTagline,
+  getPublicAppSurface,
+  lobbyBranchesForSurface,
+  type AppSurface,
+} from "@/lib/app-surface";
 
 type BranchConfig = {
   id: LobbyBranch;
@@ -92,6 +99,10 @@ const LOBBY_ERROR_MESSAGES: Record<string, string> = {
     "Manager access needs a manager or owner account. Sign out and sign in with the right account, or choose Driver.",
   driver_role_required:
     "Driver sign-in needs a driver account (not manager or owner). Sign out and sign in with your driver email, or use the Manager card for fleet overview.",
+  surface_ewd:
+    "This is the EWD (driver) app. Fleet manager tools are on Enterprise.",
+  surface_enterprise:
+    "This is Enterprise (fleet). Driver logging is on the EWD app.",
   [ALPHA_RESTRICTED_ERROR]:
     "This email is not on the approved pilot list yet. Contact your fleet administrator if you should have access.",
 };
@@ -121,10 +132,20 @@ function safeCallbackUrl(searchParams: URLSearchParams, branch: BranchConfig): s
   return branch.callbackUrl;
 }
 
-export function AppLanding() {
+export function AppLanding({ surface }: { surface?: AppSurface }) {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const initialBranch = useMemo(() => resolveBranchFromParams(searchParams), [searchParams]);
+  const appSurface = surface ?? getPublicAppSurface();
+  const allowedBranchIds = useMemo(() => new Set(lobbyBranchesForSurface(appSurface)), [appSurface]);
+  const visibleBranches = useMemo(
+    () => BRANCHES.filter((b) => allowedBranchIds.has(b.id)),
+    [allowedBranchIds]
+  );
+  const initialBranch = useMemo(() => {
+    const fromParams = resolveBranchFromParams(searchParams);
+    if (allowedBranchIds.has(fromParams)) return fromParams;
+    return visibleBranches[0]?.id ?? "driver";
+  }, [searchParams, allowedBranchIds, visibleBranches]);
   const forcedSignIn = searchParams.has("callbackUrl") || searchParams.has("branch");
 
   const [activeBranch, setActiveBranch] = useState<LobbyBranch>(initialBranch);
@@ -138,17 +159,18 @@ export function AppLanding() {
   const [offlineContinue, setOfflineContinue] = useState(false);
   const offlineSnapshot = getOfflineAuth();
 
-  const branch = BRANCHES.find((b) => b.id === activeBranch) ?? BRANCHES[0];
+  const branch = visibleBranches.find((b) => b.id === activeBranch) ?? visibleBranches[0] ?? BRANCHES[0];
   const callbackUrl = safeCallbackUrl(searchParams, branch);
 
   useEffect(() => {
-    setActiveBranch(resolveBranchFromParams(searchParams));
+    const fromParams = resolveBranchFromParams(searchParams);
+    setActiveBranch(allowedBranchIds.has(fromParams) ? fromParams : visibleBranches[0]?.id ?? "driver");
     const urlError = lobbyErrorMessage(searchParams);
     if (urlError) setBranchError(urlError);
     if (searchParams.has("callbackUrl") || searchParams.has("branch")) {
       setShowSignIn(true);
     }
-  }, [searchParams]);
+  }, [searchParams, allowedBranchIds, visibleBranches]);
 
   useEffect(() => {
     let cancelled = false;
@@ -265,10 +287,23 @@ export function AppLanding() {
         <div className="flex flex-col items-center text-center">
           <CircadiaLogo variant="full" href={null} priority className="mx-auto" />
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-3">{TAGLINE_VEHICLE}</p>
+          <p
+            className="mt-3 inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-200"
+            data-app-surface={appSurface}
+          >
+            {appSurfaceLabel(appSurface)}
+          </p>
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-md">
+            {appSurfaceTagline(appSurface)}
+          </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
             {signedInEmail
-              ? "Choose how you want to use the app — your branch choice decides where you go."
-              : "Choose how you are using the app — sign in on this page when prompted."}
+              ? appSurface === "legacy"
+                ? "Choose how you want to use the app — your branch choice decides where you go."
+                : "Sign in to continue on this product."
+              : appSurface === "legacy"
+                ? "Choose how you are using the app — sign in on this page when prompted."
+                : "Sign in on this page when prompted."}
           </p>
           {signedInEmail ? (
             <div className="mt-3 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
@@ -312,8 +347,13 @@ export function AppLanding() {
           </div>
         ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          {BRANCHES.map((b) => {
+        <div
+          className={cn(
+            "grid gap-4",
+            visibleBranches.length >= 3 ? "sm:grid-cols-3" : visibleBranches.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-1 max-w-md mx-auto"
+          )}
+        >
+          {visibleBranches.map((b) => {
             const Icon = b.icon;
             const selected = activeBranch === b.id;
             const branchAllowed =

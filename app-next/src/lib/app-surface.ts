@@ -1,0 +1,188 @@
+/**
+ * Product surface for multi-host deploy (soft split).
+ *
+ * - legacy     — combined driver + manager (parked original)
+ * - ewd        — driver PWA only
+ * - enterprise — manager/owner + APIs (full fleet functions; no driver lobby)
+ *
+ * Set APP_SURFACE / NEXT_PUBLIC_APP_SURFACE, or infer from Host
+ * (legacy. / ewd. / enterprise. subdomains).
+ */
+
+export type AppSurface = "legacy" | "ewd" | "enterprise";
+
+export const APP_SURFACE_VALUES: AppSurface[] = ["legacy", "ewd", "enterprise"];
+
+export type LobbyBranchId = "driver" | "manager" | "owner";
+
+function normalizeSurface(raw: string | undefined | null): AppSurface | null {
+  const v = raw?.trim().toLowerCase();
+  if (v === "legacy" || v === "v1" || v === "classic") return "legacy";
+  if (v === "ewd" || v === "driver") return "ewd";
+  if (v === "enterprise" || v === "manager") return "enterprise";
+  return null;
+}
+
+/** Infer surface from Host / hostname (e.g. ewd.circadia24.com). */
+export function appSurfaceFromHost(host: string | null | undefined): AppSurface | null {
+  if (!host) return null;
+  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
+  if (!hostname) return null;
+  if (hostname === "legacy" || hostname.startsWith("legacy.")) return "legacy";
+  if (hostname === "ewd" || hostname.startsWith("ewd.")) return "ewd";
+  if (hostname === "enterprise" || hostname.startsWith("enterprise.")) return "enterprise";
+  return null;
+}
+
+/**
+ * Resolve active surface.
+ * Priority: explicit env → host → legacy (safe default = combined app).
+ */
+export function resolveAppSurface(opts?: {
+  envValue?: string | null;
+  publicEnvValue?: string | null;
+  host?: string | null;
+}): AppSurface {
+  return (
+    normalizeSurface(opts?.envValue) ??
+    normalizeSurface(opts?.publicEnvValue) ??
+    appSurfaceFromHost(opts?.host) ??
+    "legacy"
+  );
+}
+
+/** Server / middleware: read process env + optional Host. */
+export function getAppSurface(host?: string | null): AppSurface {
+  return resolveAppSurface({
+    envValue: process.env.APP_SURFACE,
+    publicEnvValue: process.env.NEXT_PUBLIC_APP_SURFACE,
+    host,
+  });
+}
+
+/** Client-safe surface (build-time public env only; host inference is middleware). */
+export function getPublicAppSurface(): AppSurface {
+  return resolveAppSurface({
+    publicEnvValue: process.env.NEXT_PUBLIC_APP_SURFACE,
+  });
+}
+
+export function appSurfaceLabel(surface: AppSurface): string {
+  switch (surface) {
+    case "legacy":
+      return "Legacy";
+    case "ewd":
+      return "EWD";
+    case "enterprise":
+      return "Enterprise";
+  }
+}
+
+export function appSurfaceTagline(surface: AppSurface): string {
+  switch (surface) {
+    case "legacy":
+      return "Combined driver + manager app (Version 1 — legacy)";
+    case "ewd":
+      return "Electronic Work Diary — driver logging on this device";
+    case "enterprise":
+      return "Fleet oversight, records, and compliance processing";
+  }
+}
+
+/** Lobby cards visible on this surface. */
+export function lobbyBranchesForSurface(surface: AppSurface): LobbyBranchId[] {
+  switch (surface) {
+    case "ewd":
+      return ["driver"];
+    case "enterprise":
+      return ["manager", "owner"];
+    case "legacy":
+    default:
+      return ["driver", "manager", "owner"];
+  }
+}
+
+/**
+ * Page-path gating (HTML navigations). APIs stay available on Enterprise
+ * so connected EWD can sync; route handlers keep their own auth.
+ */
+export function isPathAllowedOnSurface(pathname: string, surface: AppSurface): boolean {
+  if (surface === "legacy") return true;
+
+  const path = pathname.replace(/\/+$/, "") || "/";
+
+  // Always allow public / auth / health-style pages
+  if (
+    path === "/" ||
+    path === "/login" ||
+    path === "/access-restricted" ||
+    path.startsWith("/api/")
+  ) {
+    return true;
+  }
+
+  if (surface === "ewd") {
+    if (path === "/driver" || path.startsWith("/driver/")) return true;
+    if (path === "/sheets" || path === "/sheets/new" || path.startsWith("/sheets/")) return true;
+    if (path === "/messages") return true;
+    return false;
+  }
+
+  // enterprise
+  if (path === "/driver" || path.startsWith("/driver/")) return false;
+  if (path === "/sheets" || path === "/sheets/new") return false;
+  // Managers still open individual sheet records
+  if (path.startsWith("/sheets/")) return true;
+  if (path === "/manager" || path.startsWith("/manager/")) return true;
+  if (path === "/drivers" || path.startsWith("/drivers/")) return true;
+  if (path === "/admin" || path.startsWith("/admin/")) return true;
+  if (path === "/messages") return true;
+  return false;
+}
+
+export type SurfaceRedirect = {
+  /** Absolute URL when sibling host is configured, else same-origin path. */
+  location: string;
+  external: boolean;
+};
+
+function siblingBaseUrl(surface: AppSurface): string | null {
+  const raw =
+    surface === "ewd"
+      ? process.env.NEXT_PUBLIC_EWD_APP_URL
+      : surface === "enterprise"
+        ? process.env.NEXT_PUBLIC_ENTERPRISE_APP_URL
+        : process.env.NEXT_PUBLIC_LEGACY_APP_URL;
+  const trimmed = raw?.trim();
+  if (!trimmed) return null;
+  return trimmed.replace(/\/+$/, "");
+}
+
+/**
+ * Where to send a user who hit a path not allowed on the current surface.
+ * Prefers the sibling product URL when configured.
+ */
+export function redirectForBlockedPath(
+  pathname: string,
+  current: AppSurface
+): SurfaceRedirect {
+  const path = pathname.replace(/\/+$/, "") || "/";
+
+  if (current === "ewd") {
+    const enterprise = siblingBaseUrl("enterprise");
+    if (enterprise && (path.startsWith("/manager") || path.startsWith("/admin") || path === "/drivers")) {
+      return { location: `${enterprise}${path}`, external: true };
+    }
+    return { location: "/?error=surface_ewd", external: false };
+  }
+
+  if (current === "enterprise") {
+    const ewd = siblingBaseUrl("ewd");
+    if (ewd && (path === "/driver" || path.startsWith("/driver/") || path === "/sheets" || path === "/sheets/new")) {
+      return { location: `${ewd}${path === "/sheets" || path === "/sheets/new" ? path : "/driver"}`, external: true };
+    }
+    return { location: "/?error=surface_enterprise", external: false };
+  }
+
+  return { location: "/", external: false };
+}
