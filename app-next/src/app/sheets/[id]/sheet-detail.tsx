@@ -47,7 +47,6 @@ import {
 } from "@/components/fatigue/EventLogger";
 import {
   getContinuedShiftRoutePrompt,
-  getPriorDayUnclosedShiftPrompt,
   suggestedEndShiftTimeAfterLastEvent,
 } from "@/lib/day-route-carry";
 import {
@@ -1642,13 +1641,6 @@ export function SheetDetail({
                             sheetData.week_starting,
                             todayYmd
                           )}
-                          unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
-                            sheetData.days,
-                            idx,
-                            sheetData.week_starting,
-                            todayYmd
-                          )}
-                          onEndShiftOnDay={handleEndShiftRequest}
                           onUpdate={handleDayUpdate}
                           weekStart={sheetData.week_starting}
                           regos={regos}
@@ -1700,13 +1692,6 @@ export function SheetDetail({
                             sheetData.week_starting,
                             todayYmd
                           )}
-                          unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
-                            sheetData.days,
-                            idx,
-                            sheetData.week_starting,
-                            todayYmd
-                          )}
-                          onEndShiftOnDay={handleEndShiftRequest}
                           onUpdate={handleDayUpdate}
                           weekStart={sheetData.week_starting}
                           regos={regos}
@@ -1747,13 +1732,6 @@ export function SheetDetail({
                       sheetData.week_starting,
                       todayYmd
                     )}
-                    unclosedPriorShift={getPriorDayUnclosedShiftPrompt(
-                      sheetData.days,
-                      idx,
-                      sheetData.week_starting,
-                      todayYmd
-                    )}
-                    onEndShiftOnDay={handleEndShiftRequest}
                     onUpdate={handleDayUpdate}
                     weekStart={sheetData.week_starting}
                     regos={regos}

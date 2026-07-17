@@ -52,14 +52,16 @@ describe("closePriorDayShiftAfterLastEvent", () => {
 });
 
 describe("getContinuedShiftRoutePrompt", () => {
-  it("does not prompt when today has no work/break (forgot End shift — not a continuation)", () => {
+  it("prompts when prior day is still open — even if today has no work/break yet", () => {
     const days: DayData[] = [
       {},
       {},
       dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
       {},
     ];
-    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-04")).toBeNull();
+    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-04")).toEqual({
+      previousDayName: "Tuesday",
+    });
   });
 
   it("prompts when prior day open and driver logged work today", () => {
@@ -73,29 +75,49 @@ describe("getContinuedShiftRoutePrompt", () => {
       previousDayName: "Tuesday",
     });
   });
-});
 
-describe("getPriorDayUnclosedShiftPrompt", () => {
-  it("prompts when prior day open and today has no work/break events", () => {
+  it("does not prompt on a future day while the previous day still has open work", () => {
     const days: DayData[] = [
       {},
       {},
       dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
       {},
     ];
-    expect(getPriorDayUnclosedShiftPrompt(days, 3, WEEK_START, "2026-06-04")).toEqual({
-      previousDayName: "Tuesday",
-      previousDayIndex: 2,
-    });
+    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-03")).toBeNull();
   });
 });
 
-describe("isTrueShiftContinuation", () => {
-  it("is false when only prior day is open", () => {
+describe("getPriorDayUnclosedShiftPrompt", () => {
+  it("never prompts — open prior day is rolling continuation, not a calendar end-shift debt", () => {
     const days: DayData[] = [
       {},
       {},
       dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      {},
+    ];
+    expect(getPriorDayUnclosedShiftPrompt(days, 3, WEEK_START, "2026-06-04")).toBeNull();
+  });
+});
+
+describe("isTrueShiftContinuation", () => {
+  it("is true when prior day is open even if today has no work/break yet", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      {},
+    ];
+    expect(isTrueShiftContinuation(days, 3, WEEK_START, "2026-06-04")).toBe(true);
+  });
+
+  it("is false when prior day ended with End shift", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([
+        { time: TUESDAY_WORK, type: "work" },
+        { time: "2026-06-03T22:00:00.000Z", type: "stop" },
+      ]),
       {},
     ];
     expect(isTrueShiftContinuation(days, 3, WEEK_START, "2026-06-04")).toBe(false);
@@ -103,7 +125,7 @@ describe("isTrueShiftContinuation", () => {
 });
 
 describe("getDayWithCarriedOverCardInfo", () => {
-  it("does not carry route when today has no work/break", () => {
+  it("carries route when prior day is open even if today has no work/break yet", () => {
     const days: DayData[] = [
       {},
       {},
@@ -111,6 +133,8 @@ describe("getDayWithCarriedOverCardInfo", () => {
       { truck_rego: "", start_location: "", destination: "" },
     ];
     const wednesday = getDayWithCarriedOverCardInfo(days, 3, WEEK_START, "2026-06-04");
-    expect(wednesday.truck_rego).toBe("");
+    expect(wednesday.truck_rego).toBe("1ABC123");
+    expect(wednesday.start_location).toBe("Perth");
+    expect(wednesday.destination).toBe("Kalgoorlie");
   });
 });

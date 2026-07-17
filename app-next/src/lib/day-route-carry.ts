@@ -23,8 +23,9 @@ function previousDayEndedWithOpenWorkOrBreak(
 }
 
 /**
- * True overnight continuation: prior day still open on work/break AND driver has logged work/break today.
- * Auto-filled non-work on today alone does not count as continuation.
+ * Rolling continuation across a calendar-day descriptor: prior bucket still ends open on
+ * work/break (no End shift). Day/week labels do not reset the timeline — open activity
+ * continues until the next driver-logged event.
  */
 export function isTrueShiftContinuation(
   days: DayData[],
@@ -32,35 +33,26 @@ export function isTrueShiftContinuation(
   weekStarting: string,
   todayYmd: string
 ): boolean {
-  if (!previousDayEndedWithOpenWorkOrBreak(days, dayIndex, weekStarting, todayYmd)) return false;
-  return todayHasLoggedWorkOrBreak(days[dayIndex]);
+  return previousDayEndedWithOpenWorkOrBreak(days, dayIndex, weekStarting, todayYmd);
 }
 
 /**
- * Prior calendar day still open (no End shift) but today is non-work / idle so far — common forgot-to-end case.
+ * @deprecated Always null. Calendar “forgot End shift on [prior day]” prompts violate the
+ * rolling timeline: open work/break continues until the next event; End shift is logged
+ * on the timeline at the finish time, not forced onto the prior day card.
  */
 export function getPriorDayUnclosedShiftPrompt(
-  days: DayData[],
-  dayIndex: number,
-  weekStarting: string,
-  todayYmd: string
+  _days: DayData[],
+  _dayIndex: number,
+  _weekStarting: string,
+  _todayYmd: string
 ): { previousDayName: string; previousDayIndex: number } | null {
-  const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
-  if (sheetDayYmd !== todayYmd) return null;
-  if (dayIndex === 0) return null;
-  if (!previousDayEndedWithOpenWorkOrBreak(days, dayIndex, weekStarting, todayYmd)) return null;
-  if (isTrueShiftContinuation(days, dayIndex, weekStarting, todayYmd)) return null;
-  const day = days[dayIndex] ?? {};
-  if (day.route_confirmed) return null;
-  return {
-    previousDayName: DAY_NAMES[dayIndex - 1] ?? "previous day",
-    previousDayIndex: dayIndex - 1,
-  };
+  return null;
 }
 
 /**
- * Day card route fields when the previous calendar day ended with open work/break
- * and the driver has continued with work/break today.
+ * Day card route fields when the previous calendar day still has open work/break
+ * (rolling continuation into this descriptor day).
  */
 export function getDayWithCarriedOverCardInfo(
   days: DayData[],
@@ -87,7 +79,7 @@ export function getDayWithCarriedOverCardInfo(
   };
 }
 
-/** Prompt driver to confirm route on this day after a genuine overnight shift continuation. */
+/** Prompt driver to confirm route on this day while an open segment continues from the prior day. */
 export function getContinuedShiftRoutePrompt(
   days: DayData[],
   dayIndex: number,

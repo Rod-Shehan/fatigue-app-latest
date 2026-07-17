@@ -173,14 +173,10 @@ export function formatSignBlockedPastWeekMessage(validationError: string, weekOf
   return validationError;
 }
 
-/** Overnight shift rolled into this calendar day — route fields may be carried until confirmed. */
+/** Open work/break continues across the calendar-day card — route fields may be carried until confirmed. */
 export function formatContinuedShiftRouteBanner(previousDayName: string): string {
-  return `Your shift continued from ${previousDayName}. Confirm today's route details for this day's record.`;
-}
-
-export function formatPriorDayUnclosedShiftBanner(previousDayName: string): string {
-  return `${previousDayName}'s shift wasn't ended on the record. Record when that shift finished so rest stays continuous on your timeline — log Work on today when you start again.`;
+  return `Your shift is still open from ${previousDayName}. Confirm today's route details for this day's record — End shift when you finish.`;
 }
 
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
-  "Carried from your previous day — confirm route to save on this day's record.";
+  "Carried from your open shift — confirm route to save on this day's record.";

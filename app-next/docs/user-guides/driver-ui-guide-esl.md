@@ -120,9 +120,9 @@ When you tap **End shift**:
 
 If you **forget** End shift:
 
-- The app may show a reminder.
+- The app may show a reminder (for example after a long stretch with no new log).
 - Tap **End shift** and enter **when you finished** and **end km**.
-- If the **prior day** was not ended, a banner may say **End shift on [day name]** — same dialog; pick the correct finish time.
+- Open work or break **continues across midnight** until you log End shift (or the next activity) — there is no separate “end yesterday’s shift” step. Day cards are only labels on the same rolling timeline.
 
 ---
 
