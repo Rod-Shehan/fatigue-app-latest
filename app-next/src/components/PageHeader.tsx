@@ -10,9 +10,8 @@ import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 
 /**
  * Consistent page header across the app.
- * - Large back arrow on the left: goes to current sheet page when in sheet context (e.g. shift-log → sheet),
- *   otherwise to Your Sheets (/sheets).
- * - Optional icon, title, subtitle, and right-side actions.
+ * - Circadia icon (fixed size) top-left — only brand mark; no secondary page icons.
+ * - Optional back link, title, subtitle, and right-side actions.
  */
 export function PageHeader({
   backHref,
@@ -20,13 +19,12 @@ export function PageHeader({
   backText,
   title,
   subtitle,
-  icon,
+  icon: _icon,
   actions,
   driverDisplayName,
   driverIdentity,
   /** Slim header for sheet + LogBar (mobile-first). Hides driver tile and shrinks title. */
   compact = false,
-  /** Set false when a page subnav already includes Lobby (e.g. ManagerSubnav). */
   /** @deprecated Lobby link removed — brand icon is always top-left. */
   showLobbyLink = true,
 }: {
@@ -38,7 +36,9 @@ export function PageHeader({
   backText?: string;
   title: string;
   subtitle?: string;
-  /** Optional icon shown in a rounded box next to the title. */
+  /**
+   * @deprecated Ignored — headers use Circadia icon only for a consistent look.
+   */
   icon?: React.ReactNode;
   /** Optional content on the right (buttons, badges, etc.). */
   actions?: React.ReactNode;
@@ -54,6 +54,8 @@ export function PageHeader({
   compact?: boolean;
   showLobbyLink?: boolean;
 }) {
+  void _icon;
+  void showLobbyLink;
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
   const sessionDisplayName = getDisplayNameFromSession(session ?? null);
@@ -89,7 +91,7 @@ export function PageHeader({
   const hasDriverTile = di != null && !compact;
   const hasCompactDriverChip = di != null && compact;
   const showRightColumn = hasDriverTile || actions != null;
-  void showLobbyLink;
+  const brandLogoSize = 36;
 
   const driverTile = di && hasDriverTile ? (
     <div
@@ -140,7 +142,7 @@ export function PageHeader({
         <div className="flex min-w-0 flex-1 items-start gap-2 sm:gap-3">
           <CircadiaLogo
             variant="icon"
-            size={compact ? 36 : 40}
+            size={brandLogoSize}
             className="shrink-0"
           />
           {backHref != null ? (
@@ -170,49 +172,42 @@ export function PageHeader({
               ) : null}
             </Link>
           ) : null}
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-            {icon != null && !compact && (
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 dark:bg-slate-600 flex items-center justify-center text-white dark:text-slate-200 shrink-0">
-                {icon}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 min-w-0">
-                <h1
-                  className={cn(
-                    "font-bold text-slate-800 dark:text-slate-100 truncate",
-                    compact ? "text-base sm:text-lg" : "text-base sm:text-lg md:text-xl"
-                  )}
-                >
-                  {title}
-                </h1>
-                {roleBadgeText && (
-                  <span
-                    className={`shrink-0 rounded-md px-2 py-0.5 max-w-[min(280px,55vw)] truncate ${
-                      isOwnerBadge
-                        ? "text-[10px] font-extrabold uppercase tracking-wider bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200"
-                        : isManagerBadge
-                          ? "text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
-                          : "text-[11px] font-semibold tracking-tight bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
-                    }`}
-                    title={roleBadgeText}
-                  >
-                    {roleBadgeText}
-                  </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1
+                className={cn(
+                  "font-bold text-slate-800 dark:text-slate-100 truncate",
+                  compact ? "text-base sm:text-lg" : "text-base sm:text-lg md:text-xl"
                 )}
-              </div>
-              {subtitle != null && (
-                <p
-                  className={cn(
-                    "text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5",
-                    compact && "hidden sm:block"
-                  )}
+              >
+                {title}
+              </h1>
+              {roleBadgeText && (
+                <span
+                  className={`shrink-0 rounded-md px-2 py-0.5 max-w-[min(280px,55vw)] truncate ${
+                    isOwnerBadge
+                      ? "text-[10px] font-extrabold uppercase tracking-wider bg-violet-100 text-violet-800 dark:bg-violet-900/50 dark:text-violet-200"
+                      : isManagerBadge
+                        ? "text-[10px] font-extrabold uppercase tracking-wider bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200"
+                        : "text-[11px] font-semibold tracking-tight bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                  }`}
+                  title={roleBadgeText}
                 >
-                  {subtitle}
-                </p>
+                  {roleBadgeText}
+                </span>
               )}
-              {compactDriverChip}
             </div>
+            {subtitle != null && (
+              <p
+                className={cn(
+                  "text-xs text-slate-400 dark:text-slate-500 truncate mt-0.5",
+                  compact && "hidden sm:block"
+                )}
+              >
+                {subtitle}
+              </p>
+            )}
+            {compactDriverChip}
           </div>
         </div>
 

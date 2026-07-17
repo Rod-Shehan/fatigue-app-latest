@@ -70,7 +70,7 @@ export function ManagerSubnav({ compact = false }: ManagerSubnavProps) {
         className={cn(navShellClass, "flex items-center gap-2")}
         aria-label="Manager navigation"
       >
-        <CircadiaLogo variant="icon" size={32} className="shrink-0" />
+        <CircadiaLogo variant="icon" size={36} className="shrink-0" />
         <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800 dark:text-slate-100">
           {pageLabel}
         </span>

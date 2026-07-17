@@ -292,7 +292,7 @@ export function CommandDeskTopBar(props: Props) {
     <>
       <header className="sticky top-0 z-40 -mx-4 mb-3 border-b border-slate-200/80 bg-slate-50/95 px-3 py-2 backdrop-blur-md dark:border-slate-800/80 dark:bg-slate-950/95 md:hidden">
         <div className="flex items-center gap-1.5">
-          <CircadiaLogo variant="icon" size={28} href={null} />
+          <CircadiaLogo variant="icon" size={36} href={null} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">
               Triage · {pendingCount} pending

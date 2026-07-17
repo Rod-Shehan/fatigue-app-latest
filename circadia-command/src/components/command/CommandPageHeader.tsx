@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import {
   commandBackLink,
-  commandIconBadge,
   commandTextMuted,
   commandTextPrimary,
 } from "@/components/command/command-styles";
@@ -13,6 +12,7 @@ import {
 type Props = {
   title: string;
   subtitle?: string;
+  /** @deprecated Ignored — Circadia icon only for consistent headers. */
   icon?: ReactNode;
   /** Full wordmark instead of icon + title (login / triage desk). */
   brandFull?: boolean;
@@ -23,10 +23,12 @@ type Props = {
   compact?: boolean;
 };
 
+const BRAND_LOGO_SIZE = 36;
+
 export function CommandPageHeader({
   title,
   subtitle,
-  icon,
+  icon: _icon,
   brandFull = false,
   backHref,
   backLabel,
@@ -34,6 +36,7 @@ export function CommandPageHeader({
   actions,
   compact = false,
 }: Props) {
+  void _icon;
   return (
     <header
       className={cn(
@@ -51,7 +54,7 @@ export function CommandPageHeader({
           </div>
         ) : (
           <>
-            <CircadiaLogo variant="icon" size={compact ? 36 : 40} className="shrink-0" />
+            <CircadiaLogo variant="icon" size={BRAND_LOGO_SIZE} className="shrink-0" />
             {backHref != null ? (
               <Link
                 href={backHref}
@@ -67,7 +70,6 @@ export function CommandPageHeader({
                 ) : null}
               </Link>
             ) : null}
-            {icon != null && <div className={commandIconBadge}>{icon}</div>}
             <div className="min-w-0">
               <h1 className={cn("truncate text-lg font-bold tracking-tight md:text-xl", commandTextPrimary)}>
                 {title}
