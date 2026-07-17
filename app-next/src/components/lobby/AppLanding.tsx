@@ -285,14 +285,24 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-10">
       <div className="w-full max-w-3xl space-y-8">
         <div className="flex flex-col items-center text-center">
-          <CircadiaLogo variant="full" href={null} priority className="mx-auto" />
+          <CircadiaLogo
+            variant="full"
+            product={
+              appSurface === "enterprise" ? "enterprise" : appSurface === "ewd" ? "ewd" : "default"
+            }
+            href={null}
+            priority
+            className="mx-auto"
+          />
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-3">{TAGLINE_VEHICLE}</p>
-          <p
-            className="mt-3 inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-200"
-            data-app-surface={appSurface}
-          >
-            {appSurfaceLabel(appSurface)}
-          </p>
+          {appSurface === "legacy" ? (
+            <p
+              className="mt-3 inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-200"
+              data-app-surface={appSurface}
+            >
+              {appSurfaceLabel(appSurface)}
+            </p>
+          ) : null}
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-md">
             {appSurfaceTagline(appSurface)}
           </p>
