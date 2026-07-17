@@ -1,15 +1,19 @@
 import type { Metadata, Viewport } from "next";
 import { Providers } from "@/components/providers";
+import { PRODUCT_NAME, PRODUCT_NAME_SHORT, PRODUCT_TAGLINE } from "@/lib/branding";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Circadia Command",
-  description: "Circadia operator triage console — live fatigue incident monitoring.",
-  applicationName: "Circadia Command",
+  title: {
+    default: PRODUCT_NAME,
+    template: `%s · ${PRODUCT_NAME}`,
+  },
+  description: `${PRODUCT_NAME} — ${PRODUCT_TAGLINE}`,
+  applicationName: PRODUCT_NAME,
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Command",
+    title: PRODUCT_NAME_SHORT,
     statusBarStyle: "black-translucent",
   },
   icons: {

@@ -4,13 +4,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme/theme-provider";
+import { PRODUCT_NAME } from "@/lib/branding";
 
 const BRAND_LIGHT_FULL_PATH = "/branding/circadia24-full.png";
 const BRAND_LIGHT_ICON_PATH = "/branding/circadia24-icon.png";
 const BRAND_DARK_FULL_PATH = "/branding/circadia24-command-dark-full.png";
 const BRAND_DARK_ICON_PATH = "/branding/circadia24-command-dark-icon.png";
-const PRODUCT_NAME = "Circadia 24 Command";
-const BRAND_ASSET_VERSION = "command-wordmark-v3";
+const BRAND_ASSET_VERSION = "command-wordmark-v4";
 
 type Props = {
   variant: "icon" | "full";

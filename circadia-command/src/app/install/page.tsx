@@ -9,7 +9,7 @@ export default function InstallPage() {
   return (
     <CommandShell>
       <CommandPageHeader
-        title="Install Circadia Command"
+        title="Install Circadia24 Command"
         subtitle="Add the operator triage app to your phone, tablet, or desktop"
         icon={<Shield className="h-5 w-5" strokeWidth={2} aria-hidden />}
       />

@@ -85,7 +85,7 @@ export function InstallCommandApp({ compact = false }: Props) {
           <Smartphone className="h-5 w-5" aria-hidden />
         </div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-semibold text-slate-100">Install Circadia Command</h2>
+          <h2 className="text-sm font-semibold text-slate-100">Install Circadia24 Command</h2>
           <p className="mt-1 text-sm text-slate-400">
             Add to your home screen for a full-screen operator app — same login, faster access on
             phone or tablet.
@@ -123,7 +123,7 @@ export function InstallCommandApp({ compact = false }: Props) {
         {!canNativeInstall && !ios && !android && (
           <p className="text-xs text-slate-500">
             In Chrome or Edge, use the install icon in the address bar, or browser menu →{" "}
-            <strong className="text-slate-400">Install Circadia Command</strong>.
+            <strong className="text-slate-400">Install Circadia24 Command</strong>.
           </p>
         )}
       </div>

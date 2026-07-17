@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Circadia Command">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Circadia24 Command">
   <rect width="192" height="192" rx="40" fill="#020617"/>
   <path fill="#0f766e" d="M96 28 148 52v44c0 34-22 58-52 68-30-10-52-34-52-68V52L96 28z"/>
   <path fill="#f8fafc" d="M96 52 124 64v28c0 20-12 34-28 40-16-6-28-20-28-40V64l28-12zm0 18-12 5v15c0 8 5 14 12 17 7-3 12-9 12-17V75l-12-5z"/>
