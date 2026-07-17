@@ -1,8 +1,8 @@
 /**
  * Shell-only service worker — caches app chrome and static assets, not API data or PDFs.
- * Bump SHELL_VERSION when shell precache list changes.
+ * Bump SHELL_VERSION when shell precache list or lobby branding changes.
  */
-const SHELL_VERSION = "v1";
+const SHELL_VERSION = "v2-product-logos";
 const SHELL_CACHE = `circadia-shell-${SHELL_VERSION}`;
 const STATIC_CACHE = `circadia-static-${SHELL_VERSION}`;
 const PAGES_CACHE = `circadia-pages-${SHELL_VERSION}`;
@@ -15,14 +15,11 @@ const PRECACHE_URLS = [
   "/icons/icon-512-maskable.svg",
 ];
 
-/** Driver field routes worth keeping for offline reopen (not manager/admin). */
+/** Driver field routes worth keeping for offline reopen (not manager/admin or lobby). */
 function isDriverShellPath(pathname) {
-  return (
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname.startsWith("/driver") ||
-    pathname.startsWith("/sheets")
-  );
+  // Never cache product lobby — Host-specific logos must always come from network.
+  if (pathname === "/" || pathname === "/login") return false;
+  return pathname.startsWith("/driver") || pathname.startsWith("/sheets");
 }
 
 function isNetworkOnlyPath(pathname) {

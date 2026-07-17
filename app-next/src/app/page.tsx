@@ -5,7 +5,8 @@ import { getAppSurface, type AppSurface } from "@/lib/app-surface";
 
 async function Landing() {
   const h = await headers();
-  const surface: AppSurface = getAppSurface(h.get("host"));
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const surface: AppSurface = getAppSurface(host);
   return <AppLanding surface={surface} />;
 }
 

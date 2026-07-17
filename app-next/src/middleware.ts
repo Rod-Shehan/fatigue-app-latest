@@ -33,7 +33,7 @@ function applySecurityHeaders(response: NextResponse): NextResponse {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const host = request.headers.get("host");
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const surface = getAppSurface(host);
 
   if (pathname.startsWith("/api/auth")) {
