@@ -48,8 +48,8 @@ export function getDriverHomeShiftStatus(
   if (last.type === "stop") {
     return {
       activity: "stopped",
-      headline: "Shift ended",
-      detail: "You can start again when your next shift begins.",
+      headline: "Previous shift ended",
+      detail: "You can continue your next shift this week.",
     };
   }
 

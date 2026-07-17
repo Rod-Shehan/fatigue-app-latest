@@ -56,7 +56,7 @@ export function DriverGuideArticle() {
 │  Today: Wednesday           │
 │                             │
 │  ┌─────────────────────┐    │
-│  │ Continue logging  ▶ │    │
+│  │ Log more work  ▶ │    │
 │  └─────────────────────┘    │
 │  [ ${ROADSIDE_PRODUCE_BUTTON_LABEL} ]   │
 │  Your weeks              ▶  │
@@ -65,7 +65,7 @@ export function DriverGuideArticle() {
         <table className={tableClass}>
           <tbody>
             <tr>
-              <th className={thClass}>Continue logging</th>
+              <th className={thClass}>Log more work</th>
               <td className={tdClass}>Open this week and log work</td>
             </tr>
             <tr>
@@ -192,7 +192,7 @@ export function DriverGuideArticle() {
         <h2 className={h2Class}>7. Each day checklist</h2>
         <ol className="list-decimal pl-5 space-y-1">
           <li>Sign in (or stay signed in)</li>
-          <li>Continue logging</li>
+          <li>Log more work</li>
           <li>Check rego, from, and to on today&apos;s card</li>
           <li>Enter start km on the card</li>
           <li>Tap Work when you start</li>

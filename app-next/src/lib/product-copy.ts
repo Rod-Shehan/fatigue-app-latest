@@ -113,7 +113,7 @@ export function formatSignPastWeekTitle(weekOfLabel: string): string {
 export function formatSignPastWeekBody(weekOfLabel: string): string {
   return (
     `Week of ${weekOfLabel} is not your current logging week. Expand any day below to fix route or times, then sign. ` +
-    `To log work live now, use Drive home → Continue logging.`
+    `To log work live now, use Drive home → Log more work.`
   );
 }
 

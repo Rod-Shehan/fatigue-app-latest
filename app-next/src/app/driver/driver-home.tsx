@@ -186,7 +186,7 @@ export function DriverHome() {
               <Button
                 className="w-full h-14 text-base font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-md"
               >
-                {sheetId ? "Continue logging" : "Open this week"}
+                {sheetId ? "Log more work" : "Open this week"}
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </Link>
