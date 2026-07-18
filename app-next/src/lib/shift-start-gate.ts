@@ -3,7 +3,6 @@
  * Rolling timeline decides whether the driver is already in open work/break.
  */
 
-import { driverAlertnessMustStop, type DriverAlertnessLevel } from "@/lib/driver-alertness";
 import { isOpenWorkOrBreakAt } from "@/lib/rolling-events";
 
 export type ShiftStartSetupFields = {
@@ -11,7 +10,6 @@ export type ShiftStartSetupFields = {
   start_location?: string | null;
   destination?: string | null;
   start_kms?: number | null;
-  alertness_level?: DriverAlertnessLevel | null;
 };
 
 export function getShiftStartSetupMissing(fields: ShiftStartSetupFields): string[] {
@@ -45,9 +43,6 @@ export function getWorkLogBlockReason(
   const missing = getShiftStartSetupMissing(fields);
   if (missing.length > 0) {
     return `Please complete shift setup before starting work: ${missing.join(", ")}.`;
-  }
-  if (driverAlertnessMustStop(fields.alertness_level)) {
-    return "You selected Danger (Stop) for alertness. Do not start driving — rest first, then update Set up day when you are safe.";
   }
   return null;
 }

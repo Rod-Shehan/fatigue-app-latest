@@ -1,0 +1,39 @@
+---
+description: User manual / guides must always match actual app behaviour and on-screen wording
+alwaysApply: true
+---
+
+# Manual matches the app (source of truth = the app)
+
+Owner rule: **always keep the user manual and in-app guides matching what the app actually does and shows**, so drivers/managers are never misled.
+
+## When app behaviour or UI copy changes
+
+If a change alters a user-visible function, flow, button label, screen name, or a
+"why you can't do X" behaviour, update the docs in the **same change**:
+
+- **Driver manual (canonical):** `app-next/docs/user-guides/driver-ui-guide-esl.md`
+- **In-app driver guide (pictures):** `app-next/src/components/guides/DriverGuideArticle.tsx`
+- **In-app "How your record works":** `app-next/src/app/driver/help/page.tsx`
+- **Manager manual:** `app-next/docs/user-guides/manager-ui-guide.md` and `ManagerGuideArticle.tsx`
+
+The app is the source of truth. The manual/guides change to match the app — not the reverse — unless the owner explicitly asks to change behaviour.
+
+## Prefer shared constants over hardcoded copy
+
+When a guide describes a button/label that exists as a constant, reference the
+constant so the guide can never drift.
+
+```tsx
+// ❌ BAD — will silently drift from the real button
+["Produce roadside PDF", "One PDF for a regulator"]
+
+// ✅ GOOD — tracks the actual on-screen label
+import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
+[ROADSIDE_PRODUCE_BUTTON_LABEL, "One PDF for a regulator"]
+```
+
+## Do not describe removed features
+
+If a feature is removed (e.g. the driver alertness "How alert do you feel?"
+dropdown), remove it from every manual/guide too. Never leave stale steps.

@@ -34,7 +34,6 @@ import {
 } from "@/lib/rolling-events";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { cn } from "@/lib/utils";
-import { driverAlertnessMustStop } from "@/lib/driver-alertness";
 import {
   getShiftStartSetupMissing,
   workLogRequiresShiftStartSetup,
@@ -127,7 +126,6 @@ type DayData = {
   start_location?: string;
   destination?: string;
   start_kms?: number | null;
-  alertness_level?: 1 | 2 | 3 | 4 | 5;
 };
 
 export default function LogBar({
@@ -620,20 +618,6 @@ export default function LogBar({
           message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
           confirmLabel: "Go to today's card",
           subtext: "Fill in the fields above, then tap Start shift again.",
-          onConfirm: () => {
-            setWorkWarning(null);
-            revealTodayCard();
-          },
-          onCancel: () => setWorkWarning(null),
-        });
-        return true;
-      }
-      if (driverAlertnessMustStop(dayForCardFields?.alertness_level)) {
-        setWorkWarning({
-          message:
-            "You selected Danger (Stop) for alertness. Do not start driving — rest first, then update Set up day when you are safe.",
-          confirmLabel: "Go to today's card",
-          subtext: "This is not a fitness-for-work sign-off — update how you feel after resting.",
           onConfirm: () => {
             setWorkWarning(null);
             revealTodayCard();

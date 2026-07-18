@@ -44,13 +44,6 @@ import {
   normalizeDayEvents,
   type DayEventDraft,
 } from "@/components/fatigue/DayEventsEditor";
-import { AlertnessLevelSelect } from "@/components/fatigue/AlertnessLevelSelect";
-import {
-  DRIVER_ALERTNESS_DISCLAIMER,
-  driverAlertnessMustStop,
-  driverAlertnessNeedsBreakWarning,
-  type DriverAlertnessLevel,
-} from "@/lib/driver-alertness";
 import { Last24hBreakField } from "@/components/fatigue/Last24hBreakField";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 
@@ -66,7 +59,8 @@ export type DayCardFields = {
   planned_on_duty_hours?: number | null;
   route_source?: "adhoc" | "driver_saved" | "org_preset";
   route_preset_id?: string;
-  alertness_level?: DriverAlertnessLevel;
+  /** Legacy field — no longer collected in Set up day; retained for historical sheet JSON. */
+  alertness_level?: 1 | 2 | 3 | 4 | 5;
   driver_type?: "solo" | "two_up";
   second_driver?: string;
 };
@@ -444,34 +438,6 @@ export function DayCardDetailsDialog({
               readOnly={readOnly}
             />
           )}
-
-          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">How alert do you feel?</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                {DRIVER_ALERTNESS_DISCLAIMER}
-              </p>
-            </div>
-            <AlertnessLevelSelect
-              value={draft.alertness_level}
-              onChange={(level) => set("alertness_level", level)}
-            />
-            {driverAlertnessMustStop(draft.alertness_level) ? (
-              <p
-                className="text-sm font-semibold text-red-800 dark:text-red-200 bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-800 rounded-lg px-3 py-2 leading-snug"
-                role="alert"
-              >
-                Do not start or continue driving at this level. Rest now and update this when you are safe to drive.
-              </p>
-            ) : driverAlertnessNeedsBreakWarning(draft.alertness_level) ? (
-              <p
-                className="text-sm font-medium text-orange-900 dark:text-orange-100 bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 rounded-lg px-3 py-2 leading-snug"
-                role="status"
-              >
-                Consider a break before driving. This feeds your risk picture — it is not a formal FFW check.
-              </p>
-            ) : null}
-          </div>
 
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Route setup</p>

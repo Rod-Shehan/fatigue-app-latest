@@ -12,7 +12,6 @@ describe("shift-start-gate", () => {
     start_location: "Perth",
     destination: "Kalgoorlie",
     start_kms: 1000,
-    alertness_level: 3 as const,
   };
 
   it("requires setup when timeline is idle", () => {

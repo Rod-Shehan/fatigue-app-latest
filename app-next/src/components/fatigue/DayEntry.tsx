@@ -32,7 +32,6 @@ import {
 } from "@/components/driver/driver-ui-classes";
 import type { DayWithKms } from "@/lib/rego-kms-validation";
 import { formatRunPlanSummary, hasRunPlanContent } from "@/lib/route-plan";
-import { formatDriverAlertnessCompact, getDriverAlertnessOption } from "@/lib/driver-alertness";
 import { DayCardToolsSheet } from "@/components/driver/DayCardToolsSheet";
 import { formatDayCrewLabel, resolveDayCrew } from "@/lib/day-crew";
 
@@ -440,24 +439,6 @@ export default function DayEntry({
                 <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
               </div>
             ) : null}
-            {getDriverAlertnessOption(dayData.alertness_level) ? (
-              <div
-                className={cn(
-                  "mb-3 rounded-md border px-2.5 py-2 text-sm font-medium",
-                  dayData.alertness_level === 5
-                    ? "border-red-700 bg-red-950/90 text-red-50"
-                    : dayData.alertness_level === 4
-                      ? "border-red-400 bg-red-50 text-red-900 dark:bg-red-950/50 dark:text-red-100"
-                      : dayData.alertness_level === 3
-                        ? "border-orange-400 bg-orange-50 text-orange-950 dark:bg-orange-950/40 dark:text-orange-100"
-                        : dayData.alertness_level === 2
-                          ? "border-amber-400 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-100"
-                          : "border-emerald-400 bg-emerald-50 text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-100"
-                )}
-              >
-                Alertness: {formatDriverAlertnessCompact(dayData.alertness_level)}
-              </div>
-            ) : null}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
               <StatBlock label="Crew" value={formatDayCrewLabel(dayCrew)} />
               <StatBlock label="Rego" value={(dayData.truck_rego || "").trim() || "—"} mono />
@@ -591,6 +572,7 @@ export default function DayEntry({
             planned_on_duty_hours: dayData.planned_on_duty_hours,
             route_source: dayData.route_source,
             route_preset_id: dayData.route_preset_id,
+            // Preserve historical value if present; field is no longer editable in the dialog.
             alertness_level: dayData.alertness_level,
             driver_type: dayData.driver_type ?? (driverType === "two_up" ? "two_up" : "solo"),
             second_driver: dayData.second_driver ?? secondDriver ?? "",
