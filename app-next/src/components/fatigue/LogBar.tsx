@@ -1017,7 +1017,7 @@ export default function LogBar({
                     {
                       label: "View diary",
                       onAction: viewDiary,
-                      icon: ChevronDown,
+                      icon: ChevronUp,
                       onDark: true,
                     },
                   ]
@@ -1152,7 +1152,7 @@ export default function LogBar({
                 title="Expand controls"
                 aria-label="Expand controls"
               >
-                <ChevronUp className={touchHeaderIcon} aria-hidden />
+                <ChevronDown className="h-8 w-8 stroke-[2.75]" aria-hidden />
               </button>
             )}
             {complianceButton && !hideSecondaryToolbar && (

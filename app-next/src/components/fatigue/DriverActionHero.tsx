@@ -162,7 +162,12 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         )}
         aria-label={opts.pending ? `Tap again to confirm ${opts.label.toLowerCase()}` : opts.label}
       >
-        {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden /> : null}
+        {Icon ? (
+          <Icon
+            className={cn("shrink-0", opts.onDark ? "h-6 w-6 stroke-[2.75]" : "h-4 w-4 stroke-[2.5]")}
+            aria-hidden
+          />
+        ) : null}
         <span className="whitespace-nowrap">{displayLabel}</span>
       </button>
     );
