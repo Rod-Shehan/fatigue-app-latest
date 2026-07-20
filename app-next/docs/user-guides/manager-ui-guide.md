@@ -126,6 +126,7 @@ Open a driver sheet in manager mode — start with the **Driver sheet** dropdown
 - Edit past-week facts only with a **reason** (audited).
 - You may amend multiple times while aligning with the driver.
 - When content is agreed, ask the driver to **sign again** — manager edit is not the legal attestation.
+- **Last 24 hour break** and **Last 2 × 24 hour non-work breaks** (when the app needs them) can be corrected on the sheet workbench — same fields the driver sets in Set up day.
 
 Copy reminder: *“When you and the driver agree the week is correct, ask them to open it from Your Sheets and sign.”*
 

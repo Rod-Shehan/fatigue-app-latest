@@ -26,6 +26,11 @@ import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection"
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
+  DECLARED_24H_REST_COPY,
+  getDeclared24hRestRequirementFromSheets,
+  getDeclared24hRestUiFieldCount,
+} from "@/lib/declared-24h-rests";
+import {
   buildManagerDomainKpis,
   countUnsignedSheetsForWeek,
 } from "@/lib/manager-dashboard-kpis";
@@ -220,12 +225,20 @@ export function ManagerView() {
 
   const [form, setForm] = useState<{
     last_24h_break: string;
+    last_24h_rest_1: string;
+    last_24h_rest_2: string;
+    last_24h_rest_3: string;
+    last_24h_rest_4: string;
     driver_type: string;
     week_starting: string;
     driver_name: string;
     second_driver: string;
   }>({
     last_24h_break: "",
+    last_24h_rest_1: "",
+    last_24h_rest_2: "",
+    last_24h_rest_3: "",
+    last_24h_rest_4: "",
     driver_type: "solo",
     week_starting: "",
     driver_name: "",
@@ -697,10 +710,78 @@ export function ManagerView() {
     enabled: !!selectedSheetId,
   });
 
+  const { data: selectedSheetComplianceHistory } = useQuery({
+    queryKey: ["sheet", selectedSheetId, "compliance-history"],
+    queryFn: () => api.sheets.complianceHistory(selectedSheetId),
+    enabled: !!selectedSheetId,
+  });
+
+  const declared24hRestRequirement = useMemo(() => {
+    if (!selectedSheet || selectedSheet.id !== selectedSheetId) {
+      return { fieldCount: 0 as const, reason: "none" as const };
+    }
+    return getDeclared24hRestRequirementFromSheets({
+      driverType: form.driver_type,
+      weekStarting: selectedSheet.week_starting,
+      days: selectedSheet.days ?? [],
+      prevWeekDays: selectedSheetComplianceHistory?.prev_week_days ?? null,
+      historyDays: selectedSheetComplianceHistory?.history_days ?? null,
+      declaredFields: {
+        last_24h_rest_1: form.last_24h_rest_1,
+        last_24h_rest_2: form.last_24h_rest_2,
+        last_24h_rest_3: form.last_24h_rest_3,
+        last_24h_rest_4: form.last_24h_rest_4,
+      },
+    });
+  }, [
+    selectedSheet,
+    selectedSheetId,
+    selectedSheetComplianceHistory,
+    form.driver_type,
+    form.last_24h_rest_1,
+    form.last_24h_rest_2,
+    form.last_24h_rest_3,
+    form.last_24h_rest_4,
+  ]);
+
+  const declared24hRestUiFieldCount = useMemo(
+    (): 0 | 2 | 4 =>
+      getDeclared24hRestUiFieldCount(declared24hRestRequirement, {
+        last_24h_rest_1: form.last_24h_rest_1,
+        last_24h_rest_2: form.last_24h_rest_2,
+        last_24h_rest_3: form.last_24h_rest_3,
+        last_24h_rest_4: form.last_24h_rest_4,
+      }),
+    [
+      declared24hRestRequirement,
+      form.last_24h_rest_1,
+      form.last_24h_rest_2,
+      form.last_24h_rest_3,
+      form.last_24h_rest_4,
+    ]
+  );
+
+  const declared24hRestLabelKeys = useMemo(() => {
+    return declared24hRestUiFieldCount === 4
+      ? (["last_24h_rest_1", "last_24h_rest_2", "last_24h_rest_3", "last_24h_rest_4"] as const)
+      : (["last_24h_rest_1", "last_24h_rest_2"] as const);
+  }, [declared24hRestUiFieldCount]);
+
+  const declared24hRestLabels: Record<(typeof declared24hRestLabelKeys)[number], string> = {
+    last_24h_rest_1: DECLARED_24H_REST_COPY.LABEL_1,
+    last_24h_rest_2: DECLARED_24H_REST_COPY.LABEL_2,
+    last_24h_rest_3: DECLARED_24H_REST_COPY.LABEL_3,
+    last_24h_rest_4: DECLARED_24H_REST_COPY.LABEL_4,
+  };
+
   useEffect(() => {
     if (!selectedSheetId) {
       setForm({
         last_24h_break: "",
+        last_24h_rest_1: "",
+        last_24h_rest_2: "",
+        last_24h_rest_3: "",
+        last_24h_rest_4: "",
         driver_type: "solo",
         week_starting: "",
         driver_name: "",
@@ -711,6 +792,10 @@ export function ManagerView() {
     if (!selectedSheet || selectedSheet.id !== selectedSheetId) return;
     setForm({
       last_24h_break: selectedSheet.last_24h_break ?? "",
+      last_24h_rest_1: selectedSheet.last_24h_rest_1 ?? "",
+      last_24h_rest_2: selectedSheet.last_24h_rest_2 ?? "",
+      last_24h_rest_3: selectedSheet.last_24h_rest_3 ?? "",
+      last_24h_rest_4: selectedSheet.last_24h_rest_4 ?? "",
       driver_type: selectedSheet.driver_type ?? "solo",
       week_starting: selectedSheet.week_starting ?? "",
       driver_name: selectedSheet.driver_name ?? "",
@@ -776,6 +861,10 @@ export function ManagerView() {
   const hasChanges =
     selectedSheet &&
     (form.last_24h_break !== (selectedSheet.last_24h_break ?? "") ||
+      form.last_24h_rest_1 !== (selectedSheet.last_24h_rest_1 ?? "") ||
+      form.last_24h_rest_2 !== (selectedSheet.last_24h_rest_2 ?? "") ||
+      form.last_24h_rest_3 !== (selectedSheet.last_24h_rest_3 ?? "") ||
+      form.last_24h_rest_4 !== (selectedSheet.last_24h_rest_4 ?? "") ||
       form.driver_type !== (selectedSheet.driver_type ?? "solo") ||
       form.week_starting !== (selectedSheet.week_starting ?? "") ||
       form.driver_name !== (selectedSheet.driver_name ?? "") ||
@@ -788,6 +877,8 @@ export function ManagerView() {
       window.alert("Enter an amendment reason before saving changes to a past or completed sheet.");
       return;
     }
+    const showDeclaredRests =
+      form.driver_type !== "two_up" && declared24hRestUiFieldCount >= 2;
     saveMutation.mutate({
       last_24h_break: form.last_24h_break || undefined,
       driver_type: form.driver_type,
@@ -795,6 +886,18 @@ export function ManagerView() {
       destination: null,
       driver_name: form.driver_name || undefined,
       second_driver: form.second_driver || undefined,
+      ...(showDeclaredRests
+        ? {
+            last_24h_rest_1: form.last_24h_rest_1.trim() || null,
+            last_24h_rest_2: form.last_24h_rest_2.trim() || null,
+            ...(declared24hRestUiFieldCount === 4
+              ? {
+                  last_24h_rest_3: form.last_24h_rest_3.trim() || null,
+                  last_24h_rest_4: form.last_24h_rest_4.trim() || null,
+                }
+              : {}),
+          }
+        : {}),
       ...(managerEditNeedsReason && reason ? { amendment_reason: reason } : {}),
     });
   };
@@ -1099,6 +1202,38 @@ export function ManagerView() {
                           empty if not set.
                         </p>
                       </div>
+                      {form.driver_type !== "two_up" && declared24hRestUiFieldCount >= 2 && (
+                        <div className="space-y-3 sm:col-span-2 rounded-lg border border-amber-200/80 bg-amber-50/50 px-3 py-3 dark:border-amber-800/50 dark:bg-amber-950/20">
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                              {declared24hRestUiFieldCount === 4
+                                ? DECLARED_24H_REST_COPY.TITLE_4
+                                : DECLARED_24H_REST_COPY.TITLE_2}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
+                              {DECLARED_24H_REST_COPY.MANAGER_HINT}
+                            </p>
+                          </div>
+                          {declared24hRestLabelKeys.map((key) => (
+                            <div key={key} className="space-y-1.5">
+                              <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+                                {declared24hRestLabels[key]}
+                              </Label>
+                              <Input
+                                type="date"
+                                value={form[key]}
+                                onChange={(e) =>
+                                  setForm((f) => ({
+                                    ...f,
+                                    [key]: e.target.value,
+                                  }))
+                                }
+                                className="h-9 font-mono max-w-xs"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                           Driver type

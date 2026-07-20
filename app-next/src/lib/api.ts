@@ -128,10 +128,10 @@ export type FatigueSheet = {
   destination?: string | null;
   last_24h_break?: string;
   /** Declared solo 24h non-work rests (Reg 184E(2)(b)) when logs cannot prove them. */
-  last_24h_rest_1?: string;
-  last_24h_rest_2?: string;
-  last_24h_rest_3?: string;
-  last_24h_rest_4?: string;
+  last_24h_rest_1?: string | null;
+  last_24h_rest_2?: string | null;
+  last_24h_rest_3?: string | null;
+  last_24h_rest_4?: string | null;
   week_starting: string;
   days: DayData[];
   status: string;

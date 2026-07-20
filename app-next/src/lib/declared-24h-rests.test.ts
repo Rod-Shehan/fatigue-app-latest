@@ -6,6 +6,7 @@ import {
   collectDeclared24hRests,
   countEffective24hPeriods,
   declared24hRestsIncomplete,
+  getDeclared24hRestUiFieldCount,
   isComplianceMessageFixableInDaySetup,
 } from "@/lib/declared-24h-rests";
 import { runComplianceChecks, type ComplianceDayData } from "@/lib/compliance";
@@ -127,5 +128,25 @@ describe("compliance + declared 24h rests", () => {
       },
     });
     expect(withDecls.some((r) => r.message.includes("2×24h"))).toBe(false);
+  });
+
+  it("getDeclared24hRestUiFieldCount keeps saved dates visible after rule satisfied", () => {
+    expect(
+      getDeclared24hRestUiFieldCount(
+        { fieldCount: 0, reason: "none" },
+        { last_24h_rest_1: "2026-07-10", last_24h_rest_2: "2026-07-11" }
+      )
+    ).toBe(2);
+    expect(
+      getDeclared24hRestUiFieldCount(
+        { fieldCount: 0, reason: "none" },
+        {
+          last_24h_rest_1: "2026-07-10",
+          last_24h_rest_2: "2026-07-11",
+          last_24h_rest_3: "2026-07-12",
+          last_24h_rest_4: "2026-07-13",
+        }
+      )
+    ).toBe(4);
   });
 });

@@ -300,4 +300,23 @@ export const DECLARED_24H_REST_COPY = {
   LABEL_3: "Third 24 hour non-work date",
   LABEL_4: "Fourth 24 hour non-work date",
   LOCKED_HINT: "Locked for this week — ask your manager to amend.",
+  MANAGER_HINT:
+    "Full 24 hour non-work dates when logs cannot prove Reg 184E 2×24h. Correct here with an amendment reason; ask the driver to sign again.",
 } as const;
+
+/** Driver Set up day + manager amend — show 2/4 fields when required or when dates already saved. */
+export function getDeclared24hRestUiFieldCount(
+  requirement: Declared24hRestRequirement,
+  fields: Declared24hRestFields
+): 0 | 2 | 4 {
+  if (requirement.fieldCount > 0) return requirement.fieldCount;
+  const n = [
+    fields.last_24h_rest_1,
+    fields.last_24h_rest_2,
+    fields.last_24h_rest_3,
+    fields.last_24h_rest_4,
+  ].filter((s) => !!s?.trim()).length;
+  if (n >= 4) return 4;
+  if (n >= 1) return 2;
+  return 0;
+}

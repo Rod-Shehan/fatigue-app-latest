@@ -89,7 +89,11 @@ import {
   type ShiftLabel,
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
-import { getDeclared24hRestRequirementFromSheets, declared24hRestsIncomplete } from "@/lib/declared-24h-rests";
+import {
+  getDeclared24hRestRequirementFromSheets,
+  getDeclared24hRestUiFieldCount,
+  declared24hRestsIncomplete,
+} from "@/lib/declared-24h-rests";
 import { complianceStateAt } from "@/lib/compliance-state";
 import {
   buildDriverComplianceWeekContext,
@@ -1034,24 +1038,22 @@ export function SheetDetail({
   );
 
   /** Keep showing locked dates after they satisfy the rule (do not vanish). */
-  const declared24hRestUiFieldCount = useMemo((): 0 | 2 | 4 => {
-    if (declared24hRestRequirement.fieldCount > 0) return declared24hRestRequirement.fieldCount;
-    const n = [
+  const declared24hRestUiFieldCount = useMemo(
+    (): 0 | 2 | 4 =>
+      getDeclared24hRestUiFieldCount(declared24hRestRequirement, {
+        last_24h_rest_1: sheetData.last_24h_rest_1,
+        last_24h_rest_2: sheetData.last_24h_rest_2,
+        last_24h_rest_3: sheetData.last_24h_rest_3,
+        last_24h_rest_4: sheetData.last_24h_rest_4,
+      }),
+    [
+      declared24hRestRequirement,
       sheetData.last_24h_rest_1,
       sheetData.last_24h_rest_2,
       sheetData.last_24h_rest_3,
       sheetData.last_24h_rest_4,
-    ].filter((s) => !!s?.trim()).length;
-    if (n >= 4) return 4;
-    if (n >= 1) return 2;
-    return 0;
-  }, [
-    declared24hRestRequirement.fieldCount,
-    sheetData.last_24h_rest_1,
-    sheetData.last_24h_rest_2,
-    sheetData.last_24h_rest_3,
-    sheetData.last_24h_rest_4,
-  ]);
+    ]
+  );
 
   const driverSheetMetaProps = useMemo(
     () => ({

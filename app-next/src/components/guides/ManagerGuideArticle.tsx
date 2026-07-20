@@ -3,6 +3,7 @@ import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
+import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -87,6 +88,10 @@ export function ManagerGuideArticle() {
         <h2 className={h2Class}>{MANAGER_EXPERIENCE.SECTION_EDIT_TITLE}</h2>
         <p>{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
         <p className="mt-3">{SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}</p>
+        <p className="mt-2 text-slate-600 dark:text-slate-300">
+          On the sheet workbench you can amend <strong>Last 24 hour break</strong> and, when required,{" "}
+          <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> — the same header fields drivers set in Set up day.
+        </p>
         <p className="mt-2 font-medium text-slate-700 dark:text-slate-200">
           {SHEET_ATTESTATION_WORKFLOW.MANAGER_SEND_FOR_DRIVER_SIGN}
         </p>
