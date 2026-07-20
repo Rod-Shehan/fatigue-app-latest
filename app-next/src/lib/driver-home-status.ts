@@ -40,8 +40,8 @@ export function getDriverHomeShiftStatus(
   if (!last) {
     return {
       activity: "idle",
-      headline: "Ready to start",
-      detail: "Tap Continue to open your week and log Work or Start shift.",
+      headline: "Ready to start shift",
+      detail: "Tap Open this week to log work or start your shift",
     };
   }
 
@@ -74,7 +74,7 @@ export function getDriverHomeShiftStatus(
 
   return {
     activity: "idle",
-    headline: "Ready to start",
+    headline: "Ready to start shift",
     detail: undefined,
   };
 }
