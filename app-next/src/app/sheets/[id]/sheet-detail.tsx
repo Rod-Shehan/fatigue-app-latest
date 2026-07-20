@@ -31,6 +31,7 @@ import { CvdMedicalBanner } from "@/components/fatigue/CvdMedicalBanner";
 import DayEntry, { type DayCardToolsConfig } from "@/components/fatigue/DayEntry";
 import { ComplianceAlertBar, ComplianceNoticeBar } from "@/components/fatigue/ComplianceAlertBar";
 import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialog";
+import type { ComplianceFixRoute } from "@/lib/compliance-fix-routes";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
 import LogBar from "@/components/fatigue/LogBar";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
@@ -877,24 +878,6 @@ export function SheetDetail({
     window.setTimeout(run, 120);
   }, [currentDayIndex]);
 
-  const handleStartShiftBlocked = useCallback(
-    (opts?: { openSetup?: boolean }) => {
-      scrollToCurrentDayCard();
-      if (opts?.openSetup) {
-        setTodaySetupOpenRequest((n) => n + 1);
-      }
-    },
-    [scrollToCurrentDayCard]
-  );
-
-  const handleTodayDetailsDialogClosed = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (window.scrollY < 12) {
-      window.scrollTo(0, 0);
-      setHeroExpandRequest((n) => n + 1);
-    }
-  }, []);
-
   const scrollToDayCard = useCallback(
     (dayIndex: number) => {
       if (groupDaysAroundToday) {
@@ -908,6 +891,52 @@ export function SheetDetail({
     },
     [groupDaysAroundToday, currentDayIndex]
   );
+
+  const handleStartShiftBlocked = useCallback(
+    (opts?: { openSetup?: boolean; dayIndex?: number }) => {
+      if (opts?.dayIndex != null) {
+        scrollToDayCard(opts.dayIndex);
+      } else {
+        scrollToCurrentDayCard();
+      }
+      if (opts?.openSetup) {
+        setTodaySetupOpenRequest((n) => n + 1);
+      }
+    },
+    [scrollToCurrentDayCard, scrollToDayCard]
+  );
+
+  const handleComplianceFix = useCallback(
+    (route: ComplianceFixRoute) => {
+      if (route.kind === "setup_week_record") {
+        handleStartShiftBlocked({ openSetup: true, dayIndex: currentDayIndex });
+        return;
+      }
+      if (route.kind === "edit_day") {
+        if (route.scrollDayIndex != null) {
+          scrollToDayCard(route.scrollDayIndex);
+        } else {
+          scrollToCurrentDayCard();
+        }
+        return;
+      }
+      if (route.kind === "manager_amend") {
+        document.getElementById("sheet-header-record")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+      setComplianceDialogOpen(false);
+      window.location.href = complianceHref;
+    },
+    [handleStartShiftBlocked, currentDayIndex, scrollToDayCard, scrollToCurrentDayCard, complianceHref]
+  );
+
+  const handleTodayDetailsDialogClosed = useCallback(() => {
+    if (typeof window === "undefined") return;
+    if (window.scrollY < 12) {
+      window.scrollTo(0, 0);
+      setHeroExpandRequest((n) => n + 1);
+    }
+  }, []);
 
   useEffect(() => {
     if (!sheetData?.days?.length || typeof window === "undefined") return;
@@ -1726,6 +1755,8 @@ export function SheetDetail({
                       sheetId={sheetId}
                       loading={complianceLoading}
                       results={complianceResults}
+                      isManager
+                      onComplianceFix={handleComplianceFix}
                     />
                   )}
                 {sheetData.days?.length > 0 && !complianceLoading && hasComplianceInfo && (
@@ -1742,7 +1773,12 @@ export function SheetDetail({
               />
             )}
             {isManager && !driverSessionDimmed && (
-            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-4">
+            <motion.div
+              id="sheet-header-record"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-3 md:p-4"
+            >
               <SheetHeader
                 sheetData={sheetData}
                 onChange={handleHeaderChange}
@@ -1992,11 +2028,8 @@ export function SheetDetail({
         loading={complianceLoading}
         results={complianceResults}
         driverName={driverPageIdentity.name}
-        onSetupWeekRecord={
-          !isManager && canShowLogBar
-            ? () => handleStartShiftBlocked({ openSetup: true })
-            : undefined
-        }
+        isManager={isManager}
+        onComplianceFix={handleComplianceFix}
       />
       <SignatureDialog
         open={showSignatureDialog}

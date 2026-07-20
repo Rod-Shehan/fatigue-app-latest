@@ -58,9 +58,12 @@ import {
   shouldShowUpcomingComplianceChip,
 } from "@/lib/upcoming-compliance-chip";
 import {
-  complianceMessagesFixableInDaySetup,
-  SETUP_WEEK_RECORD_BUTTON_LABEL,
-} from "@/lib/declared-24h-rests";
+  complianceIssueInputsFromMessages,
+  isComplianceFixActionable,
+  resolvePrimaryComplianceFixRoute,
+  type ComplianceFixRoute,
+} from "@/lib/compliance-fix-routes";
+import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
 import {
   endShiftButtonSizeClass,
   endShiftIconSizeClass,
@@ -172,8 +175,8 @@ export default function LogBar({
   prospectiveRouteHint?: string | null;
   /** Rolling 14-day / 168h headroom for the chip. */
   rolling168hMetrics?: Rolling168hMetrics | null;
-  /** When Start shift is blocked, parent scrolls to today’s card and may open Set up day. */
-  onStartShiftBlocked?: (opts?: { openSetup?: boolean }) => void;
+  /** When Start shift is blocked, parent scrolls to the target day card and may open Set up day. */
+  onStartShiftBlocked?: (opts?: { openSetup?: boolean; dayIndex?: number }) => void;
   /** Bump to clear compact hero when parent knows setup finished at scroll top. */
   heroExpandRequest?: number;
   /** When provided, used for Start shift gate (rego/destination/start KM) so carried-over values count. */
@@ -434,6 +437,53 @@ export default function LogBar({
     chip: upcomingComplianceChip,
   });
 
+  const primaryFixRoute = useMemo(
+    () =>
+      resolvePrimaryComplianceFixRoute([
+        ...complianceCheckResults
+          .filter((r) => r.type === "violation" || r.type === "warning")
+          .map((r) => ({
+            message: r.message,
+            type: r.type,
+            scrollDayIndex: r.scrollDayIndex,
+            ruleId: r.ruleId,
+            day: r.day,
+            currentDayIndex,
+          })),
+        ...complianceIssueInputsFromMessages(workRelevantComplianceMessages ?? [], "warning", currentDayIndex),
+      ]),
+    [complianceCheckResults, workRelevantComplianceMessages, currentDayIndex]
+  );
+
+  const applyComplianceFix = useCallback(
+    (route: ComplianceFixRoute) => {
+      if (!isComplianceFixActionable(route)) {
+        complianceButton?.onClick();
+        return;
+      }
+      setSheetViewMode(true);
+      closeSessionTools();
+      window.setTimeout(() => {
+        if (route.kind === "setup_week_record") {
+          onStartShiftBlocked?.({ openSetup: true, dayIndex: currentDayIndex });
+          return;
+        }
+        if (route.kind === "edit_day") {
+          onStartShiftBlocked?.({ dayIndex: route.scrollDayIndex ?? currentDayIndex });
+        }
+      }, 0);
+    },
+    [closeSessionTools, complianceButton, currentDayIndex, onStartShiftBlocked]
+  );
+
+  const revealTodayCard = useCallback(() => {
+    applyComplianceFix({
+      kind: "setup_week_record",
+      driverLabel: SETUP_WEEK_RECORD_BUTTON_LABEL,
+      managerLabel: SETUP_WEEK_RECORD_BUTTON_LABEL,
+    });
+  }, [applyComplianceFix]);
+
   /** Live + idle at scroll top: full-screen focus mode (centered hero + dimmed sheet). */
   const isIdleAtTop =
     isLiveNow && currentType === null && !scrollCompact && !sheetViewMode;
@@ -563,12 +613,6 @@ export default function LogBar({
     setPendingType(null);
     setWorkLogEpisodeResume(false);
   }, []);
-
-  const revealTodayCard = useCallback(() => {
-    setSheetViewMode(true);
-    closeSessionTools();
-    window.setTimeout(() => onStartShiftBlocked?.({ openSetup: true }), 0);
-  }, [closeSessionTools, onStartShiftBlocked]);
 
   useEffect(() => {
     clearPending();
@@ -705,7 +749,10 @@ export default function LogBar({
           workRelevantComplianceMessages.length === 1
             ? workRelevantComplianceMessages[0]
             : "Logging work now may affect these compliance rules:\n\n• " + workRelevantComplianceMessages.join("\n\n• ");
-        const fixableInSetup = complianceMessagesFixableInDaySetup(workRelevantComplianceMessages);
+        const fixRoute = resolvePrimaryComplianceFixRoute(
+          complianceIssueInputsFromMessages(workRelevantComplianceMessages, "warning", currentDayIndex)
+        );
+        const fixable = fixRoute != null && isComplianceFixActionable(fixRoute);
         setWorkWarning({
           message,
           confirmLabel: episodeResume
@@ -713,17 +760,17 @@ export default function LogBar({
             : needsShiftStartSetup
               ? "Start shift anyway"
               : "Log work anyway",
-          subtext: fixableInSetup
-            ? "Add rest dates or last 24h break in Set up day, or confirm to log work anyway."
+          subtext: fixable
+            ? "Fix the issue on your record, or confirm to log work anyway."
             : episodeResume
               ? "Tap Resume shift again within a few seconds to confirm."
               : "Tap Work again within a few seconds to confirm.",
-          ...(fixableInSetup
+          ...(fixable && fixRoute
             ? {
-                setupRecordLabel: SETUP_WEEK_RECORD_BUTTON_LABEL,
+                setupRecordLabel: fixRoute.driverLabel,
                 onSetupRecord: () => {
                   setWorkWarning(null);
-                  revealTodayCard();
+                  applyComplianceFix(fixRoute);
                 },
               }
             : {}),
@@ -918,6 +965,8 @@ export default function LogBar({
             {showUpcomingComplianceChip ? (
               <UpcomingComplianceChip
                 model={upcomingComplianceChip}
+                fixRoute={primaryFixRoute}
+                onFix={primaryFixRoute ? () => applyComplianceFix(primaryFixRoute) : undefined}
                 onOpenDetail={complianceButton?.onClick}
                 onDark={sessionDimmed}
                 compact={primaryBarCompact && !sessionDimmed}

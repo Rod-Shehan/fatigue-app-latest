@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { ManagerReferencePanel } from "@/components/manager/ManagerReferencePanel";
 import { REGULATORY_REQUIREMENTS_REFERENCE } from "@/lib/manager-risk-reference";
 import { PROSPECTIVE_RISK_REFERENCE } from "@/lib/manager-prospective-risk-reference";
-import { ManagerAssuranceSignals } from "@/components/manager/ManagerAssuranceSignals";
+import { ManagerAssuranceSignals, type AssuranceLine } from "@/components/manager/ManagerAssuranceSignals";
+import type { ComplianceFixRoute } from "@/lib/compliance-fix-routes";
 import { ManagerAttentionPanel } from "@/components/manager/ManagerAttentionPanel";
 import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegister";
 import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
@@ -97,8 +98,6 @@ function formatSheetLabel(sheet: FatigueSheet): string {
     : "—";
   return `${driver} — week of ${week}`;
 }
-
-type AssuranceLine = { sheetId: string; driver: string; day: string; message: string; badges?: ReturnType<typeof buildGlanceBadges> };
 
 type RiskLine = {
   sheetId: string;
@@ -902,6 +901,17 @@ export function ManagerView() {
     });
   };
 
+  const handleAssuranceFix = useCallback((line: AssuranceLine, route: ComplianceFixRoute) => {
+    setSelectedSheetId(line.sheetId);
+    if (route.kind === "edit_day" && route.scrollDayIndex != null) {
+      window.location.href = `/sheets/${line.sheetId}#fatigue-day-${route.scrollDayIndex}`;
+      return;
+    }
+    window.requestAnimationFrame(() => {
+      document.getElementById("record-edits")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, []);
+
   const canAmend =
     !!selectedSheetId &&
     (selectedSheet?.status ?? "") === "completed" &&
@@ -1056,6 +1066,7 @@ export function ManagerView() {
             priorLines={assuranceLinesFiltered.prior}
             loading={complianceLoading}
             embedded
+            onFixLine={handleAssuranceFix}
           />
 
           <div className="space-y-3">

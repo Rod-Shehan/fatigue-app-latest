@@ -6,6 +6,12 @@ import { referenceCardsForMessage } from "@/lib/manager-risk-reference";
 import { MANAGER_EXPERIENCE, MANAGER_GLANCE_BADGE_STYLES } from "@/lib/manager-experience";
 import { CompliancePolicyFootnote } from "@/components/fatigue/CompliancePolicyFootnote";
 import type { GlanceBadge } from "@/lib/manager-risk-scoring";
+import {
+  isComplianceFixActionable,
+  resolveComplianceFixRoute,
+  REVIEW_DETAILS_LABEL,
+  type ComplianceFixRoute,
+} from "@/lib/compliance-fix-routes";
 
 export type AssuranceLine = {
   sheetId: string;
@@ -15,9 +21,26 @@ export type AssuranceLine = {
   badges?: GlanceBadge[];
 };
 
-function AssuranceLineRow({ line }: { line: AssuranceLine }) {
+function AssuranceLineRow({
+  line,
+  onFixLine,
+}: {
+  line: AssuranceLine;
+  onFixLine?: (line: AssuranceLine, route: ComplianceFixRoute) => void;
+}) {
   const related = referenceCardsForMessage(line.message);
   const why = related[0];
+  const fixRoute = resolveComplianceFixRoute({
+    message: line.message,
+    type: "violation",
+    day: line.day,
+  });
+  const actionable = onFixLine != null && isComplianceFixActionable(fixRoute);
+  const fixLabel = actionable
+    ? fixRoute.managerLabel
+    : onFixLine
+      ? REVIEW_DETAILS_LABEL
+      : null;
 
   return (
     <li className="flex flex-col gap-2 py-3 first:pt-0 sm:flex-row sm:items-start sm:gap-4">
@@ -43,6 +66,15 @@ function AssuranceLineRow({ line }: { line: AssuranceLine }) {
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <p className="text-sm leading-snug text-slate-700 dark:text-slate-200">{line.message}</p>
+        {fixLabel && onFixLine ? (
+          <button
+            type="button"
+            onClick={() => onFixLine(line, fixRoute)}
+            className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+          >
+            {fixLabel}
+          </button>
+        ) : null}
         {why ? (
           <details className="group rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2 dark:border-slate-700 dark:bg-slate-950/40">
             <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-teal-800 dark:text-teal-300 [&::-webkit-details-marker]:hidden">
@@ -67,14 +99,15 @@ export function ManagerAssuranceSignals({
   priorLines,
   loading,
   embedded = false,
+  onFixLine,
 }: {
   currentWeekLabel: string;
   priorWeekLabel: string;
   currentLines: AssuranceLine[];
   priorLines: AssuranceLine[];
   loading?: boolean;
-  /** Inside compliance domain section — match amber palette, no extra outer margin. */
   embedded?: boolean;
+  onFixLine?: (line: AssuranceLine, route: ComplianceFixRoute) => void;
 }) {
   return (
     <section
@@ -113,11 +146,12 @@ export function ManagerAssuranceSignals({
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {currentLines.map((line, idx) => (
-                  <AssuranceLineRow key={`${line.sheetId}-${idx}-${line.day}`} line={line} />
+                  <AssuranceLineRow key={`${line.sheetId}-${idx}-${line.day}`} line={line} onFixLine={onFixLine} />
                 ))}
               </ul>
             )}
           </div>
+
           <div className="px-4 py-4 sm:px-6">
             <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
               <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">
@@ -126,25 +160,22 @@ export function ManagerAssuranceSignals({
               <span className="text-xs font-medium tabular-nums text-slate-500">{priorWeekLabel}</span>
             </div>
             {priorLines.length === 0 ? (
-              <div className="flex items-start gap-2 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2.5 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-950/40 dark:text-slate-300">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" aria-hidden />
+              <div className="flex items-start gap-2 rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5 text-sm text-emerald-950 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                 <span>{MANAGER_EXPERIENCE.EMPTY_ASSURANCE_PRIOR}</span>
               </div>
             ) : (
               <ul className="divide-y divide-slate-100 dark:divide-slate-800">
                 {priorLines.map((line, idx) => (
-                  <AssuranceLineRow key={`prev-${line.sheetId}-${idx}-${line.day}`} line={line} />
+                  <AssuranceLineRow key={`${line.sheetId}-${idx}-${line.day}`} line={line} onFixLine={onFixLine} />
                 ))}
               </ul>
             )}
           </div>
         </div>
       )}
-      {!loading ? (
-        <div className="border-t border-slate-100 px-4 py-2.5 dark:border-slate-800 sm:px-6">
-          <CompliancePolicyFootnote variant="manager" />
-        </div>
-      ) : null}
+
+      <CompliancePolicyFootnote className="border-t border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-6" />
     </section>
   );
 }

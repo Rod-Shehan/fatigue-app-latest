@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/dialog";
 import type { ComplianceCheckResult } from "@/lib/api";
 import {
-  complianceMessagesFixableInDaySetup,
-  declared24hRestsIncomplete,
-  isComplianceMessageFixableInDaySetup,
-  SETUP_WEEK_RECORD_BUTTON_LABEL,
-} from "@/lib/declared-24h-rests";
+  isComplianceFixActionable,
+  resolvePrimaryComplianceFixRoute,
+  REVIEW_DETAILS_LABEL,
+  type ComplianceFixRoute,
+} from "@/lib/compliance-fix-routes";
 
 export function ComplianceQuickDialog({
   open,
@@ -25,7 +25,8 @@ export function ComplianceQuickDialog({
   loading,
   results,
   driverName,
-  onSetupWeekRecord,
+  onComplianceFix,
+  isManager = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,16 +34,34 @@ export function ComplianceQuickDialog({
   loading?: boolean;
   results: ComplianceCheckResult[];
   driverName?: string | null;
-  /** Scroll to today and open Set up day (header rest dates). */
-  onSetupWeekRecord?: () => void;
+  onComplianceFix?: (route: ComplianceFixRoute) => void;
+  isManager?: boolean;
 }) {
   const href = `/sheets/${sheetId}/compliance`;
   const violations = results.filter((r) => r.type === "violation");
   const warnings = results.filter((r) => r.type === "warning");
   const issues = [...violations, ...warnings];
   const name = driverName?.trim() || "";
-  const showSetupRecord =
-    !!onSetupWeekRecord && issues.some((r) => isComplianceMessageFixableInDaySetup(r.message));
+  const primaryFixRoute = resolvePrimaryComplianceFixRoute(
+    issues.map((r) => ({
+      message: r.message,
+      type: r.type,
+      scrollDayIndex: r.scrollDayIndex,
+      ruleId: r.ruleId,
+      day: r.day,
+    }))
+  );
+  const showFix =
+    !!onComplianceFix &&
+    primaryFixRoute != null &&
+    isComplianceFixActionable(primaryFixRoute);
+  const fixLabel = showFix
+    ? isManager
+      ? primaryFixRoute!.managerLabel
+      : primaryFixRoute!.driverLabel
+    : primaryFixRoute && !isComplianceFixActionable(primaryFixRoute)
+      ? REVIEW_DETAILS_LABEL
+      : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,20 +102,20 @@ export function ComplianceQuickDialog({
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          {showSetupRecord ? (
+          {fixLabel && onComplianceFix && primaryFixRoute ? (
             <Button
               size="sm"
               className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
               onClick={() => {
                 onOpenChange(false);
-                onSetupWeekRecord?.();
+                onComplianceFix(primaryFixRoute);
               }}
             >
-              {SETUP_WEEK_RECORD_BUTTON_LABEL}
+              {fixLabel}
             </Button>
           ) : null}
           <Link href={href} onClick={() => onOpenChange(false)}>
-            <Button size="sm" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto">
               Open full compliance check
             </Button>
           </Link>

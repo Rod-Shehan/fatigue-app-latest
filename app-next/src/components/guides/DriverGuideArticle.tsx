@@ -208,8 +208,8 @@ export function DriverGuideArticle() {
           <li>
             Last 2 × 24 hour non-work breaks (two dates) — only when the app needs them because it
             does not yet have enough of your past days. This is part of your legal week record. If
-            you are already on shift, use <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the
-            Work warning or compliance snapshot.
+            you are already on shift, tap <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the
+            upcoming compliance banner, Work warning, or compliance snapshot.
           </li>
         </ul>
       </section>
