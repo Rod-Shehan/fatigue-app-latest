@@ -1280,11 +1280,20 @@ export function SheetDetail({
       if (!canDriverEditSheetContent(d.week_starting, d.status, d.signature)) return;
       saveMutation.mutate(buildSavePayload());
     }, LOG_EVENT_SAVE_MS);
+
+    // Snapshot trail immediately (do not wait for getCurrentPosition — that race
+    // used to clear crumbs after a failed/slow pin fix and never persist them).
+    const history_1m = gpsMovementTrailEnabled ? snapshotHistory1m() : [];
+    if (gpsMovementTrailEnabled) clearHistory1mSegment();
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
-        const history_1m = snapshotHistory1m();
-        clearHistory1mSegment();
-        if (!loc) return;
+        const lastCrumb = history_1m[history_1m.length - 1];
+        const fix =
+          loc ??
+          (lastCrumb
+            ? { lat: lastCrumb.lat, lng: lastCrumb.lng, accuracy: 0 }
+            : null);
+        if (!fix) return;
         setSheetData((prev) => {
           const newDays = [...prev.days];
           const day = newDays[dayIndex];
@@ -1293,9 +1302,9 @@ export function SheetDetail({
           if (last) {
             events[events.length - 1] = {
               ...last,
-              lat: loc.lat,
-              lng: loc.lng,
-              accuracy: loc.accuracy,
+              lat: fix.lat,
+              lng: fix.lng,
+              accuracy: fix.accuracy,
               ...(history_1m.length > 0 ? { history_1m } : {}),
             };
           }
@@ -1317,6 +1326,7 @@ export function SheetDetail({
     storedRouteDefaults,
     buildSavePayload,
     saveMutation,
+    gpsMovementTrailEnabled,
   ]);
 
   const handleEndShiftConfirm = useCallback(async () => {
@@ -1387,11 +1397,17 @@ export function SheetDetail({
     if (daysAfterEndShift && shouldEducateAfterEndShift(daysAfterEndShift, dayIndex)) {
       setShiftPatternPrompt({ dayIndex });
     }
+    const history_1m = gpsMovementTrailEnabled ? snapshotHistory1m() : [];
+    if (gpsMovementTrailEnabled) clearHistory1mSegment();
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
-        const history_1m = snapshotHistory1m();
-        clearHistory1mSegment();
-        if (!loc) return;
+        const lastCrumb = history_1m[history_1m.length - 1];
+        const fix =
+          loc ??
+          (lastCrumb
+            ? { lat: lastCrumb.lat, lng: lastCrumb.lng, accuracy: 0 }
+            : null);
+        if (!fix) return;
         setSheetData((prev) => {
           const newDays = [...prev.days];
           const d = newDays[dayIndex];
@@ -1400,9 +1416,9 @@ export function SheetDetail({
           if (last) {
             events[events.length - 1] = {
               ...last,
-              lat: loc.lat,
-              lng: loc.lng,
-              accuracy: loc.accuracy,
+              lat: fix.lat,
+              lng: fix.lng,
+              accuracy: fix.accuracy,
               ...(history_1m.length > 0 ? { history_1m } : {}),
             };
           }
@@ -1412,7 +1428,7 @@ export function SheetDetail({
         setIsDirty(true);
       })
       .catch(() => {});
-  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex]);
+  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex, gpsMovementTrailEnabled]);
 
   const handleShiftPatternSave = useCallback(
     (todayShift: ShiftLabel | "", tomorrowShift: ShiftLabel | "") => {
