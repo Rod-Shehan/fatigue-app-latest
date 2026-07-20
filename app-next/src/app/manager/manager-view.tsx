@@ -29,7 +29,7 @@ import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience
 import {
   DECLARED_24H_REST_COPY,
   getDeclared24hRestRequirementFromSheets,
-  getDeclared24hRestUiFieldCount,
+  resolveDeclared24hRestUiFieldCount,
 } from "@/lib/declared-24h-rests";
 import {
   buildManagerDomainKpis,
@@ -743,13 +743,23 @@ export function ManagerView() {
     form.last_24h_rest_4,
   ]);
 
+  const selectedSheetComplianceMessages = useMemo(() => {
+    if (!selectedSheetId || !managerCompliance?.items?.length) return [] as string[];
+    const item = managerCompliance.items.find((i) => i.sheetId === selectedSheetId);
+    return (item?.results ?? []).map((r) => r.message);
+  }, [selectedSheetId, managerCompliance]);
+
   const declared24hRestUiFieldCount = useMemo(
     (): 0 | 2 | 4 =>
-      getDeclared24hRestUiFieldCount(declared24hRestRequirement, {
-        last_24h_rest_1: form.last_24h_rest_1,
-        last_24h_rest_2: form.last_24h_rest_2,
-        last_24h_rest_3: form.last_24h_rest_3,
-        last_24h_rest_4: form.last_24h_rest_4,
+      resolveDeclared24hRestUiFieldCount({
+        requirement: declared24hRestRequirement,
+        fields: {
+          last_24h_rest_1: form.last_24h_rest_1,
+          last_24h_rest_2: form.last_24h_rest_2,
+          last_24h_rest_3: form.last_24h_rest_3,
+          last_24h_rest_4: form.last_24h_rest_4,
+        },
+        complianceMessages: selectedSheetComplianceMessages,
       }),
     [
       declared24hRestRequirement,
@@ -757,6 +767,7 @@ export function ManagerView() {
       form.last_24h_rest_2,
       form.last_24h_rest_3,
       form.last_24h_rest_4,
+      selectedSheetComplianceMessages,
     ]
   );
 

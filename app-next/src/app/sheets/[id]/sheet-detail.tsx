@@ -92,7 +92,7 @@ import {
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import {
   getDeclared24hRestRequirementFromSheets,
-  getDeclared24hRestUiFieldCount,
+  resolveDeclared24hRestUiFieldCount,
   declared24hRestsIncomplete,
 } from "@/lib/declared-24h-rests";
 import { complianceStateAt } from "@/lib/compliance-state";
@@ -1066,14 +1066,23 @@ export function SheetDetail({
     ]
   );
 
-  /** Keep showing locked dates after they satisfy the rule (do not vanish). */
+  /** Keep showing locked dates after they satisfy the rule (do not vanish).
+   * Also force 2/4 fields when compliance already flags 2×24h — so Set up day always
+   * has two date entries for that warning, not only Last 24Hr Break. */
   const declared24hRestUiFieldCount = useMemo(
     (): 0 | 2 | 4 =>
-      getDeclared24hRestUiFieldCount(declared24hRestRequirement, {
-        last_24h_rest_1: sheetData.last_24h_rest_1,
-        last_24h_rest_2: sheetData.last_24h_rest_2,
-        last_24h_rest_3: sheetData.last_24h_rest_3,
-        last_24h_rest_4: sheetData.last_24h_rest_4,
+      resolveDeclared24hRestUiFieldCount({
+        requirement: declared24hRestRequirement,
+        fields: {
+          last_24h_rest_1: sheetData.last_24h_rest_1,
+          last_24h_rest_2: sheetData.last_24h_rest_2,
+          last_24h_rest_3: sheetData.last_24h_rest_3,
+          last_24h_rest_4: sheetData.last_24h_rest_4,
+        },
+        complianceMessages: [
+          ...complianceResults.map((r) => r.message),
+          ...prospectiveLogMessages,
+        ],
       }),
     [
       declared24hRestRequirement,
@@ -1081,6 +1090,8 @@ export function SheetDetail({
       sheetData.last_24h_rest_2,
       sheetData.last_24h_rest_3,
       sheetData.last_24h_rest_4,
+      complianceResults,
+      prospectiveLogMessages,
     ]
   );
 

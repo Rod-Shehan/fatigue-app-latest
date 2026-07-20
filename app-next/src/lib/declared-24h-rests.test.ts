@@ -7,6 +7,7 @@ import {
   countEffective24hPeriods,
   declared24hRestsIncomplete,
   getDeclared24hRestUiFieldCount,
+  resolveDeclared24hRestUiFieldCount,
   isComplianceMessageFixableInDaySetup,
 } from "@/lib/declared-24h-rests";
 import { runComplianceChecks, type ComplianceDayData } from "@/lib/compliance";
@@ -148,5 +149,17 @@ describe("compliance + declared 24h rests", () => {
         }
       )
     ).toBe(4);
+  });
+
+  it("resolveDeclared24hRestUiFieldCount forces two fields when compliance flags 2×24h", () => {
+    expect(
+      resolveDeclared24hRestUiFieldCount({
+        requirement: { fieldCount: 0, reason: "none" },
+        fields: {},
+        complianceMessages: [
+          "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative",
+        ],
+      })
+    ).toBe(2);
   });
 });

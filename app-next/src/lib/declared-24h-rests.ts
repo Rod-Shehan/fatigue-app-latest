@@ -313,3 +313,37 @@ export function getDeclared24hRestUiFieldCount(
   if (n >= 1) return 2;
   return 0;
 }
+
+/**
+ * When compliance already flags 2×24h / rolling rest gaps, always expose the declaration
+ * fields — even if the UI requirement momentarily disagrees (timeline shape mismatch).
+ */
+export function declaredRestFieldCountFromComplianceMessages(messages: string[]): 0 | 2 | 4 {
+  let need: 0 | 2 | 4 = 0;
+  for (const message of messages) {
+    const m = message.toLowerCase();
+    if (
+      m.includes("2×24h") ||
+      m.includes("2x24h") ||
+      m.includes("28-day alternative") ||
+      m.includes("rolling 14-day non-work gap")
+    ) {
+      need = 2;
+      if (m.includes("4×24h") || m.includes("4x24h")) need = 4;
+    }
+  }
+  return need;
+}
+
+/** Prefer the larger of requirement-based UI count and compliance-driven need. */
+export function resolveDeclared24hRestUiFieldCount(input: {
+  requirement: Declared24hRestRequirement;
+  fields: Declared24hRestFields;
+  complianceMessages?: string[];
+}): 0 | 2 | 4 {
+  const fromReq = getDeclared24hRestUiFieldCount(input.requirement, input.fields);
+  const fromComp = declaredRestFieldCountFromComplianceMessages(input.complianceMessages ?? []);
+  if (fromReq === 4 || fromComp === 4) return 4;
+  if (fromReq >= 2 || fromComp >= 2) return 2;
+  return 0;
+}
