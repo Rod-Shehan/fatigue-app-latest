@@ -377,6 +377,7 @@ export default function LogBar({
     const banked = Math.max(0, 20 - remaining);
     return {
       incomplete: !split.complete,
+      bankedMinutes: banked,
       progressLabel: split.complete ? null : `Rest ${banked}/20 min`,
     };
   }, [isLiveNow, currentType, lastEvent, eventsForDriver, elapsedMinutes]);
@@ -995,6 +996,9 @@ export default function LogBar({
               showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
             }
             breakRestIncomplete={breakRestStatus?.incomplete ?? false}
+            breakRestBankedMinutes={
+              breakRestStatus?.incomplete ? breakRestStatus.bankedMinutes : null
+            }
             breakRestProgressLabel={breakRestStatus?.progressLabel ?? null}
             idleRestBlocked={idleRestBlocked}
             idleRestHelper={idlePrimary?.helper ?? null}

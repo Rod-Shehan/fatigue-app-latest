@@ -27,6 +27,8 @@ export interface DriverActionHeroProps {
   /** On break while 2×10 rest not yet banked — e.g. "Rest 14/20 min". */
   breakRestProgressLabel?: string | null;
   breakRestIncomplete?: boolean;
+  /** Minutes banked toward 20 — amber until 10, then lime/emerald to 20. */
+  breakRestBankedMinutes?: number | null;
   idleRestBlocked?: boolean;
   idleRestHelper?: string | null;
   idleRestRemainingMinutes?: number | null;
@@ -72,6 +74,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   elapsedLabel,
   breakRestProgressLabel,
   breakRestIncomplete = false,
+  breakRestBankedMinutes = null,
   idleRestBlocked = false,
   idleRestHelper = null,
   idleRestRemainingMinutes = null,
@@ -89,6 +92,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         currentSegment,
         complianceLoading,
         breakRestIncomplete,
+        breakRestBankedMinutes,
         shiftSegmentOpen,
         isIdleAtTop,
         idleRestBlocked,
@@ -99,6 +103,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
       currentSegment,
       complianceLoading,
       breakRestIncomplete,
+      breakRestBankedMinutes,
       shiftSegmentOpen,
       isIdleAtTop,
       idleRestBlocked,
@@ -116,6 +121,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     complianceTone: action.operationalTone,
     breakDueTone: action.breakDueTone,
     idleRestBlocked,
+    breakRestBankedMinutes: breakRestIncomplete ? breakRestBankedMinutes ?? 0 : null,
   });
   const ringSpin = currentSegment === "break" && !compact;
 

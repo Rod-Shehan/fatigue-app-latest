@@ -17,6 +17,8 @@ export type DriverActionStateInput = {
   currentSegment: "work" | "break" | null;
   complianceLoading?: boolean;
   breakRestIncomplete?: boolean;
+  /** Minutes already banked toward 20 while on break (drives amber → lime/emerald). */
+  breakRestBankedMinutes?: number | null;
   shiftSegmentOpen?: boolean;
   isIdleAtTop?: boolean;
   idleRestBlocked?: boolean;
@@ -50,6 +52,9 @@ export function resolveDriverActionState(input: DriverActionStateInput): DriverA
     breakDueTone,
     isIdleAtTop: input.isIdleAtTop,
     idleRestBlocked: input.idleRestBlocked,
+    breakRestBankedMinutes: input.breakRestIncomplete
+      ? input.breakRestBankedMinutes ?? 0
+      : null,
   });
 
   return {

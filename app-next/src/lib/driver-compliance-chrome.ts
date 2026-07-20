@@ -5,11 +5,46 @@
 export type ComplianceTone = "default" | "violation" | "warning" | "pending" | "ok";
 export type BreakDueTone = null | "amber" | "red";
 
+/** First 10 min of 2×10 / 20 rest vs second half toward 20. */
+export type BreakRestPendingPhase = "first_10" | "second_10";
+
+export function resolveBreakRestPendingPhase(
+  breakRestBankedMinutes?: number | null
+): BreakRestPendingPhase {
+  if (breakRestBankedMinutes != null && breakRestBankedMinutes >= 10) return "second_10";
+  return "first_10";
+}
+
+function pendingBreakRestChrome(phase: BreakRestPendingPhase): {
+  surfaceClass: string;
+  textClass: string;
+} {
+  if (phase === "first_10") {
+    return {
+      // Strong amber until the first 10 minutes are banked.
+      surfaceClass:
+        "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700",
+      textClass: "text-white dark:text-amber-950",
+    };
+  }
+  return {
+    // Second 10 toward 20 — lime into emerald.
+    surfaceClass:
+      "bg-gradient-to-r from-lime-500 to-emerald-500 dark:from-lime-600 dark:to-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg",
+    textClass: "text-white dark:text-emerald-950",
+  };
+}
+
 export function getComplianceChrome(
   complianceTone: ComplianceTone,
-  breakDueTone: BreakDueTone
+  breakDueTone: BreakDueTone,
+  breakRestBankedMinutes?: number | null
 ): { onColoredSurface: boolean; surfaceClass: string; textClass: string } {
   const onColoredSurface = complianceTone !== "default" || breakDueTone != null;
+  const pendingChrome =
+    complianceTone === "pending"
+      ? pendingBreakRestChrome(resolveBreakRestPendingPhase(breakRestBankedMinutes))
+      : null;
 
   const surfaceClass =
     complianceTone === "violation" || complianceTone === "warning"
@@ -18,8 +53,8 @@ export function getComplianceChrome(
         ? "bg-red-600 dark:bg-red-700 border-4 border-red-100 dark:border-red-950 shadow-lg hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800"
         : breakDueTone === "amber"
           ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
-          : complianceTone === "pending"
-            ? "bg-gradient-to-r from-amber-500 via-lime-500 to-emerald-500 dark:from-amber-600 dark:via-lime-600 dark:to-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg"
+          : pendingChrome
+            ? pendingChrome.surfaceClass
             : complianceTone === "ok"
               ? "bg-emerald-500 dark:bg-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg hover:bg-emerald-600 dark:hover:bg-emerald-500 active:bg-emerald-700"
               : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600";
@@ -31,8 +66,8 @@ export function getComplianceChrome(
         ? "text-white"
         : breakDueTone === "amber"
           ? "text-white dark:text-amber-950"
-          : complianceTone === "pending"
-            ? "text-white dark:text-emerald-950"
+          : pendingChrome
+            ? pendingChrome.textClass
             : complianceTone === "ok"
               ? "text-white dark:text-emerald-950"
               : "text-slate-900 dark:text-slate-100";
@@ -70,12 +105,17 @@ export function getActionRingTintClass(input: {
   complianceTone: ComplianceTone;
   breakDueTone: BreakDueTone;
   idleRestBlocked?: boolean;
+  breakRestBankedMinutes?: number | null;
 }): string {
-  const { complianceTone, breakDueTone, idleRestBlocked } = input;
+  const { complianceTone, breakDueTone, idleRestBlocked, breakRestBankedMinutes } = input;
   if (idleRestBlocked) return "bg-red-500 dark:bg-red-600";
   if (breakDueTone === "red") return "bg-red-500 dark:bg-red-600";
   if (breakDueTone === "amber") return "bg-amber-500 dark:bg-amber-600";
-  if (complianceTone === "pending") return "bg-lime-500 dark:bg-lime-600";
+  if (complianceTone === "pending") {
+    return resolveBreakRestPendingPhase(breakRestBankedMinutes) === "first_10"
+      ? "bg-amber-500 dark:bg-amber-600"
+      : "bg-lime-500 dark:bg-lime-600";
+  }
   if (complianceTone === "ok") return "bg-emerald-500 dark:bg-emerald-600";
   if (complianceTone === "warning" || complianceTone === "violation") {
     return "bg-amber-500 dark:bg-amber-600";
@@ -128,13 +168,20 @@ export function resolveActionChrome(input: {
   breakDueTone: BreakDueTone;
   isIdleAtTop?: boolean;
   idleRestBlocked?: boolean;
+  breakRestBankedMinutes?: number | null;
 }): ReturnType<typeof getComplianceChrome> {
-  const { complianceTone, breakDueTone, isIdleAtTop, idleRestBlocked } = input;
+  const {
+    complianceTone,
+    breakDueTone,
+    isIdleAtTop,
+    idleRestBlocked,
+    breakRestBankedMinutes,
+  } = input;
   if (idleRestBlocked) {
     return getComplianceChrome("default", "red");
   }
   if (isIdleAtTop && complianceTone === "default" && breakDueTone == null) {
     return getComplianceChrome("ok", null);
   }
-  return getComplianceChrome(complianceTone, breakDueTone);
+  return getComplianceChrome(complianceTone, breakDueTone, breakRestBankedMinutes);
 }

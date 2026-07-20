@@ -51,7 +51,18 @@ describe("getActionRingTintClass", () => {
       getActionRingTintClass({ complianceTone: "ok", breakDueTone: null })
     ).toContain("emerald");
     expect(
-      getActionRingTintClass({ complianceTone: "pending", breakDueTone: null })
+      getActionRingTintClass({
+        complianceTone: "pending",
+        breakDueTone: null,
+        breakRestBankedMinutes: 4,
+      })
+    ).toContain("amber");
+    expect(
+      getActionRingTintClass({
+        complianceTone: "pending",
+        breakDueTone: null,
+        breakRestBankedMinutes: 12,
+      })
     ).toContain("lime");
     expect(
       getActionRingTintClass({ complianceTone: "ok", breakDueTone: "red" })
@@ -75,16 +86,32 @@ describe("resolveDriverActionState", () => {
     expect(state.statusLabel).toBe("BREAK REQUIRED NOW");
   });
 
-  it("uses pending chrome on break when rest is incomplete", () => {
+  it("uses strong amber pending chrome until 10 min rest is banked", () => {
     const state = resolveDriverActionState({
       workMinutesUsed: 120,
       totalWindowMinutes: 300,
       currentSegment: "break",
       shiftSegmentOpen: true,
       breakRestIncomplete: true,
+      breakRestBankedMinutes: 6,
     });
     expect(state.operationalTone).toBe("pending");
-    expect(state.chrome.surfaceClass).toContain("amber-500");
+    expect(state.chrome.surfaceClass).toContain("bg-amber-500");
+    expect(state.chrome.surfaceClass).not.toContain("gradient");
+  });
+
+  it("uses lime/emerald pending chrome from 10 min rest toward 20", () => {
+    const state = resolveDriverActionState({
+      workMinutesUsed: 120,
+      totalWindowMinutes: 300,
+      currentSegment: "break",
+      shiftSegmentOpen: true,
+      breakRestIncomplete: true,
+      breakRestBankedMinutes: 14,
+    });
+    expect(state.operationalTone).toBe("pending");
+    expect(state.chrome.surfaceClass).toContain("from-lime-500");
+    expect(state.chrome.surfaceClass).toContain("to-emerald-500");
   });
 
   it("stays emerald on work when 5h window is safe", () => {
