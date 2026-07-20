@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { normalizeHistory1m, type History1mPoint } from "@/lib/geo-history-1m";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -12,6 +13,7 @@ type DayData = {
     lat?: number;
     lng?: number;
     accuracy?: number;
+    history_1m?: History1mPoint[];
   }>;
 };
 
@@ -34,6 +36,7 @@ export type MapEvent = {
   week_starting: string;
   day_label?: string;
   accuracy?: number;
+  history_1m?: History1mPoint[];
 };
 
 const MAX_EVENTS = 500;
@@ -42,6 +45,7 @@ const MAX_EVENTS = 500;
  * GET /api/manager/map-events
  * Query: weekStarting (optional), driverName (optional)
  * Returns geo events for sheets the manager can see. Manager-only.
+ * Passes through optional history_1m crumbs when stored on the diary event.
  */
 export async function GET(request: NextRequest) {
   const manager = await getManagerSession();
@@ -78,6 +82,8 @@ export async function GET(request: NextRequest) {
             typeof ev.lat === "number" &&
             typeof ev.lng === "number"
           ) {
+            const asOfMs = Number.isFinite(Date.parse(ev.time)) ? Date.parse(ev.time) : Date.now();
+            const history_1m = normalizeHistory1m(ev.history_1m, asOfMs);
             events.push({
               lat: ev.lat,
               lng: ev.lng,
@@ -88,6 +94,7 @@ export async function GET(request: NextRequest) {
               week_starting: sheet.weekStarting,
               day_label,
               accuracy: ev.accuracy,
+              ...(history_1m.length > 0 ? { history_1m } : {}),
             });
             if (events.length >= MAX_EVENTS) break;
           }

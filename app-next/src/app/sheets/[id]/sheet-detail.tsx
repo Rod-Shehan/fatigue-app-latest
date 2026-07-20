@@ -98,6 +98,11 @@ import { resolveDayCrew } from "@/lib/day-crew";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
+  snapshotHistory1m,
+  startHistory1mWatch,
+  stopHistory1mWatch,
+} from "@/lib/geo-history-1m";
+import {
   validateDayKms,
   getMinAllowedStartKms,
   validateSheetKms,
@@ -384,6 +389,17 @@ export function SheetDetail({
       canDriverAttestSheet(sheetData.week_starting, sheetData.status, sheetData.signature),
     [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
+
+  // Sample ~10s GPS crumbs while the live log bar is open so history_1m can
+  // attach to the next Work/Break/End shift fix for the manager map trail.
+  useEffect(() => {
+    if (!canShowLogBar) {
+      stopHistory1mWatch();
+      return;
+    }
+    startHistory1mWatch();
+    return () => stopHistory1mWatch();
+  }, [canShowLogBar]);
 
   useEffect(() => {
     if (isManager || !sheetData.week_starting || !sheetData.days?.length) {
@@ -1051,12 +1067,21 @@ export function SheetDetail({
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
         if (!loc) return;
+        const history_1m = snapshotHistory1m();
         setSheetData((prev) => {
           const newDays = [...prev.days];
           const day = newDays[dayIndex];
           const events = [...(day.events || [])];
           const last = events[events.length - 1];
-          if (last) events[events.length - 1] = { ...last, lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy };
+          if (last) {
+            events[events.length - 1] = {
+              ...last,
+              lat: loc.lat,
+              lng: loc.lng,
+              accuracy: loc.accuracy,
+              ...(history_1m.length > 0 ? { history_1m } : {}),
+            };
+          }
           newDays[dayIndex] = { ...day, events };
           const next = { ...prev, days: newDays };
           sheetDataRef.current = next;
@@ -1146,12 +1171,21 @@ export function SheetDetail({
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
         if (!loc) return;
+        const history_1m = snapshotHistory1m();
         setSheetData((prev) => {
           const newDays = [...prev.days];
           const d = newDays[dayIndex];
           const events = [...(d.events || [])];
           const last = events[events.length - 1];
-          if (last) events[events.length - 1] = { ...last, lat: loc.lat, lng: loc.lng, accuracy: loc.accuracy };
+          if (last) {
+            events[events.length - 1] = {
+              ...last,
+              lat: loc.lat,
+              lng: loc.lng,
+              accuracy: loc.accuracy,
+              ...(history_1m.length > 0 ? { history_1m } : {}),
+            };
+          }
           newDays[dayIndex] = { ...d, events };
           return { ...prev, days: newDays };
         });

@@ -95,6 +95,11 @@ export type DayData = {
     lat?: number;
     lng?: number;
     accuracy?: number;
+    /**
+     * Optional ~10s GPS crumbs from the minute before this log fix
+     * (oldest → newest). Used on the manager map as a short trail.
+     */
+    history_1m?: Array<{ lat: number; lng: number; t: string }>;
   /** @deprecated Legacy shared-sheet tag — not set on new events. */
     driver?: "primary" | "second";
   }>;
@@ -261,6 +266,13 @@ export type ManagerComplianceItem = {
   risk_register?: RiskRegisterSummary;
 };
 
+/** ~10s GPS crumb from the minute before a log fix (manager map trail). */
+export type MapHistory1mPoint = {
+  lat: number;
+  lng: number;
+  t: string;
+};
+
 /** Single geo event for manager map (from GET /api/manager/map-events). */
 export type MapEvent = {
   lat: number;
@@ -272,6 +284,8 @@ export type MapEvent = {
   week_starting: string;
   day_label?: string;
   accuracy?: number;
+  /** Short breadcrumb trail leading up to this marker, when present. */
+  history_1m?: MapHistory1mPoint[];
 };
 
 export type MessageThreadSummary = {
