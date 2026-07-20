@@ -237,6 +237,23 @@ export function OwnerSecurityView({
           ) : null}
         </section>
 
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Enterprise addons
+          </h2>
+          {policyQuery.isLoading ? (
+            <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+          ) : policy ? (
+            <PolicyToggle
+              label="GPS movement trail"
+              description="Optional. Drivers sample movement between logs for Event Tracker trails, and Work / Break lock while moving. Same control as Test desk — leave off if your organisation does not use this addon."
+              checked={policy.gpsMovementTrailEnabled}
+              disabled={policyMutation.isPending}
+              onChange={(gpsMovementTrailEnabled) => policyMutation.mutate({ gpsMovementTrailEnabled })}
+            />
+          ) : null}
+        </section>
+
         <TriageShiftAdminPanel />
 
         {owners.length > 0 ? (

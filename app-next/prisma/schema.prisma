@@ -41,6 +41,8 @@ model SystemPolicy {
   loginDisabled         Boolean  @default(false)
   driverWritesDisabled  Boolean  @default(false)
   managerWritesDisabled Boolean  @default(false)
+  /** Optional GPS movement trail + in-cab movement lock (enterprise addon). */
+  gpsMovementTrailEnabled Boolean @default(false)
   maintenanceMessage    String?
   updatedAt             DateTime @updatedAt
   updatedById           String?

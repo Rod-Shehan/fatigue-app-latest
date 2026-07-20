@@ -160,6 +160,8 @@ export default function LogBar({
   onShiftSegmentChange,
   onSessionDimmedChange,
   priorTimelineSlices,
+  /** Enterprise addon — movement lock + segment GPS trail. */
+  gpsMovementTrailEnabled = false,
 }: {
   days: DayData[];
   currentDayIndex: number;
@@ -202,6 +204,7 @@ export default function LogBar({
   onSessionDimmedChange?: (sessionDimmed: boolean) => void;
   /** Older record slices before this sheet (chronological). Rules use event timestamps only. */
   priorTimelineSlices?: TimelineSlice[];
+  gpsMovementTrailEnabled?: boolean;
 }) {
   void weekStarting;
   const [pendingType, setPendingType] = useState<string | null>(null);
@@ -316,18 +319,19 @@ export default function LogBar({
   }, [currentType, isLiveNow]);
 
   /** Same GPS watch as segment trail — locks Work/Break (and End shift) while moving. */
-  const [isMoving, setIsMoving] = useState(false);
+  const [gpsMoving, setGpsMoving] = useState(false);
   useEffect(() => {
-    if (!isLiveNow) {
-      setIsMoving(false);
+    if (!isLiveNow || !gpsMovementTrailEnabled) {
+      setGpsMoving(false);
       return;
     }
-    return subscribeGeoMovement((state) => setIsMoving(state.isMoving));
-  }, [isLiveNow]);
+    return subscribeGeoMovement((state) => setGpsMoving(state.isMoving));
+  }, [isLiveNow, gpsMovementTrailEnabled]);
   useEffect(() => {
-    if (!isLiveNow) return;
-    setIsMoving(getGeoMovementState().isMoving);
-  }, [isLiveNow, tick]);
+    if (!isLiveNow || !gpsMovementTrailEnabled) return;
+    setGpsMoving(getGeoMovementState().isMoving);
+  }, [isLiveNow, gpsMovementTrailEnabled, tick]);
+  const isMoving = gpsMovementTrailEnabled && gpsMoving;
   useEffect(() => {
     if (isMoving) setPendingType(null);
   }, [isMoving]);

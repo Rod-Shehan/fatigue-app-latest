@@ -80,6 +80,7 @@ function ManagerMapViewInner() {
       }),
   });
   const mapEvents = mapEventsData?.events ?? [];
+  const gpsTrailAddonOn = mapEventsData?.gpsMovementTrailEnabled === true;
 
   const mapWeeks = useMemo(() => {
     const weeks = [...new Set(sheetMeta.map((s) => s.week_starting).filter(Boolean))];
@@ -223,17 +224,29 @@ function ManagerMapViewInner() {
                 <span className="h-0 w-6 border-t-2 border-dashed border-teal-700 dark:border-teal-500" />
                 One driver&apos;s day, in logged order
               </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-0 w-6 border-t-2 border-sky-600 dark:border-sky-400" />
-                GPS movement trail (when available)
-              </span>
+              {gpsTrailAddonOn ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-0 w-6 border-t-2 border-sky-600 dark:border-sky-400" />
+                  GPS movement trail (when available)
+                </span>
+              ) : null}
             </div>
             <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
               Each marker is where a driver <span className="font-semibold text-slate-700 dark:text-slate-200">logged a status change</span> — not live fleet tracking.
               A break dot beside a work dot is normal: the driver pulled over, rested, then resumed work from the same spot.
-              A solid sky trail is optional GPS crumbs from{" "}
-              <span className="font-semibold text-slate-700 dark:text-slate-200">movement since the previous log</span>{" "}
-              (stationary waits are omitted to keep the dump small).
+              {gpsTrailAddonOn ? (
+                <>
+                  {" "}
+                  A solid sky trail is optional GPS crumbs from{" "}
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">movement since the previous log</span>{" "}
+                  (stationary waits are omitted to keep the dump small).
+                </>
+              ) : (
+                <>
+                  {" "}
+                  GPS movement trail addon is <span className="font-semibold text-slate-700 dark:text-slate-200">off</span> — enable it on Test desk or Security if your organisation uses that addon.
+                </>
+              )}
             </p>
           </div>
         </div>

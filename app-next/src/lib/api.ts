@@ -483,10 +483,21 @@ export const api = {
       if (params?.weekStarting) sp.set("weekStarting", params.weekStarting);
       if (params?.driverName) sp.set("driverName", params.driverName);
       const q = sp.toString();
-      return fetchApi<{ events: MapEvent[] }>(
+      return fetchApi<{ events: MapEvent[]; gpsMovementTrailEnabled: boolean }>(
         `/api/manager/map-events${q ? `?${q}` : ""}`
       );
     },
+    /** Enterprise addon flags (GPS movement trail, etc.). */
+    getAddons: () =>
+      fetchApi<{
+        gpsMovementTrailEnabled: boolean;
+        policyGpsMovementTrailEnabled: boolean;
+      }>("/api/manager/addons"),
+    updateAddons: (patch: { gpsMovementTrailEnabled: boolean }) =>
+      fetchApi<{
+        gpsMovementTrailEnabled: boolean;
+        policyGpsMovementTrailEnabled: boolean;
+      }>("/api/manager/addons", { method: "PATCH", body: patch }),
     riskTimeline: (params: { driverName: string; fromMs?: number; toMs?: number; weekStarting?: string }) => {
       const sp = new URLSearchParams({ driverName: params.driverName });
       if (params.fromMs != null) sp.set("fromMs", String(params.fromMs));
@@ -718,4 +729,6 @@ export const api = {
     deleteTriageShift: (id: string) =>
       fetchApi<{ ok: boolean }>(`/api/admin/triage-shift/${id}`, { method: "DELETE" }),
   },
+  /** Session feature flags / addons for driver + manager clients. */
+  features: () => fetchApi<{ gpsMovementTrailEnabled: boolean }>("/api/features"),
 };

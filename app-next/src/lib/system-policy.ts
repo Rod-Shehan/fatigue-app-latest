@@ -1,3 +1,7 @@
+/**
+ * System policy + optional enterprise addons.
+ */
+
 import { prisma } from "@/lib/prisma";
 import { isOwnerRole } from "@/lib/roles";
 
@@ -5,6 +9,8 @@ export type SystemPolicySnapshot = {
   loginDisabled: boolean;
   driverWritesDisabled: boolean;
   managerWritesDisabled: boolean;
+  /** GPS segment trail + Work/Break movement lock (addon; default off). */
+  gpsMovementTrailEnabled: boolean;
   maintenanceMessage: string | null;
   updatedAt: string;
 };
@@ -13,6 +19,7 @@ const DEFAULT_POLICY: SystemPolicySnapshot = {
   loginDisabled: false,
   driverWritesDisabled: false,
   managerWritesDisabled: false,
+  gpsMovementTrailEnabled: false,
   maintenanceMessage: null,
   updatedAt: new Date(0).toISOString(),
 };
@@ -32,9 +39,34 @@ export async function getSystemPolicy(): Promise<SystemPolicySnapshot> {
     loginDisabled: row.loginDisabled,
     driverWritesDisabled: row.driverWritesDisabled,
     managerWritesDisabled: row.managerWritesDisabled,
+    gpsMovementTrailEnabled: row.gpsMovementTrailEnabled,
     maintenanceMessage: row.maintenanceMessage,
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+/**
+ * Env kill-switch / force-on for ops:
+ * GPS_MOVEMENT_TRAIL_ENABLED=false|0 → always off
+ * GPS_MOVEMENT_TRAIL_ENABLED=true|1 → always on
+ * unset → SystemPolicy.gpsMovementTrailEnabled (addon flag)
+ */
+export function resolveGpsMovementTrailEnabled(policyEnabled: boolean): boolean {
+  const raw = (
+    process.env.GPS_MOVEMENT_TRAIL_ENABLED ??
+    process.env.NEXT_PUBLIC_GPS_MOVEMENT_TRAIL_ENABLED ??
+    ""
+  )
+    .trim()
+    .toLowerCase();
+  if (raw === "false" || raw === "0" || raw === "off") return false;
+  if (raw === "true" || raw === "1" || raw === "on") return true;
+  return policyEnabled;
+}
+
+export async function isGpsMovementTrailEnabled(): Promise<boolean> {
+  const policy = await getSystemPolicy();
+  return resolveGpsMovementTrailEnabled(policy.gpsMovementTrailEnabled);
 }
 
 export function loginBlockedForRole(

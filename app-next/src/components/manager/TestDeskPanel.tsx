@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Bell, FlaskConical, Loader2, Trash2 } from "lucide-react";
+import { Bell, FlaskConical, Loader2, MapPinned, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type DeskStatus = {
@@ -45,6 +46,20 @@ export function TestDeskPanel({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastInject, setLastInject] = useState<InjectResult | null>(null);
+  const [gpsTrailOn, setGpsTrailOn] = useState<boolean | null>(null);
+  const [gpsTrailBusy, setGpsTrailBusy] = useState(false);
+  const [gpsTrailError, setGpsTrailError] = useState<string | null>(null);
+
+  const refreshAddons = useCallback(async () => {
+    setGpsTrailError(null);
+    try {
+      const addons = await api.manager.getAddons();
+      setGpsTrailOn(addons.gpsMovementTrailEnabled);
+    } catch (e) {
+      setGpsTrailError(e instanceof Error ? e.message : "Could not load addons");
+      setGpsTrailOn(null);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -63,7 +78,21 @@ export function TestDeskPanel({
 
   useEffect(() => {
     void refresh();
-  }, [refresh]);
+    void refreshAddons();
+  }, [refresh, refreshAddons]);
+
+  const setGpsTrailEnabled = async (enabled: boolean) => {
+    setGpsTrailBusy(true);
+    setGpsTrailError(null);
+    try {
+      const next = await api.manager.updateAddons({ gpsMovementTrailEnabled: enabled });
+      setGpsTrailOn(next.gpsMovementTrailEnabled);
+    } catch (e) {
+      setGpsTrailError(e instanceof Error ? e.message : "Could not update GPS trail addon");
+    } finally {
+      setGpsTrailBusy(false);
+    }
+  };
 
   const inject = async (kind: "fatigue" | "distraction") => {
     setBusy(kind);
@@ -199,6 +228,50 @@ export function TestDeskPanel({
             ) : null}
           </div>
         ) : null}
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+        <div className="flex items-start gap-3">
+          <MapPinned className="mt-0.5 h-6 w-6 shrink-0 text-sky-600" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              GPS movement trail (addon)
+            </h2>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              Optional. When on, drivers sample movement between logs (stationary waits skipped) and Event Tracker
+              can draw sky trails. When off, no trail sampling and no movement lock on Work / Break.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/50">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-4 w-4 rounded border-slate-300"
+                  checked={gpsTrailOn === true}
+                  disabled={gpsTrailBusy || gpsTrailOn == null}
+                  onChange={(e) => void setGpsTrailEnabled(e.target.checked)}
+                />
+                <span>
+                  <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    Enable GPS movement trail
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                    {gpsTrailOn == null
+                      ? "Loading…"
+                      : gpsTrailOn
+                        ? "On — drivers may sample trails; map shows them when stored."
+                        : "Off — default for organisations that do not use this addon."}
+                  </span>
+                </span>
+              </label>
+              {gpsTrailBusy ? <Loader2 className="h-4 w-4 animate-spin text-slate-400" aria-hidden /> : null}
+            </div>
+            {gpsTrailError ? (
+              <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
+                {gpsTrailError}
+              </p>
+            ) : null}
+          </div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-5 dark:border-amber-900/60 dark:bg-amber-950/20">

@@ -354,6 +354,13 @@ export function SheetDetail({
     enabled: isManager,
   });
 
+  const { data: features } = useQuery({
+    queryKey: ["features"],
+    queryFn: () => api.features(),
+    staleTime: 60_000,
+  });
+  const gpsMovementTrailEnabled = features?.gpsMovementTrailEnabled === true;
+
   const storedRouteDefaults = useMemo(() => {
     if (isManager || !driverUserKey) return null;
     return loadDriverRouteDefaults(driverUserKey);
@@ -410,16 +417,15 @@ export function SheetDetail({
     [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
 
-  // Sample GPS while the live log bar is open: movement-gated segment trail +
-  // movement lock for Work/Break (see geo-history-1m).
+  // GPS movement trail addon: sample while log bar open (gated by enterprise flag).
   useEffect(() => {
-    if (!canShowLogBar) {
+    if (!canShowLogBar || !gpsMovementTrailEnabled) {
       stopHistory1mWatch();
       return;
     }
     startHistory1mWatch();
     return () => stopHistory1mWatch();
-  }, [canShowLogBar]);
+  }, [canShowLogBar, gpsMovementTrailEnabled]);
 
   useEffect(() => {
     if (isManager || !sheetData.week_starting || !sheetData.days?.length) {
@@ -1684,6 +1690,7 @@ export function SheetDetail({
             }}
             onSessionDimmedChange={setDriverSessionDimmed}
             onShiftSegmentChange={setShiftSegmentOpen}
+            gpsMovementTrailEnabled={gpsMovementTrailEnabled}
           />
           {!isManager && (
             <DriverGearDrawer

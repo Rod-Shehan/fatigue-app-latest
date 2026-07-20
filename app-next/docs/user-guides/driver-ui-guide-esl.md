@@ -76,7 +76,7 @@ flowchart LR
 
 **Simple rule:** Tap the button that matches **what you are doing now**.
 
-**While the vehicle is moving:** Work / Break / End shift stay locked (beacon only). Pull over and wait a few seconds after you stop — then tap.
+**While the vehicle is moving** (when your organisation has the GPS trail addon on): Work / Break / End shift stay locked (beacon only). Pull over and wait a few seconds after you stop — then tap.
 
 You **cannot** start Work until **start km** is on today's card (see section 7).
 

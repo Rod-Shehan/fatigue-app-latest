@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { normalizeHistory1m, type History1mPoint } from "@/lib/geo-history-1m";
+import { isGpsMovementTrailEnabled } from "@/lib/system-policy";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const trailEnabled = await isGpsMovementTrailEnabled();
     const { searchParams } = new URL(request.url);
     const weekStarting = searchParams.get("weekStarting") ?? undefined;
     const driverName = searchParams.get("driverName") ?? undefined;
@@ -82,7 +84,7 @@ export async function GET(request: NextRequest) {
             typeof ev.lat === "number" &&
             typeof ev.lng === "number"
           ) {
-            const history_1m = normalizeHistory1m(ev.history_1m);
+            const history_1m = trailEnabled ? normalizeHistory1m(ev.history_1m) : [];
             events.push({
               lat: ev.lat,
               lng: ev.lng,
@@ -103,7 +105,7 @@ export async function GET(request: NextRequest) {
       if (events.length >= MAX_EVENTS) break;
     }
 
-    return NextResponse.json({ events });
+    return NextResponse.json({ events, gpsMovementTrailEnabled: trailEnabled });
   } catch (e) {
     console.error("Manager map-events error:", e);
     return NextResponse.json(

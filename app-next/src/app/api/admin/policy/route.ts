@@ -21,6 +21,9 @@ export async function PATCH(req: Request) {
     if (typeof body.loginDisabled === "boolean") data.loginDisabled = body.loginDisabled;
     if (typeof body.driverWritesDisabled === "boolean") data.driverWritesDisabled = body.driverWritesDisabled;
     if (typeof body.managerWritesDisabled === "boolean") data.managerWritesDisabled = body.managerWritesDisabled;
+    if (typeof body.gpsMovementTrailEnabled === "boolean") {
+      data.gpsMovementTrailEnabled = body.gpsMovementTrailEnabled;
+    }
     if (body.maintenanceMessage === null || typeof body.maintenanceMessage === "string") {
       data.maintenanceMessage = body.maintenanceMessage;
     }
