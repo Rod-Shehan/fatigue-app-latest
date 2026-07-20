@@ -58,6 +58,8 @@ function isSetupWeekRecordMessage(message: string): boolean {
   if (m.includes("28-day alternative")) return true;
   if (m.includes("rolling 14-day non-work gap")) return true;
   if (m.includes("no previous sheet found to check full 14-day")) return true;
+  if (m.includes("last 24") && m.includes("break")) return true;
+  if (m.includes("24hr break") || m.includes("24h break")) return true;
   return false;
 }
 

@@ -985,11 +985,11 @@ export function SheetDetail({
       second_driver: d.second_driver,
       driver_type: d.driver_type,
       destination: null,
-      last_24h_break: d.last_24h_break || undefined,
-      last_24h_rest_1: d.last_24h_rest_1 || undefined,
-      last_24h_rest_2: d.last_24h_rest_2 || undefined,
-      last_24h_rest_3: d.last_24h_rest_3 || undefined,
-      last_24h_rest_4: d.last_24h_rest_4 || undefined,
+      last_24h_break: d.last_24h_break?.trim() || null,
+      last_24h_rest_1: d.last_24h_rest_1?.trim() || null,
+      last_24h_rest_2: d.last_24h_rest_2?.trim() || null,
+      last_24h_rest_3: d.last_24h_rest_3?.trim() || null,
+      last_24h_rest_4: d.last_24h_rest_4?.trim() || null,
       week_starting: d.week_starting,
       days: d.days,
       status: d.status,
@@ -1592,20 +1592,26 @@ export function SheetDetail({
   }
 
   const getDriverDayEntryExtras = (dayIndex: number) => {
-    if (isManager) {
-      return {
-        driverType: sheetData.driver_type,
-        driverName: driverPageIdentity.name,
-      };
-    }
     const isTodayCard = getSheetDayDateString(sheetData.week_starting, dayIndex) === todayYmd;
     const isCurrent = dayIndex === currentDayIndex;
     const crew = resolveDayCrew(sheetData.days[dayIndex], sheetData);
+    if (isManager) {
+      return {
+        ...driverSheetMetaProps,
+        driverType: sheetData.driver_type,
+        secondDriver: sheetData.second_driver,
+        driverName: driverPageIdentity.name,
+        /** Managers can amend locked week-header rest dates from Edit day. */
+        allowHeaderRestAmend: !driverContentLocked,
+      };
+    }
     return {
       ...driverSheetMetaProps,
       driverType: crew.driver_type,
       secondDriver: crew.second_driver,
       driverName: driverPageIdentity.name,
+      /** Drivers can change header rests until sign-off (same as other sheet fields). */
+      allowHeaderRestAmend: !driverContentLocked,
       onCrewMetaSync: isTodayCard
         ? (meta: { driver_type: "solo" | "two_up"; second_driver: string }) => {
             handleHeaderChange({

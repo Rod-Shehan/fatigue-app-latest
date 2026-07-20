@@ -126,7 +126,7 @@ export type FatigueSheet = {
   driver_type: string;
   /** Deprecated: use per-day `days[].destination` only; may be null from API. */
   destination?: string | null;
-  last_24h_break?: string;
+  last_24h_break?: string | null;
   /** Declared solo 24h non-work rests (Reg 184E(2)(b)) when logs cannot prove them. */
   last_24h_rest_1?: string | null;
   last_24h_rest_2?: string | null;

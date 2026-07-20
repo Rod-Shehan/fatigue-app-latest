@@ -130,6 +130,7 @@ export default function DayEntry({
   setupOpenRequest,
   onDetailsDialogClosed,
   driverName,
+  allowHeaderRestAmend = false,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -170,6 +171,8 @@ export default function DayEntry({
   onDetailsDialogClosed?: () => void;
   /** Shown in Edit day so the form is clearly for this driver. */
   driverName?: string | null;
+  /** Manager: change locked week-header rest dates from Edit day. */
+  allowHeaderRestAmend?: boolean;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -606,6 +609,7 @@ export default function DayEntry({
           declared24hRests={declared24hRests}
           declared24hRestFieldCount={declared24hRestFieldCount}
           onDeclared24hRestChange={onDeclared24hRestChange}
+          allowHeaderRestAmend={allowHeaderRestAmend}
           readOnly={readOnly}
           showShiftPatternEducation={showShiftPatternEducation}
           patternWorkMinutes={patternWorkMinutes}

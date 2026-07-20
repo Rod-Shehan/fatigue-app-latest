@@ -291,7 +291,8 @@ export const DECLARED_24H_REST_COPY = {
   LABEL_2: "Second 24 hour non-work date",
   LABEL_3: "Third 24 hour non-work date",
   LABEL_4: "Fourth 24 hour non-work date",
-  LOCKED_HINT: "Locked for this week — ask your manager to amend.",
+  LOCKED_HINT: "Locked after sign-off — ask your manager to amend.",
+  EDITABLE_HINT: "You can change these dates until you sign the week.",
   MANAGER_HINT:
     "Full 24 hour non-work dates when logs cannot prove Reg 184E 2×24h. Correct here with an amendment reason; ask the driver to sign again.",
 } as const;

@@ -25,16 +25,20 @@ const LABELS: Record<RestKey, string> = {
 
 export type Declared24hRestValues = Partial<Record<RestKey, string>>;
 
+/** Editable until the week is signed (readOnly); then manager amend only. */
 export function Declared24hRestsField({
   fieldCount,
   values,
   onChange,
   readOnly = false,
+  allowAmend = false,
 }: {
   fieldCount: 2 | 4;
   values: Declared24hRestValues;
   onChange: (key: RestKey, ymd: string) => void;
   readOnly?: boolean;
+  /** Override: allow change while readOnly (manager amend path). */
+  allowAmend?: boolean;
 }) {
   const keys = (
     fieldCount === 4
@@ -44,8 +48,9 @@ export function Declared24hRestsField({
   const allSet = keys.every((k) => !!values[k]?.trim());
   const title = fieldCount === 4 ? DECLARED_24H_REST_COPY.TITLE_4 : DECLARED_24H_REST_COPY.TITLE_2;
   const why = fieldCount === 4 ? DECLARED_24H_REST_COPY.WHY_4 : DECLARED_24H_REST_COPY.WHY_2;
+  const canEdit = !readOnly || allowAmend;
 
-  if (allSet) {
+  if (allSet && !canEdit) {
     return (
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 px-3 py-2.5 space-y-2">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -65,17 +70,26 @@ export function Declared24hRestsField({
   }
 
   return (
-    <div className="rounded-lg border-2 border-amber-300 dark:border-amber-600 bg-amber-50/80 dark:bg-amber-950/30 px-3 py-2.5 space-y-3">
+    <div
+      className={cn(
+        "rounded-lg px-3 py-2.5 space-y-3",
+        allSet
+          ? "border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20"
+          : "border-2 border-amber-300 dark:border-amber-600 bg-amber-50/80 dark:bg-amber-950/30"
+      )}
+    >
       <div>
         <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">{title}</p>
-        <p className="text-xs text-amber-900/80 dark:text-amber-200/80 mt-1 leading-snug">{why}</p>
+        <p className="text-xs text-amber-900/80 dark:text-amber-200/80 mt-1 leading-snug">
+          {allSet ? DECLARED_24H_REST_COPY.EDITABLE_HINT : why}
+        </p>
       </div>
       {keys.map((k) => (
         <RestDateRow
           key={k}
           label={LABELS[k]}
           value={values[k]}
-          readOnly={readOnly}
+          canEdit={canEdit}
           onSet={(ymd) => onChange(k, ymd)}
         />
       ))}
@@ -86,12 +100,12 @@ export function Declared24hRestsField({
 function RestDateRow({
   label,
   value,
-  readOnly,
+  canEdit,
   onSet,
 }: {
   label: string;
   value?: string;
-  readOnly?: boolean;
+  canEdit: boolean;
   onSet: (ymd: string) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -99,10 +113,11 @@ function RestDateRow({
   const [pending, setPending] = useState("");
   const [checked, setChecked] = useState(false);
   const [resetKey, setResetKey] = useState(0);
+  const hasValue = !!value?.trim();
 
   const openPicker = useCallback(() => {
     const el = inputRef.current;
-    if (!el || readOnly) return;
+    if (!el || !canEdit) return;
     if (typeof el.showPicker === "function") {
       try {
         el.showPicker();
@@ -112,53 +127,85 @@ function RestDateRow({
       }
     }
     el.click();
-  }, [readOnly]);
-
-  if (value?.trim()) {
-    return (
-      <div className="rounded-md border border-amber-200/80 dark:border-amber-800 bg-white/60 dark:bg-slate-900/50 px-2.5 py-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/80">
-          {label}
-        </p>
-        <p className="text-sm font-semibold text-amber-950 dark:text-amber-50 tabular-nums mt-0.5">
-          {formatSheetDisplayDate(value)}
-        </p>
-      </div>
-    );
-  }
+  }, [canEdit]);
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs font-medium text-amber-950 dark:text-amber-100">{label}</p>
-        <button
-          type="button"
-          disabled={readOnly}
-          onClick={openPicker}
-          className={cn(
-            "inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border text-sm font-medium",
-            "border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-900 text-amber-950 dark:text-amber-50"
-          )}
-        >
-          <Calendar className="w-4 h-4 shrink-0" aria-hidden />
-          Set date
-        </button>
-        <input
-          key={resetKey}
-          ref={inputRef}
-          type="date"
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden
-          onChange={(e) => {
-            const v = e.target.value;
-            if (!v) return;
-            setPending(v);
-            setChecked(false);
-            setConfirmOpen(true);
-          }}
-        />
+      <div
+        className={cn(
+          "rounded-md px-2.5 py-2 space-y-2",
+          hasValue
+            ? "border border-amber-200/80 dark:border-amber-800 bg-white/60 dark:bg-slate-900/50"
+            : "flex flex-wrap items-center justify-between gap-2"
+        )}
+      >
+        {hasValue ? (
+          <>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/80">
+              {label}
+            </p>
+            <p className="text-sm font-semibold text-amber-950 dark:text-amber-50 tabular-nums">
+              {formatSheetDisplayDate(value!)}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={!canEdit}
+                onClick={openPicker}
+                className={cn(
+                  "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg border text-xs font-medium",
+                  "border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-900 text-amber-950 dark:text-amber-50"
+                )}
+              >
+                <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                Change
+              </button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-9 text-xs"
+                disabled={!canEdit}
+                onClick={() => onSet("")}
+              >
+                Clear
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-xs font-medium text-amber-950 dark:text-amber-100">{label}</p>
+            <button
+              type="button"
+              disabled={!canEdit}
+              onClick={openPicker}
+              className={cn(
+                "inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border text-sm font-medium",
+                "border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-900 text-amber-950 dark:text-amber-50"
+              )}
+            >
+              <Calendar className="w-4 h-4 shrink-0" aria-hidden />
+              Set date
+            </button>
+          </>
+        )}
       </div>
+      <input
+        key={resetKey}
+        ref={inputRef}
+        type="date"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        disabled={!canEdit}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (!v) return;
+          setPending(v);
+          setChecked(false);
+          setConfirmOpen(true);
+        }}
+      />
       <Dialog
         open={confirmOpen}
         onOpenChange={(open) => {
@@ -178,7 +225,7 @@ function RestDateRow({
               <span className="font-semibold text-slate-800 dark:text-slate-100">
                 {pending ? formatSheetDisplayDate(pending) : "—"}
               </span>
-              . This becomes part of your weekly record.
+              . This becomes part of your weekly record. You can change it until you sign the week.
             </DialogDescription>
           </DialogHeader>
           <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
@@ -191,16 +238,7 @@ function RestDateRow({
             <span>I confirm this date is correct.</span>
           </label>
           <div className="flex gap-2 justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setConfirmOpen(false);
-                setPending("");
-                setChecked(false);
-                setResetKey((k) => k + 1);
-              }}
-            >
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
             <Button

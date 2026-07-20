@@ -91,8 +91,9 @@ export function ManagerGuideArticle() {
         <p className="mt-2 text-slate-600 dark:text-slate-300">
           On the sheet workbench you can amend <strong>Last 24 hour break</strong> and, when required,{" "}
           <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> — the same header fields drivers set in Set up day.
-          Assurance lines and sheet banners include <strong>Fix on record</strong> or <strong>Fix this day</strong> so
-          you land on the field instead of only reading a report.
+          Those fields also appear in a driver&apos;s <strong>Edit day</strong> dialog (managers can change locked
+          dates there). Assurance lines and sheet banners include <strong>Fix on record</strong> or{" "}
+          <strong>Fix this day</strong> so you land on the field instead of only reading a report.
         </p>
         <p className="mt-2 font-medium text-slate-700 dark:text-slate-200">
           {SHEET_ATTESTATION_WORKFLOW.MANAGER_SEND_FOR_DRIVER_SIGN}

@@ -91,6 +91,7 @@ export function DayCardDetailsDialog({
   declared24hRests,
   declared24hRestFieldCount = 0,
   onDeclared24hRestChange,
+  allowHeaderRestAmend = false,
   readOnly = false,
   onConfirm,
   showShiftPatternEducation,
@@ -129,6 +130,8 @@ export function DayCardDetailsDialog({
     key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
     ymd: string
   ) => void;
+  /** Manager: change locked week-header rest dates from Edit day. */
+  allowHeaderRestAmend?: boolean;
   readOnly?: boolean;
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
   showShiftPatternEducation?: boolean;
@@ -451,6 +454,7 @@ export function DayCardDetailsDialog({
               value={last24hBreak}
               onChange={onLast24hBreakChange}
               readOnly={readOnly}
+              allowAmend={allowHeaderRestAmend}
             />
           )}
 
@@ -460,6 +464,7 @@ export function DayCardDetailsDialog({
               values={declared24hRests ?? {}}
               onChange={onDeclared24hRestChange}
               readOnly={readOnly}
+              allowAmend={allowHeaderRestAmend}
             />
           )}
 

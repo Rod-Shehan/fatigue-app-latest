@@ -254,13 +254,13 @@ export default function SheetHeader({
           title="Week is set when this sheet is created. Ask your manager if it needs to be changed."
         />
 
-        {last24hSet ? (
+        {last24hSet && readOnly ? (
           <HeaderDateChip
             label={LAST_24H_BREAK_CHIP_LABEL}
             value={formatSheetDisplayDate(sheetData.last_24h_break!)}
             locked
             className="max-w-[min(100%,19rem)] sm:max-w-[20rem]"
-            title={`${LAST_24H_BREAK_CHIP_LABEL} date (locked)`}
+            title={`${LAST_24H_BREAK_CHIP_LABEL} date (locked after sign-off)`}
           />
         ) : (
           <>
@@ -283,12 +283,17 @@ export default function SheetHeader({
             />
             <HeaderDateChip
               label={LAST_24H_BREAK_CHIP_LABEL}
-              value="Set date"
-              highlight
+              value={last24hSet ? formatSheetDisplayDate(sheetData.last_24h_break!) : "Set date"}
+              highlight={!last24hSet}
+              locked={false}
               disabled={readOnly}
               className="max-w-[min(100%,19rem)] sm:max-w-[20rem]"
               onClick={openLast24hPicker}
-              title={`Tap to set ${LAST_24H_BREAK_CHIP_LABEL} date`}
+              title={
+                last24hSet
+                  ? `Tap to change ${LAST_24H_BREAK_CHIP_LABEL} date`
+                  : `Tap to set ${LAST_24H_BREAK_CHIP_LABEL} date`
+              }
             />
           </>
         )}
@@ -354,24 +359,22 @@ export default function SheetHeader({
         </div>
       )}
 
-      {!last24hSet && (
-        <Dialog
-          open={confirmLast24hOpen}
-          onOpenChange={(open) => {
-            setConfirmLast24hOpen(open);
-            if (!open) {
-              setPendingLast24hDate("");
-              setConfirmLast24hChecked(false);
-              setLast24hPickerResetKey((k) => k + 1);
-            }
-          }}
-        >
+      <Dialog
+        open={confirmLast24hOpen}
+        onOpenChange={(open) => {
+          setConfirmLast24hOpen(open);
+          if (!open) {
+            setPendingLast24hDate("");
+            setConfirmLast24hChecked(false);
+            setLast24hPickerResetKey((k) => k + 1);
+          }
+        }}
+      >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Confirm {LAST_24H_BREAK_CHIP_LABEL}</DialogTitle>
               <DialogDescription>
-                Set this date as your {LAST_24H_BREAK_CHIP_LABEL}? Once set, it will be locked for this sheet (manager
-                amendment required to change).
+                Set this date as your {LAST_24H_BREAK_CHIP_LABEL}? You can change it again until the week is signed.
               </DialogDescription>
             </DialogHeader>
             {pendingLast24hDate && (
@@ -430,7 +433,6 @@ export default function SheetHeader({
             </div>
           </DialogContent>
         </Dialog>
-      )}
     </div>
   );
 }
