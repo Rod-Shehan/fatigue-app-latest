@@ -202,6 +202,10 @@ export async function buildRoadsideSheetExportInput(
     days: SheetDays;
     jurisdiction_label: string;
     last_24h_break: string | null;
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
     status: string;
     signed_at: string | null;
     signature: string | null;
