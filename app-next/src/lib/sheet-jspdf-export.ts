@@ -20,6 +20,23 @@ type SegmentType = "work" | "break" | "non_work";
 type TimelineSegment = { startMin: number; endMin: number; type: SegmentType };
 const ROW_LABELS = ["Work", "Break", "Non-Work"] as const;
 
+function formatDeclared24hRestsForPdf(sheet: {
+  last_24h_rest_1?: string | null;
+  last_24h_rest_2?: string | null;
+  last_24h_rest_3?: string | null;
+  last_24h_rest_4?: string | null;
+}): string {
+  const parts = [
+    sheet.last_24h_rest_1,
+    sheet.last_24h_rest_2,
+    sheet.last_24h_rest_3,
+    sheet.last_24h_rest_4,
+  ]
+    .map((s) => (typeof s === "string" ? s.trim() : ""))
+    .filter(Boolean);
+  return parts.length ? parts.join(", ") : "—";
+}
+
 function getDateStr(weekStarting: string | null, dayIndex: number): string {
   if (!weekStarting) return "—";
   const [y, m, d] = weekStarting.split("-").map(Number);
@@ -317,6 +334,10 @@ function buildShiftLogHtml(opts: {
     week_starting: string;
     jurisdiction_label: string;
     last_24h_break: string | null;
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
     status: string;
     signed_at: string | null;
     days: Array<{
@@ -357,6 +378,10 @@ function buildShiftLogHtml(opts: {
     {
       label: "Last 24h continuous rest (date)",
       value: (sheet.last_24h_break || "").trim() || "—",
+    },
+    {
+      label: "Declared 24h non-work rests",
+      value: formatDeclared24hRestsForPdf(sheet),
     },
     { label: "Sheet status", value: sheet.status === "completed" ? "Completed" : "Draft" },
     ...(sheet.signed_at
@@ -504,6 +529,10 @@ export function renderPdfHtml(opts: {
     week_starting: string;
     jurisdiction_label: string;
     last_24h_break: string | null;
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
     status: string;
     signed_at: string | null;
     days: Array<{
@@ -842,6 +871,10 @@ function renderShiftLogJsPDF(
     week_starting: string;
     jurisdiction_label: string;
     last_24h_break: string | null;
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
     status: string;
     signed_at: string | null;
     days: Array<Record<string, unknown>>;
@@ -877,6 +910,7 @@ function renderShiftLogJsPDF(
     `Week starting: ${sheet.week_starting || "—"}`,
     `Rules: ${sheet.jurisdiction_label || "—"}`,
     `Last 24h rest (date): ${(sheet.last_24h_break || "").trim() || "—"}`,
+    `Declared 24h non-work rests: ${formatDeclared24hRestsForPdf(sheet)}`,
     `Status: ${sheet.status === "completed" ? "Completed" : "Draft"}`,
     ...(sheet.signed_at ? [`Signed: ${formatTimestampPerth(sheet.signed_at)}`] : []),
   ];
@@ -1030,6 +1064,10 @@ export type SheetJsPdfInput = {
     signed_at: string | null;
     jurisdiction_label: string;
     last_24h_break: string | null;
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
   };
   roadsidePayload: RoadsidePdfPayload;
   todayStr: string;

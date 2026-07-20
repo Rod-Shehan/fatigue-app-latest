@@ -89,6 +89,7 @@ import {
   type ShiftLabel,
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
+import { getDeclared24hRestRequirementFromSheets } from "@/lib/declared-24h-rests";
 import { complianceStateAt } from "@/lib/compliance-state";
 import {
   buildDriverComplianceWeekContext,
@@ -216,6 +217,10 @@ export function SheetDetail({
     driver_type: string;
     jurisdiction_code: string;
     last_24h_break: string;
+    last_24h_rest_1: string;
+    last_24h_rest_2: string;
+    last_24h_rest_3: string;
+    last_24h_rest_4: string;
     week_starting: string;
     days: DayData[];
     status: string;
@@ -227,6 +232,10 @@ export function SheetDetail({
     driver_type: "solo",
     jurisdiction_code: DEFAULT_JURISDICTION_CODE,
     last_24h_break: "",
+    last_24h_rest_1: "",
+    last_24h_rest_2: "",
+    last_24h_rest_3: "",
+    last_24h_rest_4: "",
     week_starting: getThisWeekSunday(),
     days: Array(7)
       .fill(null)
@@ -544,6 +553,10 @@ export function SheetDetail({
       driver_type: sheet.driver_type || "solo",
       jurisdiction_code: jurisdiction,
       last_24h_break: sheet.last_24h_break || "",
+      last_24h_rest_1: sheet.last_24h_rest_1 || "",
+      last_24h_rest_2: sheet.last_24h_rest_2 || "",
+      last_24h_rest_3: sheet.last_24h_rest_3 || "",
+      last_24h_rest_4: sheet.last_24h_rest_4 || "",
       week_starting: weekStart,
       days,
       status,
@@ -594,6 +607,12 @@ export function SheetDetail({
         ? (complianceHistoryRemote?.history_days ?? null)
         : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheetData.last_24h_break || undefined,
+      declared24hRests: {
+        last_24h_rest_1: sheetData.last_24h_rest_1 || null,
+        last_24h_rest_2: sheetData.last_24h_rest_2 || null,
+        last_24h_rest_3: sheetData.last_24h_rest_3 || null,
+        last_24h_rest_4: sheetData.last_24h_rest_4 || null,
+      },
       weekStarting: sheetData.week_starting || undefined,
       prevWeekStarting: isManager
         ? (complianceHistoryRemote?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined)
@@ -607,6 +626,10 @@ export function SheetDetail({
     todayCrew.driver_type,
     sheetData.jurisdiction_code,
     sheetData.last_24h_break,
+    sheetData.last_24h_rest_1,
+    sheetData.last_24h_rest_2,
+    sheetData.last_24h_rest_3,
+    sheetData.last_24h_rest_4,
     sheetData.week_starting,
     prevWeekSheet,
     complianceHistoryRemote,
@@ -725,6 +748,12 @@ export function SheetDetail({
         prevWeekDays: compliancePayload.prevWeekDays ?? null,
         historyDays: compliancePayload.historyDays ?? null,
         last24hBreak: sheetData.last_24h_break || undefined,
+        declared24hRests: {
+          last_24h_rest_1: sheetData.last_24h_rest_1 || null,
+          last_24h_rest_2: sheetData.last_24h_rest_2 || null,
+          last_24h_rest_3: sheetData.last_24h_rest_3 || null,
+          last_24h_rest_4: sheetData.last_24h_rest_4 || null,
+        },
         prevWeekStarting: compliancePayload.prevWeekStarting,
         jurisdictionCode: sheetData.jurisdiction_code,
       }
@@ -734,6 +763,10 @@ export function SheetDetail({
     sheetData.week_starting,
     todayCrew.driver_type,
     sheetData.last_24h_break,
+    sheetData.last_24h_rest_1,
+    sheetData.last_24h_rest_2,
+    sheetData.last_24h_rest_3,
+    sheetData.last_24h_rest_4,
     sheetData.status,
     sheetData.jurisdiction_code,
     currentDayIndex,
@@ -891,6 +924,10 @@ export function SheetDetail({
       driver_type: d.driver_type,
       destination: null,
       last_24h_break: d.last_24h_break || undefined,
+      last_24h_rest_1: d.last_24h_rest_1 || undefined,
+      last_24h_rest_2: d.last_24h_rest_2 || undefined,
+      last_24h_rest_3: d.last_24h_rest_3 || undefined,
+      last_24h_rest_4: d.last_24h_rest_4 || undefined,
       week_starting: d.week_starting,
       days: d.days,
       status: d.status,
@@ -939,14 +976,83 @@ export function SheetDetail({
     setIsDirty(true);
   }, [driverContentLocked]);
 
+  const declared24hRestRequirement = useMemo(
+    () =>
+      getDeclared24hRestRequirementFromSheets({
+        driverType: todayCrew.driver_type,
+        weekStarting: sheetData.week_starting,
+        days: sheetData.days,
+        prevWeekDays: compliancePayload.prevWeekDays ?? null,
+        historyDays: compliancePayload.historyDays ?? null,
+        declaredFields: {
+          last_24h_rest_1: sheetData.last_24h_rest_1,
+          last_24h_rest_2: sheetData.last_24h_rest_2,
+          last_24h_rest_3: sheetData.last_24h_rest_3,
+          last_24h_rest_4: sheetData.last_24h_rest_4,
+        },
+      }),
+    [
+      todayCrew.driver_type,
+      sheetData.week_starting,
+      sheetData.days,
+      sheetData.last_24h_rest_1,
+      sheetData.last_24h_rest_2,
+      sheetData.last_24h_rest_3,
+      sheetData.last_24h_rest_4,
+      compliancePayload.prevWeekDays,
+      compliancePayload.historyDays,
+    ]
+  );
+
+  /** Keep showing locked dates after they satisfy the rule (do not vanish). */
+  const declared24hRestUiFieldCount = useMemo((): 0 | 2 | 4 => {
+    if (declared24hRestRequirement.fieldCount > 0) return declared24hRestRequirement.fieldCount;
+    const n = [
+      sheetData.last_24h_rest_1,
+      sheetData.last_24h_rest_2,
+      sheetData.last_24h_rest_3,
+      sheetData.last_24h_rest_4,
+    ].filter((s) => !!s?.trim()).length;
+    if (n >= 4) return 4;
+    if (n >= 1) return 2;
+    return 0;
+  }, [
+    declared24hRestRequirement.fieldCount,
+    sheetData.last_24h_rest_1,
+    sheetData.last_24h_rest_2,
+    sheetData.last_24h_rest_3,
+    sheetData.last_24h_rest_4,
+  ]);
+
   const driverSheetMetaProps = useMemo(
     () => ({
       last24hBreak: sheetData.last_24h_break,
       onLast24hBreakChange: (last_24h_break: string) => {
         handleHeaderChange({ last_24h_break });
       },
+      declared24hRests: {
+        last_24h_rest_1: sheetData.last_24h_rest_1,
+        last_24h_rest_2: sheetData.last_24h_rest_2,
+        last_24h_rest_3: sheetData.last_24h_rest_3,
+        last_24h_rest_4: sheetData.last_24h_rest_4,
+      },
+      declared24hRestFieldCount: declared24hRestUiFieldCount,
+      onDeclared24hRestChange: (
+        key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
+        ymd: string
+      ) => {
+        handleHeaderChange({ [key]: ymd });
+      },
     }),
-    [sheetData.last_24h_break, handleHeaderChange]
+    [
+      sheetData.last_24h_break,
+      sheetData.last_24h_rest_1,
+      sheetData.last_24h_rest_2,
+      sheetData.last_24h_rest_3,
+      sheetData.last_24h_rest_4,
+      declared24hRestUiFieldCount,
+      handleHeaderChange,
+    ]
   );
 
   const handleDayUpdate = useCallback((dayIndex: number, dayData: DayData) => {
@@ -1381,6 +1487,10 @@ export function SheetDetail({
             driver_type: sheetData.driver_type,
             destination: null,
             last_24h_break: sheetData.last_24h_break || undefined,
+            last_24h_rest_1: sheetData.last_24h_rest_1 || undefined,
+            last_24h_rest_2: sheetData.last_24h_rest_2 || undefined,
+            last_24h_rest_3: sheetData.last_24h_rest_3 || undefined,
+            last_24h_rest_4: sheetData.last_24h_rest_4 || undefined,
             week_starting: sheetData.week_starting,
             days: sheetData.days,
             status: "completed",

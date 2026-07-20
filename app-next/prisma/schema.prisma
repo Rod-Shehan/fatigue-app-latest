@@ -123,6 +123,11 @@ model FatigueSheet {
   driverType      String    @default("solo") // "solo" | "two_up"
   destination     String?
   last24hBreak    String?   // YYYY-MM-DD date of last 24-hour break
+  /** Declared solo 24h non-work rests (Reg 184E(2)(b)) when logs cannot yet prove them. */
+  last24hRest1    String?   // YYYY-MM-DD
+  last24hRest2    String?
+  last24hRest3    String?
+  last24hRest4    String?
   weekStarting    String    // YYYY-MM-DD
   days            String    // JSON array of 7 day objects
   status          String    @default("draft") // "draft" | "completed"

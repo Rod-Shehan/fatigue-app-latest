@@ -38,6 +38,10 @@ function sheetToJson(row: {
   driverType: string;
   destination: string | null;
   last24hBreak: string | null;
+  last24hRest1: string | null;
+  last24hRest2: string | null;
+  last24hRest3: string | null;
+  last24hRest4: string | null;
   weekStarting: string;
   days: string;
   status: string;
@@ -54,6 +58,10 @@ function sheetToJson(row: {
     driver_type: row.driverType,
     destination: row.destination,
     last_24h_break: row.last24hBreak,
+    last_24h_rest_1: row.last24hRest1,
+    last_24h_rest_2: row.last24hRest2,
+    last_24h_rest_3: row.last24hRest3,
+    last_24h_rest_4: row.last24hRest4,
     week_starting: row.weekStarting,
     days: normalizeSheetDaysForApi(parseDays(row.days)),
     status: row.status,
@@ -139,6 +147,10 @@ export async function PATCH(
       driver_type,
       destination,
       last_24h_break,
+      last_24h_rest_1,
+      last_24h_rest_2,
+      last_24h_rest_3,
+      last_24h_rest_4,
       week_starting,
       days,
       status,
@@ -246,6 +258,10 @@ export async function PATCH(
     if (driver_type !== undefined) data.driverType = driver_type;
     if (destination !== undefined) data.destination = destination;
     if (last_24h_break !== undefined) data.last24hBreak = last_24h_break || null;
+    if (last_24h_rest_1 !== undefined) data.last24hRest1 = last_24h_rest_1 || null;
+    if (last_24h_rest_2 !== undefined) data.last24hRest2 = last_24h_rest_2 || null;
+    if (last_24h_rest_3 !== undefined) data.last24hRest3 = last_24h_rest_3 || null;
+    if (last_24h_rest_4 !== undefined) data.last24hRest4 = last_24h_rest_4 || null;
     if (week_starting !== undefined) data.weekStarting = week_starting;
     if (days !== undefined) data.days = JSON.stringify(normalizeSheetDaysForApi(days));
     if (status !== undefined) data.status = status;

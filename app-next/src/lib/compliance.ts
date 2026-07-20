@@ -19,6 +19,13 @@ import {
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
+  option14Satisfied,
+  option28Satisfied,
+  timelineStartYmdFromPriorDays,
+  type Declared24hRestFields,
+  collectDeclared24hRests,
+} from "@/lib/declared-24h-rests";
+import {
   SHIFT_CHANGE_EDUCATION_MESSAGE,
   SHIFT_CHANGE_MIN_GAP_HOURS,
   findShiftPatternTransitionsOnTimeline,
@@ -305,40 +312,45 @@ function check168hWorkOnMinuteTimeline(work: boolean[], noWorkMinutes: boolean[]
 
 /**
  * Reg 184E(2)(b) at the current end of the timeline (minute grid).
- * Option (i): last 14 days contain ≥2×24h non-work. Option (ii): 28-day alternative at now.
+ * Option (i): last 14 days contain ≥2×24h non-work (logged and/or declared).
+ * Option (ii): 28-day alternative at now.
+ * Short history (&lt;14 days): declarations of two 24h rests satisfy the absolute.
  */
-function checkSolo24hNonWorkAtNow(nonWork: boolean[], work: boolean[], results: ComplianceCheckResult[]) {
-  if (nonWork.length < MINUTES_14D) return;
+function checkSolo24hNonWorkAtNow(
+  nonWork: boolean[],
+  work: boolean[],
+  results: ComplianceCheckResult[],
+  opts: { timelineStartYmd: string; declared: string[] }
+) {
+  const { timelineStartYmd, declared } = opts;
 
-  const e = nonWork.length;
-  const option14Ok = countFullNonWorkPeriods(nonWork.slice(e - MINUTES_14D, e), MINUTES_24H) >= 2;
+  if (option14Satisfied(nonWork, timelineStartYmd, declared)) return;
+  if (option28Satisfied(nonWork, work, timelineStartYmd, declared)) return;
 
-  let option28Ok = false;
-  if (e >= MINUTES_28D) {
-    const window28NonWork = nonWork.slice(e - MINUTES_28D, e);
-    const window28Work = work.slice(e - MINUTES_28D, e);
-    if (countFullNonWorkPeriods(window28NonWork, MINUTES_24H) >= 4) {
-      option28Ok = !anyRollingWorkWindowExceeds(window28Work, MINUTES_14D, MAX_WORK_MINUTES_14D_ALT);
-    }
-  }
-
-  if (!option14Ok && !option28Ok) {
-    results.push({
-      type: "violation",
-      iconKey: "Moon",
-      day: "14-day",
-      message:
-        "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative: 4×24h + ≤144h work in any 14 days)",
-    });
-  }
+  results.push({
+    type: "violation",
+    iconKey: "Moon",
+    day: "14-day",
+    message:
+      "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative: 4×24h + ≤144h work in any 14 days)",
+  });
 }
 
 /**
  * Stricter audit: any rolling 14-day window ending in the last 14 days (hourly) must satisfy
  * option (i) or, when 28 days of data exist at that endpoint, option (ii).
+ * Skipped when logs and/or declarations already satisfy the rule at now.
  */
-function checkSolo24hNonWorkRollingAudit(nonWork: boolean[], work: boolean[], results: ComplianceCheckResult[]) {
+function checkSolo24hNonWorkRollingAudit(
+  nonWork: boolean[],
+  work: boolean[],
+  results: ComplianceCheckResult[],
+  opts: { timelineStartYmd: string; declared: string[] }
+) {
   if (nonWork.length < MINUTES_14D) return;
+  // Declarations / logs that satisfy option (i) at now suppress the historical gap nag.
+  // Option (ii) at now alone does not — rolling gaps can still exist (see compliance tests).
+  if (option14Satisfied(nonWork, opts.timelineStartYmd, opts.declared)) return;
 
   const scanFrom = Math.max(MINUTES_14D, nonWork.length - MINUTES_14D);
   const endPoints = new Set<number>();
@@ -483,6 +495,8 @@ function checkSoloRules(
     historyDays?: ComplianceDayData[] | null;
     /** Immediate prior week — folded into 14/28 combined timeline after historyDays. */
     prevWeekDays?: ComplianceDayData[] | null;
+    /** Declared 24h non-work rest dates when logs cannot prove Reg 184E(2)(b). */
+    declared24hRests?: Declared24hRestFields | null;
   }
 ) {
   const hasAnyWork = days.some(dayHasWork);
@@ -630,8 +644,14 @@ function checkSoloRules(
   ].map((d) => normalizeDayCoverageArrays(d));
   const nonWorkAll = flatSlots(combined, "non_work");
   const workAll = flatSlots(combined, "work_time");
-  checkSolo24hNonWorkAtNow(nonWorkAll, workAll, results);
-  checkSolo24hNonWorkRollingAudit(nonWorkAll, workAll, results);
+  const priorDayCount =
+    (soloOptions?.historyDays?.length ?? 0) + (soloOptions?.prevWeekDays?.length ?? 0);
+  const timelineStartYmd = soloOptions?.weekStarting
+    ? timelineStartYmdFromPriorDays(soloOptions.weekStarting, priorDayCount)
+    : "";
+  const declared = collectDeclared24hRests(soloOptions?.declared24hRests);
+  checkSolo24hNonWorkAtNow(nonWorkAll, workAll, results, { timelineStartYmd, declared });
+  checkSolo24hNonWorkRollingAudit(nonWorkAll, workAll, results, { timelineStartYmd, declared });
 }
 
 function checkTwoUpRules(
@@ -953,6 +973,7 @@ export function runComplianceChecks(
     /** Optional preceding history (chronological) to support 28-day checks. */
     historyDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
+    declared24hRests?: Declared24hRestFields | null;
     weekStarting?: string;
     prevWeekStarting?: string;
     /** Current day index in week (0–6). With slotOffsetWithinToday, 72h rule is retrospective from now. */
@@ -967,6 +988,7 @@ export function runComplianceChecks(
     prevWeekDays,
     historyDays,
     last24hBreak,
+    declared24hRests,
     weekStarting,
     prevWeekStarting,
     currentDayIndex,
@@ -996,6 +1018,7 @@ export function runComplianceChecks(
       slotOffsetWithinToday,
       historyDays: (historyDays || []).map((d) => normalizeDayCoverageArrays(d)),
       prevWeekDays: prevDays.length ? prevDays : null,
+      declared24hRests,
     });
   }
 
@@ -1099,6 +1122,7 @@ export function getProspectiveWorkWarnings(
     prevWeekDays?: ComplianceDayData[] | null;
     historyDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
+    declared24hRests?: Declared24hRestFields | null;
     prevWeekStarting?: string;
     jurisdictionCode?: string | null;
   }

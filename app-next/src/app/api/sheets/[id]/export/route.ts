@@ -76,6 +76,10 @@ export async function GET(
       signed_at: row.signedAt?.toISOString() ?? null,
       jurisdiction_label: jurisdictionLabel,
       last_24h_break: row.last24hBreak,
+      last_24h_rest_1: row.last24hRest1,
+      last_24h_rest_2: row.last24hRest2,
+      last_24h_rest_3: row.last24hRest3,
+      last_24h_rest_4: row.last24hRest4,
     };
 
     const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, id);
@@ -121,6 +125,10 @@ export async function GET(
           days,
           jurisdiction_label: jurisdictionLabel,
           last_24h_break: row.last24hBreak,
+          last_24h_rest_1: row.last24hRest1,
+          last_24h_rest_2: row.last24hRest2,
+          last_24h_rest_3: row.last24hRest3,
+          last_24h_rest_4: row.last24hRest4,
           status: row.status,
           signed_at: row.signedAt?.toISOString() ?? null,
         },

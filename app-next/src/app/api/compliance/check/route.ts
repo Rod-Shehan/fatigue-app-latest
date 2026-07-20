@@ -9,6 +9,12 @@ export type ComplianceCheckPayload = {
   prevWeekDays?: ComplianceDayData[] | null;
   historyDays?: ComplianceDayData[] | null;
   last24hBreak?: string;
+  declared24hRests?: {
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
+  } | null;
   weekStarting?: string;
   prevWeekStarting?: string;
   currentDayIndex?: number;
@@ -30,6 +36,7 @@ export async function POST(req: Request) {
       prevWeekDays,
       historyDays,
       last24hBreak,
+      declared24hRests,
       weekStarting,
       prevWeekStarting,
       currentDayIndex,
@@ -48,6 +55,7 @@ export async function POST(req: Request) {
       prevWeekDays: prevWeekDays ?? null,
       historyDays: historyDays ?? null,
       last24hBreak,
+      declared24hRests: declared24hRests ?? null,
       weekStarting,
       prevWeekStarting,
       currentDayIndex,

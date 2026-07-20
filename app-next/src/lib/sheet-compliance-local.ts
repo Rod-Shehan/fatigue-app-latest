@@ -19,6 +19,12 @@ export type SheetComplianceRunInput = {
   prevWeekDays?: ComplianceDayData[] | null;
   historyDays?: ComplianceDayData[] | null;
   last24hBreak?: string;
+  declared24hRests?: {
+    last_24h_rest_1?: string | null;
+    last_24h_rest_2?: string | null;
+    last_24h_rest_3?: string | null;
+    last_24h_rest_4?: string | null;
+  } | null;
   weekStarting?: string;
   prevWeekStarting?: string;
   currentDayIndex?: number;
@@ -49,6 +55,7 @@ export function runLocalSheetComplianceCheck(input: SheetComplianceRunInput): Co
     prevWeekDays: input.prevWeekDays ?? null,
     historyDays: input.historyDays ?? null,
     last24hBreak: input.last24hBreak,
+    declared24hRests: input.declared24hRests ?? null,
     weekStarting: input.weekStarting,
     prevWeekStarting: input.prevWeekStarting,
     currentDayIndex: input.currentDayIndex,

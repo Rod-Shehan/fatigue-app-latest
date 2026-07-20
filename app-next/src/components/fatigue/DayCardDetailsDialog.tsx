@@ -45,6 +45,7 @@ import {
   type DayEventDraft,
 } from "@/components/fatigue/DayEventsEditor";
 import { Last24hBreakField } from "@/components/fatigue/Last24hBreakField";
+import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 
 export type DayCardFields = {
@@ -87,6 +88,9 @@ export function DayCardDetailsDialog({
   weekStarting,
   last24hBreak,
   onLast24hBreakChange,
+  declared24hRests,
+  declared24hRestFieldCount = 0,
+  onDeclared24hRestChange,
   readOnly = false,
   onConfirm,
   showShiftPatternEducation,
@@ -114,6 +118,17 @@ export function DayCardDetailsDialog({
   weekStarting?: string;
   last24hBreak?: string;
   onLast24hBreakChange?: (ymd: string) => void;
+  declared24hRests?: {
+    last_24h_rest_1?: string;
+    last_24h_rest_2?: string;
+    last_24h_rest_3?: string;
+    last_24h_rest_4?: string;
+  };
+  declared24hRestFieldCount?: 0 | 2 | 4;
+  onDeclared24hRestChange?: (
+    key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
+    ymd: string
+  ) => void;
   readOnly?: boolean;
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
   showShiftPatternEducation?: boolean;
@@ -435,6 +450,15 @@ export function DayCardDetailsDialog({
             <Last24hBreakField
               value={last24hBreak}
               onChange={onLast24hBreakChange}
+              readOnly={readOnly}
+            />
+          )}
+
+          {declared24hRestFieldCount >= 2 && onDeclared24hRestChange && (
+            <Declared24hRestsField
+              fieldCount={declared24hRestFieldCount === 4 ? 4 : 2}
+              values={declared24hRests ?? {}}
+              onChange={onDeclared24hRestChange}
               readOnly={readOnly}
             />
           )}

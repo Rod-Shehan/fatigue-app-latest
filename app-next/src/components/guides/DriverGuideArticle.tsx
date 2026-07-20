@@ -204,6 +204,10 @@ export function DriverGuideArticle() {
           <li>Shift pattern — Day (A) or Night (B)</li>
           <li>Solo or Two-up, and the relief driver&apos;s name</li>
           <li>Last 24-hour break date</li>
+          <li>
+            Last 2 × 24 hour non-work breaks (two dates) — only when the app needs them because it
+            does not yet have enough of your past days. This is part of your legal week record.
+          </li>
         </ul>
       </section>
 

@@ -127,6 +127,11 @@ export type FatigueSheet = {
   /** Deprecated: use per-day `days[].destination` only; may be null from API. */
   destination?: string | null;
   last_24h_break?: string;
+  /** Declared solo 24h non-work rests (Reg 184E(2)(b)) when logs cannot prove them. */
+  last_24h_rest_1?: string;
+  last_24h_rest_2?: string;
+  last_24h_rest_3?: string;
+  last_24h_rest_4?: string;
   week_starting: string;
   days: DayData[];
   status: string;
@@ -319,6 +324,12 @@ export const api = {
       prevWeekDays?: Array<{ work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] }> | null;
       historyDays?: Array<{ work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] }> | null;
       last24hBreak?: string;
+      declared24hRests?: {
+        last_24h_rest_1?: string | null;
+        last_24h_rest_2?: string | null;
+        last_24h_rest_3?: string | null;
+        last_24h_rest_4?: string | null;
+      } | null;
       weekStarting?: string;
       prevWeekStarting?: string;
       currentDayIndex?: number;

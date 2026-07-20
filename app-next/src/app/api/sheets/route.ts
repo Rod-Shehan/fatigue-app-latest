@@ -25,6 +25,10 @@ function sheetToJson(row: {
   driverType: string;
   destination: string | null;
   last24hBreak: string | null;
+  last24hRest1: string | null;
+  last24hRest2: string | null;
+  last24hRest3: string | null;
+  last24hRest4: string | null;
   weekStarting: string;
   days: string;
   status: string;
@@ -41,6 +45,10 @@ function sheetToJson(row: {
     driver_type: row.driverType,
     destination: row.destination,
     last_24h_break: row.last24hBreak,
+    last_24h_rest_1: row.last24hRest1,
+    last_24h_rest_2: row.last24hRest2,
+    last_24h_rest_3: row.last24hRest3,
+    last_24h_rest_4: row.last24hRest4,
     week_starting: row.weekStarting,
     days: normalizeSheetDaysForApi(parseDays(row.days)),
     status: row.status,
@@ -59,6 +67,10 @@ function sheetToJsonMeta(row: {
   driverType: string;
   destination: string | null;
   last24hBreak: string | null;
+  last24hRest1: string | null;
+  last24hRest2: string | null;
+  last24hRest3: string | null;
+  last24hRest4: string | null;
   weekStarting: string;
   status: string;
   signature: string | null;
@@ -74,6 +86,10 @@ function sheetToJsonMeta(row: {
     driver_type: row.driverType,
     destination: row.destination,
     last_24h_break: row.last24hBreak,
+    last_24h_rest_1: row.last24hRest1,
+    last_24h_rest_2: row.last24hRest2,
+    last_24h_rest_3: row.last24hRest3,
+    last_24h_rest_4: row.last24hRest4,
     week_starting: row.weekStarting,
     days: [] as ReturnType<typeof normalizeSheetDaysForApi>,
     status: row.status,
@@ -92,6 +108,10 @@ const sheetMetaSelect = {
   driverType: true,
   destination: true,
   last24hBreak: true,
+  last24hRest1: true,
+  last24hRest2: true,
+  last24hRest3: true,
+  last24hRest4: true,
   weekStarting: true,
   status: true,
   signature: true,
@@ -239,6 +259,10 @@ export async function POST(req: Request) {
         driverType: driver_type ?? "solo",
         destination: destination ?? null,
         last24hBreak: body.last_24h_break ?? null,
+        last24hRest1: body.last_24h_rest_1 ?? null,
+        last24hRest2: body.last_24h_rest_2 ?? null,
+        last24hRest3: body.last_24h_rest_3 ?? null,
+        last24hRest4: body.last_24h_rest_4 ?? null,
         weekStarting: week_starting,
         days: JSON.stringify(normalizeSheetDaysForApi(days)),
         status: status ?? "draft",

@@ -121,6 +121,9 @@ export default function DayEntry({
   secondDriver,
   onLast24hBreakChange,
   last24hBreak,
+  declared24hRests,
+  declared24hRestFieldCount = 0,
+  onDeclared24hRestChange,
   onCrewMetaSync,
   dayTools,
   setupOpenRequest,
@@ -145,6 +148,17 @@ export default function DayEntry({
   secondDriver?: string;
   last24hBreak?: string;
   onLast24hBreakChange?: (ymd: string) => void;
+  declared24hRests?: {
+    last_24h_rest_1?: string;
+    last_24h_rest_2?: string;
+    last_24h_rest_3?: string;
+    last_24h_rest_4?: string;
+  };
+  declared24hRestFieldCount?: 0 | 2 | 4;
+  onDeclared24hRestChange?: (
+    key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
+    ymd: string
+  ) => void;
   /** When today's crew is confirmed in Set up day, sync sheet header for LogBar / compliance. */
   onCrewMetaSync?: (crew: { driver_type: "solo" | "two_up"; second_driver: string }) => void;
   /** Sheet-level tools (compliance, PDF, gear) — today only. */
@@ -587,6 +601,9 @@ export default function DayEntry({
           weekStarting={weekStart}
           last24hBreak={last24hBreak}
           onLast24hBreakChange={onLast24hBreakChange}
+          declared24hRests={declared24hRests}
+          declared24hRestFieldCount={declared24hRestFieldCount}
+          onDeclared24hRestChange={onDeclared24hRestChange}
           readOnly={readOnly}
           showShiftPatternEducation={showShiftPatternEducation}
           patternWorkMinutes={patternWorkMinutes}
