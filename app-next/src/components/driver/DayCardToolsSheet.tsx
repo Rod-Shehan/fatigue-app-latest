@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components/driver/driver-ui-classes";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { formatSheetDisplayDate } from "@/lib/weeks";
+import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
 
 export function DayCardToolsSheet({
   open,
@@ -27,6 +28,7 @@ export function DayCardToolsSheet({
   onOpenGear,
   onOpenDaySetup,
   last24hUnset,
+  declared24hRestUnset,
   driverName,
 }: {
   open: boolean;
@@ -41,6 +43,8 @@ export function DayCardToolsSheet({
   onOpenGear: () => void;
   onOpenDaySetup?: () => void;
   last24hUnset?: boolean;
+  /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
+  declared24hRestUnset?: boolean;
   driverName?: string | null;
 }) {
   if (!open) return null;
@@ -125,6 +129,24 @@ export function DayCardToolsSheet({
                   "Not set"
                 )}
               </p>
+              {declared24hRestUnset && onOpenDaySetup ? (
+                <p className="text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
+                    {DECLARED_24H_REST_COPY.TITLE_2}
+                  </span>
+                  <br />
+                  <button
+                    type="button"
+                    className="text-amber-700 dark:text-amber-300 font-semibold underline-offset-2 hover:underline"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onOpenDaySetup();
+                    }}
+                  >
+                    Set in day setup
+                  </button>
+                </p>
+              ) : null}
             </div>
           </section>
 

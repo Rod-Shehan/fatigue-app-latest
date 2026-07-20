@@ -258,6 +258,35 @@ export function declared24hRestsFromSheet(sheet: Declared24hRestFields): Declare
   };
 }
 
+/** LogBar / compliance dialog — opens Set up day for header record fields. */
+export const SETUP_WEEK_RECORD_BUTTON_LABEL = "Set up week record";
+
+/** True when the driver can fix this warning by entering dates in Set up day. */
+export function isComplianceMessageFixableInDaySetup(message: string): boolean {
+  const m = message.toLowerCase();
+  if (m.includes("2×24h") || m.includes("2x24h")) return true;
+  if (m.includes("rolling 14-day non-work gap")) return true;
+  if (m.includes("no previous sheet found to check full 14-day")) return true;
+  return false;
+}
+
+export function complianceMessagesFixableInDaySetup(messages: string[]): boolean {
+  return messages.some(isComplianceMessageFixableInDaySetup);
+}
+
+/** Required declared rest dates not yet saved on this sheet. */
+export function declared24hRestsIncomplete(
+  fieldCount: 0 | 2 | 4,
+  fields: Declared24hRestFields
+): boolean {
+  if (fieldCount < 2) return false;
+  const keys =
+    fieldCount === 4
+      ? (["last_24h_rest_1", "last_24h_rest_2", "last_24h_rest_3", "last_24h_rest_4"] as const)
+      : (["last_24h_rest_1", "last_24h_rest_2"] as const);
+  return keys.some((k) => !(fields[k]?.trim()));
+}
+
 /** ESL copy for the declaration block (driver UI + guides). */
 export const DECLARED_24H_REST_COPY = {
   TITLE_2: "Last 2 × 24 hour non-work breaks",

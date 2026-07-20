@@ -11,6 +11,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { ComplianceCheckResult } from "@/lib/api";
+import {
+  complianceMessagesFixableInDaySetup,
+  declared24hRestsIncomplete,
+  isComplianceMessageFixableInDaySetup,
+  SETUP_WEEK_RECORD_BUTTON_LABEL,
+} from "@/lib/declared-24h-rests";
 
 export function ComplianceQuickDialog({
   open,
@@ -19,6 +25,7 @@ export function ComplianceQuickDialog({
   loading,
   results,
   driverName,
+  onSetupWeekRecord,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -26,12 +33,16 @@ export function ComplianceQuickDialog({
   loading?: boolean;
   results: ComplianceCheckResult[];
   driverName?: string | null;
+  /** Scroll to today and open Set up day (header rest dates). */
+  onSetupWeekRecord?: () => void;
 }) {
   const href = `/sheets/${sheetId}/compliance`;
   const violations = results.filter((r) => r.type === "violation");
   const warnings = results.filter((r) => r.type === "warning");
   const issues = [...violations, ...warnings];
   const name = driverName?.trim() || "";
+  const showSetupRecord =
+    !!onSetupWeekRecord && issues.some((r) => isComplianceMessageFixableInDaySetup(r.message));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,6 +83,18 @@ export function ComplianceQuickDialog({
           <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             Close
           </Button>
+          {showSetupRecord ? (
+            <Button
+              size="sm"
+              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => {
+                onOpenChange(false);
+                onSetupWeekRecord?.();
+              }}
+            >
+              {SETUP_WEEK_RECORD_BUTTON_LABEL}
+            </Button>
+          ) : null}
           <Link href={href} onClick={() => onOpenChange(false)}>
             <Button size="sm" className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700">
               Open full compliance check

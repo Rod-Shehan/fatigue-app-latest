@@ -141,7 +141,7 @@ Use **Set up day** (or **Edit day**) when something changes:
 - **Shift pattern** — Day (A) or Night (B)
 - **Solo** or **Two-up**, and the **relief driver's name**
 - **Last 24-hour break** date
-- **Last 2 × 24 hour non-work breaks** (two dates) — only when the app needs them because it does not yet have enough of your past days. This is part of your legal week record.
+- **Last 2 × 24 hour non-work breaks** (two dates) — only when the app needs them because it does not yet have enough of your past days. This is part of your legal week record. If you are already on shift, use **Set up week record** on the Work warning or compliance snapshot.
 
 ---
 

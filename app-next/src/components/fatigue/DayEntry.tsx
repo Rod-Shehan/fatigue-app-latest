@@ -39,6 +39,7 @@ export type DayCardToolsConfig = {
   sheetId: string;
   weekStarting?: string;
   last24hBreak?: string;
+  declared24hRestUnset?: boolean;
   complianceLoading?: boolean;
   complianceDetail: string;
   complianceTone: "ok" | "warn" | "issue";
@@ -563,6 +564,7 @@ export default function DayEntry({
           onOpenGear={dayTools.onOpenGear}
           onOpenDaySetup={() => setDetailsOpen(true)}
           last24hUnset={!dayTools.last24hBreak?.trim()}
+          declared24hRestUnset={dayTools.declared24hRestUnset}
           driverName={dayTools.driverName ?? driverName}
         />
       )}

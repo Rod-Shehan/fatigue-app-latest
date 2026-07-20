@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
+import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -206,7 +207,9 @@ export function DriverGuideArticle() {
           <li>Last 24-hour break date</li>
           <li>
             Last 2 × 24 hour non-work breaks (two dates) — only when the app needs them because it
-            does not yet have enough of your past days. This is part of your legal week record.
+            does not yet have enough of your past days. This is part of your legal week record. If
+            you are already on shift, use <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the
+            Work warning or compliance snapshot.
           </li>
         </ul>
       </section>

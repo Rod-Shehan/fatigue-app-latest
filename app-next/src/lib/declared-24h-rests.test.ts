@@ -5,6 +5,8 @@ import {
   option14Satisfied,
   collectDeclared24hRests,
   countEffective24hPeriods,
+  declared24hRestsIncomplete,
+  isComplianceMessageFixableInDaySetup,
 } from "@/lib/declared-24h-rests";
 import { runComplianceChecks, type ComplianceDayData } from "@/lib/compliance";
 
@@ -85,6 +87,24 @@ describe("declared-24h-rests", () => {
   it("countEffective adds declared dates outside the grid", () => {
     const nonWork = Array(MINUTES_PER_DAY).fill(true);
     expect(countEffective24hPeriods(nonWork, "2026-07-20", ["2026-07-10", "2026-07-11"])).toBe(3);
+  });
+
+  it("isComplianceMessageFixableInDaySetup detects 2×24h messages", () => {
+    expect(
+      isComplianceMessageFixableInDaySetup(
+        "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative: 4×24h + ≤144h work in any 14 days)"
+      )
+    ).toBe(true);
+    expect(isComplianceMessageFixableInDaySetup("20 min rest per 5h work not met")).toBe(false);
+  });
+
+  it("declared24hRestsIncomplete when required dates missing", () => {
+    expect(
+      declared24hRestsIncomplete(2, { last_24h_rest_1: "2026-07-10", last_24h_rest_2: null })
+    ).toBe(true);
+    expect(
+      declared24hRestsIncomplete(2, { last_24h_rest_1: "2026-07-10", last_24h_rest_2: "2026-07-11" })
+    ).toBe(false);
   });
 });
 

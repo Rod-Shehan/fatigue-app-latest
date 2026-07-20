@@ -58,6 +58,10 @@ import {
   shouldShowUpcomingComplianceChip,
 } from "@/lib/upcoming-compliance-chip";
 import {
+  complianceMessagesFixableInDaySetup,
+  SETUP_WEEK_RECORD_BUTTON_LABEL,
+} from "@/lib/declared-24h-rests";
+import {
   endShiftButtonSizeClass,
   endShiftIconSizeClass,
   endShiftTrimPaddingClass,
@@ -199,7 +203,15 @@ export default function LogBar({
   const [pendingType, setPendingType] = useState<string | null>(null);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
-  const [workWarning, setWorkWarning] = useState<{ message: string; confirmLabel: string; onConfirm: () => void; onCancel?: () => void; subtext?: string } | null>(null);
+  const [workWarning, setWorkWarning] = useState<{
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+    onCancel?: () => void;
+    subtext?: string;
+    setupRecordLabel?: string;
+    onSetupRecord?: () => void;
+  } | null>(null);
   const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tick, setTick] = useState(0);
   const [voiceAlertsEnabled, setVoiceAlertsEnabled] = useState(false);
@@ -693,6 +705,7 @@ export default function LogBar({
           workRelevantComplianceMessages.length === 1
             ? workRelevantComplianceMessages[0]
             : "Logging work now may affect these compliance rules:\n\n• " + workRelevantComplianceMessages.join("\n\n• ");
+        const fixableInSetup = complianceMessagesFixableInDaySetup(workRelevantComplianceMessages);
         setWorkWarning({
           message,
           confirmLabel: episodeResume
@@ -700,9 +713,20 @@ export default function LogBar({
             : needsShiftStartSetup
               ? "Start shift anyway"
               : "Log work anyway",
-          subtext: episodeResume
-            ? "Tap Resume shift again within a few seconds to confirm."
-            : "Tap Work again within a few seconds to confirm.",
+          subtext: fixableInSetup
+            ? "Add rest dates or last 24h break in Set up day, or confirm to log work anyway."
+            : episodeResume
+              ? "Tap Resume shift again within a few seconds to confirm."
+              : "Tap Work again within a few seconds to confirm.",
+          ...(fixableInSetup
+            ? {
+                setupRecordLabel: SETUP_WEEK_RECORD_BUTTON_LABEL,
+                onSetupRecord: () => {
+                  setWorkWarning(null);
+                  revealTodayCard();
+                },
+              }
+            : {}),
           onConfirm: () => {
             setWorkWarning(null);
             setWorkLogEpisodeResume(episodeResume);
@@ -1323,6 +1347,15 @@ export default function LogBar({
                 >
                   {workWarning.confirmLabel === "Start anyway" ? "Keep resting" : "Cancel"}
                 </button>
+                {workWarning.onSetupRecord && workWarning.setupRecordLabel ? (
+                  <button
+                    type="button"
+                    onClick={() => workWarning.onSetupRecord?.()}
+                    className={cn(driverAmberBtn, "bg-emerald-600 hover:bg-emerald-700 text-white")}
+                  >
+                    {workWarning.setupRecordLabel}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => workWarning.onConfirm()}

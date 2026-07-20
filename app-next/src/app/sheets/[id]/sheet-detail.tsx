@@ -89,7 +89,7 @@ import {
   type ShiftLabel,
 } from "@/lib/shift-change";
 import { getProspectiveWorkWarnings, getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
-import { getDeclared24hRestRequirementFromSheets } from "@/lib/declared-24h-rests";
+import { getDeclared24hRestRequirementFromSheets, declared24hRestsIncomplete } from "@/lib/declared-24h-rests";
 import { complianceStateAt } from "@/lib/compliance-state";
 import {
   buildDriverComplianceWeekContext,
@@ -715,10 +715,31 @@ export function SheetDetail({
     } else if (infos.length > 0) {
       complianceDetail = `${infos.length} optional note${infos.length === 1 ? "" : "s"}`;
     }
+    const restReq = getDeclared24hRestRequirementFromSheets({
+      driverType: todayCrew.driver_type,
+      weekStarting: sheetData.week_starting,
+      days: sheetData.days,
+      prevWeekDays: compliancePayload.prevWeekDays ?? null,
+      historyDays: compliancePayload.historyDays ?? null,
+      declaredFields: {
+        last_24h_rest_1: sheetData.last_24h_rest_1,
+        last_24h_rest_2: sheetData.last_24h_rest_2,
+        last_24h_rest_3: sheetData.last_24h_rest_3,
+        last_24h_rest_4: sheetData.last_24h_rest_4,
+      },
+    });
     return {
       sheetId,
       weekStarting: sheetData.week_starting,
       last24hBreak: sheetData.last_24h_break,
+      declared24hRestUnset:
+        restReq.fieldCount >= 2 &&
+        declared24hRestsIncomplete(restReq.fieldCount, {
+          last_24h_rest_1: sheetData.last_24h_rest_1,
+          last_24h_rest_2: sheetData.last_24h_rest_2,
+          last_24h_rest_3: sheetData.last_24h_rest_3,
+          last_24h_rest_4: sheetData.last_24h_rest_4,
+        }),
       complianceLoading,
       complianceDetail,
       complianceTone,
@@ -732,7 +753,15 @@ export function SheetDetail({
     complianceLoading,
     sheetId,
     sheetData.week_starting,
+    sheetData.days,
     sheetData.last_24h_break,
+    sheetData.last_24h_rest_1,
+    sheetData.last_24h_rest_2,
+    sheetData.last_24h_rest_3,
+    sheetData.last_24h_rest_4,
+    todayCrew.driver_type,
+    compliancePayload.prevWeekDays,
+    compliancePayload.historyDays,
     unsignedPastWeeksForDriver.length,
     driverPageIdentity.name,
   ]);
@@ -1961,6 +1990,11 @@ export function SheetDetail({
         loading={complianceLoading}
         results={complianceResults}
         driverName={driverPageIdentity.name}
+        onSetupWeekRecord={
+          !isManager && canShowLogBar
+            ? () => handleStartShiftBlocked({ openSetup: true })
+            : undefined
+        }
       />
       <SignatureDialog
         open={showSignatureDialog}
