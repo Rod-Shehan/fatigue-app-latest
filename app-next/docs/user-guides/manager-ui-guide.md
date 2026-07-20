@@ -23,7 +23,7 @@ Circadia separates **retrospective compliance** (what was logged) from **prospec
 flowchart TB
   subgraph primary [Primary]
     RB[Risk brief /manager]
-    MAP[Movement map]
+    MAP[Event Tracker]
     MSG[Conversations]
   end
   subgraph team [Team and fleet]
@@ -39,7 +39,7 @@ flowchart TB
 | Route | Function |
 |-------|----------|
 | **Risk brief** (`/manager`) | Weekly fleet view, tiers, register, workbench |
-| **Movement map** | GPS / movement context for assurance |
+| **Event Tracker** | Logged events with location on a map for assurance |
 | **Conversations** | Manager–driver messaging |
 | **Drivers** | Roster, login email, optional Commercial Driver's Medical expiry, passwords |
 | **Managers** | Create other manager accounts |
@@ -149,9 +149,9 @@ Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 
 ---
 
-## 7. Movement map
+## 7. Event Tracker
 
-Geographic view of movement evidence tied to logged events. Use for **corroboration** conversations — absence of GPS is a record-quality signal, not proof of misconduct by itself.
+Geographic view of logged work, breaks, and shift ends that have a location. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
 
 ---
 

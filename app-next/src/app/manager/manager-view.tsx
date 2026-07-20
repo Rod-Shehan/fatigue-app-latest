@@ -190,7 +190,7 @@ export function ManagerView() {
   const restoredScopeRef = useRef(false);
 
   // Restore scope from URL (?week=&day=&driver=) so a round trip to the
-  // Log map (or a shared link) lands back on the same context.
+  // Event Tracker (or a shared link) lands back on the same context.
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const week = sp.get("week");

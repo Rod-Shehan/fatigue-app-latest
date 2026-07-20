@@ -18,7 +18,7 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Navigation</h2>
         <GuideDiagram title="Manager menu">
-          {`  Overview ── Log map ── Conversations
+          {`  Overview ── ${MANAGER_EXPERIENCE.NAV_MAP} ── Conversations
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
@@ -28,6 +28,10 @@ export function ManagerGuideArticle() {
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.PAGE_TITLE}</strong> — weekly fleet
             view, tiers, register, sheet workbench
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_MAP}</strong> —{" "}
+            {MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE}
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Drivers</strong> — roster, medical

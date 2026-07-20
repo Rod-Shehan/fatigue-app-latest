@@ -68,7 +68,7 @@ export const MANAGER_EXPERIENCE = {
   NAV_LOBBY: "Log-in Page" as const,
   /** Short subnav label — avoids repeating the page title in the nav bar. */
   NAV_OVERVIEW: "Overview",
-  NAV_MAP: "Log map",
+  NAV_MAP: "Event Tracker",
   NAV_MESSAGES: "Conversations",
   NAV_ALERTS: "Live alerts",
   NAV_DRIVERS: "Drivers",
@@ -143,8 +143,8 @@ export const MANAGER_EXPERIENCE = {
   TIMELINE_PICK_DRIVER:
     "Click a fleet row or change Chart driver in Scope.",
   TIMELINE_AUTO_HINT: "Highest current risk",
-  TIMELINE_VIEW_ON_MAP: "View on map",
-  MAP_LOCATE_DRIVER: "Locate on Log map",
+  TIMELINE_VIEW_ON_MAP: "View on Event Tracker",
+  MAP_LOCATE_DRIVER: "Locate on Event Tracker",
 
   FLEET_PULSE_EYEBROW: "Live fleet tracking",
   FLEET_PULSE_TITLE: "Fleet risk pulse",
@@ -196,7 +196,8 @@ export const MANAGER_EXPERIENCE = {
   ACTION_OPEN_SHEET: "Open record",
   ACTION_OPEN_INBOX: "Start conversation",
 
-  MAP_PAGE_SUBTITLE: "Logbook entries placed on the map — where work, breaks, and shift ends were logged. The record, not a tracker.",
+  MAP_PAGE_SUBTITLE:
+    "Logged work, breaks, and shift ends with a location — placed on the map for assurance review.",
   MESSAGES_PAGE_SUBTITLE: "Check in with drivers when exposure rises — coaching tone, not compliance orders.",
 
   ALERTS_PAGE_SUBTITLE:

@@ -105,7 +105,7 @@ export const MANAGER_SUBNAV_WORKSPACE: NavLinkEntry[] = [
   {
     id: "map",
     surface: "manager-subnav",
-    title: "Log map",
+    title: "Event Tracker",
     href: "/manager/map",
   },
   {
