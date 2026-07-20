@@ -156,6 +156,8 @@ Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 
 Geographic view of logged work, breaks, and shift ends that have a location. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
 
+When present, a solid sky line into a marker is the driver’s **GPS movement trail since the previous log** (stationary waits are omitted). It is not live fleet tracking.
+
 ---
 
 ## 8. Conversations

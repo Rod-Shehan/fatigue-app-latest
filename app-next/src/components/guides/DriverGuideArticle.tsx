@@ -133,6 +133,10 @@ export function DriverGuideArticle() {
         </GuideDiagram>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Simple rule:</p>
         <p>Tap the button that matches what you are doing now.</p>
+        <p className="mt-2">
+          While the vehicle is moving, Work / Break / End shift stay locked (beacon only). Pull over and wait a few
+          seconds after you stop — then tap.
+        </p>
         <p className="mt-2">You cannot start Work until start km is on today&apos;s card (see section 7).</p>
       </section>
 

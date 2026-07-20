@@ -225,13 +225,15 @@ function ManagerMapViewInner() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-0 w-6 border-t-2 border-sky-600 dark:border-sky-400" />
-                Last-minute GPS trail (when available)
+                GPS movement trail (when available)
               </span>
             </div>
             <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              Each marker is where a driver <span className="font-semibold text-slate-700 dark:text-slate-200">logged a status change</span> — not continuous tracking.
+              Each marker is where a driver <span className="font-semibold text-slate-700 dark:text-slate-200">logged a status change</span> — not live fleet tracking.
               A break dot beside a work dot is normal: the driver pulled over, rested, then resumed work from the same spot.
-              A solid sky trail is the optional <span className="font-semibold text-slate-700 dark:text-slate-200">history_1m</span> breadcrumbs from the minute before that log.
+              A solid sky trail is optional GPS crumbs from{" "}
+              <span className="font-semibold text-slate-700 dark:text-slate-200">movement since the previous log</span>{" "}
+              (stationary waits are omitted to keep the dump small).
             </p>
           </div>
         </div>

@@ -1,7 +1,16 @@
 /**
- * GPS breadcrumb helpers for diary events.
- * history_1m = up to ~6 points (~10s apart) from the minute before a log fix.
+ * GPS segment trail + movement lock for the driver log bar.
+ *
+ * - Samples via watchPosition while the live log bar is open.
+ * - Keeps crumbs for the open segment (since last Work/Break/End shift dump).
+ * - Stationary wait: only accept a crumb when the fix has moved ~40 m from the
+ *   last kept point (and ~10 s has passed) — saves JSON size and map fuzz.
+ * - Movement lock: recent significant movement locks Work/Break (geometry-only hero).
+ *
+ * Stored on diary events as `history_1m` (legacy field name; now a segment trail).
  */
+
+import { haversineDistanceKm } from "@/lib/geo";
 
 export type History1mPoint = {
   lat: number;
@@ -10,17 +19,79 @@ export type History1mPoint = {
   t: string;
 };
 
-const HISTORY_1M_WINDOW_MS = 60_000;
-const HISTORY_1M_MIN_GAP_MS = 9_000; // ~10s spacing (allow slight jitter)
-const HISTORY_1M_MAX_POINTS = 10;
+/** Metres of movement required to accept a new trail crumb (and to count as "moving"). */
+export const GEO_MOVE_THRESHOLD_M = 40;
+/** Minimum spacing between accepted crumbs while moving. */
+export const GEO_MIN_GAP_MS = 9_000;
+/** Cap trail length per segment (safety valve for sheet JSON). */
+export const GEO_MAX_SEGMENT_POINTS = 120;
+/**
+ * After the last significant move, stay in "moving" lock this long before
+ * unlocking Work/Break (hysteresis so the button does not flicker at lights).
+ */
+export const GEO_STATIONARY_UNLOCK_MS = 25_000;
 
-/** Keep only finite crumbs inside the last minute, oldest → newest. */
+export type GeoMovementState = {
+  isMoving: boolean;
+  lastMovedAtMs: number | null;
+  acceptedCount: number;
+};
+
+type RingState = {
+  points: History1mPoint[];
+  watchId: number | null;
+  lastFix: { lat: number; lng: number; tMs: number } | null;
+  lastMovedAtMs: number | null;
+  listeners: Set<(state: GeoMovementState) => void>;
+};
+
+const ring: RingState = {
+  points: [],
+  watchId: null,
+  lastFix: null,
+  lastMovedAtMs: null,
+  listeners: new Set(),
+};
+
+function metresBetween(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+): number {
+  return haversineDistanceKm(a.lat, a.lng, b.lat, b.lng) * 1000;
+}
+
+function computeIsMoving(nowMs: number = Date.now()): boolean {
+  if (ring.lastMovedAtMs == null) return false;
+  return nowMs - ring.lastMovedAtMs < GEO_STATIONARY_UNLOCK_MS;
+}
+
+function emitMovement(): void {
+  const state = getGeoMovementState();
+  for (const listener of ring.listeners) listener(state);
+}
+
+export function getGeoMovementState(nowMs: number = Date.now()): GeoMovementState {
+  return {
+    isMoving: computeIsMoving(nowMs),
+    lastMovedAtMs: ring.lastMovedAtMs,
+    acceptedCount: ring.points.length,
+  };
+}
+
+/** Subscribe to movement-lock updates from the GPS watch. Returns unsubscribe. */
+export function subscribeGeoMovement(listener: (state: GeoMovementState) => void): () => void {
+  ring.listeners.add(listener);
+  listener(getGeoMovementState());
+  return () => {
+    ring.listeners.delete(listener);
+  };
+}
+
+/** Sanitize stored crumbs for API/map — no 60s window (segment trails can be long). */
 export function normalizeHistory1m(
-  points: History1mPoint[] | null | undefined,
-  asOfMs: number = Date.now()
+  points: History1mPoint[] | null | undefined
 ): History1mPoint[] {
   if (!points?.length) return [];
-  const floor = asOfMs - HISTORY_1M_WINDOW_MS;
   return points
     .filter(
       (p) =>
@@ -33,37 +104,19 @@ export function normalizeHistory1m(
         Number.isFinite(Date.parse(p.t))
     )
     .map((p) => ({ lat: p.lat, lng: p.lng, t: p.t }))
-    .filter((p) => Date.parse(p.t) >= floor && Date.parse(p.t) <= asOfMs + 1_000)
     .sort((a, b) => a.t.localeCompare(b.t))
-    .slice(-HISTORY_1M_MAX_POINTS);
+    .slice(-GEO_MAX_SEGMENT_POINTS);
 }
 
 /**
  * Leaflet positions: history crumbs oldest→newest, then current fix.
  * Dedupes if the last crumb already matches the current point.
- * When `asOfMs` is set, applies the 1-minute window; otherwise only sanitizes
- * (API already windowed crumbs relative to the event time).
  */
 export function history1mTrailPositions(
   history: History1mPoint[] | null | undefined,
-  current: { lat: number; lng: number },
-  asOfMs?: number
+  current: { lat: number; lng: number }
 ): [number, number][] {
-  const crumbs =
-    asOfMs != null
-      ? normalizeHistory1m(history, asOfMs)
-      : (history ?? [])
-          .filter(
-            (p) =>
-              p &&
-              typeof p.lat === "number" &&
-              typeof p.lng === "number" &&
-              Number.isFinite(p.lat) &&
-              Number.isFinite(p.lng)
-          )
-          .slice()
-          .sort((a, b) => String(a.t ?? "").localeCompare(String(b.t ?? "")));
-
+  const crumbs = normalizeHistory1m(history);
   const trail: [number, number][] = crumbs.map((p) => [p.lat, p.lng]);
   if (!Number.isFinite(current.lat) || !Number.isFinite(current.lng)) return trail;
   const last = trail[trail.length - 1];
@@ -73,33 +126,67 @@ export function history1mTrailPositions(
   return trail;
 }
 
-type RingState = {
-  points: History1mPoint[];
-  watchId: number | null;
-};
-
-const ring: RingState = { points: [], watchId: null };
-
-function pushRingPoint(lat: number, lng: number, tMs: number = Date.now()): void {
+function tryAcceptTrailPoint(lat: number, lng: number, tMs: number): boolean {
   const last = ring.points[ring.points.length - 1];
-  if (last && tMs - Date.parse(last.t) < HISTORY_1M_MIN_GAP_MS) return;
+  if (!last) {
+    ring.points.push({ lat, lng, t: new Date(tMs).toISOString() });
+    return true;
+  }
+  if (tMs - Date.parse(last.t) < GEO_MIN_GAP_MS) return false;
+  if (metresBetween(last, { lat, lng }) < GEO_MOVE_THRESHOLD_M) return false;
   ring.points.push({ lat, lng, t: new Date(tMs).toISOString() });
-  const floor = tMs - HISTORY_1M_WINDOW_MS;
-  ring.points = ring.points.filter((p) => Date.parse(p.t) >= floor).slice(-HISTORY_1M_MAX_POINTS);
+  if (ring.points.length > GEO_MAX_SEGMENT_POINTS) {
+    ring.points = ring.points.slice(-GEO_MAX_SEGMENT_POINTS);
+  }
+  return true;
 }
 
-/** Snapshot of the in-memory 1-minute breadcrumb ring (for attaching to a log event). */
-export function snapshotHistory1m(asOfMs: number = Date.now()): History1mPoint[] {
-  return normalizeHistory1m(ring.points, asOfMs);
+/** ~7 km/h — aligns with evidence “moving” floor; used when the browser reports speed. */
+const MOVING_SPEED_MS = 2;
+
+function onWatchFix(
+  lat: number,
+  lng: number,
+  tMs: number = Date.now(),
+  speedMs: number | null = null
+): void {
+  const prev = ring.lastFix;
+  ring.lastFix = { lat, lng, tMs };
+
+  if (typeof speedMs === "number" && Number.isFinite(speedMs) && speedMs >= MOVING_SPEED_MS) {
+    ring.lastMovedAtMs = tMs;
+  } else if (prev && metresBetween(prev, { lat, lng }) >= GEO_MOVE_THRESHOLD_M) {
+    ring.lastMovedAtMs = tMs;
+  }
+
+  // Stationary wait: only keep crumbs when we actually moved from the last kept point.
+  tryAcceptTrailPoint(lat, lng, tMs);
+  emitMovement();
 }
 
-/** Start sampling ~10s crumbs via watchPosition (no-op if unavailable / already watching). */
+/** Snapshot of accepted segment crumbs (for attaching to a log event). */
+export function snapshotHistory1m(_asOfMs: number = Date.now()): History1mPoint[] {
+  return normalizeHistory1m(ring.points);
+}
+
+/** Clear segment crumbs after a successful dump (next segment starts fresh). */
+export function clearHistory1mSegment(): void {
+  ring.points = [];
+  // Keep lastFix / lastMovedAt so movement lock does not flash unlock mid-stop.
+  emitMovement();
+}
+
+/** Start sampling via watchPosition (no-op if unavailable / already watching). */
 export function startHistory1mWatch(): void {
   if (typeof navigator === "undefined" || !("geolocation" in navigator)) return;
   if (ring.watchId != null) return;
   ring.watchId = navigator.geolocation.watchPosition(
     (pos) => {
-      pushRingPoint(pos.coords.latitude, pos.coords.longitude, Date.now());
+      const speed =
+        typeof pos.coords.speed === "number" && Number.isFinite(pos.coords.speed)
+          ? pos.coords.speed
+          : null;
+      onWatchFix(pos.coords.latitude, pos.coords.longitude, Date.now(), speed);
     },
     () => {
       /* permission denied / timeout — leave ring as-is */
@@ -115,12 +202,14 @@ export function stopHistory1mWatch(): void {
   ring.watchId = null;
 }
 
-/** Test helper — reset the ring without touching the watch. */
+/** Test helper — reset ring + movement state without touching the watch. */
 export function __resetHistory1mRingForTests(): void {
   ring.points = [];
+  ring.lastFix = null;
+  ring.lastMovedAtMs = null;
 }
 
 /** Test helper — push a crumb as if watchPosition fired. */
 export function __pushHistory1mForTests(lat: number, lng: number, tMs: number): void {
-  pushRingPoint(lat, lng, tMs);
+  onWatchFix(lat, lng, tMs);
 }

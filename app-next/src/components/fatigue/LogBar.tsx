@@ -70,6 +70,7 @@ import {
   endShiftTrimPaddingClass,
   endShiftConfirmLabelSizeClass,
 } from "@/lib/driver-action-sizes";
+import { getGeoMovementState, subscribeGeoMovement } from "@/lib/geo-history-1m";
 import {
   requestDriverImmersive,
   syncDriverImmersiveClass,
@@ -313,6 +314,23 @@ export default function LogBar({
     const id = setInterval(() => setTick((t) => t + 1), ms);
     return () => clearInterval(id);
   }, [currentType, isLiveNow]);
+
+  /** Same GPS watch as segment trail — locks Work/Break (and End shift) while moving. */
+  const [isMoving, setIsMoving] = useState(false);
+  useEffect(() => {
+    if (!isLiveNow) {
+      setIsMoving(false);
+      return;
+    }
+    return subscribeGeoMovement((state) => setIsMoving(state.isMoving));
+  }, [isLiveNow]);
+  useEffect(() => {
+    if (!isLiveNow) return;
+    setIsMoving(getGeoMovementState().isMoving);
+  }, [isLiveNow, tick]);
+  useEffect(() => {
+    if (isMoving) setPendingType(null);
+  }, [isMoving]);
 
   const elapsedMs =
     isLiveNow && currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
@@ -897,16 +915,22 @@ export default function LogBar({
       <button
         type="button"
         onClick={() => handleLog("stop")}
+        disabled={isMoving}
         className={cn(
           "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+          "disabled:opacity-50 disabled:pointer-events-none",
           endShiftPending ? "gap-1 px-2" : "gap-0",
           endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact, endShiftPending),
           endShiftChrome.surfaceClass,
           endShiftChrome.textClass
         )}
         aria-label={
-          endShiftPending ? "Tap again to confirm end shift" : EVENT_LABELS.stop
+          isMoving
+            ? "End shift locked while moving"
+            : endShiftPending
+              ? "Tap again to confirm end shift"
+              : EVENT_LABELS.stop
         }
       >
         {React.createElement(EVENT_ICONS.stop, {
@@ -983,7 +1007,7 @@ export default function LogBar({
             complianceLoading={complianceButton?.loading}
             shiftSegmentOpen={shiftSegmentOpen}
             isIdleAtTop={isIdleAtTop}
-            isMoving={false}
+            isMoving={isMoving}
             actionLabel={primaryActionLabel}
             onAction={() =>
               primaryLogType === "work" && isStartingShift

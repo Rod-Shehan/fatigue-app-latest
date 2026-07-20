@@ -107,6 +107,7 @@ import { resolveDayCrew } from "@/lib/day-crew";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
 import {
+  clearHistory1mSegment,
   snapshotHistory1m,
   startHistory1mWatch,
   stopHistory1mWatch,
@@ -409,8 +410,8 @@ export function SheetDetail({
     [isManager, sheetData.week_starting, sheetData.status, sheetData.signature]
   );
 
-  // Sample ~10s GPS crumbs while the live log bar is open so history_1m can
-  // attach to the next Work/Break/End shift fix for the manager map trail.
+  // Sample GPS while the live log bar is open: movement-gated segment trail +
+  // movement lock for Work/Break (see geo-history-1m).
   useEffect(() => {
     if (!canShowLogBar) {
       stopHistory1mWatch();
@@ -1275,8 +1276,9 @@ export function SheetDetail({
     }, LOG_EVENT_SAVE_MS);
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
-        if (!loc) return;
         const history_1m = snapshotHistory1m();
+        clearHistory1mSegment();
+        if (!loc) return;
         setSheetData((prev) => {
           const newDays = [...prev.days];
           const day = newDays[dayIndex];
@@ -1381,8 +1383,9 @@ export function SheetDetail({
     }
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
-        if (!loc) return;
         const history_1m = snapshotHistory1m();
+        clearHistory1mSegment();
+        if (!loc) return;
         setSheetData((prev) => {
           const newDays = [...prev.days];
           const d = newDays[dayIndex];

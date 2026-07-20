@@ -271,7 +271,7 @@ export type ManagerComplianceItem = {
   risk_register?: RiskRegisterSummary;
 };
 
-/** ~10s GPS crumb from the minute before a log fix (manager map trail). */
+/** GPS movement crumb for manager map trail (legacy field name history_1m). */
 export type MapHistory1mPoint = {
   lat: number;
   lng: number;
@@ -289,7 +289,7 @@ export type MapEvent = {
   week_starting: string;
   day_label?: string;
   accuracy?: number;
-  /** Short breadcrumb trail leading up to this marker, when present. */
+  /** GPS movement trail since previous log (legacy field name history_1m). */
   history_1m?: MapHistory1mPoint[];
 };
 

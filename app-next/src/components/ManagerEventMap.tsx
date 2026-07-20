@@ -17,7 +17,8 @@ import "leaflet/dist/leaflet.css";
  * Each marker is where the driver was when they LOGGED the event — a status
  * change, not continuous tracking. A break dot next to a work dot means the
  * driver pulled over, started a break, then resumed work from the same spot.
- * Optional history_1m crumbs draw a short solid trail into each marker.
+ * Optional history_1m crumbs draw a solid movement trail into each marker
+ * (segment path since the previous log; stationary waits are omitted).
  */
 const EVENT_META: Record<
   string,
@@ -198,7 +199,7 @@ export function ManagerEventMap({
           ) : null
         )}
 
-        {/* Per-marker history_1m: solid trail of ~10s crumbs into the log fix. */}
+        {/* Per-marker history_1m: solid movement trail into the log fix. */}
         {filtered.map((ev, i) => {
           const trail = history1mTrailPositions(ev.history_1m, ev);
           if (trail.length < 2) return null;
@@ -250,7 +251,7 @@ export function ManagerEventMap({
                     </p>
                     {crumbCount > 0 ? (
                       <p className="text-xs text-sky-700 mt-0.5">
-                        Last-minute trail · {crumbCount} breadcrumb{crumbCount === 1 ? "" : "s"}
+                        Movement trail · {crumbCount} point{crumbCount === 1 ? "" : "s"}
                       </p>
                     ) : null}
                     <a

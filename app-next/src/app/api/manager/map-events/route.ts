@@ -45,7 +45,7 @@ const MAX_EVENTS = 500;
  * GET /api/manager/map-events
  * Query: weekStarting (optional), driverName (optional)
  * Returns geo events for sheets the manager can see. Manager-only.
- * Passes through optional history_1m crumbs when stored on the diary event.
+ * Passes through optional history_1m movement-trail crumbs when stored on the diary event.
  */
 export async function GET(request: NextRequest) {
   const manager = await getManagerSession();
@@ -82,8 +82,7 @@ export async function GET(request: NextRequest) {
             typeof ev.lat === "number" &&
             typeof ev.lng === "number"
           ) {
-            const asOfMs = Number.isFinite(Date.parse(ev.time)) ? Date.parse(ev.time) : Date.now();
-            const history_1m = normalizeHistory1m(ev.history_1m, asOfMs);
+            const history_1m = normalizeHistory1m(ev.history_1m);
             events.push({
               lat: ev.lat,
               lng: ev.lng,
