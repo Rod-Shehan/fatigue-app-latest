@@ -182,8 +182,8 @@ export function DriverGuideArticle() {
         </p>
         <p className="mt-3">
           <strong className="text-slate-700 dark:text-slate-200">If you forget End shift:</strong> the app may show a
-          reminder (for example after a long stretch with no new log). Tap End shift, pick the date and time you
-          actually finished (not only today&apos;s clock), and enter end km.
+          reminder (for example after a long stretch with no new log). Use the red End shift button, pick the date and
+          time you actually finished (not only today&apos;s clock), and enter end km.
         </p>
       </section>
 

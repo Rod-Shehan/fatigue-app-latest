@@ -104,7 +104,7 @@ When you tap **End shift**:
 
 **If your shift runs past midnight:** just keep working. Your open work **continues across midnight** on the same timeline. There is **no** separate "end yesterday" step while you are still working — tap **End shift** only when you actually finish. Day cards are just labels; they do not end your shift.
 
-**If you forget End shift:** the app may show a reminder (for example after a long stretch with no new log). Tap **End shift**, pick the **date and time you actually finished** (not only today's clock), and enter end km.
+**If you forget End shift:** the app may show a short reminder (for example after a long stretch with no new log). Use the red **End shift** button, pick the **date and time you actually finished** (not only today's clock), and enter end km.
 
 ---
 

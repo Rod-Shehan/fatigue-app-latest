@@ -1414,7 +1414,7 @@ export default function LogBar({
               </div>
             )}
             {(forgottenActionReminder.variant === "break-complete" || forgottenActionReminder.variant === "break-long") && (
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={() => handleLog("work")}
@@ -1423,33 +1423,9 @@ export default function LogBar({
                   <Briefcase className="w-4 h-4" />
                   Resume work
                 </button>
-                {onEndShiftRequest && (
-                  <button
-                    type="button"
-                    onClick={() => onEndShiftRequest(currentDayIndex)}
-                    className={cn(
-                    driverAmberBtn,
-                    "bg-white/80 dark:bg-slate-900/50 border border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 hover:bg-white dark:hover:bg-slate-900/70"
-                  )}
-                  >
-                    <Square className="w-4 h-4" />
-                    End shift
-                  </button>
-                )}
               </div>
             )}
-            {forgottenActionReminder.variant === "end-shift" && onEndShiftRequest && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => onEndShiftRequest(currentDayIndex)}
-                  className={driverAmberBtn}
-                >
-                  <Square className="w-4 h-4" />
-                  End shift
-                </button>
-              </div>
-            )}
+            {/* End shift stays on the red FAB only — no second End shift in this banner. */}
           </div>
         )}
         {workWarning && (

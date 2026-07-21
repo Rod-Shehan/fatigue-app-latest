@@ -192,16 +192,16 @@ function getForgottenActionReminder(
   if (last.type === "work") {
     // This is an inactivity-style prompt: time since the last logged event while still in "work".
     if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
-      return { message: "No log updates for 7+ hours. End shift and record when you finished (or log Break if you stopped).", variant: "end-shift" };
+      return { message: "No log updates for 7+ hours.", variant: "end-shift" };
     if (elapsedMin >= WORK_BREAK_DUE_MIN)
       return { message: "Time for your 20 min break — tap Break when you start.", variant: "break-due" };
     return null;
   }
   if (last.type === "break") {
     if (elapsedMin >= BREAK_LONG_MIN)
-      return { message: "You've been on break for over an hour. Tap Work to resume or End shift to finish.", variant: "break-long" };
+      return { message: "You've been on break for over an hour.", variant: "break-long" };
     if (elapsedMin >= BREAK_COMPLETE_MIN)
-      return { message: "Break complete — tap Work to resume or End shift to finish.", variant: "break-complete" };
+      return { message: "Break complete.", variant: "break-complete" };
     return null;
   }
   return null;
