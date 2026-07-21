@@ -233,7 +233,8 @@ export function DriverGuideArticle() {
           </li>
           <li>
             Work / break / non-work / End shift time corrections — if End shift is on that day, end km is required on
-            the same card (same rule as the End shift button).
+            the same card (same rule as the End shift button), unless end km is already on the previous day for an
+            overnight close and this day&apos;s start km matches that reading.
           </li>
         </ul>
       </section>

@@ -148,6 +148,12 @@ export function validateCorrectEndShiftTime(
 export type ApplyStopAtCorrectedTimeOptions = {
   /** When closing an open segment on the prior sheet day, mark route confirmed on this day index. */
   markRouteConfirmedOnDayIndex?: number;
+  /**
+   * Day card that holds start km for this open shift. End km is written here
+   * (driver habit: end km on the day the shift started, even if finish time is next morning).
+   * Defaults to the stop's dayIndex.
+   */
+  endKmsDayIndex?: number;
 };
 
 /**
@@ -169,7 +175,21 @@ export function applyStopAtCorrectedTime(
   events.push({ time: stopTimeIso, type: "stop" });
   const { assume_idle_from: _drop, ...rest } = d;
   const next = [...days];
-  next[dayIndex] = { ...rest, events, end_kms: endKms };
+  const kmIdx =
+    options?.endKmsDayIndex != null &&
+    options.endKmsDayIndex >= 0 &&
+    options.endKmsDayIndex < next.length
+      ? options.endKmsDayIndex
+      : dayIndex;
+
+  if (kmIdx === dayIndex) {
+    next[dayIndex] = { ...rest, events, end_kms: endKms };
+  } else {
+    // Stop on the finish-date card; end km on the open-shift start card.
+    next[dayIndex] = { ...rest, events };
+    const kmDay = next[kmIdx] ?? {};
+    next[kmIdx] = { ...kmDay, end_kms: endKms };
+  }
 
   const confirmIdx = options?.markRouteConfirmedOnDayIndex;
   if (confirmIdx != null && confirmIdx >= 0 && confirmIdx < next.length) {

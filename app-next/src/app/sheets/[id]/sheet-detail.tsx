@@ -1444,6 +1444,7 @@ export function SheetDetail({
     setSheetData((prev) => {
       const corrected = applyStopAtCorrectedTime(prev.days, dayIndex, stopTimeIso, endKmsParsed, {
         markRouteConfirmedOnDayIndex: markRouteOn,
+        endKmsDayIndex: openDayIndex,
       });
       const withGrids = deriveDaysWithRollover(corrected, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),

@@ -369,7 +369,11 @@ export function DayCardDetailsDialog({
         return;
       }
     }
-    const stopKmError = validateEndKmsRequiredForStop(draftEvents, draft.end_kms);
+    const stopKmError = validateEndKmsRequiredForStop(draftEvents, draft.end_kms, {
+      sheetDays,
+      dayIndex,
+      dayStartKms: draft.start_kms,
+    });
     if (stopKmError) {
       setKmError(stopKmError);
       return;
@@ -731,7 +735,8 @@ export function DayCardDetailsDialog({
               />
               {dayEventsIncludeStop(draftEvents) ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-                  Required — End shift is on this day&apos;s record.
+                  Required here, unless end km is already on the previous day for an overnight close (start km on
+                  this day matches that end reading).
                 </p>
               ) : regoSet ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">

@@ -118,6 +118,20 @@ describe("applyStopAtCorrectedTime", () => {
     });
     expect(next[1]!.route_confirmed).toBe(true);
   });
+
+  it("writes end km on the open-shift day when finish is on the next card", () => {
+    const days: DayData[] = [
+      { start_kms: 1000, events: [{ time: "2026-07-20T08:00:00", type: "work" }] },
+      {},
+    ];
+    const stopIso = "2026-07-21T02:33:00.000Z";
+    const next = applyStopAtCorrectedTime(days, 1, stopIso, 754481, {
+      endKmsDayIndex: 0,
+    });
+    expect(next[1]!.events).toEqual([{ time: stopIso, type: "stop" }]);
+    expect(next[1]!.end_kms).toBeUndefined();
+    expect(next[0]!.end_kms).toBe(754481);
+  });
 });
 
 describe("routeConfirmDayAfterPriorEndShift", () => {
