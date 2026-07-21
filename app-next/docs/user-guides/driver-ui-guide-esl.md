@@ -145,6 +145,7 @@ Use **Set up day** (or **Edit day**) when something changes:
 - **Solo** or **Two-up**, and the **relief driver's name**
 - **Last 24-hour break** date (week record — under crew, above route setup in Set up day / Edit day). You can change it until you **sign** the week; after that only your manager can amend.
 - **Last 2 × 24 hour non-work breaks** (two dates) — only when the app needs them because it does not yet have enough of your past days. This is part of your legal week record. If you are already on shift, tap **Set up week record** on the upcoming compliance banner, Work warning, or compliance snapshot — it opens Set up day on the field you need.
+- Work / break / non-work / **End shift** time corrections — if End shift is on that day, **end km is required** on the same card (same rule as the End shift button).
 
 ---
 

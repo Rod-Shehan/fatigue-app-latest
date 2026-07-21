@@ -758,8 +758,10 @@ export default function LogBar({
 
     if (confirming) {
       clearPending();
-      if (type === "stop" && onEndShiftRequest) {
-        onEndShiftRequest(currentDayIndex);
+      if (type === "stop") {
+        if (onEndShiftRequest) {
+          onEndShiftRequest(currentDayIndex);
+        }
         return;
       }
       onLogEvent(currentDayIndex, type);
@@ -839,8 +841,10 @@ export default function LogBar({
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
       if (showShiftStartSetupBlock(type)) return;
-      if (type === "stop" && onEndShiftRequest) {
-        onEndShiftRequest(currentDayIndex);
+      if (type === "stop") {
+        if (onEndShiftRequest) {
+          onEndShiftRequest(currentDayIndex);
+        }
         return;
       }
       onLogEvent(currentDayIndex, type);

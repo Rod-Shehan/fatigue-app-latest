@@ -1264,6 +1264,12 @@ export function SheetDetail({
     (dayIndex: number, type: string) => {
     if (driverContentLocked) return;
 
+    // End shift must go through EndShiftCorrectionDialog (finish time + end km).
+    if (type === "stop") {
+      handleEndShiftRequest(dayIndex);
+      return;
+    }
+
     if (type === "work") {
       const prev = sheetDataRef.current;
       const timeline = concatenateTimelineSlices(priorTimelineSlices, prev.days);
@@ -1361,6 +1367,7 @@ export function SheetDetail({
     buildSavePayload,
     saveMutation,
     gpsMovementTrailEnabled,
+    handleEndShiftRequest,
   ]);
 
   const handleEndShiftFinishDayChange = useCallback(

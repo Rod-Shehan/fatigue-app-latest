@@ -142,7 +142,9 @@ export function DayEventsEditor({
             <span className="font-medium text-slate-600 dark:text-slate-300">non-work</span> when off duty or between
             shifts (7h / 24h recovery), and{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished for the
-            day. The week&apos;s <span className="font-medium text-slate-600 dark:text-slate-300">Last 24Hr Break</span>{" "}
+            day — then enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above on this
+            form before saving. The week&apos;s{" "}
+            <span className="font-medium text-slate-600 dark:text-slate-300">Last 24Hr Break</span>{" "}
             date is set above in this same form (crew / rest section) — not as an event type here.
           </p>
           {sorted.length === 0 ? (

@@ -231,6 +231,10 @@ export function DriverGuideArticle() {
             you are already on shift, tap <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the
             upcoming compliance banner, Work warning, or compliance snapshot.
           </li>
+          <li>
+            Work / break / non-work / End shift time corrections — if End shift is on that day, end km is required on
+            the same card (same rule as the End shift button).
+          </li>
         </ul>
       </section>
 

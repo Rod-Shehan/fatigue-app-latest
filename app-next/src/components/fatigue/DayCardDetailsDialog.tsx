@@ -39,6 +39,7 @@ import {
   validateDayKms,
   type DayWithKms,
 } from "@/lib/rego-kms-validation";
+import { dayEventsIncludeStop, validateEndKmsRequiredForStop } from "@/lib/end-shift-kms";
 import {
   DayEventsEditor,
   normalizeDayEvents,
@@ -367,6 +368,11 @@ export function DayCardDetailsDialog({
         setKmError("Start km is required when rego is set.");
         return;
       }
+    }
+    const stopKmError = validateEndKmsRequiredForStop(draftEvents, draft.end_kms);
+    if (stopKmError) {
+      setKmError(stopKmError);
+      return;
     }
     const daysForValidation: DayWithKms[] = sheetDays.map((d, i) =>
       i === dayIndex
@@ -723,7 +729,11 @@ export function DayCardDetailsDialog({
                 placeholder="At end of shift"
                 className={`${fieldClass} tabular-nums`}
               />
-              {regoSet ? (
+              {dayEventsIncludeStop(draftEvents) ? (
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                  Required — End shift is on this day&apos;s record.
+                </p>
+              ) : regoSet ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
                   Optional now — enter when you End shift, or before signing the week.
                 </p>
@@ -737,7 +747,8 @@ export function DayCardDetailsDialog({
           ) : null}
           {regoSet ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
-              Start km is required to begin work. End km is required before sign-off — End shift will prompt for it.
+              Start km is required to begin work. End km is required when you End shift (or when End shift is on this
+              day), and again before sign-off.
             </p>
           ) : null}
         </div>
