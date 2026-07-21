@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FlaskConical, LogOut, Moon, MoreVertical, Sun, Users } from "lucide-react";
+import { FlaskConical, LogOut, Map, Moon, MoreVertical, Sun, Users } from "lucide-react";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import {
@@ -91,6 +91,10 @@ function SseStatus({ connected, compact = false }: { connected: boolean; compact
 function DesktopNav({ isOwner, onSignOut }: Pick<Props, "isOwner" | "onSignOut">) {
   return (
     <>
+      <Link href="/tracking" className={commandNavLinkGhost}>
+        <Map className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        Event Tracker
+      </Link>
       {isOwner ? (
         <>
           <Link href="/admin/users" className={commandNavLinkGhost}>
@@ -230,6 +234,15 @@ function MobileOverflowMenu(props: Props) {
           className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
           <CommandDeskStatusPanel {...status} />
+          <Link
+            href="/tracking"
+            role="menuitem"
+            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+            onClick={() => setOpen(false)}
+          >
+            <Map className="h-4 w-4 opacity-90" aria-hidden />
+            Event Tracker
+          </Link>
           {isOwner ? (
             <>
               <Link

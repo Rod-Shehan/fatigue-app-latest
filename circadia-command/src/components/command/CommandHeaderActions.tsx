@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FlaskConical, LogOut, Radio, Users } from "lucide-react";
+import { FlaskConical, LogOut, Map, Radio, Users } from "lucide-react";
 import {
   commandNavLinkActive,
   commandNavLinkGhost,
@@ -14,6 +14,7 @@ type Props = {
   showTestDeskLink?: boolean;
   triageHref?: string;
   triageActive?: boolean;
+  trackingActive?: boolean;
   testDeskActive?: boolean;
 };
 
@@ -23,6 +24,7 @@ export function CommandHeaderActions({
   showTestDeskLink = false,
   triageHref = "/triage",
   triageActive = false,
+  trackingActive = false,
   testDeskActive = false,
 }: Props) {
   return (
@@ -33,9 +35,20 @@ export function CommandHeaderActions({
           Triage
         </span>
       ) : (
-        <Link href={triageHref} className={commandNavLinkActive}>
+        <Link href={triageHref} className={trackingActive ? commandNavLinkGhost : commandNavLinkActive}>
           <Radio className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
           Triage
+        </Link>
+      )}
+      {trackingActive ? (
+        <span className={commandNavLinkActive} aria-current="page">
+          <Map className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+          Event Tracker
+        </span>
+      ) : (
+        <Link href="/tracking" className={commandNavLinkGhost}>
+          <Map className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+          Event Tracker
         </Link>
       )}
       {showUsersLink && (
