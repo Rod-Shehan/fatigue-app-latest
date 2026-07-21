@@ -1413,19 +1413,7 @@ export default function LogBar({
                 </button>
               </div>
             )}
-            {(forgottenActionReminder.variant === "break-complete" || forgottenActionReminder.variant === "break-long") && (
-              <div className="mt-3">
-                <button
-                  type="button"
-                  onClick={() => handleLog("work")}
-                  className={driverAmberBtn}
-                >
-                  <Briefcase className="w-4 h-4" />
-                  Resume work
-                </button>
-              </div>
-            )}
-            {/* End shift stays on the red FAB only — no second End shift in this banner. */}
+            {/* break-complete / break-long: message only — Resume work is the hero action. */}
           </div>
         )}
         {workWarning && (
