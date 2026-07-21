@@ -18,6 +18,11 @@ export function EndShiftCorrectionDialog({
   open,
   onOpenChange,
   dayLabel,
+  showDatePicker,
+  finishDayYmd,
+  minFinishDayYmd,
+  maxFinishDayYmd,
+  onFinishDayYmdChange,
   stopTimeHhmm,
   onStopTimeHhmmChange,
   endKms,
@@ -29,6 +34,12 @@ export function EndShiftCorrectionDialog({
   onOpenChange: (open: boolean) => void;
   /** Calendar day label for the record being corrected (display only). */
   dayLabel: string;
+  /** When last open event is before today — allow choosing finish day. */
+  showDatePicker?: boolean;
+  finishDayYmd?: string;
+  minFinishDayYmd?: string;
+  maxFinishDayYmd?: string;
+  onFinishDayYmdChange?: (ymd: string) => void;
   stopTimeHhmm: string;
   onStopTimeHhmmChange: (hhmm: string) => void;
   endKms: string;
@@ -47,9 +58,35 @@ export function EndShiftCorrectionDialog({
           <DialogDescription>
             Record when you finished work on {dayLabel}. Times after this count as non-work on your
             rolling timeline. End km is required for WAHVA.
+            {showDatePicker ? (
+              <>
+                {" "}
+                If you finished on an earlier day (for example last night), choose that date below.
+              </>
+            ) : null}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 pt-1">
+          {showDatePicker && finishDayYmd != null && onFinishDayYmdChange ? (
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="end-shift-date"
+                className="text-xs font-semibold text-slate-500 dark:text-slate-400"
+              >
+                Finish date
+              </Label>
+              <Input
+                id="end-shift-date"
+                type="date"
+                value={finishDayYmd}
+                min={minFinishDayYmd}
+                max={maxFinishDayYmd}
+                onChange={(e) => onFinishDayYmdChange(e.target.value)}
+                className="h-11 text-base"
+                aria-invalid={!!error}
+              />
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             <Label
               htmlFor="end-shift-time"

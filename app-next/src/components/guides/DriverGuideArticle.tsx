@@ -157,9 +157,16 @@ export function DriverGuideArticle() {
 
       <section className={sectionClass}>
         <h2 className={h2Class}>6. End shift and kilometres (km)</h2>
-        <ol className="list-decimal pl-5 space-y-1">
+        <p>
+          When you tap <strong className="text-slate-700 dark:text-slate-200">End shift</strong>:
+        </p>
+        <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>The app asks when you finished and your end km.</li>
-          <li>Read the odometer and type the number.</li>
+          <li>
+            If your last Work/Break was on an earlier day (for example you forgot to end last night), choose the finish
+            date — from that last log day through today — then the finish time.
+          </li>
+          <li>Read the odometer and type the end km.</li>
           <li>Confirm.</li>
         </ol>
         <p className="mt-3">
@@ -169,13 +176,13 @@ export function DriverGuideArticle() {
         <p className="mt-3">
           <strong className="text-slate-700 dark:text-slate-200">If your shift runs past midnight:</strong> just keep
           working. Your open work continues across midnight on the same timeline. There is no separate &quot;end
-          yesterday&quot; step — tap End shift only when you actually finish. Day cards are just labels; they do not end
-          your shift.
+          yesterday&quot; step while you are still working — tap End shift only when you actually finish. Day cards are
+          just labels; they do not end your shift.
         </p>
         <p className="mt-3">
           <strong className="text-slate-700 dark:text-slate-200">If you forget End shift:</strong> the app may show a
-          reminder (for example after a long stretch with no new log). Tap End shift and enter the correct finish time
-          and end km.
+          reminder (for example after a long stretch with no new log). Tap End shift, pick the date and time you
+          actually finished (not only today&apos;s clock), and enter end km.
         </p>
       </section>
 

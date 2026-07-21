@@ -59,6 +59,10 @@ import {
   timelineHasOpenWorkOrBreak,
   validateCorrectEndShiftTime,
 } from "@/lib/shift-timeline-correction";
+import {
+  findSheetDayIndexForYmd,
+  resolveEndShiftFinishDayOptions,
+} from "@/lib/end-shift-finish-day";
 import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
 import {
   applyRouteDefaultsToWeekDays,
@@ -262,6 +266,11 @@ export function SheetDetail({
     sheetDayYmd: string;
     /** Last open work/break on the rolling timeline (ISO). */
     lastOpenEventIso: string | null;
+    /** Day card holding start km / open segment (may differ from finish day). */
+    openDayIndex: number;
+    minFinishYmd: string;
+    maxFinishYmd: string;
+    showDatePicker: boolean;
   } | null>(null);
   const [endShiftStopHhmm, setEndShiftStopHhmm] = useState("");
   const [endShiftEndKms, setEndShiftEndKms] = useState("");
@@ -1197,28 +1206,48 @@ export function SheetDetail({
         return;
       }
 
-      // Store the stop on the day-card bucket matching the finish time the driver
-      // will enter (LogBar passes the current label's index). Open work may live
-      // on an earlier card — that is still one rolling shift.
-      const sheetDayYmd = getSheetDayDateString(prev.week_starting, dayIndex);
+      // Store the stop on the day-card bucket matching the finish date/time the
+      // driver enters. Open work may live on an earlier card — still one rolling shift.
+      const todayStr = getRegulatoryTodayYmd(prev.jurisdiction_code);
+      const lastOpenIso = openSeg?.time ?? null;
+      const finishOpts = lastOpenIso
+        ? resolveEndShiftFinishDayOptions({
+            lastOpenEventIso: lastOpenIso,
+            todayYmd: todayStr,
+            weekStarting: prev.week_starting,
+            tappedDayIndex: dayIndex,
+          })
+        : {
+            minYmd: getSheetDayDateString(prev.week_starting, dayIndex),
+            maxYmd: getSheetDayDateString(prev.week_starting, dayIndex),
+            defaultYmd: getSheetDayDateString(prev.week_starting, dayIndex),
+            defaultDayIndex: dayIndex,
+            showDatePicker: false,
+          };
+      const sheetDayYmd = finishOpts.defaultYmd;
+      const finishDayIndex = finishOpts.defaultDayIndex;
+      // Forgotten overnight: default time after last event on that day (not "now"
+      // on today's card, which blocked evening finish times as "in the future").
       const stopTimeIso =
-        openSeg && openSeg.dayIndex !== dayIndex
-          ? new Date().toISOString()
-          : (openSeg
-              ? suggestedEndShiftTimeAfterLastEvent({
-                  events: [{ time: openSeg.time, type: openSeg.type }],
-                })
-              : null) ??
-            suggestedEndShiftTimeAfterLastEvent(day ?? {}) ??
-            new Date().toISOString();
+        (openSeg
+          ? suggestedEndShiftTimeAfterLastEvent({
+              events: [{ time: openSeg.time, type: openSeg.type }],
+            })
+          : null) ??
+        suggestedEndShiftTimeAfterLastEvent(day ?? {}) ??
+        new Date().toISOString();
       setEndShiftError(null);
       setEndShiftEndKms(String(day?.end_kms ?? days[dayIndex]?.end_kms ?? ""));
       setEndShiftStopHhmm(isoToLocalHHMM(stopTimeIso));
       setEndShiftDialog({
-        dayIndex,
+        dayIndex: finishDayIndex,
         sheetDayYmd,
         dayLabel: formatSheetDisplayDate(sheetDayYmd),
-        lastOpenEventIso: openSeg?.time ?? null,
+        lastOpenEventIso: lastOpenIso,
+        openDayIndex,
+        minFinishYmd: finishOpts.minYmd,
+        maxFinishYmd: finishOpts.maxYmd,
+        showDatePicker: finishOpts.showDatePicker,
       });
     },
     [driverContentLocked, sheetId]
@@ -1329,10 +1358,30 @@ export function SheetDetail({
     gpsMovementTrailEnabled,
   ]);
 
+  const handleEndShiftFinishDayChange = useCallback(
+    (ymd: string) => {
+      setEndShiftDialog((prev) => {
+        if (!prev) return prev;
+        const ws = sheetDataRef.current.week_starting;
+        const nextIndex = findSheetDayIndexForYmd(ws, ymd);
+        if (nextIndex == null) return prev;
+        if (ymd < prev.minFinishYmd || ymd > prev.maxFinishYmd) return prev;
+        return {
+          ...prev,
+          sheetDayYmd: ymd,
+          dayIndex: nextIndex,
+          dayLabel: formatSheetDisplayDate(ymd),
+        };
+      });
+      setEndShiftError(null);
+    },
+    []
+  );
+
   const handleEndShiftConfirm = useCallback(async () => {
     if (endShiftDialog == null) return;
     setEndShiftError(null);
-    const { dayIndex, sheetDayYmd, lastOpenEventIso } = endShiftDialog;
+    const { dayIndex, sheetDayYmd, lastOpenEventIso, openDayIndex } = endShiftDialog;
     const trimmed = endShiftEndKms.trim();
     if (trimmed === "") {
       setEndShiftError("End km is required.");
@@ -1350,6 +1399,7 @@ export function SheetDetail({
     const stopTimeIso = hhmmOnSheetDayToIso(sheetDayYmd, endShiftStopHhmm);
     const days = sheetDataRef.current.days;
     const day = days[dayIndex];
+    const openDay = days[openDayIndex] ?? day;
     const timeCheck = validateCorrectEndShiftTime(day, sheetDayYmd, stopTimeIso, Date.now(), {
       lastOpenEventIso,
     });
@@ -1357,8 +1407,8 @@ export function SheetDetail({
       setEndShiftError(timeCheck.message);
       return;
     }
-    const startKms = day?.start_kms ?? null;
-    const rego = (day?.truck_rego ?? "").trim();
+    const startKms = day?.start_kms ?? openDay?.start_kms ?? null;
+    const rego = (day?.truck_rego ?? openDay?.truck_rego ?? "").trim();
     let serverMaxEndKms: number | null = null;
     if (rego) {
       try {
@@ -1371,7 +1421,8 @@ export function SheetDetail({
         // Offline or error: validate with local data only
       }
     }
-    const validation = validateDayKms(days, dayIndex, rego, startKms, endKmsParsed, serverMaxEndKms);
+    const kmDayIndex = day?.start_kms != null ? dayIndex : openDayIndex;
+    const validation = validateDayKms(days, kmDayIndex, rego, startKms, endKmsParsed, serverMaxEndKms);
     if (!validation.valid) {
       setEndShiftError(validation.message ?? "Invalid km.");
       return;
@@ -2139,6 +2190,11 @@ export function SheetDetail({
           }
         }}
         dayLabel={endShiftDialog?.dayLabel ?? ""}
+        showDatePicker={endShiftDialog?.showDatePicker}
+        finishDayYmd={endShiftDialog?.sheetDayYmd}
+        minFinishDayYmd={endShiftDialog?.minFinishYmd}
+        maxFinishDayYmd={endShiftDialog?.maxFinishYmd}
+        onFinishDayYmdChange={handleEndShiftFinishDayChange}
         stopTimeHhmm={endShiftStopHhmm}
         onStopTimeHhmmChange={(v) => {
           setEndShiftStopHhmm(v);

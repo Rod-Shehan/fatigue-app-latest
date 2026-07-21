@@ -96,14 +96,15 @@ You **cannot** start Work until **start km** is on today's card (see section 7).
 When you tap **End shift**:
 
 1. The app asks **when you finished** and your **end km**.
-2. Read the odometer and type the number.
-3. Confirm.
+2. If your last Work/Break was on an **earlier day** (for example you forgot to end last night), choose the **finish date** — from that last log day through today — then the finish time.
+3. Read the odometer and type the end km.
+4. Confirm.
 
 **Important:** The app **never** fills in start km or end km. You always read the truck and type them.
 
-**If your shift runs past midnight:** just keep working. Your open work **continues across midnight** on the same timeline. There is **no** separate "end yesterday" step — tap **End shift** only when you actually finish. Day cards are just labels; they do not end your shift.
+**If your shift runs past midnight:** just keep working. Your open work **continues across midnight** on the same timeline. There is **no** separate "end yesterday" step while you are still working — tap **End shift** only when you actually finish. Day cards are just labels; they do not end your shift.
 
-**If you forget End shift:** the app may show a reminder (for example after a long stretch with no new log). Tap **End shift** and enter the correct finish time and end km.
+**If you forget End shift:** the app may show a reminder (for example after a long stretch with no new log). Tap **End shift**, pick the **date and time you actually finished** (not only today's clock), and enter end km.
 
 ---
 
