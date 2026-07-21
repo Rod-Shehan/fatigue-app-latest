@@ -164,7 +164,8 @@ export function DriverGuideArticle() {
           <li>The app asks when you finished and your end km.</li>
           <li>
             If your last Work/Break was on an earlier day (for example you forgot to end last night), choose the finish
-            date — from that last log day through today — then the finish time.
+            date — from when you started that shift through today — then the finish time. Work that continues onto today
+            on the bar without a new tap is still the same shift; it does not lock End shift to today.
           </li>
           <li>Read the odometer and type the end km.</li>
           <li>Confirm.</li>

@@ -4,6 +4,7 @@ import {
   applyStopAtCorrectedTime,
   dayHasOpenWorkOrBreakSegment,
   END_SHIFT_ALREADY_ENDED_MESSAGE,
+  findOpenShiftEpisodeStart,
   findOpenWorkOrBreakOnTimeline,
   routeConfirmDayAfterPriorEndShift,
   timelineHasOpenWorkOrBreak,
@@ -48,6 +49,7 @@ describe("timelineHasOpenWorkOrBreak / findOpenWorkOrBreakOnTimeline", () => {
     const asOf = Date.parse("2026-06-17T02:00:00.000Z");
     expect(timelineHasOpenWorkOrBreak(days, asOf)).toBe(true);
     expect(findOpenWorkOrBreakOnTimeline(days, asOf)?.dayIndex).toBe(0);
+    expect(findOpenShiftEpisodeStart(days, asOf)?.dayIndex).toBe(0);
   });
 
   it("is false after a stop later on the rolling timeline", () => {

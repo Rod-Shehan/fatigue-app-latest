@@ -61,7 +61,8 @@ export function EndShiftCorrectionDialog({
             {showDatePicker ? (
               <>
                 {" "}
-                If you finished on an earlier day (for example last night), choose that date below.
+                Work that continues onto today without a new tap is still the same shift — choose the
+                date you actually finished (from when you started work through today).
               </>
             ) : null}
           </DialogDescription>

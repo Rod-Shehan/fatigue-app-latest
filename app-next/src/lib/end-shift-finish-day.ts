@@ -1,11 +1,11 @@
 /**
  * End-shift finish calendar day (display bucket only).
- * Bounds: last open work/break event's local day → regulatory today.
- * Does not change rolling-timeline continuity — only where the stop is labeled.
+ * Bounds: open-shift start day card → regulatory today.
+ * Tuesday follow-on work on the grid is not a new event — min day stays the
+ * card that holds Start work for this open shift.
  */
 
 import { formatDateLocal, getSheetDayDateString, normalizeWeekDateString } from "@/lib/weeks";
-import { isoToLocalYmd } from "@/lib/sheet-day-time";
 
 export function findSheetDayIndexForYmd(weekStarting: string, ymd: string): number | null {
   const target = normalizeWeekDateString(ymd);
@@ -24,13 +24,32 @@ export type EndShiftFinishDayOptions = {
   showDatePicker: boolean;
 };
 
+function clampYmdToWeekAndToday(
+  ymd: string,
+  weekStart: string,
+  weekEnd: string,
+  todayYmd: string
+): string {
+  let out = ymd;
+  if (out < weekStart) out = weekStart;
+  if (out > weekEnd) out = weekEnd;
+  if (out > todayYmd) out = todayYmd;
+  return out;
+}
+
 /**
  * Resolve finish-day picker bounds for End shift.
- * Defaults to the last open event's local day when that day is before today
- * (forgotten overnight close); otherwise today.
+ *
+ * - min = sheet day of the open shift's starting Work (episode start day card)
+ * - max = regulatory today
+ * - default = last open work/break's sheet day when before today (forgotten overnight);
+ *   otherwise today (finish must still be after that last event)
  */
 export function resolveEndShiftFinishDayOptions(args: {
-  lastOpenEventIso: string;
+  /** Day card index of the Work that opened this open shift. */
+  episodeStartDayIndex: number;
+  /** Day card index of the last open work/break event. */
+  lastOpenDayIndex: number;
   todayYmd: string;
   weekStarting: string;
   /** Day index the driver tapped End shift from (usually today). */
@@ -39,16 +58,24 @@ export function resolveEndShiftFinishDayOptions(args: {
   const todayYmd = normalizeWeekDateString(args.todayYmd);
   const weekStart = getSheetDayDateString(args.weekStarting, 0);
   const weekEnd = getSheetDayDateString(args.weekStarting, 6);
-  const lastYmd = isoToLocalYmd(args.lastOpenEventIso) ?? todayYmd;
 
-  let minYmd = lastYmd < weekStart ? weekStart : lastYmd;
-  if (minYmd > todayYmd) minYmd = todayYmd;
-  if (minYmd > weekEnd) minYmd = weekEnd;
+  const episodeYmd = getSheetDayDateString(args.weekStarting, args.episodeStartDayIndex);
+  const lastOpenYmd = getSheetDayDateString(args.weekStarting, args.lastOpenDayIndex);
 
+  let minYmd = clampYmdToWeekAndToday(episodeYmd, weekStart, weekEnd, todayYmd);
   let maxYmd = todayYmd > weekEnd ? weekEnd : todayYmd;
   if (maxYmd < minYmd) maxYmd = minYmd;
 
-  const defaultYmd = minYmd < maxYmd ? minYmd : maxYmd;
+  // Prefer last-open day when it is still before today (true forgotten overnight).
+  // If last open landed on today's card (or episode spans into today), default today
+  // but keep min at episode start so yesterday remains selectable.
+  let defaultYmd =
+    lastOpenYmd < todayYmd
+      ? clampYmdToWeekAndToday(lastOpenYmd, weekStart, weekEnd, todayYmd)
+      : maxYmd;
+  if (defaultYmd < minYmd) defaultYmd = minYmd;
+  if (defaultYmd > maxYmd) defaultYmd = maxYmd;
+
   const defaultDayIndex =
     findSheetDayIndexForYmd(args.weekStarting, defaultYmd) ?? args.tappedDayIndex;
 

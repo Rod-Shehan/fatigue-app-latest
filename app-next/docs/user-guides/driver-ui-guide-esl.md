@@ -96,7 +96,7 @@ You **cannot** start Work until **start km** is on today's card (see section 7).
 When you tap **End shift**:
 
 1. The app asks **when you finished** and your **end km**.
-2. If your last Work/Break was on an **earlier day** (for example you forgot to end last night), choose the **finish date** — from that last log day through today — then the finish time.
+2. If your last Work/Break was on an **earlier day** (for example you forgot to end last night), choose the **finish date** — from when you **started that shift** through today — then the finish time. Work that **continues onto today on the bar** without a new tap is still the same shift; it does not lock End shift to today.
 3. Read the odometer and type the end km.
 4. Confirm.
 

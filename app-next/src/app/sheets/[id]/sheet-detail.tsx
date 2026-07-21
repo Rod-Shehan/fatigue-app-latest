@@ -54,6 +54,7 @@ import {
   applyStopAtCorrectedTime,
   END_SHIFT_ALREADY_ENDED_MESSAGE,
   END_SHIFT_NO_OPEN_MESSAGE,
+  findOpenShiftEpisodeStart,
   findOpenWorkOrBreakOnTimeline,
   routeConfirmDayAfterPriorEndShift,
   timelineHasOpenWorkOrBreak,
@@ -1207,23 +1208,27 @@ export function SheetDetail({
       }
 
       // Store the stop on the day-card bucket matching the finish date/time the
-      // driver enters. Open work may live on an earlier card — still one rolling shift.
+      // driver enters. Open work may paint on later cards (follow-on) without a new
+      // event — finish-date min is the open shift's starting Work day card.
       const todayStr = getRegulatoryTodayYmd(prev.jurisdiction_code);
       const lastOpenIso = openSeg?.time ?? null;
-      const finishOpts = lastOpenIso
-        ? resolveEndShiftFinishDayOptions({
-            lastOpenEventIso: lastOpenIso,
-            todayYmd: todayStr,
-            weekStarting: prev.week_starting,
-            tappedDayIndex: dayIndex,
-          })
-        : {
-            minYmd: getSheetDayDateString(prev.week_starting, dayIndex),
-            maxYmd: getSheetDayDateString(prev.week_starting, dayIndex),
-            defaultYmd: getSheetDayDateString(prev.week_starting, dayIndex),
-            defaultDayIndex: dayIndex,
-            showDatePicker: false,
-          };
+      const episodeStart = findOpenShiftEpisodeStart(days, asOfMs) ?? openSeg;
+      const finishOpts =
+        openSeg != null && episodeStart != null
+          ? resolveEndShiftFinishDayOptions({
+              episodeStartDayIndex: episodeStart.dayIndex,
+              lastOpenDayIndex: openSeg.dayIndex,
+              todayYmd: todayStr,
+              weekStarting: prev.week_starting,
+              tappedDayIndex: dayIndex,
+            })
+          : {
+              minYmd: getSheetDayDateString(prev.week_starting, dayIndex),
+              maxYmd: getSheetDayDateString(prev.week_starting, dayIndex),
+              defaultYmd: getSheetDayDateString(prev.week_starting, dayIndex),
+              defaultDayIndex: dayIndex,
+              showDatePicker: false,
+            };
       const sheetDayYmd = finishOpts.defaultYmd;
       const finishDayIndex = finishOpts.defaultDayIndex;
       // Forgotten overnight: default time after last event on that day (not "now"

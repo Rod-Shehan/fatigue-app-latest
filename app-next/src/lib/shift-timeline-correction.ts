@@ -51,6 +51,37 @@ export function findOpenWorkOrBreakOnTimeline(
   return match ?? null;
 }
 
+/**
+ * First Work that opened the current open shift (after the last End shift), or the
+ * current open work/break if no Work is found. Day-card paint on later days is not an event.
+ * Used for End shift finish-date min bound — not a timeline rule change.
+ */
+export function findOpenShiftEpisodeStart(
+  days: TimelineSlice[],
+  asOfMs: number = Date.now()
+): RollingEvent | null {
+  const open = findOpenWorkOrBreakOnTimeline(days, asOfMs);
+  if (!open) return null;
+  const ordered = getEventsInTimeOrder(days);
+  const openMs = new Date(open.time).getTime();
+  if (!Number.isFinite(openMs)) return open;
+
+  let lastStopMs = -Infinity;
+  for (const ev of ordered) {
+    const t = new Date(ev.time).getTime();
+    if (!Number.isFinite(t) || t >= openMs) break;
+    if (ev.type === "stop") lastStopMs = t;
+  }
+
+  for (const ev of ordered) {
+    const t = new Date(ev.time).getTime();
+    if (!Number.isFinite(t) || t <= lastStopMs) continue;
+    if (t > openMs) break;
+    if (ev.type === "work") return ev;
+  }
+  return open;
+}
+
 export const END_SHIFT_ALREADY_ENDED_MESSAGE =
   "Your shift already ended on the record. Tap Start shift when you begin work again.";
 
