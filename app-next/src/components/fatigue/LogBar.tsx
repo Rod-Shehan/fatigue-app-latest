@@ -70,6 +70,11 @@ import {
   endShiftTrimPaddingClass,
   endShiftConfirmLabelSizeClass,
 } from "@/lib/driver-action-sizes";
+import {
+  DRIVER_LOG_CONFIRM_WINDOW_MS,
+  isDriverLogConfirmMatch,
+  type DriverLogConfirmArm,
+} from "@/lib/driver-log-confirm";
 import { getGeoMovementState, subscribeGeoMovement } from "@/lib/geo-history-1m";
 import {
   requestDriverImmersive,
@@ -113,7 +118,6 @@ function getNextWorkBreakType(currentType: string | null): "work" | "break" {
 
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
-const CONFIRM_RESET_MS = 2500;
 /** Scroll past this (px) to shrink the driver header; scroll back above expand threshold to restore. */
 const SCROLL_COMPACT_THRESHOLD_PX = 56;
 const SCROLL_EXPAND_THRESHOLD_PX = 12;
@@ -210,6 +214,8 @@ export default function LogBar({
   const [pendingType, setPendingType] = useState<string | null>(null);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
+  /** Sync mirror of pending arm — rapid second tap must see this before React re-renders. */
+  const pendingArmRef = useRef<DriverLogConfirmArm | null>(null);
   const [workWarning, setWorkWarning] = useState<{
     message: string;
     confirmLabel: string;
@@ -332,9 +338,7 @@ export default function LogBar({
     setGpsMoving(getGeoMovementState().isMoving);
   }, [isLiveNow, gpsMovementTrailEnabled, tick]);
   const isMoving = gpsMovementTrailEnabled && gpsMoving;
-  useEffect(() => {
-    if (isMoving) setPendingType(null);
-  }, [isMoving]);
+  // Never clear an armed confirm when GPS flips to "moving" — that ate second taps.
 
   const elapsedMs =
     isLiveNow && currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
@@ -633,9 +637,18 @@ export default function LogBar({
       clearTimeout(resetTimerRef.current);
       resetTimerRef.current = null;
     }
+    pendingArmRef.current = null;
     setPendingType(null);
     setWorkLogEpisodeResume(false);
   }, []);
+
+  const armPending = useCallback((type: string, episodeResume: boolean) => {
+    pendingArmRef.current = { type, episodeResume };
+    setWorkLogEpisodeResume(episodeResume);
+    setPendingType(type);
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = setTimeout(clearPending, DRIVER_LOG_CONFIRM_WINDOW_MS);
+  }, [clearPending]);
 
   useEffect(() => {
     clearPending();
@@ -723,22 +736,27 @@ export default function LogBar({
   }, [isLiveNow]);
 
   const handleLog = (type: string, options?: { episodeResume?: boolean }) => {
-    void requestDriverImmersive().then(() => syncDriverImmersiveClass());
+    const episodeResume = type === "work" && options?.episodeResume === true;
+    const confirming = isDriverLogConfirmMatch(pendingArmRef.current, type, episodeResume);
+
+    // Confirm tap: do not re-request fullscreen (steals the gesture on mobile).
+    if (!confirming) {
+      void requestDriverImmersive().then(() => syncDriverImmersiveClass());
+    }
+
     if (type === currentType) return;
 
     if (
       type === "stop" &&
       !shiftSegmentOpen &&
-      pendingType !== "stop"
+      pendingArmRef.current?.type !== "stop"
     ) {
       return;
     }
 
     if (showShiftStartSetupBlock(type)) return;
 
-    const episodeResume = type === "work" && options?.episodeResume === true;
-
-    if (pendingType === type && workLogEpisodeResume === episodeResume) {
+    if (confirming) {
       clearPending();
       if (type === "stop" && onEndShiftRequest) {
         onEndShiftRequest(currentDayIndex);
@@ -759,10 +777,14 @@ export default function LogBar({
             : "Tap Start shift again within a few seconds to confirm.",
           onConfirm: () => {
             setWorkWarning(null);
-            setWorkLogEpisodeResume(episodeResume);
-            setPendingType("work");
-            if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
+            armPending("work", episodeResume);
+            if (voiceAlertsEnabled) {
+              speakVoiceAlert(
+                episodeResume
+                  ? "Tap Resume shift again to confirm."
+                  : "Tap Start shift again to confirm."
+              );
+            }
           },
         });
         return;
@@ -799,10 +821,16 @@ export default function LogBar({
             : {}),
           onConfirm: () => {
             setWorkWarning(null);
-            setWorkLogEpisodeResume(episodeResume);
-            setPendingType("work");
-            if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-            resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
+            armPending("work", episodeResume);
+            if (voiceAlertsEnabled) {
+              speakVoiceAlert(
+                episodeResume
+                  ? "Tap Resume shift again to confirm."
+                  : needsShiftStartSetup
+                    ? "Tap Start shift again to confirm."
+                    : "Tap Work again to confirm."
+              );
+            }
           },
         });
         return;
@@ -818,10 +846,20 @@ export default function LogBar({
       onLogEvent(currentDayIndex, type);
       return;
     }
-    setWorkLogEpisodeResume(episodeResume);
-    setPendingType(type);
-    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
-    resetTimerRef.current = setTimeout(clearPending, CONFIRM_RESET_MS);
+    armPending(type, episodeResume);
+    if (voiceAlertsEnabled) {
+      const label =
+        type === "stop"
+          ? "End shift"
+          : type === "break"
+            ? "Break"
+            : episodeResume
+              ? "Resume shift"
+              : needsShiftStartSetup
+                ? "Start shift"
+                : "Work";
+      speakVoiceAlert(`Tap ${label} again to confirm.`);
+    }
   };
 
   const handleStartShift = () => handleLog("work", { episodeResume: false });
@@ -919,9 +957,10 @@ export default function LogBar({
       <button
         type="button"
         onClick={() => handleLog("stop")}
-        disabled={isMoving}
+        disabled={isMoving && !endShiftPending}
         className={cn(
           "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+          "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
           "disabled:opacity-50 disabled:pointer-events-none",
           endShiftPending ? "gap-1 px-2" : "gap-0",
@@ -930,7 +969,7 @@ export default function LogBar({
           endShiftChrome.textClass
         )}
         aria-label={
-          isMoving
+          isMoving && !endShiftPending
             ? "End shift locked while moving"
             : endShiftPending
               ? "Tap again to confirm end shift"
@@ -1011,7 +1050,7 @@ export default function LogBar({
             complianceLoading={complianceButton?.loading}
             shiftSegmentOpen={shiftSegmentOpen}
             isIdleAtTop={isIdleAtTop}
-            isMoving={isMoving}
+            isMoving={isMoving && !primaryActionPending && !resumeShiftPending}
             actionLabel={primaryActionLabel}
             onAction={() =>
               primaryLogType === "work" && isStartingShift

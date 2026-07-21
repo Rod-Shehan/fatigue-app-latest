@@ -135,7 +135,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const auxInlineCompact = compact && !expanded && Boolean(secondaryAction);
 
   const auxPillBase =
-    "flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold transition-all duration-500 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:pointer-events-none";
+    "flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold transition-all duration-500 ease-out active:scale-[0.98] touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:pointer-events-none";
 
   const renderAuxPill = (
     key: string,
@@ -225,6 +225,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
       disabled={secondaryAction.disabled}
       className={cn(
         "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+        "touch-manipulation select-none",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
         "disabled:opacity-50 disabled:pointer-events-none",
         secondarySizeClass,
@@ -282,6 +283,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         className={cn(
           sizeClass,
           sharedSurfaceClass,
+          "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
           "active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none",
           actionPending &&
