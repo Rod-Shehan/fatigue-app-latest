@@ -8,6 +8,9 @@ import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing"
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
 
+const UNLOCK_RING_R = 46;
+const UNLOCK_RING_C = 2 * Math.PI * UNLOCK_RING_R;
+
 export interface DriverActionHeroProps {
   workMinutesUsed: number;
   totalWindowMinutes: number;
@@ -15,8 +18,10 @@ export interface DriverActionHeroProps {
   complianceLoading?: boolean;
   shiftSegmentOpen?: boolean;
   isIdleAtTop?: boolean;
-  /** Geometry-only beacon — no text or tap (in-motion / passive viewing). */
+  /** GPS movement lock — keep Work/Break chrome, dim, non-tappable. */
   isMoving?: boolean;
+  /** 0 just locked → 1 about to unlock (stationary dwell). */
+  movementUnlockProgress01?: number;
   actionLabel: string;
   onAction: () => void;
   actionPending?: boolean;
@@ -66,6 +71,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   shiftSegmentOpen,
   isIdleAtTop,
   isMoving = false,
+  movementUnlockProgress01 = 0,
   actionLabel,
   onAction,
   actionPending = false,
@@ -110,11 +116,10 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     ]
   );
 
-  const showWorkCountdown = !compact && !isMoving && currentSegment === "work" && !isIdleAtTop;
+  // Keep Work/Break countdown visible during movement lock (dimmed, not blanked).
+  const showWorkCountdown = !compact && currentSegment === "work" && !isIdleAtTop;
   const showIdleRestCountdown =
-    !compact &&
-    !isMoving &&
-    Boolean(isIdleAtTop && idleRestBlocked && idleRestRemainingMinutes != null);
+    !compact && Boolean(isIdleAtTop && idleRestBlocked && idleRestRemainingMinutes != null);
   const showCompactLabel = compact && actionPending;
   const hubLabel = actionPending ? "Tap again to confirm" : actionLabel;
   const ringTintClass = getActionRingTintClass({
@@ -123,7 +128,9 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     idleRestBlocked,
     breakRestBankedMinutes: breakRestIncomplete ? breakRestBankedMinutes ?? 0 : null,
   });
-  const ringSpin = currentSegment === "break" && !compact;
+  const ringSpin = currentSegment === "break" && !compact && !isMoving;
+  const locked = isMoving;
+  const unlockProgress = Math.min(1, Math.max(0, movementUnlockProgress01));
 
   const sizeClass = driverActionSizeClass(expanded, compact);
   const secondarySizeClass = endShiftButtonSizeClass(expanded, compact);
@@ -184,7 +191,8 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     action.chrome.surfaceClass,
     action.chrome.textClass,
     expanded ? "gap-1.5 px-3" : compact ? "gap-0 px-0.5" : "gap-1 px-2",
-    expanded && !isMoving && "shadow-lg shadow-black/40"
+    expanded && !locked && "shadow-lg shadow-black/40",
+    locked && "opacity-70 saturate-75"
   );
 
   const auxActionRow =
@@ -200,7 +208,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               label: "Resume shift",
               onAction: secondaryAction.onAction,
               pending: secondaryAction.pending,
-              disabled: secondaryAction.disabled,
+              disabled: locked || secondaryAction.disabled,
               chrome: resumeShiftChrome,
               pendingLabel: "Tap again",
             })
@@ -222,7 +230,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     <button
       type="button"
       onClick={secondaryAction.onAction}
-      disabled={secondaryAction.disabled}
+      disabled={locked || secondaryAction.disabled}
       className={cn(
         "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
         "touch-manipulation select-none",
@@ -249,58 +257,18 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     </button>
   ) : null;
 
-  if (isMoving) {
-    return (
-      <div
-        className={cn(
-          "mx-auto flex shrink-0",
-          auxInlineCompact ? "flex-row items-center gap-2" : "flex-col items-center",
-          className
-        )}
-      >
-        <div
-          className={cn(sizeClass, sharedSurfaceClass)}
-          role="img"
-          aria-label="Logging locked while moving — pull over to use Work or Break"
-        >
-          <DriverActionHeroRing tintClass={ringTintClass} spin={false} />
-          <div
-            className={cn(
-              "relative z-10 flex flex-col items-center justify-center",
-              expanded ? "gap-1.5" : "gap-1"
-            )}
-          >
-            <span
-              className={cn(
-                "text-center font-bold uppercase tracking-[0.14em] text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]",
-                expanded ? "text-sm" : "text-xs"
-              )}
-            >
-              Moving
-            </span>
-            {elapsedLabel ? (
-              <span
-                className={cn(
-                  "font-mono font-extrabold tabular-nums leading-none text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]",
-                  expanded ? "text-lg sm:text-xl" : "text-base"
-                )}
-                aria-live="polite"
-              >
-                {elapsedLabel}
-              </span>
-            ) : null}
-          </div>
-        </div>
-        {auxInlineResume}
-        {auxActionRow}
-      </div>
-    );
-  }
-
   const hubStackClass = cn(
     "relative z-10 flex flex-col items-center justify-center",
     expanded ? "gap-1.5" : compact ? "gap-0" : "gap-1"
   );
+
+  const ariaParts = [
+    locked ? "Logging locked while moving" : null,
+    hubLabel,
+    currentSegment === "work" ? `${action.countdown} ${action.statusLabel}` : null,
+    breakRestProgressLabel,
+    elapsedLabel,
+  ].filter(Boolean);
 
   return (
     <div
@@ -313,141 +281,177 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
       <button
         type="button"
         onClick={onAction}
-        disabled={actionDisabled}
+        disabled={locked || actionDisabled}
         className={cn(
           sizeClass,
           sharedSurfaceClass,
           "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
-          "active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none",
+          "active:scale-[0.98] disabled:pointer-events-none",
+          !locked && "disabled:opacity-60",
           actionPending &&
+            !locked &&
             "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
         )}
-        aria-label={
-          compact && !actionPending
-            ? [
-                hubLabel,
-                currentSegment === "work" ? `${action.countdown} ${action.statusLabel}` : null,
-                breakRestProgressLabel,
-                elapsedLabel,
-              ]
-                .filter(Boolean)
-                .join(", ")
-            : hubLabel
-        }
+        aria-label={ariaParts.join(", ")}
       >
         <DriverActionHeroRing tintClass={ringTintClass} spin={ringSpin} />
-        <div className={hubStackClass}>
-        {ActionIcon ? (
-          <ActionIcon
-            className={cn(
-              "shrink-0 drop-shadow-sm",
-              expanded ? "h-11 w-11" : compact ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9 sm:h-10 sm:w-10"
-            )}
-          />
-        ) : null}
-        {!compact || showCompactLabel ? (
-          <span
-            className={cn(
-              "text-center leading-tight",
-              expanded ? "text-lg sm:text-xl" : compact ? "text-[9px] leading-none" : "text-base sm:text-lg"
-            )}
+        {locked ? (
+          <svg
+            className="absolute inset-0 z-[1] pointer-events-none -rotate-90"
+            viewBox="0 0 100 100"
+            aria-hidden
           >
-            {hubLabel}
-          </span>
+            <circle
+              cx="50"
+              cy="50"
+              r={UNLOCK_RING_R}
+              fill="none"
+              stroke="currentColor"
+              strokeOpacity={0.25}
+              strokeWidth={3.5}
+              className="text-white"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r={UNLOCK_RING_R}
+              fill="none"
+              stroke="currentColor"
+              strokeOpacity={0.95}
+              strokeWidth={3.5}
+              strokeLinecap="round"
+              strokeDasharray={UNLOCK_RING_C}
+              strokeDashoffset={UNLOCK_RING_C * (1 - unlockProgress)}
+              className="text-white transition-[stroke-dashoffset] duration-500 ease-linear"
+            />
+          </svg>
         ) : null}
-        {showWorkCountdown ? (
-          <>
+        <div className={hubStackClass}>
+          {ActionIcon ? (
+            <ActionIcon
+              className={cn(
+                "shrink-0 drop-shadow-sm",
+                expanded ? "h-11 w-11" : compact ? "h-6 w-6 sm:h-7 sm:w-7" : "h-9 w-9 sm:h-10 sm:w-10"
+              )}
+            />
+          ) : null}
+          {!compact || showCompactLabel ? (
             <span
               className={cn(
-                "font-black tabular-nums tracking-tight leading-none",
-                expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
-                action.chrome.onColoredSurface && "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                "text-center leading-tight",
+                expanded ? "text-lg sm:text-xl" : compact ? "text-[9px] leading-none" : "text-base sm:text-lg"
               )}
             >
-              {action.countdown}
+              {hubLabel}
             </span>
+          ) : null}
+          {showWorkCountdown ? (
+            <>
+              <span
+                className={cn(
+                  "font-black tabular-nums tracking-tight leading-none",
+                  expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
+                  action.chrome.onColoredSurface &&
+                    "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                )}
+              >
+                {action.countdown}
+              </span>
+              <span
+                className={cn(
+                  "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight",
+                  expanded ? "text-[0.6rem]" : "text-[0.55rem]",
+                  action.breakDueTone === "red"
+                    ? "text-white"
+                    : action.breakDueTone === "amber"
+                      ? "text-white dark:text-amber-950"
+                      : action.chrome.onColoredSurface
+                        ? "text-white/80 dark:text-emerald-950/80"
+                        : "text-slate-500"
+                )}
+              >
+                {action.statusLabel}
+              </span>
+            </>
+          ) : null}
+          {showIdleRestCountdown ? (
+            <>
+              <span
+                className={cn(
+                  "font-black tabular-nums tracking-tight leading-none",
+                  expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
+                  "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                )}
+                aria-live="polite"
+              >
+                {formatComplianceCountdown(idleRestRemainingMinutes!)}
+              </span>
+              <span
+                className={cn(
+                  "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight text-white/90",
+                  expanded ? "text-[0.6rem]" : "text-[0.55rem]"
+                )}
+              >
+                7h rest required
+              </span>
+            </>
+          ) : null}
+          {idleRestHelper && isIdleAtTop && !showIdleRestCountdown ? (
             <span
               className={cn(
-                "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight",
-                expanded ? "text-[0.6rem]" : "text-[0.55rem]",
-                action.breakDueTone === "red"
-                  ? "text-white"
-                  : action.breakDueTone === "amber"
-                    ? "text-white dark:text-amber-950"
-                    : action.chrome.onColoredSurface
-                      ? "text-white/80 dark:text-emerald-950/80"
-                      : "text-slate-500"
+                "text-center font-semibold leading-tight opacity-90",
+                expanded ? "text-xs" : "text-[10px]",
+                action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-500"
               )}
             >
-              {action.statusLabel}
+              {idleRestHelper}
             </span>
-          </>
-        ) : null}
-        {showIdleRestCountdown ? (
-          <>
+          ) : null}
+          {breakRestProgressLabel &&
+          !compact &&
+          currentSegment === "break" &&
+          !showWorkCountdown ? (
             <span
               className={cn(
-                "font-black tabular-nums tracking-tight leading-none",
-                expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
-                "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+                "font-semibold tabular-nums leading-tight",
+                expanded ? "text-sm" : compact ? "text-[8px]" : "text-xs",
+                action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-600"
               )}
               aria-live="polite"
             >
-              {formatComplianceCountdown(idleRestRemainingMinutes!)}
+              {breakRestProgressLabel}
             </span>
+          ) : null}
+          {elapsedLabel && !compact && !showWorkCountdown && !showIdleRestCountdown ? (
             <span
               className={cn(
-                "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight text-white/90",
-                expanded ? "text-[0.6rem]" : "text-[0.55rem]"
+                "font-mono font-extrabold tabular-nums leading-none",
+                expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
+                action.chrome.onColoredSurface
+                  ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                  : "text-slate-900 dark:text-slate-100"
               )}
+              aria-live="polite"
             >
-              7h rest required
+              {elapsedLabel}
             </span>
-          </>
-        ) : null}
-        {idleRestHelper && isIdleAtTop && !showIdleRestCountdown ? (
-          <span
-            className={cn(
-              "text-center font-semibold leading-tight opacity-90",
-              expanded ? "text-xs" : "text-[10px]",
-              action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-500"
-            )}
-          >
-            {idleRestHelper}
-          </span>
-        ) : null}
-        {breakRestProgressLabel &&
-        !compact &&
-        currentSegment === "break" &&
-        !showWorkCountdown ? (
-          <span
-            className={cn(
-              "font-semibold tabular-nums leading-tight",
-              expanded ? "text-sm" : compact ? "text-[8px]" : "text-xs",
-              action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-600"
-            )}
-            aria-live="polite"
-          >
-            {breakRestProgressLabel}
-          </span>
-        ) : null}
-        {elapsedLabel && !compact && !showWorkCountdown && !showIdleRestCountdown ? (
-          <span
-            className={cn(
-              "font-mono font-extrabold tabular-nums leading-none",
-              expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
-              action.chrome.onColoredSurface
-                ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
-                : "text-slate-900 dark:text-slate-100"
-            )}
-            aria-live="polite"
-          >
-            {elapsedLabel}
-          </span>
-        ) : null}
+          ) : null}
         </div>
       </button>
+      {locked && !compact ? (
+        <p
+          className={cn(
+            "pointer-events-none text-center font-semibold leading-tight",
+            expanded
+              ? "mt-3 text-sm text-white/90"
+              : "mt-2 rounded-full bg-amber-100/95 px-2.5 py-1 text-xs text-amber-950 dark:bg-amber-950/70 dark:text-amber-100"
+          )}
+          aria-live="polite"
+        >
+          Moving · pull over to unlock
+        </p>
+      ) : null}
       {auxInlineResume}
       {auxActionRow}
     </div>

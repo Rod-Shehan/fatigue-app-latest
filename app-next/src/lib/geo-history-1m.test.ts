@@ -98,6 +98,19 @@ describe("segment trail + stationary wait", () => {
     expect(getGeoMovementState(t0 + 2_000).isMoving).toBe(true);
   });
 
+  it("reports unlock progress from 0 after move toward 1 at dwell end", () => {
+    const t0 = Date.parse("2026-07-20T12:00:00.000Z");
+    __pushHistory1mForTests(-31.95, 115.86, t0);
+    __pushHistory1mForTests(-31.952, 115.862, t0 + 5_000);
+    expect(getGeoMovementState(t0 + 5_000).unlockProgress01).toBeCloseTo(0, 2);
+    expect(
+      getGeoMovementState(t0 + 5_000 + GEO_STATIONARY_UNLOCK_MS / 2).unlockProgress01
+    ).toBeCloseTo(0.5, 1);
+    expect(
+      getGeoMovementState(t0 + 5_000 + GEO_STATIONARY_UNLOCK_MS).unlockProgress01
+    ).toBe(1);
+  });
+
   it("clearHistory1mSegment drops crumbs but keeps movement dwell", () => {
     const t0 = Date.parse("2026-07-20T12:00:00.000Z");
     __pushHistory1mForTests(-31.95, 115.86, t0);

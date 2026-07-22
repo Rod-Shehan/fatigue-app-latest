@@ -326,16 +326,23 @@ export default function LogBar({
 
   /** Same GPS watch as segment trail — locks Work/Break (and End shift) while moving. */
   const [gpsMoving, setGpsMoving] = useState(false);
+  const [gpsUnlockProgress, setGpsUnlockProgress] = useState(1);
   useEffect(() => {
     if (!isLiveNow || !gpsMovementTrailEnabled) {
       setGpsMoving(false);
+      setGpsUnlockProgress(1);
       return;
     }
-    return subscribeGeoMovement((state) => setGpsMoving(state.isMoving));
+    return subscribeGeoMovement((state) => {
+      setGpsMoving(state.isMoving);
+      setGpsUnlockProgress(state.unlockProgress01);
+    });
   }, [isLiveNow, gpsMovementTrailEnabled]);
   useEffect(() => {
     if (!isLiveNow || !gpsMovementTrailEnabled) return;
-    setGpsMoving(getGeoMovementState().isMoving);
+    const state = getGeoMovementState();
+    setGpsMoving(state.isMoving);
+    setGpsUnlockProgress(state.unlockProgress01);
   }, [isLiveNow, gpsMovementTrailEnabled, tick]);
   const isMoving = gpsMovementTrailEnabled && gpsMoving;
   // Never clear an armed confirm when GPS flips to "moving" — that ate second taps.
@@ -1055,6 +1062,9 @@ export default function LogBar({
             shiftSegmentOpen={shiftSegmentOpen}
             isIdleAtTop={isIdleAtTop}
             isMoving={isMoving && !primaryActionPending && !resumeShiftPending}
+            movementUnlockProgress01={
+              isMoving && !primaryActionPending && !resumeShiftPending ? gpsUnlockProgress : 1
+            }
             actionLabel={primaryActionLabel}
             onAction={() =>
               primaryLogType === "work" && isStartingShift

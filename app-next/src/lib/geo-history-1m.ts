@@ -5,7 +5,7 @@
  * - Keeps crumbs for the open segment (since last Work/Break/End shift dump).
  * - Stationary wait: only accept a crumb when the fix has moved ~40 m from the
  *   last kept point (and ~10 s has passed) — saves JSON size and map fuzz.
- * - Movement lock: recent significant movement locks Work/Break (geometry-only hero).
+ * - Movement lock: recent significant movement locks Work/Break (hero stays visible, dimmed).
  *
  * Stored on diary events as `history_1m` (legacy field name; now a segment trail).
  */
@@ -40,6 +40,11 @@ export type GeoMovementState = {
   isMoving: boolean;
   lastMovedAtMs: number | null;
   acceptedCount: number;
+  /**
+   * 0 → just moved / still locking; 1 → dwell complete (unlocked).
+   * While moving, fills over {@link GEO_STATIONARY_UNLOCK_MS} after last move.
+   */
+  unlockProgress01: number;
 };
 
 type RingState = {
@@ -70,6 +75,15 @@ function computeIsMoving(nowMs: number = Date.now()): boolean {
   return nowMs - ring.lastMovedAtMs < GEO_STATIONARY_UNLOCK_MS;
 }
 
+/** Stationary dwell progress toward unlock (0–1). */
+export function computeMovementUnlockProgress01(nowMs: number = Date.now()): number {
+  if (ring.lastMovedAtMs == null) return 1;
+  const elapsed = nowMs - ring.lastMovedAtMs;
+  if (elapsed <= 0) return 0;
+  if (elapsed >= GEO_STATIONARY_UNLOCK_MS) return 1;
+  return elapsed / GEO_STATIONARY_UNLOCK_MS;
+}
+
 function emitMovement(): void {
   const state = getGeoMovementState();
   for (const listener of ring.listeners) listener(state);
@@ -80,6 +94,7 @@ export function getGeoMovementState(nowMs: number = Date.now()): GeoMovementStat
     isMoving: computeIsMoving(nowMs),
     lastMovedAtMs: ring.lastMovedAtMs,
     acceptedCount: ring.points.length,
+    unlockProgress01: computeMovementUnlockProgress01(nowMs),
   };
 }
 
