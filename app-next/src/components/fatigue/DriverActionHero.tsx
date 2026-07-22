@@ -251,14 +251,48 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
 
   if (isMoving) {
     return (
-      <div className={cn("mx-auto flex shrink-0 flex-col items-center", className)}>
+      <div
+        className={cn(
+          "mx-auto flex shrink-0",
+          auxInlineCompact ? "flex-row items-center gap-2" : "flex-col items-center",
+          className
+        )}
+      >
         <div
           className={cn(sizeClass, sharedSurfaceClass)}
           role="img"
-          aria-label={`Work window ${Math.round(action.remainingMinutes)} minutes remaining`}
+          aria-label="Logging locked while moving — pull over to use Work or Break"
         >
           <DriverActionHeroRing tintClass={ringTintClass} spin={false} />
+          <div
+            className={cn(
+              "relative z-10 flex flex-col items-center justify-center",
+              expanded ? "gap-1.5" : "gap-1"
+            )}
+          >
+            <span
+              className={cn(
+                "text-center font-bold uppercase tracking-[0.14em] text-white/95 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]",
+                expanded ? "text-sm" : "text-xs"
+              )}
+            >
+              Moving
+            </span>
+            {elapsedLabel ? (
+              <span
+                className={cn(
+                  "font-mono font-extrabold tabular-nums leading-none text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]",
+                  expanded ? "text-lg sm:text-xl" : "text-base"
+                )}
+                aria-live="polite"
+              >
+                {elapsedLabel}
+              </span>
+            ) : null}
+          </div>
         </div>
+        {auxInlineResume}
+        {auxActionRow}
       </div>
     );
   }

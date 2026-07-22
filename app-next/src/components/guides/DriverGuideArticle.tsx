@@ -139,8 +139,8 @@ export function DriverGuideArticle() {
         </p>
         <p className="mt-2">
           When your organisation has the GPS trail addon on and the vehicle is moving, Work / Break / End shift stay
-          locked (beacon only). Pull over and wait a few seconds after you stop — then tap. If you already tapped once
-          to confirm, the second tap still works.
+          locked and the button shows Moving (timer still visible). Pull over and wait a few seconds after you stop —
+          then tap. If you already tapped once to confirm, the second tap still works. View diary stays available.
         </p>
         <p className="mt-2">You cannot start Work until start km is on today&apos;s card (see section 7).</p>
       </section>

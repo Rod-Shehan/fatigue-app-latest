@@ -19,7 +19,7 @@ export type History1mPoint = {
   t: string;
 };
 
-/** Metres of movement required to accept a new trail crumb (and to count as "moving"). */
+/** Metres of movement required to accept a new trail crumb (and baseline for "moving"). */
 export const GEO_MOVE_THRESHOLD_M = 40;
 /** Minimum spacing between accepted crumbs while moving. */
 export const GEO_MIN_GAP_MS = 9_000;
@@ -30,6 +30,11 @@ export const GEO_MAX_SEGMENT_POINTS = 120;
  * unlocking Work/Break (hysteresis so the button does not flicker at lights).
  */
 export const GEO_STATIONARY_UNLOCK_MS = 25_000;
+/**
+ * Ignore distance-based movement lock when horizontal accuracy is worse than this
+ * (cold-start GPS jitter was blanking the hero after ~10–15s while parked).
+ */
+export const GEO_LOCK_MAX_ACCURACY_M = 80;
 
 export type GeoMovementState = {
   isMoving: boolean;
@@ -40,7 +45,7 @@ export type GeoMovementState = {
 type RingState = {
   points: History1mPoint[];
   watchId: number | null;
-  lastFix: { lat: number; lng: number; tMs: number } | null;
+  lastFix: { lat: number; lng: number; tMs: number; accuracyM: number | null } | null;
   lastMovedAtMs: number | null;
   listeners: Set<(state: GeoMovementState) => void>;
 };
@@ -144,19 +149,38 @@ function tryAcceptTrailPoint(lat: number, lng: number, tMs: number): boolean {
 /** ~7 km/h — aligns with evidence “moving” floor; used when the browser reports speed. */
 const MOVING_SPEED_MS = 2;
 
+function accuracyGoodEnough(accuracyM: number | null | undefined): boolean {
+  if (accuracyM == null || !Number.isFinite(accuracyM)) return true;
+  return accuracyM <= GEO_LOCK_MAX_ACCURACY_M;
+}
+
 function onWatchFix(
   lat: number,
   lng: number,
   tMs: number = Date.now(),
-  speedMs: number | null = null
+  speedMs: number | null = null,
+  accuracyM: number | null = null
 ): void {
   const prev = ring.lastFix;
-  ring.lastFix = { lat, lng, tMs };
+  const acc =
+    typeof accuracyM === "number" && Number.isFinite(accuracyM) ? accuracyM : null;
+  ring.lastFix = { lat, lng, tMs, accuracyM: acc };
 
-  if (typeof speedMs === "number" && Number.isFinite(speedMs) && speedMs >= MOVING_SPEED_MS) {
+  const thisOk = accuracyGoodEnough(acc);
+  if (
+    thisOk &&
+    typeof speedMs === "number" &&
+    Number.isFinite(speedMs) &&
+    speedMs >= MOVING_SPEED_MS
+  ) {
     ring.lastMovedAtMs = tMs;
-  } else if (prev && metresBetween(prev, { lat, lng }) >= GEO_MOVE_THRESHOLD_M) {
-    ring.lastMovedAtMs = tMs;
+  } else if (prev && thisOk && accuracyGoodEnough(prev.accuracyM)) {
+    // Require movement beyond GPS error circles so parked cold-start jitter does not lock.
+    const jitterFloor = (prev.accuracyM ?? 0) + (acc ?? 0);
+    const needM = Math.max(GEO_MOVE_THRESHOLD_M, jitterFloor);
+    if (metresBetween(prev, { lat, lng }) >= needM) {
+      ring.lastMovedAtMs = tMs;
+    }
   }
 
   // Stationary wait: only keep crumbs when we actually moved from the last kept point.
@@ -186,7 +210,11 @@ export function startHistory1mWatch(): void {
         typeof pos.coords.speed === "number" && Number.isFinite(pos.coords.speed)
           ? pos.coords.speed
           : null;
-      onWatchFix(pos.coords.latitude, pos.coords.longitude, Date.now(), speed);
+      const accuracy =
+        typeof pos.coords.accuracy === "number" && Number.isFinite(pos.coords.accuracy)
+          ? pos.coords.accuracy
+          : null;
+      onWatchFix(pos.coords.latitude, pos.coords.longitude, Date.now(), speed, accuracy);
     },
     () => {
       /* permission denied / timeout — leave ring as-is */
@@ -210,6 +238,11 @@ export function __resetHistory1mRingForTests(): void {
 }
 
 /** Test helper — push a crumb as if watchPosition fired. */
-export function __pushHistory1mForTests(lat: number, lng: number, tMs: number): void {
-  onWatchFix(lat, lng, tMs);
+export function __pushHistory1mForTests(
+  lat: number,
+  lng: number,
+  tMs: number,
+  opts?: { speedMs?: number | null; accuracyM?: number | null }
+): void {
+  onWatchFix(lat, lng, tMs, opts?.speedMs ?? null, opts?.accuracyM ?? 10);
 }

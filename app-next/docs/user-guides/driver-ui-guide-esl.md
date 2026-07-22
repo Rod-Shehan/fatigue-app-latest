@@ -76,7 +76,7 @@ flowchart LR
 
 **Simple rule:** Tap the button that matches **what you are doing now**. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start shift, Work, Break, End shift).
 
-**While the vehicle is moving** (when your organisation has the GPS trail addon on): Work / Break / End shift stay locked (beacon only). Pull over and wait a few seconds after you stop — then tap. If you already tapped once to confirm, the second tap still works.
+**While the vehicle is moving** (when your organisation has the GPS trail addon on): Work / Break / End shift stay locked and the button shows **Moving** (timer still visible). Pull over and wait a few seconds after you stop — then tap. If you already tapped once to confirm, the second tap still works. **View diary** stays available.
 
 You **cannot** start Work until **start km** is on today's card (see section 7).
 

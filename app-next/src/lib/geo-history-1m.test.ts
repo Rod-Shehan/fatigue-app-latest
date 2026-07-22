@@ -83,6 +83,21 @@ describe("segment trail + stationary wait", () => {
     expect(getGeoMovementState(t0 + 5_000 + GEO_STATIONARY_UNLOCK_MS + 1).isMoving).toBe(false);
   });
 
+  it("does not lock from GPS cold-start jitter with poor accuracy", () => {
+    const t0 = Date.parse("2026-07-20T12:00:00.000Z");
+    // ~55 m apart — would have locked under the old 40 m gate, but accuracy circles overlap.
+    __pushHistory1mForTests(-31.95, 115.86, t0, { accuracyM: 100 });
+    __pushHistory1mForTests(-31.9504, 115.8604, t0 + 12_000, { accuracyM: 100 });
+    expect(getGeoMovementState(t0 + 12_000).isMoving).toBe(false);
+  });
+
+  it("still locks when reported speed is high with usable accuracy", () => {
+    const t0 = Date.parse("2026-07-20T12:00:00.000Z");
+    __pushHistory1mForTests(-31.95, 115.86, t0, { accuracyM: 20 });
+    __pushHistory1mForTests(-31.95, 115.86, t0 + 2_000, { speedMs: 8, accuracyM: 20 });
+    expect(getGeoMovementState(t0 + 2_000).isMoving).toBe(true);
+  });
+
   it("clearHistory1mSegment drops crumbs but keeps movement dwell", () => {
     const t0 = Date.parse("2026-07-20T12:00:00.000Z");
     __pushHistory1mForTests(-31.95, 115.86, t0);
