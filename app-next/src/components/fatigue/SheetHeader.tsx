@@ -1,11 +1,9 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { User, Users, Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
@@ -21,6 +19,11 @@ import {
   driverToggleSegment,
   driverToggleTrack,
 } from "@/components/driver/driver-ui-classes";
+import {
+  LAST_24H_BREAK_CHIP_LABEL,
+  Last24hBreakField,
+} from "@/components/fatigue/Last24hBreakField";
+import { isoToPerthYmd, type Last24hBreakRange } from "@/lib/last-24h-break-range";
 
 type SheetData = {
   driver_name?: string;
@@ -28,11 +31,10 @@ type SheetData = {
   driver_type?: string;
   jurisdiction_code?: string;
   last_24h_break?: string;
+  last_24h_break_start?: string;
+  last_24h_break_end?: string;
   week_starting?: string;
 };
-
-/** Regulatory label for last_24h_break (WA fatigue record). */
-const LAST_24H_BREAK_CHIP_LABEL = "Last 24Hr Break";
 
 function HeaderDateChip({
   label,
@@ -130,31 +132,17 @@ export default function SheetHeader({
   fleetOversight?: boolean;
   headerActions?: React.ReactNode;
 }) {
-  const last24hDateInputRef = useRef<HTMLInputElement>(null);
-  const [confirmLast24hOpen, setConfirmLast24hOpen] = useState(false);
-  const [pendingLast24hDate, setPendingLast24hDate] = useState<string>("");
-  const [confirmLast24hChecked, setConfirmLast24hChecked] = useState(false);
-  const [last24hPickerResetKey, setLast24hPickerResetKey] = useState(0);
-
-  const openLast24hPicker = useCallback(() => {
-    const el = last24hDateInputRef.current;
-    if (!el || readOnly) return;
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker();
-        return;
-      } catch {
-        /* fall through */
-      }
-    }
-    el.click();
-  }, [readOnly]);
-
   const handleChange = (field: string, value: unknown) => {
     onChange({ ...sheetData, [field]: value });
   };
   const driverType = sheetData.driver_type || "solo";
-  const last24hSet = !!sheetData.last_24h_break?.trim();
+  const last24hRange: Last24hBreakRange | null =
+    sheetData.last_24h_break_start?.trim() && sheetData.last_24h_break_end?.trim()
+      ? {
+          startIso: sheetData.last_24h_break_start,
+          endIso: sheetData.last_24h_break_end,
+        }
+      : null;
   const jurisdictionCode = sheetData.jurisdiction_code?.trim() ?? "";
   const jurisdictionOptions = getJurisdictionOptions();
   const showRuleSetPicker = !readOnly && !jurisdictionCode;
@@ -254,54 +242,53 @@ export default function SheetHeader({
           title="Week is set when this sheet is created. Ask your manager if it needs to be changed."
         />
 
-        {last24hSet && readOnly ? (
+        {last24hRange && readOnly ? (
           <HeaderDateChip
             label={LAST_24H_BREAK_CHIP_LABEL}
-            value={formatSheetDisplayDate(sheetData.last_24h_break!)}
+            value={`${new Date(last24hRange.startIso).toLocaleString("en-AU", {
+              timeZone: "Australia/Perth",
+              day: "numeric",
+              month: "short",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            })} → …`}
             locked
-            className="max-w-[min(100%,19rem)] sm:max-w-[20rem]"
-            title={`${LAST_24H_BREAK_CHIP_LABEL} date (locked after sign-off)`}
+            className="max-w-[min(100%,22rem)] sm:max-w-[24rem]"
+            title={`${LAST_24H_BREAK_CHIP_LABEL} (locked after sign-off)`}
           />
-        ) : (
-          <>
-            <input
-              key={last24hPickerResetKey}
-              ref={last24hDateInputRef}
-              type="date"
-              disabled={readOnly}
-              tabIndex={-1}
-              aria-hidden
-              className="sr-only"
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v) {
-                  setPendingLast24hDate(v);
-                  setConfirmLast24hChecked(false);
-                  setConfirmLast24hOpen(true);
-                }
-              }}
-            />
-            <HeaderDateChip
-              label={LAST_24H_BREAK_CHIP_LABEL}
-              value={last24hSet ? formatSheetDisplayDate(sheetData.last_24h_break!) : "Set date"}
-              highlight={!last24hSet}
-              locked={false}
-              disabled={readOnly}
-              className="max-w-[min(100%,19rem)] sm:max-w-[20rem]"
-              onClick={openLast24hPicker}
-              title={
-                last24hSet
-                  ? `Tap to change ${LAST_24H_BREAK_CHIP_LABEL} date`
-                  : `Tap to set ${LAST_24H_BREAK_CHIP_LABEL} date`
-              }
-            />
-          </>
-        )}
+        ) : null}
 
         {headerActions != null && (
           <div className="flex items-center gap-2 shrink-0 ml-auto">{headerActions}</div>
         )}
       </div>
+
+      {!readOnly || !last24hRange ? (
+        <div className="pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
+          <Last24hBreakField
+            value={last24hRange}
+            readOnly={readOnly}
+            onChange={(range) => {
+              if (!range) {
+                onChange({
+                  ...sheetData,
+                  last_24h_break: "",
+                  last_24h_break_start: "",
+                  last_24h_break_end: "",
+                });
+                return;
+              }
+              onChange({
+                ...sheetData,
+                last_24h_break: isoToPerthYmd(range.startIso) ?? "",
+                last_24h_break_start: range.startIso,
+                last_24h_break_end: range.endIso,
+              });
+            }}
+          />
+        </div>
+      ) : null}
 
       {!hidePrimaryDriverField && (
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
@@ -358,81 +345,6 @@ export default function SheetHeader({
           </p>
         </div>
       )}
-
-      <Dialog
-        open={confirmLast24hOpen}
-        onOpenChange={(open) => {
-          setConfirmLast24hOpen(open);
-          if (!open) {
-            setPendingLast24hDate("");
-            setConfirmLast24hChecked(false);
-            setLast24hPickerResetKey((k) => k + 1);
-          }
-        }}
-      >
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Confirm {LAST_24H_BREAK_CHIP_LABEL}</DialogTitle>
-              <DialogDescription>
-                Set this date as your {LAST_24H_BREAK_CHIP_LABEL}? You can change it again until the week is signed.
-              </DialogDescription>
-            </DialogHeader>
-            {pendingLast24hDate && (
-              <p className="text-2xl font-bold tabular-nums text-slate-800 dark:text-slate-100 py-1">
-                {formatSheetDisplayDate(pendingLast24hDate)}
-              </p>
-            )}
-            <label className="flex items-start gap-3 pt-1 text-base text-slate-700 dark:text-slate-200">
-              <input
-                type="checkbox"
-                className="mt-1 h-5 w-5 shrink-0"
-                checked={confirmLast24hChecked}
-                onChange={(e) => setConfirmLast24hChecked(e.target.checked)}
-              />
-              <span>I confirm this date is correct.</span>
-            </label>
-            <div className="flex flex-col-reverse sm:flex-row flex-wrap gap-2 justify-end pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 text-base sm:mr-auto"
-                onClick={() => {
-                  setConfirmLast24hChecked(false);
-                  openLast24hPicker();
-                }}
-              >
-                Pick another date
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="min-h-11 text-base"
-                onClick={() => {
-                  setConfirmLast24hOpen(false);
-                  setPendingLast24hDate("");
-                  setConfirmLast24hChecked(false);
-                  setLast24hPickerResetKey((k) => k + 1);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                disabled={!confirmLast24hChecked}
-                onClick={() => {
-                  handleChange("last_24h_break", pendingLast24hDate);
-                  setConfirmLast24hOpen(false);
-                  setPendingLast24hDate("");
-                  setConfirmLast24hChecked(false);
-                  setLast24hPickerResetKey((k) => k + 1);
-                }}
-                className="min-h-11 text-base min-w-28 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
-              >
-                Confirm
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
     </div>
   );
 }

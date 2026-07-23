@@ -973,6 +973,8 @@ export function runComplianceChecks(
     /** Optional preceding history (chronological) to support 28-day checks. */
     historyDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
+    /** Absolute end of declared ≥24h break (ms); AMI soft-reset prefers this over date-only. */
+    last24hBreakEndMs?: number | null;
     declared24hRests?: Declared24hRestFields | null;
     weekStarting?: string;
     prevWeekStarting?: string;

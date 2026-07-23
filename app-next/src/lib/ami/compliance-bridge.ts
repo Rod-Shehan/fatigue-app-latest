@@ -10,6 +10,7 @@ import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import { getSheetDayDateString } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
+  AMI_72H_EVAL_LOOKBACK,
   AMI_72H_WINDOW,
   AMI_PATTERN_CHANGE_REST,
 } from "./constants";
@@ -134,22 +135,25 @@ function buildAmiOwnedResults(
       });
     }
   } else {
-    const solo72 = evaluateSolo72h(buildEvalTape(events, asOf, AMI_72H_WINDOW));
-    if (!solo72.totalNonWorkOk) {
+    const solo72 = evaluateSolo72h(buildEvalTape(events, asOf, AMI_72H_EVAL_LOOKBACK), {
+      last24hBreak: options.last24hBreak,
+      last24hBreakEndMs: options.last24hBreakEndMs ?? undefined,
+    });
+    if (solo72.applies && !solo72.totalNonWorkOk) {
       out.push({
         type: "warning",
         iconKey: "TrendingUp",
         day: "AMI",
         message: `Need ≥27 hrs non-work in any rolling 72hr period (24h non-work resets; this window: ${Math.round(solo72.totalNonWork / 60)}h) — 72h window ending now`,
       });
-    } else if (!solo72.qualBlockCountOk) {
+    } else if (solo72.applies && !solo72.qualBlockCountOk) {
       out.push({
         type: "warning",
         iconKey: "Moon",
         day: "AMI",
         message: `Need ≥3 blocks of ≥7 continuous hrs non-work in any rolling 72hrs (24h non-work resets; found: ${solo72.qualBlockCount}) — 72h window ending now`,
       });
-    } else if (!solo72.gapOk) {
+    } else if (solo72.applies && !solo72.gapOk) {
       out.push({
         type: "violation",
         iconKey: "Clock",

@@ -27,6 +27,7 @@ export { reclassifyAmiTape, buildReclassifiedAmiTape } from "./reclassify";
 export {
   applyQualifyingBreakToSlots,
   buildEvalTape,
+  declared24hBreakSegmentStartMinute,
   evaluate168hWork,
   evaluateFiveHourBreakRule,
   evaluateSeventeenHourEpisode,
@@ -40,7 +41,9 @@ export {
   measurePatternChangeRestOnlyWorkInterrupts,
   patternChangeRestMet,
   qualifyingRestComplete,
+  softResetSegmentStartMinute,
 } from "./evaluate";
+export type { AmiSolo72hResult } from "./evaluate";
 export { isAmiComplianceEngineEnabled } from "./flag";
 export { runWaComplianceChecks } from "./compliance-bridge";
 export {

@@ -62,6 +62,7 @@ export function ComplianceQuickDialog({
     : primaryFixRoute && !isComplianceFixActionable(primaryFixRoute)
       ? REVIEW_DETAILS_LABEL
       : null;
+  const hasIssues = violations.length > 0 || warnings.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,8 +71,8 @@ export function ComplianceQuickDialog({
           <DialogTitle className="flex items-center gap-2">
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
-            ) : violations.length > 0 ? (
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
+            ) : hasIssues ? (
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             ) : (
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
             )}
@@ -83,12 +84,19 @@ export function ComplianceQuickDialog({
                 <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Driver · {name}</p>
               ) : null}
               {loading && <p>Checking your record against WA solo rules…</p>}
-              {!loading && violations.length === 0 && warnings.length === 0 && (
+              {!loading && !hasIssues && (
                 <p>No issues detected on this sheet right now.</p>
               )}
               {!loading &&
                 issues.slice(0, 3).map((r, i) => (
-                  <p key={i} className="text-sm text-slate-700 dark:text-slate-300">
+                  <p
+                    key={i}
+                    className={
+                      r.type === "violation"
+                        ? "text-sm text-amber-950 dark:text-amber-100"
+                        : "text-sm text-amber-900 dark:text-amber-200"
+                    }
+                  >
                     • {r.message}
                   </p>
                 ))}
@@ -105,7 +113,11 @@ export function ComplianceQuickDialog({
           {fixLabel && onComplianceFix && primaryFixRoute ? (
             <Button
               size="sm"
-              className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+              className={
+                hasIssues
+                  ? "w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-600 dark:hover:bg-amber-500 dark:text-amber-950"
+                  : "w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700"
+              }
               onClick={() => {
                 onOpenChange(false);
                 onComplianceFix(primaryFixRoute);

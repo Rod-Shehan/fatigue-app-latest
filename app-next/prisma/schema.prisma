@@ -124,7 +124,12 @@ model FatigueSheet {
   secondDriver    String?
   driverType      String    @default("solo") // "solo" | "two_up"
   destination     String?
-  last24hBreak    String?   // YYYY-MM-DD date of last 24-hour break
+  /** @deprecated Prefer last24hBreakStart/End absolute range; kept for legacy day-grid sync. */
+  last24hBreak    String?   // YYYY-MM-DD (derived from start when range is set)
+  /** Absolute start of declared ≥24h continuous break (rolling timeline — not a calendar day). */
+  last24hBreakStart DateTime?
+  /** Absolute end of declared ≥24h continuous break; soft-reset uses this instant. */
+  last24hBreakEnd   DateTime?
   /** Declared solo 24h non-work rests (Reg 184E(2)(b)) when logs cannot yet prove them. */
   last24hRest1    String?   // YYYY-MM-DD
   last24hRest2    String?

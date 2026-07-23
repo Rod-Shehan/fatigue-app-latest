@@ -89,7 +89,8 @@ export function ManagerGuideArticle() {
         <p>{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
         <p className="mt-3">{SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}</p>
         <p className="mt-2 text-slate-600 dark:text-slate-300">
-          On the sheet workbench you can amend <strong>Last 24 hour break</strong> and, when required,{" "}
+          On the sheet workbench you can amend <strong>Last 24 hour break</strong> (start and end
+          times) and, when required,{" "}
           <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> — the same header fields drivers set in Set up day.
           Those fields also appear in a driver&apos;s <strong>Edit day</strong> dialog (managers can change locked
           dates there). Assurance lines and sheet banners include <strong>Fix on record</strong> or{" "}

@@ -38,6 +38,8 @@ function sheetToJson(row: {
   driverType: string;
   destination: string | null;
   last24hBreak: string | null;
+  last24hBreakStart: Date | null;
+  last24hBreakEnd: Date | null;
   last24hRest1: string | null;
   last24hRest2: string | null;
   last24hRest3: string | null;
@@ -58,6 +60,8 @@ function sheetToJson(row: {
     driver_type: row.driverType,
     destination: row.destination,
     last_24h_break: row.last24hBreak,
+    last_24h_break_start: row.last24hBreakStart?.toISOString() ?? null,
+    last_24h_break_end: row.last24hBreakEnd?.toISOString() ?? null,
     last_24h_rest_1: row.last24hRest1,
     last_24h_rest_2: row.last24hRest2,
     last_24h_rest_3: row.last24hRest3,
@@ -147,6 +151,8 @@ export async function PATCH(
       driver_type,
       destination,
       last_24h_break,
+      last_24h_break_start,
+      last_24h_break_end,
       last_24h_rest_1,
       last_24h_rest_2,
       last_24h_rest_3,
@@ -258,6 +264,12 @@ export async function PATCH(
     if (driver_type !== undefined) data.driverType = driver_type;
     if (destination !== undefined) data.destination = destination;
     if (last_24h_break !== undefined) data.last24hBreak = last_24h_break || null;
+    if (last_24h_break_start !== undefined) {
+      data.last24hBreakStart = last_24h_break_start ? new Date(last_24h_break_start) : null;
+    }
+    if (last_24h_break_end !== undefined) {
+      data.last24hBreakEnd = last_24h_break_end ? new Date(last_24h_break_end) : null;
+    }
     if (last_24h_rest_1 !== undefined) data.last24hRest1 = last_24h_rest_1 || null;
     if (last_24h_rest_2 !== undefined) data.last24hRest2 = last_24h_rest_2 || null;
     if (last_24h_rest_3 !== undefined) data.last24hRest3 = last_24h_rest_3 || null;

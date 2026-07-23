@@ -4,9 +4,9 @@ Generated against 10 fixtures. Live compliance is still the legacy engines.
 
 ## Summary
 
-- **match:** 48
-- **diff:** 1
-- **skip:** 31 (current rule not extracted as a pure function yet)
+- **match:** 47
+- **diff:** 3
+- **skip:** 30 (current rule not extracted as a pure function yet)
 
 ## Rows
 
@@ -73,7 +73,7 @@ Generated against 10 fixtures. Live compliance is still the legacy engines.
 | 168h-light-week | two_up_24h | match |  |
 | 168h-light-week | five_hour_break | match |  |
 | 168h-light-week | work_168h | match |  |
-| 168h-light-week | solo_72h | skip |  |
+| 168h-light-week | solo_72h | match | Both inactive (segment < 72h or equivalent) |
 | 168h-light-week | solo_14d_long_rests | match |  |
 | 168h-light-week | shift_pattern_184E4_gap | skip | No A↔B transition on fixture |
 | 72h-three-blocks | seventeen_hour_episode | match |  |
@@ -81,7 +81,7 @@ Generated against 10 fixtures. Live compliance is still the legacy engines.
 | 72h-three-blocks | two_up_24h | match |  |
 | 72h-three-blocks | five_hour_break | match |  |
 | 72h-three-blocks | work_168h | match |  |
-| 72h-three-blocks | solo_72h | match |  |
+| 72h-three-blocks | solo_72h | diff | Legacy scored window; AMI soft-reset inactive — investigate parity |
 | 72h-three-blocks | solo_14d_long_rests | diff |  |
 | 72h-three-blocks | shift_pattern_184E4_gap | skip | No A↔B transition on fixture |
 | pattern-gap-with-break | seventeen_hour_episode | match |  |
@@ -89,11 +89,28 @@ Generated against 10 fixtures. Live compliance is still the legacy engines.
 | pattern-gap-with-break | two_up_24h | match |  |
 | pattern-gap-with-break | five_hour_break | match |  |
 | pattern-gap-with-break | work_168h | match |  |
-| pattern-gap-with-break | solo_72h | match |  |
+| pattern-gap-with-break | solo_72h | diff | Legacy scored window; AMI soft-reset inactive — investigate parity |
 | pattern-gap-with-break | solo_14d_long_rests | match |  |
 | pattern-gap-with-break | shift_pattern_184E4_gap | match | Wall-clock/current and only-work-interrupts may agree while continuous-non_work differs when breaks sit in the gap |
 
 ## Diff details
+
+### 72h-three-blocks — solo_72h
+
+```json
+{
+  "current": {
+    "totalNonWorkMinutes": 3840,
+    "sevenHourBlocks": 3
+  },
+  "ami": {
+    "applies": false,
+    "totalNonWork": 0,
+    "qualBlockCount": 0
+  },
+  "note": "Legacy scored window; AMI soft-reset inactive — investigate parity"
+}
+```
 
 ### 72h-three-blocks — solo_14d_long_rests
 
@@ -106,6 +123,23 @@ Generated against 10 fixtures. Live compliance is still the legacy engines.
     "longRestCount": 1,
     "ok": false
   }
+}
+```
+
+### pattern-gap-with-break — solo_72h
+
+```json
+{
+  "current": {
+    "totalNonWorkMinutes": 2920,
+    "sevenHourBlocks": 3
+  },
+  "ami": {
+    "applies": false,
+    "totalNonWork": 0,
+    "qualBlockCount": 0
+  },
+  "note": "Legacy scored window; AMI soft-reset inactive — investigate parity"
 }
 ```
 

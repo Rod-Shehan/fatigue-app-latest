@@ -29,6 +29,10 @@ export const AMI_72H_MIN_TOTAL_NON_WORK = 1620; // 27h
 export const AMI_72H_QUAL_BLOCK = 420; // 7h
 export const AMI_72H_QUAL_BLOCK_COUNT = 3;
 export const AMI_72H_MAX_GAP_BETWEEN_QUAL_BLOCKS = 1020; // 17h
+/** ≥24h continuous no-work soft-resets the 72h package (see docs/regulatory/24h-soft-reset-doctrine.md). */
+export const AMI_72H_SOFT_RESET_NO_WORK = 1440;
+/** Lookback so a reset before the 72h window is still visible on the eval tape. */
+export const AMI_72H_EVAL_LOOKBACK = AMI_72H_WINDOW + AMI_72H_SOFT_RESET_NO_WORK * 4;
 
 /** 168h / 14-day work — Reg 184E(1)(b) */
 export const AMI_14D_WINDOW = 20160;

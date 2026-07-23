@@ -65,6 +65,7 @@ import {
   resolveEndShiftFinishDayOptions,
 } from "@/lib/end-shift-finish-day";
 import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
+import { isoToPerthYmd } from "@/lib/last-24h-break-range";
 import {
   applyRouteDefaultsToWeekDays,
   getDayWithMergedRouteContext,
@@ -228,6 +229,8 @@ export function SheetDetail({
     driver_type: string;
     jurisdiction_code: string;
     last_24h_break: string;
+    last_24h_break_start: string;
+    last_24h_break_end: string;
     last_24h_rest_1: string;
     last_24h_rest_2: string;
     last_24h_rest_3: string;
@@ -243,6 +246,8 @@ export function SheetDetail({
     driver_type: "solo",
     jurisdiction_code: DEFAULT_JURISDICTION_CODE,
     last_24h_break: "",
+    last_24h_break_start: "",
+    last_24h_break_end: "",
     last_24h_rest_1: "",
     last_24h_rest_2: "",
     last_24h_rest_3: "",
@@ -575,6 +580,8 @@ export function SheetDetail({
       driver_type: sheet.driver_type || "solo",
       jurisdiction_code: jurisdiction,
       last_24h_break: sheet.last_24h_break || "",
+      last_24h_break_start: sheet.last_24h_break_start || "",
+      last_24h_break_end: sheet.last_24h_break_end || "",
       last_24h_rest_1: sheet.last_24h_rest_1 || "",
       last_24h_rest_2: sheet.last_24h_rest_2 || "",
       last_24h_rest_3: sheet.last_24h_rest_3 || "",
@@ -629,6 +636,9 @@ export function SheetDetail({
         ? (complianceHistoryRemote?.history_days ?? null)
         : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheetData.last_24h_break || undefined,
+      last24hBreakEndMs: sheetData.last_24h_break_end
+        ? Date.parse(sheetData.last_24h_break_end)
+        : null,
       declared24hRests: {
         last_24h_rest_1: sheetData.last_24h_rest_1 || null,
         last_24h_rest_2: sheetData.last_24h_rest_2 || null,
@@ -648,6 +658,7 @@ export function SheetDetail({
     todayCrew.driver_type,
     sheetData.jurisdiction_code,
     sheetData.last_24h_break,
+    sheetData.last_24h_break_end,
     sheetData.last_24h_rest_1,
     sheetData.last_24h_rest_2,
     sheetData.last_24h_rest_3,
@@ -1003,6 +1014,8 @@ export function SheetDetail({
       driver_type: d.driver_type,
       destination: null,
       last_24h_break: d.last_24h_break?.trim() || null,
+      last_24h_break_start: d.last_24h_break_start?.trim() || null,
+      last_24h_break_end: d.last_24h_break_end?.trim() || null,
       last_24h_rest_1: d.last_24h_rest_1?.trim() || null,
       last_24h_rest_2: d.last_24h_rest_2?.trim() || null,
       last_24h_rest_3: d.last_24h_rest_3?.trim() || null,
@@ -1114,9 +1127,29 @@ export function SheetDetail({
 
   const driverSheetMetaProps = useMemo(
     () => ({
-      last24hBreak: sheetData.last_24h_break,
-      onLast24hBreakChange: (last_24h_break: string) => {
-        handleHeaderChange({ last_24h_break });
+      last24hBreakRange:
+        sheetData.last_24h_break_start && sheetData.last_24h_break_end
+          ? {
+              startIso: sheetData.last_24h_break_start,
+              endIso: sheetData.last_24h_break_end,
+            }
+          : null,
+      onLast24hBreakChange: (
+        range: { startIso: string; endIso: string } | null
+      ) => {
+        if (!range) {
+          handleHeaderChange({
+            last_24h_break: "",
+            last_24h_break_start: "",
+            last_24h_break_end: "",
+          });
+          return;
+        }
+        handleHeaderChange({
+          last_24h_break: isoToPerthYmd(range.startIso) ?? "",
+          last_24h_break_start: range.startIso,
+          last_24h_break_end: range.endIso,
+        });
       },
       declared24hRests: {
         last_24h_rest_1: sheetData.last_24h_rest_1,
@@ -1133,7 +1166,8 @@ export function SheetDetail({
       },
     }),
     [
-      sheetData.last_24h_break,
+      sheetData.last_24h_break_start,
+      sheetData.last_24h_break_end,
       sheetData.last_24h_rest_1,
       sheetData.last_24h_rest_2,
       sheetData.last_24h_rest_3,

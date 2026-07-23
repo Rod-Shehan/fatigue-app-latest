@@ -25,6 +25,8 @@ function sheetToJson(row: {
   driverType: string;
   destination: string | null;
   last24hBreak: string | null;
+  last24hBreakStart: Date | null;
+  last24hBreakEnd: Date | null;
   last24hRest1: string | null;
   last24hRest2: string | null;
   last24hRest3: string | null;
@@ -45,6 +47,8 @@ function sheetToJson(row: {
     driver_type: row.driverType,
     destination: row.destination,
     last_24h_break: row.last24hBreak,
+    last_24h_break_start: row.last24hBreakStart?.toISOString() ?? null,
+    last_24h_break_end: row.last24hBreakEnd?.toISOString() ?? null,
     last_24h_rest_1: row.last24hRest1,
     last_24h_rest_2: row.last24hRest2,
     last_24h_rest_3: row.last24hRest3,
@@ -67,6 +71,8 @@ function sheetToJsonMeta(row: {
   driverType: string;
   destination: string | null;
   last24hBreak: string | null;
+  last24hBreakStart: Date | null;
+  last24hBreakEnd: Date | null;
   last24hRest1: string | null;
   last24hRest2: string | null;
   last24hRest3: string | null;
@@ -86,6 +92,8 @@ function sheetToJsonMeta(row: {
     driver_type: row.driverType,
     destination: row.destination,
     last_24h_break: row.last24hBreak,
+    last_24h_break_start: row.last24hBreakStart?.toISOString() ?? null,
+    last_24h_break_end: row.last24hBreakEnd?.toISOString() ?? null,
     last_24h_rest_1: row.last24hRest1,
     last_24h_rest_2: row.last24hRest2,
     last_24h_rest_3: row.last24hRest3,
@@ -108,6 +116,8 @@ const sheetMetaSelect = {
   driverType: true,
   destination: true,
   last24hBreak: true,
+  last24hBreakStart: true,
+  last24hBreakEnd: true,
   last24hRest1: true,
   last24hRest2: true,
   last24hRest3: true,
@@ -259,6 +269,8 @@ export async function POST(req: Request) {
         driverType: driver_type ?? "solo",
         destination: destination ?? null,
         last24hBreak: body.last_24h_break ?? null,
+        last24hBreakStart: body.last_24h_break_start ? new Date(body.last_24h_break_start) : null,
+        last24hBreakEnd: body.last_24h_break_end ? new Date(body.last_24h_break_end) : null,
         last24hRest1: body.last_24h_rest_1 ?? null,
         last24hRest2: body.last_24h_rest_2 ?? null,
         last24hRest3: body.last_24h_rest_3 ?? null,

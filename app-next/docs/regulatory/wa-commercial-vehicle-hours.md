@@ -4,6 +4,8 @@ This document is the **source of truth** for the app’s **time-based** fatigue 
 
 For **how long records must be kept** vs **how much history the rule engine loads**, see [record-retention-and-compliance-lookback.md](./record-retention-and-compliance-lookback.md).
 
+For the product doctrine that a **≥24h continuous break soft-resets short-horizon rules** (but **not** 14/28-day rules) — intended reading, not an explicit Reg 184E sentence — see [24h-soft-reset-doctrine.md](./24h-soft-reset-doctrine.md).
+
 ## Primary source
 
 The implemented time requirements are taken directly from the WA **Work Health and Safety (General) Regulations 2022**:
@@ -31,11 +33,13 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
 ### Solo driving (no relief driver) — additional requirements (Reg 184E(2))
 
 - **Reg 184E(2)(a)**: In any **72‑hour period** — **≥27 hours non‑work**, including **≥3 periods of ≥7 consecutive hours non‑work**, **each separated from the next by ≤17 hours**.
+  - Read as **one conjunctive package** (not three independent rules). **≥3× ≥7h** is required when the package applies.
   - **App**:
     - 72h (retrospective “ending now”): warns if **<27h** non‑work OR **<3×(≥7h)** blocks.
       - Code: `checkSoloRules()` (72h window ending now)
     - ≤17h separation: **violation** if elapsed time between qualifying ≥7h non‑work periods exceeds **17h**.
       - Code: `checkSoloRules()` (17h separation logic)
+  - **Soft-reset:** a **≥24h** continuous break is intended to reset this package (and related short-horizon scoring) so holidays / long green are not false failures; **not** stated explicitly in the Reg text — see [24h-soft-reset-doctrine.md](./24h-soft-reset-doctrine.md). Legacy and AMI both soft-reset; AMI uses absolute-tape segment starts (`evaluateSolo72h`).
 
 - **Reg 184E(2)(b)(i)**: In any **14‑day period** — **≥2 periods of ≥24 consecutive hours non‑work**.
   - **App**: **violation** if fewer than 2×(≥24h) non‑work blocks in the available 14‑day horizon (requires 14 days of coverage).

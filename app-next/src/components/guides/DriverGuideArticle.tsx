@@ -223,8 +223,8 @@ export function DriverGuideArticle() {
           <li>Shift pattern — Day (A) or Night (B)</li>
           <li>Solo or Two-up, and the relief driver&apos;s name</li>
           <li>
-            Last 24-hour break date (week record — under crew, above route setup). Change it until you
-            sign; after sign-off only your manager can amend.
+            Last 24-hour break start and end times (week record — under crew, above route setup).
+            Change them until you sign; after sign-off only your manager can amend.
           </li>
           <li>
             Last 2 × 24 hour non-work breaks (two dates) — only when the app needs them because it

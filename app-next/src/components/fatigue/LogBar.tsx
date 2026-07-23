@@ -1251,7 +1251,7 @@ export default function LogBar({
                 complianceTone === "ok" &&
                   "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-emerald-900 dark:focus-visible:ring-white focus-visible:ring-offset-emerald-400 dark:focus-visible:ring-offset-emerald-600",
                 (complianceTone === "warning" || complianceTone === "violation") &&
-                  "bg-black/15 dark:bg-black/20 hover:bg-black/25 dark:hover:bg-black/30 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-400 dark:focus-visible:ring-offset-amber-500",
+                  "bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-500 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-300 dark:focus-visible:ring-offset-amber-500",
                 complianceTone === "default" && "hover:bg-black/10 dark:hover:bg-white/15 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
               )}
               title={
@@ -1287,13 +1287,13 @@ export default function LogBar({
                 />
               ) : complianceButton.hasViolations ? (
                 <X
-                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm"
+                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-white dark:text-amber-950 drop-shadow-sm"
                   strokeWidth={3}
                   aria-hidden
                 />
               ) : complianceButton.hasWarnings ? (
                 <AlertTriangle
-                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-amber-950 dark:text-white drop-shadow-sm"
+                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-white dark:text-amber-950 drop-shadow-sm"
                   strokeWidth={2.5}
                   aria-hidden
                 />
@@ -1519,14 +1519,19 @@ export default function LogBar({
                       complianceButton.onClick();
                     }}
                     disabled={complianceButton.loading}
-                    className="flex w-full items-center gap-3 min-h-[52px] rounded-xl px-4 bg-white/10 hover:bg-white/15 text-white font-semibold disabled:opacity-60"
+                    className={cn(
+                      "flex w-full items-center gap-3 min-h-[52px] rounded-xl px-4 font-semibold disabled:opacity-60",
+                      complianceButton.hasViolations || complianceButton.hasWarnings
+                        ? "bg-amber-500 hover:bg-amber-600 text-white"
+                        : "bg-white/10 hover:bg-white/15 text-white"
+                    )}
                   >
                     {complianceButton.loading ? (
                       <Loader2 className="w-6 h-6 animate-spin shrink-0" aria-hidden />
                     ) : complianceButton.hasViolations ? (
-                      <X className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={3} aria-hidden />
+                      <X className="w-6 h-6 shrink-0 text-white" strokeWidth={3} aria-hidden />
                     ) : complianceButton.hasWarnings ? (
-                      <AlertTriangle className="w-6 h-6 shrink-0 text-amber-300" strokeWidth={2.5} aria-hidden />
+                      <AlertTriangle className="w-6 h-6 shrink-0 text-white" strokeWidth={2.5} aria-hidden />
                     ) : (
                       <ClipboardList className="w-6 h-6 shrink-0 text-emerald-300" strokeWidth={2} aria-hidden />
                     )}

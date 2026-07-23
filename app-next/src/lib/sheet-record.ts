@@ -52,6 +52,8 @@ export const SHEET_CONTENT_PATCH_KEYS = [
   "driver_type",
   "destination",
   "last_24h_break",
+  "last_24h_break_start",
+  "last_24h_break_end",
   "last_24h_rest_1",
   "last_24h_rest_2",
   "last_24h_rest_3",

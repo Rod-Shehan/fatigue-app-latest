@@ -18,6 +18,7 @@ import {
   AMI_72H_MIN_TOTAL_NON_WORK,
   AMI_72H_QUAL_BLOCK,
   AMI_72H_QUAL_BLOCK_COUNT,
+  AMI_72H_SOFT_RESET_NO_WORK,
   AMI_72H_WINDOW,
   AMI_7D_MIN_CONTINUOUS_BLOCK,
   AMI_7D_MIN_NON_WORK_PIECE,
@@ -252,6 +253,10 @@ export function evaluateSoloBetweenShiftRest(
 // —— Solo 72h ——
 
 export type AmiSolo72hResult = {
+  /** False when ≥24h soft-reset left a segment shorter than 72h, or no work enlivened the window. */
+  applies: boolean;
+  segmentStartMinute: number;
+  windowFromMinute: number;
   totalNonWork: number;
   qualBlockCount: number;
   maxGapBetweenQualBlocks: number | null;
@@ -260,17 +265,114 @@ export type AmiSolo72hResult = {
   gapOk: boolean;
 };
 
-export function evaluateSolo72h(tape: AmiTape): AmiSolo72hResult {
-  const from = Math.max(0, tape.kinds.length - AMI_72H_WINDOW);
+/**
+ * Minute index where the current soft-reset segment starts.
+ * Each completed ≥24h continuous stretch with no `work` (break + non_work both count)
+ * advances the segment start — matches product doctrine / legacy 24h reset intent on an absolute tape.
+ */
+export function softResetSegmentStartMinute(
+  kinds: AmiKind[],
+  options?: { declaredResetMinute?: number | null }
+): number {
+  let segmentStart = 0;
+  let run = 0;
+  let runStart = 0;
+  const reset = AMI_72H_SOFT_RESET_NO_WORK;
+  for (let i = 0; i < kinds.length; i++) {
+    if (kinds[i] !== "work") {
+      if (run === 0) runStart = i;
+      run++;
+      if (run >= reset) {
+        segmentStart = runStart + Math.floor(run / reset) * reset;
+      }
+    } else {
+      run = 0;
+    }
+  }
+  const declared = options?.declaredResetMinute;
+  if (declared != null && Number.isFinite(declared) && declared > segmentStart) {
+    segmentStart = Math.min(Math.max(0, Math.floor(declared)), kinds.length);
+  }
+  return segmentStart;
+}
+
+/** Segment starts at the absolute end of a declared ≥24h break (not calendar midnight). */
+export function declared24hBreakSegmentStartMinute(
+  tape: AmiTape,
+  options?: {
+    last24hBreak?: string | null;
+    last24hBreakEndMs?: number | null;
+  }
+): number | null {
+  const endMs = options?.last24hBreakEndMs;
+  if (endMs != null && Number.isFinite(endMs)) {
+    if (endMs <= tape.originMs) return 0;
+    if (endMs >= tape.endMs) return null;
+    return Math.floor((endMs - tape.originMs) / 60_000);
+  }
+  // Legacy date-only: next local midnight after declared calendar day (deprecated).
+  const last24hBreak = options?.last24hBreak;
+  if (!last24hBreak?.trim()) return null;
+  const [y, m, d] = last24hBreak.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const nextDayStartMs = new Date(y, m - 1, d + 1).getTime();
+  if (!Number.isFinite(nextDayStartMs)) return null;
+  if (nextDayStartMs <= tape.originMs) return 0;
+  if (nextDayStartMs >= tape.endMs) return null;
+  return Math.floor((nextDayStartMs - tape.originMs) / 60_000);
+}
+
+/**
+ * Solo 184E(2)(a) on one conjunctive package for the rolling window ending at tape end,
+ * after ≥24h soft-reset segmentation (see docs/regulatory/24h-soft-reset-doctrine.md).
+ */
+export function evaluateSolo72h(
+  tape: AmiTape,
+  options?: { last24hBreak?: string | null; last24hBreakEndMs?: number | null }
+): AmiSolo72hResult {
   const kinds = tape.kinds;
-  const totalNonWork = countKind(kinds, "non_work", from);
-  const qual = continuousRuns(kinds, "non_work", from).filter((r) => r.length >= AMI_72H_QUAL_BLOCK);
+  const declaredReset = declared24hBreakSegmentStartMinute(tape, options);
+  const segmentStart = softResetSegmentStartMinute(kinds, {
+    declaredResetMinute: declaredReset,
+  });
+  const segmentLen = kinds.length - segmentStart;
+
+  const inactive = (windowFrom: number): AmiSolo72hResult => ({
+    applies: false,
+    segmentStartMinute: segmentStart,
+    windowFromMinute: windowFrom,
+    totalNonWork: 0,
+    qualBlockCount: 0,
+    maxGapBetweenQualBlocks: null,
+    totalNonWorkOk: true,
+    qualBlockCountOk: true,
+    gapOk: true,
+  });
+
+  // Legacy: do not score 72h until the post-reset segment is at least 72h long.
+  if (segmentLen < AMI_72H_WINDOW) {
+    return inactive(segmentStart);
+  }
+
+  const windowFrom = Math.max(segmentStart, kinds.length - AMI_72H_WINDOW);
+  // Work must enliven — pure holiday green does not apply the package.
+  if (countKind(kinds, "work", windowFrom) === 0) {
+    return inactive(windowFrom);
+  }
+
+  const totalNonWork = countKind(kinds, "non_work", windowFrom);
+  const qual = continuousRuns(kinds, "non_work", windowFrom).filter(
+    (r) => r.length >= AMI_72H_QUAL_BLOCK
+  );
   let maxGap: number | null = null;
   for (let i = 1; i < qual.length; i++) {
     const gap = qual[i]!.start - qual[i - 1]!.end;
     if (maxGap == null || gap > maxGap) maxGap = gap;
   }
   return {
+    applies: true,
+    segmentStartMinute: segmentStart,
+    windowFromMinute: windowFrom,
     totalNonWork,
     qualBlockCount: qual.length,
     maxGapBetweenQualBlocks: maxGap,

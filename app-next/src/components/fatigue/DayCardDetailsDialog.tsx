@@ -87,7 +87,7 @@ export function DayCardDetailsDialog({
   eventsEditable = false,
   sheetId,
   weekStarting,
-  last24hBreak,
+  last24hBreakRange,
   onLast24hBreakChange,
   declared24hRests,
   declared24hRestFieldCount = 0,
@@ -118,8 +118,8 @@ export function DayCardDetailsDialog({
   eventsEditable?: boolean;
   sheetId?: string;
   weekStarting?: string;
-  last24hBreak?: string;
-  onLast24hBreakChange?: (ymd: string) => void;
+  last24hBreakRange?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
+  onLast24hBreakChange?: (range: import("@/lib/last-24h-break-range").Last24hBreakRange | null) => void;
   declared24hRests?: {
     last_24h_rest_1?: string;
     last_24h_rest_2?: string;
@@ -461,7 +461,7 @@ export function DayCardDetailsDialog({
 
           {onLast24hBreakChange && (
             <Last24hBreakField
-              value={last24hBreak}
+              value={last24hBreakRange ?? null}
               onChange={onLast24hBreakChange}
               readOnly={readOnly}
               allowAmend={allowHeaderRestAmend}

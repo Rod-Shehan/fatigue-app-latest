@@ -21,6 +21,7 @@ import { getSheetDayDateString } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
   AMI_17H_LOOKBACK,
+  AMI_72H_EVAL_LOOKBACK,
   AMI_72H_WINDOW,
   AMI_PATTERN_CHANGE_REST,
 } from "./constants";
@@ -275,7 +276,7 @@ export function compare168h(fixture: DualRunFixture): DualRunRow {
 
 export function compareSolo72h(fixture: DualRunFixture): DualRunRow {
   const asOf = asOfMs(fixture);
-  const tape = buildEvalTape(fixture.events, asOf, AMI_72H_WINDOW);
+  const tape = buildEvalTape(fixture.events, asOf, AMI_72H_EVAL_LOOKBACK);
   const ami = evaluateSolo72h(tape);
 
   if (!fixture.weekStarting) {
@@ -285,6 +286,7 @@ export function compareSolo72h(fixture: DualRunFixture): DualRunRow {
       status: "skip",
       current: { note: "Needs weekStarting + current day offset for legacy window" },
       ami: {
+        applies: ami.applies,
         totalNonWork: ami.totalNonWork,
         qualBlockCount: ami.qualBlockCount,
         gapOk: ami.gapOk,
@@ -312,9 +314,29 @@ export function compareSolo72h(fixture: DualRunFixture): DualRunRow {
     return {
       fixtureId: fixture.id,
       rule: "solo_72h",
-      status: "skip",
-      current: { note: "effectiveEnd < 72h of flat coverage" },
-      ami: { totalNonWork: ami.totalNonWork, qualBlockCount: ami.qualBlockCount },
+      status: ami.applies ? "diff" : "match",
+      current: { note: "effectiveEnd < 72h of flat coverage / soft-reset skip", applies: false },
+      ami: {
+        applies: ami.applies,
+        totalNonWork: ami.totalNonWork,
+        qualBlockCount: ami.qualBlockCount,
+      },
+      note: ami.applies
+        ? "Legacy skipped short segment; AMI still applies — investigate soft-reset parity"
+        : "Both inactive (segment < 72h or equivalent)",
+    };
+  }
+  if (!ami.applies) {
+    return {
+      fixtureId: fixture.id,
+      rule: "solo_72h",
+      status: "diff",
+      current: {
+        totalNonWorkMinutes: legacy.totalNonWorkMinutes,
+        sevenHourBlocks: legacy.sevenHourBlockCount,
+      },
+      ami: { applies: false, totalNonWork: ami.totalNonWork, qualBlockCount: ami.qualBlockCount },
+      note: "Legacy scored window; AMI soft-reset inactive — investigate parity",
     };
   }
   const status =
@@ -331,13 +353,14 @@ export function compareSolo72h(fixture: DualRunFixture): DualRunRow {
       sevenHourBlocks: legacy.sevenHourBlockCount,
     },
     ami: {
+      applies: ami.applies,
       totalNonWork: ami.totalNonWork,
       qualBlockCount: ami.qualBlockCount,
       maxGap: ami.maxGapBetweenQualBlocks,
     },
     note:
       status === "diff"
-        ? "Legacy uses day-grid flat non_work with 24h segment resets; AMI uses absolute reclassified tape"
+        ? "Legacy day-grid vs AMI absolute tape after 24h soft-reset"
         : undefined,
   };
 }
