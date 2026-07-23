@@ -15,7 +15,7 @@ export type DayWithKms = {
 };
 
 export type DayKmContext = DayWithKms & {
-  events?: { type: string }[];
+  events?: { type: string; time?: string }[];
   work_time?: boolean[];
   breaks?: boolean[];
 };

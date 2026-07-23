@@ -35,43 +35,45 @@ function eventTimeMs(time: string): number {
   return Number.isFinite(ms) ? ms : NaN;
 }
 
+export type DayEventForStopKm = { type: string; time?: string };
+
 /**
  * True when work/break was logged on this card before the last End shift —
  * same-calendar-day close; end km belongs on this card.
  * Overnight finish cards typically only have the stop (work lived on the prior card).
  */
 export function hasWorkOrBreakBeforeLastStop(
-  events: { time: string; type: string }[] | null | undefined
+  events: DayEventForStopKm[] | null | undefined
 ): boolean {
   const list = events ?? [];
   let lastStopMs = -Infinity;
   for (const e of list) {
     if (e.type !== "stop") continue;
-    const t = eventTimeMs(e.time);
+    const t = eventTimeMs(e.time ?? "");
     if (Number.isFinite(t) && t >= lastStopMs) lastStopMs = t;
   }
   if (!Number.isFinite(lastStopMs) || lastStopMs === -Infinity) return false;
   return list.some((e) => {
     if (e.type !== "work" && e.type !== "break") return false;
-    const t = eventTimeMs(e.time);
+    const t = eventTimeMs(e.time ?? "");
     return Number.isFinite(t) && t < lastStopMs;
   });
 }
 
 export function hasWorkOrBreakAfterLastStop(
-  events: { time: string; type: string }[] | null | undefined
+  events: DayEventForStopKm[] | null | undefined
 ): boolean {
   const list = events ?? [];
   let lastStopMs = -Infinity;
   for (const e of list) {
     if (e.type !== "stop") continue;
-    const t = eventTimeMs(e.time);
+    const t = eventTimeMs(e.time ?? "");
     if (Number.isFinite(t) && t >= lastStopMs) lastStopMs = t;
   }
   if (!Number.isFinite(lastStopMs) || lastStopMs === -Infinity) return false;
   return list.some((e) => {
     if (e.type !== "work" && e.type !== "break") return false;
-    const t = eventTimeMs(e.time);
+    const t = eventTimeMs(e.time ?? "");
     return Number.isFinite(t) && t > lastStopMs;
   });
 }
@@ -81,7 +83,7 @@ export function hasWorkOrBreakAfterLastStop(
  * and the previous card already holds end km for the closed shift.
  */
 export function overnightStopCoveredByPriorEndKm(
-  events: { time: string; type: string }[] | null | undefined,
+  events: DayEventForStopKm[] | null | undefined,
   endKms: number | null | undefined,
   options?: EndKmsForStopOptions
 ): boolean {
@@ -100,21 +102,14 @@ export function overnightStopCoveredByPriorEndKm(
  * finish card whose end km already sits on the previous day.
  */
 export function validateEndKmsRequiredForStop(
-  events: { type: string; time?: string }[] | null | undefined,
+  events: DayEventForStopKm[] | null | undefined,
   endKms: number | null | undefined,
   options?: EndKmsForStopOptions
 ): string | null {
   if (!dayEventsIncludeStop(events)) return null;
   if (finiteKm(endKms) != null) return null;
 
-  const timed = (events ?? []).map((e) => ({
-    time: typeof e.time === "string" ? e.time : "",
-    type: e.type,
-  }));
-
-  if (
-    overnightStopCoveredByPriorEndKm(timed, endKms, options)
-  ) {
+  if (overnightStopCoveredByPriorEndKm(events, endKms, options)) {
     return null;
   }
 
