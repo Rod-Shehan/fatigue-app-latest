@@ -5,6 +5,7 @@ import {
 } from "@/lib/compliance-history";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { getComplianceEngine, parseJurisdictionCode, type JurisdictionCode } from "@/lib/jurisdiction";
+import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 
 /** Compliance for PDF / roadside using cached weekly sheets (IndexedDB), not Prisma. */
 export function computeComplianceForCachedSheets(
@@ -45,6 +46,7 @@ export function computeComplianceForCachedSheets(
     prevWeekDays,
     historyDays,
     last24hBreak: row.last_24h_break ?? undefined,
+    last24hBreakEndMs: last24hBreakEndMsFromIso(row.last_24h_break_end),
     weekStarting: row.week_starting,
     prevWeekStarting,
     currentDayIndex,

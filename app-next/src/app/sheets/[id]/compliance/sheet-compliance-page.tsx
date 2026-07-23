@@ -19,6 +19,7 @@ import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { isFleetManagerRole } from "@/lib/roles";
 import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { formatSheetDisplayDate, getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";
+import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 import { useSession } from "next-auth/react";
 
 function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
@@ -107,6 +108,7 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
         ? (complianceHistoryRemote?.history_days ?? null)
         : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheet.last_24h_break || undefined,
+      last24hBreakEndMs: last24hBreakEndMsFromIso(sheet.last_24h_break_end),
       weekStarting: sheet.week_starting || undefined,
       prevWeekStarting,
       currentDayIndex,

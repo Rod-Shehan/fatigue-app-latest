@@ -1,7 +1,6 @@
 /**
- * Phase 3 — WA compliance bridge: optional AMI overlay behind flag.
- * Default: 100% legacy runComplianceChecks.
- * Flag on: keep legacy results that AMI does not own; replace AMI-owned families with AMI evaluations.
+ * WA compliance bridge: AMI overlay (default on; kill-switch via flag).
+ * Keep legacy results that AMI does not own; replace AMI-owned families with AMI evaluations.
  */
 
 import type { ComplianceCheckResult, ComplianceDayData } from "@/lib/compliance";

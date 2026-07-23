@@ -3,6 +3,7 @@ import type { ComplianceCheckResult } from "@/lib/api";
 import { getComplianceEngine, parseJurisdictionCode, type JurisdictionCode } from "@/lib/jurisdiction";
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { loadComplianceWeekContext, parseSheetDaysJson } from "@/lib/compliance-history";
+import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 
 /**
  * Same inputs as manager compliance / sheet API — used for PDF roadside summary.
@@ -11,7 +12,13 @@ export async function computeComplianceForSheetExport(
   prisma: PrismaClient,
   row: Pick<
     FatigueSheet,
-    "driverName" | "weekStarting" | "driverType" | "last24hBreak" | "days" | "jurisdictionCode"
+    | "driverName"
+    | "weekStarting"
+    | "driverType"
+    | "last24hBreak"
+    | "last24hBreakEnd"
+    | "days"
+    | "jurisdictionCode"
   >
 ): Promise<{ results: ComplianceCheckResult[]; jurisdictionCode: JurisdictionCode }> {
   const { prevWeekDays, prevWeekStarting, historyDays } = await loadComplianceWeekContext(
@@ -44,6 +51,7 @@ export async function computeComplianceForSheetExport(
     prevWeekDays,
     historyDays,
     last24hBreak: row.last24hBreak ?? undefined,
+    last24hBreakEndMs: last24hBreakEndMsFromIso(row.last24hBreakEnd?.toISOString()),
     weekStarting: row.weekStarting,
     prevWeekStarting,
     currentDayIndex,

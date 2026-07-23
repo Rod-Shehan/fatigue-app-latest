@@ -529,7 +529,7 @@ export function formatDualRunMarkdown(
   lines.push("- Keep NHVR provisional engine");
   lines.push("- 184E(4) primary AMI measure: only `work` interrupts rest run");
   lines.push("- Parity vs AMI-literal: decide from this report (still open)");
-  lines.push("- Phase 3: AMI overlay via getComplianceEngine when AMI_COMPLIANCE_ENGINE_ENABLED=true (default off)");
+  lines.push("- Phase 3: AMI overlay via getComplianceEngine — **on by default** (kill-switch AMI_COMPLIANCE_ENGINE_ENABLED=false)");
   lines.push("");
   return lines.join("\n");
 }

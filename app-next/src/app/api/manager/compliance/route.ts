@@ -13,6 +13,7 @@ import {
 import { getRecordRetentionPolicy } from "@/lib/record-retention";
 import { getPreviousWeekSunday, getThisWeekSunday } from "@/lib/weeks";
 import { isFrmsEngineEnabled, resolveFrmsProspectiveRegister } from "@/lib/frms/orchestrator";
+import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 
 const WEEK_YMD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
             id: true,
             driverType: true,
             last24hBreak: true,
+            last24hBreakEnd: true,
             jurisdictionCode: true,
           },
         })
@@ -96,6 +98,7 @@ export async function GET(request: NextRequest) {
         prevWeekDays,
         historyDays,
         last24hBreak: sheet.last24hBreak ?? undefined,
+        last24hBreakEndMs: last24hBreakEndMsFromIso(sheet.last24hBreakEnd?.toISOString()),
         weekStarting: sheet.weekStarting,
         prevWeekStarting,
         currentDayIndex,

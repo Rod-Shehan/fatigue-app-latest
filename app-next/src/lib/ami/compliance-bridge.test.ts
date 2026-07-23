@@ -24,14 +24,14 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     else process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED = prevPublic;
   });
 
-  it("defaults to disabled", () => {
+  it("defaults to enabled", () => {
     delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
     delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
-    expect(isAmiComplianceEngineEnabled()).toBe(false);
+    expect(isAmiComplianceEngineEnabled()).toBe(true);
   });
 
   it("flag off: bridge equals legacy runComplianceChecks", () => {
-    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    process.env.AMI_COMPLIANCE_ENGINE_ENABLED = "false";
     delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
     const days = emptyWeek();
     const a = runWaComplianceChecks(days, { driverType: "solo" });
@@ -39,8 +39,9 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     expect(a).toEqual(b);
   });
 
-  it("flag on: getComplianceEngine(WA) still returns results without throwing", () => {
-    process.env.AMI_COMPLIANCE_ENGINE_ENABLED = "true";
+  it("default on: getComplianceEngine(WA) returns results without throwing", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
     const engine = getComplianceEngine(DEFAULT_JURISDICTION_CODE);
     const results = engine.run(emptyWeek(), { driverType: "solo" });
     expect(Array.isArray(results)).toBe(true);

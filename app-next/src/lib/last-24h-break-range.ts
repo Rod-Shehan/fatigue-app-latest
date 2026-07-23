@@ -73,6 +73,13 @@ export function formatLast24hBreakRangeDisplay(startIso: string, endIso: string)
   return `${fmt(startIso)} → ${fmt(endIso)}`;
 }
 
+/** Absolute end of declared ≥24h break → AMI soft-reset instant (ms), or null. */
+export function last24hBreakEndMsFromIso(iso: string | null | undefined): number | null {
+  if (!iso?.trim()) return null;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms : null;
+}
+
 export function rangeFromSheetFields(input: {
   last_24h_break_start?: string | null;
   last_24h_break_end?: string | null;

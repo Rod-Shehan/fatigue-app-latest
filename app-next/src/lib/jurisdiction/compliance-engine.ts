@@ -24,7 +24,7 @@ export type ComplianceEngine = {
 
 /**
  * WA engine via getComplianceEngine().
- * Phase 3: optional AMI overlay when AMI_COMPLIANCE_ENGINE_ENABLED=true (default off).
+ * AMI overlay on by default (kill-switch AMI_COMPLIANCE_ENGINE_ENABLED=false).
  * Direct runComplianceChecks() calls (tests, NHVR inner) stay legacy-only.
  */
 export const waOsh3132Engine: ComplianceEngine = {

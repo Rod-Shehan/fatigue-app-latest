@@ -1,8 +1,8 @@
 /**
  * AMI (Activity Measurement Interval) compliance core.
  *
- * Status: **Phase 4** — dual-run parity tightened; optional WA overlay still
- * behind AMI_COMPLIANCE_ENGINE_ENABLED (default off). No engine deletes.
+ * Status: **Phase 4** — WA overlay **on by default** via `runWaComplianceChecks`
+ * (kill-switch: AMI_COMPLIANCE_ENGINE_ENABLED=false). No engine deletes.
  *
  * Locked:
  * - Reclass 30 / <10→work / ≥31→non_work before evaluation

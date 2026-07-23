@@ -65,7 +65,7 @@ import {
   resolveEndShiftFinishDayOptions,
 } from "@/lib/end-shift-finish-day";
 import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
-import { isoToPerthYmd } from "@/lib/last-24h-break-range";
+import { isoToPerthYmd, last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 import {
   applyRouteDefaultsToWeekDays,
   getDayWithMergedRouteContext,
@@ -636,9 +636,7 @@ export function SheetDetail({
         ? (complianceHistoryRemote?.history_days ?? null)
         : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheetData.last_24h_break || undefined,
-      last24hBreakEndMs: sheetData.last_24h_break_end
-        ? Date.parse(sheetData.last_24h_break_end)
-        : null,
+      last24hBreakEndMs: last24hBreakEndMsFromIso(sheetData.last_24h_break_end),
       declared24hRests: {
         last_24h_rest_1: sheetData.last_24h_rest_1 || null,
         last_24h_rest_2: sheetData.last_24h_rest_2 || null,

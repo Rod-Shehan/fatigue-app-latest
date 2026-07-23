@@ -1,6 +1,7 @@
 # AMI dual-run report (Phase 2)
 
-Generated against 10 fixtures. Live compliance is still the legacy engines.
+Generated against 10 fixtures. Live WA compliance uses the AMI overlay by default
+(kill-switch: `AMI_COMPLIANCE_ENGINE_ENABLED=false`).
 
 ## Summary
 
@@ -149,4 +150,4 @@ Generated against 10 fixtures. Live compliance is still the legacy engines.
 - Keep NHVR provisional engine
 - 184E(4) primary AMI measure: only `work` interrupts rest run
 - Parity vs AMI-literal: decide from this report (still open)
-- Phase 3: AMI overlay via getComplianceEngine when AMI_COMPLIANCE_ENGINE_ENABLED=true (default off)
+- Phase 3: AMI overlay via getComplianceEngine — **on by default** (kill-switch AMI_COMPLIANCE_ENGINE_ENABLED=false)
