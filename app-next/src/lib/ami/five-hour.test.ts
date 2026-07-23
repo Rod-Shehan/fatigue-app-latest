@@ -29,4 +29,20 @@ describe("AMI five-hour (Phase 4 parity)", () => {
     expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
     expect(result.restComplete).toBe(false);
   });
+
+  it("≥31 min meal break reclassed to non_work still covers the 5h rest rule", () => {
+    // ~4.5h work, 35 min break (≥31 → non_work), ~3.5h work — >5h work with one long rest
+    const events: AmiEvent[] = [
+      { time: "2026-07-22T10:00:00", type: "work" },
+      { time: "2026-07-22T14:30:00", type: "break" },
+      { time: "2026-07-22T15:05:00", type: "work" },
+      { time: "2026-07-22T18:35:00", type: "stop" },
+    ];
+    const asOf = Date.parse("2026-07-22T19:00:00");
+    const tape = buildEvalTape(events, asOf, 72 * 60);
+    const result = evaluateFiveHourBreakRule(tape);
+    expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
+    expect(result.restComplete).toBe(true);
+    expect(result.slots.slot1 && result.slots.slot2).toBe(true);
+  });
 });
