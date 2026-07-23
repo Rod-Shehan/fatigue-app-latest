@@ -11,3 +11,4 @@ export { waOsh3132Engine, getComplianceEngine } from "./compliance-engine";
 export { parseJurisdictionCode } from "./parse";
 export { JURISDICTION_OPTIONS, getJurisdictionOptions, jurisdictionDisplayLabel } from "./options";
 export { isNhvrProvisionalEnabled } from "./flags";
+export { isAmiComplianceEngineEnabled } from "@/lib/ami/flag";

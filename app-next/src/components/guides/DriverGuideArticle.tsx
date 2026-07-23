@@ -233,9 +233,9 @@ export function DriverGuideArticle() {
             upcoming compliance banner, Work warning, or compliance snapshot.
           </li>
           <li>
-            Work / break / non-work / End shift time corrections — if End shift is on that day, end km is required on
-            the same card (same rule as the End shift button), unless end km is already on the previous day for an
-            overnight close and this day&apos;s start km matches that reading.
+            Work / break / non-work / End shift time corrections — if End shift is on that day after work the same day,
+            end km is required on the same card. Overnight finish (End shift only on this card): leave end km blank when
+            it is already on the previous day, then enter start km to begin the next shift.
           </li>
         </ul>
       </section>

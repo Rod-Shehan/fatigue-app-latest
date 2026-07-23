@@ -141,9 +141,10 @@ export function DayEventsEditor({
             (counts toward 5h rules),{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">non-work</span> when off duty or between
             shifts (7h / 24h recovery), and{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished for the
-            day — then enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above on this
-            form before saving. The week&apos;s{" "}
+            <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished —
+            enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above when you
+            worked on this day before that End shift. Overnight finish only on this card: end km on the previous day
+            is enough. The week&apos;s{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">Last 24Hr Break</span>{" "}
             date is set above in this same form (crew / rest section) — not as an event type here.
           </p>

@@ -116,6 +116,43 @@ describe("getSheetKmIssues", () => {
     expect(issues.some((i) => i.code === "missing_end")).toBe(true);
   });
 
+  it("skips start/end on overnight finish-only card when prior day holds end km", () => {
+    const issues = getSheetKmIssues([
+      {
+        truck_rego: "1ABC",
+        start_kms: 1000,
+        end_kms: 754481,
+        events: [{ time: "2026-07-20T08:00:00", type: "work" }],
+      },
+      {
+        truck_rego: "1ABC",
+        events: [{ time: "2026-07-21T02:38:00", type: "stop" }],
+      },
+    ]);
+    expect(issues.filter((i) => i.dayIndex === 1)).toHaveLength(0);
+  });
+
+  it("still requires end km after overnight stop once a new shift is worked", () => {
+    const issues = getSheetKmIssues([
+      {
+        truck_rego: "1ABC",
+        start_kms: 1000,
+        end_kms: 754481,
+        events: [{ time: "2026-07-20T08:00:00", type: "work" }],
+      },
+      {
+        truck_rego: "1ABC",
+        start_kms: 754481,
+        end_kms: null,
+        events: [
+          { time: "2026-07-21T02:38:00", type: "stop" },
+          { time: "2026-07-21T10:00:00", type: "work" },
+        ],
+      },
+    ]);
+    expect(issues.some((i) => i.dayIndex === 1 && i.code === "missing_end")).toBe(true);
+  });
+
   it("reports one start issue per day (no duplicate with validateDayKms)", () => {
     const issues = getSheetKmIssues(
       [

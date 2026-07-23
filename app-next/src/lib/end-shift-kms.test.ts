@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   dayEventsIncludeStop,
   END_SHIFT_END_KM_REQUIRED_MESSAGE,
+  hasWorkOrBreakAfterLastStop,
+  hasWorkOrBreakBeforeLastStop,
+  overnightStopCoveredByPriorEndKm,
   validateEndKmsRequiredForStop,
 } from "./end-shift-kms";
 
@@ -10,6 +13,38 @@ describe("dayEventsIncludeStop", () => {
     expect(dayEventsIncludeStop([{ type: "work" }, { type: "stop" }])).toBe(true);
     expect(dayEventsIncludeStop([{ type: "work" }])).toBe(false);
     expect(dayEventsIncludeStop([])).toBe(false);
+  });
+});
+
+describe("hasWorkOrBreakBeforeLastStop", () => {
+  it("is true for same-day work then end shift", () => {
+    expect(
+      hasWorkOrBreakBeforeLastStop([
+        { time: "2026-07-21T08:00:00", type: "work" },
+        { time: "2026-07-21T14:00:00", type: "stop" },
+      ])
+    ).toBe(true);
+  });
+
+  it("is false for overnight finish card with only stop", () => {
+    expect(
+      hasWorkOrBreakBeforeLastStop([{ time: "2026-07-21T02:38:00", type: "stop" }])
+    ).toBe(false);
+  });
+
+  it("is false when work is only after the overnight stop (new shift)", () => {
+    expect(
+      hasWorkOrBreakBeforeLastStop([
+        { time: "2026-07-21T02:38:00", type: "stop" },
+        { time: "2026-07-21T10:00:00", type: "work" },
+      ])
+    ).toBe(false);
+    expect(
+      hasWorkOrBreakAfterLastStop([
+        { time: "2026-07-21T02:38:00", type: "stop" },
+        { time: "2026-07-21T10:00:00", type: "work" },
+      ])
+    ).toBe(true);
   });
 });
 
@@ -28,36 +63,51 @@ describe("validateEndKmsRequiredForStop", () => {
     expect(validateEndKmsRequiredForStop([{ type: "stop" }], 102000)).toBeNull();
   });
 
-  it("allows empty end km when prior day holds overnight end km and start chains", () => {
+  it("allows empty end km on overnight finish card when prior day holds end km", () => {
     const sheetDays = [{ end_kms: 754481 }, { start_kms: 754481, end_kms: null }];
     expect(
-      validateEndKmsRequiredForStop([{ type: "stop" }], null, {
+      validateEndKmsRequiredForStop([{ time: "2026-07-21T02:38:00", type: "stop" }], null, {
         sheetDays,
         dayIndex: 1,
-        dayStartKms: 754481,
       })
     ).toBeNull();
   });
 
-  it("allows empty end km when prior day has end km and this card has no start yet", () => {
+  it("allows empty end km when starting a new shift after overnight stop", () => {
+    const sheetDays = [{ end_kms: 754481 }, { start_kms: 754481, end_kms: null }];
+    expect(
+      validateEndKmsRequiredForStop(
+        [
+          { time: "2026-07-21T02:38:00", type: "stop" },
+          { time: "2026-07-21T10:00:00", type: "work" },
+        ],
+        null,
+        { sheetDays, dayIndex: 1, dayStartKms: 754481 }
+      )
+    ).toBeNull();
+  });
+
+  it("still requires end km on same-day close even when prior day has end km", () => {
+    const sheetDays = [{ end_kms: 700000 }, { start_kms: 700000, end_kms: null }];
+    expect(
+      validateEndKmsRequiredForStop(
+        [
+          { time: "2026-07-21T08:00:00", type: "work" },
+          { time: "2026-07-21T14:00:00", type: "stop" },
+        ],
+        null,
+        { sheetDays, dayIndex: 1, dayStartKms: 700000 }
+      )
+    ).toBe(END_SHIFT_END_KM_REQUIRED_MESSAGE);
+  });
+
+  it("overnightStopCoveredByPriorEndKm matches validate helper", () => {
     const sheetDays = [{ end_kms: 754481 }, { end_kms: null }];
     expect(
-      validateEndKmsRequiredForStop([{ type: "stop" }], null, {
+      overnightStopCoveredByPriorEndKm([{ time: "2026-07-21T02:38:00", type: "stop" }], null, {
         sheetDays,
         dayIndex: 1,
-        dayStartKms: null,
       })
-    ).toBeNull();
-  });
-
-  it("still requires end km when start does not match prior end", () => {
-    const sheetDays = [{ end_kms: 754481 }, { start_kms: 900000, end_kms: null }];
-    expect(
-      validateEndKmsRequiredForStop([{ type: "stop" }], null, {
-        sheetDays,
-        dayIndex: 1,
-        dayStartKms: 900000,
-      })
-    ).toBe(END_SHIFT_END_KM_REQUIRED_MESSAGE);
+    ).toBe(true);
   });
 });

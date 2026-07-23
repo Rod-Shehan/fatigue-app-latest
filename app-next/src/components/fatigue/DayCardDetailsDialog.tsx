@@ -735,8 +735,9 @@ export function DayCardDetailsDialog({
               />
               {dayEventsIncludeStop(draftEvents) ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-                  Required here, unless end km is already on the previous day for an overnight close (start km on
-                  this day matches that end reading).
+                  Required here when you worked on this day before End shift. For an overnight finish (End shift only
+                  on this card), leave blank if end km is already on the previous day — then you can enter start km and
+                  start the next shift.
                 </p>
               ) : regoSet ? (
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
@@ -752,8 +753,8 @@ export function DayCardDetailsDialog({
           ) : null}
           {regoSet ? (
             <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
-              Start km is required to begin work. End km is required when you End shift (or when End shift is on this
-              day), and again before sign-off.
+              Start km is required to begin work. End km is required when you End shift on the same day you worked, and
+              again before sign-off. Overnight finish: end km stays on the previous day.
             </p>
           ) : null}
         </div>

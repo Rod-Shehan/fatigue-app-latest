@@ -3,6 +3,11 @@
  * Ensures start_kms and end_kms are never lower than any previous saved entry for that rego.
  */
 
+import {
+  hasWorkOrBreakAfterLastStop,
+  overnightStopCoveredByPriorEndKm,
+} from "@/lib/end-shift-kms";
+
 export type DayWithKms = {
   truck_rego?: string;
   start_kms?: number | null;
@@ -269,11 +274,23 @@ export function validateSheetKms(days: DayKmContext[], options?: ValidateSheetKm
     const startKms = d.start_kms;
     const endKms = d.end_kms;
     const label = DAY_LABELS[i] ?? `Day ${i + 1}`;
+    const overnightFinishOnly =
+      overnightStopCoveredByPriorEndKm(d.events, endKms, {
+        sheetDays: days,
+        dayIndex: i,
+      }) && !hasWorkOrBreakAfterLastStop(d.events);
+
     if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
+      if (overnightFinishOnly) continue;
       return `${label}: start km is required for ${rego}.`;
     }
     if (endKms == null || (typeof endKms === "number" && Number.isNaN(endKms))) {
-      return `${label}: end km is required for ${rego}. Tap Edit day on that day and enter end kilometres.`;
+      // Overnight finish residue: end km lives on the prior card. A new shift after
+      // that stop still needs end km here once work/break is logged after the stop.
+      if (!overnightFinishOnly) {
+        return `${label}: end km is required for ${rego}. Tap Edit day on that day and enter end kilometres.`;
+      }
+      continue;
     }
     const serverMax = serverMaxForRego(serverMaxByRego, rego);
     const result = validateDayKms(days, i, rego, startKms, endKms, serverMax);
@@ -310,8 +327,14 @@ export function getSheetKmIssues(
 
     const startKms = d.start_kms;
     const endKms = d.end_kms;
+    const overnightFinishOnly =
+      overnightStopCoveredByPriorEndKm(d.events, endKms, {
+        sheetDays: days,
+        dayIndex: i,
+      }) && !hasWorkOrBreakAfterLastStop(d.events);
 
     if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
+      if (overnightFinishOnly) continue;
       issues.push({
         dayIndex: i,
         dayLabel: label,
@@ -341,13 +364,15 @@ export function getSheetKmIssues(
     }
 
     if (endKms == null || (typeof endKms === "number" && Number.isNaN(endKms))) {
-      issues.push({
-        dayIndex: i,
-        dayLabel: label,
-        code: "missing_end",
-        message: `End km required for ${rego}.`,
-        canAutoFixStart: false,
-      });
+      if (!overnightFinishOnly) {
+        issues.push({
+          dayIndex: i,
+          dayLabel: label,
+          code: "missing_end",
+          message: `End km required for ${rego}.`,
+          canAutoFixStart: false,
+        });
+      }
       continue;
     }
 

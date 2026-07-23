@@ -1419,8 +1419,8 @@ export function SheetDetail({
       setEndShiftError(timeCheck.message);
       return;
     }
-    const startKms = day?.start_kms ?? openDay?.start_kms ?? null;
-    const rego = (day?.truck_rego ?? openDay?.truck_rego ?? "").trim();
+    const startKms = openDay?.start_kms ?? day?.start_kms ?? null;
+    const rego = (openDay?.truck_rego ?? day?.truck_rego ?? "").trim();
     let serverMaxEndKms: number | null = null;
     if (rego) {
       try {
@@ -1433,8 +1433,18 @@ export function SheetDetail({
         // Offline or error: validate with local data only
       }
     }
-    const kmDayIndex = day?.start_kms != null ? dayIndex : openDayIndex;
-    const validation = validateDayKms(days, kmDayIndex, rego, startKms, endKmsParsed, serverMaxEndKms);
+    // End km on the shift-start card (episode Work), not the last break card —
+    // overnight finish often leaves only the stop on the next calendar day.
+    const episodeStart = findOpenShiftEpisodeStart(days, Date.now());
+    const endKmsDayIndex = episodeStart?.dayIndex ?? openDayIndex;
+    const validation = validateDayKms(
+      days,
+      endKmsDayIndex,
+      rego,
+      (days[endKmsDayIndex] ?? openDay)?.start_kms ?? startKms,
+      endKmsParsed,
+      serverMaxEndKms
+    );
     if (!validation.valid) {
       setEndShiftError(validation.message ?? "Invalid km.");
       return;
@@ -1444,7 +1454,7 @@ export function SheetDetail({
     setSheetData((prev) => {
       const corrected = applyStopAtCorrectedTime(prev.days, dayIndex, stopTimeIso, endKmsParsed, {
         markRouteConfirmedOnDayIndex: markRouteOn,
-        endKmsDayIndex: openDayIndex,
+        endKmsDayIndex,
       });
       const withGrids = deriveDaysWithRollover(corrected, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
