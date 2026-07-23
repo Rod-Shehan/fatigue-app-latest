@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { Calendar } from "lucide-react";
+import { useState } from "react";
+import { Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -10,34 +11,56 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DECLARED_24H_REST_COPY,
+  type Declared24hRestFields,
+  type Declared24hRestKey,
+  declaredRestRangeKeys,
+} from "@/lib/declared-24h-rests";
+import {
+  formatLast24hBreakRangeDisplay,
+  isoToPerthDatetimeLocal,
+  perthDatetimeLocalToIso,
+  validateLast24hBreakRange,
+  type Last24hBreakRange,
+} from "@/lib/last-24h-break-range";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
-import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
 
-type RestKey = "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4";
-
-const LABELS: Record<RestKey, string> = {
+const LABELS: Record<Declared24hRestKey, string> = {
   last_24h_rest_1: DECLARED_24H_REST_COPY.LABEL_1,
   last_24h_rest_2: DECLARED_24H_REST_COPY.LABEL_2,
   last_24h_rest_3: DECLARED_24H_REST_COPY.LABEL_3,
   last_24h_rest_4: DECLARED_24H_REST_COPY.LABEL_4,
 };
 
-export type Declared24hRestValues = Partial<Record<RestKey, string>>;
+export type Declared24hRestValues = Declared24hRestFields;
+
+function rangeForKey(
+  values: Declared24hRestFields,
+  key: Declared24hRestKey
+): Last24hBreakRange | null {
+  const { start, end } = declaredRestRangeKeys(key);
+  const startIso = values[start]?.toString().trim() ?? "";
+  const endIso = values[end]?.toString().trim() ?? "";
+  if (!startIso || !endIso) return null;
+  const v = validateLast24hBreakRange(startIso, endIso);
+  if (!v.ok) return null;
+  return { startIso, endIso };
+}
 
 /** Editable until the week is signed (readOnly); then manager amend only. */
 export function Declared24hRestsField({
   fieldCount,
   values,
-  onChange,
+  onRangeChange,
   readOnly = false,
   allowAmend = false,
 }: {
   fieldCount: 2 | 4;
   values: Declared24hRestValues;
-  onChange: (key: RestKey, ymd: string) => void;
+  onRangeChange: (key: Declared24hRestKey, range: Last24hBreakRange | null) => void;
   readOnly?: boolean;
-  /** Override: allow change while readOnly (manager amend path). */
   allowAmend?: boolean;
 }) {
   const keys = (
@@ -45,7 +68,7 @@ export function Declared24hRestsField({
       ? (["last_24h_rest_1", "last_24h_rest_2", "last_24h_rest_3", "last_24h_rest_4"] as const)
       : (["last_24h_rest_1", "last_24h_rest_2"] as const)
   );
-  const allSet = keys.every((k) => !!values[k]?.trim());
+  const allSet = keys.every((k) => !!rangeForKey(values, k));
   const title = fieldCount === 4 ? DECLARED_24H_REST_COPY.TITLE_4 : DECLARED_24H_REST_COPY.TITLE_2;
   const why = fieldCount === 4 ? DECLARED_24H_REST_COPY.WHY_4 : DECLARED_24H_REST_COPY.WHY_2;
   const canEdit = !readOnly || allowAmend;
@@ -56,14 +79,17 @@ export function Declared24hRestsField({
         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
           {title}
         </p>
-        {keys.map((k) => (
-          <div key={k}>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{LABELS[k]}</p>
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 tabular-nums">
-              {formatSheetDisplayDate(values[k]!)}
-            </p>
-          </div>
-        ))}
+        {keys.map((k) => {
+          const range = rangeForKey(values, k)!;
+          return (
+            <div key={k}>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{LABELS[k]}</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 tabular-nums">
+                {formatLast24hBreakRangeDisplay(range.startIso, range.endIso)}
+              </p>
+            </div>
+          );
+        })}
         <p className="text-xs text-slate-500 dark:text-slate-400">{DECLARED_24H_REST_COPY.LOCKED_HINT}</p>
       </div>
     );
@@ -85,49 +111,51 @@ export function Declared24hRestsField({
         </p>
       </div>
       {keys.map((k) => (
-        <RestDateRow
+        <RestRangeRow
           key={k}
           label={LABELS[k]}
-          value={values[k]}
+          value={rangeForKey(values, k)}
+          dateOnlyHint={values[k]?.toString().trim() || ""}
           canEdit={canEdit}
-          onSet={(ymd) => onChange(k, ymd)}
+          onSet={(range) => onRangeChange(k, range)}
         />
       ))}
     </div>
   );
 }
 
-function RestDateRow({
+function RestRangeRow({
   label,
   value,
+  dateOnlyHint,
   canEdit,
   onSet,
 }: {
   label: string;
-  value?: string;
+  value: Last24hBreakRange | null;
+  dateOnlyHint?: string;
   canEdit: boolean;
-  onSet: (ymd: string) => void;
+  onSet: (range: Last24hBreakRange | null) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [pending, setPending] = useState("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [startLocal, setStartLocal] = useState("");
+  const [endLocal, setEndLocal] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
-  const hasValue = !!value?.trim();
+  const hasValue = !!value;
+  const hintLabel =
+    !hasValue && dateOnlyHint
+      ? formatSheetDisplayDate(dateOnlyHint) || dateOnlyHint
+      : null;
 
-  const openPicker = useCallback(() => {
-    const el = inputRef.current;
-    if (!el || !canEdit) return;
-    if (typeof el.showPicker === "function") {
-      try {
-        el.showPicker();
-        return;
-      } catch {
-        /* fall through */
-      }
-    }
-    el.click();
-  }, [canEdit]);
+  const openEditor = () => {
+    if (!canEdit) return;
+    setStartLocal(value?.startIso ? isoToPerthDatetimeLocal(value.startIso) : "");
+    setEndLocal(value?.endIso ? isoToPerthDatetimeLocal(value.endIso) : "");
+    setError(null);
+    setChecked(false);
+    setEditorOpen(true);
+  };
 
   return (
     <>
@@ -144,21 +172,21 @@ function RestDateRow({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-800/80 dark:text-amber-200/80">
               {label}
             </p>
-            <p className="text-sm font-semibold text-amber-950 dark:text-amber-50 tabular-nums">
-              {formatSheetDisplayDate(value!)}
+            <p className="text-sm font-semibold text-amber-950 dark:text-amber-50 tabular-nums leading-snug">
+              {formatLast24hBreakRangeDisplay(value!.startIso, value!.endIso)}
             </p>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 disabled={!canEdit}
-                onClick={openPicker}
+                onClick={openEditor}
                 className={cn(
                   "inline-flex items-center gap-1.5 h-9 px-2.5 rounded-lg border text-xs font-medium",
                   "border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-900 text-amber-950 dark:text-amber-50"
                 )}
               >
-                <Calendar className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                Change
+                <Clock className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                Edit times
               </button>
               <Button
                 type="button"
@@ -166,7 +194,7 @@ function RestDateRow({
                 size="sm"
                 className="h-9 text-xs"
                 disabled={!canEdit}
-                onClick={() => onSet("")}
+                onClick={() => onSet(null)}
               >
                 Clear
               </Button>
@@ -174,84 +202,108 @@ function RestDateRow({
           </>
         ) : (
           <>
-            <p className="text-xs font-medium text-amber-950 dark:text-amber-100">{label}</p>
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-amber-950 dark:text-amber-100">{label}</p>
+              {hintLabel ? (
+                <p className="text-sm font-semibold text-amber-950 dark:text-amber-50 tabular-nums mt-0.5">
+                  {hintLabel}
+                  <span className="block text-[11px] font-normal text-amber-900/80 dark:text-amber-200/80">
+                    Date saved — set start &amp; end times (Perth)
+                  </span>
+                </p>
+              ) : null}
+            </div>
             <button
               type="button"
               disabled={!canEdit}
-              onClick={openPicker}
+              onClick={openEditor}
               className={cn(
                 "inline-flex items-center gap-1.5 h-10 px-3 rounded-lg border text-sm font-medium",
                 "border-amber-400 dark:border-amber-600 bg-white dark:bg-slate-900 text-amber-950 dark:text-amber-50"
               )}
             >
-              <Calendar className="w-4 h-4 shrink-0" aria-hidden />
-              Set date
+              <Clock className="w-4 h-4 shrink-0" aria-hidden />
+              Set start & end
             </button>
           </>
         )}
       </div>
-      <input
-        key={resetKey}
-        ref={inputRef}
-        type="date"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden
-        disabled={!canEdit}
-        onChange={(e) => {
-          const v = e.target.value;
-          if (!v) return;
-          setPending(v);
-          setChecked(false);
-          setConfirmOpen(true);
-        }}
-      />
+
       <Dialog
-        open={confirmOpen}
+        open={editorOpen}
         onOpenChange={(open) => {
-          setConfirmOpen(open);
+          setEditorOpen(open);
           if (!open) {
-            setPending("");
+            setError(null);
             setChecked(false);
-            setResetKey((k) => k + 1);
           }
         }}
       >
-        <DialogContent className="max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm rest date</DialogTitle>
+            <DialogTitle>{label}</DialogTitle>
             <DialogDescription>
-              You had a full 24 hours of non-work on{" "}
-              <span className="font-semibold text-slate-800 dark:text-slate-100">
-                {pending ? formatSheetDisplayDate(pending) : "—"}
-              </span>
-              . This becomes part of your weekly record. You can change it until you sign the week.
+              Enter the real start and end on the timeline (Perth time). Must be at least 24 continuous
+              hours.
             </DialogDescription>
           </DialogHeader>
-          <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-200">
-            <input
-              type="checkbox"
-              className="mt-1"
-              checked={checked}
-              onChange={(e) => setChecked(e.target.checked)}
-            />
-            <span>I confirm this date is correct.</span>
-          </label>
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor={`rest-start-${label}`}>Start</Label>
+              <input
+                id={`rest-start-${label}`}
+                type="datetime-local"
+                value={startLocal}
+                onChange={(e) => setStartLocal(e.target.value)}
+                className="flex h-11 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`rest-end-${label}`}>End</Label>
+              <input
+                id={`rest-end-${label}`}
+                type="datetime-local"
+                value={endLocal}
+                onChange={(e) => setEndLocal(e.target.value)}
+                className="flex h-11 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm"
+              />
+            </div>
+            {error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : null}
+            <label className="flex items-start gap-3 text-base text-slate-700 dark:text-slate-200">
+              <input
+                type="checkbox"
+                className="mt-1 h-5 w-5 shrink-0"
+                checked={checked}
+                onChange={(e) => setChecked(e.target.checked)}
+              />
+              <span>I confirm these times are correct.</span>
+            </label>
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row flex-wrap gap-2 justify-end pt-2">
+            <Button type="button" variant="outline" className="min-h-11" onClick={() => setEditorOpen(false)}>
               Cancel
             </Button>
             <Button
               type="button"
-              disabled={!checked || !pending}
+              disabled={!checked}
+              className="min-h-11 bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-40"
               onClick={() => {
-                onSet(pending);
-                setConfirmOpen(false);
-                setPending("");
-                setChecked(false);
+                const startIso = perthDatetimeLocalToIso(startLocal);
+                const endIso = perthDatetimeLocalToIso(endLocal);
+                if (!startIso || !endIso) {
+                  setError("Enter both start and end times.");
+                  return;
+                }
+                const v = validateLast24hBreakRange(startIso, endIso);
+                if (!v.ok) {
+                  setError(v.error);
+                  return;
+                }
+                onSet({ startIso, endIso });
+                setEditorOpen(false);
               }}
             >
-              Save date
+              Save times
             </Button>
           </div>
         </DialogContent>

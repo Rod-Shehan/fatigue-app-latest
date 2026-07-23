@@ -120,7 +120,7 @@ export const MANAGER_EXPERIENCE = {
   RECORDS_SHEET_LABEL: "Driver sheet",
   RECORDS_SHEET_PLACEHOLDER: "Search or select a driver's sheet…",
   RECORDS_SHEET_HINT:
-    "Pick a driver sheet above to edit details, last 24h break, and record fields.",
+    "Pick a driver sheet above to edit details, declared 24h rests, and record fields.",
   RECORDS_SHEET_EMPTY_DAY: "No matching sheets for this day / filters",
   RECORDS_SHEET_EMPTY_FLEET: "No sheets yet",
 

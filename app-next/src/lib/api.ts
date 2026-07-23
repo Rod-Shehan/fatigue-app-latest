@@ -135,6 +135,15 @@ export type FatigueSheet = {
   last_24h_rest_2?: string | null;
   last_24h_rest_3?: string | null;
   last_24h_rest_4?: string | null;
+  /** Absolute ISO start/end for each declared ≥24h rest (rolling timeline). */
+  last_24h_rest_1_start?: string | null;
+  last_24h_rest_1_end?: string | null;
+  last_24h_rest_2_start?: string | null;
+  last_24h_rest_2_end?: string | null;
+  last_24h_rest_3_start?: string | null;
+  last_24h_rest_3_end?: string | null;
+  last_24h_rest_4_start?: string | null;
+  last_24h_rest_4_end?: string | null;
   week_starting: string;
   days: DayData[];
   status: string;

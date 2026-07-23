@@ -44,6 +44,14 @@ function sheetToJson(row: {
   last24hRest2: string | null;
   last24hRest3: string | null;
   last24hRest4: string | null;
+  last24hRest1Start: Date | null;
+  last24hRest1End: Date | null;
+  last24hRest2Start: Date | null;
+  last24hRest2End: Date | null;
+  last24hRest3Start: Date | null;
+  last24hRest3End: Date | null;
+  last24hRest4Start: Date | null;
+  last24hRest4End: Date | null;
   weekStarting: string;
   days: string;
   status: string;
@@ -66,6 +74,14 @@ function sheetToJson(row: {
     last_24h_rest_2: row.last24hRest2,
     last_24h_rest_3: row.last24hRest3,
     last_24h_rest_4: row.last24hRest4,
+    last_24h_rest_1_start: row.last24hRest1Start?.toISOString() ?? null,
+    last_24h_rest_1_end: row.last24hRest1End?.toISOString() ?? null,
+    last_24h_rest_2_start: row.last24hRest2Start?.toISOString() ?? null,
+    last_24h_rest_2_end: row.last24hRest2End?.toISOString() ?? null,
+    last_24h_rest_3_start: row.last24hRest3Start?.toISOString() ?? null,
+    last_24h_rest_3_end: row.last24hRest3End?.toISOString() ?? null,
+    last_24h_rest_4_start: row.last24hRest4Start?.toISOString() ?? null,
+    last_24h_rest_4_end: row.last24hRest4End?.toISOString() ?? null,
     week_starting: row.weekStarting,
     days: normalizeSheetDaysForApi(parseDays(row.days)),
     status: row.status,
@@ -157,6 +173,14 @@ export async function PATCH(
       last_24h_rest_2,
       last_24h_rest_3,
       last_24h_rest_4,
+      last_24h_rest_1_start,
+      last_24h_rest_1_end,
+      last_24h_rest_2_start,
+      last_24h_rest_2_end,
+      last_24h_rest_3_start,
+      last_24h_rest_3_end,
+      last_24h_rest_4_start,
+      last_24h_rest_4_end,
       week_starting,
       days,
       status,
@@ -274,6 +298,30 @@ export async function PATCH(
     if (last_24h_rest_2 !== undefined) data.last24hRest2 = last_24h_rest_2 || null;
     if (last_24h_rest_3 !== undefined) data.last24hRest3 = last_24h_rest_3 || null;
     if (last_24h_rest_4 !== undefined) data.last24hRest4 = last_24h_rest_4 || null;
+    if (last_24h_rest_1_start !== undefined) {
+      data.last24hRest1Start = last_24h_rest_1_start ? new Date(last_24h_rest_1_start) : null;
+    }
+    if (last_24h_rest_1_end !== undefined) {
+      data.last24hRest1End = last_24h_rest_1_end ? new Date(last_24h_rest_1_end) : null;
+    }
+    if (last_24h_rest_2_start !== undefined) {
+      data.last24hRest2Start = last_24h_rest_2_start ? new Date(last_24h_rest_2_start) : null;
+    }
+    if (last_24h_rest_2_end !== undefined) {
+      data.last24hRest2End = last_24h_rest_2_end ? new Date(last_24h_rest_2_end) : null;
+    }
+    if (last_24h_rest_3_start !== undefined) {
+      data.last24hRest3Start = last_24h_rest_3_start ? new Date(last_24h_rest_3_start) : null;
+    }
+    if (last_24h_rest_3_end !== undefined) {
+      data.last24hRest3End = last_24h_rest_3_end ? new Date(last_24h_rest_3_end) : null;
+    }
+    if (last_24h_rest_4_start !== undefined) {
+      data.last24hRest4Start = last_24h_rest_4_start ? new Date(last_24h_rest_4_start) : null;
+    }
+    if (last_24h_rest_4_end !== undefined) {
+      data.last24hRest4End = last_24h_rest_4_end ? new Date(last_24h_rest_4_end) : null;
+    }
     if (week_starting !== undefined) data.weekStarting = week_starting;
     if (days !== undefined) data.days = JSON.stringify(normalizeSheetDaysForApi(days));
     if (status !== undefined) data.status = status;

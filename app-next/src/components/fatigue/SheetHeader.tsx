@@ -21,9 +21,8 @@ import {
 } from "@/components/driver/driver-ui-classes";
 import {
   LAST_24H_BREAK_CHIP_LABEL,
-  Last24hBreakField,
 } from "@/components/fatigue/Last24hBreakField";
-import { isoToPerthYmd, type Last24hBreakRange } from "@/lib/last-24h-break-range";
+import { type Last24hBreakRange } from "@/lib/last-24h-break-range";
 
 type SheetData = {
   driver_name?: string;
@@ -255,7 +254,7 @@ export default function SheetHeader({
             })} → …`}
             locked
             className="max-w-[min(100%,22rem)] sm:max-w-[24rem]"
-            title={`${LAST_24H_BREAK_CHIP_LABEL} (locked after sign-off)`}
+            title={`${LAST_24H_BREAK_CHIP_LABEL} (locked after sign-off; from most recent declared 24h rest)`}
           />
         ) : null}
 
@@ -263,32 +262,6 @@ export default function SheetHeader({
           <div className="flex items-center gap-2 shrink-0 ml-auto">{headerActions}</div>
         )}
       </div>
-
-      {!readOnly || !last24hRange ? (
-        <div className="pt-1 border-t border-slate-200/80 dark:border-slate-700/80">
-          <Last24hBreakField
-            value={last24hRange}
-            readOnly={readOnly}
-            onChange={(range) => {
-              if (!range) {
-                onChange({
-                  ...sheetData,
-                  last_24h_break: "",
-                  last_24h_break_start: "",
-                  last_24h_break_end: "",
-                });
-                return;
-              }
-              onChange({
-                ...sheetData,
-                last_24h_break: isoToPerthYmd(range.startIso) ?? "",
-                last_24h_break_start: range.startIso,
-                last_24h_break_end: range.endIso,
-              });
-            }}
-          />
-        </div>
-      ) : null}
 
       {!hidePrimaryDriverField && (
         <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/80 dark:border-slate-700/80">

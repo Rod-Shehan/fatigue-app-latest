@@ -85,6 +85,38 @@ export function toSheetUpdatePayload(sheet: Partial<FatigueSheet>): Partial<Fati
     last_24h_rest_2: sheet.last_24h_rest_2 || undefined,
     last_24h_rest_3: sheet.last_24h_rest_3 || undefined,
     last_24h_rest_4: sheet.last_24h_rest_4 || undefined,
+    last_24h_rest_1_start:
+      sheet.last_24h_rest_1_start === undefined
+        ? undefined
+        : sheet.last_24h_rest_1_start || null,
+    last_24h_rest_1_end:
+      sheet.last_24h_rest_1_end === undefined
+        ? undefined
+        : sheet.last_24h_rest_1_end || null,
+    last_24h_rest_2_start:
+      sheet.last_24h_rest_2_start === undefined
+        ? undefined
+        : sheet.last_24h_rest_2_start || null,
+    last_24h_rest_2_end:
+      sheet.last_24h_rest_2_end === undefined
+        ? undefined
+        : sheet.last_24h_rest_2_end || null,
+    last_24h_rest_3_start:
+      sheet.last_24h_rest_3_start === undefined
+        ? undefined
+        : sheet.last_24h_rest_3_start || null,
+    last_24h_rest_3_end:
+      sheet.last_24h_rest_3_end === undefined
+        ? undefined
+        : sheet.last_24h_rest_3_end || null,
+    last_24h_rest_4_start:
+      sheet.last_24h_rest_4_start === undefined
+        ? undefined
+        : sheet.last_24h_rest_4_start || null,
+    last_24h_rest_4_end:
+      sheet.last_24h_rest_4_end === undefined
+        ? undefined
+        : sheet.last_24h_rest_4_end || null,
     week_starting: sheet.week_starting,
     days: sheet.days,
     status: sheet.status,

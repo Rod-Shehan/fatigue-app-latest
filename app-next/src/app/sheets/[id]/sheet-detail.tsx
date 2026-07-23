@@ -100,6 +100,12 @@ import {
   getDeclared24hRestRequirementFromSheets,
   resolveDeclared24hRestUiFieldCount,
   declared24hRestsIncomplete,
+  declared24hRestsFromSheet,
+  softResetFieldsFromDeclaredRests,
+  seedSoftResetRangeIntoDeclaredRests,
+  declaredRestRangeKeys,
+  type Declared24hRestFields,
+  type Declared24hRestKey,
 } from "@/lib/declared-24h-rests";
 import { complianceStateAt } from "@/lib/compliance-state";
 import {
@@ -235,6 +241,14 @@ export function SheetDetail({
     last_24h_rest_2: string;
     last_24h_rest_3: string;
     last_24h_rest_4: string;
+    last_24h_rest_1_start: string;
+    last_24h_rest_1_end: string;
+    last_24h_rest_2_start: string;
+    last_24h_rest_2_end: string;
+    last_24h_rest_3_start: string;
+    last_24h_rest_3_end: string;
+    last_24h_rest_4_start: string;
+    last_24h_rest_4_end: string;
     week_starting: string;
     days: DayData[];
     status: string;
@@ -252,6 +266,14 @@ export function SheetDetail({
     last_24h_rest_2: "",
     last_24h_rest_3: "",
     last_24h_rest_4: "",
+    last_24h_rest_1_start: "",
+    last_24h_rest_1_end: "",
+    last_24h_rest_2_start: "",
+    last_24h_rest_2_end: "",
+    last_24h_rest_3_start: "",
+    last_24h_rest_3_end: "",
+    last_24h_rest_4_start: "",
+    last_24h_rest_4_end: "",
     week_starting: getThisWeekSunday(),
     days: Array(7)
       .fill(null)
@@ -574,26 +596,65 @@ export function SheetDetail({
       signature = undefined;
       signed_at = undefined;
     }
+    const seededRests = seedSoftResetRangeIntoDeclaredRests({
+      fields: declared24hRestsFromSheet({
+        last_24h_rest_1: sheet.last_24h_rest_1 || null,
+        last_24h_rest_2: sheet.last_24h_rest_2 || null,
+        last_24h_rest_3: sheet.last_24h_rest_3 || null,
+        last_24h_rest_4: sheet.last_24h_rest_4 || null,
+        last_24h_rest_1_start: sheet.last_24h_rest_1_start || null,
+        last_24h_rest_1_end: sheet.last_24h_rest_1_end || null,
+        last_24h_rest_2_start: sheet.last_24h_rest_2_start || null,
+        last_24h_rest_2_end: sheet.last_24h_rest_2_end || null,
+        last_24h_rest_3_start: sheet.last_24h_rest_3_start || null,
+        last_24h_rest_3_end: sheet.last_24h_rest_3_end || null,
+        last_24h_rest_4_start: sheet.last_24h_rest_4_start || null,
+        last_24h_rest_4_end: sheet.last_24h_rest_4_end || null,
+      }),
+      last24hBreak: sheet.last_24h_break,
+      last24hBreakStart: sheet.last_24h_break_start,
+      last24hBreakEnd: sheet.last_24h_break_end,
+      isoToPerthYmd,
+    });
+    const softFromRests = softResetFieldsFromDeclaredRests(seededRests, isoToPerthYmd);
+    const seededPersisted =
+      (seededRests.last_24h_rest_1_start || "") !== (sheet.last_24h_rest_1_start || "") ||
+      (seededRests.last_24h_rest_1_end || "") !== (sheet.last_24h_rest_1_end || "") ||
+      (seededRests.last_24h_rest_2_start || "") !== (sheet.last_24h_rest_2_start || "") ||
+      (seededRests.last_24h_rest_2_end || "") !== (sheet.last_24h_rest_2_end || "") ||
+      (seededRests.last_24h_rest_3_start || "") !== (sheet.last_24h_rest_3_start || "") ||
+      (seededRests.last_24h_rest_3_end || "") !== (sheet.last_24h_rest_3_end || "") ||
+      (seededRests.last_24h_rest_4_start || "") !== (sheet.last_24h_rest_4_start || "") ||
+      (seededRests.last_24h_rest_4_end || "") !== (sheet.last_24h_rest_4_end || "");
     setSheetData({
       driver_name: sheet.driver_name || "",
       second_driver: sheet.second_driver || "",
       driver_type: sheet.driver_type || "solo",
       jurisdiction_code: jurisdiction,
-      last_24h_break: sheet.last_24h_break || "",
-      last_24h_break_start: sheet.last_24h_break_start || "",
-      last_24h_break_end: sheet.last_24h_break_end || "",
-      last_24h_rest_1: sheet.last_24h_rest_1 || "",
-      last_24h_rest_2: sheet.last_24h_rest_2 || "",
-      last_24h_rest_3: sheet.last_24h_rest_3 || "",
-      last_24h_rest_4: sheet.last_24h_rest_4 || "",
+      last_24h_break: softFromRests.last_24h_break || sheet.last_24h_break || "",
+      last_24h_break_start: softFromRests.last_24h_break_start || sheet.last_24h_break_start || "",
+      last_24h_break_end: softFromRests.last_24h_break_end || sheet.last_24h_break_end || "",
+      last_24h_rest_1: seededRests.last_24h_rest_1 || "",
+      last_24h_rest_2: seededRests.last_24h_rest_2 || "",
+      last_24h_rest_3: seededRests.last_24h_rest_3 || "",
+      last_24h_rest_4: seededRests.last_24h_rest_4 || "",
+      last_24h_rest_1_start: seededRests.last_24h_rest_1_start || "",
+      last_24h_rest_1_end: seededRests.last_24h_rest_1_end || "",
+      last_24h_rest_2_start: seededRests.last_24h_rest_2_start || "",
+      last_24h_rest_2_end: seededRests.last_24h_rest_2_end || "",
+      last_24h_rest_3_start: seededRests.last_24h_rest_3_start || "",
+      last_24h_rest_3_end: seededRests.last_24h_rest_3_end || "",
+      last_24h_rest_4_start: seededRests.last_24h_rest_4_start || "",
+      last_24h_rest_4_end: seededRests.last_24h_rest_4_end || "",
       week_starting: weekStart,
       days,
       status,
       signature,
       signed_at,
     });
-    isDirtyRef.current = defaultsApplied;
-    setIsDirty(defaultsApplied);
+    const dirty = defaultsApplied || seededPersisted;
+    isDirtyRef.current = dirty;
+    setIsDirty(dirty);
   }, [sheet, isManager, driverUserKey]);
 
   const prevWeekSheet = useMemo(() => {
@@ -642,6 +703,14 @@ export function SheetDetail({
         last_24h_rest_2: sheetData.last_24h_rest_2 || null,
         last_24h_rest_3: sheetData.last_24h_rest_3 || null,
         last_24h_rest_4: sheetData.last_24h_rest_4 || null,
+        last_24h_rest_1_start: sheetData.last_24h_rest_1_start || null,
+        last_24h_rest_1_end: sheetData.last_24h_rest_1_end || null,
+        last_24h_rest_2_start: sheetData.last_24h_rest_2_start || null,
+        last_24h_rest_2_end: sheetData.last_24h_rest_2_end || null,
+        last_24h_rest_3_start: sheetData.last_24h_rest_3_start || null,
+        last_24h_rest_3_end: sheetData.last_24h_rest_3_end || null,
+        last_24h_rest_4_start: sheetData.last_24h_rest_4_start || null,
+        last_24h_rest_4_end: sheetData.last_24h_rest_4_end || null,
       },
       weekStarting: sheetData.week_starting || undefined,
       prevWeekStarting: isManager
@@ -757,6 +826,14 @@ export function SheetDetail({
         last_24h_rest_2: sheetData.last_24h_rest_2,
         last_24h_rest_3: sheetData.last_24h_rest_3,
         last_24h_rest_4: sheetData.last_24h_rest_4,
+        last_24h_rest_1_start: sheetData.last_24h_rest_1_start,
+        last_24h_rest_1_end: sheetData.last_24h_rest_1_end,
+        last_24h_rest_2_start: sheetData.last_24h_rest_2_start,
+        last_24h_rest_2_end: sheetData.last_24h_rest_2_end,
+        last_24h_rest_3_start: sheetData.last_24h_rest_3_start,
+        last_24h_rest_3_end: sheetData.last_24h_rest_3_end,
+        last_24h_rest_4_start: sheetData.last_24h_rest_4_start,
+        last_24h_rest_4_end: sheetData.last_24h_rest_4_end,
       },
     });
     return {
@@ -770,6 +847,14 @@ export function SheetDetail({
           last_24h_rest_2: sheetData.last_24h_rest_2,
           last_24h_rest_3: sheetData.last_24h_rest_3,
           last_24h_rest_4: sheetData.last_24h_rest_4,
+          last_24h_rest_1_start: sheetData.last_24h_rest_1_start,
+          last_24h_rest_1_end: sheetData.last_24h_rest_1_end,
+          last_24h_rest_2_start: sheetData.last_24h_rest_2_start,
+          last_24h_rest_2_end: sheetData.last_24h_rest_2_end,
+          last_24h_rest_3_start: sheetData.last_24h_rest_3_start,
+          last_24h_rest_3_end: sheetData.last_24h_rest_3_end,
+          last_24h_rest_4_start: sheetData.last_24h_rest_4_start,
+          last_24h_rest_4_end: sheetData.last_24h_rest_4_end,
         }),
       complianceLoading,
       complianceDetail,
@@ -808,11 +893,19 @@ export function SheetDetail({
         prevWeekDays: compliancePayload.prevWeekDays ?? null,
         historyDays: compliancePayload.historyDays ?? null,
         last24hBreak: sheetData.last_24h_break || undefined,
-        declared24hRests: {
+          declared24hRests: {
           last_24h_rest_1: sheetData.last_24h_rest_1 || null,
           last_24h_rest_2: sheetData.last_24h_rest_2 || null,
           last_24h_rest_3: sheetData.last_24h_rest_3 || null,
           last_24h_rest_4: sheetData.last_24h_rest_4 || null,
+          last_24h_rest_1_start: sheetData.last_24h_rest_1_start || null,
+          last_24h_rest_1_end: sheetData.last_24h_rest_1_end || null,
+          last_24h_rest_2_start: sheetData.last_24h_rest_2_start || null,
+          last_24h_rest_2_end: sheetData.last_24h_rest_2_end || null,
+          last_24h_rest_3_start: sheetData.last_24h_rest_3_start || null,
+          last_24h_rest_3_end: sheetData.last_24h_rest_3_end || null,
+          last_24h_rest_4_start: sheetData.last_24h_rest_4_start || null,
+          last_24h_rest_4_end: sheetData.last_24h_rest_4_end || null,
         },
         prevWeekStarting: compliancePayload.prevWeekStarting,
         jurisdictionCode: sheetData.jurisdiction_code,
@@ -1018,6 +1111,14 @@ export function SheetDetail({
       last_24h_rest_2: d.last_24h_rest_2?.trim() || null,
       last_24h_rest_3: d.last_24h_rest_3?.trim() || null,
       last_24h_rest_4: d.last_24h_rest_4?.trim() || null,
+      last_24h_rest_1_start: d.last_24h_rest_1_start?.trim() || null,
+      last_24h_rest_1_end: d.last_24h_rest_1_end?.trim() || null,
+      last_24h_rest_2_start: d.last_24h_rest_2_start?.trim() || null,
+      last_24h_rest_2_end: d.last_24h_rest_2_end?.trim() || null,
+      last_24h_rest_3_start: d.last_24h_rest_3_start?.trim() || null,
+      last_24h_rest_3_end: d.last_24h_rest_3_end?.trim() || null,
+      last_24h_rest_4_start: d.last_24h_rest_4_start?.trim() || null,
+      last_24h_rest_4_end: d.last_24h_rest_4_end?.trim() || null,
       week_starting: d.week_starting,
       days: d.days,
       status: d.status,
@@ -1066,6 +1167,40 @@ export function SheetDetail({
     setIsDirty(true);
   }, [driverContentLocked]);
 
+  /** Keep showing declared rests after they satisfy the rule (do not vanish).
+   * Also force 2/4 fields when compliance already flags 2×24h. Soft-reset
+   * (17h / 72h) follows the most recent declared rest end. */
+  const declared24hRestFields = useMemo(
+    (): Declared24hRestFields => ({
+      last_24h_rest_1: sheetData.last_24h_rest_1 || null,
+      last_24h_rest_2: sheetData.last_24h_rest_2 || null,
+      last_24h_rest_3: sheetData.last_24h_rest_3 || null,
+      last_24h_rest_4: sheetData.last_24h_rest_4 || null,
+      last_24h_rest_1_start: sheetData.last_24h_rest_1_start || null,
+      last_24h_rest_1_end: sheetData.last_24h_rest_1_end || null,
+      last_24h_rest_2_start: sheetData.last_24h_rest_2_start || null,
+      last_24h_rest_2_end: sheetData.last_24h_rest_2_end || null,
+      last_24h_rest_3_start: sheetData.last_24h_rest_3_start || null,
+      last_24h_rest_3_end: sheetData.last_24h_rest_3_end || null,
+      last_24h_rest_4_start: sheetData.last_24h_rest_4_start || null,
+      last_24h_rest_4_end: sheetData.last_24h_rest_4_end || null,
+    }),
+    [
+      sheetData.last_24h_rest_1,
+      sheetData.last_24h_rest_2,
+      sheetData.last_24h_rest_3,
+      sheetData.last_24h_rest_4,
+      sheetData.last_24h_rest_1_start,
+      sheetData.last_24h_rest_1_end,
+      sheetData.last_24h_rest_2_start,
+      sheetData.last_24h_rest_2_end,
+      sheetData.last_24h_rest_3_start,
+      sheetData.last_24h_rest_3_end,
+      sheetData.last_24h_rest_4_start,
+      sheetData.last_24h_rest_4_end,
+    ]
+  );
+
   const declared24hRestRequirement = useMemo(
     () =>
       getDeclared24hRestRequirementFromSheets({
@@ -1074,39 +1209,23 @@ export function SheetDetail({
         days: sheetData.days,
         prevWeekDays: compliancePayload.prevWeekDays ?? null,
         historyDays: compliancePayload.historyDays ?? null,
-        declaredFields: {
-          last_24h_rest_1: sheetData.last_24h_rest_1,
-          last_24h_rest_2: sheetData.last_24h_rest_2,
-          last_24h_rest_3: sheetData.last_24h_rest_3,
-          last_24h_rest_4: sheetData.last_24h_rest_4,
-        },
+        declaredFields: declared24hRestFields,
       }),
     [
       todayCrew.driver_type,
       sheetData.week_starting,
       sheetData.days,
-      sheetData.last_24h_rest_1,
-      sheetData.last_24h_rest_2,
-      sheetData.last_24h_rest_3,
-      sheetData.last_24h_rest_4,
+      declared24hRestFields,
       compliancePayload.prevWeekDays,
       compliancePayload.historyDays,
     ]
   );
 
-  /** Keep showing locked dates after they satisfy the rule (do not vanish).
-   * Also force 2/4 fields when compliance already flags 2×24h — so Set up day always
-   * has two date entries for that warning, not only Last 24Hr Break. */
   const declared24hRestUiFieldCount = useMemo(
     (): 0 | 2 | 4 =>
       resolveDeclared24hRestUiFieldCount({
         requirement: declared24hRestRequirement,
-        fields: {
-          last_24h_rest_1: sheetData.last_24h_rest_1,
-          last_24h_rest_2: sheetData.last_24h_rest_2,
-          last_24h_rest_3: sheetData.last_24h_rest_3,
-          last_24h_rest_4: sheetData.last_24h_rest_4,
-        },
+        fields: declared24hRestFields,
         complianceMessages: [
           ...complianceResults.map((r) => r.message),
           ...prospectiveLogMessages,
@@ -1114,10 +1233,7 @@ export function SheetDetail({
       }),
     [
       declared24hRestRequirement,
-      sheetData.last_24h_rest_1,
-      sheetData.last_24h_rest_2,
-      sheetData.last_24h_rest_3,
-      sheetData.last_24h_rest_4,
+      declared24hRestFields,
       complianceResults,
       prospectiveLogMessages,
     ]
@@ -1125,54 +1241,31 @@ export function SheetDetail({
 
   const driverSheetMetaProps = useMemo(
     () => ({
-      last24hBreakRange:
-        sheetData.last_24h_break_start && sheetData.last_24h_break_end
-          ? {
-              startIso: sheetData.last_24h_break_start,
-              endIso: sheetData.last_24h_break_end,
-            }
-          : null,
-      onLast24hBreakChange: (
-        range: { startIso: string; endIso: string } | null
-      ) => {
-        if (!range) {
-          handleHeaderChange({
-            last_24h_break: "",
-            last_24h_break_start: "",
-            last_24h_break_end: "",
-          });
-          return;
-        }
-        handleHeaderChange({
-          last_24h_break: isoToPerthYmd(range.startIso) ?? "",
-          last_24h_break_start: range.startIso,
-          last_24h_break_end: range.endIso,
-        });
-      },
-      declared24hRests: {
-        last_24h_rest_1: sheetData.last_24h_rest_1,
-        last_24h_rest_2: sheetData.last_24h_rest_2,
-        last_24h_rest_3: sheetData.last_24h_rest_3,
-        last_24h_rest_4: sheetData.last_24h_rest_4,
-      },
+      declared24hRests: declared24hRestFields,
       declared24hRestFieldCount: declared24hRestUiFieldCount,
       onDeclared24hRestChange: (
-        key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
-        ymd: string
+        key: Declared24hRestKey,
+        range: { startIso: string; endIso: string } | null
       ) => {
-        handleHeaderChange({ [key]: ymd });
+        const { start, end } = declaredRestRangeKeys(key);
+        const nextFields: Declared24hRestFields = {
+          ...declared24hRestFields,
+          [key]: range ? isoToPerthYmd(range.startIso) ?? "" : "",
+          [start]: range?.startIso ?? "",
+          [end]: range?.endIso ?? "",
+        };
+        const soft = softResetFieldsFromDeclaredRests(nextFields, isoToPerthYmd);
+        handleHeaderChange({
+          [key]: nextFields[key] || "",
+          [start]: nextFields[start] || "",
+          [end]: nextFields[end] || "",
+          last_24h_break: soft.last_24h_break,
+          last_24h_break_start: soft.last_24h_break_start,
+          last_24h_break_end: soft.last_24h_break_end,
+        });
       },
     }),
-    [
-      sheetData.last_24h_break_start,
-      sheetData.last_24h_break_end,
-      sheetData.last_24h_rest_1,
-      sheetData.last_24h_rest_2,
-      sheetData.last_24h_rest_3,
-      sheetData.last_24h_rest_4,
-      declared24hRestUiFieldCount,
-      handleHeaderChange,
-    ]
+    [declared24hRestFields, declared24hRestUiFieldCount, handleHeaderChange]
   );
 
   const handleDayUpdate = useCallback((dayIndex: number, dayData: DayData) => {

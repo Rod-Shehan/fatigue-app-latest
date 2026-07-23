@@ -31,6 +31,14 @@ function sheetToJson(row: {
   last24hRest2: string | null;
   last24hRest3: string | null;
   last24hRest4: string | null;
+  last24hRest1Start: Date | null;
+  last24hRest1End: Date | null;
+  last24hRest2Start: Date | null;
+  last24hRest2End: Date | null;
+  last24hRest3Start: Date | null;
+  last24hRest3End: Date | null;
+  last24hRest4Start: Date | null;
+  last24hRest4End: Date | null;
   weekStarting: string;
   days: string;
   status: string;
@@ -53,6 +61,14 @@ function sheetToJson(row: {
     last_24h_rest_2: row.last24hRest2,
     last_24h_rest_3: row.last24hRest3,
     last_24h_rest_4: row.last24hRest4,
+    last_24h_rest_1_start: row.last24hRest1Start?.toISOString() ?? null,
+    last_24h_rest_1_end: row.last24hRest1End?.toISOString() ?? null,
+    last_24h_rest_2_start: row.last24hRest2Start?.toISOString() ?? null,
+    last_24h_rest_2_end: row.last24hRest2End?.toISOString() ?? null,
+    last_24h_rest_3_start: row.last24hRest3Start?.toISOString() ?? null,
+    last_24h_rest_3_end: row.last24hRest3End?.toISOString() ?? null,
+    last_24h_rest_4_start: row.last24hRest4Start?.toISOString() ?? null,
+    last_24h_rest_4_end: row.last24hRest4End?.toISOString() ?? null,
     week_starting: row.weekStarting,
     days: normalizeSheetDaysForApi(parseDays(row.days)),
     status: row.status,
@@ -77,6 +93,14 @@ function sheetToJsonMeta(row: {
   last24hRest2: string | null;
   last24hRest3: string | null;
   last24hRest4: string | null;
+  last24hRest1Start: Date | null;
+  last24hRest1End: Date | null;
+  last24hRest2Start: Date | null;
+  last24hRest2End: Date | null;
+  last24hRest3Start: Date | null;
+  last24hRest3End: Date | null;
+  last24hRest4Start: Date | null;
+  last24hRest4End: Date | null;
   weekStarting: string;
   status: string;
   signature: string | null;
@@ -98,6 +122,14 @@ function sheetToJsonMeta(row: {
     last_24h_rest_2: row.last24hRest2,
     last_24h_rest_3: row.last24hRest3,
     last_24h_rest_4: row.last24hRest4,
+    last_24h_rest_1_start: row.last24hRest1Start?.toISOString() ?? null,
+    last_24h_rest_1_end: row.last24hRest1End?.toISOString() ?? null,
+    last_24h_rest_2_start: row.last24hRest2Start?.toISOString() ?? null,
+    last_24h_rest_2_end: row.last24hRest2End?.toISOString() ?? null,
+    last_24h_rest_3_start: row.last24hRest3Start?.toISOString() ?? null,
+    last_24h_rest_3_end: row.last24hRest3End?.toISOString() ?? null,
+    last_24h_rest_4_start: row.last24hRest4Start?.toISOString() ?? null,
+    last_24h_rest_4_end: row.last24hRest4End?.toISOString() ?? null,
     week_starting: row.weekStarting,
     days: [] as ReturnType<typeof normalizeSheetDaysForApi>,
     status: row.status,
@@ -122,6 +154,14 @@ const sheetMetaSelect = {
   last24hRest2: true,
   last24hRest3: true,
   last24hRest4: true,
+  last24hRest1Start: true,
+  last24hRest1End: true,
+  last24hRest2Start: true,
+  last24hRest2End: true,
+  last24hRest3Start: true,
+  last24hRest3End: true,
+  last24hRest4Start: true,
+  last24hRest4End: true,
   weekStarting: true,
   status: true,
   signature: true,
@@ -275,6 +315,14 @@ export async function POST(req: Request) {
         last24hRest2: body.last_24h_rest_2 ?? null,
         last24hRest3: body.last_24h_rest_3 ?? null,
         last24hRest4: body.last_24h_rest_4 ?? null,
+        last24hRest1Start: body.last_24h_rest_1_start ? new Date(body.last_24h_rest_1_start) : null,
+        last24hRest1End: body.last_24h_rest_1_end ? new Date(body.last_24h_rest_1_end) : null,
+        last24hRest2Start: body.last_24h_rest_2_start ? new Date(body.last_24h_rest_2_start) : null,
+        last24hRest2End: body.last_24h_rest_2_end ? new Date(body.last_24h_rest_2_end) : null,
+        last24hRest3Start: body.last_24h_rest_3_start ? new Date(body.last_24h_rest_3_start) : null,
+        last24hRest3End: body.last_24h_rest_3_end ? new Date(body.last_24h_rest_3_end) : null,
+        last24hRest4Start: body.last_24h_rest_4_start ? new Date(body.last_24h_rest_4_start) : null,
+        last24hRest4End: body.last_24h_rest_4_end ? new Date(body.last_24h_rest_4_end) : null,
         weekStarting: week_starting,
         days: JSON.stringify(normalizeSheetDaysForApi(days)),
         status: status ?? "draft",

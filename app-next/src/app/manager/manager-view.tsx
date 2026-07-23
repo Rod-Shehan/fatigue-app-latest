@@ -19,6 +19,7 @@ import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-time
 import type { ShiftLaneDayCoverage } from "@/lib/manager-risk-shift-lane";
 import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import { deriveDaysWithRollover, resolveOpenActivityBeforeFirstDay } from "@/components/fatigue/EventLogger";
+import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { sheetDayYmdFromIndex } from "@/lib/route-plan";
 import { getPreviousWeekSunday, getRegulatoryTodayYmd, isPastRegulatoryWeek } from "@/lib/weeks";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
@@ -27,10 +28,16 @@ import { ManagerDomainSection } from "@/components/manager/ManagerDomainSection"
 import { ManagerDomainsOverview } from "@/components/manager/ManagerDomainsOverview";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
-  DECLARED_24H_REST_COPY,
+  declared24hRestsFromSheet,
+  declaredRestRangeKeys,
   getDeclared24hRestRequirementFromSheets,
   resolveDeclared24hRestUiFieldCount,
+  seedSoftResetRangeIntoDeclaredRests,
+  softResetFieldsFromDeclaredRests,
+  type Declared24hRestFields,
+  type Declared24hRestKey,
 } from "@/lib/declared-24h-rests";
+import { isoToPerthYmd } from "@/lib/last-24h-break-range";
 import {
   buildManagerDomainKpis,
   countUnsignedSheetsForWeek,
@@ -224,20 +231,40 @@ export function ManagerView() {
 
   const [form, setForm] = useState<{
     last_24h_break: string;
+    last_24h_break_start: string;
+    last_24h_break_end: string;
     last_24h_rest_1: string;
     last_24h_rest_2: string;
     last_24h_rest_3: string;
     last_24h_rest_4: string;
+    last_24h_rest_1_start: string;
+    last_24h_rest_1_end: string;
+    last_24h_rest_2_start: string;
+    last_24h_rest_2_end: string;
+    last_24h_rest_3_start: string;
+    last_24h_rest_3_end: string;
+    last_24h_rest_4_start: string;
+    last_24h_rest_4_end: string;
     driver_type: string;
     week_starting: string;
     driver_name: string;
     second_driver: string;
   }>({
     last_24h_break: "",
+    last_24h_break_start: "",
+    last_24h_break_end: "",
     last_24h_rest_1: "",
     last_24h_rest_2: "",
     last_24h_rest_3: "",
     last_24h_rest_4: "",
+    last_24h_rest_1_start: "",
+    last_24h_rest_1_end: "",
+    last_24h_rest_2_start: "",
+    last_24h_rest_2_end: "",
+    last_24h_rest_3_start: "",
+    last_24h_rest_3_end: "",
+    last_24h_rest_4_start: "",
+    last_24h_rest_4_end: "",
     driver_type: "solo",
     week_starting: "",
     driver_name: "",
@@ -715,6 +742,37 @@ export function ManagerView() {
     enabled: !!selectedSheetId,
   });
 
+  const declared24hRestFields = useMemo(
+    (): Declared24hRestFields => ({
+      last_24h_rest_1: form.last_24h_rest_1 || null,
+      last_24h_rest_2: form.last_24h_rest_2 || null,
+      last_24h_rest_3: form.last_24h_rest_3 || null,
+      last_24h_rest_4: form.last_24h_rest_4 || null,
+      last_24h_rest_1_start: form.last_24h_rest_1_start || null,
+      last_24h_rest_1_end: form.last_24h_rest_1_end || null,
+      last_24h_rest_2_start: form.last_24h_rest_2_start || null,
+      last_24h_rest_2_end: form.last_24h_rest_2_end || null,
+      last_24h_rest_3_start: form.last_24h_rest_3_start || null,
+      last_24h_rest_3_end: form.last_24h_rest_3_end || null,
+      last_24h_rest_4_start: form.last_24h_rest_4_start || null,
+      last_24h_rest_4_end: form.last_24h_rest_4_end || null,
+    }),
+    [
+      form.last_24h_rest_1,
+      form.last_24h_rest_2,
+      form.last_24h_rest_3,
+      form.last_24h_rest_4,
+      form.last_24h_rest_1_start,
+      form.last_24h_rest_1_end,
+      form.last_24h_rest_2_start,
+      form.last_24h_rest_2_end,
+      form.last_24h_rest_3_start,
+      form.last_24h_rest_3_end,
+      form.last_24h_rest_4_start,
+      form.last_24h_rest_4_end,
+    ]
+  );
+
   const declared24hRestRequirement = useMemo(() => {
     if (!selectedSheet || selectedSheet.id !== selectedSheetId) {
       return { fieldCount: 0 as const, reason: "none" as const };
@@ -725,22 +783,14 @@ export function ManagerView() {
       days: selectedSheet.days ?? [],
       prevWeekDays: selectedSheetComplianceHistory?.prev_week_days ?? null,
       historyDays: selectedSheetComplianceHistory?.history_days ?? null,
-      declaredFields: {
-        last_24h_rest_1: form.last_24h_rest_1,
-        last_24h_rest_2: form.last_24h_rest_2,
-        last_24h_rest_3: form.last_24h_rest_3,
-        last_24h_rest_4: form.last_24h_rest_4,
-      },
+      declaredFields: declared24hRestFields,
     });
   }, [
     selectedSheet,
     selectedSheetId,
     selectedSheetComplianceHistory,
     form.driver_type,
-    form.last_24h_rest_1,
-    form.last_24h_rest_2,
-    form.last_24h_rest_3,
-    form.last_24h_rest_4,
+    declared24hRestFields,
   ]);
 
   const selectedSheetComplianceMessages = useMemo(() => {
@@ -753,45 +803,70 @@ export function ManagerView() {
     (): 0 | 2 | 4 =>
       resolveDeclared24hRestUiFieldCount({
         requirement: declared24hRestRequirement,
-        fields: {
-          last_24h_rest_1: form.last_24h_rest_1,
-          last_24h_rest_2: form.last_24h_rest_2,
-          last_24h_rest_3: form.last_24h_rest_3,
-          last_24h_rest_4: form.last_24h_rest_4,
-        },
+        fields: declared24hRestFields,
         complianceMessages: selectedSheetComplianceMessages,
       }),
     [
       declared24hRestRequirement,
-      form.last_24h_rest_1,
-      form.last_24h_rest_2,
-      form.last_24h_rest_3,
-      form.last_24h_rest_4,
+      declared24hRestFields,
       selectedSheetComplianceMessages,
     ]
   );
 
-  const declared24hRestLabelKeys = useMemo(() => {
-    return declared24hRestUiFieldCount === 4
-      ? (["last_24h_rest_1", "last_24h_rest_2", "last_24h_rest_3", "last_24h_rest_4"] as const)
-      : (["last_24h_rest_1", "last_24h_rest_2"] as const);
-  }, [declared24hRestUiFieldCount]);
-
-  const declared24hRestLabels: Record<(typeof declared24hRestLabelKeys)[number], string> = {
-    last_24h_rest_1: DECLARED_24H_REST_COPY.LABEL_1,
-    last_24h_rest_2: DECLARED_24H_REST_COPY.LABEL_2,
-    last_24h_rest_3: DECLARED_24H_REST_COPY.LABEL_3,
-    last_24h_rest_4: DECLARED_24H_REST_COPY.LABEL_4,
-  };
+  const handleDeclared24hRestChange = useCallback(
+    (key: Declared24hRestKey, range: { startIso: string; endIso: string } | null) => {
+      const { start, end } = declaredRestRangeKeys(key);
+      setForm((f) => {
+        const nextFields: Declared24hRestFields = {
+          last_24h_rest_1: f.last_24h_rest_1 || null,
+          last_24h_rest_2: f.last_24h_rest_2 || null,
+          last_24h_rest_3: f.last_24h_rest_3 || null,
+          last_24h_rest_4: f.last_24h_rest_4 || null,
+          last_24h_rest_1_start: f.last_24h_rest_1_start || null,
+          last_24h_rest_1_end: f.last_24h_rest_1_end || null,
+          last_24h_rest_2_start: f.last_24h_rest_2_start || null,
+          last_24h_rest_2_end: f.last_24h_rest_2_end || null,
+          last_24h_rest_3_start: f.last_24h_rest_3_start || null,
+          last_24h_rest_3_end: f.last_24h_rest_3_end || null,
+          last_24h_rest_4_start: f.last_24h_rest_4_start || null,
+          last_24h_rest_4_end: f.last_24h_rest_4_end || null,
+          [key]: range ? isoToPerthYmd(range.startIso) ?? "" : "",
+          [start]: range?.startIso ?? "",
+          [end]: range?.endIso ?? "",
+        };
+        const soft = softResetFieldsFromDeclaredRests(nextFields, isoToPerthYmd);
+        return {
+          ...f,
+          [key]: nextFields[key]?.toString() ?? "",
+          [start]: nextFields[start]?.toString() ?? "",
+          [end]: nextFields[end]?.toString() ?? "",
+          last_24h_break: soft.last_24h_break,
+          last_24h_break_start: soft.last_24h_break_start,
+          last_24h_break_end: soft.last_24h_break_end,
+        };
+      });
+    },
+    []
+  );
 
   useEffect(() => {
     if (!selectedSheetId) {
       setForm({
         last_24h_break: "",
+        last_24h_break_start: "",
+        last_24h_break_end: "",
         last_24h_rest_1: "",
         last_24h_rest_2: "",
         last_24h_rest_3: "",
         last_24h_rest_4: "",
+        last_24h_rest_1_start: "",
+        last_24h_rest_1_end: "",
+        last_24h_rest_2_start: "",
+        last_24h_rest_2_end: "",
+        last_24h_rest_3_start: "",
+        last_24h_rest_3_end: "",
+        last_24h_rest_4_start: "",
+        last_24h_rest_4_end: "",
         driver_type: "solo",
         week_starting: "",
         driver_name: "",
@@ -800,12 +875,32 @@ export function ManagerView() {
       return;
     }
     if (!selectedSheet || selectedSheet.id !== selectedSheetId) return;
+    const seededRests = seedSoftResetRangeIntoDeclaredRests({
+      fields: declared24hRestsFromSheet(selectedSheet),
+      last24hBreak: selectedSheet.last_24h_break,
+      last24hBreakStart: selectedSheet.last_24h_break_start,
+      last24hBreakEnd: selectedSheet.last_24h_break_end,
+      isoToPerthYmd,
+    });
+    const softFromRests = softResetFieldsFromDeclaredRests(seededRests, isoToPerthYmd);
     setForm({
-      last_24h_break: selectedSheet.last_24h_break ?? "",
-      last_24h_rest_1: selectedSheet.last_24h_rest_1 ?? "",
-      last_24h_rest_2: selectedSheet.last_24h_rest_2 ?? "",
-      last_24h_rest_3: selectedSheet.last_24h_rest_3 ?? "",
-      last_24h_rest_4: selectedSheet.last_24h_rest_4 ?? "",
+      last_24h_break: softFromRests.last_24h_break || selectedSheet.last_24h_break || "",
+      last_24h_break_start:
+        softFromRests.last_24h_break_start || selectedSheet.last_24h_break_start || "",
+      last_24h_break_end:
+        softFromRests.last_24h_break_end || selectedSheet.last_24h_break_end || "",
+      last_24h_rest_1: seededRests.last_24h_rest_1 ?? "",
+      last_24h_rest_2: seededRests.last_24h_rest_2 ?? "",
+      last_24h_rest_3: seededRests.last_24h_rest_3 ?? "",
+      last_24h_rest_4: seededRests.last_24h_rest_4 ?? "",
+      last_24h_rest_1_start: seededRests.last_24h_rest_1_start ?? "",
+      last_24h_rest_1_end: seededRests.last_24h_rest_1_end ?? "",
+      last_24h_rest_2_start: seededRests.last_24h_rest_2_start ?? "",
+      last_24h_rest_2_end: seededRests.last_24h_rest_2_end ?? "",
+      last_24h_rest_3_start: seededRests.last_24h_rest_3_start ?? "",
+      last_24h_rest_3_end: seededRests.last_24h_rest_3_end ?? "",
+      last_24h_rest_4_start: seededRests.last_24h_rest_4_start ?? "",
+      last_24h_rest_4_end: seededRests.last_24h_rest_4_end ?? "",
       driver_type: selectedSheet.driver_type ?? "solo",
       week_starting: selectedSheet.week_starting ?? "",
       driver_name: selectedSheet.driver_name ?? "",
@@ -871,10 +966,20 @@ export function ManagerView() {
   const hasChanges =
     selectedSheet &&
     (form.last_24h_break !== (selectedSheet.last_24h_break ?? "") ||
+      form.last_24h_break_start !== (selectedSheet.last_24h_break_start ?? "") ||
+      form.last_24h_break_end !== (selectedSheet.last_24h_break_end ?? "") ||
       form.last_24h_rest_1 !== (selectedSheet.last_24h_rest_1 ?? "") ||
       form.last_24h_rest_2 !== (selectedSheet.last_24h_rest_2 ?? "") ||
       form.last_24h_rest_3 !== (selectedSheet.last_24h_rest_3 ?? "") ||
       form.last_24h_rest_4 !== (selectedSheet.last_24h_rest_4 ?? "") ||
+      form.last_24h_rest_1_start !== (selectedSheet.last_24h_rest_1_start ?? "") ||
+      form.last_24h_rest_1_end !== (selectedSheet.last_24h_rest_1_end ?? "") ||
+      form.last_24h_rest_2_start !== (selectedSheet.last_24h_rest_2_start ?? "") ||
+      form.last_24h_rest_2_end !== (selectedSheet.last_24h_rest_2_end ?? "") ||
+      form.last_24h_rest_3_start !== (selectedSheet.last_24h_rest_3_start ?? "") ||
+      form.last_24h_rest_3_end !== (selectedSheet.last_24h_rest_3_end ?? "") ||
+      form.last_24h_rest_4_start !== (selectedSheet.last_24h_rest_4_start ?? "") ||
+      form.last_24h_rest_4_end !== (selectedSheet.last_24h_rest_4_end ?? "") ||
       form.driver_type !== (selectedSheet.driver_type ?? "solo") ||
       form.week_starting !== (selectedSheet.week_starting ?? "") ||
       form.driver_name !== (selectedSheet.driver_name ?? "") ||
@@ -890,7 +995,9 @@ export function ManagerView() {
     const showDeclaredRests =
       form.driver_type !== "two_up" && declared24hRestUiFieldCount >= 2;
     saveMutation.mutate({
-      last_24h_break: form.last_24h_break || undefined,
+      last_24h_break: form.last_24h_break.trim() || null,
+      last_24h_break_start: form.last_24h_break_start.trim() || null,
+      last_24h_break_end: form.last_24h_break_end.trim() || null,
       driver_type: form.driver_type,
       week_starting: form.week_starting || undefined,
       destination: null,
@@ -900,10 +1007,18 @@ export function ManagerView() {
         ? {
             last_24h_rest_1: form.last_24h_rest_1.trim() || null,
             last_24h_rest_2: form.last_24h_rest_2.trim() || null,
+            last_24h_rest_1_start: form.last_24h_rest_1_start.trim() || null,
+            last_24h_rest_1_end: form.last_24h_rest_1_end.trim() || null,
+            last_24h_rest_2_start: form.last_24h_rest_2_start.trim() || null,
+            last_24h_rest_2_end: form.last_24h_rest_2_end.trim() || null,
             ...(declared24hRestUiFieldCount === 4
               ? {
                   last_24h_rest_3: form.last_24h_rest_3.trim() || null,
                   last_24h_rest_4: form.last_24h_rest_4.trim() || null,
+                  last_24h_rest_3_start: form.last_24h_rest_3_start.trim() || null,
+                  last_24h_rest_3_end: form.last_24h_rest_3_end.trim() || null,
+                  last_24h_rest_4_start: form.last_24h_rest_4_start.trim() || null,
+                  last_24h_rest_4_end: form.last_24h_rest_4_end.trim() || null,
                 }
               : {}),
           }
@@ -1204,56 +1319,14 @@ export function ManagerView() {
                           From this sheet record. Edit “Driver name” below only to correct the stored name.
                         </p>
                       </div>
-                      <div className="space-y-1.5 sm:col-span-2">
-                        <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                          Last 24 hour break
-                        </Label>
-                        <Input
-                          type="date"
-                          value={form.last_24h_break}
-                          onChange={(e) =>
-                            setForm((f) => ({
-                              ...f,
-                              last_24h_break: e.target.value,
-                            }))
-                          }
-                          className="h-9 font-mono max-w-xs"
-                        />
-                        <p className="text-xs text-slate-400">
-                          Date of last 24h non-work time; resets 17h and 72h rules. Leave
-                          empty if not set.
-                        </p>
-                      </div>
                       {form.driver_type !== "two_up" && declared24hRestUiFieldCount >= 2 && (
-                        <div className="space-y-3 sm:col-span-2 rounded-lg border border-amber-200/80 bg-amber-50/50 px-3 py-3 dark:border-amber-800/50 dark:bg-amber-950/20">
-                          <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-900 dark:text-amber-200">
-                              {declared24hRestUiFieldCount === 4
-                                ? DECLARED_24H_REST_COPY.TITLE_4
-                                : DECLARED_24H_REST_COPY.TITLE_2}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-snug">
-                              {DECLARED_24H_REST_COPY.MANAGER_HINT}
-                            </p>
-                          </div>
-                          {declared24hRestLabelKeys.map((key) => (
-                            <div key={key} className="space-y-1.5">
-                              <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-                                {declared24hRestLabels[key]}
-                              </Label>
-                              <Input
-                                type="date"
-                                value={form[key]}
-                                onChange={(e) =>
-                                  setForm((f) => ({
-                                    ...f,
-                                    [key]: e.target.value,
-                                  }))
-                                }
-                                className="h-9 font-mono max-w-xs"
-                              />
-                            </div>
-                          ))}
+                        <div className="sm:col-span-2">
+                          <Declared24hRestsField
+                            fieldCount={declared24hRestUiFieldCount === 4 ? 4 : 2}
+                            values={declared24hRestFields}
+                            onRangeChange={handleDeclared24hRestChange}
+                            allowAmend
+                          />
                         </div>
                       )}
                       <div className="space-y-1.5">

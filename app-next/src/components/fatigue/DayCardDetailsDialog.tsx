@@ -45,7 +45,6 @@ import {
   normalizeDayEvents,
   type DayEventDraft,
 } from "@/components/fatigue/DayEventsEditor";
-import { Last24hBreakField } from "@/components/fatigue/Last24hBreakField";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 
@@ -87,8 +86,6 @@ export function DayCardDetailsDialog({
   eventsEditable = false,
   sheetId,
   weekStarting,
-  last24hBreakRange,
-  onLast24hBreakChange,
   declared24hRests,
   declared24hRestFieldCount = 0,
   onDeclared24hRestChange,
@@ -118,18 +115,11 @@ export function DayCardDetailsDialog({
   eventsEditable?: boolean;
   sheetId?: string;
   weekStarting?: string;
-  last24hBreakRange?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
-  onLast24hBreakChange?: (range: import("@/lib/last-24h-break-range").Last24hBreakRange | null) => void;
-  declared24hRests?: {
-    last_24h_rest_1?: string;
-    last_24h_rest_2?: string;
-    last_24h_rest_3?: string;
-    last_24h_rest_4?: string;
-  };
+  declared24hRests?: import("@/lib/declared-24h-rests").Declared24hRestFields;
   declared24hRestFieldCount?: 0 | 2 | 4;
   onDeclared24hRestChange?: (
-    key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
-    ymd: string
+    key: import("@/lib/declared-24h-rests").Declared24hRestKey,
+    range: import("@/lib/last-24h-break-range").Last24hBreakRange | null
   ) => void;
   /** Manager: change locked week-header rest dates from Edit day. */
   allowHeaderRestAmend?: boolean;
@@ -459,20 +449,11 @@ export function DayCardDetailsDialog({
             />
           </div>
 
-          {onLast24hBreakChange && (
-            <Last24hBreakField
-              value={last24hBreakRange ?? null}
-              onChange={onLast24hBreakChange}
-              readOnly={readOnly}
-              allowAmend={allowHeaderRestAmend}
-            />
-          )}
-
           {declared24hRestFieldCount >= 2 && onDeclared24hRestChange && (
             <Declared24hRestsField
               fieldCount={declared24hRestFieldCount === 4 ? 4 : 2}
               values={declared24hRests ?? {}}
-              onChange={onDeclared24hRestChange}
+              onRangeChange={onDeclared24hRestChange}
               readOnly={readOnly}
               allowAmend={allowHeaderRestAmend}
             />

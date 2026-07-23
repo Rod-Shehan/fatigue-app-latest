@@ -89,12 +89,13 @@ export function ManagerGuideArticle() {
         <p>{MANAGER_EXPERIENCE.TAB_RECORDS_HELP}</p>
         <p className="mt-3">{SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}</p>
         <p className="mt-2 text-slate-600 dark:text-slate-300">
-          On the sheet workbench you can amend <strong>Last 24 hour break</strong> (start and end
-          times) and, when required,{" "}
-          <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> — the same header fields drivers set in Set up day.
-          Those fields also appear in a driver&apos;s <strong>Edit day</strong> dialog (managers can change locked
-          dates there). Assurance lines and sheet banners include <strong>Fix on record</strong> or{" "}
-          <strong>Fix this day</strong> so you land on the field instead of only reading a report.
+          On the sheet workbench you can amend{" "}
+          <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> (or four when required) with absolute
+          start and end times — the same fields drivers set in Set up day. Soft-reset for short-horizon
+          rules follows the most recent rest end. Those fields also appear in a driver&apos;s{" "}
+          <strong>Edit day</strong> dialog (managers can change locked values there). Assurance lines
+          and sheet banners include <strong>Fix on record</strong> or <strong>Fix this day</strong> so
+          you land on the field instead of only reading a report.
         </p>
         <p className="mt-2 font-medium text-slate-700 dark:text-slate-200">
           {SHEET_ATTESTATION_WORKFLOW.MANAGER_SEND_FOR_DRIVER_SIGN}

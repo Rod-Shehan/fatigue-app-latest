@@ -131,10 +131,19 @@ model FatigueSheet {
   /** Absolute end of declared ≥24h continuous break; soft-reset uses this instant. */
   last24hBreakEnd   DateTime?
   /** Declared solo 24h non-work rests (Reg 184E(2)(b)) when logs cannot yet prove them. */
-  last24hRest1    String?   // YYYY-MM-DD
+  last24hRest1    String?   // YYYY-MM-DD (derived from start when range is set)
   last24hRest2    String?
   last24hRest3    String?
   last24hRest4    String?
+  /** Absolute start/end of each declared ≥24h rest (rolling timeline). */
+  last24hRest1Start DateTime?
+  last24hRest1End   DateTime?
+  last24hRest2Start DateTime?
+  last24hRest2End   DateTime?
+  last24hRest3Start DateTime?
+  last24hRest3End   DateTime?
+  last24hRest4Start DateTime?
+  last24hRest4End   DateTime?
   weekStarting    String    // YYYY-MM-DD
   days            String    // JSON array of 7 day objects
   status          String    @default("draft") // "draft" | "completed"

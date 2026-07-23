@@ -19,7 +19,38 @@ export type Declared24hRestFields = {
   last_24h_rest_2?: string | null;
   last_24h_rest_3?: string | null;
   last_24h_rest_4?: string | null;
+  last_24h_rest_1_start?: string | null;
+  last_24h_rest_1_end?: string | null;
+  last_24h_rest_2_start?: string | null;
+  last_24h_rest_2_end?: string | null;
+  last_24h_rest_3_start?: string | null;
+  last_24h_rest_3_end?: string | null;
+  last_24h_rest_4_start?: string | null;
+  last_24h_rest_4_end?: string | null;
 };
+
+export type Declared24hRestKey =
+  | "last_24h_rest_1"
+  | "last_24h_rest_2"
+  | "last_24h_rest_3"
+  | "last_24h_rest_4";
+
+export const DECLARED_24H_REST_KEYS: Declared24hRestKey[] = [
+  "last_24h_rest_1",
+  "last_24h_rest_2",
+  "last_24h_rest_3",
+  "last_24h_rest_4",
+];
+
+export function declaredRestRangeKeys(key: Declared24hRestKey): {
+  start: keyof Declared24hRestFields;
+  end: keyof Declared24hRestFields;
+} {
+  return {
+    start: `${key}_start` as keyof Declared24hRestFields,
+    end: `${key}_end` as keyof Declared24hRestFields,
+  };
+}
 
 export type Declared24hRestRequirement = {
   /** 0 = hide UI; 2 = first-28d / option (i); 4 = 28-day alternative path only */
@@ -255,7 +286,107 @@ export function declared24hRestsFromSheet(sheet: Declared24hRestFields): Declare
     last_24h_rest_2: sheet.last_24h_rest_2 ?? null,
     last_24h_rest_3: sheet.last_24h_rest_3 ?? null,
     last_24h_rest_4: sheet.last_24h_rest_4 ?? null,
+    last_24h_rest_1_start: sheet.last_24h_rest_1_start ?? null,
+    last_24h_rest_1_end: sheet.last_24h_rest_1_end ?? null,
+    last_24h_rest_2_start: sheet.last_24h_rest_2_start ?? null,
+    last_24h_rest_2_end: sheet.last_24h_rest_2_end ?? null,
+    last_24h_rest_3_start: sheet.last_24h_rest_3_start ?? null,
+    last_24h_rest_3_end: sheet.last_24h_rest_3_end ?? null,
+    last_24h_rest_4_start: sheet.last_24h_rest_4_start ?? null,
+    last_24h_rest_4_end: sheet.last_24h_rest_4_end ?? null,
   };
+}
+
+/**
+ * Soft-reset fields for AMI / legacy: the declared rest with the latest end instant.
+ * Calendar last24hBreak is derived from that range start (Perth YMD).
+ */
+export function softResetFieldsFromDeclaredRests(
+  fields: Declared24hRestFields,
+  isoToPerthYmd: (iso: string) => string | null
+): {
+  last_24h_break: string;
+  last_24h_break_start: string;
+  last_24h_break_end: string;
+} {
+  let best: { start: string; end: string; endMs: number } | null = null;
+  for (const key of DECLARED_24H_REST_KEYS) {
+    const { start, end } = declaredRestRangeKeys(key);
+    const startIso = fields[start]?.toString().trim() ?? "";
+    const endIso = fields[end]?.toString().trim() ?? "";
+    if (!startIso || !endIso) continue;
+    const endMs = Date.parse(endIso);
+    if (!Number.isFinite(endMs)) continue;
+    if (!best || endMs > best.endMs) best = { start: startIso, end: endIso, endMs };
+  }
+  if (!best) {
+    return { last_24h_break: "", last_24h_break_start: "", last_24h_break_end: "" };
+  }
+  return {
+    last_24h_break: isoToPerthYmd(best.start) ?? "",
+    last_24h_break_start: best.start,
+    last_24h_break_end: best.end,
+  };
+}
+
+/**
+ * One-shot hydrate: copy legacy sheet soft-reset range into the matching declared
+ * rest slot when that slot has a date (or is empty) but no absolute times yet.
+ * Does not invent rests — only seeds times onto an existing/empty slot.
+ */
+export function seedSoftResetRangeIntoDeclaredRests(input: {
+  fields: Declared24hRestFields;
+  last24hBreak?: string | null;
+  last24hBreakStart?: string | null;
+  last24hBreakEnd?: string | null;
+  isoToPerthYmd: (iso: string) => string | null;
+}): Declared24hRestFields {
+  const startIso = input.last24hBreakStart?.trim() ?? "";
+  const endIso = input.last24hBreakEnd?.trim() ?? "";
+  if (!startIso || !endIso) return { ...input.fields };
+
+  const already = softResetFieldsFromDeclaredRests(input.fields, input.isoToPerthYmd);
+  if (already.last_24h_break_start && already.last_24h_break_end) {
+    return { ...input.fields };
+  }
+
+  const softYmd =
+    (input.last24hBreak?.trim() || input.isoToPerthYmd(startIso) || "").trim();
+  const out: Declared24hRestFields = { ...input.fields };
+
+  const matchKey =
+    DECLARED_24H_REST_KEYS.find((key) => (out[key]?.toString().trim() ?? "") === softYmd) ??
+    [...DECLARED_24H_REST_KEYS].reverse().find((key) => {
+      const ymd = out[key]?.toString().trim() ?? "";
+      const { start, end } = declaredRestRangeKeys(key);
+      const hasRange = !!(out[start]?.toString().trim() && out[end]?.toString().trim());
+      return !!ymd && !hasRange;
+    }) ??
+    ("last_24h_rest_1" as Declared24hRestKey);
+
+  const { start, end } = declaredRestRangeKeys(matchKey);
+  out[matchKey] = softYmd || input.isoToPerthYmd(startIso) || out[matchKey] || null;
+  out[start] = startIso;
+  out[end] = endIso;
+  return out;
+}
+
+/** Required declared rests not yet saved with absolute start+end. */
+export function declared24hRestsIncomplete(
+  fieldCount: 0 | 2 | 4,
+  fields: Declared24hRestFields
+): boolean {
+  if (fieldCount < 2) return false;
+  const keys =
+    fieldCount === 4
+      ? DECLARED_24H_REST_KEYS
+      : (["last_24h_rest_1", "last_24h_rest_2"] as Declared24hRestKey[]);
+  return keys.some((k) => {
+    const { start, end } = declaredRestRangeKeys(k);
+    const startIso = fields[start]?.toString().trim() ?? "";
+    const endIso = fields[end]?.toString().trim() ?? "";
+    return !startIso || !endIso;
+  });
 }
 
 /** LogBar / compliance dialog — opens Set up day for header record fields. */
@@ -266,49 +397,37 @@ export {
   isComplianceMessageFixableInDaySetup,
 } from "@/lib/compliance-fix-routes";
 
-/** Required declared rest dates not yet saved on this sheet. */
-export function declared24hRestsIncomplete(
-  fieldCount: 0 | 2 | 4,
-  fields: Declared24hRestFields
-): boolean {
-  if (fieldCount < 2) return false;
-  const keys =
-    fieldCount === 4
-      ? (["last_24h_rest_1", "last_24h_rest_2", "last_24h_rest_3", "last_24h_rest_4"] as const)
-      : (["last_24h_rest_1", "last_24h_rest_2"] as const);
-  return keys.some((k) => !(fields[k]?.trim()));
-}
-
 /** ESL copy for the declaration block (driver UI + guides). */
 export const DECLARED_24H_REST_COPY = {
   TITLE_2: "Last 2 × 24 hour non-work breaks",
   TITLE_4: "Last 4 × 24 hour non-work breaks",
   WHY_2:
-    "The fatigue rules need two full days of non-work (each 24 hours) in any 14-day period. This week is your legal record. If the app does not yet have enough of your past days to show those rests, you must enter the dates yourself. Signing the week means you say this is true.",
+    "The fatigue rules need two full days of non-work (each 24 hours) in any 14-day period. This week is your legal record. If the app does not yet have enough of your past days to show those rests, you must enter the start and end of each break yourself. Signing the week means you say this is true.",
   WHY_4:
-    "The 28-day alternative needs four full days of non-work (each 24 hours), and no more than 144 hours of work in any 14 days inside that period. Enter the four rest dates the record relies on. Signing the week means you say this is true.",
-  LABEL_1: "First 24 hour non-work date",
-  LABEL_2: "Second 24 hour non-work date",
-  LABEL_3: "Third 24 hour non-work date",
-  LABEL_4: "Fourth 24 hour non-work date",
+    "The 28-day alternative needs four full days of non-work (each 24 hours), and no more than 144 hours of work in any 14 days inside that period. Enter the start and end of each rest the record relies on. Signing the week means you say this is true.",
+  LABEL_1: "First 24 hour non-work break",
+  LABEL_2: "Second 24 hour non-work break",
+  LABEL_3: "Third 24 hour non-work break",
+  LABEL_4: "Fourth 24 hour non-work break",
   LOCKED_HINT: "Locked after sign-off — ask your manager to amend.",
-  EDITABLE_HINT: "You can change these dates until you sign the week.",
+  EDITABLE_HINT: "Set start and end times (Perth). You can change these until you sign the week. The most recent end also resets short-horizon rules (17h / 72h).",
   MANAGER_HINT:
-    "Full 24 hour non-work dates when logs cannot prove Reg 184E 2×24h. Correct here with an amendment reason; ask the driver to sign again.",
+    "Full 24 hour non-work breaks when logs cannot prove Reg 184E 2×24h. Enter absolute start and end; ask the driver to sign again after amendment.",
 } as const;
 
-/** Driver Set up day + manager amend — show 2/4 fields when required or when dates already saved. */
+function declaredRestSlotFilled(fields: Declared24hRestFields, key: Declared24hRestKey): boolean {
+  if (fields[key]?.toString().trim()) return true;
+  const { start, end } = declaredRestRangeKeys(key);
+  return !!(fields[start]?.toString().trim() && fields[end]?.toString().trim());
+}
+
+/** Driver Set up day + manager amend — show 2/4 fields when required or when dates/times already saved. */
 export function getDeclared24hRestUiFieldCount(
   requirement: Declared24hRestRequirement,
   fields: Declared24hRestFields
 ): 0 | 2 | 4 {
   if (requirement.fieldCount > 0) return requirement.fieldCount;
-  const n = [
-    fields.last_24h_rest_1,
-    fields.last_24h_rest_2,
-    fields.last_24h_rest_3,
-    fields.last_24h_rest_4,
-  ].filter((s) => !!s?.trim()).length;
+  const n = DECLARED_24H_REST_KEYS.filter((k) => declaredRestSlotFilled(fields, k)).length;
   if (n >= 4) return 4;
   if (n >= 1) return 2;
   return 0;

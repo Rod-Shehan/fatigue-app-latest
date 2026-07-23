@@ -9,6 +9,8 @@ import {
   getDeclared24hRestUiFieldCount,
   resolveDeclared24hRestUiFieldCount,
   isComplianceMessageFixableInDaySetup,
+  softResetFieldsFromDeclaredRests,
+  seedSoftResetRangeIntoDeclaredRests,
 } from "@/lib/declared-24h-rests";
 import { runComplianceChecks, type ComplianceDayData } from "@/lib/compliance";
 
@@ -100,13 +102,57 @@ describe("declared-24h-rests", () => {
     expect(isComplianceMessageFixableInDaySetup("20 min rest per 5h work not met")).toBe(false);
   });
 
-  it("declared24hRestsIncomplete when required dates missing", () => {
+  it("declared24hRestsIncomplete when required absolute start/end missing", () => {
     expect(
       declared24hRestsIncomplete(2, { last_24h_rest_1: "2026-07-10", last_24h_rest_2: null })
     ).toBe(true);
     expect(
-      declared24hRestsIncomplete(2, { last_24h_rest_1: "2026-07-10", last_24h_rest_2: "2026-07-11" })
+      declared24hRestsIncomplete(2, {
+        last_24h_rest_1: "2026-07-10",
+        last_24h_rest_2: "2026-07-11",
+      })
+    ).toBe(true);
+    expect(
+      declared24hRestsIncomplete(2, {
+        last_24h_rest_1: "2026-07-10",
+        last_24h_rest_2: "2026-07-11",
+        last_24h_rest_1_start: "2026-07-10T00:00:00.000Z",
+        last_24h_rest_1_end: "2026-07-11T00:00:00.000Z",
+        last_24h_rest_2_start: "2026-07-11T00:00:00.000Z",
+        last_24h_rest_2_end: "2026-07-12T00:00:00.000Z",
+      })
     ).toBe(false);
+  });
+
+  it("softResetFieldsFromDeclaredRests picks the latest end", () => {
+    const soft = softResetFieldsFromDeclaredRests(
+      {
+        last_24h_rest_1_start: "2026-07-10T02:00:00.000Z",
+        last_24h_rest_1_end: "2026-07-11T02:00:00.000Z",
+        last_24h_rest_2_start: "2026-07-18T04:00:00.000Z",
+        last_24h_rest_2_end: "2026-07-19T04:00:00.000Z",
+      },
+      (iso) => iso.slice(0, 10)
+    );
+    expect(soft.last_24h_break_start).toBe("2026-07-18T04:00:00.000Z");
+    expect(soft.last_24h_break_end).toBe("2026-07-19T04:00:00.000Z");
+    expect(soft.last_24h_break).toBe("2026-07-18");
+  });
+
+  it("seedSoftResetRangeIntoDeclaredRests fills matching rest slot once", () => {
+    const seeded = seedSoftResetRangeIntoDeclaredRests({
+      fields: {
+        last_24h_rest_1: "2026-07-10",
+        last_24h_rest_2: "2026-07-18",
+      },
+      last24hBreak: "2026-07-18",
+      last24hBreakStart: "2026-07-18T04:00:00.000Z",
+      last24hBreakEnd: "2026-07-19T04:00:00.000Z",
+      isoToPerthYmd: (iso) => iso.slice(0, 10),
+    });
+    expect(seeded.last_24h_rest_2_start).toBe("2026-07-18T04:00:00.000Z");
+    expect(seeded.last_24h_rest_2_end).toBe("2026-07-19T04:00:00.000Z");
+    expect(seeded.last_24h_rest_1_start).toBeFalsy();
   });
 });
 

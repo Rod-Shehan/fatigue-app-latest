@@ -223,14 +223,12 @@ export function DriverGuideArticle() {
           <li>Shift pattern — Day (A) or Night (B)</li>
           <li>Solo or Two-up, and the relief driver&apos;s name</li>
           <li>
-            Last 24-hour break start and end times (week record — under crew, above route setup).
-            Change them until you sign; after sign-off only your manager can amend.
-          </li>
-          <li>
-            Last 2 × 24 hour non-work breaks (two dates) — only when the app needs them because it
-            does not yet have enough of your past days. This is part of your legal week record. If
-            you are already on shift, tap <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the
-            upcoming compliance banner, Work warning, or compliance snapshot.
+            Last 2 or 4 × 24 hour non-work breaks — each with start and end times (week record —
+            under crew, above route setup). Shown when the app needs them. The most recent end also
+            resets short-horizon rules. Change them until you sign; after sign-off only your manager
+            can amend. If you are already on shift, tap{" "}
+            <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the upcoming compliance banner, Work
+            warning, or compliance snapshot.
           </li>
           <li>
             Work / break / non-work / End shift time corrections — if End shift is on that day after work the same day,

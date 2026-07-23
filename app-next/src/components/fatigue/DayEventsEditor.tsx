@@ -144,9 +144,9 @@ export function DayEventsEditor({
             <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished —
             enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above when you
             worked on this day before that End shift. Overnight finish only on this card: end km on the previous day
-            is enough. The week&apos;s{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">Last 24Hr Break</span>{" "}
-            date is set above in this same form (crew / rest section) — not as an event type here.
+            is enough. Declared{" "}
+            <span className="font-medium text-slate-600 dark:text-slate-300">24 hour non-work breaks</span>{" "}
+            (start and end times) are set above in this same form — not as an event type here.
           </p>
           {sorted.length === 0 ? (
             <p className="text-sm text-slate-600 dark:text-slate-400">

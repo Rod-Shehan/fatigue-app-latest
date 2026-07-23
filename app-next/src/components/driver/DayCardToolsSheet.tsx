@@ -109,12 +109,17 @@ export function DayCardToolsSheet({
               </p>
               <p className="text-slate-700 dark:text-slate-300">
                 <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
-                  Last 24hr break
+                  Soft reset (from latest 24h rest end)
                 </span>
                 <br />
-                {last24hBreak?.trim() ? (
-                  formatSheetDisplayDate(last24hBreak)
-                ) : last24hUnset && onOpenDaySetup ? (
+                {last24hBreak?.trim() ? formatSheetDisplayDate(last24hBreak) : "Not set"}
+              </p>
+              {declared24hRestUnset && onOpenDaySetup ? (
+                <p className="text-slate-700 dark:text-slate-300">
+                  <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
+                    {DECLARED_24H_REST_COPY.TITLE_2}
+                  </span>
+                  <br />
                   <button
                     type="button"
                     className="text-amber-700 dark:text-amber-300 font-semibold underline-offset-2 hover:underline"
@@ -123,13 +128,10 @@ export function DayCardToolsSheet({
                       onOpenDaySetup();
                     }}
                   >
-                    Set in day setup
+                    Set start &amp; end in day setup
                   </button>
-                ) : (
-                  "Not set"
-                )}
-              </p>
-              {declared24hRestUnset && onOpenDaySetup ? (
+                </p>
+              ) : last24hUnset && onOpenDaySetup ? (
                 <p className="text-slate-700 dark:text-slate-300">
                   <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
                     {DECLARED_24H_REST_COPY.TITLE_2}

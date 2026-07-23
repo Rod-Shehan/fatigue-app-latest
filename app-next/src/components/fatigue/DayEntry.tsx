@@ -120,9 +120,6 @@ export default function DayEntry({
   sheetId,
   driverType,
   secondDriver,
-  onLast24hBreakChange,
-  last24hBreak,
-  last24hBreakRange,
   declared24hRests,
   declared24hRestFieldCount = 0,
   onDeclared24hRestChange,
@@ -149,21 +146,11 @@ export default function DayEntry({
   sheetId?: string;
   driverType?: string;
   secondDriver?: string;
-  last24hBreak?: string;
-  last24hBreakRange?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
-  onLast24hBreakChange?: (
-    range: import("@/lib/last-24h-break-range").Last24hBreakRange | null
-  ) => void;
-  declared24hRests?: {
-    last_24h_rest_1?: string;
-    last_24h_rest_2?: string;
-    last_24h_rest_3?: string;
-    last_24h_rest_4?: string;
-  };
+  declared24hRests?: import("@/lib/declared-24h-rests").Declared24hRestFields;
   declared24hRestFieldCount?: 0 | 2 | 4;
   onDeclared24hRestChange?: (
-    key: "last_24h_rest_1" | "last_24h_rest_2" | "last_24h_rest_3" | "last_24h_rest_4",
-    ymd: string
+    key: import("@/lib/declared-24h-rests").Declared24hRestKey,
+    range: import("@/lib/last-24h-break-range").Last24hBreakRange | null
   ) => void;
   /** When today's crew is confirmed in Set up day, sync sheet header for LogBar / compliance. */
   onCrewMetaSync?: (crew: { driver_type: "solo" | "two_up"; second_driver: string }) => void;
@@ -608,8 +595,6 @@ export default function DayEntry({
           eventsEditable={canEditDetails}
           sheetId={sheetId}
           weekStarting={weekStart}
-          last24hBreakRange={last24hBreakRange}
-          onLast24hBreakChange={onLast24hBreakChange}
           declared24hRests={declared24hRests}
           declared24hRestFieldCount={declared24hRestFieldCount}
           onDeclared24hRestChange={onDeclared24hRestChange}
