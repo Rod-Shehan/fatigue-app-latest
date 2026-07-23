@@ -122,6 +122,7 @@ export default function DayEntry({
   secondDriver,
   onLast24hBreakChange,
   last24hBreak,
+  last24hBreakRange,
   declared24hRests,
   declared24hRestFieldCount = 0,
   onDeclared24hRestChange,
@@ -149,7 +150,10 @@ export default function DayEntry({
   driverType?: string;
   secondDriver?: string;
   last24hBreak?: string;
-  onLast24hBreakChange?: (ymd: string) => void;
+  last24hBreakRange?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
+  onLast24hBreakChange?: (
+    range: import("@/lib/last-24h-break-range").Last24hBreakRange | null
+  ) => void;
   declared24hRests?: {
     last_24h_rest_1?: string;
     last_24h_rest_2?: string;
@@ -604,7 +608,7 @@ export default function DayEntry({
           eventsEditable={canEditDetails}
           sheetId={sheetId}
           weekStarting={weekStart}
-          last24hBreak={last24hBreak}
+          last24hBreakRange={last24hBreakRange}
           onLast24hBreakChange={onLast24hBreakChange}
           declared24hRests={declared24hRests}
           declared24hRestFieldCount={declared24hRestFieldCount}
