@@ -87,6 +87,8 @@ export async function runSync(): Promise<SyncResult> {
               second_driver: latest.second_driver,
               driver_type: latest.driver_type,
               last_24h_break: latest.last_24h_break,
+              last_24h_break_start: latest.last_24h_break_start,
+              last_24h_break_end: latest.last_24h_break_end,
               last_24h_rest_1: latest.last_24h_rest_1,
               last_24h_rest_2: latest.last_24h_rest_2,
               last_24h_rest_3: latest.last_24h_rest_3,

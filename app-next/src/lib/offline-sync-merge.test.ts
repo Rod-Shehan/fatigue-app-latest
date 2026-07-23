@@ -74,10 +74,16 @@ describe("offline-sync-merge", () => {
         id: "s1",
         driver_name: "Jaydin Ireland",
         days: [{ events: [{ time: "t", type: "work" }] }],
+        last_24h_break: "2026-07-17",
+        last_24h_break_start: "2026-07-16T16:00:00.000Z",
+        last_24h_break_end: "2026-07-17T16:00:00.000Z",
       })
     );
     expect(payload.driver_name).toBe("Jaydin Ireland");
     expect(payload.days?.[0]?.events?.[0]?.type).toBe("work");
+    expect(payload.last_24h_break).toBe("2026-07-17");
+    expect(payload.last_24h_break_start).toBe("2026-07-16T16:00:00.000Z");
+    expect(payload.last_24h_break_end).toBe("2026-07-17T16:00:00.000Z");
     expect(payload).not.toHaveProperty("id");
   });
 

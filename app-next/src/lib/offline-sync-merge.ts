@@ -73,6 +73,14 @@ export function toSheetUpdatePayload(sheet: Partial<FatigueSheet>): Partial<Fati
     driver_type: sheet.driver_type,
     destination: sheet.destination ?? null,
     last_24h_break: sheet.last_24h_break || undefined,
+    last_24h_break_start:
+      sheet.last_24h_break_start === undefined
+        ? undefined
+        : sheet.last_24h_break_start || null,
+    last_24h_break_end:
+      sheet.last_24h_break_end === undefined
+        ? undefined
+        : sheet.last_24h_break_end || null,
     last_24h_rest_1: sheet.last_24h_rest_1 || undefined,
     last_24h_rest_2: sheet.last_24h_rest_2 || undefined,
     last_24h_rest_3: sheet.last_24h_rest_3 || undefined,
