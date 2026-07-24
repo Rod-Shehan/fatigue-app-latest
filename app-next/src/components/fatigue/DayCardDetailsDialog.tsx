@@ -163,7 +163,16 @@ export function DayCardDetailsDialog({
     const prev = sheetDays[dayIndex - 1];
     if (!prev) return null;
     const prevYmd = getSheetDayDateString(weekStarting, dayIndex - 1);
-    return getEffectiveOpenActivityAtDayEnd(prev, prevYmd, sheetDayYmd);
+    return getEffectiveOpenActivityAtDayEnd(
+      prev as {
+        work_time?: boolean[];
+        breaks?: boolean[];
+        non_work?: boolean[];
+        events?: { time: string; type: string }[];
+      },
+      prevYmd,
+      sheetDayYmd
+    );
   }, [activityBeforeDayProp, dayIndex, sheetDays, weekStarting, sheetDayYmd]);
 
   const {

@@ -611,7 +611,12 @@ export default function DayEntry({
             activityBeforeDay ??
             (dayIndex > 0 && allDays[dayIndex - 1]
               ? getEffectiveOpenActivityAtDayEnd(
-                  allDays[dayIndex - 1]!,
+                  allDays[dayIndex - 1] as {
+                    work_time?: boolean[];
+                    breaks?: boolean[];
+                    non_work?: boolean[];
+                    events?: { time: string; type: string }[];
+                  },
                   getSheetDayDateString(weekStart, dayIndex - 1),
                   sheetDayYmd
                 )
