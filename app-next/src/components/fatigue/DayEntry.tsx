@@ -15,6 +15,7 @@ import { getHours } from "@/lib/compliance";
 import { formatHoursStatistic } from "@/lib/hours";
 import { formatPatternStreakForDisplay, patternStreakThresholdMet } from "@/lib/shift-change";
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
+import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
   CONTINUED_SHIFT_ROUTE_CARD_NOTE,
@@ -129,6 +130,7 @@ export default function DayEntry({
   onDetailsDialogClosed,
   driverName,
   allowHeaderRestAmend = false,
+  activityBeforeDay = null,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -164,6 +166,8 @@ export default function DayEntry({
   driverName?: string | null;
   /** Manager: change locked week-header rest dates from Edit day. */
   allowHeaderRestAmend?: boolean;
+  /** Open activity before this week day 0 (prior week carry). */
+  activityBeforeDay?: import("@/lib/day-event-edit-rules").PriorOpenActivity;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -603,6 +607,16 @@ export default function DayEntry({
           showShiftPatternEducation={showShiftPatternEducation}
           patternWorkMinutes={patternWorkMinutes}
           continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
+          activityBeforeDay={
+            activityBeforeDay ??
+            (dayIndex > 0 && allDays[dayIndex - 1]
+              ? getEffectiveOpenActivityAtDayEnd(
+                  allDays[dayIndex - 1]!,
+                  getSheetDayDateString(weekStart, dayIndex - 1),
+                  sheetDayYmd
+                )
+              : null)
+          }
           onConfirm={(fields, updatedEvents) => {
             const planFields = hasRunPlanContent(fields)
               ? {

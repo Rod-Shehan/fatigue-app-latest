@@ -44,6 +44,7 @@ import {
   deriveDaysWithRollover,
   applyLast24hBreakNonWorkRule,
   resolveOpenActivityBeforeFirstDay,
+  getEffectiveOpenActivityAtDayEnd,
   type OpenActivityAtDayEnd,
 } from "@/components/fatigue/EventLogger";
 import {
@@ -1831,15 +1832,23 @@ export function SheetDetail({
     const isCurrent = dayIndex === currentDayIndex;
     const crew = resolveDayCrew(sheetData.days[dayIndex], sheetData);
     if (isManager) {
-      return {
-        ...driverSheetMetaProps,
-        driverType: sheetData.driver_type,
-        secondDriver: sheetData.second_driver,
-        driverName: driverPageIdentity.name,
-        /** Managers can amend locked week-header rest dates from Edit day. */
-        allowHeaderRestAmend: !driverContentLocked,
-      };
-    }
+    return {
+      ...driverSheetMetaProps,
+      driverType: sheetData.driver_type,
+      secondDriver: sheetData.second_driver,
+      driverName: driverPageIdentity.name,
+      /** Managers can amend locked week-header rest dates from Edit day. */
+      allowHeaderRestAmend: !driverContentLocked,
+      activityBeforeDay:
+        dayIndex === 0
+          ? openActivityBeforeFirstDay
+          : getEffectiveOpenActivityAtDayEnd(
+              sheetData.days[dayIndex - 1] ?? {},
+              getSheetDayDateString(sheetData.week_starting, dayIndex - 1),
+              todayYmd
+            ),
+    };
+  }
     return {
       ...driverSheetMetaProps,
       driverType: crew.driver_type,
@@ -1847,6 +1856,14 @@ export function SheetDetail({
       driverName: driverPageIdentity.name,
       /** Drivers can change header rests until sign-off (same as other sheet fields). */
       allowHeaderRestAmend: !driverContentLocked,
+      activityBeforeDay:
+        dayIndex === 0
+          ? openActivityBeforeFirstDay
+          : getEffectiveOpenActivityAtDayEnd(
+              sheetData.days[dayIndex - 1] ?? {},
+              getSheetDayDateString(sheetData.week_starting, dayIndex - 1),
+              todayYmd
+            ),
       onCrewMetaSync: isTodayCard
         ? (meta: { driver_type: "solo" | "two_up"; second_driver: string }) => {
             handleHeaderChange({

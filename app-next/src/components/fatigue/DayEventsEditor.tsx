@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { Briefcase, Coffee, Moon, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,11 @@ import {
 } from "@/components/ui/select";
 import type { ActivityKey } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+import {
+  dayEventEditMessages,
+  validateDayEventEdits,
+  type PriorOpenActivity,
+} from "@/lib/day-event-edit-rules";
 
 export type DayEventDraft = {
   time: string;
@@ -80,6 +85,7 @@ export function DayEventsEditor({
   readOnly = false,
   sheetId,
   driverType,
+  activityBeforeDay = null,
 }: {
   sheetDayYmd: string;
   events: DayEventDraft[];
@@ -89,8 +95,16 @@ export function DayEventsEditor({
   sheetId?: string;
   /** When two_up, work events can be tagged primary/second. */
   driverType?: string;
+  /** Open activity carried from the previous calendar day (rolling timeline). */
+  activityBeforeDay?: PriorOpenActivity;
 }) {
   const sorted = normalizeDayEvents(events);
+  const issues = useMemo(
+    () => validateDayEventEdits(events, { activityBeforeDay }),
+    [events, activityBeforeDay]
+  );
+  const bannerMessages = dayEventEditMessages(issues);
+  const issueIndexes = new Set(issues.map((i) => i.eventIndex).filter((i) => i >= 0));
 
   const addEvent = (type: ActivityKey) => {
     onChange([...events, { type, time: defaultTimeForNewEvent(sheetDayYmd, events) }]);
@@ -137,17 +151,29 @@ export function DayEventsEditor({
         <>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
             Correct work, break, non-work, or end-shift times for this day. Use{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">break</span> for rest during a shift
-            (counts toward 5h rules),{" "}
+            <span className="font-medium text-slate-600 dark:text-slate-300">break</span> only during a work bout
+            (not in the middle of non-work — it needs work to break from),{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">non-work</span> when off duty or between
             shifts (7h / 24h recovery), and{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished —
             enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above when you
-            worked on this day before that End shift. Overnight finish only on this card: end km on the previous day
-            is enough. Declared{" "}
+            worked on this day before that End shift. Open work overnight is OK; leave a break open is not — resume
+            work, go to non-work, or End shift after a break. Declared{" "}
             <span className="font-medium text-slate-600 dark:text-slate-300">24 hour non-work breaks</span>{" "}
             (start and end times) are set above in this same form — not as an event type here.
           </p>
+          {bannerMessages.length > 0 ? (
+            <div
+              className="rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 space-y-1"
+              role="alert"
+            >
+              {bannerMessages.map((m) => (
+                <p key={m} className="text-sm text-red-700 dark:text-red-300 leading-snug">
+                  {m}
+                </p>
+              ))}
+            </div>
+          ) : null}
           {sorted.length === 0 ? (
             <p className="text-sm text-slate-600 dark:text-slate-400">
               No events yet — add work, break, non-work, or end shift below.
@@ -159,8 +185,15 @@ export function DayEventsEditor({
                 .sort((a, b) => new Date(a.ev.time).getTime() - new Date(b.ev.time).getTime())
                 .map(({ ev, i: eventIndex }) => {
                   const typeKey: ActivityKey = isActivityKey(ev.type) ? ev.type : "work";
+                  const bad = issueIndexes.has(eventIndex);
                   return (
-                    <div key={eventIndex} className="flex flex-wrap items-center gap-2">
+                    <div
+                      key={eventIndex}
+                      className={cn(
+                        "flex flex-wrap items-center gap-2 rounded-md p-1 -mx-1",
+                        bad && "bg-red-50 dark:bg-red-950/30 ring-1 ring-red-300 dark:ring-red-800"
+                      )}
+                    >
                       <Select
                         value={typeKey}
                         onValueChange={(v) => {

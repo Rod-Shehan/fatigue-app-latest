@@ -47,6 +47,14 @@ import {
 } from "@/components/fatigue/DayEventsEditor";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
+import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
+import {
+  dayEventEditMessages,
+  dayEventEditsBlocked,
+  validateDayEventEdits,
+  type PriorOpenActivity,
+} from "@/lib/day-event-edit-rules";
+import { getSheetDayDateString } from "@/lib/weeks";
 
 export type DayCardFields = {
   truck_rego?: string;
@@ -95,6 +103,7 @@ export function DayCardDetailsDialog({
   showShiftPatternEducation,
   patternWorkMinutes = 0,
   continuedFromPreviousDay,
+  activityBeforeDay: activityBeforeDayProp = null,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -130,10 +139,16 @@ export function DayCardDetailsDialog({
   patternWorkMinutes?: number;
   /** When shift continued overnight — pre-filled fields may be carried from the prior day. */
   continuedFromPreviousDay?: string;
+  /**
+   * Open activity before this day on the rolling timeline (e.g. prior week → Sunday).
+   * When omitted, inferred from sheetDays[dayIndex - 1] when dayIndex > 0.
+   */
+  activityBeforeDay?: PriorOpenActivity;
 }) {
   const [draft, setDraft] = useState<DayCardFields>(initial);
   const [draftEvents, setDraftEvents] = useState<DayEventDraft[]>(initialEvents);
   const [kmError, setKmError] = useState<string | null>(null);
+  const [eventError, setEventError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
   const [saveCatalogueError, setSaveCatalogueError] = useState<string | null>(null);
   const [routeMode, setRouteMode] = useState<RouteSetupMode>("catalogue");
@@ -141,6 +156,15 @@ export function DayCardDetailsDialog({
   const [confirming, setConfirming] = useState(false);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
+
+  const activityBeforeDay = useMemo((): PriorOpenActivity => {
+    if (activityBeforeDayProp != null) return activityBeforeDayProp;
+    if (dayIndex <= 0 || !weekStarting) return null;
+    const prev = sheetDays[dayIndex - 1];
+    if (!prev) return null;
+    const prevYmd = getSheetDayDateString(weekStarting, dayIndex - 1);
+    return getEffectiveOpenActivityAtDayEnd(prev, prevYmd, sheetDayYmd);
+  }, [activityBeforeDayProp, dayIndex, sheetDays, weekStarting, sheetDayYmd]);
 
   const {
     data: routePresets = [],
@@ -346,6 +370,7 @@ export function DayCardDetailsDialog({
 
   const handleConfirm = async () => {
     setKmError(null);
+    setEventError(null);
     setPlanError(null);
     const planErr = runPlanValidationError(draft);
     if (planErr) {
@@ -367,6 +392,13 @@ export function DayCardDetailsDialog({
     if (stopKmError) {
       setKmError(stopKmError);
       return;
+    }
+    if (eventsEditable) {
+      const eventIssues = validateDayEventEdits(draftEvents, { activityBeforeDay });
+      if (dayEventEditsBlocked(eventIssues)) {
+        setEventError(dayEventEditMessages(eventIssues)[0] ?? "Fix the work / break / non-work times.");
+        return;
+      }
     }
     const daysForValidation: DayWithKms[] = sheetDays.map((d, i) =>
       i === dayIndex
@@ -744,12 +776,21 @@ export function DayCardDetailsDialog({
           <DayEventsEditor
             sheetDayYmd={sheetDayYmd}
             events={draftEvents}
-            onChange={setDraftEvents}
+            onChange={(next) => {
+              setEventError(null);
+              setDraftEvents(next);
+            }}
             readOnly={!eventsEditable}
             sheetId={sheetId}
             driverType={draft.driver_type ?? "solo"}
+            activityBeforeDay={activityBeforeDay}
           />
         )}
+        {eventError ? (
+          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+            {eventError}
+          </p>
+        ) : null}
 
         <div className="flex flex-col-reverse sm:flex-row gap-2 justify-end pt-2">
           <Button type="button" variant="outline" className="min-h-11 text-base" onClick={() => onOpenChange(false)}>
