@@ -89,6 +89,25 @@ export function collectDeclared24hRests(
   return out;
 }
 
+/** Absolute declared rest ranges (start/end), for AMI tape + soft-reset consumers. */
+export function collectDeclared24hRestRanges(
+  fields: Declared24hRestFields | null | undefined
+): Array<{ startMs: number; endMs: number }> {
+  if (!fields) return [];
+  const out: Array<{ startMs: number; endMs: number }> = [];
+  for (const key of DECLARED_24H_REST_KEYS) {
+    const { start, end } = declaredRestRangeKeys(key);
+    const startRaw = fields[start]?.toString().trim() ?? "";
+    const endRaw = fields[end]?.toString().trim() ?? "";
+    if (!startRaw || !endRaw) continue;
+    const startMs = Date.parse(startRaw);
+    const endMs = Date.parse(endRaw);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
+    out.push({ startMs, endMs });
+  }
+  return out;
+}
+
 /** Count full non-work periods of length `periodMinutes` on a minute boolean timeline. */
 export function countFullNonWorkPeriods(nonWork: boolean[], periodMinutes: number): number {
   if (periodMinutes <= 0) return 0;

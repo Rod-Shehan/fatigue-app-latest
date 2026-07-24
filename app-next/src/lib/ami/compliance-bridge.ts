@@ -5,6 +5,10 @@
 
 import type { ComplianceCheckResult, ComplianceDayData } from "@/lib/compliance";
 import { runComplianceChecks } from "@/lib/compliance";
+import {
+  collectDeclared24hRestRanges,
+  collectDeclared24hRests,
+} from "@/lib/declared-24h-rests";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import { getSheetDayDateString } from "@/lib/weeks";
 import {
@@ -162,7 +166,11 @@ function buildAmiOwnedResults(
     }
 
     const rests = evaluateSolo14dLongRests(
-      buildEvalTape(events, asOf, AMI_14D_WINDOW, { clipToFirstEvent: true })
+      buildEvalTape(events, asOf, AMI_14D_WINDOW, { clipToFirstEvent: true }),
+      {
+        declaredRanges: collectDeclared24hRestRanges(options.declared24hRests),
+        declaredYmdds: collectDeclared24hRests(options.declared24hRests),
+      }
     );
     if (!rests.ok) {
       out.push({

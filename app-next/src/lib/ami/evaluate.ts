@@ -452,7 +452,38 @@ export function evaluate168hWork(tape: AmiTape): Ami168hResult {
 
 // —— Solo 14-day ≥2×24h non_work ——
 
-export function evaluateSolo14dLongRests(tape: AmiTape): {
+export type AmiSolo14dLongRestOptions = {
+  /** Absolute declared ≥24h rests (preferred when present). */
+  declaredRanges?: ReadonlyArray<{ startMs: number; endMs: number }>;
+  /** Legacy date-only declarations when absolute ranges are absent. */
+  declaredYmdds?: readonly string[];
+};
+
+function countDeclared14dRestCredit(options?: AmiSolo14dLongRestOptions): number {
+  const ranges = options?.declaredRanges ?? [];
+  let rangeCredit = 0;
+  for (const r of ranges) {
+    if (!Number.isFinite(r.startMs) || !Number.isFinite(r.endMs)) continue;
+    if (r.endMs - r.startMs >= AMI_14D_LONG_REST_BLOCK * 60_000) rangeCredit += 1;
+  }
+  if (rangeCredit > 0) return rangeCredit;
+
+  const seen = new Set<string>();
+  for (const d of options?.declaredYmdds ?? []) {
+    const s = typeof d === "string" ? d.trim() : "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) seen.add(s);
+  }
+  return seen.size;
+}
+
+/**
+ * Count ≥24h continuous `non_work` on the tape, plus declared rests when logs cannot
+ * yet prove Reg 184E(2)(b) option (i) — same product role as legacy `option14Satisfied`.
+ */
+export function evaluateSolo14dLongRests(
+  tape: AmiTape,
+  options?: AmiSolo14dLongRestOptions
+): {
   longRestCount: number;
   ok: boolean;
 } {
@@ -460,9 +491,16 @@ export function evaluateSolo14dLongRests(tape: AmiTape): {
   const longs = continuousRuns(tape.kinds, "non_work", from).filter(
     (r) => r.length >= AMI_14D_LONG_REST_BLOCK
   );
+  const declaredCredit = countDeclared14dRestCredit(options);
+  // When the tape already proves ≥2, ignore declarations (avoid double-count noise).
+  // Otherwise add declarations the same way legacy credits sheet-declared rests.
+  const longRestCount =
+    longs.length >= AMI_14D_LONG_REST_COUNT
+      ? longs.length
+      : longs.length + declaredCredit;
   return {
-    longRestCount: longs.length,
-    ok: longs.length >= AMI_14D_LONG_REST_COUNT,
+    longRestCount,
+    ok: longRestCount >= AMI_14D_LONG_REST_COUNT,
   };
 }
 

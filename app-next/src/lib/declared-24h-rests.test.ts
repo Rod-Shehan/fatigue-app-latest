@@ -4,6 +4,7 @@ import {
   getDeclared24hRestRequirement,
   option14Satisfied,
   collectDeclared24hRests,
+  collectDeclared24hRestRanges,
   countEffective24hPeriods,
   declared24hRestsIncomplete,
   getDeclared24hRestUiFieldCount,
@@ -38,6 +39,17 @@ describe("declared-24h-rests", () => {
         last_24h_rest_3: "2026-07-12",
       })
     ).toEqual(["2026-07-10", "2026-07-12"]);
+  });
+
+  it("collectDeclared24hRestRanges keeps valid absolute spans only", () => {
+    expect(
+      collectDeclared24hRestRanges({
+        last_24h_rest_1_start: "2026-07-09T16:00:00.000Z",
+        last_24h_rest_1_end: "2026-07-11T16:00:00.000Z",
+        last_24h_rest_2_start: "2026-07-12T16:00:00.000Z",
+        last_24h_rest_2_end: "2026-07-12T10:00:00.000Z",
+      })
+    ).toEqual([{ startMs: Date.parse("2026-07-09T16:00:00.000Z"), endMs: Date.parse("2026-07-11T16:00:00.000Z") }]);
   });
 
   it("cold start: two declarations satisfy option14 with short timeline", () => {
