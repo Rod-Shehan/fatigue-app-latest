@@ -77,7 +77,7 @@ describe("deriveDaysWithRollover", () => {
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
     const wed = derived[3]!;
-    // Short carry stays break (≤30m); then work from the driver's next tap
+    // Actioned break carry stays break (≤30m); then work from the driver's next tap
     expect((wed.breaks ?? []).slice(0, 15).every(Boolean)).toBe(true);
     expect((wed.work_time ?? []).slice(15, 60).every(Boolean)).toBe(true);
   });

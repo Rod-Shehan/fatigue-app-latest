@@ -85,9 +85,9 @@ You **cannot** start Work until **start km** is on today's card (see section 7).
 ## 5. Non-work time
 
 - If you do **not** tap Work or Break, the app shows **non-work**.
-- Rest **longer than 30 minutes** is **non-work**, not Break.
-- **Break** is short rest during work (counts toward your 20 minutes rest per 5 hours of work).
-- When you finish for the day, tap **End shift**. After that, time is non-work until you tap Work again.
+- **Break** only appears when you **tap Break**. A short logged break (30 minutes or less) stays Break; longer logged breaks become **non-work**.
+- The app does **not** invent Break from a short gap after **End shift** or other time off.
+- When you finish for the day, tap **End shift**. From that moment, time is **non-work** until you tap Work again.
 
 ---
 

@@ -11,7 +11,8 @@
  * - WA Reg 184E(1)(a): ≥20 min breaks per 5 h work incl. ≥10 min after 5 h
  *   (Work Health and Safety (General) Regulations 2022).
  *
- * App mapping: breaks >30 min → non-work; shorter breaks → break-from-driving (recovery partial).
+ * App mapping: logged breaks >30 min → non-work; shorter logged breaks → break-from-driving (recovery partial).
+ * End shift and other non-break off-duty time stay non-work (no invent-break from short gaps).
  */
 
 /** Continuous work without qualifying recovery before carry saturates (~5 h). */

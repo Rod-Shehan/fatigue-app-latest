@@ -40,8 +40,8 @@ describe("AMI 184E(4) pattern-change rest variants", () => {
     expect(patternChangeRestMet(100)).toBe(false);
   });
 
-  it("reclass-shaped fake break does not spoil only-work-interrupts", () => {
-    // Simulates ≤30 reclass break in the middle of a long off-duty stretch
+  it("actioned break inside non_work does not spoil only-work-interrupts", () => {
+    // Actioned break in the middle of a long off-duty stretch (not an invented gap)
     const kinds: AmiTape["kinds"] = [
       ...Array(800).fill("non_work"),
       ...Array(20).fill("break"),

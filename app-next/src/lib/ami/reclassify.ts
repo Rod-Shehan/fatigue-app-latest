@@ -1,12 +1,16 @@
 /**
  * AMI coverage reclass — mandatory before compliance evaluation.
  * Does not mutate the raw event log (display stays raw).
+ *
+ * Driver-logged events remain the source of truth for break vs non-work:
+ * - Do not invent break from short non_work gaps (End shift / idle stay non_work).
+ * - Completed actioned break < 10 min → work.
+ * - Continuous actioned break ≥ 31 min → non_work.
  */
 
 import {
   AMI_LONG_BREAK_AS_NON_WORK_MIN,
   AMI_MICRO_BREAK_AS_WORK_MAX,
-  AMI_SHORT_GAP_AS_BREAK_MAX,
 } from "./constants";
 import type { AmiKind, AmiTape } from "./types";
 
@@ -16,26 +20,6 @@ function cloneTape(tape: AmiTape): AmiTape {
     endMs: tape.endMs,
     kinds: tape.kinds.slice(),
   };
-}
-
-/** Short non_work gaps ≤30 adjacent to work → break. */
-function reclassifyShortGapsAsBreak(kinds: AmiKind[]): void {
-  const n = kinds.length;
-  for (let s = 0; s < n; ) {
-    if (kinds[s] !== "non_work") {
-      s++;
-      continue;
-    }
-    let runEnd = s;
-    while (runEnd < n && kinds[runEnd] === "non_work") runEnd++;
-    const runMinutes = runEnd - s;
-    const hasWorkBefore = s > 0 && kinds[s - 1] === "work";
-    const hasWorkAfter = runEnd < n && kinds[runEnd] === "work";
-    if (runMinutes <= AMI_SHORT_GAP_AS_BREAK_MAX && (hasWorkBefore || hasWorkAfter)) {
-      for (let k = s; k < runEnd; k++) kinds[k] = "break";
-    }
-    s = runEnd;
-  }
 }
 
 /** Continuous break ≥31 → non_work. */
@@ -81,16 +65,14 @@ function reclassifyMicroBreaksAsWork(kinds: AmiKind[]): void {
 
 /**
  * Apply Section 1 reclass in a fixed order:
- * 1) short gap → break
- * 2) micro break → work
- * 3) long break → non_work
+ * 1) micro break → work
+ * 2) long break → non_work
  *
- * Order: short gaps first (create breaks), then micro→work, then long→non_work
- * so a 35-min break becomes non_work and a 5-min completed break becomes work.
+ * Order: micro→work first, then long→non_work so a 35-min break becomes non_work
+ * and a 5-min completed break becomes work. Short non_work gaps are never promoted to break.
  */
 export function reclassifyAmiTape(tape: AmiTape): AmiTape {
   const next = cloneTape(tape);
-  reclassifyShortGapsAsBreak(next.kinds);
   reclassifyMicroBreaksAsWork(next.kinds);
   reclassifyLongBreaksAsNonWork(next.kinds);
   return next;

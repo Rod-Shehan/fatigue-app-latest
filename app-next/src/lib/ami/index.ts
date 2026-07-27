@@ -5,7 +5,7 @@
  * (kill-switch: AMI_COMPLIANCE_ENGINE_ENABLED=false). No engine deletes.
  *
  * Locked:
- * - Reclass 30 / <10→work / ≥31→non_work before evaluation
+ * - Reclass: completed break &lt;10→work / ≥31→non_work (no invent-break from short gaps)
  * - Solo 17h episode resume after End shift (keep)
  * - 184E(4) primary AMI measure: only `work` interrupts pattern-change rest
  * - Continuous-non_work variant exported for comparison only

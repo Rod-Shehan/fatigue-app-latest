@@ -8,9 +8,11 @@ import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 import {
   getSheetOfflineFirst,
   updateSheetOfflineFirst,
+  persistSheetLocalCritical,
   listSheetsOfflineFirst,
   listRegosOfflineFirst,
 } from "@/lib/offline-api";
+import { shouldClearDirtyAfterSave } from "@/lib/sheet-save-dirty";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -321,6 +323,14 @@ export function SheetDetail({
   const dayCardElsRef = useRef<(HTMLDivElement | null)[]>([]);
   const isDirtyRef = useRef(isDirty);
   const lastHydratedSheetIdRef = useRef<string | null>(null);
+  /** Bumps on every local edit; save success clears dirty only if gens still match. */
+  const localEditGenRef = useRef(0);
+  const inFlightSaveGenRef = useRef(0);
+  const markLocalEdit = useCallback(() => {
+    localEditGenRef.current += 1;
+    isDirtyRef.current = true;
+    setIsDirty(true);
+  }, []);
   useEffect(() => {
     isDirtyRef.current = isDirty;
   }, [isDirty]);
@@ -654,6 +664,9 @@ export function SheetDetail({
       signed_at,
     });
     const dirty = defaultsApplied || seededPersisted;
+    if (dirty) {
+      localEditGenRef.current += 1;
+    }
     isDirtyRef.current = dirty;
     setIsDirty(dirty);
   }, [sheet, isManager, driverUserKey]);
@@ -1085,26 +1098,6 @@ export function SheetDetail({
     [extendedDaysForShiftStreak, prevStreakCount]
   );
 
-  const saveMutation = useMutation({
-    mutationFn: async (data: Partial<FatigueSheet>) => {
-      return updateSheetOfflineFirst(sheetId, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sheet", sheetId] });
-      queryClient.invalidateQueries({ queryKey: ["sheets"] });
-      setIsDirty(false);
-      setLastSaved(new Date());
-    },
-  });
-
-  const saveStatus = saveMutation.isPending
-    ? ("saving" as const)
-    : isDirty
-      ? ("dirty" as const)
-      : lastSaved
-        ? ("saved" as const)
-        : null;
-
   const buildSavePayload = useCallback((): Partial<FatigueSheet> => {
     const d = sheetDataRef.current;
     return {
@@ -1133,6 +1126,45 @@ export function SheetDetail({
       status: d.status,
     };
   }, []);
+
+  const saveMutation = useMutation({
+    mutationFn: async (data: Partial<FatigueSheet>) => {
+      return updateSheetOfflineFirst(sheetId, data);
+    },
+    onMutate: () => {
+      inFlightSaveGenRef.current = localEditGenRef.current;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sheet", sheetId] });
+      queryClient.invalidateQueries({ queryKey: ["sheets"] });
+      setLastSaved(new Date());
+      // If Start shift / Break landed while amber "Syncing…" / save was in flight,
+      // do not clear dirty or the refetch will wipe the tap.
+      if (shouldClearDirtyAfterSave(localEditGenRef.current, inFlightSaveGenRef.current)) {
+        isDirtyRef.current = false;
+        setIsDirty(false);
+        return;
+      }
+      isDirtyRef.current = true;
+      setIsDirty(true);
+      window.setTimeout(() => {
+        if (!isDirtyRef.current) return;
+        if (saveMutation.isPending) return;
+        const d = sheetDataRef.current;
+        if (!d.driver_name) return;
+        if (!canDriverEditSheetContent(d.week_starting, d.status, d.signature)) return;
+        saveMutation.mutate(buildSavePayload());
+      }, 0);
+    },
+  });
+
+  const saveStatus = saveMutation.isPending
+    ? ("saving" as const)
+    : isDirty
+      ? ("dirty" as const)
+      : lastSaved
+        ? ("saved" as const)
+        : null;
 
   useEffect(() => {
     if (driverContentLocked || !isDirty || !sheetData.driver_name) return;
@@ -1173,8 +1205,8 @@ export function SheetDetail({
       const next = { ...prev, ...updates };
       return { ...next, days: applyLast24hBreakNonWorkRule(next.days, next.week_starting, next.last_24h_break || undefined) };
     });
-    setIsDirty(true);
-  }, [driverContentLocked]);
+    markLocalEdit();
+  }, [driverContentLocked, markLocalEdit]);
 
   /** Keep showing declared rests after they satisfy the rule (do not vanish).
    * Also force 2/4 fields when compliance already flags 2×24h. Soft-reset
@@ -1443,8 +1475,10 @@ export function SheetDetail({
       sheetDataRef.current = next;
       return next;
     });
-    isDirtyRef.current = true;
-    setIsDirty(true);
+    markLocalEdit();
+    // Device-first: park the event in IndexedDB + pending queue even while amber
+    // "Syncing…" / an older save is in flight (React Query may skip the flush).
+    void persistSheetLocalCritical(sheetId, buildSavePayload()).catch(() => {});
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       if (!isDirtyRef.current) return;
@@ -1487,8 +1521,7 @@ export function SheetDetail({
           sheetDataRef.current = next;
           return next;
         });
-        isDirtyRef.current = true;
-        setIsDirty(true);
+        markLocalEdit();
       })
       .catch(() => {});
   },
@@ -1502,6 +1535,8 @@ export function SheetDetail({
     saveMutation,
     gpsMovementTrailEnabled,
     handleEndShiftRequest,
+    markLocalEdit,
+    sheetId,
   ]);
 
   const handleEndShiftFinishDayChange = useCallback(

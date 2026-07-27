@@ -157,8 +157,8 @@ export default function TimeGrid({
             row.key === "work_time"
               ? "Logged work time"
               : row.key === "breaks"
-                ? "Counted as break: short gaps (≤30 min) between work; used for 20 min / 5h rule. Any break longer than 30 min is counted as non-work."
-                : "Counted as non-work (recovery): time between shifts and breaks longer than 30 min.";
+                ? "Counted as break: time you logged as Break (≤30 min); used for 20 min / 5h rule. Logged breaks longer than 30 min count as non-work."
+                : "Counted as non-work (recovery): End shift, logged non-work, and logged breaks longer than 30 min.";
           return (
             <div
               key={row.key}

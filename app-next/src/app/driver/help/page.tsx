@@ -110,12 +110,12 @@ export default async function DriverHelpPage() {
                 — tap when your activity changes. These buttons log your day.
               </li>
               <li>
-                <strong className="text-slate-700 dark:text-slate-200">Break</strong> — short rest (≤30 min between work)
-                counts toward your 20 min per 5 hours work.
+                <strong className="text-slate-700 dark:text-slate-200">Break</strong> — when you tap Break for a short rest
+                (≤30 min) during work; counts toward your 20 min per 5 hours work.
               </li>
               <li>
-                <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — longer breaks and time off;
-                any break over 30 minutes counts here.
+                <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — End shift, longer rests,
+                and any logged break over 30 minutes.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Shift pattern (A/B)</strong> on the day card —{" "}

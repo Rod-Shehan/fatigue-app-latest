@@ -72,7 +72,17 @@ export async function runSync(): Promise<SyncResult> {
         if (merged) await offlineSetSheet(merged);
 
         await api.sheets.update(item.sheetId, payload);
-        await offlineSetSheet(await api.sheets.get(item.sheetId));
+        const serverSheet = await api.sheets.get(item.sheetId);
+        // A Start shift (or other tap) may have landed in IDB while this sync was in flight.
+        // Never let the older server copy wipe richer local events.
+        const localNow = await offlineGetSheet(item.sheetId);
+        if (localNow && shouldPreferLocalSheet(localNow, serverSheet)) {
+          await offlineEnqueueSheetUpdate(item.sheetId, toSheetUpdatePayload(localNow));
+          // Keep local; siblings already removed below only after successful push of *this* payload —
+          // re-queue means another sync pass will push the newer events.
+        } else {
+          await offlineSetSheet(serverSheet);
+        }
         for (const s of siblings) {
           await offlineRemovePending(s.id);
           removedIds.add(s.id);
@@ -253,6 +263,27 @@ export async function updateSheetOfflineFirst(sheetId: string, data: Partial<Fat
 
   // Try sync opportunistically; some devices misreport navigator.onLine.
   if (!isLocalTemp) await runSync().catch(() => {});
+  scheduleDeviceBackupAfterWrite();
+  return merged;
+}
+
+/**
+ * Critical driver actions (Start shift / Break / etc.): write device cache + pending
+ * queue immediately without waiting for React Query mutation or an in-flight sync.
+ * Does not call runSync (avoids blocking the tap); OfflineBar / useOfflineSync will push.
+ */
+export async function persistSheetLocalCritical(
+  sheetId: string,
+  data: Partial<FatigueSheet>
+): Promise<FatigueSheet> {
+  const existing = await offlineGetSheet(sheetId).catch(() => null);
+  const merged: FatigueSheet = existing
+    ? { ...existing, ...data, id: sheetId }
+    : ({ ...data, id: sheetId } as FatigueSheet);
+  await offlineSetSheet(merged);
+  if (!sheetId.startsWith("local-")) {
+    await offlineEnqueueSheetUpdate(sheetId, data);
+  }
   scheduleDeviceBackupAfterWrite();
   return merged;
 }

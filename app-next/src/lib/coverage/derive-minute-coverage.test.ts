@@ -39,6 +39,42 @@ describe("deriveMinuteGridFromEvents", () => {
     expect(nonWorkMinutes).toBeGreaterThanOrEqual(4 * 60);
     expect(grid.work_time.filter(Boolean).length).toBeGreaterThan(0);
   });
+
+  it("paints End shift as non-work immediately (does not invent ≤30m break)", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T08:00:00`, type: "work" },
+        { time: `${dateStr}T12:00:00`, type: "stop" },
+        { time: `${dateStr}T12:20:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    // 12:00–12:20 = 20 minutes after End shift — must stay non-work, not break
+    const start = 12 * 60;
+    const end = 12 * 60 + 20;
+    expect(grid.non_work.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.breaks.slice(start, end).some(Boolean)).toBe(false);
+    expect(grid.work_time.slice(start, end).some(Boolean)).toBe(false);
+  });
+
+  it("keeps short actioned break as break (≤30 min)", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T08:00:00`, type: "work" },
+        { time: `${dateStr}T12:00:00`, type: "break" },
+        { time: `${dateStr}T12:20:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const start = 12 * 60;
+    const end = 12 * 60 + 20;
+    expect(grid.breaks.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.non_work.slice(start, end).some(Boolean)).toBe(false);
+  });
 });
 
 describe("normalizeSheetDaysForApi", () => {

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   AMI_LONG_BREAK_AS_NON_WORK_MIN,
-  AMI_SHORT_GAP_AS_BREAK_MAX,
   paintAmiTape,
   reclassifyAmiTape,
   type AmiEvent,
@@ -17,25 +16,24 @@ function tapeFromKinds(kinds: AmiTape["kinds"], originMs = 0): AmiTape {
 }
 
 describe("AMI reclass", () => {
-  it("short non_work gap ≤30 adjacent to work → break", () => {
+  it("does not invent break from short non_work next to work", () => {
     const kinds = [
       ...Array(10).fill("work"),
-      ...Array(AMI_SHORT_GAP_AS_BREAK_MAX).fill("non_work"),
+      ...Array(20).fill("non_work"),
       ...Array(10).fill("work"),
     ] as AmiTape["kinds"];
     const out = reclassifyAmiTape(tapeFromKinds(kinds));
-    expect(out.kinds.slice(10, 40).every((k) => k === "break")).toBe(true);
+    expect(out.kinds.slice(10, 30).every((k) => k === "non_work")).toBe(true);
   });
 
-  it("non_work gap 31 next to work stays non_work (not short-gap)", () => {
+  it("keeps short actioned break as break (≤30)", () => {
     const kinds = [
-      ...Array(5).fill("work"),
-      ...Array(31).fill("non_work"),
-      ...Array(5).fill("work"),
+      ...Array(10).fill("work"),
+      ...Array(20).fill("break"),
+      ...Array(10).fill("work"),
     ] as AmiTape["kinds"];
     const out = reclassifyAmiTape(tapeFromKinds(kinds));
-    // 31 non_work is not ≤30, so short-gap does not convert; stays non_work
-    expect(out.kinds.slice(5, 36).every((k) => k === "non_work")).toBe(true);
+    expect(out.kinds.slice(10, 30).every((k) => k === "break")).toBe(true);
   });
 
   it("completed break <10 → work", () => {
@@ -69,8 +67,22 @@ describe("AMI reclass", () => {
     ];
     const raw = paintAmiTape(events, origin, asOf);
     const out = reclassifyAmiTape(raw);
-    // After 02:00 → non_work
     const afterStop = Math.floor((Date.parse("2026-07-20T02:00:00") - origin) / 60_000);
     expect(out.kinds.slice(afterStop).every((k) => k === "non_work")).toBe(true);
+  });
+
+  it("paint + reclass: short gap after End shift stays non_work (not invent break)", () => {
+    const origin = Date.parse("2026-07-20T00:00:00");
+    const asOf = Date.parse("2026-07-20T04:00:00");
+    const events: AmiEvent[] = [
+      { time: "2026-07-20T01:00:00", type: "work" },
+      { time: "2026-07-20T02:00:00", type: "stop" },
+      { time: "2026-07-20T02:20:00", type: "work" },
+    ];
+    const out = reclassifyAmiTape(paintAmiTape(events, origin, asOf));
+    const stopMin = Math.floor((Date.parse("2026-07-20T02:00:00") - origin) / 60_000);
+    const resumeMin = Math.floor((Date.parse("2026-07-20T02:20:00") - origin) / 60_000);
+    expect(out.kinds.slice(stopMin, resumeMin).every((k) => k === "non_work")).toBe(true);
+    expect(out.kinds.slice(stopMin, resumeMin).some((k) => k === "break")).toBe(false);
   });
 });

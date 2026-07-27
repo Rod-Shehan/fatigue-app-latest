@@ -4,42 +4,19 @@
  *
  * Single source of truth: work / break / non-work coverage per calendar day as 1440 booleans (one per minute).
  * Used by EventLogger, compliance, and TimeGrid (via dayData grids).
+ *
+ * Driver-logged events are the paint source of truth:
+ * - Only an actioned `break` paints as break (while ≤30 min; longer actioned breaks become non-work).
+ * - `stop` (End shift) ends the prior segment; time after it is non-work — never invent break from short gaps.
  */
 
 import { getTodayLocalDateString } from "@/lib/weeks";
 
 export const MINUTES_PER_DAY = 1440;
 
-const MAX_GAP_AS_BREAK_MINUTES = 30;
+/** Actioned break runs longer than this are recorded as non-work (not invented gaps). */
+const MAX_BREAK_AS_BREAK_MINUTES = 30;
 const MIN_BREAK_BLOCK_MINUTES = 10;
-
-function reclassifyShortGapsAsBreak(
-  work_time: boolean[],
-  breaks: boolean[],
-  non_work: boolean[],
-  maxMinuteExclusive: number
-): { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] } {
-  for (let s = 0; s < maxMinuteExclusive; ) {
-    if (!non_work[s]) {
-      s++;
-      continue;
-    }
-    let runEnd = s;
-    while (runEnd < maxMinuteExclusive && non_work[runEnd]) runEnd++;
-    const runMinutes = runEnd - s;
-    const isShortGap = runMinutes <= MAX_GAP_AS_BREAK_MINUTES;
-    const hasWorkBefore = s > 0 && work_time[s - 1];
-    const hasWorkAfter = runEnd < maxMinuteExclusive && work_time[runEnd];
-    if (isShortGap && (hasWorkBefore || hasWorkAfter)) {
-      for (let k = s; k < runEnd; k++) {
-        breaks[k] = true;
-        non_work[k] = false;
-      }
-    }
-    s = runEnd;
-  }
-  return { work_time, breaks, non_work };
-}
 
 function reclassifyLongBreaksAsNonWork(
   work_time: boolean[],
@@ -47,7 +24,7 @@ function reclassifyLongBreaksAsNonWork(
   non_work: boolean[],
   maxMinuteExclusive: number
 ): { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] } {
-  const minMinutesAsNonWork = MAX_GAP_AS_BREAK_MINUTES + 1;
+  const minMinutesAsNonWork = MAX_BREAK_AS_BREAK_MINUTES + 1;
   for (let s = 0; s < maxMinuteExclusive; ) {
     if (!breaks[s]) {
       s++;
@@ -81,7 +58,8 @@ export type DeriveMinuteGridOptions = {
 
 /**
  * Derive minute-resolution grids from events for one day (00:00–24:00 local `dateStr`).
- * Mirrors the former 30-minute slot rules at 1-minute granularity.
+ * End shift (`stop`) is not painted as its own type: it ends the prior segment; following
+ * unfilled minutes are non-work (never auto-promoted to break).
  */
 export function deriveMinuteGridFromEvents(
   events: { time: string; type: string }[] | undefined,
@@ -123,13 +101,7 @@ export function deriveMinuteGridFromEvents(
     for (let m = 0; m < maxMinuteExclusive; m++) {
       if (!work_time[m] && !breaks[m]) non_work[m] = true;
     }
-    const withShortGapsAsBreak = reclassifyShortGapsAsBreak(work_time, breaks, non_work, maxMinuteExclusive);
-    return reclassifyLongBreaksAsNonWork(
-      withShortGapsAsBreak.work_time,
-      withShortGapsAsBreak.breaks,
-      withShortGapsAsBreak.non_work,
-      maxMinuteExclusive
-    );
+    return reclassifyLongBreaksAsNonWork(work_time, breaks, non_work, maxMinuteExclusive);
   }
 
   for (let i = 0; i < events.length; i++) {
@@ -155,13 +127,7 @@ export function deriveMinuteGridFromEvents(
   for (let m = 0; m < maxMinuteExclusive; m++) {
     if (!work_time[m] && !breaks[m]) non_work[m] = true;
   }
-  const withShortGapsAsBreak = reclassifyShortGapsAsBreak(work_time, breaks, non_work, maxMinuteExclusive);
-  return reclassifyLongBreaksAsNonWork(
-    withShortGapsAsBreak.work_time,
-    withShortGapsAsBreak.breaks,
-    withShortGapsAsBreak.non_work,
-    maxMinuteExclusive
-  );
+  return reclassifyLongBreaksAsNonWork(work_time, breaks, non_work, maxMinuteExclusive);
 }
 
 /** Expand legacy 48 half-hour slots to 1440 minutes (each true slot → 30 minutes). */

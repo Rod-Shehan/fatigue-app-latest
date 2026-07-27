@@ -3,8 +3,7 @@
  * Unwired: not yet the live compliance engine. See `src/lib/ami/index.ts`.
  */
 
-/** Coverage reclass */
-export const AMI_SHORT_GAP_AS_BREAK_MAX = 30;
+/** Coverage reclass — actioned breaks only (no inventing break from short non_work gaps). */
 export const AMI_LONG_BREAK_AS_NON_WORK_MIN = 31;
 export const AMI_MICRO_BREAK_AS_WORK_MAX = 9; // completed break < 10 → work
 
