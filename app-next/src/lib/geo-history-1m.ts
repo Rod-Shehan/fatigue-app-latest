@@ -29,7 +29,7 @@ export const GEO_MAX_SEGMENT_POINTS = 120;
  * After the last significant move, stay in "moving" lock this long before
  * unlocking Work/Break (hysteresis so the button does not flicker at lights).
  */
-export const GEO_STATIONARY_UNLOCK_MS = 25_000;
+export const GEO_STATIONARY_UNLOCK_MS = 10_000;
 /**
  * Ignore distance-based movement lock when horizontal accuracy is worse than this
  * (cold-start GPS jitter was blanking the hero after ~10–15s while parked).
