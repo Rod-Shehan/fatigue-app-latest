@@ -1066,7 +1066,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
   });
 
   const FOOTER_BUDGET_MM = 40;
-  const TILE_BUDGET_MM = 32;
+  const TILE_BUDGET_MM = 22; // half-height track rows (~18mm tile + gap)
 
   dayList.forEach((day, idx) => {
     const isLastDay = idx === dayList.length - 1;

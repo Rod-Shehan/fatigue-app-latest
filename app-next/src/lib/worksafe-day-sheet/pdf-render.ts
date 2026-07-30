@@ -20,7 +20,7 @@ import {
 } from "./quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
 
-const LANE_H = 22;
+const LANE_H = 11; // PDF track rows — half of prior 22 to pack more days per page
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -182,10 +182,10 @@ export const WORKSAFE_PDF_DAY_CSS = `
   .wsTotalCap { background:#e7e5e4; font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center; }
   .wsBody { position:relative; }
   .wsRow.sep { border-bottom:1px solid #000; }
-  .wsRowLabel { border-right:1px solid #000; padding:2px 4px; font-size:6.5px; font-weight:700; display:flex; align-items:center; line-height:1.15; height:${LANE_H}px; }
+  .wsRowLabel { border-right:1px solid #000; padding:1px 3px; font-size:5.5px; font-weight:700; display:flex; align-items:center; line-height:1.1; height:${LANE_H}px; }
   .wsQ { border-right:1px solid #d6d3d1; height:${LANE_H}px; box-sizing:border-box; }
   .wsQ.hour { border-right-color:#000; }
-  .wsTotal { border-left:1px solid #000; font-size:8px; font-weight:800; font-family:ui-monospace,monospace; display:flex; align-items:center; justify-content:center; height:${LANE_H}px; }
+  .wsTotal { border-left:1px solid #000; font-size:7px; font-weight:800; font-family:ui-monospace,monospace; display:flex; align-items:center; justify-content:center; height:${LANE_H}px; }
   .wsLineWrap { position:absolute; top:0; bottom:0; left:78px; right:36px; pointer-events:none; }
   .wsLineWrap svg { display:block; width:100%; height:100%; }
   .mono { font-family:ui-monospace,monospace; }
@@ -212,7 +212,7 @@ export function drawWorkSafeDaySheetJsPdf(
   const labelW = 26;
   const totalW = 12;
   const chartW = width - labelW - totalW;
-  const laneH = 5.5;
+  const laneH = 2.75; // half of prior 5.5mm — match HTML LANE_H packing
   const metaH = 6;
   const hourH = 4;
   const chartH = WORKSAFE_TRACKS.length * laneH;
@@ -296,10 +296,10 @@ export function drawWorkSafeDaySheetJsPdf(
     doc.setDrawColor(...ink);
     doc.rect(x, ly, labelW, laneH, "S");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(4.8);
+    doc.setFontSize(3.6);
     doc.setTextColor(...ink);
     const labelLines = doc.splitTextToSize(WORKSAFE_TRACK_LABELS[track], labelW - 1.5);
-    doc.text(labelLines, x + 0.6, ly + 2.2);
+    doc.text(labelLines.slice(0, 2), x + 0.6, ly + Math.min(1.4, laneH * 0.55));
 
     for (let q = 0; q < WORKSAFE_QUARTERS_PER_DAY; q++) {
       const qx = x + labelW + q * qW;
@@ -313,13 +313,13 @@ export function drawWorkSafeDaySheetJsPdf(
     doc.rect(x + labelW, ly, chartW, laneH, "S");
     doc.rect(x + labelW + chartW, ly, totalW, laneH, "S");
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
+    doc.setFontSize(5);
     const tot = formatTotal(paint.totalsMinutes[track], paint.paintedUntilMinute);
-    if (tot) doc.text(tot, x + labelW + chartW + totalW / 2, ly + laneH * 0.7, { align: "center" });
+    if (tot) doc.text(tot, x + labelW + chartW + totalW / 2, ly + laneH * 0.72, { align: "center" });
   });
 
   doc.setDrawColor(...ink);
-  doc.setLineWidth(0.55);
+  doc.setLineWidth(0.4);
   const xOf = (m: number) => x + labelW + (m / WORKSAFE_MINUTES_PER_DAY) * chartW;
   let prev: WorkSafeDaySegment | null = null;
   for (const seg of paint.segments) {
