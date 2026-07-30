@@ -6,6 +6,7 @@ import { buildProduceCoverPdfBytes } from "@/lib/roadside-cover-jspdf";
 import { formatProduceWindowLabel } from "@/lib/roadside-produce";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
+import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
 import {
   buildSingleSheetJsPdfBuffer,
   renderPdfHtml,
@@ -20,7 +21,11 @@ export function extractPdfHtmlBody(fullHtml: string): string {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return sanitizePdfPlainText(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 export function renderRoadsideProduceCoverHtml(opts: {
@@ -74,16 +79,18 @@ export function renderRoadsideProduceDocumentHtml(opts: {
     <style>
       @page { size: A4; margin: 12mm; }
       body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; }
-      .produceCover { margin: 0 0 20px; padding: 16px 18px; border: 2px solid #b45309; border-radius: 12px; background: #fffbeb; break-after: page; }
-      .produceCover h1 { font-size: 20px; font-weight: 800; margin: 0 0 8px; color: #78350f; }
-      .produceLead { font-size: 12px; line-height: 1.45; margin: 0 0 12px; color: #92400e; }
-      .produceMeta { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px; }
-      .produceMeta th { text-align: left; width: 34%; padding: 5px 10px 5px 0; color: #78350f; font-weight: 700; vertical-align: top; border-bottom: 1px solid #fde68a; }
-      .produceMeta td { padding: 5px 0; border-bottom: 1px solid #fde68a; color: #1e293b; }
-      .produceDisclaimer { font-size: 9px; color: #57534e; line-height: 1.4; margin: 0 0 8px; }
-      .produceNote { font-size: 10px; color: #78716c; margin: 0; }
+      .produceCover { margin: 0 0 12px; padding: 12px 14px; border: 2px solid #b45309; border-radius: 12px; background: #fffbeb; break-after: avoid; page-break-after: avoid; }
+      .produceCover h1 { font-size: 18px; font-weight: 800; margin: 0 0 6px; color: #78350f; }
+      .produceLead { font-size: 11px; line-height: 1.4; margin: 0 0 8px; color: #92400e; }
+      .produceMeta { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 8px; }
+      .produceMeta th { text-align: left; width: 34%; padding: 4px 10px 4px 0; color: #78350f; font-weight: 700; vertical-align: top; border-bottom: 1px solid #fde68a; }
+      .produceMeta td { padding: 4px 0; border-bottom: 1px solid #fde68a; color: #1e293b; }
+      .produceDisclaimer { font-size: 8.5px; color: #57534e; line-height: 1.35; margin: 0 0 6px; }
+      .produceNote { font-size: 9.5px; color: #78716c; margin: 0; }
+      /* First week continues after cover; later weeks start on a new page */
       .produceWeek { page-break-before: always; break-before: page; }
-      .produceWeek .header { margin-top: 0; }
+      .produceWeek:first-of-type { page-break-before: auto; break-before: auto; }
+      .produceWeek .header { display: none; }
       .header { background: #0f172a; color: white; padding: 12px 14px; border-radius: 10px; }
       .headerRow { display:flex; justify-content:space-between; align-items:flex-end; gap: 10px; }
       .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }

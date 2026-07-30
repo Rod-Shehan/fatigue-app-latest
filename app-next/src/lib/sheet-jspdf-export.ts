@@ -21,6 +21,7 @@ import {
   WEEKLY_TRIP_SHEET_PDF_CSS,
 } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
 import { checklistMatrixFromDays } from "@/lib/worksafe-day-sheet/trip-checklist";
+import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
 import type { WorkSafeTrack } from "@/lib/worksafe-day-sheet/types";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -223,7 +224,11 @@ function segmentLabel(type: SegmentType): string {
 }
 
 function escapeHtml(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  return sanitizePdfPlainText(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
 /** Display stored ISO timestamps in Australia/Perth for the shift log. */
@@ -704,7 +709,7 @@ function renderRoadsideJsPDF(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(60, 60, 60);
-  const meta = `Driver: ${roadside.driverName}  |  Week: ${roadside.weekStarting}  |  Rules: ${roadside.jurisdictionLabel}`;
+  const meta = `Driver: ${sanitizePdfPlainText(roadside.driverName)}  |  Week: ${sanitizePdfPlainText(roadside.weekStarting)}  |  Rules: ${sanitizePdfPlainText(roadside.jurisdictionLabel)}`;
   const metaLines = doc.splitTextToSize(meta, colW);
   doc.text(metaLines, margin, y);
   y += metaLines.length * 3.6 + 2;
@@ -743,7 +748,7 @@ function renderRoadsideJsPDF(
   doc.setFontSize(7);
   const vText = roadside.violations
     .slice(0, 12)
-    .map((v) => `• ${v.day}: ${v.message}`)
+    .map((v) => `- ${sanitizePdfPlainText(v.day)}: ${sanitizePdfPlainText(v.message)}`)
     .join("\n");
   const vLines = doc.splitTextToSize(vText || "(none)", colW);
   doc.text(vLines, margin, y);
@@ -756,7 +761,7 @@ function renderRoadsideJsPDF(
   doc.setFontSize(7);
   const wText = roadside.warnings
     .slice(0, 12)
-    .map((w) => `• ${w.day}: ${w.message}`)
+    .map((w) => `- ${sanitizePdfPlainText(w.day)}: ${sanitizePdfPlainText(w.message)}`)
     .join("\n");
   const wLines = doc.splitTextToSize(wText || "(none)", colW);
   doc.text(wLines, margin, y);
