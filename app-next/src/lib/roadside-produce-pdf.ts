@@ -96,7 +96,7 @@ export function renderRoadsideProduceDocumentHtml(opts: {
       .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
       .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
       .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-      .dayCard { margin: 6px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
+      .dayCard { margin: 3px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
       .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
       .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
       .wtsLastWithFooter { break-inside: avoid; page-break-inside: avoid; }

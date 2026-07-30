@@ -626,7 +626,7 @@ export function renderPdfHtml(opts: {
         .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
         .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
         .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-        .dayCard { margin: 6px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
+        .dayCard { margin: 3px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
         .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
         .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
         .wtsLastWithFooter { break-inside: avoid; page-break-inside: avoid; }
@@ -1066,7 +1066,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
   });
 
   const FOOTER_BUDGET_MM = 40;
-  const TILE_BUDGET_MM = 22; // half-height track rows (~18mm tile + gap)
+  const TILE_BUDGET_MM = 24; // ~20mm tile + half gap after 20% taller lanes
 
   dayList.forEach((day, idx) => {
     const isLastDay = idx === dayList.length - 1;
@@ -1116,7 +1116,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
         end_kms: dayWithKms.end_kms ?? null,
       },
     });
-    y += 2;
+    y += 1;
   });
 
   y = drawWeeklyTripSheetFooterJsPdf(doc, {

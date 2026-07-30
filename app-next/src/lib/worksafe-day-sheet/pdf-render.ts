@@ -20,7 +20,7 @@ import {
 } from "./quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
 
-const LANE_H = 11; // PDF track rows — half of prior 22 to pack more days per page
+const LANE_H = 13.2; // 20% taller than half-height (11) trial
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -212,7 +212,7 @@ export function drawWorkSafeDaySheetJsPdf(
   const labelW = 26;
   const totalW = 12;
   const chartW = width - labelW - totalW;
-  const laneH = 2.75; // half of prior 5.5mm — match HTML LANE_H packing
+  const laneH = 3.3; // 20% taller than half-height (2.75) trial — match HTML LANE_H
   const metaH = 6;
   const hourH = 4;
   const chartH = WORKSAFE_TRACKS.length * laneH;
@@ -334,5 +334,5 @@ export function drawWorkSafeDaySheetJsPdf(
     prev = seg;
   }
 
-  return opts.y + tileH + 1.5;
+  return opts.y + tileH + 0.75;
 }
