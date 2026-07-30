@@ -98,10 +98,10 @@ export function renderWorkSafeDaySheetHtml(opts: {
   driverName?: string;
   day: PdfDayInput;
 }): string {
-  const { paint, dayName, day } = opts;
-  void opts.dateLabel;
+  const { paint, dayName, day, dateLabel } = opts;
   void opts.driverName;
   const dayUpper = dayName.toUpperCase();
+  const dateLine = (dateLabel ?? "").trim();
   const chartH = WORKSAFE_TRACKS.length * LANE_H;
   const stepPath = buildStepPath(paint.segments, LANE_H);
   const startKm =
@@ -137,7 +137,10 @@ export function renderWorkSafeDaySheetHtml(opts: {
         <div class="wsMetaCell"><span class="wsMetaLab">Odometer Finish</span><span class="wsMetaVal mono">${escapeHtml(endKm)}</span></div>
       </div>
       <div class="wsHourRow">
-        <div class="wsDayName">${escapeHtml(dayUpper)}</div>
+        <div class="wsDayName">
+          <span class="wsDayNameDay">${escapeHtml(dayUpper)}</span>
+          ${dateLine ? `<span class="wsDayNameDate">${escapeHtml(dateLine)}</span>` : ""}
+        </div>
         ${hourCells}
         <div class="wsTotalCap">Total</div>
       </div>
@@ -168,7 +171,9 @@ export const WORKSAFE_PDF_DAY_CSS = `
     grid-template-columns: 78px repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1fr)) 36px;
   }
   .wsHourRow { border-bottom:1px solid #000; }
-  .wsDayName { border-right:1px solid #000; padding:3px 4px; font-size:9px; font-weight:800; text-decoration:underline; }
+  .wsDayName { border-right:1px solid #000; padding:2px 4px; display:flex; flex-direction:column; justify-content:center; line-height:1.15; }
+  .wsDayNameDay { font-size:7.5px; font-weight:800; text-decoration:underline; }
+  .wsDayNameDate { font-size:6.5px; font-weight:600; }
   .wsHourCell { text-align:center; font-size:6.5px; font-family:ui-monospace,monospace; padding:2px 0; border-right:1px solid #000; }
   .wsHourCell.alt { background:#e7e5e4; }
   .wsTotalCap { background:#e7e5e4; font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center; }
@@ -249,8 +254,14 @@ export function drawWorkSafeDaySheetJsPdf(
   doc.setDrawColor(...ink);
   doc.rect(x, y, labelW, hourH, "S");
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
-  doc.text(dayName.toUpperCase(), x + 1, y + 2.9);
+  doc.setFontSize(5.5);
+  doc.text(dayName.toUpperCase(), x + 1, y + 2.2);
+  const jsPdfDate = (opts.dateLabel ?? "").trim();
+  if (jsPdfDate) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(4.5);
+    doc.text(jsPdfDate, x + 1, y + 3.6);
+  }
 
   WORKSAFE_HOUR_LABELS.forEach((label, h) => {
     const hx = x + labelW + h * hourW;

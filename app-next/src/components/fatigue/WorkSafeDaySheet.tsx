@@ -15,7 +15,7 @@ import {
   WORKSAFE_TRACKS,
 } from "@/lib/worksafe-day-sheet/quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
-import { getTodayLocalDateString } from "@/lib/weeks";
+import { formatSheetDisplayDate, getTodayLocalDateString } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
 
 const LABEL_W = "108px";
@@ -117,6 +117,7 @@ export default function WorkSafeDaySheet({
   const from = (dayData.start_location ?? "").trim();
   const to = (dayData.destination ?? "").trim();
   const dayName = dayNameUpper(dayLabel);
+  const dateDisplay = formatSheetDisplayDate(dateStr);
 
   return (
     <div className={cn("select-none", className)} aria-label="WorkSafe WA day sheet">
@@ -145,8 +146,15 @@ export default function WorkSafeDaySheet({
           </div>
 
           <div className="grid border-b border-black" style={{ gridTemplateColumns: SHEET_GRID }}>
-            <div className="border-r border-black px-1.5 py-1">
-              <span className="text-[11px] font-bold underline decoration-1 underline-offset-2">{dayName}</span>
+            <div className="flex flex-col justify-center border-r border-black px-1.5 py-0.5 leading-tight">
+              <span className="text-[9px] font-bold underline decoration-1 underline-offset-2 sm:text-[10px]">
+                {dayName}
+              </span>
+              {dateDisplay ? (
+                <span className="text-[8px] font-medium tabular-nums text-stone-700 sm:text-[9px]">
+                  {dateDisplay}
+                </span>
+              ) : null}
             </div>
             {WORKSAFE_HOUR_LABELS.map((label, h) => (
               <div

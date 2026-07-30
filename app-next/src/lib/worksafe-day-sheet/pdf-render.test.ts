@@ -38,6 +38,7 @@ describe("WorkSafe PDF day tile", () => {
     expect(html).toContain("Finish Location");
     expect(html).toContain("Odometer Finish");
     expect(html).toContain("MONDAY");
+    expect(html).toContain("01/06/2099");
     expect(html).toContain("1.00");
     expect(html).not.toContain("24.00");
     expect(html).toContain(WORKSAFE_TRACK_LABELS.work);

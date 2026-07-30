@@ -136,7 +136,7 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 └─────────────────────────────┘
 ```
 
-          Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** from 24.00 to 23.00 and a thin **step line** showing what you logged (same rules as section 5). On a phone you can scroll the sheet sideways.
+          Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). On a phone you can scroll the sheet sideways.
 
 **Normal day:** open the week → check From/To/Rego → type **start km** → tap **Start shift**.
 
