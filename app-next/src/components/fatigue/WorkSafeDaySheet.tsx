@@ -8,8 +8,11 @@ import {
   type WorkSafeTrack,
 } from "@/lib/worksafe-day-sheet";
 import {
+  dayMinuteToChartX,
+  WORKSAFE_CHART_MINUTE_WIDTH,
+  WORKSAFE_GRID_PAD_QUARTERS,
   WORKSAFE_HOUR_LABELS,
-  WORKSAFE_QUARTERS_PER_DAY,
+  WORKSAFE_QUARTER_COLS,
   WORKSAFE_TRACKS,
 } from "@/lib/worksafe-day-sheet/quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
@@ -19,8 +22,8 @@ import { cn } from "@/lib/utils";
 const LABEL_W = "108px";
 const TOTAL_W = "3.5rem";
 const ROW_H = 32;
-/** Shared template so hour headers and 15-min cells share the same column tracks. */
-const SHEET_GRID = `${LABEL_W} repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1fr)) ${TOTAL_W}`;
+/** Shared template: label | pad+96 quarters | total — hours and ticks share columns. */
+const SHEET_GRID = `${LABEL_W} repeat(${WORKSAFE_QUARTER_COLS}, minmax(0, 1fr)) ${TOTAL_W}`;
 
 const ROW_TOOLTIPS: Record<WorkSafeTrack, string> = {
   work: "WORK TIME — driving, loading/unloading, maintenance, paperwork, and other work incidental to driving.",
@@ -61,19 +64,21 @@ function trackY(track: WorkSafeTrack): number {
   return WORKSAFE_TRACKS.indexOf(track) * ROW_H + ROW_H / 2;
 }
 
-/** Step path in viewBox units: x = minutes (0–1440), y = px down the three rows. */
+/** Step path in chart x units (padded minutes). */
 function buildStepPath(segments: WorkSafeDaySegment[]): string {
   if (segments.length === 0) return "";
   let d = "";
   let prev: WorkSafeDaySegment | null = null;
   for (const seg of segments) {
     const y = trackY(seg.track);
+    const x0 = dayMinuteToChartX(seg.startMin);
+    const x1 = dayMinuteToChartX(seg.endMin);
     if (!prev || prev.endMin !== seg.startMin) {
-      d += `M${seg.startMin} ${y} `;
+      d += `M${x0} ${y} `;
     } else if (prev.track !== seg.track) {
       d += `V${y} `;
     }
-    d += `H${seg.endMin} `;
+    d += `H${x1} `;
     prev = seg;
   }
   return d.trim();
@@ -142,17 +147,15 @@ export default function WorkSafeDaySheet({
             </div>
           </div>
 
-          {/* Hour headers — same 96-column tracks as body (each hour spans 4) */}
-          <div
-            className="grid border-b border-black"
-            style={{ gridTemplateColumns: SHEET_GRID }}
-          >
+          <div className="grid border-b border-black" style={{ gridTemplateColumns: SHEET_GRID }}>
             <div className="border-r border-black px-1.5 py-1">
               <span className="text-[11px] font-bold underline decoration-1 underline-offset-2">{dayName}</span>
             </div>
+            {/* Leading empty 15m (no hour label) */}
+            <div className="border-r border-black bg-white" />
             {WORKSAFE_HOUR_LABELS.map((label, h) => (
               <div
-                key={label}
+                key={`h-${h}`}
                 className={cn(
                   "flex items-center justify-center border-r border-black py-0.5 font-mono text-[8px] tabular-nums sm:text-[9px]",
                   h % 2 === 0 ? "bg-stone-200" : "bg-white"
@@ -180,22 +183,23 @@ export default function WorkSafeDaySheet({
                     {WORKSAFE_TRACK_LABELS[track]}
                   </span>
                 </div>
-                {Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => (
-                  <div
-                    key={q}
-                    className={cn(
-                      "border-r",
-                      q % 4 === 0 ? "border-black" : "border-stone-300"
-                    )}
-                  />
-                ))}
+                {Array.from({ length: WORKSAFE_QUARTER_COLS }, (_, q) => {
+                  // Hour edges after the pad: cols 1,5,9… and pad col 0
+                  const dayQ = q - WORKSAFE_GRID_PAD_QUARTERS;
+                  const hourEdge = q === 0 || (dayQ >= 0 && dayQ % 4 === 0);
+                  return (
+                    <div
+                      key={q}
+                      className={cn("border-r", hourEdge ? "border-black" : "border-stone-300")}
+                    />
+                  );
+                })}
                 <div className="flex items-center justify-center border-l border-black font-mono text-[10px] font-bold tabular-nums sm:text-[11px]">
                   {formatTotal(paint.totalsMinutes[track])}
                 </div>
               </div>
             ))}
 
-            {/* Step line in the chart band only (not labels / totals) */}
             <div
               className="pointer-events-none absolute top-0 bottom-0"
               style={{ left: LABEL_W, right: TOTAL_W }}
@@ -203,7 +207,7 @@ export default function WorkSafeDaySheet({
             >
               <svg
                 className="block h-full w-full"
-                viewBox={`0 0 1440 ${chartH}`}
+                viewBox={`0 0 ${WORKSAFE_CHART_MINUTE_WIDTH} ${chartH}`}
                 preserveAspectRatio="none"
                 role="img"
                 aria-label="Activity step line"

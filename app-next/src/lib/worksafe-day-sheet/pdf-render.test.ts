@@ -38,10 +38,12 @@ describe("WorkSafe PDF day tile", () => {
     expect(html).toContain("Finish Location");
     expect(html).toContain("Odometer Finish");
     expect(html).toContain("MONDAY");
-    expect(html).toContain(WORKSAFE_HOUR_LABELS[0]);
+    expect(html).toContain("1.00");
+    expect(html).not.toContain("24.00");
     expect(html).toContain(WORKSAFE_TRACK_LABELS.work);
     expect(html).toContain("<path d=");
     expect(html).toContain("Perth");
     expect(dominantTrackInQuarter(paint.trackByMinute, (12 * 60) / 15)).toBe("break");
+    expect(WORKSAFE_HOUR_LABELS[0]).toBe("");
   });
 });

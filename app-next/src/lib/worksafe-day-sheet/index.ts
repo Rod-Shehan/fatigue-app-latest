@@ -24,7 +24,11 @@ export {
 export {
   dominantTrackInQuarter,
   quarterTracksFromPaint,
+  dayMinuteToChartX,
   WORKSAFE_HOUR_LABELS,
   WORKSAFE_QUARTERS_PER_DAY,
+  WORKSAFE_QUARTER_COLS,
+  WORKSAFE_GRID_PAD_QUARTERS,
+  WORKSAFE_CHART_MINUTE_WIDTH,
   WORKSAFE_TRACKS,
 } from "./quarter-grid";
