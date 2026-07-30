@@ -3,6 +3,7 @@ import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
+import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -203,6 +204,9 @@ export function DriverGuideArticle() {
 │                             │
 │  Start km (required):       │
 │  [ _________ ]  ← you type  │
+│                             │
+│  WorkSafe day sheet         │
+│  (step line across the day) │
 └─────────────────────────────┘`}
         </GuideDiagram>
         <TwoColTable
@@ -214,6 +218,12 @@ export function DriverGuideArticle() {
             ["End km", "You type this at End shift"],
           ]}
         />
+        <p className="mt-3">
+          Under the route fields, the day card shows a WorkSafe WA day sheet: three rows (
+          {WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) with a black
+          step line across 00:00–24:00. It paints what you logged (same rules as section 5). On a phone you can scroll
+          the sheet sideways.
+        </p>
         <p className="mt-3">
           Normal day: open the week → check From / To / Rego → type start km → tap Start shift.
         </p>
@@ -328,7 +338,8 @@ export function DriverGuideArticle() {
             Settings.
           </li>
           <li>
-            It builds one PDF of your last 28 calendar days — diary grids, compliance summary, and shift log per week.
+            It builds one PDF of your last 28 calendar days — WorkSafe day sheets, compliance summary, and shift log per
+            week.
           </li>
           <li>It works offline from saved weeks. Share or show it on your phone.</li>
         </ul>
@@ -416,6 +427,10 @@ export function DriverGuideArticle() {
             ["Work", "Solo means driving or working. Two-up means driving."],
             ["Break", "Short rest (\u226430 min) during work"],
             ["Non-work", "Off duty / long rest / sleep / in sleeper cab for two-up"],
+            [
+              "WorkSafe day sheet",
+              `${WORKSAFE_TRACK_LABELS.work}, ${WORKSAFE_TRACK_LABELS.break}, ${WORKSAFE_TRACK_LABELS.non_work} with a step line (day card + PDF)`,
+            ],
             ["Start shift / End shift", "Begin / finish work for a shift"],
             ["Resume shift", "Continue the same shift — not the same as start / finish break"],
             ["Week", "Sunday–Saturday slice of your record"],

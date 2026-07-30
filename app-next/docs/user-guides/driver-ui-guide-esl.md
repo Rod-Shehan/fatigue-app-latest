@@ -129,8 +129,14 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 │                             │
 │  Start km (required):       │
 │  [ _________ ]  ← you type  │
+│                             │
+│  WorkSafe day sheet         │
+│  (step line: work / break / │
+│   non-work · 00:00–24:00)   │
 └─────────────────────────────┘
 ```
+
+Under the route fields, the day card shows a **WorkSafe WA day sheet**: three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a black **step line** across the day. It paints what you logged (same rules as section 5). On a phone you can scroll the sheet sideways.
 
 **Normal day:** open the week → check From/To/Rego → type **start km** → tap **Start shift**.
 
@@ -207,7 +213,7 @@ Menu: **Your weeks** (`/sheets`)
 When an officer asks to see your records:
 
 - Tap **Produce 28 day roadside PDF** on **Drive home**, on your **week sheet** (Day tools → Roadside), or in **Settings**.
-- It builds one PDF of your **last 28 calendar days** — diary grids, compliance summary, and shift log per week.
+- It builds one PDF of your **last 28 calendar days** — WorkSafe day sheets, compliance summary, and shift log per week.
 - It works **offline** from saved weeks. Share or show it on your phone.
 
 You must keep signed records for at least **3 years** — this export is for roadside produce only.
@@ -281,6 +287,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Work | Solo means driving or working. Two-up means driving. |
 | Break | Short rest (≤30 min) during work |
 | Non-work | Off duty / long rest / sleep / in sleeper cab for two-up |
+| WorkSafe day sheet | Paper-style day chart on each day card and in PDFs: WORK TIME, BREAKS FROM DRIVING, NON WORK TIME with a step line |
 | Start shift / End shift | Begin / finish work for a shift |
 | Resume shift | Continue the same shift — this is not the same as start / finish break. |
 | Week | Sunday–Saturday slice of your record |

@@ -3,7 +3,7 @@
  * See .cursor/rules/time-rules-ip.mdc
  *
  * Single source of truth: work / break / non-work coverage per calendar day as 1440 booleans (one per minute).
- * Used by EventLogger, compliance, and TimeGrid (via dayData grids).
+ * Used by EventLogger, compliance, WorkSafe day sheet, and PDF export (via dayData grids).
  *
  * Driver-logged events are the paint source of truth:
  * - Only an actioned `break` paints as break (while ≤30 min; longer actioned breaks become non-work).

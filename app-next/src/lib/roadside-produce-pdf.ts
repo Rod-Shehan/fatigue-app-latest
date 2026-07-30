@@ -11,6 +11,7 @@ import {
   renderPdfHtml,
   type RoadsidePdfPayload,
 } from "@/lib/sheet-jspdf-export";
+import { WORKSAFE_PDF_DAY_CSS } from "@/lib/worksafe-day-sheet/pdf-render";
 
 export function extractPdfHtmlBody(fullHtml: string): string {
   const m = fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
@@ -42,7 +43,7 @@ export function renderRoadsideProduceCoverHtml(opts: {
       </tbody>
     </table>
     <p class="produceDisclaimer">${escapeHtml(ROADSIDE_PDF_DISCLAIMER)}</p>
-    <p class="produceNote">Each following section is one weekly sheet (diary grid, compliance summary, and shift log).</p>
+    <p class="produceNote">Each following section is one weekly sheet (WorkSafe day sheets, compliance summary, and shift log).</p>
   </section>`;
 }
 
@@ -87,34 +88,15 @@ export function renderRoadsideProduceDocumentHtml(opts: {
       .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
       .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
       .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-      .dayCard { border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 10px 8px; margin: 10px 0; break-inside: avoid; }
-      .dayHead { display:flex; align-items:flex-start; gap: 10px; }
-      .dayBadge { width: 18px; height: 18px; background:#1f2937; color:white; font-weight:800; font-size: 11px; display:flex; align-items:center; justify-content:center; border-radius: 4px; margin-top: 1px; }
-      .dayName { font-weight: 800; font-size: 14px; }
-      .dayDate { font-size: 11px; color: #6b7280; margin-top: 1px; }
-      .hours { display:flex; align-items:flex-end; gap: 8px; margin-top: 6px; }
-      .hoursSpacer { width: 92px; }
-      .hoursBar { position: relative; height: 16px; flex: 1; }
-      .hourLabel { position:absolute; transform: translateX(-50%); top: 0; font-size: 9px; color:#6b7280; }
-      .hoursTotal { width: 46px; }
-      .barRow { display:flex; align-items:center; gap: 8px; margin-top: 4px; }
-      .rowLabel { width: 92px; font-size: 11px; color: #374151; text-align:right; }
-      .rowTotal { width: 46px; font-size: 11px; font-weight: 700; color: #111827; }
-      .bar { position: relative; height: 12px; flex: 1; border: 1px solid #9ca3af; border-radius: 2px; overflow: hidden;
-             background: repeating-linear-gradient(90deg, #ffffff 0, #ffffff 8.333%, #f3f4f6 8.333%, #f3f4f6 16.666%); }
-      .seg { position:absolute; top:0; bottom:0; }
-      .seg.hatch { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.15) 0 1px, rgba(0,0,0,0) 1px 4px); }
-      .grid { position:absolute; inset:0; pointer-events:none; }
-      .gridLine { position:absolute; top:0; bottom:0; width: 0; border-left: 1px solid rgba(156,163,175,0.35); }
-      .gridLine.strong { border-left-color: rgba(75,85,99,0.6); }
-      .totals { margin: 6px 0 6px 100px; font-size: 11px; font-weight: 700; color:#111827; }
-      .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
+      .dayCard { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; margin: 10px 0; break-inside: avoid; background: #fff; }
+      ${WORKSAFE_PDF_DAY_CSS}
+      .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 8px; }
       .segTable thead th { text-align:left; padding: 4px 6px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; color:#6b7280; font-weight: 800; }
       .segTable tbody td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
       .segTable tbody tr:nth-child(even) td { background: #fafafa; }
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
       .empty { color:#9ca3af; font-style: italic; }
-      .more { font-size: 10px; color:#6b7280; margin-left: 100px; margin-top: 2px; }
+      .more { font-size: 10px; color:#6b7280; margin-top: 2px; }
       .roadside { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; break-inside: avoid; }
       .roadside h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
       .roadside h3 { font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #334155; }

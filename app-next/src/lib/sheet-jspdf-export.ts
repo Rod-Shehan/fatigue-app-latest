@@ -5,20 +5,22 @@ import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import { halfHourSlotsToRanges, minuteBooleansToRanges } from "@/lib/coverage/grid-to-ranges";
 import { getPerthNowParts } from "@/lib/perth-now";
 import { sheetHasLegacyDriverEventTags } from "@/lib/sheet-ownership";
+import {
+  paintForPdfDay,
+  renderWorkSafeDaySheetHtml,
+  drawWorkSafeDaySheetJsPdf,
+  workSafeSegmentTypeLabel,
+  WORKSAFE_PDF_DAY_CSS,
+} from "@/lib/worksafe-day-sheet/pdf-render";
+import type { WorkSafeTrack } from "@/lib/worksafe-day-sheet/types";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
 const GREY_TEXT = [30, 30, 30] as [number, number, number];
 const GREY_LABEL = [80, 80, 80] as [number, number, number];
-const GREY_LIGHT = [240, 240, 240] as [number, number, number];
-// Darker fills so recorded time is more obvious on print/PDF viewers.
-const GREY_WORK = [35, 35, 35] as [number, number, number];
-const GREY_BREAK = [90, 90, 90] as [number, number, number];
-const GREY_NON_WORK = [180, 180, 180] as [number, number, number];
 
-type SegmentType = "work" | "break" | "non_work";
+type SegmentType = WorkSafeTrack;
 type TimelineSegment = { startMin: number; endMin: number; type: SegmentType };
-const ROW_LABELS = ["Work", "Break", "Non-Work"] as const;
 
 function formatDeclared24hRestsForPdf(sheet: {
   last_24h_rest_1?: string | null;
@@ -162,18 +164,6 @@ function getDaySegments(
   return buildSegmentsFromEvents(undefined, dateStr, effectiveEndMin);
 }
 
-function getTotalMinutes(segs: { startMin: number; endMin: number }[]): number {
-  return segs.reduce((sum, s) => sum + (s.endMin - s.startMin), 0);
-}
-
-function formatHours(minutes: number): string {
-  if (minutes === 0) return "—";
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
-
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
@@ -222,13 +212,7 @@ function segmentsToTimeline(segments: {
 }
 
 function segmentLabel(type: SegmentType): string {
-  if (type === "work") return "Work";
-  if (type === "break") return "Break";
-  return "Non-Work";
-}
-
-function cssRgb([r, g, b]: [number, number, number]) {
-  return `rgb(${r},${g},${b})`;
+  return workSafeSegmentTypeLabel(type);
 }
 
 function escapeHtml(s: string) {
@@ -493,7 +477,7 @@ function buildShiftLogHtml(opts: {
           </tr>`;
         }).join("");
         bodyHtml = `
-          <p class="shiftSource">Time blocks derived from the diary grid (work / break / non-work) for this day — use when no event log is stored.</p>
+          <p class="shiftSource">Time blocks from the WorkSafe day sheet (work / breaks / non-work) for this day — use when no event log is stored.</p>
           <table class="shiftEventTable">
             <thead><tr><th>Start</th><th>End</th><th>Duration</th><th>Type</th></tr></thead>
             <tbody>${rows || `<tr><td colspan="4" class="empty">No time recorded</td></tr>`}</tbody>
@@ -513,7 +497,7 @@ function buildShiftLogHtml(opts: {
   return `
   <section class="shiftLog">
     <h2>SHIFT LOG (Appendix)</h2>
-    <p class="shiftIntro">Plain record of driver-entered data for this weekly sheet: identification, day cards, then either logged events (tap log) or time blocks from the diary grid. Times are shown in Australia/Perth unless otherwise noted.</p>
+    <p class="shiftIntro">Plain record of driver-entered data for this weekly sheet: identification, day cards, then either logged events (tap log) or time blocks from the WorkSafe day sheet. Times are shown in Australia/Perth unless otherwise noted.</p>
     <table class="shiftMeta">
       <tbody>${metaHtml}</tbody>
     </table>
@@ -562,90 +546,57 @@ export function renderPdfHtml(opts: {
   const { sheet, todayStr, generatedAtLabel, roadside } = opts;
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
-
-  const hourLabels = Array.from({ length: 13 }, (_, i) => i * 2);
-  const rows = [
-    { key: "work_time" as const, label: "Work", fill: cssRgb(GREY_WORK), hatch: false },
-    { key: "breaks" as const, label: "Break", fill: cssRgb(GREY_BREAK), hatch: true },
-    { key: "non_work" as const, label: "Non-Work", fill: cssRgb(GREY_NON_WORK), hatch: false },
-  ];
+  const driverName = (sheet.driver_name || "").trim();
 
   const dayBlocks = dayList
     .map((day, idx) => {
       const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
       const dateLabel = getDateStr(sheet.week_starting, idx);
       const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
-      const segments = getDaySegments(day, isoDate, todayStr);
-      const timeline = segmentsToTimeline(segments);
+      const paintedUntil = getEffectiveDayEndMinutes(isoDate, todayStr);
+      const paint = paintForPdfDay(day, isoDate, todayStr, paintedUntil);
+      const timeline: TimelineSegment[] = paint.segments.map((s) => ({
+        startMin: s.startMin,
+        endMin: s.endMin,
+        type: s.track,
+      }));
       const maxRows = 8;
 
-      const totals = {
-        work: formatHours(getTotalMinutes(segments.work_time)),
-        break: formatHours(getTotalMinutes(segments.breaks)),
-        nonWork: formatHours(getTotalMinutes(segments.non_work)),
-      };
+      const sheetHtml = renderWorkSafeDaySheetHtml({
+        paint,
+        dayName,
+        dateLabel,
+        driverName,
+        day: {
+          truck_rego: (day as { truck_rego?: string }).truck_rego,
+          start_location: (day as { start_location?: string }).start_location,
+          destination: (day as { destination?: string }).destination,
+          start_kms: (day as { start_kms?: number }).start_kms,
+          end_kms: (day as { end_kms?: number }).end_kms,
+        },
+      });
 
-      const barsHtml = rows
-        .map((r) => {
-          const segs = segments[r.key];
-          const segDivs = segs
-            .filter((s) => s.endMin > s.startMin)
-            .map((s) => {
-              const left = (s.startMin / TOTAL_MIN) * 100;
-              const width = ((s.endMin - s.startMin) / TOTAL_MIN) * 100;
-              const style = `left:${left}%;width:${Math.max(0.2, width)}%;background:${r.fill};`;
-              return `<div class="seg${r.hatch ? " hatch" : ""}" style="${style}"></div>`;
-            })
-            .join("");
-
-          return `
-            <div class="barRow">
-              <div class="rowLabel">${escapeHtml(r.label)}</div>
-              <div class="bar">
-                ${segDivs}
-                <div class="grid">
-                  ${Array.from({ length: 25 }, (_, h) => {
-                    const strong = h % 2 === 0;
-                    return `<div class="gridLine ${strong ? "strong" : ""}" style="left:${(h / 24) * 100}%"></div>`;
-                  }).join("")}
-                </div>
-              </div>
-              <div class="rowTotal">${escapeHtml(formatHours(getTotalMinutes(segs)))}</div>
-            </div>
-          `;
-        })
-        .join("");
-
-      const tableRows = timeline.slice(0, maxRows).map((seg) => {
-        return `<tr>
+      const tableRows = timeline
+        .slice(0, maxRows)
+        .map((seg) => {
+          return `<tr>
           <td class="mono">${escapeHtml(minToHHMM(seg.startMin))}</td>
           <td class="mono">${escapeHtml(minToHHMM(seg.endMin))}</td>
           <td class="mono">${escapeHtml(formatDuration(seg.endMin - seg.startMin))}</td>
           <td>${escapeHtml(segmentLabel(seg.type))}</td>
           <td class="notes"></td>
         </tr>`;
-      }).join("");
+        })
+        .join("");
 
-      const more = timeline.length > maxRows ? `<div class="more">(+${timeline.length - maxRows} more segments)</div>` : "";
+      const more =
+        timeline.length > maxRows
+          ? `<div class="more">(+${timeline.length - maxRows} more segments)</div>`
+          : "";
 
       return `
         <section class="dayCard">
-          <div class="dayHead">
-            <div class="dayBadge">${escapeHtml(dayName.charAt(0))}</div>
-            <div class="dayTitles">
-              <div class="dayName">${escapeHtml(dayName)}</div>
-              <div class="dayDate">${escapeHtml(dateLabel)}</div>
-            </div>
-          </div>
-          <div class="hours">
-            <div class="hoursSpacer"></div>
-            <div class="hoursBar">
-              ${hourLabels.map((h) => `<div class="hourLabel" style="left:${(h / 24) * 100}%">${pad2(h)}</div>`).join("")}
-            </div>
-            <div class="hoursTotal"></div>
-          </div>
-          ${barsHtml}
-          <div class="totals">Work: ${escapeHtml(totals.work)} &nbsp;&nbsp; Break: ${escapeHtml(totals.break)} &nbsp;&nbsp; Non-Work: ${escapeHtml(totals.nonWork)}</div>
+          ${sheetHtml}
           <table class="segTable">
             <thead><tr><th>Start</th><th>End</th><th>Dur</th><th>Type</th><th>Notes</th></tr></thead>
             <tbody>${tableRows || `<tr><td colspan="5" class="empty">No segments</td></tr>`}</tbody>
@@ -668,34 +619,15 @@ export function renderPdfHtml(opts: {
         .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
         .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
         .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-        .dayCard { border: 1px solid #d1d5db; border-radius: 10px; padding: 10px 10px 8px; margin: 10px 0; break-inside: avoid; }
-        .dayHead { display:flex; align-items:flex-start; gap: 10px; }
-        .dayBadge { width: 18px; height: 18px; background:#1f2937; color:white; font-weight:800; font-size: 11px; display:flex; align-items:center; justify-content:center; border-radius: 4px; margin-top: 1px; }
-        .dayName { font-weight: 800; font-size: 14px; }
-        .dayDate { font-size: 11px; color: #6b7280; margin-top: 1px; }
-        .hours { display:flex; align-items:flex-end; gap: 8px; margin-top: 6px; }
-        .hoursSpacer { width: 92px; }
-        .hoursBar { position: relative; height: 16px; flex: 1; }
-        .hourLabel { position:absolute; transform: translateX(-50%); top: 0; font-size: 9px; color:#6b7280; }
-        .hoursTotal { width: 46px; }
-        .barRow { display:flex; align-items:center; gap: 8px; margin-top: 4px; }
-        .rowLabel { width: 92px; font-size: 11px; color: #374151; text-align:right; }
-        .rowTotal { width: 46px; font-size: 11px; font-weight: 700; color: #111827; }
-        .bar { position: relative; height: 12px; flex: 1; border: 1px solid #9ca3af; border-radius: 2px; overflow: hidden;
-               background: repeating-linear-gradient(90deg, #ffffff 0, #ffffff 8.333%, #f3f4f6 8.333%, #f3f4f6 16.666%); }
-        .seg { position:absolute; top:0; bottom:0; }
-        .seg.hatch { background-image: repeating-linear-gradient(135deg, rgba(0,0,0,0.15) 0 1px, rgba(0,0,0,0) 1px 4px); }
-        .grid { position:absolute; inset:0; pointer-events:none; }
-        .gridLine { position:absolute; top:0; bottom:0; width: 0; border-left: 1px solid rgba(156,163,175,0.35); }
-        .gridLine.strong { border-left-color: rgba(75,85,99,0.6); }
-        .totals { margin: 6px 0 6px 100px; font-size: 11px; font-weight: 700; color:#111827; }
-        .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 4px; }
+        .dayCard { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; margin: 10px 0; break-inside: avoid; background: #fff; }
+        ${WORKSAFE_PDF_DAY_CSS}
+        .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 8px; }
         .segTable thead th { text-align:left; padding: 4px 6px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; color:#6b7280; font-weight: 800; }
         .segTable tbody td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
         .segTable tbody tr:nth-child(even) td { background: #fafafa; }
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
         .empty { color:#9ca3af; font-style: italic; }
-        .more { font-size: 10px; color:#6b7280; margin-left: 100px; margin-top: 2px; }
+        .more { font-size: 10px; color:#6b7280; margin-top: 2px; }
         .roadside { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; break-inside: avoid; }
         .roadside h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
         .roadside h3 { font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #334155; }
@@ -897,7 +829,7 @@ function renderShiftLogJsPDF(
   doc.setFontSize(8);
   doc.setTextColor(80, 80, 80);
   const intro = doc.splitTextToSize(
-    "Plain record of driver-entered data for this weekly sheet: identification, day cards, then logged events or time blocks from the grid. Times in Australia/Perth unless noted.",
+    "Plain record of driver-entered data for this weekly sheet: identification, day cards, then logged events or time blocks from the WorkSafe day sheet. Times in Australia/Perth unless noted.",
     colW
   );
   doc.text(intro, margin, y);
@@ -1016,7 +948,7 @@ function renderShiftLogJsPDF(
       doc.setFontSize(7.5);
       doc.setTextColor(90, 90, 90);
       const src = doc.splitTextToSize(
-        "Time blocks derived from the diary grid for this day (no event log stored).",
+        "Time blocks from the WorkSafe day sheet for this day (no event log stored).",
         colW
       );
       doc.text(src, margin, y);
@@ -1084,14 +1016,6 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
   const margin = 14;
   const colW = pageW - margin * 2;
   let y = 30;
-  const labelW = 22;
-  const subtotalW = 16;
-  const barW = colW - labelW - subtotalW - 4;
-  const barLeft = margin + labelW;
-  const tilePadding = 3;
-  const tickH = 4;
-  const rowH = 3;
-  const rowGap = 1.2;
 
   doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, pageW, 24, "F");
@@ -1113,44 +1037,34 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
 
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
+  const driverName = (sheet.driver_name || "").trim();
 
   dayList.forEach((day, idx) => {
-    if (y > 258) {
+    if (y > 250) {
       doc.addPage();
       y = 20;
     }
     const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
     const dateStr = getDateStr(sheet.week_starting, idx);
     const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
-    const segments = getDaySegments(day, isoDate, todayStr);
-    const timeline = segmentsToTimeline(segments);
+    const paintedUntil = getEffectiveDayEndMinutes(isoDate, todayStr);
+    const paint = paintForPdfDay(
+      day as {
+        work_time?: boolean[];
+        breaks?: boolean[];
+        non_work?: boolean[];
+        events?: { time: string; type: string }[];
+      },
+      isoDate,
+      todayStr,
+      paintedUntil
+    );
+    const timeline: TimelineSegment[] = paint.segments.map((s) => ({
+      startMin: s.startMin,
+      endMin: s.endMin,
+      type: s.track,
+    }));
 
-    // Header (day + meta) + hour labels + 3-row bars + table header + up to N rows.
-    const maxRows = 8;
-    const rowCount = Math.min(maxRows, timeline.length);
-    const tableRowH = 4.2;
-    const tableH = 5.5 + rowCount * tableRowH + 2;
-    const barsH = 3 * rowH + 2 * rowGap;
-    const tileContentH = 10 + 6 + tickH + 1 + barsH + 2 + tableH + 4;
-    const tileH = tileContentH + tilePadding * 2;
-    doc.setDrawColor(200, 200, 200);
-    doc.setFillColor(...GREY_LIGHT);
-    doc.rect(margin, y - tilePadding, colW, tileH, "FD");
-    y += 2;
-
-    doc.setFillColor(30, 30, 30);
-    doc.rect(margin + 2, y - 3.5, 5, 5, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
-    doc.text(dayName.charAt(0), margin + 4.5, y + 0.2, { align: "center" });
-    doc.setTextColor(...GREY_TEXT);
-    doc.setFontSize(10);
-    doc.text(dayName, margin + 10, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.setTextColor(...GREY_LABEL);
-    doc.text(dateStr, margin + 10, y + 5);
     const dayWithKms = day as {
       truck_rego?: string;
       start_location?: string;
@@ -1163,102 +1077,39 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     const dest = dayWithKms.destination ?? "";
     const startKms = dayWithKms.start_kms ?? null;
     const endKms = dayWithKms.end_kms ?? null;
-    const kmsTotal = startKms != null && endKms != null ? Math.max(0, endKms - startKms) : null;
     const metaParts: string[] = [];
+    if (driverName) metaParts.push(driverName);
     if (rego) metaParts.push(`Rego: ${rego}`);
     if (startLoc) metaParts.push(`From: ${startLoc}`);
     if (dest) metaParts.push(`To: ${dest}`);
     if (startKms != null) metaParts.push(`Start: ${startKms} km`);
     if (endKms != null) metaParts.push(`End: ${endKms} km`);
-    if (kmsTotal != null) metaParts.push(`Total: ${kmsTotal} km`);
-    if (metaParts.length) {
-      doc.setFontSize(8);
-      doc.text(metaParts.join("  •  "), margin + 2, y + 10);
-    }
-    y += 10 + 6;
 
-    doc.setFontSize(7);
-    doc.setTextColor(...GREY_LABEL);
-    for (let h = 0; h <= 24; h += 2) {
-      const x = barLeft + (h / 24) * barW;
-      doc.text(String(h).padStart(2, "0"), x, y + tickH * 0.7, { align: "center" });
-    }
-    y += tickH + 1;
-
-    // 3-row time bars (original style, higher contrast)
-    const rowsCfg = [
-      { label: ROW_LABELS[0], segs: segments.work_time, fill: GREY_WORK },
-      { label: ROW_LABELS[1], segs: segments.breaks, fill: GREY_BREAK, hatch: true },
-      { label: ROW_LABELS[2], segs: segments.non_work, fill: GREY_NON_WORK },
-    ] as const;
-
-    rowsCfg.forEach((r, ri) => {
-      const totalMins = getTotalMinutes(r.segs);
-
-      // Row label
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8.5);
-      doc.setTextColor(...GREY_TEXT);
-      doc.text(r.label, margin + labelW - 1, y + rowH * 0.7, { align: "right" });
-
-      // Background with hour banding
-      for (let h = 0; h < 24; h++) {
-        const x = barLeft + (h / 24) * barW;
-        const w = barW / 24;
-        const isAlt = h % 2 === 0;
-        doc.setFillColor(isAlt ? 250 : 238, isAlt ? 250 : 238, isAlt ? 250 : 238);
-        doc.rect(x, y, w, rowH, "F");
-      }
-
-      // Hour grid lines (strong on 2-hour, light on 1-hour)
-      for (let h = 0; h <= 24; h++) {
-        const x = barLeft + (h / 24) * barW;
-        const strong = h % 2 === 0;
-        doc.setDrawColor(strong ? 160 : 205, strong ? 160 : 205, strong ? 160 : 205);
-        doc.setLineWidth(strong ? 0.25 : 0.12);
-        doc.line(x, y, x, y + rowH);
-      }
-
-      // Segments fill
-      doc.setLineWidth(0.2);
-      r.segs.forEach((seg) => {
-        const left = (seg.startMin / TOTAL_MIN) * barW;
-        const w = Math.max(0.7, ((seg.endMin - seg.startMin) / TOTAL_MIN) * barW);
-        doc.setFillColor(...r.fill);
-        doc.rect(barLeft + left, y, w, rowH, "F");
-        if ("hatch" in r && r.hatch) {
-          doc.setDrawColor(60, 60, 60);
-          doc.setLineWidth(0.1);
-          const x0 = barLeft + left;
-          const x1 = x0 + w;
-          for (let lx = x0 - rowH; lx < x1 + rowH; lx += 2.4) {
-            doc.line(lx, y + rowH, lx + rowH, y);
-          }
-        }
-      });
-
-      // Strong outline
-      doc.setDrawColor(120, 120, 120);
-      doc.setLineWidth(0.35);
-      doc.rect(barLeft, y, barW, rowH, "S");
-
-      // Subtotal at right
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(8.5);
-      doc.setTextColor(...GREY_TEXT);
-      doc.text(formatHours(totalMins), barLeft + barW + 2, y + rowH * 0.7);
-
-      y += rowH + (ri === 2 ? 2 : rowGap);
+    y = drawWorkSafeDaySheetJsPdf(doc, {
+      paint,
+      x: margin,
+      y,
+      width: colW,
+      dayName,
+      dateLabel: dateStr,
+      metaLine: metaParts.length ? metaParts.join(" · ") : undefined,
     });
 
     // Segment list table (audit-proof detail)
+    const maxRows = 8;
+    const tableRowH = 4.2;
     const tableLeft = margin + 2;
     const tableW = colW - 4;
     const colStartW = 18;
     const colEndW = 18;
     const colDurW = 18;
-    const colTypeW = 22;
+    const colTypeW = 36;
     const colNotesW = tableW - (colStartW + colEndW + colDurW + colTypeW);
+
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
 
     doc.setDrawColor(210, 210, 210);
     doc.setFillColor(250, 250, 250);
@@ -1276,7 +1127,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
 
     const rows = timeline.slice(0, maxRows);
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     rows.forEach((seg, i) => {
       const rowY = y + i * tableRowH;
       const isAlt = i % 2 === 0;
@@ -1289,9 +1140,9 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
       doc.text(minToHHMM(seg.startMin), tableLeft + 1.5, rowY + 3);
       doc.text(minToHHMM(seg.endMin), tableLeft + colStartW + 1.5, rowY + 3);
       doc.text(formatDuration(seg.endMin - seg.startMin), tableLeft + colStartW + colEndW + 1.5, rowY + 3);
-      doc.text(segmentLabel(seg.type), tableLeft + colStartW + colEndW + colDurW + 1.5, rowY + 3);
+      const typeClipped = doc.splitTextToSize(segmentLabel(seg.type), colTypeW - 2);
+      doc.text(String(typeClipped[0] ?? ""), tableLeft + colStartW + colEndW + colDurW + 1.5, rowY + 3);
 
-      // Notes: kept for future (e.g., GPS, rego, destination, or compliance markers).
       const note =
         seg.type === "break"
           ? "Break recorded"
@@ -1314,7 +1165,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
       y += 4;
     }
 
-    y += tilePadding + 4;
+    y += 4;
   });
 
   y = renderShiftLogJsPDF(doc, margin, colW, sheet, todayStr);

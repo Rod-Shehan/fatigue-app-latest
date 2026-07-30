@@ -40,7 +40,7 @@ export function DriverRoadsideProducePage() {
         <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-950/30 p-4 space-y-3">
           <p className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
             When an officer asks to see your records, open a single PDF with your last{" "}
-            <strong>{ROADSIDE_PRODUCE_DAYS} calendar days</strong> of weekly sheets — diary grids,
+            <strong>{ROADSIDE_PRODUCE_DAYS} calendar days</strong> of weekly sheets — WorkSafe day sheets,
             compliance summary, and shift log for each week in that period.
           </p>
           <ol className="text-sm text-slate-700 dark:text-slate-300 space-y-2 list-decimal list-inside">

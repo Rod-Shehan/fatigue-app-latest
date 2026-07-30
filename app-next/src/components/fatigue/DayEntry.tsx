@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { saveDriverRouteDefaults, hasRouteExceptKms, inferRouteCarryMode } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
-import TimeGrid from "./TimeGrid";
+import WorkSafeDaySheet from "./WorkSafeDaySheet";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
 import { formatSheetDisplayDate, getSheetDayDateString } from "@/lib/weeks";
@@ -546,7 +546,13 @@ export default function DayEntry({
         </p>
       )}
 
-      <TimeGrid dayData={{ ...dayData, date: getISODate() }} regulatoryTodayYmd={todayYmd} />
+      <WorkSafeDaySheet
+        dayData={{ ...dayData, date: getISODate() }}
+        regulatoryTodayYmd={todayYmd}
+        dayLabel={DAY_NAMES[dayIndex]}
+        driverName={driverName}
+        className="mt-1"
+      />
 
       {dayTools && (
         <DayCardToolsSheet

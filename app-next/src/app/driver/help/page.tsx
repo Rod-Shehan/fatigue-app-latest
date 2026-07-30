@@ -12,6 +12,7 @@ import {
   USER_VISIBLE_SHEET_STATE_BULLETS,
 } from "@/lib/product-copy";
 import { DRIVER_HELP_RETENTION_BULLETS } from "@/lib/record-retention";
+import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 import {
   SHIFT_CHANGE_MIN_GAP_HOURS,
   SHIFT_PATTERN_FIELD_HELP,
@@ -116,6 +117,12 @@ export default async function DriverHelpPage() {
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — End shift, longer rests,
                 and any logged break over 30 minutes.
+              </li>
+              <li>
+                <strong className="text-slate-700 dark:text-slate-200">WorkSafe day sheet</strong> — on each day card (and
+                in PDF exports) you see three rows ({WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break},{" "}
+                {WORKSAFE_TRACK_LABELS.non_work}) with a black step line across 00:00–24:00. It paints what you logged;
+                it does not invent Break after End shift.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Shift pattern (A/B)</strong> on the day card —{" "}
