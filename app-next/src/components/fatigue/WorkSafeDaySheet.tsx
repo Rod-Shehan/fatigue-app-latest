@@ -4,10 +4,10 @@ import { useMemo } from "react";
 import {
   buildWorkSafeDayPaint,
   WORKSAFE_TRACK_LABELS,
+  type WorkSafeDaySegment,
   type WorkSafeTrack,
 } from "@/lib/worksafe-day-sheet";
 import {
-  quarterTracksFromPaint,
   WORKSAFE_HOUR_LABELS,
   WORKSAFE_QUARTERS_PER_DAY,
   WORKSAFE_TRACKS,
@@ -15,6 +15,12 @@ import {
 import { formatHoursStatistic } from "@/lib/hours";
 import { getTodayLocalDateString } from "@/lib/weeks";
 import { cn } from "@/lib/utils";
+
+const LABEL_W = "108px";
+const TOTAL_W = "3.5rem";
+const ROW_H = 32;
+/** Shared template so hour headers and 15-min cells share the same column tracks. */
+const SHEET_GRID = `${LABEL_W} repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1fr)) ${TOTAL_W}`;
 
 const ROW_TOOLTIPS: Record<WorkSafeTrack, string> = {
   work: "WORK TIME — driving, loading/unloading, maintenance, paperwork, and other work incidental to driving.",
@@ -51,6 +57,28 @@ function dayNameUpper(dayLabel?: string): string {
   return (dayLabel ?? "Day").toUpperCase();
 }
 
+function trackY(track: WorkSafeTrack): number {
+  return WORKSAFE_TRACKS.indexOf(track) * ROW_H + ROW_H / 2;
+}
+
+/** Step path in viewBox units: x = minutes (0–1440), y = px down the three rows. */
+function buildStepPath(segments: WorkSafeDaySegment[]): string {
+  if (segments.length === 0) return "";
+  let d = "";
+  let prev: WorkSafeDaySegment | null = null;
+  for (const seg of segments) {
+    const y = trackY(seg.track);
+    if (!prev || prev.endMin !== seg.startMin) {
+      d += `M${seg.startMin} ${y} `;
+    } else if (prev.track !== seg.track) {
+      d += `V${y} `;
+    }
+    d += `H${seg.endMin} `;
+    prev = seg;
+  }
+  return d.trim();
+}
+
 export default function WorkSafeDaySheet({
   dayData,
   regulatoryTodayYmd,
@@ -58,10 +86,8 @@ export default function WorkSafeDaySheet({
   className,
 }: {
   dayData: DayDataGrid;
-  /** Regulatory calendar today (YYYY-MM-DD); aligns caps with derive/compliance. */
   regulatoryTodayYmd?: string;
   dayLabel?: string;
-  /** Kept for API compatibility; paper day row does not show driver name. */
   driverName?: string | null;
   className?: string;
 }) {
@@ -81,7 +107,8 @@ export default function WorkSafeDaySheet({
     [dateStr, todayYmd, dayData.events, dayData.work_time, dayData.breaks, dayData.non_work]
   );
 
-  const quarterTracks = useMemo(() => quarterTracksFromPaint(paint), [paint]);
+  const stepPath = useMemo(() => buildStepPath(paint.segments), [paint.segments]);
+  const chartH = WORKSAFE_TRACKS.length * ROW_H;
 
   const startKm = formatKm(dayData.start_kms);
   const endKm = formatKm(dayData.end_kms);
@@ -115,60 +142,86 @@ export default function WorkSafeDaySheet({
             </div>
           </div>
 
-          <div className="flex border-b border-black">
-            <div className="w-[108px] shrink-0 border-r border-black px-1.5 py-1">
+          {/* Hour headers — same 96-column tracks as body (each hour spans 4) */}
+          <div
+            className="grid border-b border-black"
+            style={{ gridTemplateColumns: SHEET_GRID }}
+          >
+            <div className="border-r border-black px-1.5 py-1">
               <span className="text-[11px] font-bold underline decoration-1 underline-offset-2">{dayName}</span>
             </div>
-            <div className="flex min-w-0 flex-1">
-              {WORKSAFE_HOUR_LABELS.map((label, h) => (
-                <div
-                  key={label}
-                  className={cn(
-                    "flex flex-1 items-center justify-center border-r border-black py-0.5 font-mono text-[8px] tabular-nums sm:text-[9px]",
-                    h % 2 === 0 ? "bg-stone-200" : "bg-white"
-                  )}
-                >
-                  {label}
-                </div>
-              ))}
-            </div>
-            <div className="flex w-12 shrink-0 items-center justify-center bg-stone-200 text-[9px] font-bold sm:w-14 sm:text-[10px]">
+            {WORKSAFE_HOUR_LABELS.map((label, h) => (
+              <div
+                key={label}
+                className={cn(
+                  "flex items-center justify-center border-r border-black py-0.5 font-mono text-[8px] tabular-nums sm:text-[9px]",
+                  h % 2 === 0 ? "bg-stone-200" : "bg-white"
+                )}
+                style={{ gridColumn: "span 4" }}
+              >
+                {label}
+              </div>
+            ))}
+            <div className="flex items-center justify-center bg-stone-200 text-[9px] font-bold sm:text-[10px]">
               Total
             </div>
           </div>
 
-          {WORKSAFE_TRACKS.map((track, rowIdx) => (
+          <div className="relative">
+            {WORKSAFE_TRACKS.map((track, rowIdx) => (
+              <div
+                key={track}
+                className={cn("grid", rowIdx < WORKSAFE_TRACKS.length - 1 && "border-b border-black")}
+                style={{ gridTemplateColumns: SHEET_GRID, height: ROW_H }}
+                title={ROW_TOOLTIPS[track]}
+              >
+                <div className="flex items-center border-r border-black px-1.5">
+                  <span className="text-[8px] font-semibold leading-tight sm:text-[9px]">
+                    {WORKSAFE_TRACK_LABELS[track]}
+                  </span>
+                </div>
+                {Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => (
+                  <div
+                    key={q}
+                    className={cn(
+                      "border-r",
+                      q % 4 === 0 ? "border-black" : "border-stone-300"
+                    )}
+                  />
+                ))}
+                <div className="flex items-center justify-center border-l border-black font-mono text-[10px] font-bold tabular-nums sm:text-[11px]">
+                  {formatTotal(paint.totalsMinutes[track])}
+                </div>
+              </div>
+            ))}
+
+            {/* Step line in the chart band only (not labels / totals) */}
             <div
-              key={track}
-              className={cn("flex", rowIdx < WORKSAFE_TRACKS.length - 1 && "border-b border-black")}
-              title={ROW_TOOLTIPS[track]}
+              className="pointer-events-none absolute top-0 bottom-0"
+              style={{ left: LABEL_W, right: TOTAL_W }}
+              aria-hidden
             >
-              <div className="flex w-[108px] shrink-0 items-center border-r border-black px-1.5 py-0.5">
-                <span className="text-[8px] font-semibold leading-tight sm:text-[9px]">
-                  {WORKSAFE_TRACK_LABELS[track]}
-                </span>
-              </div>
-              <div className="flex min-w-0 flex-1" role="img" aria-label={`${WORKSAFE_TRACK_LABELS[track]} grid`}>
-                {Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => {
-                  const filled = quarterTracks[q] === track;
-                  const hourEdge = q % 4 === 0;
-                  return (
-                    <div
-                      key={q}
-                      className={cn(
-                        "h-7 flex-1 border-r sm:h-8",
-                        hourEdge ? "border-black" : "border-stone-300",
-                        filled ? "bg-stone-900" : "bg-white"
-                      )}
-                    />
-                  );
-                })}
-              </div>
-              <div className="flex w-12 shrink-0 items-center justify-center border-l border-black font-mono text-[10px] font-bold tabular-nums sm:w-14 sm:text-[11px]">
-                {formatTotal(paint.totalsMinutes[track])}
-              </div>
+              <svg
+                className="block h-full w-full"
+                viewBox={`0 0 1440 ${chartH}`}
+                preserveAspectRatio="none"
+                role="img"
+                aria-label="Activity step line"
+              >
+                {stepPath ? (
+                  <path
+                    d={stepPath}
+                    fill="none"
+                    stroke="#111"
+                    strokeWidth={2.5}
+                    strokeLinejoin="miter"
+                    strokeLinecap="square"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ) : null}
+              </svg>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>

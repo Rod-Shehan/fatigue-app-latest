@@ -221,8 +221,8 @@ export function DriverGuideArticle() {
         <p className="mt-3">
           Under the route fields, the day card shows a WorkSafe WA day sheet: odometer and locations on top, then three
           rows ({WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) with a
-          15-minute tick grid (24.00–23.00). Filled cells paint what you logged (same rules as section 5). On a phone you
-          can scroll the sheet sideways.
+          15-minute tick grid (24.00–23.00) and a thin step line for what you logged (same rules as section 5). On a
+          phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
           Normal day: open the week → check From / To / Rego → type start km → tap Start shift.

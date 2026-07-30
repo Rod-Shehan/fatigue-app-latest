@@ -40,7 +40,7 @@ describe("WorkSafe PDF day tile", () => {
     expect(html).toContain("MONDAY");
     expect(html).toContain(WORKSAFE_HOUR_LABELS[0]);
     expect(html).toContain(WORKSAFE_TRACK_LABELS.work);
-    expect(html).toContain("wsQ fill");
+    expect(html).toContain("<path d=");
     expect(html).toContain("Perth");
     expect(dominantTrackInQuarter(paint.trackByMinute, (12 * 60) / 15)).toBe("break");
   });

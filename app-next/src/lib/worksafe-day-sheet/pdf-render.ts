@@ -1,6 +1,6 @@
 /**
  * WorkSafe day-sheet rendering for weekly / roadside PDF (HTML + jsPDF).
- * Paper tick-grid layout — same presentation as WorkSafeDaySheet UI.
+ * Paper 15-min grid + thin step line (same presentation as WorkSafeDaySheet UI).
  */
 
 import type { jsPDF } from "jspdf";
@@ -8,15 +8,18 @@ import { buildWorkSafeDayPaint } from "./build-day-paint";
 import {
   WORKSAFE_TRACK_LABELS,
   type WorkSafeDayPaint,
+  type WorkSafeDaySegment,
   type WorkSafeTrack,
 } from "./types";
 import {
-  quarterTracksFromPaint,
   WORKSAFE_HOUR_LABELS,
   WORKSAFE_QUARTERS_PER_DAY,
   WORKSAFE_TRACKS,
 } from "./quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
+
+const MINUTES_PER_DAY = 1440;
+const LANE_H = 22;
 
 function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -25,6 +28,27 @@ function escapeHtml(s: string) {
 function formatTotal(minutes: number): string {
   if (minutes <= 0) return "";
   return formatHoursStatistic(minutes / 60);
+}
+
+function trackY(track: WorkSafeTrack, laneH: number): number {
+  return WORKSAFE_TRACKS.indexOf(track) * laneH + laneH / 2;
+}
+
+function buildStepPath(segments: WorkSafeDaySegment[], laneH: number): string {
+  if (segments.length === 0) return "";
+  let d = "";
+  let prev: WorkSafeDaySegment | null = null;
+  for (const seg of segments) {
+    const y = trackY(seg.track, laneH);
+    if (!prev || prev.endMin !== seg.startMin) {
+      d += `M${seg.startMin} ${y} `;
+    } else if (prev.track !== seg.track) {
+      d += `V${y} `;
+    }
+    d += `H${seg.endMin} `;
+    prev = seg;
+  }
+  return d.trim();
 }
 
 export type PdfDayInput = {
@@ -39,7 +63,6 @@ export type PdfDayInput = {
   end_kms?: number | null;
 };
 
-/** Build paint for one PDF day; pass paintedUntilMinute from Perth-aware helper. */
 export function paintForPdfDay(
   day: PdfDayInput,
   dateStr: string,
@@ -67,9 +90,6 @@ export function workSafeSegmentTypeLabel(track: WorkSafeTrack): string {
   return WORKSAFE_TRACK_LABELS[track];
 }
 
-/**
- * Inner HTML for one WorkSafe paper day tile (15-min tick grid).
- */
 export function renderWorkSafeDaySheetHtml(opts: {
   paint: WorkSafeDayPaint;
   dayName: string;
@@ -81,7 +101,8 @@ export function renderWorkSafeDaySheetHtml(opts: {
   void opts.dateLabel;
   void opts.driverName;
   const dayUpper = dayName.toUpperCase();
-  const quarters = quarterTracksFromPaint(paint);
+  const chartH = WORKSAFE_TRACKS.length * LANE_H;
+  const stepPath = buildStepPath(paint.segments, LANE_H);
   const startKm =
     day.start_kms != null && !Number.isNaN(Number(day.start_kms)) ? String(day.start_kms) : "";
   const endKm = day.end_kms != null && !Number.isNaN(Number(day.end_kms)) ? String(day.end_kms) : "";
@@ -90,18 +111,18 @@ export function renderWorkSafeDaySheetHtml(opts: {
 
   const hourCells = WORKSAFE_HOUR_LABELS.map(
     (label, h) =>
-      `<div class="wsHourCell${h % 2 === 0 ? " alt" : ""}">${escapeHtml(label)}</div>`
+      `<div class="wsHourCell${h % 2 === 0 ? " alt" : ""}" style="grid-column:span 4">${escapeHtml(label)}</div>`
   ).join("");
 
+  const quarterCells = Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => {
+    const hourEdge = q % 4 === 0;
+    return `<div class="wsQ${hourEdge ? " hour" : ""}"></div>`;
+  }).join("");
+
   const rows = WORKSAFE_TRACKS.map((track, rowIdx) => {
-    const cells = Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => {
-      const filled = quarters[q] === track;
-      const hourEdge = q % 4 === 0;
-      return `<div class="wsQ${filled ? " fill" : ""}${hourEdge ? " hour" : ""}"></div>`;
-    }).join("");
     return `<div class="wsRow${rowIdx < WORKSAFE_TRACKS.length - 1 ? " sep" : ""}">
       <div class="wsRowLabel">${escapeHtml(WORKSAFE_TRACK_LABELS[track])}</div>
-      <div class="wsQuarters">${cells}</div>
+      ${quarterCells}
       <div class="wsTotal">${escapeHtml(formatTotal(paint.totalsMinutes[track]))}</div>
     </div>`;
   }).join("");
@@ -116,14 +137,24 @@ export function renderWorkSafeDaySheetHtml(opts: {
       </div>
       <div class="wsHourRow">
         <div class="wsDayName">${escapeHtml(dayUpper)}</div>
-        <div class="wsHours">${hourCells}</div>
+        ${hourCells}
         <div class="wsTotalCap">Total</div>
       </div>
-      ${rows}
+      <div class="wsBody">
+        ${rows}
+        <div class="wsLineWrap">
+          <svg width="100%" height="${chartH}" viewBox="0 0 ${MINUTES_PER_DAY} ${chartH}" preserveAspectRatio="none" aria-hidden="true">
+            ${
+              stepPath
+                ? `<path d="${stepPath}" fill="none" stroke="#111" stroke-width="2.25" stroke-linejoin="miter" stroke-linecap="square" vector-effect="non-scaling-stroke"/>`
+                : ""
+            }
+          </svg>
+        </div>
+      </div>
     </div>`;
 }
 
-/** CSS for WorkSafe day tiles (inject into PDF HTML head). */
 export const WORKSAFE_PDF_DAY_CSS = `
   .wsSheet { background:#fff; border:1px solid #000; color:#000; break-inside:avoid; }
   .wsMetaRow { display:flex; border-bottom:1px solid #000; font-size:8px; }
@@ -131,26 +162,26 @@ export const WORKSAFE_PDF_DAY_CSS = `
   .wsMetaCell:last-child { border-right:0; }
   .wsMetaLab { background:#e7e5e4; font-weight:700; padding:3px 4px; flex-shrink:0; display:flex; align-items:center; }
   .wsMetaVal { padding:3px 4px; flex:1; display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .wsHourRow { display:flex; border-bottom:1px solid #000; }
-  .wsDayName { width:78px; flex-shrink:0; border-right:1px solid #000; padding:3px 4px; font-size:9px; font-weight:800; text-decoration:underline; }
-  .wsHours { display:flex; flex:1; min-width:0; }
-  .wsHourCell { flex:1; text-align:center; font-size:6.5px; font-family:ui-monospace,monospace; padding:2px 0; border-right:1px solid #000; }
+  .wsHourRow, .wsRow {
+    display:grid;
+    grid-template-columns: 78px repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1fr)) 36px;
+  }
+  .wsHourRow { border-bottom:1px solid #000; }
+  .wsDayName { border-right:1px solid #000; padding:3px 4px; font-size:9px; font-weight:800; text-decoration:underline; }
+  .wsHourCell { text-align:center; font-size:6.5px; font-family:ui-monospace,monospace; padding:2px 0; border-right:1px solid #000; }
   .wsHourCell.alt { background:#e7e5e4; }
-  .wsTotalCap { width:36px; flex-shrink:0; background:#e7e5e4; font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center; }
-  .wsRow { display:flex; }
+  .wsTotalCap { background:#e7e5e4; font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .wsBody { position:relative; }
   .wsRow.sep { border-bottom:1px solid #000; }
-  .wsRowLabel { width:78px; flex-shrink:0; border-right:1px solid #000; padding:2px 4px; font-size:6.5px; font-weight:700; display:flex; align-items:center; line-height:1.15; }
-  .wsQuarters { display:flex; flex:1; min-width:0; height:18px; }
-  .wsQ { flex:1; border-right:1px solid #d6d3d1; box-sizing:border-box; }
+  .wsRowLabel { border-right:1px solid #000; padding:2px 4px; font-size:6.5px; font-weight:700; display:flex; align-items:center; line-height:1.15; height:${LANE_H}px; }
+  .wsQ { border-right:1px solid #d6d3d1; height:${LANE_H}px; box-sizing:border-box; }
   .wsQ.hour { border-right-color:#000; }
-  .wsQ.fill { background:#1c1917; }
-  .wsTotal { width:36px; flex-shrink:0; border-left:1px solid #000; font-size:8px; font-weight:800; font-family:ui-monospace,monospace; display:flex; align-items:center; justify-content:center; }
+  .wsTotal { border-left:1px solid #000; font-size:8px; font-weight:800; font-family:ui-monospace,monospace; display:flex; align-items:center; justify-content:center; height:${LANE_H}px; }
+  .wsLineWrap { position:absolute; top:0; bottom:0; left:78px; right:36px; pointer-events:none; }
+  .wsLineWrap svg { display:block; width:100%; height:100%; }
   .mono { font-family:ui-monospace,monospace; }
 `;
 
-/**
- * Draw WorkSafe paper tick-grid day chart in jsPDF. Returns y after the chart (mm).
- */
 export function drawWorkSafeDaySheetJsPdf(
   doc: jsPDF,
   opts: {
@@ -175,7 +206,8 @@ export function drawWorkSafeDaySheetJsPdf(
   const laneH = 5.5;
   const metaH = 6;
   const hourH = 4;
-  const tileH = metaH + hourH + WORKSAFE_TRACKS.length * laneH;
+  const chartH = WORKSAFE_TRACKS.length * laneH;
+  const tileH = metaH + hourH + chartH;
 
   doc.setDrawColor(...ink);
   doc.setLineWidth(0.25);
@@ -211,7 +243,6 @@ export function drawWorkSafeDaySheetJsPdf(
   });
   y += metaH;
 
-  // Day name + hour headers + Total
   doc.setDrawColor(...ink);
   doc.rect(x, y, labelW, hourH, "S");
   doc.setFont("helvetica", "bold");
@@ -237,11 +268,11 @@ export function drawWorkSafeDaySheetJsPdf(
   doc.text("Total", x + labelW + chartW + totalW / 2, y + 2.8, { align: "center" });
   y += hourH;
 
-  const quarters = quarterTracksFromPaint(paint);
+  const chartTop = y;
   const qW = chartW / WORKSAFE_QUARTERS_PER_DAY;
 
   WORKSAFE_TRACKS.forEach((track, rowIdx) => {
-    const ly = y + rowIdx * laneH;
+    const ly = chartTop + rowIdx * laneH;
     doc.setDrawColor(...ink);
     doc.rect(x, ly, labelW, laneH, "S");
     doc.setFont("helvetica", "bold");
@@ -252,10 +283,6 @@ export function drawWorkSafeDaySheetJsPdf(
 
     for (let q = 0; q < WORKSAFE_QUARTERS_PER_DAY; q++) {
       const qx = x + labelW + q * qW;
-      if (quarters[q] === track) {
-        doc.setFillColor(28, 25, 23);
-        doc.rect(qx, ly, qW, laneH, "F");
-      }
       doc.setDrawColor(q % 4 === 0 ? 0 : 180, q % 4 === 0 ? 0 : 180, q % 4 === 0 ? 0 : 180);
       doc.setLineWidth(0.1);
       doc.rect(qx, ly, qW, laneH, "S");
@@ -269,6 +296,23 @@ export function drawWorkSafeDaySheetJsPdf(
     const tot = formatTotal(paint.totalsMinutes[track]);
     if (tot) doc.text(tot, x + labelW + chartW + totalW / 2, ly + laneH * 0.7, { align: "center" });
   });
+
+  // Thin step line across chart band
+  doc.setDrawColor(...ink);
+  doc.setLineWidth(0.55);
+  const xOf = (m: number) => x + labelW + (m / MINUTES_PER_DAY) * chartW;
+  let prev: WorkSafeDaySegment | null = null;
+  for (const seg of paint.segments) {
+    const ty = chartTop + trackY(seg.track, laneH);
+    const x0 = xOf(seg.startMin);
+    const x1 = xOf(seg.endMin);
+    if (prev && prev.endMin === seg.startMin && prev.track !== seg.track) {
+      const py = chartTop + trackY(prev.track, laneH);
+      doc.line(x0, py, x0, ty);
+    }
+    doc.line(x0, ty, x1, ty);
+    prev = seg;
+  }
 
   return opts.y + tileH + 1.5;
 }
