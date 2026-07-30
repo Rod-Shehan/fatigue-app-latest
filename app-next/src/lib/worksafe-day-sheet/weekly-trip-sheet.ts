@@ -282,10 +282,7 @@ export function drawWeeklyTripSheetFooterJsPdf(
   const gap = 2;
   const colW = (width - gap * 2) / 3;
 
-  if (y > 250) {
-    doc.addPage();
-    y = 16;
-  }
+  // Caller reserves space so signature stays with the last day tile — do not orphan on a new page.
 
   doc.setFillColor(231, 229, 228);
   doc.rect(x, y, colW, footH, "FD");

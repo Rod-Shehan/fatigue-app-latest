@@ -45,8 +45,8 @@ type DayDataGrid = {
   end_kms?: number | null;
 };
 
-function formatTotal(minutes: number): string {
-  if (minutes <= 0) return "";
+function formatTotal(minutes: number, paintedUntilMinute: number): string {
+  if (paintedUntilMinute <= 0) return "";
   return formatHoursStatistic(minutes / 60);
 }
 
@@ -201,7 +201,7 @@ export default function WorkSafeDaySheet({
                   />
                 ))}
                 <div className="flex items-center justify-center border-l border-black font-mono text-[10px] font-bold tabular-nums sm:text-[11px]">
-                  {formatTotal(paint.totalsMinutes[track])}
+                  {formatTotal(paint.totalsMinutes[track], paint.paintedUntilMinute)}
                 </div>
               </div>
             ))}

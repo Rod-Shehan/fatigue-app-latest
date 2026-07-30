@@ -150,4 +150,39 @@ describe("buildWorkSafeDayPaint", () => {
     expect(paint.totalsMinutes.break).toBe(20);
     expect(paint.totalsMinutes.non_work).toBe(MINUTES_PER_DAY - 80);
   });
+
+  it("fills empty past days (all-false grids, no events) as 24h non_work", () => {
+    const empty = Array(MINUTES_PER_DAY).fill(false);
+    const paint = buildWorkSafeDayPaint({
+      dateStr: PAST,
+      todayStr: TODAY,
+      work_time: empty,
+      breaks: empty,
+      non_work: empty,
+      events: [],
+    });
+    expect(paint.paintedUntilMinute).toBe(MINUTES_PER_DAY);
+    expect(paint.trackByMinute.every((t) => t === "non_work")).toBe(true);
+    expect(paint.totalsMinutes).toEqual({ work: 0, break: 0, non_work: MINUTES_PER_DAY });
+    expect(paint.segments).toEqual([{ track: "non_work", startMin: 0, endMin: MINUTES_PER_DAY }]);
+  });
+
+  it("does not invent non_work for coverage gaps when the day already has activity", () => {
+    const work_time = Array(MINUTES_PER_DAY).fill(false);
+    const breaks = Array(MINUTES_PER_DAY).fill(false);
+    const non_work = Array(MINUTES_PER_DAY).fill(false);
+    for (let m = 60; m < 120; m++) work_time[m] = true;
+    const paint = buildWorkSafeDayPaint({
+      dateStr: PAST,
+      todayStr: TODAY,
+      work_time,
+      breaks,
+      non_work,
+      events: [{ time: `${PAST}T01:00:00`, type: "work" }],
+    });
+    expect(trackAt(paint, 0, 60).every((t) => t == null)).toBe(true);
+    expect(trackAt(paint, 60, 120).every((t) => t === "work")).toBe(true);
+    expect(paint.totalsMinutes.work).toBe(60);
+    expect(paint.totalsMinutes.non_work).toBe(0);
+  });
 });

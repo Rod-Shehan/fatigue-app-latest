@@ -564,36 +564,34 @@ export function renderPdfHtml(opts: {
   const truckRegs = collectWeekTruckRegs(dayList);
   let weekWorkMinutes = 0;
 
-  const dayBlocks = dayList
-    .map((day, idx) => {
-      const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
-      const dateLabel = getDateStr(sheet.week_starting, idx);
-      const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
-      const paintedUntil = getEffectiveDayEndMinutes(isoDate, todayStr);
-      const paint = paintForPdfDay(day, isoDate, todayStr, paintedUntil);
-      weekWorkMinutes += paint.totalsMinutes.work;
+  const dayCards = dayList.map((day, idx) => {
+    const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
+    const dateLabel = getDateStr(sheet.week_starting, idx);
+    const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
+    const paintedUntil = getEffectiveDayEndMinutes(isoDate, todayStr);
+    const paint = paintForPdfDay(day, isoDate, todayStr, paintedUntil);
+    weekWorkMinutes += paint.totalsMinutes.work;
 
-      const sheetHtml = renderWorkSafeDaySheetHtml({
-        paint,
-        dayName,
-        dateLabel,
-        driverName,
-        day: {
-          truck_rego: (day as { truck_rego?: string }).truck_rego,
-          start_location: (day as { start_location?: string }).start_location,
-          destination: (day as { destination?: string }).destination,
-          start_kms: (day as { start_kms?: number }).start_kms,
-          end_kms: (day as { end_kms?: number }).end_kms,
-        },
-      });
+    const sheetHtml = renderWorkSafeDaySheetHtml({
+      paint,
+      dayName,
+      dateLabel,
+      driverName,
+      day: {
+        truck_rego: (day as { truck_rego?: string }).truck_rego,
+        start_location: (day as { start_location?: string }).start_location,
+        destination: (day as { destination?: string }).destination,
+        start_kms: (day as { start_kms?: number }).start_kms,
+        end_kms: (day as { end_kms?: number }).end_kms,
+      },
+    });
 
-      return `
+    return `
         <section class="dayCard">
           ${sheetHtml}
         </section>
       `;
-    })
-    .join("");
+  });
 
   const tripChrome = {
     weekStarting: sheet.week_starting,
@@ -604,6 +602,17 @@ export function renderPdfHtml(opts: {
     signedAt: sheet.signed_at,
     checklistTicks: checklistMatrixFromDays(dayList),
   };
+
+  const footerHtml = renderWeeklyTripSheetFooterHtml(tripChrome);
+  // Keep signature/footer on the same page as the last day tile (legal + space).
+  const leadingDays = dayCards.slice(0, -1).join("");
+  const lastDay = dayCards[dayCards.length - 1] ?? "";
+  const tripDaysAndFooter = `
+        ${leadingDays}
+        <div class="wtsLastWithFooter">
+          ${lastDay}
+          ${footerHtml}
+        </div>`;
 
   return `<!doctype html>
   <html>
@@ -620,6 +629,7 @@ export function renderPdfHtml(opts: {
         .dayCard { margin: 6px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
         .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
         .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
+        .wtsLastWithFooter { break-inside: avoid; page-break-inside: avoid; }
         .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 8px; }
         ${WORKSAFE_PDF_DAY_CSS}
         ${WEEKLY_TRIP_SHEET_PDF_CSS}
@@ -673,8 +683,7 @@ export function renderPdfHtml(opts: {
       ${roadside ? buildRoadsideSectionHtml(roadside) : ""}
       <div class="wtsWeekBody">
         ${renderWeeklyTripSheetHeaderHtml(tripChrome)}
-        ${dayBlocks}
-        ${renderWeeklyTripSheetFooterHtml(tripChrome)}
+        ${tripDaysAndFooter}
       </div>
       ${buildShiftLogHtml({ sheet, todayStr })}
     </body>
@@ -1056,10 +1065,14 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     checklistTicks: checklistMatrixFromDays(dayList),
   });
 
+  const FOOTER_BUDGET_MM = 40;
+  const TILE_BUDGET_MM = 32;
+
   dayList.forEach((day, idx) => {
-    // WorkSafe day tile ≈ 28mm + gap; keep whole tile on one page.
-    const tileBudgetMm = 32;
-    if (y + tileBudgetMm > 285) {
+    const isLastDay = idx === dayList.length - 1;
+    // Reserve footer space when placing the last day so signature stays on the same page.
+    const needMm = TILE_BUDGET_MM + (isLastDay ? FOOTER_BUDGET_MM : 0);
+    if (y + needMm > 285) {
       doc.addPage();
       y = 16;
     }
@@ -1105,11 +1118,6 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     });
     y += 2;
   });
-
-  if (y + 40 > 285) {
-    doc.addPage();
-    y = 16;
-  }
 
   y = drawWeeklyTripSheetFooterJsPdf(doc, {
     x: margin,

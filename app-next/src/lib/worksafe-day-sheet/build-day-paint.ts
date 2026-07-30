@@ -123,6 +123,11 @@ function resolveCoverageGrids(input: BuildWorkSafeDayPaintInput, nowMs: number) 
 /**
  * Build WorkSafe exclusive day paint for one YMD.
  * Prefer passing grids from `deriveDaysWithRollover` when overnight carry is required.
+ *
+ * Presentation only (owner): a past/today day with **no events** and no work/break/non_work
+ * coverage is drawn as full non_work for the painted window (Work 0 / Break 0 / Non-work 24).
+ * Does **not** invent non_work for unpainted gaps on days that already have coverage or events,
+ * and does not change compliance engines.
  */
 export function buildWorkSafeDayPaint(input: BuildWorkSafeDayPaintInput): WorkSafeDayPaint {
   const nowMs = input.nowMs ?? Date.now();
@@ -138,6 +143,14 @@ export function buildWorkSafeDayPaint(input: BuildWorkSafeDayPaintInput): WorkSa
   const trackByMinute: Array<WorkSafeTrack | null> = Array(MINUTES_PER_DAY).fill(null);
   for (let m = 0; m < paintedUntilMinute; m++) {
     trackByMinute[m] = exclusiveTrackAtMinute(grids.work_time, grids.breaks, grids.non_work, m);
+  }
+
+  const noEvents = !input.events?.length;
+  const noCoverage = !trackByMinute.some((t) => t != null);
+  if (noEvents && noCoverage && paintedUntilMinute > 0) {
+    for (let m = 0; m < paintedUntilMinute; m++) {
+      trackByMinute[m] = "non_work";
+    }
   }
 
   return {

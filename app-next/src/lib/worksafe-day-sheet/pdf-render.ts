@@ -26,8 +26,9 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-function formatTotal(minutes: number): string {
-  if (minutes <= 0) return "";
+/** Always show a total (including 0) when the day has a painted window. */
+function formatTotal(minutes: number, paintedUntilMinute: number): string {
+  if (paintedUntilMinute <= 0) return "";
   return formatHoursStatistic(minutes / 60);
 }
 
@@ -125,7 +126,7 @@ export function renderWorkSafeDaySheetHtml(opts: {
     return `<div class="wsRow${rowIdx < WORKSAFE_TRACKS.length - 1 ? " sep" : ""}">
       <div class="wsRowLabel">${escapeHtml(WORKSAFE_TRACK_LABELS[track])}</div>
       ${quarterCells}
-      <div class="wsTotal">${escapeHtml(formatTotal(paint.totalsMinutes[track]))}</div>
+      <div class="wsTotal">${escapeHtml(formatTotal(paint.totalsMinutes[track], paint.paintedUntilMinute))}</div>
     </div>`;
   }).join("");
 
@@ -313,7 +314,7 @@ export function drawWorkSafeDaySheetJsPdf(
     doc.rect(x + labelW + chartW, ly, totalW, laneH, "S");
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6.5);
-    const tot = formatTotal(paint.totalsMinutes[track]);
+    const tot = formatTotal(paint.totalsMinutes[track], paint.paintedUntilMinute);
     if (tot) doc.text(tot, x + labelW + chartW + totalW / 2, ly + laneH * 0.7, { align: "center" });
   });
 

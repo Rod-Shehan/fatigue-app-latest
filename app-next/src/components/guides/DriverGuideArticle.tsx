@@ -222,8 +222,8 @@ export function DriverGuideArticle() {
           Under the route fields, the day card shows a WorkSafe WA day sheet: truck reg, odometer and locations on top, then three
           rows ({WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) with a
           15-minute tick grid (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin step line
-          for what you logged (same rules as section 5). On a
-          phone you can scroll the sheet sideways.
+          for what you logged (same rules as section 5). Days with no events show a full non-work line (totals Work 0 /
+          Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
           Normal day: open the week → check From / To / Rego → tick Daily checks when done → type start km → tap Start
@@ -342,8 +342,8 @@ export function DriverGuideArticle() {
           <li>
             It builds one PDF of your last 28 calendar days — for each week: compliance summary, a Weekly Trip Sheet
             frame (week ending, driver, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
-            sheets, week work-hours total, office-use box, and your week signature when signed), then the shift log
-            appendix with event detail.
+            sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week
+            signature on the same page as the day sheets when signed), then the shift log appendix with event detail.
           </li>
           <li>It works offline from saved weeks. Share or show it on your phone.</li>
         </ul>
@@ -434,11 +434,11 @@ export function DriverGuideArticle() {
             ["Non-work", "Off duty / long rest / sleep / in sleeper cab for two-up"],
             [
               "WorkSafe day sheet",
-              `Truck reg / odometer / locations + ${WORKSAFE_TRACK_LABELS.work} / ${WORKSAFE_TRACK_LABELS.break} / ${WORKSAFE_TRACK_LABELS.non_work} as a 15-minute tick grid (day card + PDF)`,
+              `Truck reg / odometer / locations + ${WORKSAFE_TRACK_LABELS.work} / ${WORKSAFE_TRACK_LABELS.break} / ${WORKSAFE_TRACK_LABELS.non_work} as a 15-minute tick grid (day card + PDF); empty days = Work 0 / Break 0 / Non-work 24`,
             ],
             [
               "Weekly Trip Sheet (PDF)",
-              "Week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature",
+              "Week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature with the day sheets",
             ],
             ["Start shift / End shift", "Begin / finish work for a shift"],
             ["Resume shift", "Continue the same shift — not the same as start / finish break"],

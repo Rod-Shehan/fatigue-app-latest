@@ -69,8 +69,8 @@ Compare Export PDF to the paper Weekly Trip Sheet blank:
 
 1. Week header: title, week ending (Sat), driver name, truck reg(s)
 2. Three checklist rows × SUN–SAT — ticks only where day cards were ticked
-3. Seven WorkSafe day rows (15‑min grid, blank first hour, step line) — not split mid-tile
-4. Footer: OFFICE USE blank, week work-hours total, week signature when signed
+3. Seven WorkSafe day rows (15‑min grid, blank first hour, step line) — not split mid-tile; empty days paint full non-work (0 / 0 / 24)
+4. Footer: OFFICE USE blank, week work-hours total, week signature on the same page as the last day tile(s) when signed
 5. Compliance summary before the trip sheet; shift log appendix after
 6. No fabricated trailer/dolly or licence-valid fields (deferred)
 

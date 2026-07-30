@@ -136,7 +136,7 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 └─────────────────────────────┘
 ```
 
-          Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: truck reg, odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). On a phone you can scroll the sheet sideways.
+          Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: truck reg, odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). Days with **no events** show a full **non-work** line (totals Work 0 / Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
 
 **Normal day:** open the week → check From/To/Rego → tick **Daily checks** (fitness for work, dimension & load, vehicle) when done → type **start km** → tap **Start shift**.
 
@@ -213,7 +213,7 @@ Menu: **Your weeks** (`/sheets`)
 When an officer asks to see your records:
 
 - Tap **Produce 28 day roadside PDF** on **Drive home**, on your **week sheet** (Day tools → Roadside), or in **Settings**.
-- It builds one PDF of your **last 28 calendar days** — for each week: compliance summary, a **Weekly Trip Sheet** frame (week ending, driver name, truck reg, fitness/load/vehicle tick boxes from your day cards, seven WorkSafe day sheets, week work-hours total, office-use box, and your week signature when signed), then the **shift log** appendix (event detail).
+- It builds one PDF of your **last 28 calendar days** — for each week: compliance summary, a **Weekly Trip Sheet** frame (week ending, driver name, truck reg, fitness/load/vehicle tick boxes from your day cards, seven WorkSafe day sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week signature on the same page as the day sheets when signed), then the **shift log** appendix (event detail).
 - It works **offline** from saved weeks. Share or show it on your phone.
 
 You must keep signed records for at least **3 years** — this export is for roadside produce only.
@@ -288,8 +288,8 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Work | Solo means driving or working. Two-up means driving. |
 | Break | Short rest (≤30 min) during work |
 | Non-work | Off duty / long rest / sleep / in sleeper cab for two-up |
-| WorkSafe day sheet | Paper-style day chart on each day card and in PDFs: truck reg, odometer/locations, then WORK TIME / BREAKS FROM DRIVING / NON WORK TIME as a 15-minute tick grid |
-| Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature |
+| WorkSafe day sheet | Paper-style day chart on each day card and in PDFs: truck reg, odometer/locations, then WORK TIME / BREAKS FROM DRIVING / NON WORK TIME as a 15-minute tick grid; empty days = Work 0 / Break 0 / Non-work 24 |
+| Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature with the day sheets |
 | Start shift / End shift | Begin / finish work for a shift |
 | Resume shift | Continue the same shift — this is not the same as start / finish break. |
 | Week | Sunday–Saturday slice of your record |

@@ -99,6 +99,7 @@ export function renderRoadsideProduceDocumentHtml(opts: {
       .dayCard { margin: 6px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
       .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
       .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
+      .wtsLastWithFooter { break-inside: avoid; page-break-inside: avoid; }
       .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 8px; }
       ${WORKSAFE_PDF_DAY_CSS}
       ${WEEKLY_TRIP_SHEET_PDF_CSS}
