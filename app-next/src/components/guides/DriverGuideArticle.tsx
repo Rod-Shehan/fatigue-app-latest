@@ -206,7 +206,7 @@ export function DriverGuideArticle() {
 │  [ _________ ]  ← you type  │
 │                             │
 │  WorkSafe day sheet         │
-│  (step line across the day) │
+│  (15-min tick grid)         │
 └─────────────────────────────┘`}
         </GuideDiagram>
         <TwoColTable
@@ -219,10 +219,10 @@ export function DriverGuideArticle() {
           ]}
         />
         <p className="mt-3">
-          Under the route fields, the day card shows a WorkSafe WA day sheet: three rows (
-          {WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) with a black
-          step line across 00:00–24:00. It paints what you logged (same rules as section 5). On a phone you can scroll
-          the sheet sideways.
+          Under the route fields, the day card shows a WorkSafe WA day sheet: odometer and locations on top, then three
+          rows ({WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) with a
+          15-minute tick grid (24.00–23.00). Filled cells paint what you logged (same rules as section 5). On a phone you
+          can scroll the sheet sideways.
         </p>
         <p className="mt-3">
           Normal day: open the week → check From / To / Rego → type start km → tap Start shift.
@@ -429,7 +429,7 @@ export function DriverGuideArticle() {
             ["Non-work", "Off duty / long rest / sleep / in sleeper cab for two-up"],
             [
               "WorkSafe day sheet",
-              `${WORKSAFE_TRACK_LABELS.work}, ${WORKSAFE_TRACK_LABELS.break}, ${WORKSAFE_TRACK_LABELS.non_work} with a step line (day card + PDF)`,
+              `Odometer/locations + ${WORKSAFE_TRACK_LABELS.work} / ${WORKSAFE_TRACK_LABELS.break} / ${WORKSAFE_TRACK_LABELS.non_work} as a 15-minute tick grid (day card + PDF)`,
             ],
             ["Start shift / End shift", "Begin / finish work for a shift"],
             ["Resume shift", "Continue the same shift — not the same as start / finish break"],

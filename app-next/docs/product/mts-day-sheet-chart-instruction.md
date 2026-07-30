@@ -11,8 +11,8 @@
 | Surface | Implementation |
 |---------|----------------|
 | Paint model | `src/lib/worksafe-day-sheet/` (`buildWorkSafeDayPaint`) |
-| Driver Day Entry | `src/components/fatigue/WorkSafeDaySheet.tsx` |
-| Weekly + roadside PDF | `src/lib/worksafe-day-sheet/pdf-render.ts` + `sheet-jspdf-export.ts` / `roadside-produce-pdf.ts` |
+| Driver Day Entry | `WorkSafeDaySheet.tsx` — paper header + 15-min tick grid |
+| Weekly + roadside PDF | Same tick-grid layout via `pdf-render.ts` |
 | Scope checklist | `docs/product/worksafe-wa-day-sheet-project-scope.md` |
 
 ---
@@ -21,9 +21,11 @@
 
 On EWD Day Entry and in PDF export, show a **WorkSafe-faithful paper day row**:
 
-- One continuous black **step line** across a 24 hour grid
-- Three labelled rows: WORK TIME, BREAKS FROM DRIVING, NON WORK TIME
-- Layout close enough that a driver could copy it onto a paper MTS / WorkSafe sheet
+- Header: Odometer Start / Start Location / Finish Location / Odometer Finish
+- Hour labels **24.00 … 23.00** with alternating grey/white
+- Three labelled rows with a **15-minute tick grid** (filled cells from EWD paint)
+- Right-hand **Total** column per row
+- Day name (e.g. SUNDAY) on the left; signature fields deferred to the week sheet
 
 ---
 

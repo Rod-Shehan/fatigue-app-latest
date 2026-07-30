@@ -1037,7 +1037,6 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
 
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
-  const driverName = (sheet.driver_name || "").trim();
 
   dayList.forEach((day, idx) => {
     if (y > 250) {
@@ -1077,13 +1076,6 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     const dest = dayWithKms.destination ?? "";
     const startKms = dayWithKms.start_kms ?? null;
     const endKms = dayWithKms.end_kms ?? null;
-    const metaParts: string[] = [];
-    if (driverName) metaParts.push(driverName);
-    if (rego) metaParts.push(`Rego: ${rego}`);
-    if (startLoc) metaParts.push(`From: ${startLoc}`);
-    if (dest) metaParts.push(`To: ${dest}`);
-    if (startKms != null) metaParts.push(`Start: ${startKms} km`);
-    if (endKms != null) metaParts.push(`End: ${endKms} km`);
 
     y = drawWorkSafeDaySheetJsPdf(doc, {
       paint,
@@ -1092,7 +1084,13 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
       width: colW,
       dayName,
       dateLabel: dateStr,
-      metaLine: metaParts.length ? metaParts.join(" · ") : undefined,
+      day: {
+        truck_rego: rego,
+        start_location: startLoc,
+        destination: dest,
+        start_kms: startKms,
+        end_kms: endKms,
+      },
     });
 
     // Segment list table (audit-proof detail)

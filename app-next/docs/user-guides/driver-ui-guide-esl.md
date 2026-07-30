@@ -131,12 +131,12 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 │  [ _________ ]  ← you type  │
 │                             │
 │  WorkSafe day sheet         │
-│  (step line: work / break / │
-│   non-work · 00:00–24:00)   │
+│  (15-min tick grid · work / │
+│   break / non-work)         │
 └─────────────────────────────┘
 ```
 
-Under the route fields, the day card shows a **WorkSafe WA day sheet**: three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a black **step line** across the day. It paints what you logged (same rules as section 5). On a phone you can scroll the sheet sideways.
+Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** from 24.00 to 23.00. Filled cells show what you logged (same rules as section 5). On a phone you can scroll the sheet sideways.
 
 **Normal day:** open the week → check From/To/Rego → type **start km** → tap **Start shift**.
 
@@ -287,7 +287,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Work | Solo means driving or working. Two-up means driving. |
 | Break | Short rest (≤30 min) during work |
 | Non-work | Off duty / long rest / sleep / in sleeper cab for two-up |
-| WorkSafe day sheet | Paper-style day chart on each day card and in PDFs: WORK TIME, BREAKS FROM DRIVING, NON WORK TIME with a step line |
+| WorkSafe day sheet | Paper-style day chart on each day card and in PDFs: odometer/locations, then WORK TIME / BREAKS FROM DRIVING / NON WORK TIME as a 15-minute tick grid |
 | Start shift / End shift | Begin / finish work for a shift |
 | Resume shift | Continue the same shift — this is not the same as start / finish break. |
 | Week | Sunday–Saturday slice of your record |
