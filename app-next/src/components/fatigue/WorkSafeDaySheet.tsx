@@ -8,11 +8,10 @@ import {
   type WorkSafeTrack,
 } from "@/lib/worksafe-day-sheet";
 import {
-  dayMinuteToChartX,
-  WORKSAFE_CHART_MINUTE_WIDTH,
-  WORKSAFE_GRID_PAD_QUARTERS,
+  isWorkSafeHourBoundaryQuarter,
   WORKSAFE_HOUR_LABELS,
-  WORKSAFE_QUARTER_COLS,
+  WORKSAFE_MINUTES_PER_DAY,
+  WORKSAFE_QUARTERS_PER_DAY,
   WORKSAFE_TRACKS,
 } from "@/lib/worksafe-day-sheet/quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
@@ -22,8 +21,8 @@ import { cn } from "@/lib/utils";
 const LABEL_W = "108px";
 const TOTAL_W = "3.5rem";
 const ROW_H = 32;
-/** Shared template: label | pad+96 quarters | total — hours and ticks share columns. */
-const SHEET_GRID = `${LABEL_W} repeat(${WORKSAFE_QUARTER_COLS}, minmax(0, 1fr)) ${TOTAL_W}`;
+/** Shared template so hour headers and 15-min cells share the same column tracks. */
+const SHEET_GRID = `${LABEL_W} repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1fr)) ${TOTAL_W}`;
 
 const ROW_TOOLTIPS: Record<WorkSafeTrack, string> = {
   work: "WORK TIME — driving, loading/unloading, maintenance, paperwork, and other work incidental to driving.",
@@ -64,21 +63,19 @@ function trackY(track: WorkSafeTrack): number {
   return WORKSAFE_TRACKS.indexOf(track) * ROW_H + ROW_H / 2;
 }
 
-/** Step path in chart x units (padded minutes). */
+/** Step path in viewBox units: x = minutes (0–1440), y = px down the three rows. */
 function buildStepPath(segments: WorkSafeDaySegment[]): string {
   if (segments.length === 0) return "";
   let d = "";
   let prev: WorkSafeDaySegment | null = null;
   for (const seg of segments) {
     const y = trackY(seg.track);
-    const x0 = dayMinuteToChartX(seg.startMin);
-    const x1 = dayMinuteToChartX(seg.endMin);
     if (!prev || prev.endMin !== seg.startMin) {
-      d += `M${x0} ${y} `;
+      d += `M${seg.startMin} ${y} `;
     } else if (prev.track !== seg.track) {
       d += `V${y} `;
     }
-    d += `H${x1} `;
+    d += `H${seg.endMin} `;
     prev = seg;
   }
   return d.trim();
@@ -151,8 +148,6 @@ export default function WorkSafeDaySheet({
             <div className="border-r border-black px-1.5 py-1">
               <span className="text-[11px] font-bold underline decoration-1 underline-offset-2">{dayName}</span>
             </div>
-            {/* Leading empty 15m (no hour label) */}
-            <div className="border-r border-black bg-white" />
             {WORKSAFE_HOUR_LABELS.map((label, h) => (
               <div
                 key={`h-${h}`}
@@ -183,17 +178,15 @@ export default function WorkSafeDaySheet({
                     {WORKSAFE_TRACK_LABELS[track]}
                   </span>
                 </div>
-                {Array.from({ length: WORKSAFE_QUARTER_COLS }, (_, q) => {
-                  // Hour edges after the pad: cols 1,5,9… and pad col 0
-                  const dayQ = q - WORKSAFE_GRID_PAD_QUARTERS;
-                  const hourEdge = q === 0 || (dayQ >= 0 && dayQ % 4 === 0);
-                  return (
-                    <div
-                      key={q}
-                      className={cn("border-r", hourEdge ? "border-black" : "border-stone-300")}
-                    />
-                  );
-                })}
+                {Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => (
+                  <div
+                    key={q}
+                    className={cn(
+                      "border-r",
+                      isWorkSafeHourBoundaryQuarter(q) ? "border-black" : "border-stone-300"
+                    )}
+                  />
+                ))}
                 <div className="flex items-center justify-center border-l border-black font-mono text-[10px] font-bold tabular-nums sm:text-[11px]">
                   {formatTotal(paint.totalsMinutes[track])}
                 </div>
@@ -207,7 +200,7 @@ export default function WorkSafeDaySheet({
             >
               <svg
                 className="block h-full w-full"
-                viewBox={`0 0 ${WORKSAFE_CHART_MINUTE_WIDTH} ${chartH}`}
+                viewBox={`0 0 ${WORKSAFE_MINUTES_PER_DAY} ${chartH}`}
                 preserveAspectRatio="none"
                 role="img"
                 aria-label="Activity step line"

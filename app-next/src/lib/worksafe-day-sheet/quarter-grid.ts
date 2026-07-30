@@ -1,36 +1,30 @@
 /**
  * 15-minute paper grid helpers for WorkSafe day sheet (UI + PDF).
  *
- * Visual grid is padded by one quarter: empty 15m at the start, extra 15m at the end,
- * so day minutes 0–1440 sit in columns 1–96. First hour header is blank (no 24.00).
+ * Hour header cells use border-right at the end of each hour (after 4 quarters).
+ * Body ticks must put the heavy vertical on the same boundary: the right edge of
+ * quarter index 3, 7, 11, … — not on q % 4 === 0 (that sat 15m early).
  */
 
 import type { WorkSafeDayPaint, WorkSafeTrack } from "./types";
 
-/** Real day quarters (00:00–24:00). */
 export const WORKSAFE_QUARTERS_PER_DAY = 96;
-/** Leading empty 15m column (shifts hour ticks / line one quarter right). */
-export const WORKSAFE_GRID_PAD_QUARTERS = 1;
-/** Columns drawn in the chart (pad + day). */
-export const WORKSAFE_QUARTER_COLS = WORKSAFE_QUARTERS_PER_DAY + WORKSAFE_GRID_PAD_QUARTERS;
-/** Chart x units: pad minutes + day minutes. */
-export const WORKSAFE_CHART_MINUTE_WIDTH =
-  WORKSAFE_QUARTER_COLS * 15; /* 1455 */
+export const WORKSAFE_MINUTES_PER_DAY = 1440;
 
 export const WORKSAFE_TRACKS: WorkSafeTrack[] = ["work", "break", "non_work"];
 
 /**
- * Paper hour headers over the 96 day quarters (after the pad column):
- * first hour block blank (was 24.00), then 1.00 … 23.00.
+ * Paper hour headers: first block blank (no 24.00), then 1.00 … 23.00.
+ * Each label spans 4 quarter columns.
  */
 export const WORKSAFE_HOUR_LABELS = [
   "",
   ...Array.from({ length: 23 }, (_, i) => `${i + 1}.00`),
 ] as const;
 
-/** Map day minute [0,1440] → chart x (after leading 15m pad). */
-export function dayMinuteToChartX(minute: number): number {
-  return WORKSAFE_GRID_PAD_QUARTERS * 15 + minute;
+/** True when this quarter's right edge is an hour boundary (matches header cell borders). */
+export function isWorkSafeHourBoundaryQuarter(quarterIndex: number): boolean {
+  return quarterIndex % 4 === 3;
 }
 
 /** Dominant exclusive track in a 15-minute day quarter, or null if unpainted. */
@@ -39,7 +33,7 @@ export function dominantTrackInQuarter(
   quarterIndex: number
 ): WorkSafeTrack | null {
   const start = quarterIndex * 15;
-  const end = Math.min(1440, start + 15);
+  const end = Math.min(WORKSAFE_MINUTES_PER_DAY, start + 15);
   const counts: Record<WorkSafeTrack, number> = { work: 0, break: 0, non_work: 0 };
   let painted = 0;
   for (let m = start; m < end; m++) {

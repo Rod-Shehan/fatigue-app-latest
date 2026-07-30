@@ -12,11 +12,10 @@ import {
   type WorkSafeTrack,
 } from "./types";
 import {
-  dayMinuteToChartX,
-  WORKSAFE_CHART_MINUTE_WIDTH,
-  WORKSAFE_GRID_PAD_QUARTERS,
+  isWorkSafeHourBoundaryQuarter,
   WORKSAFE_HOUR_LABELS,
-  WORKSAFE_QUARTER_COLS,
+  WORKSAFE_MINUTES_PER_DAY,
+  WORKSAFE_QUARTERS_PER_DAY,
   WORKSAFE_TRACKS,
 } from "./quarter-grid";
 import { formatHoursStatistic } from "@/lib/hours";
@@ -42,14 +41,12 @@ function buildStepPath(segments: WorkSafeDaySegment[], laneH: number): string {
   let prev: WorkSafeDaySegment | null = null;
   for (const seg of segments) {
     const y = trackY(seg.track, laneH);
-    const x0 = dayMinuteToChartX(seg.startMin);
-    const x1 = dayMinuteToChartX(seg.endMin);
     if (!prev || prev.endMin !== seg.startMin) {
-      d += `M${x0} ${y} `;
+      d += `M${seg.startMin} ${y} `;
     } else if (prev.track !== seg.track) {
       d += `V${y} `;
     }
-    d += `H${x1} `;
+    d += `H${seg.endMin} `;
     prev = seg;
   }
   return d.trim();
@@ -113,17 +110,13 @@ export function renderWorkSafeDaySheetHtml(opts: {
   const from = (day.start_location ?? "").trim();
   const to = (day.destination ?? "").trim();
 
-  const hourCells = [
-    `<div class="wsPad"></div>`,
-    ...WORKSAFE_HOUR_LABELS.map(
-      (label, h) =>
-        `<div class="wsHourCell${h % 2 === 0 ? " alt" : ""}" style="grid-column:span 4">${escapeHtml(label)}</div>`
-    ),
-  ].join("");
+  const hourCells = WORKSAFE_HOUR_LABELS.map(
+    (label, h) =>
+      `<div class="wsHourCell${h % 2 === 0 ? " alt" : ""}" style="grid-column:span 4">${escapeHtml(label)}</div>`
+  ).join("");
 
-  const quarterCells = Array.from({ length: WORKSAFE_QUARTER_COLS }, (_, q) => {
-    const dayQ = q - WORKSAFE_GRID_PAD_QUARTERS;
-    const hourEdge = q === 0 || (dayQ >= 0 && dayQ % 4 === 0);
+  const quarterCells = Array.from({ length: WORKSAFE_QUARTERS_PER_DAY }, (_, q) => {
+    const hourEdge = isWorkSafeHourBoundaryQuarter(q);
     return `<div class="wsQ${hourEdge ? " hour" : ""}"></div>`;
   }).join("");
 
@@ -151,7 +144,7 @@ export function renderWorkSafeDaySheetHtml(opts: {
       <div class="wsBody">
         ${rows}
         <div class="wsLineWrap">
-          <svg width="100%" height="${chartH}" viewBox="0 0 ${WORKSAFE_CHART_MINUTE_WIDTH} ${chartH}" preserveAspectRatio="none" aria-hidden="true">
+          <svg width="100%" height="${chartH}" viewBox="0 0 ${WORKSAFE_MINUTES_PER_DAY} ${chartH}" preserveAspectRatio="none" aria-hidden="true">
             ${
               stepPath
                 ? `<path d="${stepPath}" fill="none" stroke="#111" stroke-width="2.25" stroke-linejoin="miter" stroke-linecap="square" vector-effect="non-scaling-stroke"/>`
@@ -172,11 +165,10 @@ export const WORKSAFE_PDF_DAY_CSS = `
   .wsMetaVal { padding:3px 4px; flex:1; display:flex; align-items:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .wsHourRow, .wsRow {
     display:grid;
-    grid-template-columns: 78px repeat(${WORKSAFE_QUARTER_COLS}, minmax(0, 1fr)) 36px;
+    grid-template-columns: 78px repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1fr)) 36px;
   }
   .wsHourRow { border-bottom:1px solid #000; }
   .wsDayName { border-right:1px solid #000; padding:3px 4px; font-size:9px; font-weight:800; text-decoration:underline; }
-  .wsPad { border-right:1px solid #000; }
   .wsHourCell { text-align:center; font-size:6.5px; font-family:ui-monospace,monospace; padding:2px 0; border-right:1px solid #000; }
   .wsHourCell.alt { background:#e7e5e4; }
   .wsTotalCap { background:#e7e5e4; font-size:7px; font-weight:800; display:flex; align-items:center; justify-content:center; }
@@ -217,7 +209,8 @@ export function drawWorkSafeDaySheetJsPdf(
   const hourH = 4;
   const chartH = WORKSAFE_TRACKS.length * laneH;
   const tileH = metaH + hourH + chartH;
-  const qW = chartW / WORKSAFE_QUARTER_COLS;
+  const qW = chartW / WORKSAFE_QUARTERS_PER_DAY;
+  const hourW = qW * 4;
 
   doc.setDrawColor(...ink);
   doc.setLineWidth(0.25);
@@ -259,12 +252,8 @@ export function drawWorkSafeDaySheetJsPdf(
   doc.setFontSize(6.5);
   doc.text(dayName.toUpperCase(), x + 1, y + 2.9);
 
-  // Pad quarter
-  doc.rect(x + labelW, y, qW, hourH, "S");
-
   WORKSAFE_HOUR_LABELS.forEach((label, h) => {
-    const hx = x + labelW + (WORKSAFE_GRID_PAD_QUARTERS + h * 4) * qW;
-    const hourW = qW * 4;
+    const hx = x + labelW + h * hourW;
     if (h % 2 === 0) {
       doc.setFillColor(...grey);
       doc.rect(hx, y, hourW, hourH, "F");
@@ -296,10 +285,9 @@ export function drawWorkSafeDaySheetJsPdf(
     const labelLines = doc.splitTextToSize(WORKSAFE_TRACK_LABELS[track], labelW - 1.5);
     doc.text(labelLines, x + 0.6, ly + 2.2);
 
-    for (let q = 0; q < WORKSAFE_QUARTER_COLS; q++) {
+    for (let q = 0; q < WORKSAFE_QUARTERS_PER_DAY; q++) {
       const qx = x + labelW + q * qW;
-      const dayQ = q - WORKSAFE_GRID_PAD_QUARTERS;
-      const hourEdge = q === 0 || (dayQ >= 0 && dayQ % 4 === 0);
+      const hourEdge = isWorkSafeHourBoundaryQuarter(q);
       doc.setDrawColor(hourEdge ? 0 : 180, hourEdge ? 0 : 180, hourEdge ? 0 : 180);
       doc.setLineWidth(0.1);
       doc.rect(qx, ly, qW, laneH, "S");
@@ -316,7 +304,7 @@ export function drawWorkSafeDaySheetJsPdf(
 
   doc.setDrawColor(...ink);
   doc.setLineWidth(0.55);
-  const xOf = (m: number) => x + labelW + (dayMinuteToChartX(m) / WORKSAFE_CHART_MINUTE_WIDTH) * chartW;
+  const xOf = (m: number) => x + labelW + (m / WORKSAFE_MINUTES_PER_DAY) * chartW;
   let prev: WorkSafeDaySegment | null = null;
   for (const seg of paint.segments) {
     const ty = chartTop + trackY(seg.track, laneH);
