@@ -131,6 +131,7 @@ export async function GET(
           last_24h_rest_4: row.last24hRest4,
           status: row.status,
           signed_at: row.signedAt?.toISOString() ?? null,
+          signature: row.signature,
         },
         todayStr,
         generatedAtLabel,

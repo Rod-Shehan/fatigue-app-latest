@@ -12,6 +12,7 @@ import {
   type RoadsidePdfPayload,
 } from "@/lib/sheet-jspdf-export";
 import { WORKSAFE_PDF_DAY_CSS } from "@/lib/worksafe-day-sheet/pdf-render";
+import { WEEKLY_TRIP_SHEET_PDF_CSS } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
 
 export function extractPdfHtmlBody(fullHtml: string): string {
   const m = fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
@@ -43,7 +44,7 @@ export function renderRoadsideProduceCoverHtml(opts: {
       </tbody>
     </table>
     <p class="produceDisclaimer">${escapeHtml(ROADSIDE_PDF_DISCLAIMER)}</p>
-    <p class="produceNote">Each following section is one weekly sheet (WorkSafe day sheets, compliance summary, and shift log).</p>
+    <p class="produceNote">Each following section is one weekly sheet (compliance summary, Weekly Trip Sheet with WorkSafe day rows, and shift log).</p>
   </section>`;
 }
 
@@ -88,15 +89,13 @@ export function renderRoadsideProduceDocumentHtml(opts: {
       .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
       .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
       .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-      .dayCard { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; margin: 10px 0; break-inside: avoid; background: #fff; }
+      .dayCard { margin: 6px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
+      .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
+      .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
+      .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 8px; }
       ${WORKSAFE_PDF_DAY_CSS}
-      .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 8px; }
-      .segTable thead th { text-align:left; padding: 4px 6px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; color:#6b7280; font-weight: 800; }
-      .segTable tbody td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
-      .segTable tbody tr:nth-child(even) td { background: #fafafa; }
+      ${WEEKLY_TRIP_SHEET_PDF_CSS}
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-      .empty { color:#9ca3af; font-style: italic; }
-      .more { font-size: 10px; color:#6b7280; margin-top: 2px; }
       .roadside { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; break-inside: avoid; }
       .roadside h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
       .roadside h3 { font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #334155; }
@@ -257,6 +256,7 @@ export async function buildWeekPdfBodyForSheet(
       last_24h_break: sheet.last_24h_break,
       status: sheet.status,
       signed_at: sheet.signed_at,
+      signature: sheet.signature,
     },
     todayStr,
     generatedAtLabel,

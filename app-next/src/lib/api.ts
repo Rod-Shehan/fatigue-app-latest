@@ -113,6 +113,10 @@ export type DayData = {
   route_preset_id?: string;
   /** Self-reported alertness 1–5 at day/shift setup (risk context only — not FFW). */
   alertness_level?: 1 | 2 | 3 | 4 | 5;
+  /** Pre-trip ticks for Weekly Trip Sheet PDF (omit/false = empty box). */
+  fitness_for_work?: boolean;
+  dimension_load_checklist?: boolean;
+  daily_vehicle_checklist?: boolean;
   /** Crew for this calendar day — saved in Set up day; drives solo vs two-up rules. */
   driver_type?: "solo" | "two_up";
   second_driver?: string;

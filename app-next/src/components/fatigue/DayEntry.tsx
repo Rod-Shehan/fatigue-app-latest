@@ -15,6 +15,7 @@ import { getHours } from "@/lib/compliance";
 import { formatHoursStatistic } from "@/lib/hours";
 import { formatPatternStreakForDisplay, patternStreakThresholdMet } from "@/lib/shift-change";
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
+import { DayTripChecklist } from "./DayTripChecklist";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
@@ -466,6 +467,29 @@ export default function DayEntry({
             </div>
           </>
         )}
+        {(canEditDetails ||
+          dayData.fitness_for_work === true ||
+          dayData.dimension_load_checklist === true ||
+          dayData.daily_vehicle_checklist === true) && (
+          <DayTripChecklist
+            className="mt-3"
+            variant="card"
+            readOnly={!canEditDetails}
+            value={{
+              fitness_for_work: dayData.fitness_for_work,
+              dimension_load_checklist: dayData.dimension_load_checklist,
+              daily_vehicle_checklist: dayData.daily_vehicle_checklist,
+            }}
+            onChange={(next) =>
+              onUpdate(dayIndex, {
+                ...dayData,
+                fitness_for_work: next.fitness_for_work,
+                dimension_load_checklist: next.dimension_load_checklist,
+                daily_vehicle_checklist: next.daily_vehicle_checklist,
+              })
+            }
+          />
+        )}
         {showInlineStartKm && (
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
             <Label
@@ -594,6 +618,9 @@ export default function DayEntry({
             route_preset_id: dayData.route_preset_id,
             // Preserve historical value if present; field is no longer editable in the dialog.
             alertness_level: dayData.alertness_level,
+            fitness_for_work: dayData.fitness_for_work,
+            dimension_load_checklist: dayData.dimension_load_checklist,
+            daily_vehicle_checklist: dayData.daily_vehicle_checklist,
             driver_type: dayData.driver_type ?? (driverType === "two_up" ? "two_up" : "solo"),
             second_driver: dayData.second_driver ?? secondDriver ?? "",
           }}

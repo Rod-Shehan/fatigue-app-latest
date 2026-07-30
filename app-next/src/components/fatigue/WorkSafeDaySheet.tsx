@@ -116,6 +116,7 @@ export default function WorkSafeDaySheet({
   const endKm = formatKm(dayData.end_kms);
   const from = (dayData.start_location ?? "").trim();
   const to = (dayData.destination ?? "").trim();
+  const truckReg = (dayData.truck_rego ?? "").trim();
   const dayName = dayNameUpper(dayLabel);
   const dateDisplay = formatSheetDisplayDate(dateStr);
 
@@ -126,7 +127,11 @@ export default function WorkSafeDaySheet({
           className="min-w-[860px] border border-black bg-white text-black dark:border-stone-500"
           style={{ fontFamily: 'ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif' }}
         >
-          <div className="grid grid-cols-4 border-b border-black text-[10px] leading-none sm:text-[11px]">
+          <div className="grid grid-cols-5 border-b border-black text-[10px] leading-none sm:text-[11px]">
+            <div className="flex min-h-[28px] border-r border-black">
+              <span className="flex shrink-0 items-center bg-stone-200 px-1.5 font-bold">Truck Reg</span>
+              <span className="flex flex-1 items-center truncate px-1.5 font-mono tabular-nums">{truckReg}</span>
+            </div>
             <div className="flex min-h-[28px] border-r border-black">
               <span className="flex shrink-0 items-center bg-stone-200 px-1.5 font-bold">Odometer Start</span>
               <span className="flex flex-1 items-center px-1.5 font-mono tabular-nums">{startKm}</span>

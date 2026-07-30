@@ -120,9 +120,11 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">WorkSafe day sheet</strong> — on each day card (and
-                in PDF exports) you see odometer/locations, then three rows ({WORKSAFE_TRACK_LABELS.work},{" "}
+                in PDF exports) you see truck reg, odometer/locations, then three rows ({WORKSAFE_TRACK_LABELS.work},{" "}
                 {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) as a 15-minute tick grid. Filled cells
-                paint what you logged; the app does not invent Break after End shift.
+                paint what you logged; the app does not invent Break after End shift. Week PDFs also use a Weekly Trip
+                Sheet frame (week ending, daily checklist ticks from each day card, week work-hours total, office use,
+                week signature).
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Shift pattern (A/B)</strong> on the day card —{" "}

@@ -46,6 +46,7 @@ import {
   type DayEventDraft,
 } from "@/components/fatigue/DayEventsEditor";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
+import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import {
@@ -70,6 +71,9 @@ export type DayCardFields = {
   route_preset_id?: string;
   /** Legacy field — no longer collected in Set up day; retained for historical sheet JSON. */
   alertness_level?: 1 | 2 | 3 | 4 | 5;
+  fitness_for_work?: boolean;
+  dimension_load_checklist?: boolean;
+  daily_vehicle_checklist?: boolean;
   driver_type?: "solo" | "two_up";
   second_driver?: string;
 };
@@ -455,7 +459,7 @@ export function DayCardDetailsDialog({
         <DialogHeader>
           <DialogTitle className="text-lg">{dayTitle}</DialogTitle>
           <DialogDescription className="text-base text-slate-600 dark:text-slate-300">
-            {dateLabel} — crew, route, kilometres, and work / break / non-work times for this day
+            {dateLabel} — crew, daily checks, route, kilometres, and work / break / non-work times for this day
             {driverName?.trim() ? (
               <span className="mt-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">
                 Driver · {driverName.trim()}
@@ -489,6 +493,24 @@ export function DayCardDetailsDialog({
               readOnly={readOnly}
             />
           </div>
+
+          <DayTripChecklist
+            variant="dialog"
+            readOnly={readOnly}
+            value={{
+              fitness_for_work: draft.fitness_for_work,
+              dimension_load_checklist: draft.dimension_load_checklist,
+              daily_vehicle_checklist: draft.daily_vehicle_checklist,
+            }}
+            onChange={(next) =>
+              setDraft((prev) => ({
+                ...prev,
+                fitness_for_work: next.fitness_for_work,
+                dimension_load_checklist: next.dimension_load_checklist,
+                daily_vehicle_checklist: next.daily_vehicle_checklist,
+              }))
+            }
+          />
 
           {declared24hRestFieldCount >= 2 && onDeclared24hRestChange && (
             <Declared24hRestsField

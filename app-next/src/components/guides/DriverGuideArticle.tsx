@@ -219,14 +219,15 @@ export function DriverGuideArticle() {
           ]}
         />
         <p className="mt-3">
-          Under the route fields, the day card shows a WorkSafe WA day sheet: odometer and locations on top, then three
+          Under the route fields, the day card shows a WorkSafe WA day sheet: truck reg, odometer and locations on top, then three
           rows ({WORKSAFE_TRACK_LABELS.work}, {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) with a
           15-minute tick grid (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin step line
           for what you logged (same rules as section 5). On a
           phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
-          Normal day: open the week → check From / To / Rego → type start km → tap Start shift.
+          Normal day: open the week → check From / To / Rego → tick Daily checks when done → type start km → tap Start
+          shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
         <p>Use Set up day (or Edit day) when something changes:</p>
@@ -339,8 +340,10 @@ export function DriverGuideArticle() {
             Settings.
           </li>
           <li>
-            It builds one PDF of your last 28 calendar days — WorkSafe day sheets, compliance summary, and shift log per
-            week.
+            It builds one PDF of your last 28 calendar days — for each week: compliance summary, a Weekly Trip Sheet
+            frame (week ending, driver, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
+            sheets, week work-hours total, office-use box, and your week signature when signed), then the shift log
+            appendix with event detail.
           </li>
           <li>It works offline from saved weeks. Share or show it on your phone.</li>
         </ul>
@@ -413,6 +416,7 @@ export function DriverGuideArticle() {
           <li>Sign in (or stay signed in)</li>
           <li>Log more work</li>
           <li>Check rego, from, and to on today&apos;s card</li>
+          <li>Tick Daily checks when done (fitness, load, vehicle)</li>
           <li>Type start km</li>
           <li>Tap Start shift when you begin</li>
           <li>Tap Break for short rest</li>
@@ -430,7 +434,11 @@ export function DriverGuideArticle() {
             ["Non-work", "Off duty / long rest / sleep / in sleeper cab for two-up"],
             [
               "WorkSafe day sheet",
-              `Odometer/locations + ${WORKSAFE_TRACK_LABELS.work} / ${WORKSAFE_TRACK_LABELS.break} / ${WORKSAFE_TRACK_LABELS.non_work} as a 15-minute tick grid (day card + PDF)`,
+              `Truck reg / odometer / locations + ${WORKSAFE_TRACK_LABELS.work} / ${WORKSAFE_TRACK_LABELS.break} / ${WORKSAFE_TRACK_LABELS.non_work} as a 15-minute tick grid (day card + PDF)`,
+            ],
+            [
+              "Weekly Trip Sheet (PDF)",
+              "Week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature",
             ],
             ["Start shift / End shift", "Begin / finish work for a shift"],
             ["Resume shift", "Continue the same shift — not the same as start / finish break"],

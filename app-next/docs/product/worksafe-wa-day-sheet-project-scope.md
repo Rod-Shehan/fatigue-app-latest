@@ -47,3 +47,7 @@ New log types; fatigue engine changes; long-lived dual “classic bars” mode; 
 
 ## Exit criteria (project)
 Open EWD day + exported PDF day read as the same WorkSafe day sheet for the same logs. **Met** for paint/UI/PDF paths; owner visual spot-check vs paper blank recommended.
+
+## Follow-on
+
+Week PDF chrome (Weekly Trip Sheet header/checklist/footer): `weekly-trip-sheet-pdf-project-scope.md`.

@@ -12,12 +12,19 @@ import {
   workSafeSegmentTypeLabel,
   WORKSAFE_PDF_DAY_CSS,
 } from "@/lib/worksafe-day-sheet/pdf-render";
+import {
+  collectWeekTruckRegs,
+  drawWeeklyTripSheetFooterJsPdf,
+  drawWeeklyTripSheetHeaderJsPdf,
+  renderWeeklyTripSheetFooterHtml,
+  renderWeeklyTripSheetHeaderHtml,
+  WEEKLY_TRIP_SHEET_PDF_CSS,
+} from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
+import { checklistMatrixFromDays } from "@/lib/worksafe-day-sheet/trip-checklist";
 import type { WorkSafeTrack } from "@/lib/worksafe-day-sheet/types";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
-const GREY_TEXT = [30, 30, 30] as [number, number, number];
-const GREY_LABEL = [80, 80, 80] as [number, number, number];
 
 type SegmentType = WorkSafeTrack;
 type TimelineSegment = { startMin: number; endMin: number; type: SegmentType };
@@ -519,12 +526,14 @@ export function renderPdfHtml(opts: {
     last_24h_rest_4?: string | null;
     status: string;
     signed_at: string | null;
+    signature?: string | null;
     days: Array<{
       work_time?: boolean[];
       breaks?: boolean[];
       non_work?: boolean[];
       date?: string;
       truck_rego?: string;
+      start_location?: string;
       destination?: string;
       start_kms?: number;
       end_kms?: number;
@@ -547,6 +556,8 @@ export function renderPdfHtml(opts: {
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
   const driverName = (sheet.driver_name || "").trim();
+  const truckRegs = collectWeekTruckRegs(dayList);
+  let weekWorkMinutes = 0;
 
   const dayBlocks = dayList
     .map((day, idx) => {
@@ -555,12 +566,7 @@ export function renderPdfHtml(opts: {
       const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
       const paintedUntil = getEffectiveDayEndMinutes(isoDate, todayStr);
       const paint = paintForPdfDay(day, isoDate, todayStr, paintedUntil);
-      const timeline: TimelineSegment[] = paint.segments.map((s) => ({
-        startMin: s.startMin,
-        endMin: s.endMin,
-        type: s.track,
-      }));
-      const maxRows = 8;
+      weekWorkMinutes += paint.totalsMinutes.work;
 
       const sheetHtml = renderWorkSafeDaySheetHtml({
         paint,
@@ -576,36 +582,23 @@ export function renderPdfHtml(opts: {
         },
       });
 
-      const tableRows = timeline
-        .slice(0, maxRows)
-        .map((seg) => {
-          return `<tr>
-          <td class="mono">${escapeHtml(minToHHMM(seg.startMin))}</td>
-          <td class="mono">${escapeHtml(minToHHMM(seg.endMin))}</td>
-          <td class="mono">${escapeHtml(formatDuration(seg.endMin - seg.startMin))}</td>
-          <td>${escapeHtml(segmentLabel(seg.type))}</td>
-          <td class="notes"></td>
-        </tr>`;
-        })
-        .join("");
-
-      const more =
-        timeline.length > maxRows
-          ? `<div class="more">(+${timeline.length - maxRows} more segments)</div>`
-          : "";
-
       return `
         <section class="dayCard">
           ${sheetHtml}
-          <table class="segTable">
-            <thead><tr><th>Start</th><th>End</th><th>Dur</th><th>Type</th><th>Notes</th></tr></thead>
-            <tbody>${tableRows || `<tr><td colspan="5" class="empty">No segments</td></tr>`}</tbody>
-          </table>
-          ${more}
         </section>
       `;
     })
     .join("");
+
+  const tripChrome = {
+    weekStarting: sheet.week_starting,
+    driverName,
+    truckRegs,
+    weekWorkMinutes,
+    signature: sheet.signature ?? null,
+    signedAt: sheet.signed_at,
+    checklistTicks: checklistMatrixFromDays(dayList),
+  };
 
   return `<!doctype html>
   <html>
@@ -619,15 +612,13 @@ export function renderPdfHtml(opts: {
         .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
         .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
         .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-        .dayCard { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px; margin: 10px 0; break-inside: avoid; background: #fff; }
+        .dayCard { margin: 6px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
+        .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
+        .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
+        .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 8px; }
         ${WORKSAFE_PDF_DAY_CSS}
-        .segTable { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-top: 8px; }
-        .segTable thead th { text-align:left; padding: 4px 6px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; color:#6b7280; font-weight: 800; }
-        .segTable tbody td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; }
-        .segTable tbody tr:nth-child(even) td { background: #fafafa; }
+        ${WEEKLY_TRIP_SHEET_PDF_CSS}
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-        .empty { color:#9ca3af; font-style: italic; }
-        .more { font-size: 10px; color:#6b7280; margin-top: 2px; }
         .roadside { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; break-inside: avoid; }
         .roadside h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
         .roadside h3 { font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #334155; }
@@ -675,7 +666,11 @@ export function renderPdfHtml(opts: {
         </div>
       </div>
       ${roadside ? buildRoadsideSectionHtml(roadside) : ""}
-      ${dayBlocks}
+      <div class="wtsWeekBody">
+        ${renderWeeklyTripSheetHeaderHtml(tripChrome)}
+        ${dayBlocks}
+        ${renderWeeklyTripSheetFooterHtml(tripChrome)}
+      </div>
       ${buildShiftLogHtml({ sheet, todayStr })}
     </body>
   </html>`;
@@ -1037,11 +1032,31 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
 
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
+  const truckRegs = collectWeekTruckRegs(dayList);
+  let weekWorkMinutes = 0;
+
+  // Start Weekly Trip Sheet body on a fresh page when compliance already filled the first page.
+  if (y > 55) {
+    doc.addPage();
+    y = 16;
+  }
+
+  y = drawWeeklyTripSheetHeaderJsPdf(doc, {
+    x: margin,
+    y,
+    width: colW,
+    weekStarting: sheet.week_starting,
+    driverName: sheet.driver_name,
+    truckRegs,
+    checklistTicks: checklistMatrixFromDays(dayList),
+  });
 
   dayList.forEach((day, idx) => {
-    if (y > 250) {
+    // WorkSafe day tile ≈ 28mm + gap; keep whole tile on one page.
+    const tileBudgetMm = 32;
+    if (y + tileBudgetMm > 285) {
       doc.addPage();
-      y = 20;
+      y = 16;
     }
     const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
     const dateStr = getDateStr(sheet.week_starting, idx);
@@ -1058,11 +1073,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
       todayStr,
       paintedUntil
     );
-    const timeline: TimelineSegment[] = paint.segments.map((s) => ({
-      startMin: s.startMin,
-      endMin: s.endMin,
-      type: s.track,
-    }));
+    weekWorkMinutes += paint.totalsMinutes.work;
 
     const dayWithKms = day as {
       truck_rego?: string;
@@ -1071,11 +1082,6 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
       start_kms?: number;
       end_kms?: number;
     };
-    const rego = dayWithKms.truck_rego ?? "";
-    const startLoc = dayWithKms.start_location ?? "";
-    const dest = dayWithKms.destination ?? "";
-    const startKms = dayWithKms.start_kms ?? null;
-    const endKms = dayWithKms.end_kms ?? null;
 
     y = drawWorkSafeDaySheetJsPdf(doc, {
       paint,
@@ -1085,118 +1091,31 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
       dayName,
       dateLabel: dateStr,
       day: {
-        truck_rego: rego,
-        start_location: startLoc,
-        destination: dest,
-        start_kms: startKms,
-        end_kms: endKms,
+        truck_rego: dayWithKms.truck_rego ?? "",
+        start_location: dayWithKms.start_location ?? "",
+        destination: dayWithKms.destination ?? "",
+        start_kms: dayWithKms.start_kms ?? null,
+        end_kms: dayWithKms.end_kms ?? null,
       },
     });
+    y += 2;
+  });
 
-    // Segment list table (audit-proof detail)
-    const maxRows = 8;
-    const tableRowH = 4.2;
-    const tableLeft = margin + 2;
-    const tableW = colW - 4;
-    const colStartW = 18;
-    const colEndW = 18;
-    const colDurW = 18;
-    const colTypeW = 36;
-    const colNotesW = tableW - (colStartW + colEndW + colDurW + colTypeW);
+  if (y + 40 > 285) {
+    doc.addPage();
+    y = 16;
+  }
 
-    if (y > 270) {
-      doc.addPage();
-      y = 20;
-    }
-
-    doc.setDrawColor(210, 210, 210);
-    doc.setFillColor(250, 250, 250);
-    doc.rect(tableLeft, y, tableW, 5.5, "FD");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...GREY_LABEL);
-    const thY = y + 3.8;
-    doc.text("Start", tableLeft + 1.5, thY);
-    doc.text("End", tableLeft + colStartW + 1.5, thY);
-    doc.text("Dur", tableLeft + colStartW + colEndW + 1.5, thY);
-    doc.text("Type", tableLeft + colStartW + colEndW + colDurW + 1.5, thY);
-    doc.text("Notes", tableLeft + colStartW + colEndW + colDurW + colTypeW + 1.5, thY);
-    y += 5.5;
-
-    const rows = timeline.slice(0, maxRows);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    rows.forEach((seg, i) => {
-      const rowY = y + i * tableRowH;
-      const isAlt = i % 2 === 0;
-      doc.setFillColor(isAlt ? 255 : 252, isAlt ? 255 : 252, isAlt ? 255 : 252);
-      doc.rect(tableLeft, rowY, tableW, tableRowH, "F");
-      doc.setDrawColor(230, 230, 230);
-      doc.line(tableLeft, rowY + tableRowH, tableLeft + tableW, rowY + tableRowH);
-
-      doc.setTextColor(...GREY_TEXT);
-      doc.text(minToHHMM(seg.startMin), tableLeft + 1.5, rowY + 3);
-      doc.text(minToHHMM(seg.endMin), tableLeft + colStartW + 1.5, rowY + 3);
-      doc.text(formatDuration(seg.endMin - seg.startMin), tableLeft + colStartW + colEndW + 1.5, rowY + 3);
-      const typeClipped = doc.splitTextToSize(segmentLabel(seg.type), colTypeW - 2);
-      doc.text(String(typeClipped[0] ?? ""), tableLeft + colStartW + colEndW + colDurW + 1.5, rowY + 3);
-
-      const note =
-        seg.type === "break"
-          ? "Break recorded"
-          : seg.type === "work"
-            ? "Work recorded"
-            : "";
-      const clipped = doc.splitTextToSize(note, colNotesW - 3);
-      if (clipped?.[0]) {
-        doc.setTextColor(...GREY_LABEL);
-        doc.text(String(clipped[0]), tableLeft + colStartW + colEndW + colDurW + colTypeW + 1.5, rowY + 3);
-      }
-    });
-    y += rows.length * tableRowH + 2;
-
-    if (timeline.length > maxRows) {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7);
-      doc.setTextColor(...GREY_LABEL);
-      doc.text(`(+${timeline.length - maxRows} more segments)`, margin + 2, y + 2.5);
-      y += 4;
-    }
-
-    y += 4;
+  y = drawWeeklyTripSheetFooterJsPdf(doc, {
+    x: margin,
+    y,
+    width: colW,
+    weekWorkMinutes,
+    signature: sheet.signature,
+    signedAt: sheet.signed_at,
   });
 
   y = renderShiftLogJsPDF(doc, margin, colW, sheet, todayStr);
-
-  y += 4;
-  if (sheet.signature) {
-    if (y > 220) {
-      doc.addPage();
-      y = 20;
-    }
-    doc.setTextColor(...GREY_TEXT);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9);
-    doc.text("DRIVER SIGNATURE", margin, y);
-    y += 4;
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(margin, y, 80, 30);
-    try {
-      doc.addImage(sheet.signature, "PNG", margin + 1, y + 1, 78, 28);
-    } catch {
-      /* skip if image fails */
-    }
-    if (sheet.signed_at) {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...GREY_LABEL);
-      doc.text(
-        `Signed: ${new Date(sheet.signed_at).toLocaleString("en-AU", { timeZone: "Australia/Perth" })}`,
-        margin,
-        y + 34
-      );
-    }
-  }
 
   return doc.output("arraybuffer");
 }

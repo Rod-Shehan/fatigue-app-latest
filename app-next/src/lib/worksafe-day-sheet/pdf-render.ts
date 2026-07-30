@@ -109,6 +109,7 @@ export function renderWorkSafeDaySheetHtml(opts: {
   const endKm = day.end_kms != null && !Number.isNaN(Number(day.end_kms)) ? String(day.end_kms) : "";
   const from = (day.start_location ?? "").trim();
   const to = (day.destination ?? "").trim();
+  const truckReg = (day.truck_rego ?? "").trim();
 
   const hourCells = WORKSAFE_HOUR_LABELS.map(
     (label, h) =>
@@ -131,6 +132,7 @@ export function renderWorkSafeDaySheetHtml(opts: {
   return `
     <div class="wsSheet">
       <div class="wsMetaRow">
+        <div class="wsMetaCell"><span class="wsMetaLab">Truck Reg</span><span class="wsMetaVal mono">${escapeHtml(truckReg)}</span></div>
         <div class="wsMetaCell"><span class="wsMetaLab">Odometer Start</span><span class="wsMetaVal mono">${escapeHtml(startKm)}</span></div>
         <div class="wsMetaCell"><span class="wsMetaLab">Start Location</span><span class="wsMetaVal">${escapeHtml(from)}</span></div>
         <div class="wsMetaCell"><span class="wsMetaLab">Finish Location</span><span class="wsMetaVal">${escapeHtml(to)}</span></div>
@@ -160,7 +162,7 @@ export function renderWorkSafeDaySheetHtml(opts: {
 }
 
 export const WORKSAFE_PDF_DAY_CSS = `
-  .wsSheet { background:#fff; border:1px solid #000; color:#000; break-inside:avoid; }
+  .wsSheet { background:#fff; border:1px solid #000; color:#000; break-inside:avoid; page-break-inside:avoid; margin:0; }
   .wsMetaRow { display:flex; border-bottom:1px solid #000; font-size:8px; }
   .wsMetaCell { flex:1; display:flex; min-width:0; border-right:1px solid #000; min-height:22px; }
   .wsMetaCell:last-child { border-right:0; }
@@ -227,13 +229,15 @@ export function drawWorkSafeDaySheetJsPdf(
   const endKm = day.end_kms != null && !Number.isNaN(Number(day.end_kms)) ? String(day.end_kms) : "";
   const from = (day.start_location ?? "").trim();
   const to = (day.destination ?? "").trim();
+  const truckReg = (day.truck_rego ?? "").trim();
   const metaParts = [
+    { lab: "Truck Reg", val: truckReg },
     { lab: "Odo Start", val: startKm },
     { lab: "Start Loc", val: from },
     { lab: "Finish Loc", val: to },
     { lab: "Odo Finish", val: endKm },
   ];
-  const metaCellW = width / 4;
+  const metaCellW = width / metaParts.length;
   metaParts.forEach((p, i) => {
     const mx = x + i * metaCellW;
     doc.setFillColor(...grey);

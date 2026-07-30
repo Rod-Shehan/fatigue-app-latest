@@ -25,7 +25,7 @@ On EWD Day Entry and in PDF export, show a **WorkSafe-faithful paper day row**:
 - Hour labels **24.00 … 23.00** with alternating grey/white
 - Three labelled rows with a **15-minute tick grid** (filled cells from EWD paint)
 - Right-hand **Total** column per row
-- Day name (e.g. SUNDAY) on the left; signature fields deferred to the week sheet
+- Day name (e.g. SUNDAY) on the left; **week signature** on the weekly trip sheet PDF (see `weekly-trip-sheet-pdf-project-scope.md`) — per-day signature deferred
 
 ---
 
