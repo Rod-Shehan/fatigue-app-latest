@@ -108,3 +108,17 @@ html.driver-immersive body {
 :root:not(.dark) .border-slate-100 {
   border-color: #cbd5e1; /* slate-300 */
 }
+
+/* Circadia24 compliance checklist kit (Phase 1) — scoped under .checklist-kit */
+.checklist-kit {
+  --ck-midnight: #0a1118;
+  --ck-slate: #16222f;
+  --ck-cobalt: #007aff;
+  --ck-cobalt-alt: #1e88e5;
+  --ck-emerald: #10b981;
+  --ck-red: #ef4444;
+  --ck-steel: #64748b;
+  --ck-border: #2a3b50;
+  color: #e2e8f0;
+  background-color: var(--ck-midnight);
+}
