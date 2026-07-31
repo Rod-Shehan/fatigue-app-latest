@@ -1,7 +1,13 @@
 "use client";
 
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import type { ChecklistDefect } from "@/lib/checklist";
+import {
+  CHECKLIST_FAULT_MOBILITY_OPTIONS,
+  normalizeDefect,
+  type ChecklistDefect,
+  type ChecklistFaultMobility,
+} from "@/lib/checklist";
 
 export function ChecklistDefectCard({
   defect,
@@ -18,6 +24,17 @@ export function ChecklistDefectCard({
   descriptionLabel?: string;
   descriptionPlaceholder?: string;
 }) {
+  const normalized = normalizeDefect(defect);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+
+  const setMobility = (value: ChecklistFaultMobility) => {
+    onChange({
+      ...normalized,
+      mobilityStatus: value,
+      unsafeToDrive: undefined,
+    });
+  };
+
   return (
     <div
       className={cn(
@@ -31,31 +48,53 @@ export function ChecklistDefectCard({
       <label className="block space-y-1">
         <span className="text-xs text-ck-steel">{descriptionLabel}</span>
         <textarea
-          value={defect.description}
-          onChange={(e) => onChange({ ...defect, description: e.target.value })}
+          value={normalized.description}
+          onChange={(e) => onChange({ ...normalized, description: e.target.value })}
           rows={3}
           className="w-full rounded-md border border-ck-border bg-ck-slate px-3 py-2 text-sm text-slate-100 placeholder:text-ck-steel focus:outline-none focus:ring-2 focus:ring-ck-cobalt"
           placeholder={descriptionPlaceholder}
         />
       </label>
-      <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">
+
+      <fieldset className="space-y-2">
+        <legend className="text-xs text-ck-steel">Vehicle status (required)</legend>
+        <div className="space-y-1.5" role="radiogroup" aria-label="Vehicle status">
+          {CHECKLIST_FAULT_MOBILITY_OPTIONS.map((opt) => {
+            const checked = normalized.mobilityStatus === opt.value;
+            return (
+              <label
+                key={opt.value}
+                className="flex items-start gap-3 min-h-[44px] cursor-pointer rounded-md px-1 py-1"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => setMobility(opt.value)}
+                  className="mt-1 h-5 w-5 shrink-0 rounded border-ck-border accent-ck-red"
+                />
+                <span
+                  className={cn(
+                    "text-sm text-slate-200",
+                    opt.value === "cannot_move" && "font-semibold",
+                    opt.value === "cannot_move" && checked && "text-ck-red"
+                  )}
+                >
+                  {opt.label}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
+      <div className="space-y-2">
+        <span className="block text-xs text-ck-steel">Photo (optional)</span>
         <input
-          type="checkbox"
-          checked={defect.unsafeToDrive}
-          onChange={(e) => onChange({ ...defect, unsafeToDrive: e.target.checked })}
-          className="mt-1 h-5 w-5 rounded border-ck-border accent-ck-red"
-        />
-        <span className="text-sm text-slate-200">
-          Vehicle is <strong className="text-ck-red">unsafe to drive</strong>
-        </span>
-      </label>
-      <label className="block space-y-1">
-        <span className="text-xs text-ck-steel">Photo (optional)</span>
-        <input
+          ref={fileRef}
           type="file"
           accept="image/*"
           capture="environment"
-          className="block w-full text-xs text-ck-steel file:mr-3 file:rounded-md file:border-0 file:bg-ck-cobalt file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+          className="sr-only"
           onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
@@ -64,23 +103,35 @@ export function ChecklistDefectCard({
               const url = typeof reader.result === "string" ? reader.result : "";
               if (!url) return;
               onChange({
-                ...defect,
-                photoDataUrls: [...defect.photoDataUrls, url].slice(0, 4),
+                ...normalized,
+                photoDataUrls: [...normalized.photoDataUrls, url].slice(0, 4),
               });
             };
             reader.readAsDataURL(file);
             e.target.value = "";
           }}
         />
-      </label>
-      {defect.photoDataUrls.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-ck-cobalt px-4 text-sm font-semibold text-white"
+        >
+          Take photo
+        </button>
+        <p className="text-[11px] text-ck-steel leading-snug">
+          On a phone this opens the camera when the browser allows it. You can still pick a gallery
+          photo if the device offers that.
+        </p>
+      </div>
+
+      {normalized.photoDataUrls.length > 0 ? (
         <div className="flex flex-wrap gap-2">
-          {defect.photoDataUrls.map((src, i) => (
+          {normalized.photoDataUrls.map((src, i) => (
             <div key={i} className="relative">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={src}
-                alt={`Defect photo ${i + 1}`}
+                alt={`Fault photo ${i + 1}`}
                 className="h-16 w-16 rounded object-cover border border-ck-border"
               />
               <button
@@ -88,8 +139,8 @@ export function ChecklistDefectCard({
                 className="absolute -right-1 -top-1 rounded-full bg-ck-red px-1.5 text-[10px] font-bold text-white"
                 onClick={() =>
                   onChange({
-                    ...defect,
-                    photoDataUrls: defect.photoDataUrls.filter((_, j) => j !== i),
+                    ...normalized,
+                    photoDataUrls: normalized.photoDataUrls.filter((_, j) => j !== i),
                   })
                 }
               >

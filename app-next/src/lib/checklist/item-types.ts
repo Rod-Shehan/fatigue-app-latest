@@ -7,11 +7,36 @@ export type ChecklistItemValue = "unselected" | "pass" | "fail" | "na";
 
 export type ChecklistAcknowledgeValue = "unselected" | "acknowledged";
 
+/** Fault driveability choice (exclusive). */
+export type ChecklistFaultMobility = "can_drive" | "need_advice" | "cannot_move";
+
+export const CHECKLIST_FAULT_MOBILITY_OPTIONS: {
+  value: ChecklistFaultMobility;
+  label: string;
+}[] = [
+  { value: "can_drive", label: "Vehicle can still be driven" },
+  { value: "need_advice", label: "Need advice to move" },
+  { value: "cannot_move", label: "Can not be moved/unroadworthy" },
+];
+
+export function checklistFaultMobilityLabel(
+  status: ChecklistFaultMobility | null | undefined
+): string | null {
+  if (!status) return null;
+  return CHECKLIST_FAULT_MOBILITY_OPTIONS.find((o) => o.value === status)?.label ?? null;
+}
+
 export type ChecklistDefect = {
   description: string;
   /** Optional photo data URLs (Phase 1 local only). */
   photoDataUrls: string[];
-  unsafeToDrive: boolean;
+  /** Required when Fault is selected. */
+  mobilityStatus: ChecklistFaultMobility | null;
+  /**
+   * Legacy boolean from early builds — prefer mobilityStatus.
+   * If present without mobilityStatus, treat true as cannot_move.
+   */
+  unsafeToDrive?: boolean;
 };
 
 export type ChecklistPassFailItemState = {
@@ -48,7 +73,21 @@ export type ChecklistSchemaGroup = {
 };
 
 export function emptyDefect(): ChecklistDefect {
-  return { description: "", photoDataUrls: [], unsafeToDrive: false };
+  return { description: "", photoDataUrls: [], mobilityStatus: null };
+}
+
+/** Normalize legacy unsafeToDrive into mobilityStatus. */
+export function normalizeDefect(defect: ChecklistDefect): ChecklistDefect {
+  if (defect.mobilityStatus) {
+    return { ...defect, unsafeToDrive: undefined };
+  }
+  if (defect.unsafeToDrive === true) {
+    return { ...defect, mobilityStatus: "cannot_move", unsafeToDrive: undefined };
+  }
+  if (defect.unsafeToDrive === false) {
+    return { ...defect, mobilityStatus: null, unsafeToDrive: undefined };
+  }
+  return defect;
 }
 
 export function emptyPassFailItem(): ChecklistPassFailItemState {

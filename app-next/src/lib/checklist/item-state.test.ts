@@ -27,7 +27,7 @@ describe("setPassFailValue / defect", () => {
   it("opens defect card state when Fail selected", () => {
     const next = setPassFailValue(emptyPassFailItem(), "fail");
     expect(next.value).toBe("fail");
-    expect(next.defect).toEqual({ description: "", photoDataUrls: [], unsafeToDrive: false });
+    expect(next.defect).toEqual({ description: "", photoDataUrls: [], mobilityStatus: null });
   });
 
   it("clears defect when leaving Fail", () => {
@@ -36,22 +36,32 @@ describe("setPassFailValue / defect", () => {
     expect(setPassFailValue(withText, "pass").defect).toBeNull();
   });
 
-  it("requires defect description to complete a Fail item", () => {
+  it("requires description and mobility for Fault complete", () => {
     const failed = setPassFailValue(emptyPassFailItem(), "fail");
     expect(isPassFailItemComplete(failed)).toBe(false);
     expect(isPassFailItemComplete(updateDefect(failed, { description: "  " }))).toBe(false);
-    expect(isPassFailItemComplete(updateDefect(failed, { description: "Crack in lens" }))).toBe(
-      true
-    );
+    expect(
+      isPassFailItemComplete(updateDefect(failed, { description: "Crack in lens" }))
+    ).toBe(false);
+    expect(
+      isPassFailItemComplete(
+        updateDefect(failed, { description: "Crack in lens", mobilityStatus: "can_drive" })
+      )
+    ).toBe(true);
   });
 
-  it("tracks unsafe-to-drive on Fail", () => {
+  it("tracks cannot_move as unsafe", () => {
     const failed = setPassFailValue(emptyPassFailItem(), "fail");
-    const unsafe = updateDefect(failed, { description: "No brakes", unsafeToDrive: true });
+    const unsafe = updateDefect(failed, {
+      description: "No brakes",
+      mobilityStatus: "cannot_move",
+    });
     expect(isPassFailItemUnsafe(unsafe)).toBe(true);
-    expect(isPassFailItemUnsafe(updateDefect(failed, { description: "Ok", unsafeToDrive: false }))).toBe(
-      false
-    );
+    expect(
+      isPassFailItemUnsafe(
+        updateDefect(failed, { description: "Ok", mobilityStatus: "can_drive" })
+      )
+    ).toBe(false);
   });
 
   it("treats Pass and N/A as complete without defect", () => {
@@ -74,7 +84,7 @@ describe("buildPrestartActionedFaultDraft", () => {
   it("summarises Fault groups for workshop email", () => {
     const wheels = updateDefect(setPassFailValue(emptyPassFailItem(), "fail"), {
       description: "Soft tyre",
-      unsafeToDrive: true,
+      mobilityStatus: "cannot_move",
     });
     const draft = buildPrestartActionedFaultDraft(
       { wheels, vision: emptyPassFailItem() },
@@ -84,7 +94,7 @@ describe("buildPrestartActionedFaultDraft", () => {
       ]
     );
     expect(draft).toContain("Wheels & tyres: Soft tyre");
-    expect(draft).toContain("UNSAFE TO DRIVE");
+    expect(draft).toContain("Can not be moved/unroadworthy");
     expect(draft).not.toContain("Vision");
   });
 });

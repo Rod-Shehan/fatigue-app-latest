@@ -162,7 +162,7 @@ export function PrestartForm({
     }
 
     if (!allItemsComplete) {
-      setError("Complete every inspection item (Pass, Fault with description, or N/A).");
+      setError("Complete every inspection item (Pass, Fault with description + vehicle status, or N/A).");
       return;
     }
     if (hasFault && !actionedFaultText.trim()) {
@@ -242,8 +242,8 @@ export function PrestartForm({
         <div className="space-y-2">
           {hasUnsafe && responsibility === "yes" ? (
             <p className="text-center text-xs font-semibold text-ck-red">
-              Unsafe-to-drive flagged on one or more faults (recorded; Start shift not blocked in
-              trial).
+              Unroadworthy / cannot be moved flagged on one or more faults (recorded; Start shift not
+              blocked in trial).
             </p>
           ) : null}
           {emailNote ? (

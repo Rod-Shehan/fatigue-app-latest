@@ -3,6 +3,7 @@ export type {
   ChecklistAcknowledgeItemState,
   ChecklistAcknowledgeValue,
   ChecklistDefect,
+  ChecklistFaultMobility,
   ChecklistItemValue,
   ChecklistPassFailItemState,
   ChecklistSchemaGroup,
@@ -10,9 +11,12 @@ export type {
   ChecklistSignatureCapture,
 } from "./item-types";
 export {
+  CHECKLIST_FAULT_MOBILITY_OPTIONS,
+  checklistFaultMobilityLabel,
   emptyAcknowledgeItem,
   emptyDefect,
   emptyPassFailItem,
+  normalizeDefect,
 } from "./item-types";
 export {
   buildPrestartActionedFaultDraft,
