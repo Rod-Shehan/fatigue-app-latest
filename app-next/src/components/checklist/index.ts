@@ -6,4 +6,5 @@ export { ChecklistAcknowledgeItem } from "./ChecklistAcknowledgeItem";
 export { ChecklistDefectCard } from "./ChecklistDefectCard";
 export { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 export { ChecklistModalShell } from "./ChecklistModalShell";
+export { FitnessForWorkForm } from "./FitnessForWorkForm";
 export { ChecklistKitDemo } from "./ChecklistKitDemo";

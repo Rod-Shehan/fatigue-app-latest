@@ -226,7 +226,8 @@ export function DriverGuideArticle() {
           Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
-          Normal day: open the week → check From / To / Rego → tick Daily checks when done → type start km → tap Start
+          Normal day: open the week → check From / To / Rego → optionally tick Daily checks or open the signed Fitness
+          for Work form (optional in trial — does not block Start shift) → type start km → tap Start
           shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
@@ -416,7 +417,10 @@ export function DriverGuideArticle() {
           <li>Sign in (or stay signed in)</li>
           <li>Log more work</li>
           <li>Check rego, from, and to on today&apos;s card</li>
-          <li>Tick Daily checks when done (fitness, load, vehicle)</li>
+          <li>
+            Optionally tick Daily checks, or open the signed Fitness for Work form (optional in trial — does not block
+            Start shift)
+          </li>
           <li>Type start km</li>
           <li>Tap Start shift when you begin</li>
           <li>Tap Break for short rest</li>

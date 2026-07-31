@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   ChevronRight,
+  ClipboardCheck,
   ClipboardList,
   FileSignature,
   Loader2,
@@ -27,6 +28,8 @@ export function DayCardToolsSheet({
   unsignedPastWeeksCount = 0,
   onOpenGear,
   onOpenDaySetup,
+  onOpenFfw,
+  ffwFormCompleted = false,
   last24hUnset,
   declared24hRestUnset,
   driverName,
@@ -42,6 +45,9 @@ export function DayCardToolsSheet({
   unsignedPastWeeksCount?: number;
   onOpenGear: () => void;
   onOpenDaySetup?: () => void;
+  /** Optional trial FFW form — never blocks Start shift. */
+  onOpenFfw?: () => void;
+  ffwFormCompleted?: boolean;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
@@ -179,6 +185,35 @@ export function DayCardToolsSheet({
                 </span>
                 <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
               </Link>
+            )}
+          </section>
+
+          <section>
+            <h3 className={driverSectionLabel}>Optional checks</h3>
+            {onOpenFfw ? (
+              <button
+                type="button"
+                className={cn(driverDrawerRow, "w-full")}
+                onClick={() => {
+                  onOpenChange(false);
+                  onOpenFfw();
+                }}
+              >
+                <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                <span className="flex-1 text-left">
+                  <span className="block font-semibold">Fitness for Work</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">
+                    {ffwFormCompleted
+                      ? "Form saved for this day — optional to redo"
+                      : "Optional signed form — does not block Start shift"}
+                  </span>
+                </span>
+                <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+              </button>
+            ) : (
+              <p className="text-sm text-slate-500 dark:text-slate-400 px-1">
+                Open an editable day card to complete optional checks.
+              </p>
             )}
           </section>
 

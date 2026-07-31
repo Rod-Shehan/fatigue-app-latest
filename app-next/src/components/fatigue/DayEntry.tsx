@@ -16,6 +16,12 @@ import { formatHoursStatistic } from "@/lib/hours";
 import { formatPatternStreakForDisplay, patternStreakThresholdMet } from "@/lib/shift-change";
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
 import { DayTripChecklist } from "./DayTripChecklist";
+import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
+import {
+  appendChecklistToDay,
+  hasCompletedChecklistOfType,
+  type ChecklistRecord,
+} from "@/lib/checklist";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
@@ -64,6 +70,7 @@ type DayData = DayCardFields & {
   non_work?: boolean[];
   events?: { time: string; type: string; driver?: "primary" | "second" }[];
   date?: string;
+  checklists?: ChecklistRecord[];
 };
 
 function formatShiftLabel(label?: "A" | "B" | ""): string {
@@ -189,6 +196,7 @@ export default function DayEntry({
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [ffwOpen, setFfwOpen] = useState(false);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
   const lastSetupOpenRequestRef = useRef(0);
@@ -202,6 +210,20 @@ export default function DayEntry({
     patternStreakThresholdMet(patternWorkMinutes) && !dayData.shift_label;
 
   const canEditDetails = !readOnly;
+  const ffwFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "ffw");
+
+  const openFfwForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setFfwOpen(true);
+  }, [canEditDetails]);
+
+  const saveFfwRecord = useCallback(
+    (record: ChecklistRecord) => {
+      onUpdate(dayIndex, appendChecklistToDay(dayData, record));
+    },
+    [dayData, dayIndex, onUpdate]
+  );
 
   useEffect(() => {
     if (!setupOpenRequest || setupOpenRequest <= lastSetupOpenRequestRef.current) return;
@@ -475,6 +497,8 @@ export default function DayEntry({
             className="mt-3"
             variant="card"
             readOnly={!canEditDetails}
+            ffwFormCompleted={ffwFormCompleted}
+            onOpenFfw={canEditDetails ? openFfwForm : undefined}
             value={{
               fitness_for_work: dayData.fitness_for_work,
               dimension_load_checklist: dayData.dimension_load_checklist,
@@ -591,11 +615,20 @@ export default function DayEntry({
           unsignedPastWeeksCount={dayTools.unsignedPastWeeksCount}
           onOpenGear={dayTools.onOpenGear}
           onOpenDaySetup={() => setDetailsOpen(true)}
+          onOpenFfw={canEditDetails ? openFfwForm : undefined}
+          ffwFormCompleted={ffwFormCompleted}
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
           driverName={dayTools.driverName ?? driverName}
         />
       )}
+
+      <FitnessForWorkForm
+        open={ffwOpen}
+        onClose={() => setFfwOpen(false)}
+        driverName={dayTools?.driverName ?? driverName}
+        onCompleted={saveFfwRecord}
+      />
 
       {canEditDetails && (
         <DayCardDetailsDialog

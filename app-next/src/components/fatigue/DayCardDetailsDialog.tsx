@@ -47,6 +47,11 @@ import {
 } from "@/components/fatigue/DayEventsEditor";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
+import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
+import {
+  appendChecklistToDay,
+  hasCompletedChecklistOfType,
+} from "@/lib/checklist";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import {
@@ -74,6 +79,8 @@ export type DayCardFields = {
   fitness_for_work?: boolean;
   dimension_load_checklist?: boolean;
   daily_vehicle_checklist?: boolean;
+  /** Completed signed checklists (FFW / Prestart / Load) — Phase 2+. */
+  checklists?: import("@/lib/checklist").ChecklistRecord[];
   driver_type?: "solo" | "two_up";
   second_driver?: string;
 };
@@ -158,8 +165,10 @@ export function DayCardDetailsDialog({
   const [routeMode, setRouteMode] = useState<RouteSetupMode>("catalogue");
   const [presetPick, setPresetPick] = useState<string>("");
   const [confirming, setConfirming] = useState(false);
+  const [ffwOpen, setFfwOpen] = useState(false);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
+  const ffwFormCompleted = hasCompletedChecklistOfType(draft.checklists, "ffw");
 
   const activityBeforeDay = useMemo((): PriorOpenActivity => {
     if (activityBeforeDayProp != null) return activityBeforeDayProp;
@@ -497,6 +506,8 @@ export function DayCardDetailsDialog({
           <DayTripChecklist
             variant="dialog"
             readOnly={readOnly}
+            ffwFormCompleted={ffwFormCompleted}
+            onOpenFfw={readOnly ? undefined : () => setFfwOpen(true)}
             value={{
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
@@ -510,6 +521,15 @@ export function DayCardDetailsDialog({
                 daily_vehicle_checklist: next.daily_vehicle_checklist,
               }))
             }
+          />
+
+          <FitnessForWorkForm
+            open={ffwOpen}
+            onClose={() => setFfwOpen(false)}
+            driverName={driverName}
+            onCompleted={(record) => {
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
           />
 
           {declared24hRestFieldCount >= 2 && onDeclared24hRestChange && (

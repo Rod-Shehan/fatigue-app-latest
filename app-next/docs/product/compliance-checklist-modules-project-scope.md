@@ -1,6 +1,6 @@
 # Project scope: Compliance checklist modules (FFW / Prestart / Dimension & Load)
 
-**Status:** Phases 0–2 done (2026-07-31). **Trial mode:** checklists are **optional** — no sheet gates until a customer opts in (**P**). Phase 3+ UI may ship as voluntary entry; gates stay behind `checklistSheetGatesEnabled()`.  
+**Status:** Phases 0–**3** done (2026-07-31). **Trial mode:** checklists optional — gates off (**P**). Phase 4 not started.  
 **Stack:** Circadia24 EWD in **`app-next` (Next.js)** — not React Native / Flutter. PDF work extends the existing week / roadside pipeline (`sheet-jspdf-export`, WorkSafe day tiles, produce PDF), not a separate `PDFEngine.ts` mobile module.  
 **Baseline today:** Day cards store three **boolean** ticks (`fitness_for_work`, `dimension_load_checklist`, `daily_vehicle_checklist`) printed on the Weekly Trip Sheet. This project adds **full signed checklist records** (optional in trial). Designed **shift / load gates** are documented for later customer configuration — **not enforced** during trial / marketing.
 
@@ -138,12 +138,13 @@ During the current trial term, checklists are a **capability preview**:
 
 **Key paths:** `src/lib/checklist/record.ts`, `derive-trip-ticks.ts`, `src/app/api/sheets/[id]/checklists/route.ts`
 
-### Phase 3 — FFW voluntary entry (+ gate hook only) — NOT STARTED
+### Phase 3 — FFW voluntary entry (+ gate hook only) — DONE
 
-- [ ] FFW modal + copy constants, save via `appendChecklist` / day JSON
-- [ ] Entry point from day card / tools (optional — never required)
-- [ ] If/when gates ship: wrap Start-shift check in `checklistSheetGatesEnabled()` (default off)
-- [ ] Guides: optional FFW in trial wording
+- [x] FFW modal + copy stubs (`FitnessForWorkForm`)
+- [x] Entry: Daily checks “Open form”, Day tools → Optional checks, Set up day
+- [x] Persist via `appendChecklistToDay` → day save / offline sheet update
+- [x] No Start-shift block; `checklistSheetGatesEnabled()` remains false
+- [x] Guides: optional FFW in trial wording
 
 ### Phase 4 — Prestart voluntary entry (+ gate hook only) — NOT STARTED
 
@@ -207,4 +208,4 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 3** — voluntary FFW entry (save records) with **no** Start-shift block. Gates remain designed-but-off per **P**.
+**Phase 4** — voluntary Prestart entry (still no sheet gates per **P**).
