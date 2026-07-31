@@ -24,4 +24,25 @@ describe("trip checklist", () => {
     expect(m[1][3]).toBe(true);
     expect(m[2][3]).toBe(false);
   });
+
+  it("derives matrix ticks from completed checklist records", () => {
+    const days = Array.from({ length: 7 }, () => ({}));
+    days[1] = {
+      checklists: [
+        {
+          id: "1",
+          type: "ffw",
+          schemaVersion: 1,
+          status: "completed",
+          completedAtUtc: "2026-07-31T00:00:00.000Z",
+          items: [],
+          signatures: [],
+        },
+      ],
+    };
+    const m = checklistMatrixFromDays(days);
+    expect(m[0][1]).toBe(true);
+    expect(m[1][1]).toBe(false);
+    expect(m[2][1]).toBe(false);
+  });
 });

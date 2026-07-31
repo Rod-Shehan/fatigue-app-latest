@@ -1,8 +1,8 @@
 # Project scope: Compliance checklist modules (FFW / Prestart / Dimension & Load)
 
-**Status:** Phase 0 locked; **Phase 1 code complete** (2026-07-31). Phase 2 not started.  
+**Status:** Phases 0–2 done (2026-07-31). **Trial mode:** checklists are **optional** — no sheet gates until a customer opts in (**P**). Phase 3+ UI may ship as voluntary entry; gates stay behind `checklistSheetGatesEnabled()`.  
 **Stack:** Circadia24 EWD in **`app-next` (Next.js)** — not React Native / Flutter. PDF work extends the existing week / roadside pipeline (`sheet-jspdf-export`, WorkSafe day tiles, produce PDF), not a separate `PDFEngine.ts` mobile module.  
-**Baseline today:** Day cards store three **boolean** ticks (`fitness_for_work`, `dimension_load_checklist`, `daily_vehicle_checklist`) printed on the Weekly Trip Sheet. This project replaces casual ticks with **full signed checklist records** and **shift / load gates**.
+**Baseline today:** Day cards store three **boolean** ticks (`fitness_for_work`, `dimension_load_checklist`, `daily_vehicle_checklist`) printed on the Weekly Trip Sheet. This project adds **full signed checklist records** (optional in trial). Designed **shift / load gates** are documented for later customer configuration — **not enforced** during trial / marketing.
 
 **Do not** change AMI / Reg 184E / rolling timeline / coverage engines in this project. Checklist completion must not invent work/break/non-work minutes.
 
@@ -18,7 +18,16 @@ Three **distinct** fast-interaction compliance forms (not one bundled start-of-d
 2. **Prestart vehicle inspection** — Pass / Fail / N/A groups + defects + driver signature (when this driver is responsible).  
 3. **Dimension & Load check** — repeatable post-load form + **driver** signature; **loader** CoR acknowledgment as a **separate legal function** when obtainable.
 
-Forms use Circadia24 tokens, touch-first controls, canvas signatures, and append as supplementary PDF pages in week / 28-day exports behind the relevant day sheet.
+Forms use Circadia24 tokens, touch-first controls, canvas signatures, and (when completed) append as supplementary PDF pages in week / 28-day exports behind the relevant day sheet.
+
+### Trial / marketing posture (locked)
+
+During the current trial term, checklists are a **capability preview**:
+
+- Drivers/managers **may** complete FFW / Prestart / Dimension & Load when useful.  
+- Completing them is **never required** to Start shift, log work, leave loading, or sign the week.  
+- Gate designs below (C–E, L–O) remain the **target product** for customers who later want enforcement — implemented only when `checklistSheetGatesEnabled()` is turned on for that org (or a future policy flag).  
+- Do **not** soft-block or nag in a way that implies a legal obligation the customer has not contracted.
 
 ---
 
@@ -37,9 +46,9 @@ Forms use Circadia24 tokens, touch-first controls, canvas signatures, and append
 |---|--------|---------|
 | **A** | **A1** | Keep Weekly Trip Sheet Sun–Sat tick rows. A tick means **≥1 completed signed checklist of that type for that day** (never invent ticks). Full checklist pages are the legal detail. |
 | **B** | **B1** | Persist full checklist records (typed schema + items + defects + photos + signatures + geo/time). Booleans become derived from completed records. |
-| **C** | **C1** | **Shift Start Gate:** requires this driver’s **FFW** + **Prestart when responsible** (see **L**). Lock Start shift / movement unlock until satisfied. Do **not** bundle Dimension & Load into Start shift. |
-| **D** | **D1** | **Post-Load Gate:** Dimension & Load is separate; triggered when leaving loading / going in transit **or** on explicit driver “run load check”. **Multiple** completions per shift allowed. |
-| **E** | **E1** | **FAIL + unsafe-to-drive** on Prestart (or load, if flagged) **blocks** Start shift / resume transit until resolved per company process. FAIL without unsafe may save with defect + photo. |
+| **C** | **C1 — designed, off in trial** | **Shift Start Gate (future):** may require this driver’s **FFW** + **Prestart when responsible** (see **L**). **Trial:** do not lock Start shift / movement. Do **not** bundle Dimension & Load into Start shift. |
+| **D** | **D1 — designed, off in trial** | **Post-Load Gate (future):** Dimension & Load separate; multi-complete per shift. **Trial:** optional form only — no leave-loading / in-transit block. |
+| **E** | **E1 — designed, off in trial** | **FAIL + unsafe (future):** may block Start / resume when gates on. **Trial:** record unsafe flag for evidence; do not block sheet actions. |
 | **F** | **F1** | Item UI: **Unselected** default; single tap → **Pass**; explicit **Fail** / **N/A**. Fail opens defect card (text, optional photo; unsafe flag where applicable). FFW uses acknowledge/declare, not Pass/Fail/NA. |
 | **G** | **G1** | Every completed checklist ends with canvas signature(s): Clear + Confirm; store base64 PNG + **UTC & AWST** timestamps + lat/lng when available (null if denied). |
 | **H** | **H1** | PDF: append completed checklist page(s) **after that day’s WorkSafe day tile** in week export and 28-day produce (before shift-log appendix unless later revised). Brand header Midnight `#0A1118`; defects highlighted `#EF4444`. |
@@ -48,17 +57,19 @@ Forms use Circadia24 tokens, touch-first controls, canvas signatures, and append
 | **J2** | **Yes** | Dual function: “Did you also load?” / “I loaded it” → separate **As driver** and **As loader** acknowledgments (two signatures if self-loader). |
 | **J3** | **Yes** | Product rule: **No proxy / assumption of another’s CoR responsibility** (enforced in UI copy and validation). |
 | **K** | **K1** | Week / 28-day PDF **may** include load checks with **loader pending** or **not obtained (photos)** — must be visually obvious. Week sign-off is **not** blocked solely by pending loader CoR in v1 (revisit if operators require harder lock). |
-| **L** | **L1** | Prestart gate: **“Are you responsible for the vehicle prestart this shift?”** Yes → must complete Prestart. No → skip Prestart for this driver; record reason. **Solo** auto-Yes (question hidden). |
-| **M** | **M1** | Two-up: both may not leave the vehicle with **no** Prestart on record for that rego/shift — block Start until one responsible Prestart exists (or linked co-driver completion). |
-| **N** | **N1** | Second / relief driver: still requires **FFW**; Prestart defaults toward **No** when role is second (editable). |
-| **O** | **O1** | Loading / in-transit: if no formal status exists yet, use an **explicit driver action** for post-load gate in v1; optional richer status model later (deferred). |
+| **L** | **L1 — designed, off in trial** | Prestart responsibility question (future when gates on). **Trial:** optional Prestart; question may still appear as UX when building the form. |
+| **M** | **M1 — designed, off in trial** | Two-up “one Prestart on vehicle” rule — **only when gates on**. |
+| **N** | **N1 — advisory** | Second driver FFW remains personal when gates on; **trial:** optional for all. |
+| **O** | **O1 — designed, off in trial** | Explicit post-load action / status — **only when gates on**. |
+| **P** | **P1 — trial lock** | **Checklists optional.** No sheet gates, hard blocks, or “you must complete…” Start-shift requirements until the customer opts in. Code guard: `src/lib/checklist/gates-policy.ts` → `checklistSheetGatesEnabled()` defaults **false**. |
 
 ### Implied rules
 
 - Forms are **three modules**, not one combined checklist.  
 - Dimension & Load header metadata (client, loader name when known, driver, truck/trailer rego, load type, weight) captured per completion.  
-- Guides (driver + manager) update in the same change as each user-visible gate.  
-- Offline: local-first write; sync with existing sheet/day persistence patterns.
+- Guides update when voluntary UI ships; gate copy only when **P** is lifted for a customer.  
+- Offline: local-first write; sync with existing sheet/day persistence patterns.  
+- Any future gate code **must** call `checklistSheetGatesEnabled()` and no-op when false.
 
 ---
 
@@ -115,35 +126,41 @@ Forms use Circadia24 tokens, touch-first controls, canvas signatures, and append
 
 **Key paths:** `src/lib/checklist/`, `src/components/checklist/`, `src/app/manager/checklist-kit/page.tsx`
 
-### Phase 2 — Data model + API + persistence — NOT STARTED
+### Phase 2 — Data model + API + persistence — DONE
 
-- [ ] Checklist record schema + Prisma / day JSON + API
-- [ ] Photo storage limits; signature blob storage
-- [ ] Derive trip-sheet ticks from completed records (A1)
-- [ ] Legacy boolean ticks: no invented full forms
+- [x] Checklist record schema embedded in day JSON (`DayData.checklists[]`) — no new Prisma model
+- [x] Validation + photo/signature size caps (`src/lib/checklist/record.ts`)
+- [x] Derive trip-sheet ticks from completed records (A1); legacy booleans preserved
+- [x] `PATCH /api/sheets/[id]` recomputes ticks when days saved
+- [x] `GET|POST /api/sheets/[id]/checklists` list / append completed records
+- [x] Client helpers: `api.sheets.listChecklists` / `appendChecklist`
+- [x] Unit tests for validation + tick derive
 
-### Phase 3 — FFW + partial Start gate — NOT STARTED
+**Key paths:** `src/lib/checklist/record.ts`, `derive-trip-ticks.ts`, `src/app/api/sheets/[id]/checklists/route.ts`
 
-- [ ] FFW modal + copy constants
-- [ ] Block Start shift until this driver’s FFW complete
-- [ ] Guides updated
+### Phase 3 — FFW voluntary entry (+ gate hook only) — NOT STARTED
 
-### Phase 4 — Prestart + full Start gate — NOT STARTED
+- [ ] FFW modal + copy constants, save via `appendChecklist` / day JSON
+- [ ] Entry point from day card / tools (optional — never required)
+- [ ] If/when gates ship: wrap Start-shift check in `checklistSheetGatesEnabled()` (default off)
+- [ ] Guides: optional FFW in trial wording
 
-- [ ] Prestart schema UI + responsibility question (**L**/**M**/**N**)
-- [ ] Unsafe block (**E1**)
-- [ ] Guides updated
+### Phase 4 — Prestart voluntary entry (+ gate hook only) — NOT STARTED
 
-### Phase 5 — Dimension & Load + post-load gate — NOT STARTED
+- [ ] Prestart schema UI + responsibility question (**L**) as form UX
+- [ ] Unsafe flag recorded; **no** Start-shift block while gates off (**P**)
+- [ ] Guides: optional Prestart in trial wording
+
+### Phase 5 — Dimension & Load voluntary entry (+ gate hook only) — NOT STARTED
 
 - [ ] Load form + Q “know who loaded?” / “I loaded it”
 - [ ] Loader paths **J** A/B/C + dual function **J2**
-- [ ] Multi-load per shift; post-load trigger (**D**/**O**)
+- [ ] Multi-load allowed; post-load **trigger optional** — no hard gate while **P**
 - [ ] Guides updated
 
 ### Phase 6 — PDF + 28-day / week integration — NOT STARTED
 
-- [ ] Checklist page renderer (HTML + jsPDF as needed)
+- [ ] Checklist page renderer (HTML + jsPDF as needed) — only for completed records
 - [ ] Wire week export + roadside produce (**H**)
 - [ ] Pending / not-obtained / photo evidence presentation (**K**)
 - [ ] Offline cache via existing produce path
@@ -153,7 +170,7 @@ Forms use Circadia24 tokens, touch-first controls, canvas signatures, and append
 - [ ] Touch, geo-denied, photo size, two-up edge cases
 - [ ] Manager read-only history (minimal)
 - [ ] Manuals fully aligned; visual QA vs paper
-
+- [ ] Customer opt-in path to enable gates (policy / flag) when ready
 ---
 
 ## Deferred
@@ -178,15 +195,16 @@ Forms use Circadia24 tokens, touch-first controls, canvas signatures, and append
 
 ## Exit criteria (project)
 
-1. Three separate forms with gates as locked (C, D, L, J).  
+1. Three separate forms available; gates only when customer enables (**P**).  
 2. No proxy loader CoR; dual function clearly labelled.  
-3. Trip-sheet ticks reflect real completions only.  
-4. Week / 28-day PDFs append checklist pages with honest pending / not-obtained states.  
-5. Guides match the app.  
-6. No timeline / coverage IP changes.
+3. Trip-sheet ticks reflect real completions only (when used).  
+4. Week / 28-day PDFs append checklist pages only when records exist; honest pending / not-obtained states.  
+5. Guides match the app (optional in trial).  
+6. No timeline / coverage IP changes.  
+7. `checklistSheetGatesEnabled()` false by default for trial / marketing.
 
 ---
 
 ## Next action
 
-**Phase 2** — data model + API + persistence (derive trip-sheet ticks from completed records).
+**Phase 3** — voluntary FFW entry (save records) with **no** Start-shift block. Gates remain designed-but-off per **P**.

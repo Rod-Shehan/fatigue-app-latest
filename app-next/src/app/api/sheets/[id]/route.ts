@@ -6,6 +6,7 @@ import { autoCloseStaleDraftSheetsForUser } from "@/lib/sheet-auto-close-db";
 import { getPreviousWeekSunday, isNextWeekOrLater, isPastRegulatoryWeek } from "@/lib/weeks";
 import { parseJurisdictionCode } from "@/lib/jurisdiction";
 import { normalizeSheetDaysForApi } from "@/lib/coverage/derive-minute-coverage";
+import { applyDerivedTripTicksToDays } from "@/lib/checklist/derive-trip-ticks";
 import {
   managerRequiresAmendmentReason,
   patchIsAttestationOnly,
@@ -323,7 +324,11 @@ export async function PATCH(
       data.last24hRest4End = last_24h_rest_4_end ? new Date(last_24h_rest_4_end) : null;
     }
     if (week_starting !== undefined) data.weekStarting = week_starting;
-    if (days !== undefined) data.days = JSON.stringify(normalizeSheetDaysForApi(days));
+    if (days !== undefined) {
+      data.days = JSON.stringify(
+        normalizeSheetDaysForApi(applyDerivedTripTicksToDays(days))
+      );
+    }
     if (status !== undefined) data.status = status;
     if (signature !== undefined) data.signature = signature;
     if (signed_at !== undefined) data.signedAt = signed_at ? new Date(signed_at) : null;

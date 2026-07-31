@@ -113,10 +113,15 @@ export type DayData = {
   route_preset_id?: string;
   /** Self-reported alertness 1–5 at day/shift setup (risk context only — not FFW). */
   alertness_level?: 1 | 2 | 3 | 4 | 5;
-  /** Pre-trip ticks for Weekly Trip Sheet PDF (omit/false = empty box). */
+  /** Pre-trip ticks for Weekly Trip Sheet PDF (omit/false = empty box). Derived from checklists[] when present. */
   fitness_for_work?: boolean;
   dimension_load_checklist?: boolean;
   daily_vehicle_checklist?: boolean;
+  /**
+   * Completed compliance checklist records (FFW / Prestart / Dimension & Load).
+   * Embedded in day JSON — Phase 2+. Trip-sheet ticks derive from these (A1).
+   */
+  checklists?: import("@/lib/checklist").ChecklistRecord[];
   /** Crew for this calendar day — saved in Set up day; drives solo vs two-up rules. */
   driver_type?: "solo" | "two_up";
   second_driver?: string;
@@ -468,6 +473,30 @@ export const api = {
     delete: (id: string) =>
       fetchApi<void>(`/api/sheets/${id}`, { method: "DELETE" }),
     exportPdfUrl: (id: string) => `${base}/api/sheets/${id}/export`,
+    listChecklists: (id: string) =>
+      fetchApi<{
+        sheet_id: string;
+        days: Array<{
+          day_index: number;
+          date: string | null;
+          checklists: import("@/lib/checklist").ChecklistRecord[];
+          ticks: {
+            fitness_for_work: boolean;
+            dimension_load_checklist: boolean;
+            daily_vehicle_checklist: boolean;
+          };
+        }>;
+      }>(`/api/sheets/${id}/checklists`),
+    appendChecklist: (
+      id: string,
+      data: { day_index: number; record: import("@/lib/checklist").ChecklistRecord }
+    ) =>
+      fetchApi<{
+        ok: boolean;
+        day_index: number;
+        record: import("@/lib/checklist").ChecklistRecord;
+        days: FatigueSheet["days"];
+      }>(`/api/sheets/${id}/checklists`, { method: "POST", body: data }),
   },
   users: {
     listManagers: () =>

@@ -1,8 +1,12 @@
 /**
  * Pre-trip daily ticks for the Weekly Trip Sheet (FFW / load / vehicle).
  * Stored on each day card; week PDF header shows Sun–Sat columns.
+ * When `checklists[]` has completed records, ticks are derived (scope A1).
  * @see docs/product/weekly-trip-sheet-pdf-project-scope.md
+ * @see docs/product/compliance-checklist-modules-project-scope.md
  */
+
+import { deriveTripChecklistFields, type DayWithChecklists } from "@/lib/checklist/derive-trip-ticks";
 
 export const TRIP_CHECKLIST_KEYS = [
   "fitness_for_work",
@@ -30,10 +34,11 @@ export function isTripChecklistTicked(
   key: TripChecklistKey
 ): boolean {
   if (!day || typeof day !== "object") return false;
-  return (day as DayTripChecklistFields)[key] === true;
+  const derived = deriveTripChecklistFields(day as DayWithChecklists);
+  return derived[key] === true;
 }
 
-/** 3 rows × 7 days — true when that day has the tick set. */
+/** 3 rows × 7 days — true when that day has the tick set (derived or legacy). */
 export function checklistMatrixFromDays(
   days: Array<DayTripChecklistFields | Record<string, unknown>>
 ): boolean[][] {
