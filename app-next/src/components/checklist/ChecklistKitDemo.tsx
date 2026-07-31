@@ -146,6 +146,10 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
               key={group.code}
               label={group.label}
               notes={group.notes}
+              failLabel="FAULT"
+              defectCardTitle="Fault"
+              defectDescriptionLabel="Fault description (required)"
+              defectDescriptionPlaceholder="Describe the fault"
               state={prestart[group.code]!}
               onChange={(next) => setPrestart((s) => ({ ...s, [group.code]: next }))}
             />

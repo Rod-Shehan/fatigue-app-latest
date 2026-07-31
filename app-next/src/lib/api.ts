@@ -828,6 +828,20 @@ export const api = {
         };
         outboundEmailConfigured: boolean;
       }>("/api/settings/maintenance-contact", { method: "PATCH", body: patch }),
+    /** Send Prestart actioned fault text to workshop contact. */
+    sendMaintenanceFaultReport: (body: {
+      faultText: string;
+      driverName?: string;
+      sheetDayLabel?: string;
+    }) =>
+      fetchApi<{
+        ok: boolean;
+        reason?: string;
+        message?: string;
+        provider?: string;
+        id?: string | null;
+        to?: string;
+      }>("/api/settings/maintenance-fault-report", { method: "POST", body }),
   },
   /** Session feature flags / addons for driver + manager clients. */
   features: () => fetchApi<{ gpsMovementTrailEnabled: boolean }>("/api/features"),

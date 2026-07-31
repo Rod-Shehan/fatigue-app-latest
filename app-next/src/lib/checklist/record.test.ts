@@ -126,6 +126,45 @@ describe("validateCompletedChecklistRecord", () => {
     );
     expect(v.ok).toBe(false);
   });
+
+  it("requires actionedFaultText when prestart has a Fault", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "prestart",
+        prestartResponsible: true,
+        items: [
+          {
+            code: "wheels",
+            kind: "pass_fail",
+            value: "fail",
+            defect: { description: "Soft tyre", photoDataUrls: [], unsafeToDrive: false },
+          },
+        ],
+        actionedFaultText: "",
+      })
+    );
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.errors.some((e) => e.code === "actionedFaultText")).toBe(true);
+  });
+
+  it("accepts prestart Fault with actionedFaultText", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "prestart",
+        prestartResponsible: true,
+        items: [
+          {
+            code: "wheels",
+            kind: "pass_fail",
+            value: "fail",
+            defect: { description: "Soft tyre", photoDataUrls: [], unsafeToDrive: false },
+          },
+        ],
+        actionedFaultText: "Wheels & tyres: Soft tyre",
+      })
+    );
+    expect(v.ok).toBe(true);
+  });
 });
 
 describe("deriveTripChecklistFields", () => {

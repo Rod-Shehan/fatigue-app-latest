@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  buildPrestartActionedFaultDraft,
   isAcknowledgeItemComplete,
   isPassFailItemComplete,
   isPassFailItemUnsafe,
@@ -66,5 +67,24 @@ describe("acknowledge (FFW)", () => {
     expect(on.value).toBe("acknowledged");
     expect(isAcknowledgeItemComplete(on)).toBe(true);
     expect(isAcknowledgeItemComplete(toggleAcknowledge(on))).toBe(false);
+  });
+});
+
+describe("buildPrestartActionedFaultDraft", () => {
+  it("summarises Fault groups for workshop email", () => {
+    const wheels = updateDefect(setPassFailValue(emptyPassFailItem(), "fail"), {
+      description: "Soft tyre",
+      unsafeToDrive: true,
+    });
+    const draft = buildPrestartActionedFaultDraft(
+      { wheels, vision: emptyPassFailItem() },
+      [
+        { code: "wheels", label: "Wheels & tyres" },
+        { code: "vision", label: "Vision & glass" },
+      ]
+    );
+    expect(draft).toContain("Wheels & tyres: Soft tyre");
+    expect(draft).toContain("UNSAFE TO DRIVE");
+    expect(draft).not.toContain("Vision");
   });
 });

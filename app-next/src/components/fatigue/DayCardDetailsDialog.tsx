@@ -541,6 +541,7 @@ export function DayCardDetailsDialog({
             open={prestartOpen}
             onClose={() => setPrestartOpen(false)}
             driverName={driverName}
+            sheetDayLabel={`${dayTitle} ${dateLabel}`}
             onCompleted={(record) => {
               setDraft((prev) => appendChecklistToDay(prev, record));
             }}

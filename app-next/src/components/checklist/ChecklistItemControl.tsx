@@ -5,7 +5,7 @@ import type { ChecklistItemValue, ChecklistPassFailItemState } from "@/lib/check
 import { setPassFailValue, tapPassFailItem, updateDefect } from "@/lib/checklist";
 import { ChecklistDefectCard } from "./ChecklistDefectCard";
 
-const SEGMENTS: { value: ChecklistItemValue; label: string; activeClass: string }[] = [
+const DEFAULT_SEGMENTS: { value: ChecklistItemValue; label: string; activeClass: string }[] = [
   { value: "pass", label: "PASS", activeClass: "bg-ck-emerald text-white border-ck-emerald" },
   { value: "fail", label: "FAIL", activeClass: "bg-ck-red text-white border-ck-red" },
   { value: "na", label: "N/A", activeClass: "bg-ck-steel text-white border-ck-steel" },
@@ -17,6 +17,11 @@ export function ChecklistItemControl({
   onChange,
   notes,
   className,
+  /** Display label for the fail segment (Prestart uses FAULT). */
+  failLabel = "FAIL",
+  defectCardTitle = "Defect",
+  defectDescriptionLabel = "Description (required)",
+  defectDescriptionPlaceholder = "Describe the defect",
 }: {
   label: string;
   state: ChecklistPassFailItemState;
@@ -24,7 +29,15 @@ export function ChecklistItemControl({
   /** Optional prompt bullets under the heading (not separately scored). */
   notes?: string[];
   className?: string;
+  failLabel?: string;
+  defectCardTitle?: string;
+  defectDescriptionLabel?: string;
+  defectDescriptionPlaceholder?: string;
 }) {
+  const segments = DEFAULT_SEGMENTS.map((seg) =>
+    seg.value === "fail" ? { ...seg, label: failLabel } : seg
+  );
+
   return (
     <div className={cn("rounded-lg border border-ck-border bg-ck-slate/80 p-3", className)}>
       <button
@@ -48,7 +61,7 @@ export function ChecklistItemControl({
         </ul>
       ) : null}
       <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label={`${label} result`}>
-        {SEGMENTS.map((seg) => {
+        {segments.map((seg) => {
           const active = state.value === seg.value;
           return (
             <button
@@ -71,6 +84,9 @@ export function ChecklistItemControl({
       {state.value === "fail" && state.defect ? (
         <ChecklistDefectCard
           defect={state.defect}
+          title={defectCardTitle}
+          descriptionLabel={defectDescriptionLabel}
+          descriptionPlaceholder={defectDescriptionPlaceholder}
           onChange={(defect) => onChange(updateDefect(state, defect))}
         />
       ) : null}

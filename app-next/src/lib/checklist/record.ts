@@ -52,6 +52,11 @@ export type ChecklistRecord = {
   /** Phase 4+ — optional on early records */
   prestartResponsible?: boolean;
   prestartSkipReason?: string | null;
+  /**
+   * Prestart fault report text for workshop / WAHVA maintenance email
+   * (above signature when any group is Fault).
+   */
+  actionedFaultText?: string | null;
   /** Phase 5+ — optional on early records */
   loaderPath?: ChecklistLoaderPath | null;
   loaderName?: string | null;
@@ -211,6 +216,22 @@ export function validateCompletedChecklistRecord(
     }
   }
 
+  if (r.type === "prestart" && r.prestartResponsible !== false && Array.isArray(r.items)) {
+    const hasFault = (r.items as ChecklistRecordItem[]).some(
+      (item) => item?.kind === "pass_fail" && item.value === "fail"
+    );
+    if (hasFault) {
+      const text =
+        typeof r.actionedFaultText === "string" ? r.actionedFaultText.trim() : "";
+      if (!text) {
+        errors.push({
+          code: "actionedFaultText",
+          message: "Describe the actioned fault for the workshop email before signing",
+        });
+      }
+    }
+  }
+
   if (errors.length) return { ok: false, errors };
 
   return {
@@ -226,6 +247,12 @@ export function validateCompletedChecklistRecord(
       prestartResponsible: typeof r.prestartResponsible === "boolean" ? r.prestartResponsible : undefined,
       prestartSkipReason:
         r.prestartSkipReason == null ? r.prestartSkipReason : String(r.prestartSkipReason),
+      actionedFaultText:
+        typeof r.actionedFaultText === "string"
+          ? r.actionedFaultText.trim() || null
+          : r.actionedFaultText == null
+            ? null
+            : String(r.actionedFaultText),
       loaderPath: (r.loaderPath as ChecklistLoaderPath | null | undefined) ?? null,
       loaderName: r.loaderName == null ? null : String(r.loaderName),
       header: (r.header as ChecklistRecord["header"]) ?? undefined,

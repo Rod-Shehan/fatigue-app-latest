@@ -15,6 +15,7 @@ export {
   emptyPassFailItem,
 } from "./item-types";
 export {
+  buildPrestartActionedFaultDraft,
   isAcknowledgeItemComplete,
   isPassFailItemComplete,
   isPassFailItemUnsafe,

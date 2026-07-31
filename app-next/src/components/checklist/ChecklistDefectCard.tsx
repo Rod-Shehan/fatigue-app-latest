@@ -7,10 +7,16 @@ export function ChecklistDefectCard({
   defect,
   onChange,
   className,
+  title = "Defect",
+  descriptionLabel = "Description (required)",
+  descriptionPlaceholder = "Describe the defect",
 }: {
   defect: ChecklistDefect;
   onChange: (next: ChecklistDefect) => void;
   className?: string;
+  title?: string;
+  descriptionLabel?: string;
+  descriptionPlaceholder?: string;
 }) {
   return (
     <div
@@ -19,17 +25,17 @@ export function ChecklistDefectCard({
         className
       )}
       role="region"
-      aria-label="Defect details"
+      aria-label={title}
     >
-      <p className="text-xs font-bold uppercase tracking-wide text-ck-red">Defect</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-ck-red">{title}</p>
       <label className="block space-y-1">
-        <span className="text-xs text-ck-steel">Description (required)</span>
+        <span className="text-xs text-ck-steel">{descriptionLabel}</span>
         <textarea
           value={defect.description}
           onChange={(e) => onChange({ ...defect, description: e.target.value })}
           rows={3}
           className="w-full rounded-md border border-ck-border bg-ck-slate px-3 py-2 text-sm text-slate-100 placeholder:text-ck-steel focus:outline-none focus:ring-2 focus:ring-ck-cobalt"
-          placeholder="Describe the defect"
+          placeholder={descriptionPlaceholder}
         />
       </label>
       <label className="flex items-start gap-3 min-h-[44px] cursor-pointer">

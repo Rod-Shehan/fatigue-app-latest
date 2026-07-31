@@ -654,6 +654,7 @@ export default function DayEntry({
         open={prestartOpen}
         onClose={() => setPrestartOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
+        sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
         onCompleted={savePrestartRecord}
       />
 

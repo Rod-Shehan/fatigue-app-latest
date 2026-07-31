@@ -56,6 +56,24 @@ export function isPassFailItemUnsafe(state: ChecklistPassFailItemState): boolean
   return state.value === "fail" && state.defect?.unsafeToDrive === true;
 }
 
+/**
+ * Draft workshop email body from Prestart Fault groups (editable before sign).
+ */
+export function buildPrestartActionedFaultDraft(
+  items: Record<string, ChecklistPassFailItemState>,
+  groups: { code: string; label: string }[]
+): string {
+  const lines: string[] = [];
+  for (const group of groups) {
+    const state = items[group.code];
+    if (!state || state.value !== "fail") continue;
+    const desc = state.defect?.description?.trim() || "(no description yet)";
+    const unsafe = state.defect?.unsafeToDrive ? " — UNSAFE TO DRIVE" : "";
+    lines.push(`${group.label}: ${desc}${unsafe}`);
+  }
+  return lines.join("\n");
+}
+
 export function setAcknowledgeValue(
   _state: ChecklistAcknowledgeItemState,
   value: ChecklistAcknowledgeValue
