@@ -1,5 +1,5 @@
 /** Trial / marketing: checklists are available but never block Start shift or load flow. */
-export const CHECKLIST_SHEET_GATES_ENABLED = false;
+export const CHECKLIST_SHEET_GATES_ENABLED: boolean = false;
 
 /**
  * When false (default for trial), FFW / Prestart / Load forms may be completed
@@ -7,5 +7,5 @@ export const CHECKLIST_SHEET_GATES_ENABLED = false;
  * see compliance-checklist-modules-project-scope.md decision **P**.
  */
 export function checklistSheetGatesEnabled(): boolean {
-  return CHECKLIST_SHEET_GATES_ENABLED === true;
+  return CHECKLIST_SHEET_GATES_ENABLED;
 }

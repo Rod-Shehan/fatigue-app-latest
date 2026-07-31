@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   appendChecklistToDay,
   deriveTripChecklistFields,
+  type DayWithChecklists,
 } from "./derive-trip-ticks";
 import {
   CHECKLIST_SCHEMA_VERSION,
@@ -108,7 +109,7 @@ describe("deriveTripChecklistFields", () => {
   });
 
   it("appendChecklistToDay derives ticks", () => {
-    const next = appendChecklistToDay({}, sampleFfw());
+    const next = appendChecklistToDay({} as DayWithChecklists, sampleFfw());
     expect(next.checklists).toHaveLength(1);
     expect(next.fitness_for_work).toBe(true);
   });

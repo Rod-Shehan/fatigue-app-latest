@@ -127,7 +127,9 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const days = normalizeSheetDaysForApi(parseDays(sheet.days)) as DayWithChecklists[];
+    const days = normalizeSheetDaysForApi(parseDays(sheet.days)) as Array<
+      DayWithChecklists & { date?: unknown }
+    >;
     const byDay = days.map((day, day_index) => ({
       day_index,
       date: typeof day?.date === "string" ? day.date : null,
