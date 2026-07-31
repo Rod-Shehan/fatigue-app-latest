@@ -48,6 +48,7 @@ import {
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
+import { PrestartForm } from "@/components/checklist/PrestartForm";
 import {
   appendChecklistToDay,
   hasCompletedChecklistOfType,
@@ -166,9 +167,11 @@ export function DayCardDetailsDialog({
   const [presetPick, setPresetPick] = useState<string>("");
   const [confirming, setConfirming] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
+  const [prestartOpen, setPrestartOpen] = useState(false);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const ffwFormCompleted = hasCompletedChecklistOfType(draft.checklists, "ffw");
+  const prestartFormCompleted = hasCompletedChecklistOfType(draft.checklists, "prestart");
 
   const activityBeforeDay = useMemo((): PriorOpenActivity => {
     if (activityBeforeDayProp != null) return activityBeforeDayProp;
@@ -508,6 +511,8 @@ export function DayCardDetailsDialog({
             readOnly={readOnly}
             ffwFormCompleted={ffwFormCompleted}
             onOpenFfw={readOnly ? undefined : () => setFfwOpen(true)}
+            prestartFormCompleted={prestartFormCompleted}
+            onOpenPrestart={readOnly ? undefined : () => setPrestartOpen(true)}
             value={{
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
@@ -526,6 +531,15 @@ export function DayCardDetailsDialog({
           <FitnessForWorkForm
             open={ffwOpen}
             onClose={() => setFfwOpen(false)}
+            driverName={driverName}
+            onCompleted={(record) => {
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
+          />
+
+          <PrestartForm
+            open={prestartOpen}
+            onClose={() => setPrestartOpen(false)}
             driverName={driverName}
             onCompleted={(record) => {
               setDraft((prev) => appendChecklistToDay(prev, record));

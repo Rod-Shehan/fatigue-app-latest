@@ -138,7 +138,7 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 
           Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: truck reg, odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). Days with **no events** show a full **non-work** line (totals Work 0 / Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
 
-**Normal day:** open the week → check From/To/Rego → optionally tick **Daily checks** or open the signed **Fitness for Work** form (optional in trial — does **not** block Start shift) → type **start km** → tap **Start shift**.
+**Normal day:** open the week → check From/To/Rego → optionally tick **Daily checks** or open signed **Fitness for Work** / **Prestart** forms (optional in trial — do **not** block Start shift) → type **start km** → tap **Start shift**.
 
 ### Set up day / Edit day
 
@@ -272,7 +272,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 1. Sign in (or stay signed in)
 2. **Log more work**
 3. Check rego, from, and to on today's card
-4. Optionally tick **Daily checks**, or open the signed **Fitness for Work** form (optional in trial — does not block Start shift)
+4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** forms (optional in trial — do not block Start shift). Two-up drivers who are not responsible for the vehicle prestart can record that on the Prestart form instead of inventing answers.
 5. Type **start km**
 6. Tap **Start shift** when you begin
 7. Tap **Break** for short rest
@@ -288,7 +288,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Work | Solo means driving or working. Two-up means driving. |
 | Break | Short rest (≤30 min) during work |
 | Non-work | Off duty / long rest / sleep / in sleeper cab for two-up |
-| Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work form is optional in trial and does not block Start shift |
+| Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work and Prestart forms are optional in trial and do not block Start shift. Prestart asks if you are responsible (two-up second drivers can say no with a reason) |
 | Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature with the day sheets |
 | Start shift / End shift | Begin / finish work for a shift |
 | Resume shift | Continue the same shift — this is not the same as start / finish break. |

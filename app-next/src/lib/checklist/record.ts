@@ -119,7 +119,23 @@ export function validateCompletedChecklistRecord(
   if (typeof r.completedAtUtc !== "string" || !r.completedAtUtc.trim()) {
     errors.push({ code: "completedAtUtc", message: "completedAtUtc is required" });
   }
-  if (!Array.isArray(r.items) || r.items.length === 0) {
+  const prestartNotResponsible =
+    r.type === "prestart" && r.prestartResponsible === false;
+  if (prestartNotResponsible) {
+    if (typeof r.prestartSkipReason !== "string" || !String(r.prestartSkipReason).trim()) {
+      errors.push({
+        code: "prestartSkipReason",
+        message: "prestartSkipReason is required when not responsible for prestart",
+      });
+    }
+    // Empty items allowed — do not invent Pass/Fail answers for another driver's duty.
+    if (Array.isArray(r.items) && r.items.length > 0) {
+      errors.push({
+        code: "items",
+        message: "Not-responsible prestart must not include inspection item answers",
+      });
+    }
+  } else if (!Array.isArray(r.items) || r.items.length === 0) {
     errors.push({ code: "items", message: "items must be a non-empty array" });
   } else {
     for (const item of r.items as ChecklistRecordItem[]) {
@@ -205,7 +221,7 @@ export function validateCompletedChecklistRecord(
       schemaVersion: typeof r.schemaVersion === "number" ? r.schemaVersion : CHECKLIST_SCHEMA_VERSION,
       status: "completed",
       completedAtUtc: String(r.completedAtUtc),
-      items: r.items as ChecklistRecordItem[],
+      items: Array.isArray(r.items) ? (r.items as ChecklistRecordItem[]) : [],
       signatures: r.signatures as ChecklistRecordSignature[],
       prestartResponsible: typeof r.prestartResponsible === "boolean" ? r.prestartResponsible : undefined,
       prestartSkipReason:
@@ -226,6 +242,24 @@ export function hasCompletedChecklistOfType(
 ): boolean {
   if (!Array.isArray(checklists)) return false;
   return checklists.some((c) => c?.status === "completed" && c.type === type);
+}
+
+/**
+ * Prestart that completed the vehicle inspection (not a “not responsible” skip).
+ * Used for trip-sheet Daily vehicle checklist tick (A1).
+ */
+export function hasCompletedResponsiblePrestart(
+  checklists: ChecklistRecord[] | null | undefined
+): boolean {
+  if (!Array.isArray(checklists)) return false;
+  return checklists.some(
+    (c) =>
+      c?.status === "completed" &&
+      c.type === "prestart" &&
+      c.prestartResponsible !== false &&
+      Array.isArray(c.items) &&
+      c.items.length > 0
+  );
 }
 
 export function listCompletedChecklists(

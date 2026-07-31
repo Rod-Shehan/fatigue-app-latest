@@ -4,7 +4,7 @@
  */
 
 import type { ChecklistRecord, ChecklistRecordType } from "./record";
-import { hasCompletedChecklistOfType } from "./record";
+import { hasCompletedChecklistOfType, hasCompletedResponsiblePrestart } from "./record";
 
 export type DerivedTripChecklistFields = {
   fitness_for_work?: boolean;
@@ -40,7 +40,7 @@ export function deriveTripChecklistFields(
       hasCompletedChecklistOfType(checklists, "dimension_load") ||
       d.dimension_load_checklist === true,
     daily_vehicle_checklist:
-      hasCompletedChecklistOfType(checklists, "prestart") || d.daily_vehicle_checklist === true,
+      hasCompletedResponsiblePrestart(checklists) || d.daily_vehicle_checklist === true,
   };
 }
 

@@ -19,6 +19,10 @@ type Props = {
   onOpenFfw?: () => void;
   /** True when a completed ffw checklist record exists for this day. */
   ffwFormCompleted?: boolean;
+  /** Phase 4 — open voluntary Prestart form (optional; no Start-shift gate). */
+  onOpenPrestart?: () => void;
+  /** True when any completed prestart record exists (inspection or not-responsible note). */
+  prestartFormCompleted?: boolean;
 };
 
 export function DayTripChecklist({
@@ -29,10 +33,14 @@ export function DayTripChecklist({
   className,
   onOpenFfw,
   ffwFormCompleted = false,
+  onOpenPrestart,
+  prestartFormCompleted = false,
 }: Props) {
   const setKey = (key: TripChecklistKey, checked: boolean) => {
     onChange({ ...value, [key]: checked ? true : false });
   };
+
+  const hasFormOpen = Boolean(onOpenFfw || onOpenPrestart);
 
   return (
     <fieldset
@@ -41,7 +49,7 @@ export function DayTripChecklist({
         variant === "card" ? "px-3 py-2.5" : "px-3 py-3",
         className
       )}
-      disabled={readOnly && !onOpenFfw}
+      disabled={readOnly && !hasFormOpen}
     >
       <legend
         className={cn(
@@ -57,14 +65,15 @@ export function DayTripChecklist({
           variant === "card" ? "text-[11px] leading-snug" : "text-xs leading-snug"
         )}
       >
-        Optional in trial. Tick when done, or open the signed Fitness for Work form. Shows on the week
-        PDF when completed.
+        Optional in trial. Tick when done, or open signed Fitness for Work / Prestart forms. Shows on
+        the week PDF when completed.
       </p>
       <ul className="space-y-1">
         {TRIP_CHECKLIST_KEYS.map((key) => {
           const id = `trip-check-${key}-${variant}`;
           const checked = value[key] === true;
           const isFfw = key === "fitness_for_work";
+          const isPrestart = key === "daily_vehicle_checklist";
           return (
             <li key={key}>
               <div
@@ -100,6 +109,11 @@ export function DayTripChecklist({
                         Form saved
                       </span>
                     ) : null}
+                    {isPrestart && prestartFormCompleted ? (
+                      <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                        Form saved
+                      </span>
+                    ) : null}
                   </span>
                 </label>
                 {isFfw && onOpenFfw && !readOnly ? (
@@ -109,6 +123,15 @@ export function DayTripChecklist({
                     className="shrink-0 rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
                   >
                     {ffwFormCompleted ? "View / redo" : "Open form"}
+                  </button>
+                ) : null}
+                {isPrestart && onOpenPrestart && !readOnly ? (
+                  <button
+                    type="button"
+                    onClick={onOpenPrestart}
+                    className="shrink-0 rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                  >
+                    {prestartFormCompleted ? "View / redo" : "Open form"}
                   </button>
                 ) : null}
               </div>

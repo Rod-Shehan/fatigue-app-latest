@@ -1,6 +1,6 @@
 # Project scope: Compliance checklist modules (FFW / Prestart / Dimension & Load)
 
-**Status:** Phases 0–**3** done (2026-07-31). **Trial mode:** checklists optional — gates off (**P**). Phase 4 not started.  
+**Status:** Phases 0–**4** done (2026-07-31). **Trial mode:** checklists optional — gates off (**P**). Phase 5 not started.  
 **Stack:** Circadia24 EWD in **`app-next` (Next.js)** — not React Native / Flutter. PDF work extends the existing week / roadside pipeline (`sheet-jspdf-export`, WorkSafe day tiles, produce PDF), not a separate `PDFEngine.ts` mobile module.  
 **Baseline today:** Day cards store three **boolean** ticks (`fitness_for_work`, `dimension_load_checklist`, `daily_vehicle_checklist`) printed on the Weekly Trip Sheet. This project adds **full signed checklist records** (optional in trial). Designed **shift / load gates** are documented for later customer configuration — **not enforced** during trial / marketing.
 
@@ -146,11 +146,13 @@ During the current trial term, checklists are a **capability preview**:
 - [x] No Start-shift block; `checklistSheetGatesEnabled()` remains false
 - [x] Guides: optional FFW in trial wording
 
-### Phase 4 — Prestart voluntary entry (+ gate hook only) — NOT STARTED
+### Phase 4 — Prestart voluntary entry (+ gate hook only) — DONE
 
-- [ ] Prestart schema UI + responsibility question (**L**) as form UX
-- [ ] Unsafe flag recorded; **no** Start-shift block while gates off (**P**)
-- [ ] Guides: optional Prestart in trial wording
+- [x] Prestart schema UI + responsibility question (**L**) as form UX (`PrestartForm`)
+- [x] Unsafe flag recorded; **no** Start-shift block while gates off (**P**)
+- [x] Not-responsible path: skip reason + signature; empty items (no invented answers); does not tick Daily vehicle checklist
+- [x] Entry: Daily checks “Open form”, Day tools → Optional checks, Set up day
+- [x] Guides: optional Prestart in trial wording
 
 ### Phase 5 — Dimension & Load voluntary entry (+ gate hook only) — NOT STARTED
 
@@ -208,4 +210,4 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 4** — voluntary Prestart entry (still no sheet gates per **P**).
+**Phase 5** — voluntary Dimension & Load entry (still no sheet gates per **P**).

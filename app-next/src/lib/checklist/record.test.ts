@@ -91,6 +91,41 @@ describe("validateCompletedChecklistRecord", () => {
     );
     expect(v.ok).toBe(false);
   });
+  it("accepts not-responsible prestart with skip reason and empty items", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "prestart",
+        items: [],
+        prestartResponsible: false,
+        prestartSkipReason: "Two-up — other driver did prestart",
+      })
+    );
+    expect(v.ok).toBe(true);
+  });
+
+  it("rejects not-responsible prestart without skip reason", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "prestart",
+        items: [],
+        prestartResponsible: false,
+        prestartSkipReason: "",
+      })
+    );
+    expect(v.ok).toBe(false);
+  });
+
+  it("rejects not-responsible prestart that invents item answers", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "prestart",
+        items: [{ code: "ps_tyre", kind: "pass_fail", value: "pass" }],
+        prestartResponsible: false,
+        prestartSkipReason: "two-up",
+      })
+    );
+    expect(v.ok).toBe(false);
+  });
 });
 
 describe("deriveTripChecklistFields", () => {
@@ -98,6 +133,25 @@ describe("deriveTripChecklistFields", () => {
     const ticks = deriveTripChecklistFields({ checklists: [sampleFfw()] });
     expect(ticks.fitness_for_work).toBe(true);
     expect(ticks.daily_vehicle_checklist).toBe(false);
+  });
+
+  it("sets vehicle tick from responsible prestart only", () => {
+    const responsible = sampleFfw({
+      type: "prestart",
+      prestartResponsible: true,
+      items: [{ code: "ps_tyre", kind: "pass_fail", value: "pass" }],
+    });
+    expect(deriveTripChecklistFields({ checklists: [responsible] }).daily_vehicle_checklist).toBe(
+      true
+    );
+
+    const skipped = sampleFfw({
+      type: "prestart",
+      items: [],
+      prestartResponsible: false,
+      prestartSkipReason: "Two-up",
+    });
+    expect(deriveTripChecklistFields({ checklists: [skipped] }).daily_vehicle_checklist).toBe(false);
   });
 
   it("preserves legacy boolean when no completed record of that type", () => {

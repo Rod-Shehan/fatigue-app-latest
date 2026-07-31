@@ -47,6 +47,7 @@ export {
   CHECKLIST_SCHEMA_VERSION,
   dataUrlWithinLimit,
   hasCompletedChecklistOfType,
+  hasCompletedResponsiblePrestart,
   isChecklistRecordType,
   listCompletedChecklists,
   newChecklistRecordId,

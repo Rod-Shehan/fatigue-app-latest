@@ -226,8 +226,8 @@ export function DriverGuideArticle() {
           Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
-          Normal day: open the week → check From / To / Rego → optionally tick Daily checks or open the signed Fitness
-          for Work form (optional in trial — does not block Start shift) → type start km → tap Start
+          Normal day: open the week → check From / To / Rego → optionally tick Daily checks or open signed Fitness for
+          Work / Prestart forms (optional in trial — do not block Start shift) → type start km → tap Start
           shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
@@ -418,8 +418,9 @@ export function DriverGuideArticle() {
           <li>Log more work</li>
           <li>Check rego, from, and to on today&apos;s card</li>
           <li>
-            Optionally tick Daily checks, or open the signed Fitness for Work form (optional in trial — does not block
-            Start shift)
+            Optionally tick Daily checks, or open signed Fitness for Work / Prestart forms (optional in trial — do not
+            block Start shift). Two-up drivers who are not responsible for the vehicle prestart can record that on the
+            Prestart form instead of inventing answers.
           </li>
           <li>Type start km</li>
           <li>Tap Start shift when you begin</li>

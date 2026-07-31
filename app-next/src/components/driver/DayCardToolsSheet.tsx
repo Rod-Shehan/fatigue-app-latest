@@ -30,6 +30,8 @@ export function DayCardToolsSheet({
   onOpenDaySetup,
   onOpenFfw,
   ffwFormCompleted = false,
+  onOpenPrestart,
+  prestartFormCompleted = false,
   last24hUnset,
   declared24hRestUnset,
   driverName,
@@ -48,6 +50,9 @@ export function DayCardToolsSheet({
   /** Optional trial FFW form — never blocks Start shift. */
   onOpenFfw?: () => void;
   ffwFormCompleted?: boolean;
+  /** Optional trial Prestart form — never blocks Start shift. */
+  onOpenPrestart?: () => void;
+  prestartFormCompleted?: boolean;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
@@ -190,26 +195,51 @@ export function DayCardToolsSheet({
 
           <section>
             <h3 className={driverSectionLabel}>Optional checks</h3>
-            {onOpenFfw ? (
-              <button
-                type="button"
-                className={cn(driverDrawerRow, "w-full")}
-                onClick={() => {
-                  onOpenChange(false);
-                  onOpenFfw();
-                }}
-              >
-                <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
-                <span className="flex-1 text-left">
-                  <span className="block font-semibold">Fitness for Work</span>
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">
-                    {ffwFormCompleted
-                      ? "Form saved for this day — optional to redo"
-                      : "Optional signed form — does not block Start shift"}
-                  </span>
-                </span>
-                <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
-              </button>
+            {onOpenFfw || onOpenPrestart ? (
+              <div className="space-y-1">
+                {onOpenFfw ? (
+                  <button
+                    type="button"
+                    className={cn(driverDrawerRow, "w-full")}
+                    onClick={() => {
+                      onOpenChange(false);
+                      onOpenFfw();
+                    }}
+                  >
+                    <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                    <span className="flex-1 text-left">
+                      <span className="block font-semibold">Fitness for Work</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        {ffwFormCompleted
+                          ? "Form saved for this day — optional to redo"
+                          : "Optional signed form — does not block Start shift"}
+                      </span>
+                    </span>
+                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                  </button>
+                ) : null}
+                {onOpenPrestart ? (
+                  <button
+                    type="button"
+                    className={cn(driverDrawerRow, "w-full")}
+                    onClick={() => {
+                      onOpenChange(false);
+                      onOpenPrestart();
+                    }}
+                  >
+                    <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                    <span className="flex-1 text-left">
+                      <span className="block font-semibold">Prestart inspection</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        {prestartFormCompleted
+                          ? "Form saved for this day — optional to redo"
+                          : "Optional vehicle check — two-up can mark not responsible"}
+                      </span>
+                    </span>
+                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                  </button>
+                ) : null}
+              </div>
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400 px-1">
                 Open an editable day card to complete optional checks.

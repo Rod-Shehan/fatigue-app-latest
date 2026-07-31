@@ -17,6 +17,7 @@ import { formatPatternStreakForDisplay, patternStreakThresholdMet } from "@/lib/
 import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog";
 import { DayTripChecklist } from "./DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
+import { PrestartForm } from "@/components/checklist/PrestartForm";
 import {
   appendChecklistToDay,
   hasCompletedChecklistOfType,
@@ -197,6 +198,7 @@ export default function DayEntry({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
+  const [prestartOpen, setPrestartOpen] = useState(false);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
   const lastSetupOpenRequestRef = useRef(0);
@@ -211,6 +213,7 @@ export default function DayEntry({
 
   const canEditDetails = !readOnly;
   const ffwFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "ffw");
+  const prestartFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "prestart");
 
   const openFfwForm = useCallback(() => {
     if (!canEditDetails) return;
@@ -218,7 +221,20 @@ export default function DayEntry({
     setFfwOpen(true);
   }, [canEditDetails]);
 
+  const openPrestartForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setPrestartOpen(true);
+  }, [canEditDetails]);
+
   const saveFfwRecord = useCallback(
+    (record: ChecklistRecord) => {
+      onUpdate(dayIndex, appendChecklistToDay(dayData, record));
+    },
+    [dayData, dayIndex, onUpdate]
+  );
+
+  const savePrestartRecord = useCallback(
     (record: ChecklistRecord) => {
       onUpdate(dayIndex, appendChecklistToDay(dayData, record));
     },
@@ -499,6 +515,8 @@ export default function DayEntry({
             readOnly={!canEditDetails}
             ffwFormCompleted={ffwFormCompleted}
             onOpenFfw={canEditDetails ? openFfwForm : undefined}
+            prestartFormCompleted={prestartFormCompleted}
+            onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
             value={{
               fitness_for_work: dayData.fitness_for_work,
               dimension_load_checklist: dayData.dimension_load_checklist,
@@ -617,6 +635,8 @@ export default function DayEntry({
           onOpenDaySetup={() => setDetailsOpen(true)}
           onOpenFfw={canEditDetails ? openFfwForm : undefined}
           ffwFormCompleted={ffwFormCompleted}
+          onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
+          prestartFormCompleted={prestartFormCompleted}
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
           driverName={dayTools.driverName ?? driverName}
@@ -628,6 +648,13 @@ export default function DayEntry({
         onClose={() => setFfwOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
         onCompleted={saveFfwRecord}
+      />
+
+      <PrestartForm
+        open={prestartOpen}
+        onClose={() => setPrestartOpen(false)}
+        driverName={dayTools?.driverName ?? driverName}
+        onCompleted={savePrestartRecord}
       />
 
       {canEditDetails && (
@@ -654,6 +681,7 @@ export default function DayEntry({
             fitness_for_work: dayData.fitness_for_work,
             dimension_load_checklist: dayData.dimension_load_checklist,
             daily_vehicle_checklist: dayData.daily_vehicle_checklist,
+            checklists: dayData.checklists,
             driver_type: dayData.driver_type ?? (driverType === "two_up" ? "two_up" : "solo"),
             second_driver: dayData.second_driver ?? secondDriver ?? "",
           }}
