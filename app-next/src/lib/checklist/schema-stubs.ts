@@ -21,69 +21,42 @@ export const PRESTART_SCHEMA_STUB: ChecklistSchemaGroup[] = [
   {
     code: "wheels",
     label: "Wheels & tyres",
-    items: [
-      { code: "ps_tyre_pressure", label: "Tyre pressure" },
-      { code: "ps_tread", label: "Tread depth" },
-      { code: "ps_wheel_nuts", label: "Wheel nut security" },
-      { code: "ps_hubs", label: "Hub integrity" },
-    ],
+    notes: ["Tyre and tread depth", "Wheel nut security", "Hub integrity"],
   },
   {
     code: "vision",
     label: "Vision & glass",
-    items: [
-      { code: "ps_windscreen", label: "Windscreen integrity" },
-      { code: "ps_mirrors", label: "Mirrors secure and clean" },
-      { code: "ps_wipers", label: "Wipers and washers" },
-    ],
+    notes: ["Windscreen integrity", "Mirrors secure and clean", "Wipers and washers"],
   },
   {
     code: "lights",
     label: "Lights & reflectors",
-    items: [
-      { code: "ps_headlights", label: "Headlights" },
-      { code: "ps_clearance", label: "Clearance lights" },
-      { code: "ps_indicators", label: "Indicators" },
-      { code: "ps_brake_lights", label: "Brake lights" },
-      { code: "ps_lenses", label: "Lenses / reflectors" },
-    ],
+    notes: ["Headlights", "Clearance lights", "Indicators", "Brake lights", "Lenses / reflectors"],
   },
   {
     code: "structure",
     label: "Structure & fluids",
-    items: [
-      { code: "ps_frame", label: "Frame / body panels" },
-      { code: "ps_posture", label: "Posture / tilt" },
-      { code: "ps_signs", label: "Signs / plates" },
-      { code: "ps_leaks", label: "Oil / coolant / air / hydraulic leaks" },
+    notes: [
+      "Frame / body panels",
+      "Posture / tilt",
+      "Signs / plates",
+      "Oil / coolant / air / hydraulic leaks",
     ],
   },
   {
     code: "brakes",
     label: "Brakes & air",
-    items: [
-      { code: "ps_brake_warn", label: "Failure indicators" },
-      { code: "ps_air_drain", label: "Air tank drain" },
-      { code: "ps_gauges", label: "Gauges" },
-    ],
+    notes: ["Failure indicators", "Air tank drain", "Gauges"],
   },
   {
     code: "engine",
     label: "Engine & coupling",
-    items: [
-      { code: "ps_belts", label: "Belts / pulleys" },
-      { code: "ps_fifth", label: "Turntable / fifth-wheel security" },
-    ],
+    notes: ["Belts / pulleys", "Turntable / fifth-wheel security"],
   },
   {
     code: "safety",
     label: "Safety gear",
-    items: [
-      { code: "ps_first_aid", label: "First aid kit" },
-      { code: "ps_extinguisher", label: "Fire extinguisher" },
-      { code: "ps_triangles", label: "Warning triangles" },
-      { code: "ps_ppe", label: "PPE" },
-    ],
+    notes: ["First aid kit", "Fire extinguisher", "Warning triangles", "PPE"],
   },
 ];
 

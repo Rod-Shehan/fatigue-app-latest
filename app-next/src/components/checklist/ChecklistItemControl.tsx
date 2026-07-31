@@ -15,11 +15,14 @@ export function ChecklistItemControl({
   label,
   state,
   onChange,
+  notes,
   className,
 }: {
   label: string;
   state: ChecklistPassFailItemState;
   onChange: (next: ChecklistPassFailItemState) => void;
+  /** Optional prompt bullets under the heading (not separately scored). */
+  notes?: string[];
   className?: string;
 }) {
   return (
@@ -37,6 +40,13 @@ export function ChecklistItemControl({
           <span className="mt-1 block text-xs text-ck-steel">Tap label for Pass · or choose below</span>
         ) : null}
       </button>
+      {notes && notes.length > 0 ? (
+        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs leading-snug text-ck-steel">
+          {notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
       <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label={`${label} result`}>
         {SEGMENTS.map((seg) => {
           const active = state.value === seg.value;

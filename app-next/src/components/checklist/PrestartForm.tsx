@@ -19,9 +19,7 @@ import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
 function initPassFailMap(): Record<string, ChecklistPassFailItemState> {
   const m: Record<string, ChecklistPassFailItemState> = {};
-  for (const group of PRESTART_SCHEMA_STUB) {
-    for (const item of group.items) m[item.code] = emptyPassFailItem();
-  }
+  for (const group of PRESTART_SCHEMA_STUB) m[group.code] = emptyPassFailItem();
   return m;
 }
 
@@ -49,18 +47,12 @@ export function PrestartForm({
   const [error, setError] = useState<string | null>(null);
 
   const allItemsComplete = useMemo(
-    () =>
-      PRESTART_SCHEMA_STUB.every((g) =>
-        g.items.every((i) => isPassFailItemComplete(items[i.code]!))
-      ),
+    () => PRESTART_SCHEMA_STUB.every((g) => isPassFailItemComplete(items[g.code]!)),
     [items]
   );
 
   const hasUnsafe = useMemo(
-    () =>
-      PRESTART_SCHEMA_STUB.some((g) =>
-        g.items.some((i) => isPassFailItemUnsafe(items[i.code]!))
-      ),
+    () => PRESTART_SCHEMA_STUB.some((g) => isPassFailItemUnsafe(items[g.code]!)),
     [items]
   );
 
@@ -136,18 +128,16 @@ export function PrestartForm({
       schemaVersion: CHECKLIST_SCHEMA_VERSION,
       status: "completed" as const,
       completedAtUtc: new Date().toISOString(),
-      items: PRESTART_SCHEMA_STUB.flatMap((group) =>
-        group.items.map((item) => {
-          const state = items[item.code]!;
-          return {
-            code: item.code,
-            label: item.label,
-            kind: "pass_fail" as const,
-            value: state.value,
-            defect: state.value === "fail" ? state.defect : null,
-          };
-        })
-      ),
+      items: PRESTART_SCHEMA_STUB.map((group) => {
+        const state = items[group.code]!;
+        return {
+          code: group.code,
+          label: group.label,
+          kind: "pass_fail" as const,
+          value: state.value,
+          defect: state.value === "fail" ? state.defect : null,
+        };
+      }),
       signatures: [{ ...signature, role: "driver" as const }],
       prestartResponsible: true,
       prestartSkipReason: null,
@@ -258,21 +248,15 @@ export function PrestartForm({
         ) : null}
 
         {responsibility === "yes" ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {PRESTART_SCHEMA_STUB.map((group) => (
-              <section key={group.code} className="space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-ck-cobalt">
-                  {group.label}
-                </h3>
-                {group.items.map((item) => (
-                  <ChecklistItemControl
-                    key={item.code}
-                    label={item.label}
-                    state={items[item.code]!}
-                    onChange={(next) => setItems((s) => ({ ...s, [item.code]: next }))}
-                  />
-                ))}
-              </section>
+              <ChecklistItemControl
+                key={group.code}
+                label={group.label}
+                notes={group.notes}
+                state={items[group.code]!}
+                onChange={(next) => setItems((s) => ({ ...s, [group.code]: next }))}
+              />
             ))}
             <ChecklistSignaturePanel
               title="Driver signature"

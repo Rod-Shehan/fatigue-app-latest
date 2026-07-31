@@ -37,10 +37,14 @@ export type ChecklistSchemaItem = {
   label: string;
 };
 
+/**
+ * Prestart-style group: the group itself is Pass / Fail / N/A;
+ * `notes` are checklist prompts under the heading (not separately scored).
+ */
 export type ChecklistSchemaGroup = {
   code: string;
   label: string;
-  items: ChecklistSchemaItem[];
+  notes: string[];
 };
 
 export function emptyDefect(): ChecklistDefect {

@@ -38,7 +38,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
   const [open, setOpen] = useState<DemoKind>(null);
   const [ffw, setFfw] = useState(initAckMap);
   const [prestart, setPrestart] = useState(() =>
-    initPassFailMap(PRESTART_SCHEMA_STUB.flatMap((g) => g.items.map((i) => i.code)))
+    initPassFailMap(PRESTART_SCHEMA_STUB.map((g) => g.code))
   );
   const [load, setLoad] = useState(() => initPassFailMap(LOAD_SCHEMA_STUB.map((i) => i.code)));
   const [sig, setSig] = useState<ChecklistSignatureCapture | null>(null);
@@ -140,21 +140,15 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
           </p>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
           {PRESTART_SCHEMA_STUB.map((group) => (
-            <section key={group.code} className="space-y-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-ck-cobalt">
-                {group.label}
-              </h3>
-              {group.items.map((item) => (
-                <ChecklistItemControl
-                  key={item.code}
-                  label={item.label}
-                  state={prestart[item.code]!}
-                  onChange={(next) => setPrestart((s) => ({ ...s, [item.code]: next }))}
-                />
-              ))}
-            </section>
+            <ChecklistItemControl
+              key={group.code}
+              label={group.label}
+              notes={group.notes}
+              state={prestart[group.code]!}
+              onChange={(next) => setPrestart((s) => ({ ...s, [group.code]: next }))}
+            />
           ))}
           <ChecklistSignaturePanel
             title="Driver signature"
