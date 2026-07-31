@@ -45,7 +45,8 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set workshop /
-            maintenance contact for WAHVA fault reporting (email send process comes next)
+            maintenance contact for WAHVA fault reporting (also on driver Settings; email send process comes
+            next)
           </li>
         </ul>
       </section>

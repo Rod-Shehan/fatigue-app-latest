@@ -255,7 +255,7 @@ export function OwnerSecurityView({
           ) : null}
         </section>
 
-        <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" />
+        <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" showOutboundStatus />
 
         <TriageShiftAdminPanel />
 

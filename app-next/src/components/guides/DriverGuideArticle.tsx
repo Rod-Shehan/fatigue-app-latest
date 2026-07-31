@@ -390,6 +390,10 @@ export function DriverGuideArticle() {
           rows={[
             ["Options", "Dark mode, Voice alerts"],
             ["Device", "Install the app, back up / restore on this device"],
+            [
+              "Workshop contact",
+              "Who receives vehicle fault reports (WAHVA) — name, company, email, phone",
+            ],
             ["Records", "Past weeks that need your signature"],
             ["Drive", "This week, Your weeks, Driver guide, How your record works, Route catalogue"],
             ["Connect", "Messages, Manager sign-in"],

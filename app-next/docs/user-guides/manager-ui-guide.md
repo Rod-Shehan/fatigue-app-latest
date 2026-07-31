@@ -163,7 +163,7 @@ When present, a solid sky line into a marker is the driver’s **GPS movement tr
 
 ## 7b. WAHVA maintenance contact
 
-On **Test desk** (managers) or **Owner console → Security** (owners), set the organisation’s **workshop / maintenance contact** (name, company, email, phone). This is the destination for vehicle fault reports required for WAHVA accreditation. Automatic email of prestart defects is not enabled yet — the contact is stored so the reporting pathway can use it next.
+On **Test desk** (managers), **Owner console → Security** (owners), or **driver Settings** (EWD gear → Settings), set the organisation’s **workshop / maintenance contact** (name, company, email, phone). This is the destination for vehicle fault reports required for WAHVA accreditation. Automatic email of prestart defects is not enabled yet — the contact is stored so the reporting pathway can use it next.
 
 ---
 

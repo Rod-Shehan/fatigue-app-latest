@@ -13,7 +13,7 @@ export default async function ManagerTestDeskPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
-      <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" />
+      <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" showOutboundStatus />
       <TestDeskPanel backHref="/manager/alerts" backLabel="Live alerts" />
     </div>
   );

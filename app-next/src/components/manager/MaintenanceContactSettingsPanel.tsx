@@ -7,22 +7,28 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
-const CONTACT_KEY = ["manager", "maintenance-contact"] as const;
+const CONTACT_KEY = ["settings", "maintenance-contact"] as const;
 
 /**
  * Org workshop / maintenance contact for WAHVA defect reporting.
- * Destination email for the reporting pathway (send process comes next).
+ * Shown on EWD Settings (drivers) and manager/owner consoles.
  */
 export function MaintenanceContactSettingsPanel({
-  title = "Maintenance contact",
+  title = "Workshop contact",
+  className,
+  showOutboundStatus = false,
 }: {
   title?: string;
+  className?: string;
+  /** Ops detail — leave off on driver Settings. */
+  showOutboundStatus?: boolean;
 }) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: CONTACT_KEY,
-    queryFn: () => api.manager.getMaintenanceContact(),
+    queryFn: () => api.settings.getMaintenanceContact(),
   });
 
   const [name, setName] = useState("");
@@ -43,7 +49,7 @@ export function MaintenanceContactSettingsPanel({
 
   const mutation = useMutation({
     mutationFn: () =>
-      api.manager.updateMaintenanceContact({
+      api.settings.updateMaintenanceContact({
         maintenanceContactName: name,
         maintenanceContactCompany: company,
         maintenanceContactEmail: email,
@@ -57,20 +63,20 @@ export function MaintenanceContactSettingsPanel({
       window.setTimeout(() => setSavedFlash(false), 2500);
     },
     onError: (e: Error) => {
-      setFormError(e.message || "Could not save maintenance contact");
+      setFormError(e.message || "Could not save workshop contact");
     },
   });
 
   return (
-    <section className="space-y-3">
+    <section className={cn("space-y-3", className)}>
       <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
         <Wrench className="w-4 h-4" aria-hidden />
         {title}
       </h2>
       <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-        Workshop or maintenance person/company who receives vehicle fault reports (WAHVA accreditation —
-        defects must be reported for repair). Used by the upcoming prestart reporting pathway. Does not
-        email automatically until that process is enabled.
+        Who should receive vehicle fault reports (WAHVA — defects must be reported for repair). Name,
+        company, and email for your workshop or maintenance contact. Automatic email from Prestart is
+        not enabled yet — this stores the destination for the reporting pathway.
       </p>
       {query.isLoading ? (
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
@@ -78,7 +84,10 @@ export function MaintenanceContactSettingsPanel({
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
-              <Label htmlFor="maint-contact-name" className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+              <Label
+                htmlFor="maint-contact-name"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
                 Contact name
               </Label>
               <Input
@@ -90,7 +99,10 @@ export function MaintenanceContactSettingsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="maint-contact-company" className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+              <Label
+                htmlFor="maint-contact-company"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
                 Company
               </Label>
               <Input
@@ -102,7 +114,10 @@ export function MaintenanceContactSettingsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="maint-contact-email" className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+              <Label
+                htmlFor="maint-contact-email"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
                 Email *
               </Label>
               <Input
@@ -116,7 +131,10 @@ export function MaintenanceContactSettingsPanel({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="maint-contact-phone" className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+              <Label
+                htmlFor="maint-contact-phone"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
                 Phone
               </Label>
               <Input
@@ -129,12 +147,14 @@ export function MaintenanceContactSettingsPanel({
               />
             </div>
           </div>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Server email send:{" "}
-            {query.data?.outboundEmailConfigured
-              ? "configured (RESEND_API_KEY + EMAIL_FROM)"
-              : "not configured yet — set RESEND_API_KEY + EMAIL_FROM when you enable reporting"}
-          </p>
+          {showOutboundStatus ? (
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Server email send:{" "}
+              {query.data?.outboundEmailConfigured
+                ? "configured (RESEND_API_KEY + EMAIL_FROM)"
+                : "not configured yet — set RESEND_API_KEY + EMAIL_FROM when you enable reporting"}
+            </p>
+          ) : null}
           {formError ? <p className="text-xs text-red-600 dark:text-red-400">{formError}</p> : null}
           {savedFlash ? (
             <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Saved</p>
@@ -143,7 +163,7 @@ export function MaintenanceContactSettingsPanel({
             type="button"
             disabled={mutation.isPending}
             onClick={() => mutation.mutate()}
-            className="min-h-11"
+            className="min-h-11 w-full sm:w-auto"
           >
             {mutation.isPending ? (
               <>
@@ -151,7 +171,7 @@ export function MaintenanceContactSettingsPanel({
                 Saving…
               </>
             ) : (
-              "Save maintenance contact"
+              "Save workshop contact"
             )}
           </Button>
         </div>

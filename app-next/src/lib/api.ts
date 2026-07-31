@@ -801,6 +801,34 @@ export const api = {
     deleteTriageShift: (id: string) =>
       fetchApi<{ ok: boolean }>(`/api/admin/triage-shift/${id}`, { method: "DELETE" }),
   },
+  /** Org settings available to any signed-in role (driver / manager / owner). */
+  settings: {
+    getMaintenanceContact: () =>
+      fetchApi<{
+        contact: {
+          name: string | null;
+          company: string | null;
+          email: string | null;
+          phone: string | null;
+        };
+        outboundEmailConfigured: boolean;
+      }>("/api/settings/maintenance-contact"),
+    updateMaintenanceContact: (patch: {
+      maintenanceContactName?: string | null;
+      maintenanceContactCompany?: string | null;
+      maintenanceContactEmail?: string | null;
+      maintenanceContactPhone?: string | null;
+    }) =>
+      fetchApi<{
+        contact: {
+          name: string | null;
+          company: string | null;
+          email: string | null;
+          phone: string | null;
+        };
+        outboundEmailConfigured: boolean;
+      }>("/api/settings/maintenance-contact", { method: "PATCH", body: patch }),
+  },
   /** Session feature flags / addons for driver + manager clients. */
   features: () => fetchApi<{ gpsMovementTrailEnabled: boolean }>("/api/features"),
 };

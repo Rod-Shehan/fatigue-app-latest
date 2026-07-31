@@ -248,6 +248,7 @@ Gear icon → **Settings**:
 
 - **Options** — Dark mode, Voice alerts.
 - **Device** — install the app, back up / restore on this device.
+- **Workshop contact** — name, company, email, and phone for who receives vehicle fault reports (WAHVA). Automatic email from Prestart is not on yet; this stores the destination.
 - **Records** — past weeks that need your signature.
 - **Drive** — This week, Your weeks, Driver guide (pictures), How your record works, Route catalogue.
 - **Connect** — Messages, Manager sign-in.
