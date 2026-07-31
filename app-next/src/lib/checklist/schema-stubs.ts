@@ -34,29 +34,29 @@ export const PRESTART_SCHEMA_STUB: ChecklistSchemaGroup[] = [
     notes: ["Headlights", "Clearance lights", "Indicators", "Brake lights", "Lenses / reflectors"],
   },
   {
-    code: "structure",
-    label: "Structure & fluids",
+    code: "suspension",
+    label: "Suspension & chassis",
     notes: [
-      "Frame / body panels",
       "Posture / tilt",
+      "Frame / body panels",
+      "Turntable / fifth-wheel security",
       "Signs / plates",
-      "Oil / coolant / air / hydraulic leaks",
     ],
   },
   {
     code: "brakes",
     label: "Brakes & air",
-    notes: ["Failure indicators", "Air tank drain", "Gauges"],
+    notes: ["Air leaks", "Air tank drain", "Gauges"],
   },
   {
     code: "engine",
-    label: "Engine & coupling",
-    notes: ["Belts / pulleys", "Turntable / fifth-wheel security"],
+    label: "Engine & fluids",
+    notes: ["Belts / pulleys", "Oil / coolant / air / hydraulic leaks"],
   },
   {
     code: "safety",
     label: "Safety gear",
-    notes: ["First aid kit", "Fire extinguisher", "Warning triangles", "PPE"],
+    notes: ["First aid kit", "Fire extinguisher", "Warning triangles", "Jack and wheel brace"],
   },
 ];
 
