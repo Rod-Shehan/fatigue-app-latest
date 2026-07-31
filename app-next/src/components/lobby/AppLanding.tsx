@@ -23,7 +23,6 @@ import { ALPHA_RESTRICTED_ERROR } from "@/lib/auth-alpha-allowlist";
 import { clearOfflineAuth } from "@/lib/offline-auth";
 import { cn } from "@/lib/utils";
 import {
-  appSurfaceLabel,
   appSurfaceTagline,
   getPublicAppSurface,
   lobbyBranchesForSurface,
@@ -288,22 +287,21 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
           <CircadiaLogo
             variant="full"
             product={
-              appSurface === "enterprise" ? "enterprise" : appSurface === "ewd" ? "ewd" : "default"
+              appSurface === "enterprise"
+                ? "enterprise"
+                : appSurface === "ewd"
+                  ? "ewd"
+                  : "helper"
             }
             href={null}
             priority
             className="mx-auto"
           />
           <p className="text-sm text-slate-400 dark:text-slate-500 mt-3">{TAGLINE_VEHICLE}</p>
-          {appSurface === "legacy" ? (
-            <p
-              className="mt-3 inline-flex items-center rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-200"
-              data-app-surface={appSurface}
-            >
-              {appSurfaceLabel(appSurface)}
-            </p>
-          ) : null}
-          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-md">
+          <p
+            className="text-xs text-slate-400 dark:text-slate-500 mt-2 max-w-md"
+            data-app-surface={appSurface}
+          >
             {appSurfaceTagline(appSurface)}
           </p>
           <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">

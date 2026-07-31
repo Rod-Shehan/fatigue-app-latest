@@ -7,16 +7,18 @@ import {
   BRAND_ENTERPRISE_FULL_PATH,
   BRAND_EWD_FULL_PATH,
   BRAND_FULL_PATH,
+  BRAND_HELPER_FULL_PATH,
   BRAND_ICON_PATH,
   PRODUCT_NAME,
   PRODUCT_NAME_ENTERPRISE,
   PRODUCT_NAME_EWD,
+  PRODUCT_NAME_HELPER,
 } from "@/lib/branding";
 
 type Props = {
   variant: "icon" | "full";
-  /** Product lockup for full variant (default Circadia 24). */
-  product?: "default" | "enterprise" | "ewd";
+  /** Product lockup for full variant. */
+  product?: "default" | "helper" | "enterprise" | "ewd";
   /** Link target; pass `null` for decorative (non-link) use. Default `/`. */
   href?: string | null;
   className?: string;
@@ -25,31 +27,42 @@ type Props = {
   priority?: boolean;
 };
 
+const BRAND_ASSET_VERSION = "circadia-mark-v2";
+
 function fullBrand(product: Props["product"]) {
   if (product === "enterprise") {
     return {
       src: BRAND_ENTERPRISE_FULL_PATH,
       label: PRODUCT_NAME_ENTERPRISE,
-      width: 420,
-      height: 120,
-      className: "w-[min(320px,85vw)] rounded-xl",
+      width: 720,
+      height: 560,
+      className: "w-[min(280px,78vw)] rounded-xl",
     };
   }
   if (product === "ewd") {
     return {
       src: BRAND_EWD_FULL_PATH,
       label: PRODUCT_NAME_EWD,
-      width: 420,
-      height: 120,
-      className: "w-[min(320px,85vw)] rounded-xl",
+      width: 720,
+      height: 560,
+      className: "w-[min(280px,78vw)] rounded-xl",
+    };
+  }
+  if (product === "helper") {
+    return {
+      src: BRAND_HELPER_FULL_PATH,
+      label: PRODUCT_NAME_HELPER,
+      width: 720,
+      height: 560,
+      className: "w-[min(280px,78vw)] rounded-xl",
     };
   }
   return {
     src: BRAND_FULL_PATH,
     label: PRODUCT_NAME,
-    width: 280,
-    height: 80,
-    className: "w-[min(240px,72vw)]",
+    width: 720,
+    height: 560,
+    className: "w-[min(280px,78vw)] rounded-xl",
   };
 }
 
@@ -67,20 +80,22 @@ export function CircadiaLogo({
   const image =
     variant === "full" ? (
       <Image
-        src={full.src}
+        src={`${full.src}?v=${BRAND_ASSET_VERSION}`}
         alt={label}
         width={full.width}
         height={full.height}
         priority={priority}
+        unoptimized
         className={cn("h-auto", full.className, className)}
       />
     ) : (
       <Image
-        src={BRAND_ICON_PATH}
+        src={`${BRAND_ICON_PATH}?v=${BRAND_ASSET_VERSION}`}
         alt=""
         width={size}
         height={size}
         priority={priority}
+        unoptimized
         className={cn("rounded-lg object-contain", className)}
         style={{ width: size, height: size }}
       />

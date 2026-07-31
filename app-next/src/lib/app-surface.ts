@@ -70,7 +70,7 @@ export function getPublicAppSurface(): AppSurface {
 export function appSurfaceLabel(surface: AppSurface): string {
   switch (surface) {
     case "legacy":
-      return "Legacy";
+      return "Helper";
     case "ewd":
       return "EWD";
     case "enterprise":
@@ -87,7 +87,7 @@ export function documentTitleForSurface(surface: AppSurface): string {
       return "Circadia24 Enterprise";
     case "legacy":
     default:
-      return "Circadia 24 – Legacy";
+      return "Circadia24 Helper";
   }
 }
 
@@ -98,12 +98,17 @@ export function documentDescriptionForSurface(surface: AppSurface): string {
 export function appSurfaceTagline(surface: AppSurface): string {
   switch (surface) {
     case "legacy":
-      return "Combined driver + manager app (Version 1 — legacy)";
+      return "Combined driver + manager app (Helper)";
     case "ewd":
       return "Electronic Work Diary — driver logging on this device";
     case "enterprise":
       return "Fleet oversight, records, and compliance processing";
   }
+}
+
+/** Simple name under the Circadia mark (splash / PWA). */
+export function appSurfaceSimpleName(surface: AppSurface): string {
+  return appSurfaceLabel(surface);
 }
 
 /** Lobby cards visible on this surface. */

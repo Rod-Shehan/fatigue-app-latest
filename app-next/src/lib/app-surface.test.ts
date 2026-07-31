@@ -51,7 +51,7 @@ describe("app-surface", () => {
   it("builds document titles per product surface", () => {
     expect(documentTitleForSurface("ewd")).toBe("Circadia24 EWD");
     expect(documentTitleForSurface("enterprise")).toBe("Circadia24 Enterprise");
-    expect(documentTitleForSurface("legacy")).toBe("Circadia 24 – Legacy");
+    expect(documentTitleForSurface("legacy")).toBe("Circadia24 Helper");
   });
 });
 

@@ -2,7 +2,7 @@
  * Shell-only service worker — caches app chrome and static assets, not API data or PDFs.
  * Bump SHELL_VERSION when shell precache list or lobby branding changes.
  */
-const SHELL_VERSION = "v2-product-logos";
+const SHELL_VERSION = "v3-circadia24-mark";
 const SHELL_CACHE = `circadia-shell-${SHELL_VERSION}`;
 const STATIC_CACHE = `circadia-static-${SHELL_VERSION}`;
 const PAGES_CACHE = `circadia-pages-${SHELL_VERSION}`;
@@ -10,9 +10,16 @@ const PAGES_CACHE = `circadia-pages-${SHELL_VERSION}`;
 const PRECACHE_URLS = [
   "/offline.html",
   "/manifest.webmanifest",
-  "/icons/icon-192.svg",
-  "/icons/icon-512.svg",
-  "/icons/icon-512-maskable.svg",
+  // All surface icons — host picks which the manifest uses; keep offline installs warm.
+  "/icons/icon-helper-192.png",
+  "/icons/icon-helper-512.png",
+  "/icons/icon-helper-512-maskable.png",
+  "/icons/icon-ewd-192.png",
+  "/icons/icon-ewd-512.png",
+  "/icons/icon-ewd-512-maskable.png",
+  "/icons/icon-enterprise-192.png",
+  "/icons/icon-enterprise-512.png",
+  "/icons/icon-enterprise-512-maskable.png",
 ];
 
 /** Driver field routes worth keeping for offline reopen (not manager/admin or lobby). */

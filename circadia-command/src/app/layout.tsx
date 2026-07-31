@@ -17,11 +17,10 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: [{ url: "/icons/command-icon-192.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/icons/command-icon-512.svg", type: "image/svg+xml" }],
+    icon: [{ url: "/icons/command-icon-192.png", type: "image/png", sizes: "192x192" }],
+    apple: [{ url: "/icons/command-icon-512.png", type: "image/png", sizes: "512x512" }],
   },
 };
-
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
