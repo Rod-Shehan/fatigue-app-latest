@@ -23,7 +23,8 @@ export function ManagerGuideArticle() {
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
-        └── Rego (vehicles)`}
+        ├── Rego (vehicles)
+        └── Test desk (addons + WAHVA maintenance contact)`}
         </GuideDiagram>
         <ul className={ulClass}>
           <li>
@@ -41,6 +42,10 @@ export function ManagerGuideArticle() {
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Conversations</strong> — message
             drivers
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set workshop /
+            maintenance contact for WAHVA fault reporting (email send process comes next)
           </li>
         </ul>
       </section>

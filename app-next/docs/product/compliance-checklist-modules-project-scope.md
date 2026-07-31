@@ -184,6 +184,7 @@ During the current trial term, checklists are a **capability preview**:
 | Hard block week-sign on pending loader CoR | Soft visibility chosen (K1) | If operators demand |
 | Loader app accounts / login | Capture via present sign, deferred link, or photos | After B path proven |
 | Replacing Weekly Trip Sheet tick strip entirely | A1 keeps ticks as summary | Only if A2 revisited |
+| **WAHVA fault email reporting process** | Contact + outbound mailer pathway landed; auto-send on FAIL/unsafe not wired yet | Next after Phase 4/5 forms |
 
 ---
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOwnerSession } from "@/lib/auth";
 import { ensureSystemPolicyRow, getSystemPolicy } from "@/lib/system-policy";
+import { normalizeMaintenanceContactPatch } from "@/lib/maintenance-contact";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
@@ -27,6 +28,11 @@ export async function PATCH(req: Request) {
     if (body.maintenanceMessage === null || typeof body.maintenanceMessage === "string") {
       data.maintenanceMessage = body.maintenanceMessage;
     }
+    const contactPatch = normalizeMaintenanceContactPatch(body);
+    if ("error" in contactPatch) {
+      return NextResponse.json({ error: contactPatch.error }, { status: 400 });
+    }
+    Object.assign(data, contactPatch);
     await prisma.systemPolicy.update({ where: { id: "default" }, data });
     const policy = await getSystemPolicy();
     return NextResponse.json({ policy });

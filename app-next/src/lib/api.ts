@@ -544,6 +544,32 @@ export const api = {
         gpsMovementTrailEnabled: boolean;
         policyGpsMovementTrailEnabled: boolean;
       }>("/api/manager/addons", { method: "PATCH", body: patch }),
+    /** WAHVA / workshop contact for fault reporting. */
+    getMaintenanceContact: () =>
+      fetchApi<{
+        contact: {
+          name: string | null;
+          company: string | null;
+          email: string | null;
+          phone: string | null;
+        };
+        outboundEmailConfigured: boolean;
+      }>("/api/manager/maintenance-contact"),
+    updateMaintenanceContact: (patch: {
+      maintenanceContactName?: string | null;
+      maintenanceContactCompany?: string | null;
+      maintenanceContactEmail?: string | null;
+      maintenanceContactPhone?: string | null;
+    }) =>
+      fetchApi<{
+        contact: {
+          name: string | null;
+          company: string | null;
+          email: string | null;
+          phone: string | null;
+        };
+        outboundEmailConfigured: boolean;
+      }>("/api/manager/maintenance-contact", { method: "PATCH", body: patch }),
     riskTimeline: (params: { driverName: string; fromMs?: number; toMs?: number; weekStarting?: string }) => {
       const sp = new URLSearchParams({ driverName: params.driverName });
       if (params.fromMs != null) sp.set("fromMs", String(params.fromMs));

@@ -44,6 +44,7 @@ flowchart TB
 | **Drivers** | Roster, login email, optional Commercial Driver's Medical expiry, passwords |
 | **Managers** | Create other manager accounts |
 | **Rego** | Vehicle registration reference data |
+| **Test desk** | Inject test alerts; set **WAHVA maintenance contact** (workshop email for fault reporting) |
 | **User guide** (`/manager/help`) | This guide in the app |
 
 Layout is **monitor-first**: multi-column grids on wide screens; stacks on phones.
@@ -157,6 +158,12 @@ Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 Geographic view of logged work, breaks, and shift ends that have a location. Filter by **week**, **day**, and **driver**. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
 
 When present, a solid sky line into a marker is the driver’s **GPS movement trail since the previous log** (stationary waits are omitted). It is not live fleet tracking. This trail is an **optional enterprise addon** — enable or disable it on **Test desk** or **Security**. Trails only appear for logs made while the addon is on.
+
+---
+
+## 7b. WAHVA maintenance contact
+
+On **Test desk** (managers) or **Owner console → Security** (owners), set the organisation’s **workshop / maintenance contact** (name, company, email, phone). This is the destination for vehicle fault reports required for WAHVA accreditation. Automatic email of prestart defects is not enabled yet — the contact is stored so the reporting pathway can use it next.
 
 ---
 

@@ -44,6 +44,11 @@ model SystemPolicy {
   /** Optional GPS movement trail + in-cab movement lock (enterprise addon). */
   gpsMovementTrailEnabled Boolean @default(false)
   maintenanceMessage    String?
+  /** WAHVA / defect reporting — workshop or maintenance contact (org-wide). */
+  maintenanceContactName    String?
+  maintenanceContactCompany String?
+  maintenanceContactEmail   String?
+  maintenanceContactPhone   String?
   updatedAt             DateTime @updatedAt
   updatedById           String?
   updatedBy               User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)

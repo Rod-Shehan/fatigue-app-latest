@@ -12,6 +12,11 @@ export type SystemPolicySnapshot = {
   /** GPS segment trail + Work/Break movement lock (addon; default off). */
   gpsMovementTrailEnabled: boolean;
   maintenanceMessage: string | null;
+  /** WAHVA / defect reporting destination. */
+  maintenanceContactName: string | null;
+  maintenanceContactCompany: string | null;
+  maintenanceContactEmail: string | null;
+  maintenanceContactPhone: string | null;
   updatedAt: string;
 };
 
@@ -21,6 +26,10 @@ const DEFAULT_POLICY: SystemPolicySnapshot = {
   managerWritesDisabled: false,
   gpsMovementTrailEnabled: false,
   maintenanceMessage: null,
+  maintenanceContactName: null,
+  maintenanceContactCompany: null,
+  maintenanceContactEmail: null,
+  maintenanceContactPhone: null,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -41,6 +50,10 @@ export async function getSystemPolicy(): Promise<SystemPolicySnapshot> {
     managerWritesDisabled: row.managerWritesDisabled,
     gpsMovementTrailEnabled: row.gpsMovementTrailEnabled,
     maintenanceMessage: row.maintenanceMessage,
+    maintenanceContactName: row.maintenanceContactName ?? null,
+    maintenanceContactCompany: row.maintenanceContactCompany ?? null,
+    maintenanceContactEmail: row.maintenanceContactEmail ?? null,
+    maintenanceContactPhone: row.maintenanceContactPhone ?? null,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

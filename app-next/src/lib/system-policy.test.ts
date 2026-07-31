@@ -13,6 +13,10 @@ const locked = {
   managerWritesDisabled: true,
   gpsMovementTrailEnabled: false,
   maintenanceMessage: null,
+  maintenanceContactName: null,
+  maintenanceContactCompany: null,
+  maintenanceContactEmail: null,
+  maintenanceContactPhone: null,
   updatedAt: new Date().toISOString(),
 };
 
