@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
@@ -8,6 +9,7 @@ import {
   type ChecklistRecordType,
 } from "@/lib/checklist";
 import { ChecklistModalShell } from "./ChecklistModalShell";
+import { cn } from "@/lib/utils";
 
 const TYPE_TITLE: Record<ChecklistRecordType, string> = {
   ffw: "Fitness for Work",
@@ -216,11 +218,16 @@ export function ChecklistRecordViewer({
   redoLabel?: string;
   /** Dedicated checklist PDF (not fatigue roadside). */
   onProducePdf?: () => void;
-  /** Email holding copy to Circadia (interim). */
-  onEmailPdf?: () => void | Promise<void>;
+  /** Email week pack for this type; return success message for on-screen feedback. */
+  onEmailPdf?: () => Promise<string>;
 }) {
   const title = TYPE_TITLE[type];
   const list = records.filter((r) => r.type === type && r.status === "completed");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{
+    tone: "ok" | "err";
+    text: string;
+  } | null>(null);
 
   return (
     <ChecklistModalShell
@@ -246,13 +253,53 @@ export function ChecklistRecordViewer({
             </button>
           ) : null}
           {onEmailPdf && list.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => void onEmailPdf()}
-              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
-            >
-              {CHECKLIST_EMAIL_BUTTON_LABEL.replace("packs", "pack")}
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={emailBusy}
+                onClick={() => {
+                  void (async () => {
+                    setEmailFeedback(null);
+                    setEmailBusy(true);
+                    try {
+                      const text = await onEmailPdf();
+                      setEmailFeedback({
+                        tone: "ok",
+                        text: text || "Sent to Circadia.",
+                      });
+                    } catch (e) {
+                      setEmailFeedback({
+                        tone: "err",
+                        text:
+                          e instanceof Error
+                            ? e.message
+                            : "Could not email checklist PDF.",
+                      });
+                    } finally {
+                      setEmailBusy(false);
+                    }
+                  })();
+                }}
+                className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg disabled:opacity-60"
+              >
+                {emailBusy
+                  ? "Sending…"
+                  : CHECKLIST_EMAIL_BUTTON_LABEL.replace("packs", "pack")}
+              </button>
+              {emailFeedback ? (
+                <p
+                  role="status"
+                  className={cn(
+                    "rounded-lg px-3 py-2 text-center text-sm leading-snug",
+                    emailFeedback.tone === "ok"
+                      ? "bg-ck-emerald/15 text-ck-fg"
+                      : "bg-ck-red/15 text-ck-red"
+                  )}
+                >
+                  {emailFeedback.text}
+                </p>
+              ) : null}
+            </>
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row">
             {onRedo ? (

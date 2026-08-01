@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ChevronRight,
@@ -7,6 +8,7 @@ import {
   ClipboardList,
   FileSignature,
   Loader2,
+  Mail,
   Settings,
   X,
 } from "lucide-react";
@@ -15,6 +17,7 @@ import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
+import { CHECKLIST_EMAIL_BUTTON_LABEL } from "@/lib/checklist";
 
 export function DayCardToolsSheet({
   open,
@@ -68,13 +71,25 @@ export function DayCardToolsSheet({
   dimensionLoadFormCompleted?: boolean;
   /** Dedicated checklist PDF for this day (not fatigue roadside). */
   onProduceChecklistPdf?: () => void;
-  /** Email checklist PDF to Circadia holding inbox (interim). */
-  onEmailChecklistPdf?: () => void;
+  /** Email week packs; return a short success message for on-sheet feedback. */
+  onEmailChecklistPdf?: () => Promise<string>;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
   driverName?: string | null;
 }) {
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailFeedback, setEmailFeedback] = useState<{
+    tone: "ok" | "err";
+    text: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setEmailBusy(false);
+    setEmailFeedback(null);
+  }, [open]);
+
   if (!open) return null;
 
   const complianceHref = `/sheets/${sheetId}/compliance`;
@@ -391,23 +406,69 @@ export function DayCardToolsSheet({
                   </button>
                 ) : null}
                 {onEmailChecklistPdf ? (
-                  <button
-                    type="button"
-                    className={cn(driverDrawerRow, "w-full")}
-                    onClick={() => {
-                      onOpenChange(false);
-                      onEmailChecklistPdf();
-                    }}
-                  >
-                    <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
-                    <span className="flex-1 text-left">
-                      <span className="block font-semibold">Email checklist week packs</span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        Separate PDF per type to Circadia — types not combined
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      disabled={emailBusy}
+                      className={cn(driverDrawerRow, "w-full", emailBusy && "opacity-70")}
+                      onClick={() => {
+                        void (async () => {
+                          setEmailFeedback(null);
+                          setEmailBusy(true);
+                          try {
+                            const text = await onEmailChecklistPdf();
+                            setEmailFeedback({
+                              tone: "ok",
+                              text: text || "Sent to Circadia.",
+                            });
+                          } catch (e) {
+                            setEmailFeedback({
+                              tone: "err",
+                              text:
+                                e instanceof Error
+                                  ? e.message
+                                  : "Could not email checklist PDFs.",
+                            });
+                          } finally {
+                            setEmailBusy(false);
+                          }
+                        })();
+                      }}
+                    >
+                      {emailBusy ? (
+                        <Loader2
+                          className="w-5 h-5 shrink-0 text-slate-500 animate-spin"
+                          aria-hidden
+                        />
+                      ) : (
+                        <Mail className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                      )}
+                      <span className="flex-1 text-left">
+                        <span className="block font-semibold">
+                          {emailBusy ? "Sending…" : CHECKLIST_EMAIL_BUTTON_LABEL}
+                        </span>
+                        <span className="block text-xs text-slate-500 dark:text-slate-400">
+                          Separate PDF per type to Circadia — types not combined
+                        </span>
                       </span>
-                    </span>
-                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
-                  </button>
+                      {!emailBusy ? (
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      ) : null}
+                    </button>
+                    {emailFeedback ? (
+                      <p
+                        role="status"
+                        className={cn(
+                          "rounded-lg px-3 py-2 text-sm leading-snug",
+                          emailFeedback.tone === "ok"
+                            ? "bg-emerald-50 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200"
+                            : "bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-200"
+                        )}
+                      >
+                        {emailFeedback.text}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             </section>

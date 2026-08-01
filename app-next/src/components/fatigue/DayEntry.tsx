@@ -262,20 +262,13 @@ export default function DayEntry({
   }, [dayTools?.sheetId, dayData.checklists]);
 
   const emailDayChecklistPdf = useCallback(async () => {
-    if (!dayTools?.sheetId) return;
-    setToolsOpen(false);
-    try {
-      const res = await api.sheets.emailChecklistPdf(dayTools.sheetId);
-      const n = res.filenames?.length ?? 0;
-      window.alert(
-        n
-          ? `Emailed ${n} week pack PDF(s) to Circadia (separate file per checklist type).`
-          : "Checklist PDF emailed to Circadia holding inbox."
-      );
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Could not email checklist PDF";
-      window.alert(msg);
+    if (!dayTools?.sheetId) {
+      throw new Error("Sheet not available.");
     }
+    const res = await api.sheets.emailChecklistPdf(dayTools.sheetId);
+    const n = res.filenames?.length ?? 0;
+    if (!n) return "Sent to Circadia holding inbox.";
+    return `Sent ${n} week pack PDF${n === 1 ? "" : "s"} to Circadia (separate file per checklist type).`;
   }, [dayTools?.sheetId]);
 
   const saveFfwRecord = useCallback(
@@ -775,18 +768,10 @@ export default function DayEntry({
           onEmailPdf={
             dayTools?.sheetId
               ? async () => {
-                  try {
-                    await api.sheets.emailChecklistPdf(dayTools.sheetId, {
-                      type: viewChecklistType,
-                    });
-                    window.alert(
-                      "Week pack for this checklist type emailed to Circadia holding inbox."
-                    );
-                  } catch (e) {
-                    window.alert(
-                      e instanceof Error ? e.message : "Could not email checklist PDF"
-                    );
-                  }
+                  await api.sheets.emailChecklistPdf(dayTools.sheetId, {
+                    type: viewChecklistType,
+                  });
+                  return "Week pack for this checklist type emailed to Circadia.";
                 }
               : undefined
           }
