@@ -38,6 +38,7 @@ export function DayCardToolsSheet({
   onViewDimensionLoad,
   dimensionLoadFormCompleted = false,
   onProduceChecklistPdf,
+  onEmailChecklistPdf,
   last24hUnset,
   declared24hRestUnset,
   driverName,
@@ -67,6 +68,8 @@ export function DayCardToolsSheet({
   dimensionLoadFormCompleted?: boolean;
   /** Dedicated checklist PDF for this day (not fatigue roadside). */
   onProduceChecklistPdf?: () => void;
+  /** Email checklist PDF to Circadia holding inbox (interim). */
+  onEmailChecklistPdf?: () => void;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
@@ -364,26 +367,49 @@ export function DayCardToolsSheet({
             )}
           </section>
 
-          {onProduceChecklistPdf ? (
+          {onProduceChecklistPdf || onEmailChecklistPdf ? (
             <section>
               <h3 className={driverSectionLabel}>Checklist PDF</h3>
-              <button
-                type="button"
-                className={cn(driverDrawerRow, "w-full")}
-                onClick={() => {
-                  onOpenChange(false);
-                  onProduceChecklistPdf();
-                }}
-              >
-                <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
-                <span className="flex-1 text-left">
-                  <span className="block font-semibold">Produce checklist PDF</span>
-                  <span className="block text-xs text-slate-500 dark:text-slate-400">
-                    CoR / vehicle forms for this day — not the 28-day fatigue roadside PDF
-                  </span>
-                </span>
-                <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
-              </button>
+              <div className="space-y-2">
+                {onProduceChecklistPdf ? (
+                  <button
+                    type="button"
+                    className={cn(driverDrawerRow, "w-full")}
+                    onClick={() => {
+                      onOpenChange(false);
+                      onProduceChecklistPdf();
+                    }}
+                  >
+                    <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                    <span className="flex-1 text-left">
+                      <span className="block font-semibold">Produce checklist PDF</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        CoR / vehicle forms for this day — not the 28-day fatigue roadside PDF
+                      </span>
+                    </span>
+                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                  </button>
+                ) : null}
+                {onEmailChecklistPdf ? (
+                  <button
+                    type="button"
+                    className={cn(driverDrawerRow, "w-full")}
+                    onClick={() => {
+                      onOpenChange(false);
+                      onEmailChecklistPdf();
+                    }}
+                  >
+                    <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                    <span className="flex-1 text-left">
+                      <span className="block font-semibold">Email checklist PDF</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        Sends a holding copy to Circadia — not the roadside fatigue PDF
+                      </span>
+                    </span>
+                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                  </button>
+                ) : null}
+              </div>
             </section>
           ) : null}
 

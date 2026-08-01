@@ -481,6 +481,15 @@ export const api = {
           : "";
       return `${base}/api/sheets/${id}/checklists/export${q}`;
     },
+    /** Email checklist pack PDF to Circadia holding inbox (interim). */
+    emailChecklistPdf: (id: string, dayIndex?: number) =>
+      fetchApi<{ ok: boolean; to: string; filename: string; id?: string }>(
+        `/api/sheets/${id}/checklists/export/email`,
+        {
+          method: "POST",
+          body: dayIndex != null && Number.isInteger(dayIndex) ? { dayIndex } : {},
+        }
+      ),
     listChecklists: (id: string) =>
       fetchApi<{
         sheet_id: string;

@@ -66,6 +66,11 @@ export {
   collectChecklistPdfDays,
 } from "./checklist-pdf";
 export type { ChecklistPdfDayBundle } from "./checklist-pdf";
+export {
+  CHECKLIST_ARCHIVE_EMAIL,
+  CHECKLIST_EMAIL_BUTTON_LABEL,
+  CHECKLIST_EMAIL_HINT,
+} from "./checklist-email";
 export type { DayWithChecklists, DerivedTripChecklistFields } from "./derive-trip-ticks";
 export {
   appendChecklistToDay,

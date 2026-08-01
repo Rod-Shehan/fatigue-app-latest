@@ -3,12 +3,20 @@
  * Configure with RESEND_API_KEY + EMAIL_FROM. Returns not_configured until set.
  */
 
+export type OutboundEmailAttachment = {
+  filename: string;
+  /** Raw bytes — encoded to base64 for Resend. */
+  content: Buffer | Uint8Array;
+  contentType?: string;
+};
+
 export type OutboundEmailMessage = {
   to: string | string[];
   subject: string;
   text: string;
   html?: string;
   replyTo?: string;
+  attachments?: OutboundEmailAttachment[];
 };
 
 export type OutboundEmailResult =
@@ -27,6 +35,11 @@ export function outboundEmailConfigured(): boolean {
 async function sendViaResend(msg: OutboundEmailMessage, to: string[]): Promise<OutboundEmailResult> {
   const apiKey = process.env.RESEND_API_KEY!.trim();
   const from = process.env.EMAIL_FROM!.trim();
+  const attachments = (msg.attachments ?? []).map((a) => ({
+    filename: a.filename,
+    content: Buffer.from(a.content).toString("base64"),
+    content_type: a.contentType,
+  }));
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -40,6 +53,7 @@ async function sendViaResend(msg: OutboundEmailMessage, to: string[]): Promise<O
       text: msg.text,
       html: msg.html,
       reply_to: msg.replyTo,
+      ...(attachments.length ? { attachments } : {}),
     }),
   });
   if (!res.ok) {

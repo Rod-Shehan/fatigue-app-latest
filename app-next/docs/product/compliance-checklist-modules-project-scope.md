@@ -148,7 +148,8 @@ During the current trial term, checklists are a **capability preview**:
 - [ ] Optional: email checklist PDF (delivery to customer; Circadia still keeps SoR)
 - [x] Explicit UI copy: checklist PDF ≠ fatigue roadside
 - [x] Guides updated
-- [ ] Off-Neon photo store (Blob / SharePoint) + record keys/hashes; then stop long-term photo bytes in Neon
+- [x] Interim: email checklist PDF to Circadia holding inbox (`circadia24@gmail.com`) — per-client distribution later
+- [ ] Off-Neon photo store (R2 / SharePoint) — **parked** (see `docs/architecture/checklist-photo-r2-parked.md`)
 
 ### Phase 7 — Polish + QA — NOT STARTED
 
@@ -199,4 +200,4 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 6 remaining** — email checklist PDF as customer delivery; plan off-Neon photo store so WAHVA/audit evidence stays retrievable without bloating Neon.
+**Phase 6 remaining** — per-client checklist PDF email distribution; R2/photo offload stays parked. Confirm `RESEND_API_KEY` + `EMAIL_FROM` on the server so Circadia holding email works.

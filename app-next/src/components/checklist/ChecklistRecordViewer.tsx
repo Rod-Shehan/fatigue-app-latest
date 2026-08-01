@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  CHECKLIST_EMAIL_BUTTON_LABEL,
+  CHECKLIST_PDF_BUTTON_LABEL,
   checklistFaultMobilityLabel,
   type ChecklistRecord,
   type ChecklistRecordType,
@@ -204,6 +206,7 @@ export function ChecklistRecordViewer({
   onRedo,
   redoLabel,
   onProducePdf,
+  onEmailPdf,
 }: {
   open: boolean;
   onClose: () => void;
@@ -213,6 +216,8 @@ export function ChecklistRecordViewer({
   redoLabel?: string;
   /** Dedicated checklist PDF (not fatigue roadside). */
   onProducePdf?: () => void;
+  /** Email holding copy to Circadia (interim). */
+  onEmailPdf?: () => void | Promise<void>;
 }) {
   const title = TYPE_TITLE[type];
   const list = records.filter((r) => r.type === type && r.status === "completed");
@@ -237,7 +242,16 @@ export function ChecklistRecordViewer({
               onClick={onProducePdf}
               className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
             >
-              Produce checklist PDF
+              {CHECKLIST_PDF_BUTTON_LABEL}
+            </button>
+          ) : null}
+          {onEmailPdf && list.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => void onEmailPdf()}
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
+            >
+              {CHECKLIST_EMAIL_BUTTON_LABEL}
             </button>
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row">

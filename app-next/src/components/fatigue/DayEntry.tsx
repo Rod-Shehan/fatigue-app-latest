@@ -257,6 +257,18 @@ export default function DayEntry({
     window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, dayIndex), "_blank");
   }, [dayTools?.sheetId, dayIndex]);
 
+  const emailDayChecklistPdf = useCallback(async () => {
+    if (!dayTools?.sheetId) return;
+    setToolsOpen(false);
+    try {
+      await api.sheets.emailChecklistPdf(dayTools.sheetId, dayIndex);
+      window.alert("Checklist PDF emailed to Circadia holding inbox.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not email checklist PDF";
+      window.alert(msg);
+    }
+  }, [dayTools?.sheetId, dayIndex]);
+
   const saveFfwRecord = useCallback(
     (record: ChecklistRecord) => {
       onUpdate(dayIndex, appendChecklistToDay(dayData, record));
@@ -692,6 +704,9 @@ export default function DayEntry({
           onProduceChecklistPdf={
             dayTools && hasAnyChecklistRecord ? produceDayChecklistPdf : undefined
           }
+          onEmailChecklistPdf={
+            dayTools && hasAnyChecklistRecord ? emailDayChecklistPdf : undefined
+          }
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
           driverName={dayTools.driverName ?? driverName}
@@ -742,6 +757,18 @@ export default function DayEntry({
             dayTools?.sheetId
               ? () => {
                   window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, dayIndex), "_blank");
+                }
+              : undefined
+          }
+          onEmailPdf={
+            dayTools?.sheetId
+              ? async () => {
+                  try {
+                    await api.sheets.emailChecklistPdf(dayTools.sheetId, dayIndex);
+                    window.alert("Checklist PDF emailed to Circadia holding inbox.");
+                  } catch (e) {
+                    window.alert(e instanceof Error ? e.message : "Could not email checklist PDF");
+                  }
                 }
               : undefined
           }

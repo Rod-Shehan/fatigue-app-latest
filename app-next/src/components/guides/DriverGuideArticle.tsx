@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
+import {
+  CHECKLIST_EMAIL_BUTTON_LABEL,
+  CHECKLIST_PDF_BUTTON_LABEL,
+} from "@/lib/checklist";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -424,8 +428,9 @@ export function DriverGuideArticle() {
           <li>
             Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
             in trial — do not block Start shift). After a form is saved, use View to read it, or Redo / Add another for a
-            new signed record. Produce checklist PDF (day tools) makes a CoR / vehicle pack for that day — separate from
-            the 28-day fatigue roadside PDF. Two-up drivers who are not responsible for the vehicle prestart can record
+            new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) makes a CoR / vehicle pack for that day — separate from
+            the 28-day fatigue roadside PDF. {CHECKLIST_EMAIL_BUTTON_LABEL} sends a holding copy to Circadia (customer email
+            distribution comes later). Two-up drivers who are not responsible for the vehicle prestart can record
             that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
             day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
