@@ -54,6 +54,18 @@
     --input: 0 0% 89.8%;
     --ring: 0 0% 3.9%;
     --radius: 0.5rem;
+    /* Checklist kit — RGB channels for Tailwind opacity modifiers. Light default. */
+    --ck-midnight: 248 250 252;
+    --ck-slate: 241 245 249;
+    --ck-cobalt: 0 122 255;
+    --ck-cobalt-alt: 30 136 229;
+    --ck-emerald: 16 185 129;
+    --ck-red: 239 68 68;
+    --ck-steel: 100 116 139;
+    --ck-border: 203 213 225;
+    --ck-fg: 15 23 42;
+    --ck-fg-muted: 71 85 105;
+    --ck-on-accent: 255 255 255;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -67,6 +79,14 @@
     --border: 0 0% 14.9%;
     --input: 0 0% 14.9%;
     --ring: 0 0% 83.1%;
+    /* Checklist kit — midnight surfaces (same theme toggle as the rest of the app) */
+    --ck-midnight: 10 17 24;
+    --ck-slate: 22 34 47;
+    --ck-steel: 148 163 184;
+    --ck-border: 42 59 80;
+    --ck-fg: 226 232 240;
+    --ck-fg-muted: 148 163 184;
+    --ck-on-accent: 255 255 255;
   }
 }
 
@@ -109,30 +129,13 @@ html.driver-immersive body {
   border-color: #cbd5e1; /* slate-300 */
 }
 
-/* Circadia24 compliance checklist kit — follows app light/dark (html.dark) */
-.checklist-kit {
-  /* Light surfaces (default when app is in light mode) */
-  --ck-midnight: #f8fafc;
-  --ck-slate: #f1f5f9;
-  --ck-cobalt: #007aff;
-  --ck-cobalt-alt: #1e88e5;
-  --ck-emerald: #10b981;
-  --ck-red: #ef4444;
-  --ck-steel: #64748b;
-  --ck-border: #cbd5e1;
-  --ck-fg: #0f172a;
-  --ck-fg-muted: #475569;
-  --ck-on-accent: #ffffff;
-  color: var(--ck-fg);
-  background-color: var(--ck-midnight);
+/* Keep signature pads true white inside checklist (app light remaps .bg-white elsewhere) */
+:root:not(.dark) .checklist-kit .bg-white {
+  background-color: #ffffff;
 }
 
-.dark .checklist-kit {
-  --ck-midnight: #0a1118;
-  --ck-slate: #16222f;
-  --ck-border: #2a3b50;
-  --ck-steel: #94a3b8;
-  --ck-fg: #e2e8f0;
-  --ck-fg-muted: #94a3b8;
-  --ck-on-accent: #ffffff;
+/* Circadia24 checklist kit surface — tokens live on :root / .dark above */
+.checklist-kit {
+  color: rgb(var(--ck-fg));
+  background-color: rgb(var(--ck-midnight));
 }

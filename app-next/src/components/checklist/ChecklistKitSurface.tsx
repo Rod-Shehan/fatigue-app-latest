@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Scopes Circadia24 checklist brand tokens (`.checklist-kit` in globals.css; follows `html.dark`). */
+/** Checklist surface — uses global `--ck-*` tokens that follow `html.dark`. */
 export function ChecklistKitSurface({
   className,
   children,

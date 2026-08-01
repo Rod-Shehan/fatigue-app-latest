@@ -36,13 +36,14 @@ export function ChecklistModalShell({
     >
       <button
         type="button"
-        className="absolute inset-0 border-0 bg-slate-900/40 dark:bg-black/60 cursor-default"
+        className="absolute inset-0 border-0 bg-slate-500/40 dark:bg-black/60 cursor-default"
         aria-label="Close"
         onClick={onClose}
       />
       <ChecklistKitSurface
         className={cn(
           "relative z-10 flex w-full max-w-lg flex-col overflow-hidden rounded-t-2xl sm:rounded-2xl border border-ck-border shadow-2xl",
+          "bg-ck-midnight text-ck-fg",
           "max-h-[min(96dvh,900px)]",
           className
         )}
