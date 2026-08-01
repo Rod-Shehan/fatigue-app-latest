@@ -203,6 +203,7 @@ export function ChecklistRecordViewer({
   records,
   onRedo,
   redoLabel,
+  onProducePdf,
 }: {
   open: boolean;
   onClose: () => void;
@@ -210,6 +211,8 @@ export function ChecklistRecordViewer({
   records: ChecklistRecord[];
   onRedo?: () => void;
   redoLabel?: string;
+  /** Dedicated checklist PDF (not fatigue roadside). */
+  onProducePdf?: () => void;
 }) {
   const title = TYPE_TITLE[type];
   const list = records.filter((r) => r.type === type && r.status === "completed");
@@ -227,26 +230,40 @@ export function ChecklistRecordViewer({
             : `${list.length} saved records (read only)`
       }
       footer={
-        <div className="flex flex-col gap-2 sm:flex-row">
-          {onRedo ? (
+        <div className="flex flex-col gap-2">
+          {onProducePdf && list.length > 0 ? (
             <button
               type="button"
-              onClick={() => {
-                onClose();
-                onRedo();
-              }}
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-white"
+              onClick={onProducePdf}
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-white"
             >
-              {redoLabel ?? (type === "dimension_load" ? "Add another" : "Complete again")}
+              Produce checklist PDF
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white"
-          >
-            Close
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {onRedo ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onRedo();
+                }}
+                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-white"
+              >
+                {redoLabel ?? (type === "dimension_load" ? "Add another" : "Complete again")}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white"
+            >
+              Close
+            </button>
+          </div>
+          <p className="text-center text-[10px] text-ck-steel leading-snug">
+            Checklist PDF is separate from the 28-day fatigue roadside PDF.
+          </p>
         </div>
       }
     >

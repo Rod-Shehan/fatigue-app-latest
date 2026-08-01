@@ -27,6 +27,7 @@ import {
   type ChecklistRecord,
   type ChecklistRecordType,
 } from "@/lib/checklist";
+import { api } from "@/lib/api";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
@@ -220,10 +221,8 @@ export default function DayEntry({
   const canEditDetails = !readOnly;
   const ffwFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "ffw");
   const prestartFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "prestart");
-  const dimensionLoadFormCompleted = hasCompletedChecklistOfType(
-    dayData.checklists,
-    "dimension_load"
-  );
+  const hasAnyChecklistRecord =
+    ffwFormCompleted || prestartFormCompleted || dimensionLoadFormCompleted;
 
   const openFfwForm = useCallback(() => {
     if (!canEditDetails) return;
@@ -247,6 +246,12 @@ export default function DayEntry({
     setToolsOpen(false);
     setViewChecklistType(type);
   }, []);
+
+  const produceDayChecklistPdf = useCallback(() => {
+    if (!dayTools?.sheetId) return;
+    setToolsOpen(false);
+    window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, dayIndex), "_blank");
+  }, [dayTools?.sheetId, dayIndex]);
 
   const saveFfwRecord = useCallback(
     (record: ChecklistRecord) => {
@@ -680,6 +685,9 @@ export default function DayEntry({
             dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
           }
           dimensionLoadFormCompleted={dimensionLoadFormCompleted}
+          onProduceChecklistPdf={
+            dayTools && hasAnyChecklistRecord ? produceDayChecklistPdf : undefined
+          }
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
           driverName={dayTools.driverName ?? driverName}
@@ -723,6 +731,13 @@ export default function DayEntry({
                   if (t === "ffw") setFfwOpen(true);
                   else if (t === "prestart") setPrestartOpen(true);
                   else setDimensionLoadOpen(true);
+                }
+              : undefined
+          }
+          onProducePdf={
+            dayTools?.sheetId
+              ? () => {
+                  window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, dayIndex), "_blank");
                 }
               : undefined
           }

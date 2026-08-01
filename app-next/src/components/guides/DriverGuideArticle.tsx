@@ -424,9 +424,10 @@ export function DriverGuideArticle() {
           <li>
             Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
             in trial — do not block Start shift). After a form is saved, use View to read it, or Redo / Add another for a
-            new signed record. Two-up drivers who are not responsible for the vehicle prestart can record that on the
-            Prestart form instead of inventing answers. Dimension & Load can be completed more than once per day; loader
-            CoR stays separate (present sign, pending, or photo gap — no proxy).
+            new signed record. Produce checklist PDF (day tools) makes a CoR / vehicle pack for that day — separate from
+            the 28-day fatigue roadside PDF. Two-up drivers who are not responsible for the vehicle prestart can record
+            that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
+            day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
           <li>Type start km</li>
           <li>Tap Start shift when you begin</li>

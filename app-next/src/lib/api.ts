@@ -473,6 +473,14 @@ export const api = {
     delete: (id: string) =>
       fetchApi<void>(`/api/sheets/${id}`, { method: "DELETE" }),
     exportPdfUrl: (id: string) => `${base}/api/sheets/${id}/export`,
+    /** Dedicated checklist pack PDF (not fatigue roadside). Optional dayIndex 0–6. */
+    checklistPdfUrl: (id: string, dayIndex?: number) => {
+      const q =
+        dayIndex != null && Number.isInteger(dayIndex)
+          ? `?dayIndex=${encodeURIComponent(String(dayIndex))}`
+          : "";
+      return `${base}/api/sheets/${id}/checklists/export${q}`;
+    },
     listChecklists: (id: string) =>
       fetchApi<{
         sheet_id: string;

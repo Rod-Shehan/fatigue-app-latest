@@ -37,6 +37,7 @@ export function DayCardToolsSheet({
   onOpenDimensionLoad,
   onViewDimensionLoad,
   dimensionLoadFormCompleted = false,
+  onProduceChecklistPdf,
   last24hUnset,
   declared24hRestUnset,
   driverName,
@@ -64,6 +65,8 @@ export function DayCardToolsSheet({
   onOpenDimensionLoad?: () => void;
   onViewDimensionLoad?: () => void;
   dimensionLoadFormCompleted?: boolean;
+  /** Dedicated checklist PDF for this day (not fatigue roadside). */
+  onProduceChecklistPdf?: () => void;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
@@ -360,6 +363,29 @@ export function DayCardToolsSheet({
               </p>
             )}
           </section>
+
+          {onProduceChecklistPdf ? (
+            <section>
+              <h3 className={driverSectionLabel}>Checklist PDF</h3>
+              <button
+                type="button"
+                className={cn(driverDrawerRow, "w-full")}
+                onClick={() => {
+                  onOpenChange(false);
+                  onProduceChecklistPdf();
+                }}
+              >
+                <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                <span className="flex-1 text-left">
+                  <span className="block font-semibold">Produce checklist PDF</span>
+                  <span className="block text-xs text-slate-500 dark:text-slate-400">
+                    CoR / vehicle forms for this day — not the 28-day fatigue roadside PDF
+                  </span>
+                </span>
+                <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+              </button>
+            </section>
+          ) : null}
 
           <section>
             <h3 className={driverSectionLabel}>Roadside</h3>

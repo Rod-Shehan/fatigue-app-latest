@@ -59,6 +59,13 @@ export {
   newChecklistRecordId,
   validateCompletedChecklistRecord,
 } from "./record";
+export {
+  CHECKLIST_PDF_BUTTON_LABEL,
+  CHECKLIST_PDF_DISCLAIMER,
+  buildChecklistPackJsPdfBuffer,
+  collectChecklistPdfDays,
+} from "./checklist-pdf";
+export type { ChecklistPdfDayBundle } from "./checklist-pdf";
 export type { DayWithChecklists, DerivedTripChecklistFields } from "./derive-trip-ticks";
 export {
   appendChecklistToDay,
