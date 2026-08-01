@@ -457,6 +457,36 @@ export default function DayEntry({
         </div>
       </div>
 
+      {(canEditDetails ||
+        dayData.fitness_for_work === true ||
+        dayData.dimension_load_checklist === true ||
+        dayData.daily_vehicle_checklist === true) && (
+        <DayTripChecklist
+          className="mb-3"
+          variant="card"
+          readOnly={!canEditDetails}
+          ffwFormCompleted={ffwFormCompleted}
+          onOpenFfw={canEditDetails ? openFfwForm : undefined}
+          prestartFormCompleted={prestartFormCompleted}
+          onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
+          dimensionLoadFormCompleted={dimensionLoadFormCompleted}
+          onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
+          value={{
+            fitness_for_work: dayData.fitness_for_work,
+            dimension_load_checklist: dayData.dimension_load_checklist,
+            daily_vehicle_checklist: dayData.daily_vehicle_checklist,
+          }}
+          onChange={(next) =>
+            onUpdate(dayIndex, {
+              ...dayData,
+              fitness_for_work: next.fitness_for_work,
+              dimension_load_checklist: next.dimension_load_checklist,
+              daily_vehicle_checklist: next.daily_vehicle_checklist,
+            })
+          }
+        />
+      )}
+
       {continuedShiftRoute && canEditDetails && (
         <div
           className="mb-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-600 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
@@ -523,35 +553,6 @@ export default function DayEntry({
               />
             </div>
           </>
-        )}
-        {(canEditDetails ||
-          dayData.fitness_for_work === true ||
-          dayData.dimension_load_checklist === true ||
-          dayData.daily_vehicle_checklist === true) && (
-          <DayTripChecklist
-            className="mt-3"
-            variant="card"
-            readOnly={!canEditDetails}
-            ffwFormCompleted={ffwFormCompleted}
-            onOpenFfw={canEditDetails ? openFfwForm : undefined}
-            prestartFormCompleted={prestartFormCompleted}
-            onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
-            dimensionLoadFormCompleted={dimensionLoadFormCompleted}
-            onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
-            value={{
-              fitness_for_work: dayData.fitness_for_work,
-              dimension_load_checklist: dayData.dimension_load_checklist,
-              daily_vehicle_checklist: dayData.daily_vehicle_checklist,
-            }}
-            onChange={(next) =>
-              onUpdate(dayIndex, {
-                ...dayData,
-                fitness_for_work: next.fitness_for_work,
-                dimension_load_checklist: next.dimension_load_checklist,
-                daily_vehicle_checklist: next.daily_vehicle_checklist,
-              })
-            }
-          />
         )}
         {showInlineStartKm && (
           <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 space-y-1.5">
