@@ -221,6 +221,10 @@ export default function DayEntry({
   const canEditDetails = !readOnly;
   const ffwFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "ffw");
   const prestartFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "prestart");
+  const dimensionLoadFormCompleted = hasCompletedChecklistOfType(
+    dayData.checklists,
+    "dimension_load"
+  );
   const hasAnyChecklistRecord =
     ffwFormCompleted || prestartFormCompleted || dimensionLoadFormCompleted;
 
