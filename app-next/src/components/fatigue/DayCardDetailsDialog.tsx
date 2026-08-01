@@ -50,9 +50,12 @@ import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
 import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
+import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
   hasCompletedChecklistOfType,
+  listCompletedChecklistsOfType,
+  type ChecklistRecordType,
 } from "@/lib/checklist";
 import { DriverTypeFields } from "@/components/fatigue/DriverTypeFields";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
@@ -170,6 +173,7 @@ export function DayCardDetailsDialog({
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
   const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
+  const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const ffwFormCompleted = hasCompletedChecklistOfType(draft.checklists, "ffw");
@@ -517,10 +521,17 @@ export function DayCardDetailsDialog({
             readOnly={readOnly}
             ffwFormCompleted={ffwFormCompleted}
             onOpenFfw={readOnly ? undefined : () => setFfwOpen(true)}
+            onViewFfw={ffwFormCompleted ? () => setViewChecklistType("ffw") : undefined}
             prestartFormCompleted={prestartFormCompleted}
             onOpenPrestart={readOnly ? undefined : () => setPrestartOpen(true)}
+            onViewPrestart={prestartFormCompleted ? () => setViewChecklistType("prestart") : undefined}
             dimensionLoadFormCompleted={dimensionLoadFormCompleted}
             onOpenDimensionLoad={readOnly ? undefined : () => setDimensionLoadOpen(true)}
+            onViewDimensionLoad={
+              dimensionLoadFormCompleted
+                ? () => setViewChecklistType("dimension_load")
+                : undefined
+            }
             value={{
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
@@ -564,6 +575,26 @@ export function DayCardDetailsDialog({
               setDraft((prev) => appendChecklistToDay(prev, record));
             }}
           />
+
+          {viewChecklistType ? (
+            <ChecklistRecordViewer
+              open
+              type={viewChecklistType}
+              records={listCompletedChecklistsOfType(draft.checklists, viewChecklistType)}
+              onClose={() => setViewChecklistType(null)}
+              onRedo={
+                readOnly
+                  ? undefined
+                  : () => {
+                      const t = viewChecklistType;
+                      setViewChecklistType(null);
+                      if (t === "ffw") setFfwOpen(true);
+                      else if (t === "prestart") setPrestartOpen(true);
+                      else setDimensionLoadOpen(true);
+                    }
+              }
+            />
+          ) : null}
 
           {declared24hRestFieldCount >= 2 && onDeclared24hRestChange && (
             <Declared24hRestsField

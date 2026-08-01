@@ -19,10 +19,13 @@ import { DayTripChecklist } from "./DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
 import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
+import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
   hasCompletedChecklistOfType,
+  listCompletedChecklistsOfType,
   type ChecklistRecord,
+  type ChecklistRecordType,
 } from "@/lib/checklist";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
@@ -201,6 +204,7 @@ export default function DayEntry({
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
   const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
+  const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
   const lastSetupOpenRequestRef = useRef(0);
@@ -238,6 +242,11 @@ export default function DayEntry({
     setToolsOpen(false);
     setDimensionLoadOpen(true);
   }, [canEditDetails]);
+
+  const openViewChecklist = useCallback((type: ChecklistRecordType) => {
+    setToolsOpen(false);
+    setViewChecklistType(type);
+  }, []);
 
   const saveFfwRecord = useCallback(
     (record: ChecklistRecord) => {
@@ -467,10 +476,15 @@ export default function DayEntry({
           readOnly={!canEditDetails}
           ffwFormCompleted={ffwFormCompleted}
           onOpenFfw={canEditDetails ? openFfwForm : undefined}
+          onViewFfw={ffwFormCompleted ? () => openViewChecklist("ffw") : undefined}
           prestartFormCompleted={prestartFormCompleted}
           onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
+          onViewPrestart={prestartFormCompleted ? () => openViewChecklist("prestart") : undefined}
           dimensionLoadFormCompleted={dimensionLoadFormCompleted}
           onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
+          onViewDimensionLoad={
+            dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
+          }
           value={{
             fitness_for_work: dayData.fitness_for_work,
             dimension_load_checklist: dayData.dimension_load_checklist,
@@ -656,10 +670,15 @@ export default function DayEntry({
           onOpenGear={dayTools.onOpenGear}
           onOpenDaySetup={() => setDetailsOpen(true)}
           onOpenFfw={canEditDetails ? openFfwForm : undefined}
+          onViewFfw={ffwFormCompleted ? () => openViewChecklist("ffw") : undefined}
           ffwFormCompleted={ffwFormCompleted}
           onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
+          onViewPrestart={prestartFormCompleted ? () => openViewChecklist("prestart") : undefined}
           prestartFormCompleted={prestartFormCompleted}
           onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
+          onViewDimensionLoad={
+            dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
+          }
           dimensionLoadFormCompleted={dimensionLoadFormCompleted}
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
@@ -689,6 +708,26 @@ export default function DayEntry({
         truckRego={dayData.truck_rego}
         onCompleted={saveDimensionLoadRecord}
       />
+
+      {viewChecklistType ? (
+        <ChecklistRecordViewer
+          open
+          type={viewChecklistType}
+          records={listCompletedChecklistsOfType(dayData.checklists, viewChecklistType)}
+          onClose={() => setViewChecklistType(null)}
+          onRedo={
+            canEditDetails
+              ? () => {
+                  const t = viewChecklistType;
+                  setViewChecklistType(null);
+                  if (t === "ffw") setFfwOpen(true);
+                  else if (t === "prestart") setPrestartOpen(true);
+                  else setDimensionLoadOpen(true);
+                }
+              : undefined
+          }
+        />
+      ) : null}
 
       {canEditDetails && (
         <DayCardDetailsDialog

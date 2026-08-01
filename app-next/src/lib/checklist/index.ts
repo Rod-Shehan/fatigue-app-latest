@@ -55,6 +55,7 @@ export {
   hasCompletedResponsiblePrestart,
   isChecklistRecordType,
   listCompletedChecklists,
+  listCompletedChecklistsOfType,
   newChecklistRecordId,
   validateCompletedChecklistRecord,
 } from "./record";

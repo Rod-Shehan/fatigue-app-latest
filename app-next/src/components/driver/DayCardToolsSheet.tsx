@@ -29,10 +29,13 @@ export function DayCardToolsSheet({
   onOpenGear,
   onOpenDaySetup,
   onOpenFfw,
+  onViewFfw,
   ffwFormCompleted = false,
   onOpenPrestart,
+  onViewPrestart,
   prestartFormCompleted = false,
   onOpenDimensionLoad,
+  onViewDimensionLoad,
   dimensionLoadFormCompleted = false,
   last24hUnset,
   declared24hRestUnset,
@@ -51,12 +54,15 @@ export function DayCardToolsSheet({
   onOpenDaySetup?: () => void;
   /** Optional trial FFW form — never blocks Start shift. */
   onOpenFfw?: () => void;
+  onViewFfw?: () => void;
   ffwFormCompleted?: boolean;
   /** Optional trial Prestart form — never blocks Start shift. */
   onOpenPrestart?: () => void;
+  onViewPrestart?: () => void;
   prestartFormCompleted?: boolean;
   /** Optional trial Dimension & Load — multi-load; never blocks leaving load. */
   onOpenDimensionLoad?: () => void;
+  onViewDimensionLoad?: () => void;
   dimensionLoadFormCompleted?: boolean;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
@@ -200,70 +206,152 @@ export function DayCardToolsSheet({
 
           <section>
             <h3 className={driverSectionLabel}>Optional checks</h3>
-            {onOpenFfw || onOpenPrestart || onOpenDimensionLoad ? (
+            {onOpenFfw ||
+            onViewFfw ||
+            onOpenPrestart ||
+            onViewPrestart ||
+            onOpenDimensionLoad ||
+            onViewDimensionLoad ? (
               <div className="space-y-1">
-                {onOpenFfw ? (
-                  <button
-                    type="button"
-                    className={cn(driverDrawerRow, "w-full")}
-                    onClick={() => {
-                      onOpenChange(false);
-                      onOpenFfw();
-                    }}
-                  >
-                    <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
-                    <span className="flex-1 text-left">
-                      <span className="block font-semibold">Fitness for Work</span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        {ffwFormCompleted
-                          ? "Form saved for this day — optional to redo"
-                          : "Optional signed form — does not block Start shift"}
-                      </span>
-                    </span>
-                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
-                  </button>
+                {onOpenFfw || onViewFfw ? (
+                  <div className="space-y-1">
+                    {onViewFfw && ffwFormCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewFfw();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View Fitness for Work</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved answers and signature
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenFfw ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenFfw();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {ffwFormCompleted ? "Redo Fitness for Work" : "Fitness for Work"}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            {ffwFormCompleted
+                              ? "Complete a new signed form for this day"
+                              : "Optional signed form — does not block Start shift"}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
-                {onOpenPrestart ? (
-                  <button
-                    type="button"
-                    className={cn(driverDrawerRow, "w-full")}
-                    onClick={() => {
-                      onOpenChange(false);
-                      onOpenPrestart();
-                    }}
-                  >
-                    <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
-                    <span className="flex-1 text-left">
-                      <span className="block font-semibold">Prestart inspection</span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        {prestartFormCompleted
-                          ? "Form saved for this day — optional to redo"
-                          : "Optional vehicle check — two-up can mark not responsible"}
-                      </span>
-                    </span>
-                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
-                  </button>
+                {onOpenPrestart || onViewPrestart ? (
+                  <div className="space-y-1">
+                    {onViewPrestart && prestartFormCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewPrestart();
+                        }}
+                      >
+                        <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View Prestart</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved inspection or not-responsible note
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenPrestart ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenPrestart();
+                        }}
+                      >
+                        <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {prestartFormCompleted ? "Redo Prestart" : "Prestart inspection"}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            {prestartFormCompleted
+                              ? "Complete a new signed prestart for this day"
+                              : "Optional vehicle check — two-up can mark not responsible"}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
-                {onOpenDimensionLoad ? (
-                  <button
-                    type="button"
-                    className={cn(driverDrawerRow, "w-full")}
-                    onClick={() => {
-                      onOpenChange(false);
-                      onOpenDimensionLoad();
-                    }}
-                  >
-                    <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
-                    <span className="flex-1 text-left">
-                      <span className="block font-semibold">Dimension & Load</span>
-                      <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        {dimensionLoadFormCompleted
-                          ? "Form saved — you can add another load"
-                          : "Optional post-load check — separate driver / loader CoR"}
-                      </span>
-                    </span>
-                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
-                  </button>
+                {onOpenDimensionLoad || onViewDimensionLoad ? (
+                  <div className="space-y-1">
+                    {onViewDimensionLoad && dimensionLoadFormCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewDimensionLoad();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View Dimension & Load</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved load check(s) for this day
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenDimensionLoad ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenDimensionLoad();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {dimensionLoadFormCompleted
+                              ? "Add Dimension & Load"
+                              : "Dimension & Load"}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            {dimensionLoadFormCompleted
+                              ? "Add another post-load check"
+                              : "Optional post-load check — separate driver / loader CoR"}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
             ) : (

@@ -6,6 +6,7 @@ import {
 } from "./derive-trip-ticks";
 import {
   CHECKLIST_SCHEMA_VERSION,
+  listCompletedChecklistsOfType,
   validateCompletedChecklistRecord,
   type ChecklistRecord,
 } from "./record";
@@ -263,5 +264,20 @@ describe("deriveTripChecklistFields", () => {
     const next = appendChecklistToDay({} as DayWithChecklists, sampleFfw());
     expect(next.checklists).toHaveLength(1);
     expect(next.fitness_for_work).toBe(true);
+  });
+
+  it("listCompletedChecklistsOfType returns oldest to newest of one type", () => {
+    const a = sampleFfw({ id: "a", completedAtUtc: "2026-07-31T01:00:00.000Z" });
+    const b = sampleFfw({ id: "b", completedAtUtc: "2026-07-31T03:00:00.000Z" });
+    const load = sampleFfw({
+      id: "c",
+      type: "dimension_load",
+      loaderPath: "pending",
+      loaderName: "Sam",
+      completedAtUtc: "2026-07-31T02:00:00.000Z",
+      items: [{ code: "load_1", kind: "pass_fail", value: "pass" }],
+    });
+    const list = listCompletedChecklistsOfType([b, load, a], "ffw");
+    expect(list.map((r) => r.id)).toEqual(["a", "b"]);
   });
 });

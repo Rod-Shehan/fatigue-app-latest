@@ -9,4 +9,5 @@ export { ChecklistModalShell } from "./ChecklistModalShell";
 export { FitnessForWorkForm } from "./FitnessForWorkForm";
 export { PrestartForm } from "./PrestartForm";
 export { DimensionLoadForm } from "./DimensionLoadForm";
+export { ChecklistRecordViewer } from "./ChecklistRecordViewer";
 export { ChecklistKitDemo } from "./ChecklistKitDemo";

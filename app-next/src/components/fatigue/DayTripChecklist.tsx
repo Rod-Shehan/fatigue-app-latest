@@ -19,14 +19,18 @@ type Props = {
   className?: string;
   /** Phase 3 — open voluntary signed FFW form (optional; no Start-shift gate). */
   onOpenFfw?: () => void;
+  /** View saved FFW record(s) for this day. */
+  onViewFfw?: () => void;
   /** True when a completed ffw checklist record exists for this day. */
   ffwFormCompleted?: boolean;
   /** Phase 4 — open voluntary Prestart form (optional; no Start-shift gate). */
   onOpenPrestart?: () => void;
+  onViewPrestart?: () => void;
   /** True when any completed prestart record exists (inspection or not-responsible note). */
   prestartFormCompleted?: boolean;
   /** Phase 5 — open voluntary Dimension & Load form (optional; multi-load; no post-load gate). */
   onOpenDimensionLoad?: () => void;
+  onViewDimensionLoad?: () => void;
   /** True when ≥1 completed dimension_load record exists for this day. */
   dimensionLoadFormCompleted?: boolean;
 };
@@ -55,10 +59,13 @@ export function DayTripChecklist({
   variant = "card",
   className,
   onOpenFfw,
+  onViewFfw,
   ffwFormCompleted = false,
   onOpenPrestart,
+  onViewPrestart,
   prestartFormCompleted = false,
   onOpenDimensionLoad,
+  onViewDimensionLoad,
   dimensionLoadFormCompleted = false,
 }: Props) {
   const collapsible = variant === "card";
@@ -68,7 +75,14 @@ export function DayTripChecklist({
     onChange({ ...value, [key]: checked ? true : false });
   };
 
-  const hasFormOpen = Boolean(onOpenFfw || onOpenPrestart || onOpenDimensionLoad);
+  const hasFormOpen = Boolean(
+    onOpenFfw ||
+      onViewFfw ||
+      onOpenPrestart ||
+      onViewPrestart ||
+      onOpenDimensionLoad ||
+      onViewDimensionLoad
+  );
   const summary = checklistSummary(
     value,
     ffwFormCompleted,
@@ -176,32 +190,71 @@ export function DayTripChecklist({
                         ) : null}
                       </span>
                     </label>
-                    {isFfw && onOpenFfw && !readOnly ? (
-                      <button
-                        type="button"
-                        onClick={onOpenFfw}
-                        className="shrink-0 rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                      >
-                        {ffwFormCompleted ? "View / redo" : "Open form"}
-                      </button>
+                    {isFfw && (onViewFfw || onOpenFfw) ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {ffwFormCompleted && onViewFfw ? (
+                          <button
+                            type="button"
+                            onClick={onViewFfw}
+                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                          >
+                            View
+                          </button>
+                        ) : null}
+                        {onOpenFfw && !readOnly ? (
+                          <button
+                            type="button"
+                            onClick={onOpenFfw}
+                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                          >
+                            {ffwFormCompleted ? "Redo" : "Open form"}
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
-                    {isPrestart && onOpenPrestart && !readOnly ? (
-                      <button
-                        type="button"
-                        onClick={onOpenPrestart}
-                        className="shrink-0 rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                      >
-                        {prestartFormCompleted ? "View / redo" : "Open form"}
-                      </button>
+                    {isPrestart && (onViewPrestart || onOpenPrestart) ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {prestartFormCompleted && onViewPrestart ? (
+                          <button
+                            type="button"
+                            onClick={onViewPrestart}
+                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                          >
+                            View
+                          </button>
+                        ) : null}
+                        {onOpenPrestart && !readOnly ? (
+                          <button
+                            type="button"
+                            onClick={onOpenPrestart}
+                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                          >
+                            {prestartFormCompleted ? "Redo" : "Open form"}
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
-                    {isLoad && onOpenDimensionLoad && !readOnly ? (
-                      <button
-                        type="button"
-                        onClick={onOpenDimensionLoad}
-                        className="shrink-0 rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                      >
-                        {dimensionLoadFormCompleted ? "Add another" : "Open form"}
-                      </button>
+                    {isLoad && (onViewDimensionLoad || onOpenDimensionLoad) ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {dimensionLoadFormCompleted && onViewDimensionLoad ? (
+                          <button
+                            type="button"
+                            onClick={onViewDimensionLoad}
+                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                          >
+                            View
+                          </button>
+                        ) : null}
+                        {onOpenDimensionLoad && !readOnly ? (
+                          <button
+                            type="button"
+                            onClick={onOpenDimensionLoad}
+                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                          >
+                            {dimensionLoadFormCompleted ? "Add another" : "Open form"}
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
                 </li>

@@ -337,3 +337,14 @@ export function listCompletedChecklists(
   if (!Array.isArray(checklists)) return [];
   return checklists.filter((c) => c?.status === "completed" && isChecklistRecordType(c.type));
 }
+
+/** Completed records of one type, oldest → newest. */
+export function listCompletedChecklistsOfType(
+  checklists: ChecklistRecord[] | null | undefined,
+  type: ChecklistRecordType
+): ChecklistRecord[] {
+  return listCompletedChecklists(checklists)
+    .filter((c) => c.type === type)
+    .slice()
+    .sort((a, b) => String(a.completedAtUtc).localeCompare(String(b.completedAtUtc)));
+}
