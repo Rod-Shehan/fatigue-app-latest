@@ -227,8 +227,8 @@ export function DriverGuideArticle() {
         </p>
         <p className="mt-3">
           Normal day: open the week → check From / To / Rego → optionally tick Daily checks or open signed Fitness for
-          Work / Prestart forms (optional in trial — do not block Start shift) → type start km → tap Start
-          shift.
+          Work / Prestart / Dimension & Load forms (optional in trial — do not block Start shift) → type start km → tap
+          Start shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
         <p>Use Set up day (or Edit day) when something changes:</p>
@@ -422,9 +422,10 @@ export function DriverGuideArticle() {
           <li>Log more work</li>
           <li>Check rego, from, and to on today&apos;s card</li>
           <li>
-            Optionally tick Daily checks, or open signed Fitness for Work / Prestart forms (optional in trial — do not
-            block Start shift). Two-up drivers who are not responsible for the vehicle prestart can record that on the
-            Prestart form instead of inventing answers.
+            Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
+            in trial — do not block Start shift). Two-up drivers who are not responsible for the vehicle prestart can
+            record that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than
+            once per day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
           <li>Type start km</li>
           <li>Tap Start shift when you begin</li>

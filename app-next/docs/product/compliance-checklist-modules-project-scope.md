@@ -1,6 +1,6 @@
 # Project scope: Compliance checklist modules (FFW / Prestart / Dimension & Load)
 
-**Status:** Phases 0–**4** done (2026-07-31). **Trial mode:** checklists optional — gates off (**P**). Phase 5 not started.  
+**Status:** Phases 0–**5** done (2026-08-01). **Trial mode:** checklists optional — gates off (**P**). Phase 6 not started.  
 **Stack:** Circadia24 EWD in **`app-next` (Next.js)** — not React Native / Flutter. PDF work extends the existing week / roadside pipeline (`sheet-jspdf-export`, WorkSafe day tiles, produce PDF), not a separate `PDFEngine.ts` mobile module.  
 **Baseline today:** Day cards store three **boolean** ticks (`fitness_for_work`, `dimension_load_checklist`, `daily_vehicle_checklist`) printed on the Weekly Trip Sheet. This project adds **full signed checklist records** (optional in trial). Designed **shift / load gates** are documented for later customer configuration — **not enforced** during trial / marketing.
 
@@ -154,12 +154,12 @@ During the current trial term, checklists are a **capability preview**:
 - [x] Entry: Daily checks “Open form”, Day tools → Optional checks, Set up day
 - [x] Guides: optional Prestart in trial wording
 
-### Phase 5 — Dimension & Load voluntary entry (+ gate hook only) — NOT STARTED
+### Phase 5 — Dimension & Load voluntary entry (+ gate hook only) — DONE
 
-- [ ] Load form + Q “know who loaded?” / “I loaded it”
-- [ ] Loader paths **J** A/B/C + dual function **J2**
-- [ ] Multi-load allowed; post-load **trigger optional** — no hard gate while **P**
-- [ ] Guides updated
+- [x] Load form + Q “know who loaded?” / “I loaded it” (`DimensionLoadForm`)
+- [x] Loader paths **J** A/B/C + dual function **J2**
+- [x] Multi-load allowed; post-load **trigger optional** — no hard gate while **P**
+- [x] Guides updated
 
 ### Phase 6 — PDF + 28-day / week integration — NOT STARTED
 
@@ -211,4 +211,4 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 5** — voluntary Dimension & Load entry (still no sheet gates per **P**).
+**Phase 6** — checklist PDF pages in week export + roadside produce (**H** / **K**).

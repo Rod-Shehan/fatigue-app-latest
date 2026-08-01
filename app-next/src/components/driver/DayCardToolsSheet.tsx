@@ -32,6 +32,8 @@ export function DayCardToolsSheet({
   ffwFormCompleted = false,
   onOpenPrestart,
   prestartFormCompleted = false,
+  onOpenDimensionLoad,
+  dimensionLoadFormCompleted = false,
   last24hUnset,
   declared24hRestUnset,
   driverName,
@@ -53,6 +55,9 @@ export function DayCardToolsSheet({
   /** Optional trial Prestart form — never blocks Start shift. */
   onOpenPrestart?: () => void;
   prestartFormCompleted?: boolean;
+  /** Optional trial Dimension & Load — multi-load; never blocks leaving load. */
+  onOpenDimensionLoad?: () => void;
+  dimensionLoadFormCompleted?: boolean;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
@@ -195,7 +200,7 @@ export function DayCardToolsSheet({
 
           <section>
             <h3 className={driverSectionLabel}>Optional checks</h3>
-            {onOpenFfw || onOpenPrestart ? (
+            {onOpenFfw || onOpenPrestart || onOpenDimensionLoad ? (
               <div className="space-y-1">
                 {onOpenFfw ? (
                   <button
@@ -234,6 +239,27 @@ export function DayCardToolsSheet({
                         {prestartFormCompleted
                           ? "Form saved for this day — optional to redo"
                           : "Optional vehicle check — two-up can mark not responsible"}
+                      </span>
+                    </span>
+                    <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                  </button>
+                ) : null}
+                {onOpenDimensionLoad ? (
+                  <button
+                    type="button"
+                    className={cn(driverDrawerRow, "w-full")}
+                    onClick={() => {
+                      onOpenChange(false);
+                      onOpenDimensionLoad();
+                    }}
+                  >
+                    <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                    <span className="flex-1 text-left">
+                      <span className="block font-semibold">Dimension & Load</span>
+                      <span className="block text-xs text-slate-500 dark:text-slate-400">
+                        {dimensionLoadFormCompleted
+                          ? "Form saved — you can add another load"
+                          : "Optional post-load check — separate driver / loader CoR"}
                       </span>
                     </span>
                     <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

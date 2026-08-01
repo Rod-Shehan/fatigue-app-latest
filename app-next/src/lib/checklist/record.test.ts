@@ -91,6 +91,56 @@ describe("validateCompletedChecklistRecord", () => {
     );
     expect(v.ok).toBe(false);
   });
+
+  it("requires loaderPath on dimension_load", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "dimension_load",
+        loaderPath: null,
+        items: [{ code: "load_1", kind: "pass_fail", value: "pass" }],
+      })
+    );
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.errors.some((e) => e.code === "loaderPath")).toBe(true);
+  });
+
+  it("accepts dimension_load pending with loader name and driver-only signature", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "dimension_load",
+        loaderPath: "pending",
+        loaderName: "Sam Loader",
+        items: [{ code: "load_1", kind: "pass_fail", value: "pass" }],
+      })
+    );
+    expect(v.ok).toBe(true);
+  });
+
+  it("accepts dimension_load self_as_loader with dual signatures", () => {
+    const driver = sampleFfw().signatures[0]!;
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "dimension_load",
+        loaderPath: "self_as_loader",
+        loaderName: "Driver (self-loaded)",
+        items: [{ code: "load_1", kind: "pass_fail", value: "pass" }],
+        signatures: [driver, { ...driver, role: "loader" }],
+      })
+    );
+    expect(v.ok).toBe(true);
+  });
+
+  it("rejects self_as_loader without separate loader signature", () => {
+    const v = validateCompletedChecklistRecord(
+      sampleFfw({
+        type: "dimension_load",
+        loaderPath: "self_as_loader",
+        items: [{ code: "load_1", kind: "pass_fail", value: "pass" }],
+      })
+    );
+    expect(v.ok).toBe(false);
+  });
+
   it("accepts not-responsible prestart with skip reason and empty items", () => {
     const v = validateCompletedChecklistRecord(
       sampleFfw({

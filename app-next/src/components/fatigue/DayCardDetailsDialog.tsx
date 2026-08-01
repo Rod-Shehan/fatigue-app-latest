@@ -49,6 +49,7 @@ import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsFiel
 import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
+import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
 import {
   appendChecklistToDay,
   hasCompletedChecklistOfType,
@@ -168,10 +169,15 @@ export function DayCardDetailsDialog({
   const [confirming, setConfirming] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
+  const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const ffwFormCompleted = hasCompletedChecklistOfType(draft.checklists, "ffw");
   const prestartFormCompleted = hasCompletedChecklistOfType(draft.checklists, "prestart");
+  const dimensionLoadFormCompleted = hasCompletedChecklistOfType(
+    draft.checklists,
+    "dimension_load"
+  );
 
   const activityBeforeDay = useMemo((): PriorOpenActivity => {
     if (activityBeforeDayProp != null) return activityBeforeDayProp;
@@ -513,6 +519,8 @@ export function DayCardDetailsDialog({
             onOpenFfw={readOnly ? undefined : () => setFfwOpen(true)}
             prestartFormCompleted={prestartFormCompleted}
             onOpenPrestart={readOnly ? undefined : () => setPrestartOpen(true)}
+            dimensionLoadFormCompleted={dimensionLoadFormCompleted}
+            onOpenDimensionLoad={readOnly ? undefined : () => setDimensionLoadOpen(true)}
             value={{
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
@@ -542,6 +550,16 @@ export function DayCardDetailsDialog({
             onClose={() => setPrestartOpen(false)}
             driverName={driverName}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
+            onCompleted={(record) => {
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
+          />
+
+          <DimensionLoadForm
+            open={dimensionLoadOpen}
+            onClose={() => setDimensionLoadOpen(false)}
+            driverName={driverName}
+            truckRego={draft.truck_rego}
             onCompleted={(record) => {
               setDraft((prev) => appendChecklistToDay(prev, record));
             }}

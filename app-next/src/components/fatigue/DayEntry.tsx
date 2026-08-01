@@ -18,6 +18,7 @@ import { DayCardDetailsDialog, type DayCardFields } from "./DayCardDetailsDialog
 import { DayTripChecklist } from "./DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
+import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
 import {
   appendChecklistToDay,
   hasCompletedChecklistOfType,
@@ -199,6 +200,7 @@ export default function DayEntry({
   const [toolsOpen, setToolsOpen] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
+  const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
   const lastSetupOpenRequestRef = useRef(0);
@@ -214,6 +216,10 @@ export default function DayEntry({
   const canEditDetails = !readOnly;
   const ffwFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "ffw");
   const prestartFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "prestart");
+  const dimensionLoadFormCompleted = hasCompletedChecklistOfType(
+    dayData.checklists,
+    "dimension_load"
+  );
 
   const openFfwForm = useCallback(() => {
     if (!canEditDetails) return;
@@ -227,6 +233,12 @@ export default function DayEntry({
     setPrestartOpen(true);
   }, [canEditDetails]);
 
+  const openDimensionLoadForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setDimensionLoadOpen(true);
+  }, [canEditDetails]);
+
   const saveFfwRecord = useCallback(
     (record: ChecklistRecord) => {
       onUpdate(dayIndex, appendChecklistToDay(dayData, record));
@@ -235,6 +247,13 @@ export default function DayEntry({
   );
 
   const savePrestartRecord = useCallback(
+    (record: ChecklistRecord) => {
+      onUpdate(dayIndex, appendChecklistToDay(dayData, record));
+    },
+    [dayData, dayIndex, onUpdate]
+  );
+
+  const saveDimensionLoadRecord = useCallback(
     (record: ChecklistRecord) => {
       onUpdate(dayIndex, appendChecklistToDay(dayData, record));
     },
@@ -517,6 +536,8 @@ export default function DayEntry({
             onOpenFfw={canEditDetails ? openFfwForm : undefined}
             prestartFormCompleted={prestartFormCompleted}
             onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
+            dimensionLoadFormCompleted={dimensionLoadFormCompleted}
+            onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
             value={{
               fitness_for_work: dayData.fitness_for_work,
               dimension_load_checklist: dayData.dimension_load_checklist,
@@ -637,6 +658,8 @@ export default function DayEntry({
           ffwFormCompleted={ffwFormCompleted}
           onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
           prestartFormCompleted={prestartFormCompleted}
+          onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
+          dimensionLoadFormCompleted={dimensionLoadFormCompleted}
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
           driverName={dayTools.driverName ?? driverName}
@@ -656,6 +679,14 @@ export default function DayEntry({
         driverName={dayTools?.driverName ?? driverName}
         sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
         onCompleted={savePrestartRecord}
+      />
+
+      <DimensionLoadForm
+        open={dimensionLoadOpen}
+        onClose={() => setDimensionLoadOpen(false)}
+        driverName={dayTools?.driverName ?? driverName}
+        truckRego={dayData.truck_rego}
+        onCompleted={saveDimensionLoadRecord}
       />
 
       {canEditDetails && (

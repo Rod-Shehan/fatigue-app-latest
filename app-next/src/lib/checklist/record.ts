@@ -206,6 +206,48 @@ export function validateCompletedChecklistRecord(
     }
   }
 
+  if (r.type === "dimension_load") {
+    const path = r.loaderPath;
+    if (
+      path !== "present" &&
+      path !== "pending" &&
+      path !== "not_obtained" &&
+      path !== "self_as_loader"
+    ) {
+      errors.push({
+        code: "loaderPath",
+        message: "dimension_load requires loaderPath (present | pending | not_obtained | self_as_loader)",
+      });
+    } else {
+      const loaderName =
+        typeof r.loaderName === "string" ? r.loaderName.trim() : "";
+      if ((path === "present" || path === "pending") && !loaderName) {
+        errors.push({
+          code: "loaderName",
+          message: "Loader name is required when the loader is known",
+        });
+      }
+      if (path === "self_as_loader") {
+        const sigs = Array.isArray(r.signatures) ? (r.signatures as ChecklistRecordSignature[]) : [];
+        if (!sigs.some((s) => s?.role === "loader")) {
+          errors.push({
+            code: "signatures",
+            message: "Self-as-loader requires a separate As loader signature (no merged sign-off)",
+          });
+        }
+      }
+      if (path === "present") {
+        const sigs = Array.isArray(r.signatures) ? (r.signatures as ChecklistRecordSignature[]) : [];
+        if (!sigs.some((s) => s?.role === "loader")) {
+          errors.push({
+            code: "signatures",
+            message: "Loader signature is required when the loader is present",
+          });
+        }
+      }
+    }
+  }
+
   if (r.loaderPath === "not_obtained") {
     const ev = (r.evidencePhotoDataUrls as string[] | undefined) ?? [];
     if (ev.length < 1) {

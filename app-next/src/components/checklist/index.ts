@@ -8,4 +8,5 @@ export { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 export { ChecklistModalShell } from "./ChecklistModalShell";
 export { FitnessForWorkForm } from "./FitnessForWorkForm";
 export { PrestartForm } from "./PrestartForm";
+export { DimensionLoadForm } from "./DimensionLoadForm";
 export { ChecklistKitDemo } from "./ChecklistKitDemo";
