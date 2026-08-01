@@ -62,7 +62,10 @@ export {
 export {
   CHECKLIST_PDF_BUTTON_LABEL,
   CHECKLIST_PDF_DISCLAIMER,
+  CHECKLIST_PDF_TYPES,
+  CHECKLIST_PDF_TYPE_TITLE,
   buildChecklistPackJsPdfBuffer,
+  checklistPdfFilename,
   collectChecklistPdfDays,
 } from "./checklist-pdf";
 export type { ChecklistPdfDayBundle } from "./checklist-pdf";

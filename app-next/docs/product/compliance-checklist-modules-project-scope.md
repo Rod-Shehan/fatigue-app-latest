@@ -143,12 +143,12 @@ During the current trial term, checklists are a **capability preview**:
 **Doctrine:** JSON SoR (audit-durable); PDF on demand / optional archive copy; **not** in 28-day roadside; photos → object store or customer SharePoint (**email = delivery**, not sole custody) (**Q1**).
 
 - [x] Checklist PDF renderer from completed records (jsPDF; brand **I**)
-- [x] On-demand produce API + EWD entry (day tools / View) — day or week
+- [x] On-demand produce + email — **week pack per type** (FFW / Prestart / Load separate; never merged; not fatigue roadside)
 - [x] Honest pending / not-obtained presentation (**K2**)
-- [ ] Optional: email checklist PDF (delivery to customer; Circadia still keeps SoR)
-- [x] Explicit UI copy: checklist PDF ≠ fatigue roadside
+- [x] Interim email to Circadia holding inbox (`circadia24@gmail.com`); per-client distribution later
+- [x] Explicit UI copy: checklist PDF ≠ fatigue roadside; types not combined
 - [x] Guides updated
-- [x] Interim: email checklist PDF to Circadia holding inbox (`circadia24@gmail.com`) — per-client distribution later
+- [ ] Customer packing choice (per shift / day / week / fortnight / month) — deferred
 - [ ] Off-Neon photo store (R2 / SharePoint) — **parked** (see `docs/architecture/checklist-photo-r2-parked.md`)
 
 ### Phase 7 — Polish + QA — NOT STARTED
@@ -200,4 +200,14 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 6 remaining** — per-client checklist PDF email distribution; R2/photo offload stays parked. Confirm `RESEND_API_KEY` + `EMAIL_FROM` on the server so Circadia holding email works.
+**Phase 6 remaining** — per-client checklist email distribution + optional packing cadence (shift/day/week/…). R2/photo offload stays parked.
+
+---
+
+## Checklist PDF packing doctrine (locked 2026-08-01)
+
+- Fatigue roadside / week sheets are **never** included in checklist PDFs.
+- **One PDF = one checklist type** for one driver (default scope: **week**).
+- Do **not** merge FFW + Prestart + Dimension & Load — different regulations; auditors often call them up separately.
+- Legacy practice often treated each form iteration as its own output; week-per-type is the interim demo packing.
+- Later: customer choice of packing (per shift / day / week / fortnight / month).

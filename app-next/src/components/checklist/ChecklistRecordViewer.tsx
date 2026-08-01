@@ -251,7 +251,7 @@ export function ChecklistRecordViewer({
               onClick={() => void onEmailPdf()}
               className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
             >
-              {CHECKLIST_EMAIL_BUTTON_LABEL}
+              {CHECKLIST_EMAIL_BUTTON_LABEL.replace("packs", "pack")}
             </button>
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -276,7 +276,8 @@ export function ChecklistRecordViewer({
             </button>
           </div>
           <p className="text-center text-[10px] text-ck-steel leading-snug">
-            Checklist PDF is separate from the 28-day fatigue roadside PDF.
+            Week pack for this form type only — separate from other checklist types and from the
+            28-day fatigue roadside PDF.
           </p>
         </div>
       }

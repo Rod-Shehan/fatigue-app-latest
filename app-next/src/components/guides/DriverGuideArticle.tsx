@@ -428,9 +428,9 @@ export function DriverGuideArticle() {
           <li>
             Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
             in trial — do not block Start shift). After a form is saved, use View to read it, or Redo / Add another for a
-            new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) makes a CoR / vehicle pack for that day — separate from
-            the 28-day fatigue roadside PDF. {CHECKLIST_EMAIL_BUTTON_LABEL} sends a holding copy to Circadia (customer email
-            distribution comes later). Two-up drivers who are not responsible for the vehicle prestart can record
+            new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) downloads a week pack per checklist type
+            (FFW / Prestart / Load as separate files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL}{" "}
+            sends those to Circadia (customer packing options come later). Two-up drivers who are not responsible for the vehicle prestart can record
             that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
             day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>

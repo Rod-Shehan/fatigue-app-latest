@@ -474,20 +474,28 @@ export const api = {
       fetchApi<void>(`/api/sheets/${id}`, { method: "DELETE" }),
     exportPdfUrl: (id: string) => `${base}/api/sheets/${id}/export`,
     /** Dedicated checklist pack PDF (not fatigue roadside). Optional dayIndex 0–6. */
-    checklistPdfUrl: (id: string, dayIndex?: number) => {
-      const q =
-        dayIndex != null && Number.isInteger(dayIndex)
-          ? `?dayIndex=${encodeURIComponent(String(dayIndex))}`
-          : "";
-      return `${base}/api/sheets/${id}/checklists/export${q}`;
+    /** Dedicated checklist pack PDF — one type, week by default. */
+    checklistPdfUrl: (id: string, type: import("@/lib/checklist").ChecklistRecordType, dayIndex?: number) => {
+      const sp = new URLSearchParams();
+      sp.set("type", type);
+      if (dayIndex != null && Number.isInteger(dayIndex)) {
+        sp.set("dayIndex", String(dayIndex));
+      }
+      return `${base}/api/sheets/${id}/checklists/export?${sp.toString()}`;
     },
-    /** Email checklist pack PDF to Circadia holding inbox (interim). */
-    emailChecklistPdf: (id: string, dayIndex?: number) =>
-      fetchApi<{ ok: boolean; to: string; filename: string; id?: string }>(
+    /**
+     * Email week pack PDF(s) to Circadia holding inbox.
+     * Omit type → one attachment per type that has records. Never merges types.
+     */
+    emailChecklistPdf: (
+      id: string,
+      opts?: { type?: import("@/lib/checklist").ChecklistRecordType }
+    ) =>
+      fetchApi<{ ok: boolean; to: string; filenames: string[]; id?: string }>(
         `/api/sheets/${id}/checklists/export/email`,
         {
           method: "POST",
-          body: dayIndex != null && Number.isInteger(dayIndex) ? { dayIndex } : {},
+          body: opts?.type ? { type: opts.type } : {},
         }
       ),
     listChecklists: (id: string) =>

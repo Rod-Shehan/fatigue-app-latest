@@ -25,19 +25,22 @@ function sample(type: ChecklistRecord["type"], id: string): ChecklistRecord {
 }
 
 describe("collectChecklistPdfDays", () => {
-  it("skips days without completed records", () => {
+  it("collects one type across the week", () => {
     const days = collectChecklistPdfDays({
       weekStarting: "2026-07-26",
-      days: [{}, { checklists: [sample("ffw", "1")] }, {}],
+      type: "ffw",
+      days: [{}, { checklists: [sample("ffw", "1"), sample("prestart", "p")] }, {}],
     });
     expect(days).toHaveLength(1);
     expect(days[0]!.dayIndex).toBe(1);
     expect(days[0]!.records).toHaveLength(1);
+    expect(days[0]!.records[0]!.type).toBe("ffw");
   });
 
-  it("filters to a single dayIndex", () => {
+  it("filters to a single dayIndex for that type", () => {
     const days = collectChecklistPdfDays({
       weekStarting: "2026-07-26",
+      type: "ffw",
       dayIndex: 0,
       days: [
         { checklists: [sample("ffw", "a")] },
@@ -46,5 +49,16 @@ describe("collectChecklistPdfDays", () => {
     });
     expect(days).toHaveLength(1);
     expect(days[0]!.dayIndex).toBe(0);
+    expect(days[0]!.records.every((r) => r.type === "ffw")).toBe(true);
+  });
+
+  it("does not mix types in one pack", () => {
+    const days = collectChecklistPdfDays({
+      weekStarting: "2026-07-26",
+      type: "prestart",
+      days: [{ checklists: [sample("ffw", "a"), sample("prestart", "b")] }],
+    });
+    expect(days[0]!.records).toHaveLength(1);
+    expect(days[0]!.records[0]!.type).toBe("prestart");
   });
 });

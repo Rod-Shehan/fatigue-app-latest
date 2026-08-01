@@ -3,21 +3,27 @@ import { getSessionForSheetAccess, canAccessSheet } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   buildChecklistPackJsPdfBuffer,
+  checklistPdfFilename,
   collectChecklistPdfDays,
+  CHECKLIST_PDF_TYPES,
+  CHECKLIST_PDF_TYPE_TITLE,
 } from "@/lib/checklist/checklist-pdf";
+import { CHECKLIST_ARCHIVE_EMAIL } from "@/lib/checklist/checklist-email";
 import {
-  CHECKLIST_ARCHIVE_EMAIL,
-} from "@/lib/checklist/checklist-email";
-import type { ChecklistRecord } from "@/lib/checklist";
+  isChecklistRecordType,
+  type ChecklistRecord,
+  type ChecklistRecordType,
+} from "@/lib/checklist";
 import { outboundEmailConfigured, sendOutboundEmail } from "@/lib/email/outbound";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST — build checklist PDF and email to Circadia holding inbox (interim custody).
- * Body optional: { dayIndex?: 0–6 }
- * Later: per-client distribution replaces / extends this destination.
+ * POST — email week pack PDF(s) by checklist type to Circadia holding inbox.
+ * Body: { type?: ffw|prestart|dimension_load } — omit type to attach one PDF per type that has records.
+ * Types are never merged into one PDF (different regs / audit call-ups).
+ * Fatigue roadside PDF is never included.
  */
 export async function POST(
   req: Request,
@@ -53,73 +59,85 @@ export async function POST(
       days = [];
     }
 
-    let dayIndex: number | null = null;
+    let onlyType: ChecklistRecordType | null = null;
     try {
-      const body = (await req.json().catch(() => ({}))) as { dayIndex?: unknown; day_index?: unknown };
-      const raw = body.dayIndex ?? body.day_index;
-      if (raw != null && raw !== "") {
-        const n = Number(raw);
-        if (!Number.isInteger(n) || n < 0 || n > 6) {
-          return NextResponse.json({ error: "dayIndex must be 0–6" }, { status: 400 });
+      const body = (await req.json().catch(() => ({}))) as { type?: unknown };
+      if (body.type != null && body.type !== "") {
+        if (!isChecklistRecordType(body.type)) {
+          return NextResponse.json(
+            { error: "type must be ffw | prestart | dimension_load" },
+            { status: 400 }
+          );
         }
-        dayIndex = n;
+        onlyType = body.type;
       }
     } catch {
-      /* empty body ok */
+      /* empty body = all types */
     }
 
-    const bundles = collectChecklistPdfDays({
-      weekStarting: row.weekStarting,
-      days,
-      dayIndex,
-    });
+    const types: ChecklistRecordType[] = onlyType ? [onlyType] : [...CHECKLIST_PDF_TYPES];
+    const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
+    const attachments: { filename: string; content: Buffer | Uint8Array; contentType: string }[] =
+      [];
+    const included: string[] = [];
 
-    if (!bundles.length) {
+    for (const type of types) {
+      const bundles = collectChecklistPdfDays({
+        weekStarting: row.weekStarting,
+        days,
+        type,
+        dayIndex: null,
+      });
+      if (!bundles.length) continue;
+      const pdfBytes = await buildChecklistPackJsPdfBuffer({
+        driverName: row.driverName,
+        weekStarting: row.weekStarting,
+        days: bundles,
+        generatedAtLabel,
+        type,
+      });
+      const filename = checklistPdfFilename({
+        driverName: row.driverName,
+        weekStarting: row.weekStarting,
+        type,
+        dayIndex: null,
+      });
+      attachments.push({
+        filename,
+        content: Buffer.from(pdfBytes),
+        contentType: "application/pdf",
+      });
+      included.push(CHECKLIST_PDF_TYPE_TITLE[type]);
+    }
+
+    if (!attachments.length) {
       return NextResponse.json(
-        { error: "No completed checklist records for this selection" },
+        { error: "No completed checklist records for this week" },
         { status: 404 }
       );
     }
 
-    const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
-    const pdfBytes = await buildChecklistPackJsPdfBuffer({
-      driverName: row.driverName,
-      weekStarting: row.weekStarting,
-      days: bundles,
-      generatedAtLabel,
-    });
-
-    const safeName = (row.driverName || "driver").replace(/[^\w\-]+/g, "_").slice(0, 40);
-    const daySuffix = dayIndex != null ? `-day${dayIndex}` : "-week";
-    const filename = `checklist-pack-${safeName}-${row.weekStarting}${daySuffix}.pdf`;
-
-    const subject =
-      dayIndex != null
-        ? `Checklist pack — ${row.driverName} — day ${dayIndex} — ${row.weekStarting}`
-        : `Checklist pack — ${row.driverName} — week ${row.weekStarting}`;
+    const subject = onlyType
+      ? `${CHECKLIST_PDF_TYPE_TITLE[onlyType]} week pack — ${row.driverName} — ${row.weekStarting}`
+      : `Checklist week packs — ${row.driverName} — ${row.weekStarting}`;
 
     const result = await sendOutboundEmail({
       to: CHECKLIST_ARCHIVE_EMAIL,
       subject,
       text: [
-        "Circadia24 checklist pack (holding copy).",
+        "Circadia24 checklist week pack(s) — holding copy.",
         "",
         `Driver: ${row.driverName}`,
         `Week starting: ${row.weekStarting}`,
-        dayIndex != null ? `Day index: ${dayIndex}` : "Scope: full week with completed checklists",
+        `Included (separate PDF per type): ${included.join("; ")}`,
         `Sheet id: ${id}`,
         `Generated (AWST): ${generatedAtLabel}`,
         "",
+        "Types are not combined — auditors often call up each form type separately.",
         "This is not the 28-day fatigue roadside PDF.",
-        "Structured answers remain in Circadia (Neon). Per-client email distribution comes later.",
+        "Structured answers remain in Circadia (Neon). Per-client packing options (shift/day/week/…) come later.",
       ].join("\n"),
-      attachments: [
-        {
-          filename,
-          content: pdfBytes,
-          contentType: "application/pdf",
-        },
-      ],
+      attachments,
     });
 
     if (!result.ok) {
@@ -129,26 +147,28 @@ export async function POST(
       );
     }
 
-    await prisma.auditEvent.create({
-      data: {
-        sheetId: id,
-        actorId: access.userId,
-        action: "checklist_pdf_emailed",
-        payload: {
-          to: CHECKLIST_ARCHIVE_EMAIL,
-          day_index: dayIndex,
-          filename,
-          resend_id: result.id ?? null,
+    await prisma.auditEvent
+      .create({
+        data: {
+          sheetId: id,
+          actorId: access.userId,
+          action: "checklist_pdf_emailed",
+          payload: {
+            to: CHECKLIST_ARCHIVE_EMAIL,
+            types: onlyType ? [onlyType] : included,
+            filenames: attachments.map((a) => a.filename),
+            resend_id: result.id ?? null,
+          },
         },
-      },
-    }).catch(() => {
-      /* audit best-effort */
-    });
+      })
+      .catch(() => {
+        /* audit best-effort */
+      });
 
     return NextResponse.json({
       ok: true,
       to: CHECKLIST_ARCHIVE_EMAIL,
-      filename,
+      filenames: attachments.map((a) => a.filename),
       id: result.id,
     });
   } catch (e) {

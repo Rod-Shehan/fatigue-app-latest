@@ -273,7 +273,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 1. Sign in (or stay signed in)
 2. **Log more work**
 3. Check rego, from, and to on today's card
-4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. Use **Produce checklist PDF** (day tools) for a CoR / vehicle pack for that day — this is **not** the 28-day fatigue roadside PDF. **Email checklist PDF** sends a holding copy to Circadia (customer email distribution comes later). Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
+4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to Circadia. Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
 5. Type **start km**
 6. Tap **Start shift** when you begin
 7. Tap **Break** for short rest
@@ -289,7 +289,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Work | Solo means driving or working. Two-up means driving. |
 | Break | Short rest (≤30 min) during work |
 | Non-work | Off duty / long rest / sleep / in sleeper cab for two-up |
-| Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDF** downloads a separate CoR/vehicle pack (not the 28-day fatigue roadside PDF). **Email checklist PDF** sends a holding copy to Circadia. Prestart asks if you are responsible (two-up second drivers can say no with a reason). Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
+| Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files — not combined). **Email checklist week packs** sends those to Circadia. Prestart asks if you are responsible (two-up second drivers can say no with a reason). Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
 | Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature with the day sheets |
 | Start shift / End shift | Begin / finish work for a shift |
 | Resume shift | Continue the same shift — this is not the same as start / finish break. |

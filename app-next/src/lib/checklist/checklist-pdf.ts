@@ -5,26 +5,29 @@
 
 import { PRODUCT_NAME_EXPORT } from "@/lib/branding";
 import { getSheetDayDateString } from "@/lib/weeks";
+import { checklistFaultMobilityLabel } from "./item-types";
 import {
-  checklistFaultMobilityLabel,
-  listCompletedChecklists,
+  isChecklistRecordType,
+  listCompletedChecklistsOfType,
   type ChecklistRecord,
   type ChecklistRecordType,
-} from "@/lib/checklist";
-import { CHECKLIST_BRAND } from "@/lib/checklist/tokens";
+} from "./record";
+import { CHECKLIST_BRAND } from "./tokens";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-export const CHECKLIST_PDF_BUTTON_LABEL = "Produce checklist PDF";
+export const CHECKLIST_PDF_BUTTON_LABEL = "Produce checklist PDFs";
 
 export const CHECKLIST_PDF_DISCLAIMER =
-  "This Circadia24 checklist pack is generated from signed form records. It is not a fatigue work diary and is not part of the 28-day roadside fatigue PDF. Confirm with your policies and applicable CoR / WHS duties.";
+  "This Circadia24 checklist pack is generated from signed form records of one type for one driver week. It is not a fatigue work diary and is not part of the 28-day roadside fatigue PDF. Different checklist types are kept separate (different regs / audit call-ups). Confirm with your policies and applicable CoR / WHS duties.";
 
-const TYPE_TITLE: Record<ChecklistRecordType, string> = {
+export const CHECKLIST_PDF_TYPE_TITLE: Record<ChecklistRecordType, string> = {
   ffw: "Fitness for Work",
   prestart: "Prestart inspection",
   dimension_load: "Dimension & Load",
 };
+
+const TYPE_TITLE = CHECKLIST_PDF_TYPE_TITLE;
 
 const LOADER_PATH_LABEL: Record<string, string> = {
   present: "Loader present — signed",
@@ -70,16 +73,19 @@ export type ChecklistPdfDayBundle = {
 export function collectChecklistPdfDays(opts: {
   weekStarting: string;
   days: Array<{ checklists?: ChecklistRecord[] | null } | null | undefined>;
-  /** If set, only that day (0–6). */
+  /** Required — one pack = one checklist type (different regs / audit call-ups). */
+  type: ChecklistRecordType;
+  /** Optional day filter (0–6). Default = whole week for that type. */
   dayIndex?: number | null;
 }): ChecklistPdfDayBundle[] {
+  if (!isChecklistRecordType(opts.type)) return [];
   const out: ChecklistPdfDayBundle[] = [];
   const list = opts.days.slice(0, 7);
   while (list.length < 7) list.push({});
   for (let i = 0; i < 7; i++) {
     if (opts.dayIndex != null && opts.dayIndex !== i) continue;
     const day = list[i] ?? {};
-    const records = listCompletedChecklists(day.checklists);
+    const records = listCompletedChecklistsOfType(day.checklists, opts.type);
     if (!records.length) continue;
     out.push({
       dayIndex: i,
@@ -90,6 +96,24 @@ export function collectChecklistPdfDays(opts: {
   }
   return out;
 }
+
+export function checklistPdfFilename(opts: {
+  driverName: string;
+  weekStarting: string;
+  type: ChecklistRecordType;
+  dayIndex?: number | null;
+}): string {
+  const safeName = (opts.driverName || "driver").replace(/[^\w\-]+/g, "_").slice(0, 40);
+  const typeSlug =
+    opts.type === "dimension_load" ? "dimension-load" : opts.type === "prestart" ? "prestart" : "ffw";
+  const scope =
+    opts.dayIndex != null && Number.isInteger(opts.dayIndex)
+      ? `day${opts.dayIndex}`
+      : "week";
+  return `checklist-${typeSlug}-${safeName}-${opts.weekStarting}-${scope}.pdf`;
+}
+
+export const CHECKLIST_PDF_TYPES: ChecklistRecordType[] = ["ffw", "prestart", "dimension_load"];
 
 function dataUrlToJsPdfFormat(dataUrl: string): { format: "PNG" | "JPEG"; data: string } | null {
   const m = /^data:image\/(png|jpeg|jpg);base64,(.+)$/i.exec(dataUrl);
@@ -107,6 +131,8 @@ export async function buildChecklistPackJsPdfBuffer(input: {
   weekStarting: string;
   days: ChecklistPdfDayBundle[];
   generatedAtLabel: string;
+  /** One type per pack — shown in header. */
+  type: ChecklistRecordType;
 }): Promise<ArrayBuffer> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -116,6 +142,7 @@ export async function buildChecklistPackJsPdfBuffer(input: {
   const [mr, mg, mb] = hexToRgb(CHECKLIST_BRAND.midnight);
   const [rr, rg, rb] = hexToRgb(CHECKLIST_BRAND.red);
   const [er, eg, eb] = hexToRgb(CHECKLIST_BRAND.emerald);
+  const typeTitle = TYPE_TITLE[input.type];
 
   let y = 0;
 
@@ -130,8 +157,8 @@ export async function buildChecklistPackJsPdfBuffer(input: {
     doc.rect(0, 0, pageW, 22, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(13);
-    doc.text(`${PRODUCT_NAME_EXPORT} — Checklist pack`, margin, 10);
+    doc.setFontSize(12);
+    doc.text(`${PRODUCT_NAME_EXPORT} — ${typeTitle}`, margin, 10);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(subtitle, margin, 16);

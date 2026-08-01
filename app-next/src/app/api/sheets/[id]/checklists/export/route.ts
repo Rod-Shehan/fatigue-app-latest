@@ -3,16 +3,24 @@ import { getSessionForSheetAccess, canAccessSheet } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   buildChecklistPackJsPdfBuffer,
+  checklistPdfFilename,
   collectChecklistPdfDays,
+  CHECKLIST_PDF_TYPE_TITLE,
 } from "@/lib/checklist/checklist-pdf";
-import type { ChecklistRecord } from "@/lib/checklist";
+import {
+  isChecklistRecordType,
+  type ChecklistRecord,
+  type ChecklistRecordType,
+} from "@/lib/checklist";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET — dedicated checklist PDF for a week (or one day).
- * Query: dayIndex=0..6 optional. Never part of fatigue roadside produce (H2).
+ * GET — dedicated checklist PDF: one type for one driver week (default).
+ * Query: type=ffw|prestart|dimension_load (required)
+ *        dayIndex=0..6 optional (omit = whole week for that type)
+ * Never part of fatigue roadside produce (H2). Types are not combined (different regs).
  */
 export async function GET(
   req: Request,
@@ -38,6 +46,15 @@ export async function GET(
     }
 
     const url = new URL(req.url);
+    const typeRaw = url.searchParams.get("type");
+    if (!isChecklistRecordType(typeRaw)) {
+      return NextResponse.json(
+        { error: "type is required: ffw | prestart | dimension_load" },
+        { status: 400 }
+      );
+    }
+    const type = typeRaw as ChecklistRecordType;
+
     const dayRaw = url.searchParams.get("dayIndex");
     let dayIndex: number | null = null;
     if (dayRaw != null && dayRaw !== "") {
@@ -51,12 +68,15 @@ export async function GET(
     const bundles = collectChecklistPdfDays({
       weekStarting: row.weekStarting,
       days,
+      type,
       dayIndex,
     });
 
     if (!bundles.length) {
       return NextResponse.json(
-        { error: "No completed checklist records for this selection" },
+        {
+          error: `No completed ${CHECKLIST_PDF_TYPE_TITLE[type]} records for this selection`,
+        },
         { status: 404 }
       );
     }
@@ -68,11 +88,15 @@ export async function GET(
       weekStarting: row.weekStarting,
       days: bundles,
       generatedAtLabel,
+      type,
     });
 
-    const safeName = (row.driverName || "driver").replace(/[^\w\-]+/g, "_").slice(0, 40);
-    const daySuffix = dayIndex != null ? `-day${dayIndex}` : "-week";
-    const filename = `checklist-pack-${safeName}-${row.weekStarting}${daySuffix}.pdf`;
+    const filename = checklistPdfFilename({
+      driverName: row.driverName,
+      weekStarting: row.weekStarting,
+      type,
+      dayIndex,
+    });
 
     return new NextResponse(pdfBytes, {
       status: 200,

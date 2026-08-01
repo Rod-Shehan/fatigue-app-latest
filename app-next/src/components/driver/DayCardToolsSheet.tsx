@@ -382,9 +382,9 @@ export function DayCardToolsSheet({
                   >
                     <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
                     <span className="flex-1 text-left">
-                      <span className="block font-semibold">Produce checklist PDF</span>
+                      <span className="block font-semibold">Produce checklist PDFs</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        CoR / vehicle forms for this day — not the 28-day fatigue roadside PDF
+                        Week pack per type (FFW / Prestart / Load) — not the fatigue roadside PDF
                       </span>
                     </span>
                     <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
@@ -401,9 +401,9 @@ export function DayCardToolsSheet({
                   >
                     <FileSignature className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
                     <span className="flex-1 text-left">
-                      <span className="block font-semibold">Email checklist PDF</span>
+                      <span className="block font-semibold">Email checklist week packs</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        Sends a holding copy to Circadia — not the roadside fatigue PDF
+                        Separate PDF per type to Circadia — types not combined
                       </span>
                     </span>
                     <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

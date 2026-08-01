@@ -254,20 +254,29 @@ export default function DayEntry({
   const produceDayChecklistPdf = useCallback(() => {
     if (!dayTools?.sheetId) return;
     setToolsOpen(false);
-    window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, dayIndex), "_blank");
-  }, [dayTools?.sheetId, dayIndex]);
+    // Week packs — one download per type that has records on this sheet
+    for (const type of ["ffw", "prestart", "dimension_load"] as const) {
+      if (!hasCompletedChecklistOfType(dayData.checklists, type)) continue;
+      window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, type), "_blank");
+    }
+  }, [dayTools?.sheetId, dayData.checklists]);
 
   const emailDayChecklistPdf = useCallback(async () => {
     if (!dayTools?.sheetId) return;
     setToolsOpen(false);
     try {
-      await api.sheets.emailChecklistPdf(dayTools.sheetId, dayIndex);
-      window.alert("Checklist PDF emailed to Circadia holding inbox.");
+      const res = await api.sheets.emailChecklistPdf(dayTools.sheetId);
+      const n = res.filenames?.length ?? 0;
+      window.alert(
+        n
+          ? `Emailed ${n} week pack PDF(s) to Circadia (separate file per checklist type).`
+          : "Checklist PDF emailed to Circadia holding inbox."
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not email checklist PDF";
       window.alert(msg);
     }
-  }, [dayTools?.sheetId, dayIndex]);
+  }, [dayTools?.sheetId]);
 
   const saveFfwRecord = useCallback(
     (record: ChecklistRecord) => {
@@ -756,7 +765,10 @@ export default function DayEntry({
           onProducePdf={
             dayTools?.sheetId
               ? () => {
-                  window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, dayIndex), "_blank");
+                  window.open(
+                    api.sheets.checklistPdfUrl(dayTools.sheetId, viewChecklistType),
+                    "_blank"
+                  );
                 }
               : undefined
           }
@@ -764,10 +776,16 @@ export default function DayEntry({
             dayTools?.sheetId
               ? async () => {
                   try {
-                    await api.sheets.emailChecklistPdf(dayTools.sheetId, dayIndex);
-                    window.alert("Checklist PDF emailed to Circadia holding inbox.");
+                    await api.sheets.emailChecklistPdf(dayTools.sheetId, {
+                      type: viewChecklistType,
+                    });
+                    window.alert(
+                      "Week pack for this checklist type emailed to Circadia holding inbox."
+                    );
                   } catch (e) {
-                    window.alert(e instanceof Error ? e.message : "Could not email checklist PDF");
+                    window.alert(
+                      e instanceof Error ? e.message : "Could not email checklist PDF"
+                    );
                   }
                 }
               : undefined
