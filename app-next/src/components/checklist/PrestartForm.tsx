@@ -262,7 +262,7 @@ export function PrestartForm({
             <button
               type="button"
               onClick={handleClose}
-              className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white"
+              className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent"
             >
               Close
             </button>
@@ -271,7 +271,7 @@ export function PrestartForm({
               type="button"
               disabled={!canSave || saving}
               onClick={() => void handleSave()}
-              className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white disabled:opacity-40"
+              className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
             >
               {saving
                 ? "Saving…"
@@ -288,7 +288,7 @@ export function PrestartForm({
       <div className="space-y-4 pb-2">
         <p className="text-xs text-ck-steel leading-relaxed">
           Optional during the trial. If you are the driver who must do the vehicle prestart, complete
-          the checks and sign. Mark <strong className="text-slate-200">Fault</strong> where needed —
+          the checks and sign. Mark <strong className="text-ck-fg">Fault</strong> where needed —
           then fill the actioned fault text above the signature so workshop can be emailed.
         </p>
 
@@ -306,7 +306,7 @@ export function PrestartForm({
               }}
               className={`min-h-[44px] rounded-lg border text-sm font-bold ${
                 responsibility === "yes"
-                  ? "border-ck-cobalt bg-ck-cobalt text-white"
+                  ? "border-ck-cobalt bg-ck-cobalt text-ck-on-accent"
                   : "border-ck-border bg-ck-midnight text-ck-steel"
               }`}
             >
@@ -320,7 +320,7 @@ export function PrestartForm({
               }}
               className={`min-h-[44px] rounded-lg border text-sm font-bold ${
                 responsibility === "no"
-                  ? "border-ck-cobalt bg-ck-cobalt text-white"
+                  ? "border-ck-cobalt bg-ck-cobalt text-ck-on-accent"
                   : "border-ck-border bg-ck-midnight text-ck-steel"
               }`}
             >
@@ -340,7 +340,7 @@ export function PrestartForm({
               onChange={(e) => setSkipReason(e.target.value)}
               rows={3}
               placeholder="e.g. Two-up — other driver completed the prestart"
-              className="w-full rounded-lg border border-ck-border bg-ck-midnight px-3 py-2 text-sm text-white placeholder:text-ck-steel/70"
+              className="w-full rounded-lg border border-ck-border bg-ck-midnight px-3 py-2 text-sm text-ck-fg placeholder:text-ck-steel/70"
             />
             <ChecklistSignaturePanel
               title="Driver signature"
@@ -376,7 +376,7 @@ export function PrestartForm({
                   <button
                     type="button"
                     onClick={focusActionedFault}
-                    className="min-h-[40px] rounded-lg border border-ck-red bg-ck-red px-3 text-xs font-bold text-white"
+                    className="min-h-[40px] rounded-lg border border-ck-red bg-ck-red px-3 text-xs font-bold text-ck-on-accent"
                   >
                     Actioned fault
                   </button>
@@ -398,7 +398,7 @@ export function PrestartForm({
                       setActionedFaultText(e.target.value);
                     }}
                     rows={5}
-                    className="w-full rounded-lg border border-ck-border bg-ck-slate px-3 py-2 text-sm text-white placeholder:text-ck-steel/70 focus:outline-none focus:ring-2 focus:ring-ck-cobalt"
+                    className="w-full rounded-lg border border-ck-border bg-ck-slate px-3 py-2 text-sm text-ck-fg placeholder:text-ck-steel/70 focus:outline-none focus:ring-2 focus:ring-ck-cobalt"
                     placeholder="Summarise faults for the maintenance email"
                   />
                 </label>

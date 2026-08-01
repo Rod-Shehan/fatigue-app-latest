@@ -1,4 +1,4 @@
-/** Circadia24 checklist kit brand tokens (hex). Scoped UI uses CSS vars + Tailwind `ck-*`. */
+/** Circadia24 checklist kit brand tokens (PDF / docs). UI uses CSS vars under `.checklist-kit` that follow app light/dark. */
 
 export const CHECKLIST_BRAND = {
   midnight: "#0A1118",
@@ -9,4 +9,12 @@ export const CHECKLIST_BRAND = {
   red: "#EF4444",
   steel: "#64748B",
   border: "#2A3B50",
+} as const;
+
+/** Light-mode surfaces for checklist UI (mirrors globals.css `.checklist-kit`). */
+export const CHECKLIST_BRAND_LIGHT = {
+  midnight: "#F8FAFC",
+  slate: "#F1F5F9",
+  border: "#CBD5E1",
+  fg: "#0F172A",
 } as const;

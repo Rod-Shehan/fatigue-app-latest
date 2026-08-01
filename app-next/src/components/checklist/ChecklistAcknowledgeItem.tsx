@@ -33,12 +33,12 @@ export function ChecklistAcknowledgeItem({
       <span
         className={cn(
           "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded border",
-          on ? "border-ck-emerald bg-ck-emerald text-white" : "border-ck-border bg-ck-midnight"
+          on ? "border-ck-emerald bg-ck-emerald text-ck-on-accent" : "border-ck-border bg-ck-midnight"
         )}
       >
         {on ? <Check className="h-4 w-4" strokeWidth={3} /> : null}
       </span>
-      <span className="text-sm font-medium text-slate-100 leading-snug">{label}</span>
+      <span className="text-sm font-medium text-ck-fg leading-snug">{label}</span>
     </button>
   );
 }

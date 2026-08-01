@@ -217,7 +217,7 @@ export function DimensionLoadForm({
             type="button"
             disabled={!canSave}
             onClick={handleSave}
-            className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white disabled:opacity-40"
+            className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
           >
             Save Dimension & Load
           </button>
@@ -237,7 +237,7 @@ export function DimensionLoadForm({
             <input
               value={client}
               onChange={(e) => setClient(e.target.value)}
-              className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-white"
+              className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
             />
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -246,7 +246,7 @@ export function DimensionLoadForm({
               <input
                 value={truck}
                 onChange={(e) => setTruck(e.target.value)}
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-white"
+                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
               />
             </label>
             <label className="block space-y-1">
@@ -254,7 +254,7 @@ export function DimensionLoadForm({
               <input
                 value={trailer}
                 onChange={(e) => setTrailer(e.target.value)}
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-white"
+                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
               />
             </label>
           </div>
@@ -264,7 +264,7 @@ export function DimensionLoadForm({
               <input
                 value={loadType}
                 onChange={(e) => setLoadType(e.target.value)}
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-white"
+                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
               />
             </label>
             <label className="block space-y-1">
@@ -272,13 +272,13 @@ export function DimensionLoadForm({
               <input
                 value={loadWeight}
                 onChange={(e) => setLoadWeight(e.target.value)}
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-white"
+                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
               />
             </label>
           </div>
           {(driverName || "").trim() ? (
             <p className="text-xs text-ck-steel">
-              Driver: <span className="font-semibold text-slate-200">{driverName}</span>
+              Driver: <span className="font-semibold text-ck-fg">{driverName}</span>
             </p>
           ) : null}
         </section>
@@ -299,7 +299,7 @@ export function DimensionLoadForm({
               }}
               className={`min-h-[44px] rounded-lg border text-sm font-bold ${
                 selfLoad === "yes"
-                  ? "border-ck-cobalt bg-ck-cobalt text-white"
+                  ? "border-ck-cobalt bg-ck-cobalt text-ck-on-accent"
                   : "border-ck-border bg-ck-midnight text-ck-steel"
               }`}
             >
@@ -314,7 +314,7 @@ export function DimensionLoadForm({
               }}
               className={`min-h-[44px] rounded-lg border text-sm font-bold ${
                 selfLoad === "no"
-                  ? "border-ck-cobalt bg-ck-cobalt text-white"
+                  ? "border-ck-cobalt bg-ck-cobalt text-ck-on-accent"
                   : "border-ck-border bg-ck-midnight text-ck-steel"
               }`}
             >
@@ -323,8 +323,8 @@ export function DimensionLoadForm({
           </div>
           {selfLoad === "yes" ? (
             <p className="text-xs text-ck-steel leading-relaxed">
-              Dual function: you will sign <strong className="text-slate-200">As driver</strong> and
-              separately <strong className="text-slate-200">As loader</strong> — not one merged
+              Dual function: you will sign <strong className="text-ck-fg">As driver</strong> and
+              separately <strong className="text-ck-fg">As loader</strong> — not one merged
               sign-off.
             </p>
           ) : null}
@@ -357,7 +357,7 @@ export function DimensionLoadForm({
                   }}
                   className={`flex w-full min-h-[44px] items-center rounded-lg border px-3 text-left text-sm font-semibold ${
                     knowLoader === value
-                      ? "border-ck-cobalt bg-ck-cobalt text-white"
+                      ? "border-ck-cobalt bg-ck-cobalt text-ck-on-accent"
                       : "border-ck-border bg-ck-midnight text-ck-steel"
                   }`}
                 >
@@ -371,7 +371,7 @@ export function DimensionLoadForm({
                 <input
                   value={loaderName}
                   onChange={(e) => setLoaderName(e.target.value)}
-                  className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-white"
+                  className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
                   placeholder="Full name"
                 />
               </label>
@@ -428,7 +428,7 @@ export function DimensionLoadForm({
                   type="button"
                   onClick={() => evidenceInputRef.current?.click()}
                   disabled={evidencePhotos.length >= CHECKLIST_MAX_EVIDENCE_PHOTOS}
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-ck-cobalt px-4 text-sm font-semibold text-white disabled:opacity-40"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-ck-cobalt px-4 text-sm font-semibold text-ck-on-accent disabled:opacity-40"
                 >
                   Take photo
                 </button>
@@ -444,7 +444,7 @@ export function DimensionLoadForm({
                         />
                         <button
                           type="button"
-                          className="absolute -right-1 -top-1 rounded-full bg-ck-red px-1.5 text-[10px] font-bold text-white"
+                          className="absolute -right-1 -top-1 rounded-full bg-ck-red px-1.5 text-[10px] font-bold text-ck-on-accent"
                           onClick={() =>
                             setEvidencePhotos((prev) => prev.filter((_, j) => j !== i))
                           }

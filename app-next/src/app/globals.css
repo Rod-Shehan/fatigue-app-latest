@@ -109,16 +109,30 @@ html.driver-immersive body {
   border-color: #cbd5e1; /* slate-300 */
 }
 
-/* Circadia24 compliance checklist kit (Phase 1) — scoped under .checklist-kit */
+/* Circadia24 compliance checklist kit — follows app light/dark (html.dark) */
 .checklist-kit {
-  --ck-midnight: #0a1118;
-  --ck-slate: #16222f;
+  /* Light surfaces (default when app is in light mode) */
+  --ck-midnight: #f8fafc;
+  --ck-slate: #f1f5f9;
   --ck-cobalt: #007aff;
   --ck-cobalt-alt: #1e88e5;
   --ck-emerald: #10b981;
   --ck-red: #ef4444;
   --ck-steel: #64748b;
-  --ck-border: #2a3b50;
-  color: #e2e8f0;
+  --ck-border: #cbd5e1;
+  --ck-fg: #0f172a;
+  --ck-fg-muted: #475569;
+  --ck-on-accent: #ffffff;
+  color: var(--ck-fg);
   background-color: var(--ck-midnight);
+}
+
+.dark .checklist-kit {
+  --ck-midnight: #0a1118;
+  --ck-slate: #16222f;
+  --ck-border: #2a3b50;
+  --ck-steel: #94a3b8;
+  --ck-fg: #e2e8f0;
+  --ck-fg-muted: #94a3b8;
+  --ck-on-accent: #ffffff;
 }

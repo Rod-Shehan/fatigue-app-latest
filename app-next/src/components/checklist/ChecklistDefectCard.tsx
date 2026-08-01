@@ -51,7 +51,7 @@ export function ChecklistDefectCard({
           value={normalized.description}
           onChange={(e) => onChange({ ...normalized, description: e.target.value })}
           rows={3}
-          className="w-full rounded-md border border-ck-border bg-ck-slate px-3 py-2 text-sm text-slate-100 placeholder:text-ck-steel focus:outline-none focus:ring-2 focus:ring-ck-cobalt"
+          className="w-full rounded-md border border-ck-border bg-ck-slate px-3 py-2 text-sm text-ck-fg placeholder:text-ck-steel focus:outline-none focus:ring-2 focus:ring-ck-cobalt"
           placeholder={descriptionPlaceholder}
         />
       </label>
@@ -74,7 +74,7 @@ export function ChecklistDefectCard({
                 />
                 <span
                   className={cn(
-                    "text-sm text-slate-200",
+                    "text-sm text-ck-fg",
                     opt.value === "cannot_move" && "font-semibold",
                     opt.value === "cannot_move" && checked && "text-ck-red"
                   )}
@@ -114,7 +114,7 @@ export function ChecklistDefectCard({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-ck-cobalt px-4 text-sm font-semibold text-white"
+          className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-ck-cobalt px-4 text-sm font-semibold text-ck-on-accent"
         >
           Take photo
         </button>
@@ -136,7 +136,7 @@ export function ChecklistDefectCard({
               />
               <button
                 type="button"
-                className="absolute -right-1 -top-1 rounded-full bg-ck-red px-1.5 text-[10px] font-bold text-white"
+                className="absolute -right-1 -top-1 rounded-full bg-ck-red px-1.5 text-[10px] font-bold text-ck-on-accent"
                 onClick={() =>
                   onChange({
                     ...normalized,

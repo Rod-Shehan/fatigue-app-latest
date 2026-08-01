@@ -59,7 +59,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
           Record {index + 1} of {total}
         </p>
       ) : null}
-      <p className="text-sm text-slate-200">
+      <p className="text-sm text-ck-fg">
         Completed{" "}
         <span className="font-semibold tabular-nums">{formatCompletedWhen(record)}</span>
         <span className="text-ck-steel"> (AWST)</span>
@@ -70,14 +70,14 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
           {headerEntries.map(([k, v]) => (
             <div key={k} className="min-w-0">
               <dt className="text-ck-steel capitalize">{k.replace(/_/g, " ")}</dt>
-              <dd className="font-medium text-slate-100 truncate">{String(v)}</dd>
+              <dd className="font-medium text-ck-fg truncate">{String(v)}</dd>
             </div>
           ))}
         </dl>
       ) : null}
 
       {record.type === "prestart" && record.prestartResponsible === false ? (
-        <div className="rounded-lg border border-ck-border bg-ck-midnight/60 p-2 text-sm text-slate-200">
+        <div className="rounded-lg border border-ck-border bg-ck-midnight/60 p-2 text-sm text-ck-fg">
           <p className="font-semibold">Not responsible for prestart</p>
           <p className="mt-1 text-ck-steel">{record.prestartSkipReason || "—"}</p>
         </div>
@@ -86,13 +86,13 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
       {record.loaderPath ? (
         <p className="text-xs text-ck-steel">
           Loader path:{" "}
-          <span className="font-semibold text-slate-200">
+          <span className="font-semibold text-ck-fg">
             {LOADER_PATH_LABEL[record.loaderPath] ?? record.loaderPath}
           </span>
           {record.loaderName ? (
             <>
               {" "}
-              · <span className="text-slate-100">{record.loaderName}</span>
+              · <span className="text-ck-fg">{record.loaderName}</span>
             </>
           ) : null}
         </p>
@@ -106,7 +106,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
               className="rounded-lg border border-ck-border bg-ck-midnight/50 px-3 py-2 text-sm"
             >
               <div className="flex items-start justify-between gap-2">
-                <span className="text-slate-100">{item.label || item.code}</span>
+                <span className="text-ck-fg">{item.label || item.code}</span>
                 <span
                   className={`shrink-0 text-xs font-bold uppercase tracking-wide ${
                     item.value === "fail"
@@ -121,7 +121,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
               </div>
               {item.kind === "pass_fail" && item.value === "fail" && item.defect ? (
                 <div className="mt-2 space-y-1 text-xs text-ck-steel">
-                  <p className="text-slate-200">{item.defect.description}</p>
+                  <p className="text-ck-fg">{item.defect.description}</p>
                   {checklistFaultMobilityLabel(item.defect.mobilityStatus) ? (
                     <p>{checklistFaultMobilityLabel(item.defect.mobilityStatus)}</p>
                   ) : null}
@@ -148,7 +148,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
       {record.actionedFaultText ? (
         <div className="rounded-lg border border-ck-red/40 bg-ck-midnight/60 p-2 text-sm">
           <p className="text-xs font-bold uppercase tracking-wide text-ck-red">Actioned fault</p>
-          <p className="mt-1 whitespace-pre-wrap text-slate-200">{record.actionedFaultText}</p>
+          <p className="mt-1 whitespace-pre-wrap text-ck-fg">{record.actionedFaultText}</p>
         </div>
       ) : null}
 
@@ -173,7 +173,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
         <p className="text-xs font-bold uppercase tracking-wide text-ck-steel">Signatures</p>
         {record.signatures.map((sig, i) => (
           <div key={`${sig.role}-${i}`} className="rounded-lg border border-ck-border bg-white p-2">
-            <p className="mb-1 text-xs font-semibold text-ck-midnight capitalize">
+            <p className="mb-1 text-xs font-semibold text-ck-fg capitalize">
               {sig.role === "loader" ? "As loader" : "As driver"}
               {sig.signedAtAwst ? (
                 <span className="ml-2 font-normal text-ck-steel">{sig.signedAtAwst}</span>
@@ -235,7 +235,7 @@ export function ChecklistRecordViewer({
             <button
               type="button"
               onClick={onProducePdf}
-              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-white"
+              className="flex min-h-[48px] w-full items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
             >
               Produce checklist PDF
             </button>
@@ -248,7 +248,7 @@ export function ChecklistRecordViewer({
                   onClose();
                   onRedo();
                 }}
-                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-white"
+                className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
               >
                 {redoLabel ?? (type === "dimension_load" ? "Add another" : "Complete again")}
               </button>
@@ -256,7 +256,7 @@ export function ChecklistRecordViewer({
             <button
               type="button"
               onClick={onClose}
-              className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white"
+              className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent"
             >
               Close
             </button>

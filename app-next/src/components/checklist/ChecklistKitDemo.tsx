@@ -63,7 +63,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Phase 1 kit</p>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-ck-fg">
             Compliance checklist UI
           </h1>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 max-w-xl">
@@ -73,7 +73,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
         </div>
         <Link
           href={backHref}
-          className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+          className="rounded-lg border border-slate-300 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-ck-fg"
         >
           Back
         </Link>
@@ -93,7 +93,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
               key={id}
               type="button"
               onClick={() => openDemo(id)}
-              className="min-h-[52px] rounded-xl bg-ck-cobalt px-3 text-sm font-bold text-white"
+              className="min-h-[52px] rounded-xl bg-ck-cobalt px-3 text-sm font-bold text-ck-on-accent"
             >
               {label}
             </button>

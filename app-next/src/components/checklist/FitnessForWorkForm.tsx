@@ -108,7 +108,7 @@ export function FitnessForWorkForm({
             type="button"
             disabled={!allAcked || !signature}
             onClick={handleSave}
-            className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-white disabled:opacity-40"
+            className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
           >
             Save Fitness for Work
           </button>

@@ -36,7 +36,7 @@ export function ChecklistModalShell({
     >
       <button
         type="button"
-        className="absolute inset-0 border-0 bg-black/60 cursor-default"
+        className="absolute inset-0 border-0 bg-slate-900/40 dark:bg-black/60 cursor-default"
         aria-label="Close"
         onClick={onClose}
       />
@@ -49,7 +49,7 @@ export function ChecklistModalShell({
       >
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-ck-border bg-ck-midnight px-4 py-3">
           <div className="min-w-0">
-            <h2 id="checklist-modal-title" className="text-lg font-bold text-white">
+            <h2 id="checklist-modal-title" className="text-lg font-bold text-ck-fg">
               {title}
             </h2>
             {subtitle ? <p className="mt-0.5 text-sm text-ck-steel">{subtitle}</p> : null}
@@ -57,7 +57,7 @@ export function ChecklistModalShell({
           <button
             type="button"
             onClick={onClose}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-ck-border text-ck-steel hover:text-white"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-ck-border text-ck-steel hover:text-ck-fg"
             aria-label="Close"
           >
             <X className="h-5 w-5" />

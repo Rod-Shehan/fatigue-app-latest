@@ -121,7 +121,7 @@ export function ChecklistSignaturePanel({
   return (
     <div className={cn("rounded-lg border border-ck-border bg-ck-slate p-3 space-y-2", className)}>
       <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-100">{title}</h3>
+        <h3 className="text-sm font-bold text-ck-fg">{title}</h3>
         {roleLabel ? <span className="text-xs font-semibold text-ck-cobalt">{roleLabel}</span> : null}
       </div>
       <div
@@ -148,7 +148,7 @@ export function ChecklistSignaturePanel({
         <button
           type="button"
           onClick={clear}
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-ck-steel hover:text-slate-100"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-ck-steel hover:text-ck-fg"
         >
           <RotateCcw className="h-4 w-4" /> Clear
         </button>
@@ -156,7 +156,7 @@ export function ChecklistSignaturePanel({
           type="button"
           disabled={!hasStroke || busy || Boolean(confirmed)}
           onClick={() => void confirm()}
-          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md bg-ck-cobalt px-4 text-sm font-bold text-white disabled:opacity-40"
+          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md bg-ck-cobalt px-4 text-sm font-bold text-ck-on-accent disabled:opacity-40"
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
           Confirm signature

@@ -6,9 +6,9 @@ import { setPassFailValue, tapPassFailItem, updateDefect } from "@/lib/checklist
 import { ChecklistDefectCard } from "./ChecklistDefectCard";
 
 const DEFAULT_SEGMENTS: { value: ChecklistItemValue; label: string; activeClass: string }[] = [
-  { value: "pass", label: "PASS", activeClass: "bg-ck-emerald text-white border-ck-emerald" },
-  { value: "fail", label: "FAIL", activeClass: "bg-ck-red text-white border-ck-red" },
-  { value: "na", label: "N/A", activeClass: "bg-ck-steel text-white border-ck-steel" },
+  { value: "pass", label: "PASS", activeClass: "bg-ck-emerald text-ck-on-accent border-ck-emerald" },
+  { value: "fail", label: "FAIL", activeClass: "bg-ck-red text-ck-on-accent border-ck-red" },
+  { value: "na", label: "N/A", activeClass: "bg-ck-steel text-ck-on-accent border-ck-steel" },
 ];
 
 export function ChecklistItemControl({
@@ -42,7 +42,7 @@ export function ChecklistItemControl({
     <div className={cn("rounded-lg border border-ck-border bg-ck-slate/80 p-3", className)}>
       <button
         type="button"
-        className="w-full text-left text-sm font-medium text-slate-100 min-h-[44px]"
+        className="w-full text-left text-sm font-medium text-ck-fg min-h-[44px]"
         onClick={() => {
           const nextVal = tapPassFailItem(state.value);
           if (nextVal !== state.value) onChange(setPassFailValue(state, nextVal));
@@ -73,7 +73,7 @@ export function ChecklistItemControl({
                 "min-h-[44px] rounded-md border text-xs font-bold tracking-wide transition-colors",
                 active
                   ? seg.activeClass
-                  : "border-ck-border bg-ck-midnight/40 text-ck-steel hover:border-ck-cobalt hover:text-slate-100"
+                  : "border-ck-border bg-ck-midnight/40 text-ck-steel hover:border-ck-cobalt hover:text-ck-fg"
               )}
             >
               {seg.label}
