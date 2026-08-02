@@ -49,6 +49,7 @@ import {
 } from "@/lib/manager-risk-scoring";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, type DayData, type FatigueSheet, type SheetUpdatePayload } from "@/lib/api";
+import { updateSheetOfflineFirst } from "@/lib/offline-api";
 import { MANAGER_PAST_WEEK_AMEND_HINT, SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -910,7 +911,7 @@ export function ManagerView() {
 
   const saveMutation = useMutation({
     mutationFn: (payload: SheetUpdatePayload) =>
-      api.sheets.update(selectedSheetId, payload),
+      updateSheetOfflineFirst(selectedSheetId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sheet", selectedSheetId] });
       queryClient.invalidateQueries({ queryKey: ["sheets"] });
@@ -920,7 +921,7 @@ export function ManagerView() {
 
   const amendMutation = useMutation({
     mutationFn: (reason: string) =>
-      api.sheets.update(selectedSheetId, { amendment_reason: reason.trim() }),
+      updateSheetOfflineFirst(selectedSheetId, { amendment_reason: reason.trim() }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sheet", selectedSheetId] });
       queryClient.invalidateQueries({ queryKey: ["sheets"] });

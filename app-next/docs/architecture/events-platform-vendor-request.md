@@ -14,7 +14,7 @@
 
 Hi,
 
-We are integrating our fatigue management platform (**Circadia 24**) with the **Events Platform** (Streamax / FTCloud path). We have reviewed the Events Platform User Guide and understand the Events workflow, media requests, and Organisation → Integration Details section, but we need the **technical integration package** to proceed.
+We are integrating our fatigue management platform (**Circadia24**) with the **Events Platform** (Streamax / FTCloud path). We have reviewed the Events Platform User Guide and understand the Events workflow, media requests, and Organisation → Integration Details section, but we need the **technical integration package** to proceed.
 
 Could you please provide the following for our organisation (or a sandbox tenant)?
 

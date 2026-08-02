@@ -30,7 +30,7 @@ export function PageHeader({
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
   backHref?: string;
-  /** Accessible label for the back link (e.g. "Your Sheets" or "Circadia 24"). */
+  /** Accessible label for the back link (e.g. "Your Sheets" or "Circadia24"). */
   backLabel?: string;
   /** Visible text next to the back arrow (e.g. "Overview") so its destination is obvious. */
   backText?: string;

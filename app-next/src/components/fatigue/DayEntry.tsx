@@ -150,7 +150,7 @@ export default function DayEntry({
   dayData: DayData;
   /** When set, open work/break continues from the prior day — prompt to confirm route on this card. */
   continuedShiftRoute?: { previousDayName: string } | null;
-  onUpdate: (idx: number, d: DayData) => void;
+  onUpdate: (idx: number, d: DayData | ((prev: DayData) => DayData)) => void | Promise<void>;
   weekStart: string;
   regos?: Rego[];
   readOnly?: boolean;
@@ -272,24 +272,24 @@ export default function DayEntry({
   }, [dayTools?.sheetId]);
 
   const saveFfwRecord = useCallback(
-    (record: ChecklistRecord) => {
-      onUpdate(dayIndex, appendChecklistToDay(dayData, record));
+    async (record: ChecklistRecord) => {
+      await Promise.resolve(onUpdate(dayIndex, (prev) => appendChecklistToDay(prev, record)));
     },
-    [dayData, dayIndex, onUpdate]
+    [dayIndex, onUpdate]
   );
 
   const savePrestartRecord = useCallback(
-    (record: ChecklistRecord) => {
-      onUpdate(dayIndex, appendChecklistToDay(dayData, record));
+    async (record: ChecklistRecord) => {
+      await Promise.resolve(onUpdate(dayIndex, (prev) => appendChecklistToDay(prev, record)));
     },
-    [dayData, dayIndex, onUpdate]
+    [dayIndex, onUpdate]
   );
 
   const saveDimensionLoadRecord = useCallback(
-    (record: ChecklistRecord) => {
-      onUpdate(dayIndex, appendChecklistToDay(dayData, record));
+    async (record: ChecklistRecord) => {
+      await Promise.resolve(onUpdate(dayIndex, (prev) => appendChecklistToDay(prev, record)));
     },
-    [dayData, dayIndex, onUpdate]
+    [dayIndex, onUpdate]
   );
 
   useEffect(() => {
@@ -867,6 +867,9 @@ export default function DayEntry({
               });
             }
             if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
+          }}
+          onChecklistCompleted={async (record) => {
+            await Promise.resolve(onUpdate(dayIndex, (prev) => appendChecklistToDay(prev, record)));
           }}
         />
       )}

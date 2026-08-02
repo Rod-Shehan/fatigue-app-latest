@@ -1,9 +1,13 @@
 /**
  * Offline-first API layer for sheets and regos.
- * - GET: try network first; on failure or when offline, read from IndexedDB.
- *   Never overwrite a local sheet that still has pending updates with a network GET.
- * - UPDATE: write to IndexedDB immediately (optimistic), coalesce enqueue; sync when online.
- * - CREATE: when offline, create local sheet with temp id and enqueue; when online, POST and replace temp with server id.
+ *
+ * Absolute write order (owner rule):
+ *   1) Confirm on driver device (IndexedDB sheet + pending queue)
+ *   2) Only then attempt DB push (runSync → api.sheets.*)
+ *
+ * Never call api.sheets.create/update for driver sheet bodies until device confirm
+ * has succeeded. GET/list may still prefer network for freshness, but must not
+ * clobber richer local / pending work.
  */
 
 import { api, type FatigueSheet, type Rego } from "./api";
@@ -40,6 +44,20 @@ export type SyncResult = {
   replacedTempId?: { tempId: string; realId: string };
 };
 
+function newLocalSheetTempId(): string {
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
+ * Device confirm for a full sheet row. Throws if IndexedDB put fails —
+ * callers must not push to the DB when this rejects.
+ */
+export async function confirmDeviceSheetWrite(sheet: FatigueSheet): Promise<FatigueSheet> {
+  const withId = { ...sheet, id: sheet.id };
+  await offlineSetSheet(withId);
+  return withId;
+}
+
 /** Try to run sync (process pending queue). Call when online. Returns list of synced ids and any error. */
 export async function runSync(): Promise<SyncResult> {
   // Refresh list so remapping after deleted sheet ids can find the live week sheet.
@@ -68,20 +86,25 @@ export async function runSync(): Promise<SyncResult> {
         const merged = mergeLocalSheetWithPendingUpdates(local, siblings, item.sheetId);
         const payload = toSheetUpdatePayload(merged ?? item.data);
 
-        // Keep cache aligned with what we intend to push (recover wiped IDB from pending).
-        if (merged) await offlineSetSheet(merged);
+        // Device confirm of what we intend to push — never PATCH without this.
+        if (merged) {
+          await confirmDeviceSheetWrite(merged);
+        } else {
+          await confirmDeviceSheetWrite({
+            ...(item.data as FatigueSheet),
+            id: item.sheetId,
+          });
+        }
 
         await api.sheets.update(item.sheetId, payload);
         const serverSheet = await api.sheets.get(item.sheetId);
         // A Start shift (or other tap) may have landed in IDB while this sync was in flight.
-        // Never let the older server copy wipe richer local events.
+        // Never let the older server copy wipe richer local events/checklists.
         const localNow = await offlineGetSheet(item.sheetId);
         if (localNow && shouldPreferLocalSheet(localNow, serverSheet)) {
           await offlineEnqueueSheetUpdate(item.sheetId, toSheetUpdatePayload(localNow));
-          // Keep local; siblings already removed below only after successful push of *this* payload —
-          // re-queue means another sync pass will push the newer events.
         } else {
-          await offlineSetSheet(serverSheet);
+          await confirmDeviceSheetWrite(serverSheet);
         }
         for (const s of siblings) {
           await offlineRemovePending(s.id);
@@ -90,36 +113,40 @@ export async function runSync(): Promise<SyncResult> {
         synced += siblings.length;
       } else if (item.type === "create") {
         const latest = await offlineGetSheet(item.tempId);
-        const payload = latest
-          ? {
-              jurisdiction_code: latest.jurisdiction_code,
-              driver_name: latest.driver_name,
-              second_driver: latest.second_driver,
-              driver_type: latest.driver_type,
-              last_24h_break: latest.last_24h_break,
-              last_24h_break_start: latest.last_24h_break_start,
-              last_24h_break_end: latest.last_24h_break_end,
-              last_24h_rest_1: latest.last_24h_rest_1,
-              last_24h_rest_2: latest.last_24h_rest_2,
-              last_24h_rest_3: latest.last_24h_rest_3,
-              last_24h_rest_4: latest.last_24h_rest_4,
-              last_24h_rest_1_start: latest.last_24h_rest_1_start,
-              last_24h_rest_1_end: latest.last_24h_rest_1_end,
-              last_24h_rest_2_start: latest.last_24h_rest_2_start,
-              last_24h_rest_2_end: latest.last_24h_rest_2_end,
-              last_24h_rest_3_start: latest.last_24h_rest_3_start,
-              last_24h_rest_3_end: latest.last_24h_rest_3_end,
-              last_24h_rest_4_start: latest.last_24h_rest_4_start,
-              last_24h_rest_4_end: latest.last_24h_rest_4_end,
-              week_starting: latest.week_starting,
-              days: latest.days,
-              status: latest.status,
-              signature: latest.signature,
-              signed_at: latest.signed_at,
-            }
-          : item.data;
+        const deviceSheet: FatigueSheet = latest
+          ? latest
+          : ({ ...item.data, id: item.tempId } as FatigueSheet);
+        // Re-confirm device before POST (recovers wiped IDB from pending payload).
+        await confirmDeviceSheetWrite(deviceSheet);
+
+        const payload = {
+          jurisdiction_code: deviceSheet.jurisdiction_code,
+          driver_name: deviceSheet.driver_name,
+          second_driver: deviceSheet.second_driver,
+          driver_type: deviceSheet.driver_type,
+          last_24h_break: deviceSheet.last_24h_break,
+          last_24h_break_start: deviceSheet.last_24h_break_start,
+          last_24h_break_end: deviceSheet.last_24h_break_end,
+          last_24h_rest_1: deviceSheet.last_24h_rest_1,
+          last_24h_rest_2: deviceSheet.last_24h_rest_2,
+          last_24h_rest_3: deviceSheet.last_24h_rest_3,
+          last_24h_rest_4: deviceSheet.last_24h_rest_4,
+          last_24h_rest_1_start: deviceSheet.last_24h_rest_1_start,
+          last_24h_rest_1_end: deviceSheet.last_24h_rest_1_end,
+          last_24h_rest_2_start: deviceSheet.last_24h_rest_2_start,
+          last_24h_rest_2_end: deviceSheet.last_24h_rest_2_end,
+          last_24h_rest_3_start: deviceSheet.last_24h_rest_3_start,
+          last_24h_rest_3_end: deviceSheet.last_24h_rest_3_end,
+          last_24h_rest_4_start: deviceSheet.last_24h_rest_4_start,
+          last_24h_rest_4_end: deviceSheet.last_24h_rest_4_end,
+          week_starting: deviceSheet.week_starting,
+          days: deviceSheet.days,
+          status: deviceSheet.status,
+          signature: deviceSheet.signature,
+          signed_at: deviceSheet.signed_at,
+        };
         const created = await api.sheets.create(payload as Omit<FatigueSheet, "id" | "created_date">);
-        await offlineSetSheet(created);
+        await confirmDeviceSheetWrite(created);
         await offlineDeleteSheet(item.tempId);
         const list = await offlineGetSheetsList();
         const newList = list.filter((s) => s.id !== item.tempId);
@@ -159,10 +186,11 @@ export async function runSync(): Promise<SyncResult> {
         if (replacement && merged) {
           const payload = toSheetUpdatePayload(merged);
           const remapped: FatigueSheet = { ...merged, id: replacement.id };
-          await offlineSetSheet(remapped);
+          // Device confirm on the remapped id before any PATCH.
+          await confirmDeviceSheetWrite(remapped);
           try {
             await api.sheets.update(replacement.id, payload);
-            await offlineSetSheet(await api.sheets.get(replacement.id));
+            await confirmDeviceSheetWrite(await api.sheets.get(replacement.id));
             synced += siblings.length || 1;
           } catch {
             await offlineEnqueueSheetUpdate(replacement.id, payload);
@@ -197,7 +225,7 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
     const local = await offlineGetSheet(id);
     const merged = mergeLocalSheetWithPendingUpdates(local, pending, id);
     if (merged) {
-      await offlineSetSheet(merged);
+      await confirmDeviceSheetWrite(merged);
       if (isOnline()) void runSync().catch(() => {});
       return merged;
     }
@@ -212,7 +240,7 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
         const local = await offlineGetSheet(id);
         const merged = mergeLocalSheetWithPendingUpdates(local, pendingAfter, id);
         if (merged) {
-          await offlineSetSheet(merged);
+          await confirmDeviceSheetWrite(merged);
           return merged;
         }
       }
@@ -224,7 +252,7 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
         void runSync().catch(() => {});
         return local;
       }
-      await offlineSetSheet(sheet);
+      await confirmDeviceSheetWrite(sheet);
       return sheet;
     } catch {
       const cached = await offlineGetSheet(id);
@@ -251,26 +279,36 @@ export async function listSheetsOfflineFirst(): Promise<FatigueSheet[]> {
   return offlineGetSheetsList();
 }
 
-/** Update sheet: write to IndexedDB immediately, then coalesce-enqueue and try sync if online. */
-export async function updateSheetOfflineFirst(sheetId: string, data: Partial<FatigueSheet>): Promise<FatigueSheet> {
+/**
+ * Update sheet: device confirm (IndexedDB + pending) first; DB push only after that.
+ * Local temp sheets (`local-*`) stay device-only until their create queue item syncs.
+ */
+export async function updateSheetOfflineFirst(
+  sheetId: string,
+  data: Partial<FatigueSheet>
+): Promise<FatigueSheet> {
   const existing = await offlineGetSheet(sheetId).catch(() => null);
   const merged: FatigueSheet = existing
     ? { ...existing, ...data, id: sheetId }
     : ({ ...data, id: sheetId } as FatigueSheet);
-  await offlineSetSheet(merged);
-  const isLocalTemp = sheetId.startsWith("local-");
-  if (!isLocalTemp) await offlineEnqueueSheetUpdate(sheetId, data);
 
-  // Try sync opportunistically; some devices misreport navigator.onLine.
-  if (!isLocalTemp) await runSync().catch(() => {});
+  await confirmDeviceSheetWrite(merged);
+
+  const isLocalTemp = sheetId.startsWith("local-");
+  if (!isLocalTemp) {
+    await offlineEnqueueSheetUpdate(sheetId, data);
+    // Push only after device + queue confirm.
+    await runSync().catch(() => {});
+  }
+
   scheduleDeviceBackupAfterWrite();
   return merged;
 }
 
 /**
- * Critical driver actions (Start shift / Break / etc.): write device cache + pending
- * queue immediately without waiting for React Query mutation or an in-flight sync.
- * Does not call runSync (avoids blocking the tap); OfflineBar / useOfflineSync will push.
+ * Critical driver actions: confirm device cache + pending immediately.
+ * Does not call runSync (avoids blocking the tap); OfflineBar / useOfflineSync / later
+ * updateSheetOfflineFirst will push only after this device confirm.
  */
 export async function persistSheetLocalCritical(
   sheetId: string,
@@ -280,7 +318,9 @@ export async function persistSheetLocalCritical(
   const merged: FatigueSheet = existing
     ? { ...existing, ...data, id: sheetId }
     : ({ ...data, id: sheetId } as FatigueSheet);
-  await offlineSetSheet(merged);
+
+  await confirmDeviceSheetWrite(merged);
+
   if (!sheetId.startsWith("local-")) {
     await offlineEnqueueSheetUpdate(sheetId, data);
   }
@@ -288,26 +328,32 @@ export async function persistSheetLocalCritical(
   return merged;
 }
 
-/** Create sheet: when online POST; when offline create local with temp id and enqueue. */
-export async function createSheetOfflineFirst(data: Omit<FatigueSheet, "id" | "created_date">): Promise<FatigueSheet> {
-  if (isOnline()) {
-    const created = await api.sheets.create(data);
-    await offlineSetSheet(created);
-    const list = await offlineGetSheetsList();
-    await offlineSetSheetsList([...list, created]);
-    scheduleDeviceBackupAfterWrite();
-    return created;
-  }
-  const tempId = `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+/**
+ * Create sheet: always device-first (temp id + IndexedDB + create queue).
+ * DB POST happens only via runSync after device confirm — never POST-then-cache.
+ */
+export async function createSheetOfflineFirst(
+  data: Omit<FatigueSheet, "id" | "created_date">
+): Promise<FatigueSheet> {
+  const tempId = newLocalSheetTempId();
   const local: FatigueSheet = {
     ...data,
     id: tempId,
   } as FatigueSheet;
-  await offlineSetSheet(local);
+
+  await confirmDeviceSheetWrite(local);
   const list = await offlineGetSheetsList();
-  await offlineSetSheetsList([...list, local]);
+  await offlineSetSheetsList([...list.filter((s) => s.id !== tempId), local]);
   await offlineEnqueue({ type: "create", tempId, data });
   scheduleDeviceBackupAfterWrite();
+
+  const sync = await runSync().catch(() => ({ synced: 0 } as SyncResult));
+  if (sync.replacedTempId?.tempId === tempId) {
+    const real = await offlineGetSheet(sync.replacedTempId.realId).catch(() => null);
+    if (real) return real;
+    return { ...local, id: sync.replacedTempId.realId };
+  }
+  // Device has the week sheet; Neon create may still be pending.
   return local;
 }
 

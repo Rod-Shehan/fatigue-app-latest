@@ -43,7 +43,7 @@ export function PrestartForm({
   driverName?: string | null;
   /** Optional day label for the workshop email subject. */
   sheetDayLabel?: string | null;
-  onCompleted: (record: ChecklistRecord) => void;
+  onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
   const [responsibility, setResponsibility] = useState<Responsibility>("unset");
   const [skipReason, setSkipReason] = useState("");
@@ -155,9 +155,16 @@ export function PrestartForm({
         setError(validated.errors[0]?.message ?? "Could not save checklist.");
         return;
       }
-      onCompleted(validated.record);
-      reset();
-      onClose();
+      setSaving(true);
+      try {
+        await Promise.resolve(onCompleted(validated.record));
+        reset();
+        onClose();
+      } catch {
+        setError("Could not save on this device. Try again.");
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -203,6 +210,14 @@ export function PrestartForm({
     }
 
     setSaving(true);
+    try {
+      await Promise.resolve(onCompleted(validated.record));
+    } catch {
+      setError("Could not save on this device. Try again.");
+      setSaving(false);
+      return;
+    }
+
     let note: string | null = null;
     if (hasFault && validated.record.actionedFaultText) {
       try {
@@ -213,15 +228,14 @@ export function PrestartForm({
         });
         note = sent.ok
           ? `Fault report emailed to ${sent.to ?? "workshop contact"}.`
-          : `Prestart saved. Workshop email not sent.`;
+          : `Form saved. Workshop email not sent.`;
       } catch (e) {
         const err = e as Error & { body?: { message?: string } };
         const msg = err.body?.message || err.message || "Could not email workshop";
-        note = `Prestart saved. Workshop email not sent: ${msg}. Check workshop contact in Settings.`;
+        note = `Form saved. Workshop email not sent: ${msg}. Check workshop contact in Settings.`;
       }
     }
 
-    onCompleted(validated.record);
     setSaving(false);
     if (note) {
       setEmailNote(note);

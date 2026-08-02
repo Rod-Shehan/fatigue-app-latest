@@ -64,7 +64,7 @@ export function DeviceSetupDialog({
         <DialogHeader>
           <DialogTitle>Set up this phone for offline use</DialogTitle>
           <DialogDescription>
-            Circadia 24 stores your diary on this device so you can log and produce records with no mobile coverage.
+            Circadia24 stores your diary on this device so you can log and produce records with no mobile coverage.
           </DialogDescription>
         </DialogHeader>
 

@@ -30,16 +30,27 @@ export function countSheetEvents(sheet: Pick<FatigueSheet, "days"> | null | unde
   return n;
 }
 
+/** Count completed checklist records across all days (FFW / Prestart / Load). */
+export function countSheetChecklists(sheet: Pick<FatigueSheet, "days"> | null | undefined): number {
+  if (!sheet?.days?.length) return 0;
+  let n = 0;
+  for (const d of sheet.days) {
+    n += Array.isArray(d.checklists) ? d.checklists.length : 0;
+  }
+  return n;
+}
+
 /**
- * Prefer on-device sheet when it has more logged events than the server copy.
- * Protects auto-restored / unsynced driver work from being wiped by an empty GET
- * even when the pending queue was cleared or never restored.
+ * Prefer on-device sheet when it has more logged events or checklist records than
+ * the server copy. Protects auto-restored / unsynced driver work (including signed
+ * forms) from being wiped by an empty GET even when the pending queue was cleared.
  */
 export function shouldPreferLocalSheet(
   local: Pick<FatigueSheet, "days"> | null | undefined,
   server: Pick<FatigueSheet, "days"> | null | undefined
 ): boolean {
-  return countSheetEvents(local) > countSheetEvents(server);
+  if (countSheetEvents(local) > countSheetEvents(server)) return true;
+  return countSheetChecklists(local) > countSheetChecklists(server);
 }
 
 /**
@@ -122,6 +133,7 @@ export function toSheetUpdatePayload(sheet: Partial<FatigueSheet>): Partial<Fati
     status: sheet.status,
     signature: sheet.signature,
     signed_at: sheet.signed_at,
+    amendment_reason: sheet.amendment_reason,
   };
 }
 

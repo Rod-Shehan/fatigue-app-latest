@@ -56,7 +56,7 @@ export function DimensionLoadForm({
   driverName?: string | null;
   truckRego?: string | null;
   trailerRego?: string | null;
-  onCompleted: (record: ChecklistRecord) => void;
+  onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
   const [client, setClient] = useState("");
   const [loadType, setLoadType] = useState("");
@@ -71,6 +71,7 @@ export function DimensionLoadForm({
   const [loaderSig, setLoaderSig] = useState<ChecklistSignatureCapture | null>(null);
   const [evidencePhotos, setEvidencePhotos] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [sigResetKey, setSigResetKey] = useState(0);
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -114,6 +115,7 @@ export function DimensionLoadForm({
     setEvidencePhotos([]);
     setError(null);
     setSigResetKey((k) => k + 1);
+    setSaving(false);
   };
 
   const handleClose = () => {
@@ -121,7 +123,7 @@ export function DimensionLoadForm({
     onClose();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError(null);
     if (!loaderPath) {
       setError("Say whether you loaded, and how loader CoR will be recorded.");
@@ -199,9 +201,16 @@ export function DimensionLoadForm({
       setError(validated.errors[0]?.message ?? "Could not save checklist.");
       return;
     }
-    onCompleted(validated.record);
-    reset();
-    onClose();
+    setSaving(true);
+    try {
+      await Promise.resolve(onCompleted(validated.record));
+      reset();
+      onClose();
+    } catch {
+      setError("Could not save on this device. Try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -215,11 +224,11 @@ export function DimensionLoadForm({
           {error ? <p className="text-center text-xs text-ck-red">{error}</p> : null}
           <button
             type="button"
-            disabled={!canSave}
-            onClick={handleSave}
+            disabled={!canSave || saving}
+            onClick={() => void handleSave()}
             className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
           >
-            Save Dimension & Load
+            {saving ? "Saving…" : "Save Dimension & Load"}
           </button>
         </div>
       }

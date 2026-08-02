@@ -116,6 +116,8 @@ export function DayCardDetailsDialog({
   allowHeaderRestAmend = false,
   readOnly = false,
   onConfirm,
+  /** Persist signed checklist immediately (do not wait for Confirm). */
+  onChecklistCompleted,
   showShiftPatternEducation,
   patternWorkMinutes = 0,
   continuedFromPreviousDay,
@@ -150,6 +152,8 @@ export function DayCardDetailsDialog({
   allowHeaderRestAmend?: boolean;
   readOnly?: boolean;
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
+  /** When a signed form completes, flush to the sheet without waiting for Confirm. */
+  onChecklistCompleted?: (record: import("@/lib/checklist").ChecklistRecord) => void | Promise<void>;
   showShiftPatternEducation?: boolean;
   /** Rolling minutes on same shift pattern ending at this day. */
   patternWorkMinutes?: number;
@@ -551,7 +555,8 @@ export function DayCardDetailsDialog({
             open={ffwOpen}
             onClose={() => setFfwOpen(false)}
             driverName={driverName}
-            onCompleted={(record) => {
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
             }}
           />
@@ -561,7 +566,8 @@ export function DayCardDetailsDialog({
             onClose={() => setPrestartOpen(false)}
             driverName={driverName}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
-            onCompleted={(record) => {
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
             }}
           />
@@ -571,7 +577,8 @@ export function DayCardDetailsDialog({
             onClose={() => setDimensionLoadOpen(false)}
             driverName={driverName}
             truckRego={draft.truck_rego}
-            onCompleted={(record) => {
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
             }}
           />

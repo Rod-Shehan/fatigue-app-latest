@@ -125,17 +125,14 @@ export async function POST(
       to: CHECKLIST_ARCHIVE_EMAIL,
       subject,
       text: [
-        "Circadia24 checklist week pack(s) — holding copy.",
+        "Circadia24 checklist week pack(s).",
         "",
         `Driver: ${row.driverName}`,
         `Week starting: ${row.weekStarting}`,
         `Included (separate PDF per type): ${included.join("; ")}`,
-        `Sheet id: ${id}`,
         `Generated (AWST): ${generatedAtLabel}`,
         "",
         "Types are not combined — auditors often call up each form type separately.",
-        "This is not the 28-day fatigue roadside PDF.",
-        "Structured answers remain in Circadia (Neon). Per-client packing options (shift/day/week/…) come later.",
       ].join("\n"),
       attachments,
     });

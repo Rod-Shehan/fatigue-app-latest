@@ -252,4 +252,4 @@ Merged from original outline + design review. Identity sync moved up - do not on
 
 ---
 
-*Circadia 24 - Confidential project outline v2 - Internal planning*
+*Circadia24 - Confidential project outline v2 - Internal planning*

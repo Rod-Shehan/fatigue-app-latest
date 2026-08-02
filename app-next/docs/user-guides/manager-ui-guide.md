@@ -1,6 +1,6 @@
 # Manager UI guide
 
-**For:** Fleet managers, supervisors, and compliance staff using Circadia 24 on a desktop or laptop (mobile supported as a fallback).  
+**For:** Fleet managers, supervisors, and compliance staff using Circadia24 on a desktop or laptop (mobile supported as a fallback).  
 **Language:** Mid-level English — assumes familiarity with fatigue rules and roster management.
 
 ---

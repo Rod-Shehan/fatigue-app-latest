@@ -34,11 +34,12 @@ export function FitnessForWorkForm({
   open: boolean;
   onClose: () => void;
   driverName?: string | null;
-  onCompleted: (record: ChecklistRecord) => void;
+  onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
   const [items, setItems] = useState(initAckMap);
   const [signature, setSignature] = useState<ChecklistSignatureCapture | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const allAcked = useMemo(
     () => FFW_SCHEMA_STUB.every((i) => isAcknowledgeItemComplete(items[i.code]!)),
@@ -49,6 +50,7 @@ export function FitnessForWorkForm({
     setItems(initAckMap());
     setSignature(null);
     setError(null);
+    setSaving(false);
   };
 
   const handleClose = () => {
@@ -56,7 +58,7 @@ export function FitnessForWorkForm({
     onClose();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setError(null);
     if (!allAcked) {
       setError("Acknowledge all points before saving.");
@@ -90,9 +92,16 @@ export function FitnessForWorkForm({
       setError(validated.errors[0]?.message ?? "Could not save checklist.");
       return;
     }
-    onCompleted(validated.record);
-    reset();
-    onClose();
+    setSaving(true);
+    try {
+      await Promise.resolve(onCompleted(validated.record));
+      reset();
+      onClose();
+    } catch {
+      setError("Could not save on this device. Try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -106,11 +115,11 @@ export function FitnessForWorkForm({
           {error ? <p className="text-center text-xs text-ck-red">{error}</p> : null}
           <button
             type="button"
-            disabled={!allAcked || !signature}
-            onClick={handleSave}
+            disabled={!allAcked || !signature || saving}
+            onClick={() => void handleSave()}
             className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
           >
-            Save Fitness for Work
+            {saving ? "Saving…" : "Save Fitness for Work"}
           </button>
         </div>
       }

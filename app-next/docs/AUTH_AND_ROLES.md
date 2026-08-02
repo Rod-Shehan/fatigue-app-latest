@@ -1,6 +1,6 @@
 # Auth, roles, and passwords
 
-How sign-in works on **Circadia 24** (`app-next`). Use this as the source of truth when onboarding testers or changing production env.
+How sign-in works on **Circadia24** (`app-next`). Use this as the source of truth when onboarding testers or changing production env.
 
 ---
 

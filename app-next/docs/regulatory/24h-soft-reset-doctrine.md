@@ -1,6 +1,6 @@
 # ≥24h break — soft reset doctrine (WA solo / short-horizon rules)
 
-**Status:** Product / compliance-expert doctrine for Circadia 24.  
+**Status:** Product / compliance-expert doctrine for Circadia24.  
 **Not** an explicit sentence in Reg 184E — the regulation states rolling windows (“in any 72-hour period”, etc.) but does **not** write “a 24-hour non-work break resets …”.  
 This note records the **intended reading** used when implementing and explaining the diary: a **fundamental ≥24h continuous break** clears short-horizon fatigue accounting so that long green (holidays, days off) is not scored as a false shortfall.
 

@@ -1,4 +1,4 @@
-# Circadia 24 — user guides
+# Circadia24 — user guides
 
 | Guide | Audience | Language level | File |
 |-------|----------|----------------|------|

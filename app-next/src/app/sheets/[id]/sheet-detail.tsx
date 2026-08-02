@@ -1166,6 +1166,21 @@ export function SheetDetail({
         ? ("saved" as const)
         : null;
 
+  /** Absolute device-first: park IndexedDB + pending, then schedule DB push. */
+  const parkDeviceAndScheduleSave = useCallback(async () => {
+    markLocalEdit();
+    await persistSheetLocalCritical(sheetId, buildSavePayload());
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      if (!isDirtyRef.current) return;
+      if (saveMutation.isPending) return;
+      const d = sheetDataRef.current;
+      if (!d.driver_name) return;
+      if (!canDriverEditSheetContent(d.week_starting, d.status, d.signature)) return;
+      saveMutation.mutate(buildSavePayload());
+    }, LOG_EVENT_SAVE_MS);
+  }, [markLocalEdit, sheetId, buildSavePayload, saveMutation]);
+
   useEffect(() => {
     if (driverContentLocked || !isDirty || !sheetData.driver_name) return;
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
@@ -1203,10 +1218,15 @@ export function SheetDetail({
     if (driverContentLocked) return;
     setSheetData((prev) => {
       const next = { ...prev, ...updates };
-      return { ...next, days: applyLast24hBreakNonWorkRule(next.days, next.week_starting, next.last_24h_break || undefined) };
+      const withDays = {
+        ...next,
+        days: applyLast24hBreakNonWorkRule(next.days, next.week_starting, next.last_24h_break || undefined),
+      };
+      sheetDataRef.current = withDays;
+      return withDays;
     });
-    markLocalEdit();
-  }, [driverContentLocked, markLocalEdit]);
+    void parkDeviceAndScheduleSave().catch(() => {});
+  }, [driverContentLocked, parkDeviceAndScheduleSave]);
 
   /** Keep showing declared rests after they satisfy the rule (do not vanish).
    * Also force 2/4 fields when compliance already flags 2×24h. Soft-reset
@@ -1309,19 +1329,35 @@ export function SheetDetail({
     [declared24hRestFields, declared24hRestUiFieldCount, handleHeaderChange]
   );
 
-  const handleDayUpdate = useCallback((dayIndex: number, dayData: DayData) => {
-    if (driverContentLocked) return;
-    setSheetData((prev) => {
+  const handleDayUpdate = useCallback(
+    async (dayIndex: number, dayData: DayData | ((prev: DayData) => DayData)) => {
+      if (driverContentLocked) {
+        throw new Error("This week is locked and cannot be saved.");
+      }
+      const prev = sheetDataRef.current;
       const newDays = [...prev.days];
-      newDays[dayIndex] = dayData;
+      const current = (newDays[dayIndex] ?? {}) as DayData;
+      newDays[dayIndex] = typeof dayData === "function" ? dayData(current) : dayData;
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
         openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
       });
-      return { ...prev, days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined) };
-    });
-    setIsDirty(true);
-  }, [driverContentLocked]);
+      const next = {
+        ...prev,
+        days: applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined),
+      };
+      // Device confirm before React UI (so "Form saved" only appears after real save).
+      sheetDataRef.current = next;
+      try {
+        await parkDeviceAndScheduleSave();
+      } catch (e) {
+        sheetDataRef.current = prev;
+        throw e;
+      }
+      setSheetData(next);
+    },
+    [driverContentLocked, parkDeviceAndScheduleSave]
+  );
 
   const handleOpenEndShiftCorrection = useCallback(
     async (dayIndex: number) => {
@@ -1475,19 +1511,7 @@ export function SheetDetail({
       sheetDataRef.current = next;
       return next;
     });
-    markLocalEdit();
-    // Device-first: park the event in IndexedDB + pending queue even while amber
-    // "Syncing…" / an older save is in flight (React Query may skip the flush).
-    void persistSheetLocalCritical(sheetId, buildSavePayload()).catch(() => {});
-    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-    autoSaveTimer.current = setTimeout(() => {
-      if (!isDirtyRef.current) return;
-      if (saveMutation.isPending) return;
-      const d = sheetDataRef.current;
-      if (!d.driver_name) return;
-      if (!canDriverEditSheetContent(d.week_starting, d.status, d.signature)) return;
-      saveMutation.mutate(buildSavePayload());
-    }, LOG_EVENT_SAVE_MS);
+    void parkDeviceAndScheduleSave().catch(() => {});
 
     // Snapshot trail immediately (do not wait for getCurrentPosition — that race
     // used to clear crumbs after a failed/slow pin fix and never persist them).
@@ -1521,7 +1545,7 @@ export function SheetDetail({
           sheetDataRef.current = next;
           return next;
         });
-        markLocalEdit();
+        void parkDeviceAndScheduleSave().catch(() => {});
       })
       .catch(() => {});
   },
@@ -1531,12 +1555,7 @@ export function SheetDetail({
     currentDayIndex,
     scrollToCurrentDayCard,
     storedRouteDefaults,
-    buildSavePayload,
-    saveMutation,
-    gpsMovementTrailEnabled,
-    handleEndShiftRequest,
-    markLocalEdit,
-    sheetId,
+    parkDeviceAndScheduleSave,
   ]);
 
   const handleEndShiftFinishDayChange = useCallback(
@@ -1631,9 +1650,11 @@ export function SheetDetail({
       });
       const finalDays = applyLast24hBreakNonWorkRule(withGrids, prev.week_starting, prev.last_24h_break || undefined);
       daysAfterEndShift = finalDays;
-      return { ...prev, days: finalDays };
+      const next = { ...prev, days: finalDays };
+      sheetDataRef.current = next;
+      return next;
     });
-    setIsDirty(true);
+    void parkDeviceAndScheduleSave().catch(() => {});
     setEndShiftDialog(null);
     setEndShiftEndKms("");
     setEndShiftStopHhmm("");
@@ -1666,12 +1687,14 @@ export function SheetDetail({
             };
           }
           newDays[dayIndex] = { ...d, events };
-          return { ...prev, days: newDays };
+          const next = { ...prev, days: newDays };
+          sheetDataRef.current = next;
+          return next;
         });
-        setIsDirty(true);
+        void parkDeviceAndScheduleSave().catch(() => {});
       })
       .catch(() => {});
-  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex, gpsMovementTrailEnabled]);
+  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex, gpsMovementTrailEnabled, parkDeviceAndScheduleSave]);
 
   const handleShiftPatternSave = useCallback(
     (todayShift: ShiftLabel | "", tomorrowShift: ShiftLabel | "") => {
@@ -1688,12 +1711,14 @@ export function SheetDetail({
             shift_label: tomorrowShift,
           };
         }
-        return { ...prev, days: newDays };
+        const next = { ...prev, days: newDays };
+        sheetDataRef.current = next;
+        return next;
       });
-      setIsDirty(true);
+      void parkDeviceAndScheduleSave().catch(() => {});
       setShiftPatternPrompt(null);
     },
-    [shiftPatternPrompt]
+    [shiftPatternPrompt, parkDeviceAndScheduleSave]
   );
 
   const fetchServerMaxByRego = useCallback(async (days: DayData[]) => {
@@ -1744,8 +1769,12 @@ export function SheetDetail({
     const prev = sheetDataRef.current;
     const chained = chainRegoKmsAcrossSheet(prev.days, signKmServerMax);
     const finalDays = applyDaysAfterKmChange(chained.days);
-    setSheetData((s) => ({ ...s, days: finalDays }));
-    setIsDirty(true);
+    setSheetData((s) => {
+      const next = { ...s, days: finalDays };
+      sheetDataRef.current = next;
+      return next;
+    });
+    void parkDeviceAndScheduleSave().catch(() => {});
     const err = validateSheetKms(finalDays, { serverMaxByRego: signKmServerMax });
     if (!err) {
       setSignKmFixIssues(null);
@@ -1757,7 +1786,7 @@ export function SheetDetail({
     } else {
       setSignKmFixIssues(getSheetKmIssues(finalDays, { serverMaxByRego: signKmServerMax }));
     }
-  }, [applyDaysAfterKmChange, signKmServerMax, kmFixPurpose, persistSheetFromRef]);
+  }, [applyDaysAfterKmChange, signKmServerMax, kmFixPurpose, persistSheetFromRef, parkDeviceAndScheduleSave]);
 
   const handleSave = useCallback(async () => {
     const days = sheetDataRef.current.days;
@@ -1809,34 +1838,35 @@ export function SheetDetail({
 
   const handleSignatureConfirm = (signatureDataUrl: string) => {
     const signedAt = new Date().toISOString();
-    setSheetData((prev) => ({ ...prev, status: "completed", signature: signatureDataUrl, signed_at: signedAt }));
-    setShowSignatureDialog(false);
-    setIsDirty(false);
     const attestationOnly = isPastWeek && !isManager;
-    saveMutation.mutate(
-      attestationOnly
-        ? {
-            status: "completed",
-            signature: signatureDataUrl,
-            signed_at: signedAt,
-          }
-        : {
-            driver_name: sheetData.driver_name,
-            second_driver: sheetData.second_driver,
-            driver_type: sheetData.driver_type,
-            destination: null,
-            last_24h_break: sheetData.last_24h_break || undefined,
-            last_24h_rest_1: sheetData.last_24h_rest_1 || undefined,
-            last_24h_rest_2: sheetData.last_24h_rest_2 || undefined,
-            last_24h_rest_3: sheetData.last_24h_rest_3 || undefined,
-            last_24h_rest_4: sheetData.last_24h_rest_4 || undefined,
-            week_starting: sheetData.week_starting,
-            days: sheetData.days,
-            status: "completed",
-            signature: signatureDataUrl,
-            signed_at: signedAt,
-          }
-    );
+    const payload = attestationOnly
+      ? {
+          status: "completed" as const,
+          signature: signatureDataUrl,
+          signed_at: signedAt,
+        }
+      : {
+          ...buildSavePayload(),
+          status: "completed" as const,
+          signature: signatureDataUrl,
+          signed_at: signedAt,
+        };
+    setSheetData((prev) => {
+      const next = { ...prev, status: "completed", signature: signatureDataUrl, signed_at: signedAt };
+      sheetDataRef.current = next;
+      return next;
+    });
+    setShowSignatureDialog(false);
+    // Device confirm first; DB push only via saveMutation → updateSheetOfflineFirst after that.
+    void persistSheetLocalCritical(sheetId, payload)
+      .then(() => {
+        isDirtyRef.current = false;
+        setIsDirty(false);
+        saveMutation.mutate(payload);
+      })
+      .catch(() => {
+        markLocalEdit();
+      });
   };
 
   const handleExportPdf = useCallback(() => {

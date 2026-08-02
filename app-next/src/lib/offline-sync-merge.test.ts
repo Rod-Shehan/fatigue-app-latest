@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FatigueSheet } from "./api";
 import type { PendingWrite } from "./offline";
 import {
+  countSheetChecklists,
   countSheetEvents,
   hasPendingUpdateForSheet,
   isNotFoundError,
@@ -105,6 +106,36 @@ describe("offline-sync-merge", () => {
       ],
     });
     const server = sheet({ id: "s1", days: [{ events: [] }] });
+    expect(shouldPreferLocalSheet(local, server)).toBe(true);
+    expect(shouldPreferLocalSheet(server, local)).toBe(false);
+  });
+
+  it("keeps local sheet when checklist count is richer but event counts match", () => {
+    const checklist = {
+      id: "c1",
+      type: "ffw",
+      schemaVersion: 1,
+      status: "completed",
+      completedAtUtc: "2026-07-14T09:00:00.000Z",
+      items: [],
+      signatures: [],
+    };
+    const local = sheet({
+      id: "s1",
+      days: [
+        {
+          events: [{ time: "2026-07-14T10:00:00.000Z", type: "work" }],
+          checklists: [checklist],
+        },
+      ],
+    });
+    const server = sheet({
+      id: "s1",
+      days: [{ events: [{ time: "2026-07-14T10:00:00.000Z", type: "work" }], checklists: [] }],
+    });
+    expect(countSheetEvents(local)).toBe(countSheetEvents(server));
+    expect(countSheetChecklists(local)).toBe(1);
+    expect(countSheetChecklists(server)).toBe(0);
     expect(shouldPreferLocalSheet(local, server)).toBe(true);
     expect(shouldPreferLocalSheet(server, local)).toBe(false);
   });
