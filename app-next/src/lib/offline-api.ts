@@ -10,7 +10,7 @@
  * clobber richer local / pending work.
  */
 
-import { api, type FatigueSheet, type Rego } from "./api";
+import { api, type FatigueSheet, type Rego, type SheetUpdatePayload } from "./api";
 import {
   isOnline,
   offlineGetSheet,
@@ -285,7 +285,7 @@ export async function listSheetsOfflineFirst(): Promise<FatigueSheet[]> {
  */
 export async function updateSheetOfflineFirst(
   sheetId: string,
-  data: Partial<FatigueSheet>
+  data: SheetUpdatePayload
 ): Promise<FatigueSheet> {
   const existing = await offlineGetSheet(sheetId).catch(() => null);
   const merged: FatigueSheet = existing
@@ -312,7 +312,7 @@ export async function updateSheetOfflineFirst(
  */
 export async function persistSheetLocalCritical(
   sheetId: string,
-  data: Partial<FatigueSheet>
+  data: SheetUpdatePayload
 ): Promise<FatigueSheet> {
   const existing = await offlineGetSheet(sheetId).catch(() => null);
   const merged: FatigueSheet = existing

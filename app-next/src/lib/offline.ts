@@ -4,7 +4,7 @@
  * - Write: save to IndexedDB immediately, queue for sync; when online, push to server.
  */
 
-import type { FatigueSheet } from "./api";
+import type { FatigueSheet, SheetUpdatePayload } from "./api";
 import type { Rego } from "./api";
 
 export const OFFLINE_DB_NAME = "fatigue-offline";
@@ -18,12 +18,12 @@ const STORE_PENDING = "pending";
 export const STORE_SNAPSHOTS = "snapshots";
 
 export type PendingWrite =
-  | { id: number; type: "update"; sheetId: string; data: Partial<FatigueSheet>; at: number }
+  | { id: number; type: "update"; sheetId: string; data: SheetUpdatePayload; at: number }
   | { id: number; type: "create"; tempId: string; data: Omit<FatigueSheet, "id">; at: number };
 
 /** Argument for offlineEnqueue (same shape as PendingWrite but without `at`). */
 export type PendingWriteEnqueue =
-  | { type: "update"; sheetId: string; data: Partial<FatigueSheet> }
+  | { type: "update"; sheetId: string; data: SheetUpdatePayload }
   | { type: "create"; tempId: string; data: Omit<FatigueSheet, "id"> };
 
 function openDB(): Promise<IDBDatabase> {
@@ -191,7 +191,7 @@ export async function offlineEnqueue(write: PendingWriteEnqueue): Promise<void> 
 /** Drop prior pending updates for the same sheet so the queue stays one write deep. */
 export async function offlineEnqueueSheetUpdate(
   sheetId: string,
-  data: Partial<FatigueSheet>
+  data: SheetUpdatePayload
 ): Promise<void> {
   const pending = await offlineGetPending();
   for (const item of pending) {

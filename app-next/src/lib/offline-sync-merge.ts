@@ -4,6 +4,7 @@
  */
 
 import type { FatigueSheet } from "./api";
+import type { SheetUpdatePayload } from "./api";
 import type { PendingWrite } from "./offline";
 
 export function pendingUpdatesForSheet(
@@ -76,7 +77,9 @@ export function mergeLocalSheetWithPendingUpdates(
 }
 
 /** Payload fields we persist on PATCH (mirrors driver autosave). */
-export function toSheetUpdatePayload(sheet: Partial<FatigueSheet>): Partial<FatigueSheet> {
+export function toSheetUpdatePayload(
+  sheet: Partial<FatigueSheet> & { amendment_reason?: string }
+): SheetUpdatePayload {
   return {
     jurisdiction_code: sheet.jurisdiction_code,
     driver_name: sheet.driver_name,

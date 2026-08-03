@@ -113,9 +113,9 @@ describe("offline-sync-merge", () => {
   it("keeps local sheet when checklist count is richer but event counts match", () => {
     const checklist = {
       id: "c1",
-      type: "ffw",
+      type: "ffw" as const,
       schemaVersion: 1,
-      status: "completed",
+      status: "completed" as const,
       completedAtUtc: "2026-07-14T09:00:00.000Z",
       items: [],
       signatures: [],
