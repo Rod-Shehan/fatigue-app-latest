@@ -22,6 +22,7 @@ Circadia24 keeps your **weekly fatigue record** — an electronic work diary (EW
 2. Type your **email** (provided or from your manager).
 3. Type your **password** (provided or from your manager).
 4. Tap **Sign in**.
+5. If you forgot your password, tap **Forgot password?**, enter your email, and use the reset link we send (when email is set up). Or ask your manager to set a new temporary password.
 
 You can change your password later in **Settings → Account → Change password**.
 

@@ -46,6 +46,8 @@ describe("app-surface", () => {
 
     expect(isPathAllowedOnSurface("/manager", "legacy")).toBe(true);
     expect(isPathAllowedOnSurface("/driver", "legacy")).toBe(true);
+    expect(isPathAllowedOnSurface("/reset-password", "ewd")).toBe(true);
+    expect(isPathAllowedOnSurface("/reset-password", "enterprise")).toBe(true);
   });
 
   it("builds document titles per product surface", () => {

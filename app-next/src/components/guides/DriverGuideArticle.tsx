@@ -62,6 +62,10 @@ export function DriverGuideArticle() {
           <li>Type your email (provided or from your manager).</li>
           <li>Type your password (provided or from your manager).</li>
           <li>Tap Sign in.</li>
+          <li>
+            Forgot password? Tap Forgot password, enter your email, and use the reset link (or ask your manager for a
+            temporary password).
+          </li>
         </ol>
         <p className="mt-3 text-slate-500 dark:text-slate-400">
           You can change your password later in Settings → Account → Change password.
@@ -70,6 +74,7 @@ export function DriverGuideArticle() {
           {`┌─────────────────────────────┐
 │  Email:  you@company.com    │
 │  Password: ••••••            │
+│         Forgot password?    │
 │         [ Sign in ]         │
 └─────────────────────────────┘`}
         </GuideDiagram>

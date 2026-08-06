@@ -41,7 +41,7 @@ flowchart TB
 | **Risk brief** (`/manager`) | Weekly fleet view, tiers, register, workbench |
 | **Event Tracker** | Logged events with location on a map for assurance |
 | **Conversations** | Manager–driver messaging |
-| **Drivers** | Roster, login email, optional Commercial Driver's Medical expiry, passwords |
+| **Drivers** | Roster, login email, optional Commercial Driver's Medical expiry, passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
 | **Rego** | Vehicle registration reference data |
 | **Test desk** | Inject test alerts; set **WAHVA maintenance contact** (workshop email for fault reporting) |

@@ -33,6 +33,22 @@ model User {
   driverRiskBlocks DriverRiskBlock[]
   routePresetsCreated RoutePreset[]
   systemPoliciesUpdated SystemPolicy[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+/** One-time login password reset (self-service forgot password). */
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /** SHA-256 hex of the secret sent in the email link (raw token never stored). */
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 /** Singleton org lockdown flags — owner-controlled (Phase A governance). */

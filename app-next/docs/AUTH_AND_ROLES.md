@@ -20,7 +20,8 @@ Managers **cannot** create other managers. Owners **cannot** delete their own ac
 
 1. Open the lobby and choose **Driver**, **Manager**, or **Owner**.
 2. Sign in with **email + per-user password** (minimum 6 characters).
-3. **Drivers** must be on **Approved Drivers** with a matching email and **Active** status.
+3. **Forgot password?** on the sign-in form emails a one-hour reset link (requires `RESEND_API_KEY` + `EMAIL_FROM`). If email is not configured, the form tells the user to ask their manager (drivers) or owner (managers).
+4. **Drivers** must be on **Approved Drivers** with a matching email and **Active** status.
 
 **Production does not use a shared fleet password** unless you explicitly set `CIRCADIA_ALLOW_SHARED_LOGIN_PASSWORD=true` on Vercel (not recommended for pilot).
 
@@ -29,9 +30,9 @@ Managers **cannot** create other managers. Owners **cannot** delete their own ac
 | Account | Who sets password | Where |
 |---------|-------------------|--------|
 | Driver | Manager or owner | **Approved Drivers** → add/edit → **Set login password** |
-| Driver (self) | Driver | **Settings → Change password** (needs current password) |
-| Manager | Owner only | **Add managers** → create or **Edit** → reset password |
-| Owner | DBA / one-off script | Bootstrap only; then use driver-style change when self-service exists |
+| Driver (self) | Driver | **Settings → Change password** (needs current password), or **Forgot password?** on lobby sign-in |
+| Manager | Owner only | **Add managers** → create or **Edit** → reset password; managers can also use **Forgot password?** |
+| Owner | DBA / one-off script | Bootstrap only; then **Forgot password?** or a future self-service change |
 
 When an admin sets a password, a **show-once** dialog appears — copy it immediately; it cannot be viewed again.
 
@@ -95,6 +96,7 @@ Preview deployments may use `NEXTAUTH_ALLOW_DEV_LOGIN` — still **blocked when 
 | Credentials auth | `src/lib/auth.ts` |
 | Roster gate (drivers) | `src/lib/driver-login-gate.ts` |
 | Password helpers | `src/lib/user-password.ts`, `src/lib/account-password-admin.ts` |
+| Forgot / reset password | `src/lib/password-reset.ts`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/reset-password` |
 | Alpha allow-list | `src/lib/auth-alpha-allowlist.ts` |
 | Middleware / headers | `src/middleware.ts` |
 | Production env guards | `src/lib/auth-env.ts` |

@@ -149,11 +149,14 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
 
   const [activeBranch, setActiveBranch] = useState<LobbyBranch>(initialBranch);
   const [showSignIn, setShowSignIn] = useState(forcedSignIn);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [forgotMessage, setForgotMessage] = useState("");
   const [branchError, setBranchError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [offlineContinue, setOfflineContinue] = useState(false);
   const offlineSnapshot = getOfflineAuth();
@@ -219,6 +222,8 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
       return;
     }
     setShowSignIn(true);
+    setShowForgotPassword(false);
+    setForgotMessage("");
     setError("");
   }
 
@@ -226,6 +231,29 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
     setSigningOut(true);
     clearOfflineAuth();
     void signOut({ callbackUrl: "/" });
+  }
+
+  async function onForgotSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setForgotMessage("");
+    setForgotLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      setForgotMessage(
+        data.message ||
+          "If an account exists for that email, we sent a reset link. Check your inbox (and spam)."
+      );
+    } catch {
+      setError("Could not request a reset. Check your connection and try again.");
+    } finally {
+      setForgotLoading(false);
+    }
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -406,6 +434,62 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
         </div>
 
         {showSignIn && status !== "authenticated" ? (
+          showForgotPassword ? (
+            <form
+              onSubmit={(e) => void onForgotSubmit(e)}
+              className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-5 max-w-md mx-auto"
+            >
+              <div className="space-y-1 text-center">
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Forgot password</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Enter the email for your {branch.title.toLowerCase()} account. We will email a reset link when outbound
+                  email is configured.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email" className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+                  Email
+                </Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="h-12 text-base"
+                  required
+                />
+              </div>
+              {error ? (
+                <p className="text-sm text-red-600 font-medium" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {forgotMessage ? (
+                <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium" role="status">
+                  {forgotMessage}
+                </p>
+              ) : null}
+              <Button
+                type="submit"
+                className="w-full h-12 text-base bg-slate-900 hover:bg-slate-800 text-white font-semibold"
+                disabled={forgotLoading}
+              >
+                {forgotLoading ? "Sending…" : "Email reset link"}
+              </Button>
+              <button
+                type="button"
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setForgotMessage("");
+                  setError("");
+                }}
+              >
+                Back to sign in
+              </button>
+            </form>
+          ) : (
           <form
             onSubmit={onSubmit}
             className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 space-y-5 max-w-md mx-auto"
@@ -426,9 +510,22 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-                Password
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="password" className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
+                  Password
+                </Label>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-teal-700 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setError("");
+                    setForgotMessage("");
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -457,6 +554,7 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
               Back to branch selection
             </button>
           </form>
+          )
         ) : null}
       </div>
     </div>

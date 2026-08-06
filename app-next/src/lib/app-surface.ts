@@ -137,6 +137,7 @@ export function isPathAllowedOnSurface(pathname: string, surface: AppSurface): b
   if (
     path === "/" ||
     path === "/login" ||
+    path === "/reset-password" ||
     path === "/access-restricted" ||
     path.startsWith("/api/")
   ) {
