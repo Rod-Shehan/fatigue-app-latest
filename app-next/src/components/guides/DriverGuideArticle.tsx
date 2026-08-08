@@ -125,7 +125,7 @@ export function DriverGuideArticle() {
         </GuideDiagram>
         <TwoColTable
           rows={[
-            ["Start shift", "First work of a shift (needs start km first)"],
+            ["Start shift", "Starts work on the timeline (opens Set up day first if details are missing)"],
             ["Start Work / Work", "Begin or resume driving / on-duty work"],
             ["Break", "Short rest during work (30 minutes or less)"],
             [
@@ -240,9 +240,10 @@ export function DriverGuideArticle() {
           Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
-          Normal day: open the week → check From / To / Rego → optionally tick Daily checks or open signed Fitness for
-          Work / Prestart / Dimension & Load forms (optional in trial — do not block Start shift) → type start km → tap
-          Start shift.
+          Normal day: open the week → tap Start shift. If day details are missing, Set up day opens — Confirm starts
+          work on the timeline. If setup is already done, tap Start shift again to confirm. Optionally tick Daily
+          checks or open signed Fitness for Work / Prestart / Dimension & Load forms (optional in trial — do not block
+          Start shift).
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
         <p>Use Set up day (or Edit day) when something changes:</p>
@@ -448,8 +449,7 @@ export function DriverGuideArticle() {
             that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
             day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
-          <li>Type start km</li>
-          <li>Tap Start shift when you begin</li>
+          <li>Tap Start shift when you begin (Confirm Set up day if prompted — that starts work)</li>
           <li>Tap Break for short rest</li>
           <li>Tap End shift when finished — enter finish time and end km</li>
           <li>When the week has ended — Sign</li>

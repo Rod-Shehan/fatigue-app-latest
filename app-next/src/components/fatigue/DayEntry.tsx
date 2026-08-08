@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { isShiftStartSetupComplete } from "@/lib/shift-start-gate";
 import { saveDriverRouteDefaults, inferRouteCarryMode } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
@@ -141,6 +142,8 @@ export default function DayEntry({
   onCrewMetaSync,
   dayTools,
   setupOpenRequest,
+  startWorkAfterSetup = false,
+  onConfirmedStartWorkAfterSetup,
   onDetailsDialogClosed,
   driverName,
   allowHeaderRestAmend = false,
@@ -174,6 +177,9 @@ export default function DayEntry({
   dayTools?: DayCardToolsConfig;
   /** Parent bump opens Set up day (e.g. Start shift blocked → Go to today's card). */
   setupOpenRequest?: number;
+  /** Hero Start/Resume deferred here — Confirm starts work on the timeline. */
+  startWorkAfterSetup?: boolean;
+  onConfirmedStartWorkAfterSetup?: (opts?: { skipLog?: boolean }) => void;
   /** Fired when Set up / Edit day dialog closes. */
   onDetailsDialogClosed?: () => void;
   /** Shown in Edit day so the form is clearly for this driver. */
@@ -834,7 +840,8 @@ export default function DayEntry({
                 )
               : null)
           }
-          onConfirm={(fields, updatedEvents) => {
+          startWorkAfterSetup={startWorkAfterSetup}
+          onConfirm={async (fields, updatedEvents) => {
             const planFields = hasRunPlanContent(fields)
               ? {
                   ...fields,
@@ -856,7 +863,7 @@ export default function DayEntry({
               events: updatedEvents,
               route_confirmed: true,
             };
-            onUpdate(dayIndex, merged);
+            await Promise.resolve(onUpdate(dayIndex, merged));
             if (isToday && onCrewMetaSync) {
               onCrewMetaSync({
                 driver_type: merged.driver_type === "two_up" ? "two_up" : "solo",
@@ -864,6 +871,10 @@ export default function DayEntry({
               });
             }
             if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
+            if (startWorkAfterSetup && isToday && isShiftStartSetupComplete(merged)) {
+              const alreadyHasWork = (updatedEvents ?? []).some((e) => e.type === "work");
+              onConfirmedStartWorkAfterSetup?.(alreadyHasWork ? { skipLog: true } : undefined);
+            }
           }}
           onChecklistCompleted={async (record) => {
             await Promise.resolve(onUpdate(dayIndex, (prev) => appendChecklistToDay(prev, record)));

@@ -151,6 +151,7 @@ export default function LogBar({
   prospectiveRouteHint = null,
   rolling168hMetrics = null,
   onStartShiftBlocked,
+  finalizeStartWorkRequest = null,
   heroExpandRequest = 0,
   currentDayDisplay,
   driverType,
@@ -183,7 +184,18 @@ export default function LogBar({
   /** Rolling 14-day / 168h headroom for the chip. */
   rolling168hMetrics?: Rolling168hMetrics | null;
   /** When Start shift is blocked, parent scrolls to the target day card and may open Set up day. */
-  onStartShiftBlocked?: (opts?: { openSetup?: boolean; dayIndex?: number }) => void;
+  onStartShiftBlocked?: (opts?: {
+    openSetup?: boolean;
+    dayIndex?: number;
+    /** Hero Start/Resume was the event — after Set up day Confirm, finalize work on the timeline. */
+    startWorkAfterSetup?: boolean;
+    episodeResume?: boolean;
+  }) => void;
+  /**
+   * Parent bumps `id` after Set up day Confirm when start-work-after-setup was pending.
+   * LogBar then logs work (or shows the non-work warning) without another hero tap.
+   */
+  finalizeStartWorkRequest?: { id: number; episodeResume: boolean } | null;
   /** Bump to clear compact hero when parent knows setup finished at scroll top. */
   heroExpandRequest?: number;
   /** When provided, used for Start shift gate (rego/destination/start KM) so carried-over values count. */
@@ -711,27 +723,84 @@ export default function LogBar({
   const logBarBanner = null;
 
   const showShiftStartSetupBlock = useCallback(
-    (type: string): boolean => {
+    (type: string, options?: { episodeResume?: boolean; deferToSetup?: boolean }): boolean => {
       if (type !== "work" || !workLogRequiresShiftStartSetup(eventsForDriver)) return false;
 
       const missing = getShiftStartSetupMissing(dayForCardFields ?? {});
-      if (missing.length > 0) {
-        setWorkWarning({
-          message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
-          confirmLabel: "Go to today's card",
-          subtext: "Fill in the fields above, then tap Start shift again.",
-          onConfirm: () => {
-            setWorkWarning(null);
-            revealTodayCard();
-          },
-          onCancel: () => setWorkWarning(null),
+      if (missing.length === 0) return false;
+
+      // Hero Start/Resume is the event — open Set up day and finish work after Confirm.
+      if (options?.deferToSetup !== false) {
+        onStartShiftBlocked?.({
+          openSetup: true,
+          dayIndex: currentDayIndex,
+          startWorkAfterSetup: true,
+          episodeResume: options?.episodeResume === true,
         });
         return true;
       }
-      return false;
+
+      setWorkWarning({
+        message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
+        confirmLabel: "Go to today's card",
+        subtext: "Confirm Set up day to start your shift on the timeline.",
+        onConfirm: () => {
+          setWorkWarning(null);
+          onStartShiftBlocked?.({
+            openSetup: true,
+            dayIndex: currentDayIndex,
+            startWorkAfterSetup: true,
+            episodeResume: options?.episodeResume === true,
+          });
+        },
+        onCancel: () => setWorkWarning(null),
+      });
+      return true;
     },
-    [dayForCardFields, eventsForDriver, revealTodayCard]
+    [dayForCardFields, eventsForDriver, onStartShiftBlocked, currentDayIndex]
   );
+
+  const finalizeStartWorkOnTimeline = useCallback(
+    (episodeResume: boolean) => {
+      // Setup was just confirmed on the day card — do not re-gate on stale LogBar display fields.
+      const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
+      if (nonWorkMsg) {
+        setWorkWarning({
+          message: nonWorkMsg,
+          confirmLabel: episodeResume ? "Resume shift anyway" : "Start anyway",
+          subtext: "Your day setup is saved. Confirm to start work on the timeline.",
+          onConfirm: () => {
+            setWorkWarning(null);
+            clearPending();
+            onLogEvent(currentDayIndex, "work");
+          },
+          onCancel: () => setWorkWarning(null),
+        });
+        return;
+      }
+      clearPending();
+      onLogEvent(currentDayIndex, "work");
+    },
+    // getInsufficientNonWorkWarning / clearPending close over live state
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional live closure
+    [
+      currentDayIndex,
+      onLogEvent,
+      eventsForDriver,
+      currentType,
+      isTwoUp,
+      soloEpisodeResume,
+      clearPending,
+    ]
+  );
+
+  const lastFinalizeStartWorkIdRef = useRef(0);
+  useEffect(() => {
+    if (!finalizeStartWorkRequest) return;
+    if (finalizeStartWorkRequest.id === lastFinalizeStartWorkIdRef.current) return;
+    lastFinalizeStartWorkIdRef.current = finalizeStartWorkRequest.id;
+    finalizeStartWorkOnTimeline(finalizeStartWorkRequest.episodeResume);
+  }, [finalizeStartWorkRequest, finalizeStartWorkOnTimeline]);
 
   useEffect(() => {
     if (!isLiveNow) return;
@@ -764,7 +833,7 @@ export default function LogBar({
       return;
     }
 
-    if (showShiftStartSetupBlock(type)) return;
+    if (showShiftStartSetupBlock(type, { episodeResume })) return;
 
     if (confirming) {
       clearPending();
@@ -850,7 +919,7 @@ export default function LogBar({
     }
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
-      if (showShiftStartSetupBlock(type)) return;
+      if (showShiftStartSetupBlock(type, { episodeResume })) return;
       if (type === "stop") {
         if (onEndShiftRequest) {
           onEndShiftRequest(currentDayIndex);

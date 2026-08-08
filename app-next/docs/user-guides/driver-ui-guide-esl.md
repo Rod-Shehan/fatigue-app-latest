@@ -52,7 +52,7 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 
 | Button | When it shows / what to tap |
 |--------|------------------------------|
-| **Start shift** | First work of a shift (needs start km first) |
+| **Start shift** | Starts work on the timeline (opens Set up day first if details are missing; Confirm finishes the start) |
 | **Start Work / Work** | Begin or resume driving/on-duty work |
 | **Break** | Short rest during work (30 minutes or less) |
 | **Resume shift** | Same hero button as Start shift when you are continuing the *same* fatigue episode after End shift (not a second button) |
@@ -139,7 +139,7 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 
           Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: truck reg, odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). Days with **no events** show a full **non-work** line (totals Work 0 / Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
 
-**Normal day:** open the week → check rego and run setup → optionally tick **Daily checks** or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do **not** block Start shift) → type **start km** → tap **Start shift**.
+**Normal day:** open the week → tap **Start shift** → if day setup is needed, complete Set up day and **Confirm** (that starts work on the timeline) → or if setup is already done, tap Start shift again to confirm. Optionally tick **Daily checks** or open signed forms (optional in trial — do **not** block Start shift).
 
 ### Set up day / Edit day
 

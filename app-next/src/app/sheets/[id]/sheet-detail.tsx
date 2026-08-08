@@ -313,6 +313,13 @@ export function SheetDetail({
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
   const [todaySetupOpenRequest, setTodaySetupOpenRequest] = useState(0);
+  const [pendingStartWorkAfterSetup, setPendingStartWorkAfterSetup] = useState<{
+    episodeResume: boolean;
+  } | null>(null);
+  const [finalizeStartWorkRequest, setFinalizeStartWorkRequest] = useState<{
+    id: number;
+    episodeResume: boolean;
+  } | null>(null);
   const [heroExpandRequest, setHeroExpandRequest] = useState(0);
   const sheetDataRef = useRef(sheetData);
   sheetDataRef.current = sheetData;
@@ -1034,7 +1041,15 @@ export function SheetDetail({
   );
 
   const handleStartShiftBlocked = useCallback(
-    (opts?: { openSetup?: boolean; dayIndex?: number }) => {
+    (opts?: {
+      openSetup?: boolean;
+      dayIndex?: number;
+      startWorkAfterSetup?: boolean;
+      episodeResume?: boolean;
+    }) => {
+      if (opts?.startWorkAfterSetup) {
+        setPendingStartWorkAfterSetup({ episodeResume: opts.episodeResume === true });
+      }
       if (opts?.dayIndex != null) {
         scrollToDayCard(opts.dayIndex);
       } else {
@@ -1046,6 +1061,28 @@ export function SheetDetail({
     },
     [scrollToCurrentDayCard, scrollToDayCard]
   );
+
+  const handleConfirmedStartWorkAfterSetup = useCallback(
+    (opts?: { skipLog?: boolean }) => {
+      const pending = pendingStartWorkAfterSetup;
+      setPendingStartWorkAfterSetup(null);
+      if (opts?.skipLog || !pending) return;
+      setFinalizeStartWorkRequest((prev) => ({
+        id: (prev?.id ?? 0) + 1,
+        episodeResume: pending.episodeResume === true,
+      }));
+    },
+    [pendingStartWorkAfterSetup]
+  );
+
+  const handleTodayDetailsDialogClosed = useCallback(() => {
+    setPendingStartWorkAfterSetup(null);
+    if (typeof window === "undefined") return;
+    if (window.scrollY < 12) {
+      window.scrollTo(0, 0);
+      setHeroExpandRequest((n) => n + 1);
+    }
+  }, []);
 
   const handleComplianceFix = useCallback(
     (route: ComplianceFixRoute) => {
@@ -1070,14 +1107,6 @@ export function SheetDetail({
     },
     [handleStartShiftBlocked, currentDayIndex, scrollToDayCard, scrollToCurrentDayCard, complianceHref]
   );
-
-  const handleTodayDetailsDialogClosed = useCallback(() => {
-    if (typeof window === "undefined") return;
-    if (window.scrollY < 12) {
-      window.scrollTo(0, 0);
-      setHeroExpandRequest((n) => n + 1);
-    }
-  }, []);
 
   useEffect(() => {
     if (!sheetData?.days?.length || typeof window === "undefined") return;
@@ -1947,6 +1976,10 @@ export function SheetDetail({
         : undefined,
       dayTools: isCurrent && isTodayCard ? driverDayTools : undefined,
       setupOpenRequest: isCurrent && isTodayCard ? todaySetupOpenRequest : undefined,
+      startWorkAfterSetup:
+        isCurrent && isTodayCard ? pendingStartWorkAfterSetup != null : undefined,
+      onConfirmedStartWorkAfterSetup:
+        isCurrent && isTodayCard ? handleConfirmedStartWorkAfterSetup : undefined,
       onDetailsDialogClosed: isCurrent && isTodayCard ? handleTodayDetailsDialogClosed : undefined,
     };
   };
@@ -1974,6 +2007,7 @@ export function SheetDetail({
             prospectiveRouteHint={prospectiveRouteHint}
             rolling168hMetrics={rolling168hMetrics}
             onStartShiftBlocked={handleStartShiftBlocked}
+            finalizeStartWorkRequest={finalizeStartWorkRequest}
             heroExpandRequest={heroExpandRequest}
             currentDayDisplay={getDayWithMergedRouteContext(
               sheetData.days,

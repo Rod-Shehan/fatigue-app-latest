@@ -119,6 +119,7 @@ export function DayCardDetailsDialog({
   onConfirm,
   /** Persist signed checklist immediately (do not wait for Confirm). */
   onChecklistCompleted,
+  startWorkAfterSetup = false,
   showShiftPatternEducation,
   patternWorkMinutes = 0,
   continuedFromPreviousDay,
@@ -152,9 +153,11 @@ export function DayCardDetailsDialog({
   /** Manager: change locked week-header rest dates from Edit day. */
   allowHeaderRestAmend?: boolean;
   readOnly?: boolean;
-  onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void;
+  onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void | Promise<void>;
   /** When a signed form completes, flush to the sheet without waiting for Confirm. */
   onChecklistCompleted?: (record: import("@/lib/checklist").ChecklistRecord) => void | Promise<void>;
+  /** Hero Start/Resume opened this dialog — Confirm also starts work on the timeline. */
+  startWorkAfterSetup?: boolean;
   showShiftPatternEducation?: boolean;
   /** Rolling minutes on same shift pattern ending at this day. */
   patternWorkMinutes?: number;
@@ -585,8 +588,13 @@ export function DayCardDetailsDialog({
       setKmError(validation.message ?? "Invalid kilometres.");
       return;
     }
-    onConfirm(fieldsForSave, normalizeDayEvents(draftEvents));
-    onOpenChange(false);
+    setConfirming(true);
+    try {
+      await Promise.resolve(onConfirm(fieldsForSave, normalizeDayEvents(draftEvents)));
+      onOpenChange(false);
+    } finally {
+      setConfirming(false);
+    }
   };
 
   return (
@@ -618,6 +626,13 @@ export function DayCardDetailsDialog({
             Check and confirm they are correct for this day.
           </p>
         )}
+
+        {startWorkAfterSetup ? (
+          <p className="text-sm leading-snug text-teal-900 dark:text-teal-100 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2">
+            <span className="font-semibold">Starting your shift:</span> fill the fields below and tap Confirm — work
+            begins on your timeline (same as the Start shift you tapped).
+          </p>
+        ) : null}
 
         <div className="space-y-4">
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3">
@@ -1040,7 +1055,7 @@ export function DayCardDetailsDialog({
             disabled={confirming}
             onClick={() => void handleConfirm()}
           >
-            {confirming ? "Checking…" : "Confirm"}
+            {confirming ? "Saving…" : startWorkAfterSetup ? "Confirm & start shift" : "Confirm"}
           </Button>
         </div>
       </DialogContent>
