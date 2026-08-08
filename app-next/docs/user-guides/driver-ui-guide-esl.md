@@ -55,7 +55,7 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 | **Start shift** | First work of a shift (needs start km first) |
 | **Start Work / Work** | Begin or resume driving/on-duty work |
 | **Break** | Short rest during work (30 minutes or less) |
-| **Resume shift** | Continue the *same* shift after a short stop (when offered) |
+| **Resume shift** | Same hero button as Start shift when you are continuing the *same* fatigue episode after End shift (not a second button) |
 | **End shift** | You finish work — enter finish time and end km |
 
 ```
@@ -292,7 +292,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files — not combined). **Email checklist week packs** sends those to Circadia. Prestart asks if you are responsible (two-up second drivers can say no with a reason). Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
 | Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature with the day sheets |
 | Start shift / End shift | Begin / finish work for a shift |
-| Resume shift | Continue the same shift — this is not the same as start / finish break. |
+| Resume shift | Hero label instead of Start shift when continuing the same episode after End shift |
 | Week | Sunday–Saturday slice of your record |
 | Sign | You attest the week is correct |
 | Rego | Number plate |

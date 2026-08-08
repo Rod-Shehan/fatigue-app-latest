@@ -419,8 +419,8 @@ export default function LogBar({
   const primaryLogType = (idlePrimary?.type ?? nextWorkBreak) as "work" | "break" | "non_work";
   const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
   const isStartingShift = primaryLogType === "work" && needsShiftStartSetup;
-  /** Callback / same fatigue episode — secondary action; primary stays Start shift. */
-  const showResumeShiftOption =
+  /** Idle after End shift inside an active 17h episode — hero is Resume shift (not a second button). */
+  const showResumeShiftPrimary =
     isLiveNow &&
     currentType === null &&
     isStartingShift &&
@@ -428,11 +428,14 @@ export default function LogBar({
     !idleRestBlocked;
   const primaryActionLabel = idlePrimary
     ? idlePrimary.label
-    : isStartingShift
-      ? "Start shift"
-      : EVENT_LABELS[nextWorkBreak];
-  const primaryActionPending = pendingType === primaryLogType && !workLogEpisodeResume;
-  const resumeShiftPending = pendingType === "work" && workLogEpisodeResume;
+    : showResumeShiftPrimary
+      ? "Resume shift"
+      : isStartingShift
+        ? "Start shift"
+        : EVENT_LABELS[nextWorkBreak];
+  const primaryActionPending =
+    pendingType === primaryLogType &&
+    (showResumeShiftPrimary ? workLogEpisodeResume : !workLogEpisodeResume);
 
   const primaryActionIcon =
     idleRestBlocked
@@ -1061,14 +1064,16 @@ export default function LogBar({
             complianceLoading={complianceButton?.loading}
             shiftSegmentOpen={shiftSegmentOpen}
             isIdleAtTop={isIdleAtTop}
-            isMoving={isMoving && !primaryActionPending && !resumeShiftPending}
+            isMoving={isMoving && !primaryActionPending}
             movementUnlockProgress01={
-              isMoving && !primaryActionPending && !resumeShiftPending ? gpsUnlockProgress : 1
+              isMoving && !primaryActionPending ? gpsUnlockProgress : 1
             }
             actionLabel={primaryActionLabel}
             onAction={() =>
               primaryLogType === "work" && isStartingShift
-                ? handleStartShift()
+                ? showResumeShiftPrimary
+                  ? handleResumeShift()
+                  : handleStartShift()
                 : handleLog(primaryLogType)
             }
             actionPending={primaryActionPending}
@@ -1087,15 +1092,6 @@ export default function LogBar({
             expanded={primaryHeroExpanded}
             compact={primaryBarCompact && !sessionDimmed}
             className={cn("shrink-0", sessionDimmed && "pointer-events-auto")}
-            secondaryAction={
-              showResumeShiftOption
-                ? {
-                    label: "Resume shift",
-                    onAction: handleResumeShift,
-                    pending: resumeShiftPending,
-                  }
-                : undefined
-            }
             auxiliaryActions={
               sessionDimmed
                 ? [
