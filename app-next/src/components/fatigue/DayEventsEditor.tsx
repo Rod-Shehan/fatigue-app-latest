@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ActivityKey } from "@/lib/theme";
+import { ACTIVITY_THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import {
   dayEventEditMessages,
@@ -249,9 +250,8 @@ export function DayEventsEditor({
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "min-h-10 gap-1.5 text-sm font-semibold",
-                    t === "break" && "border-amber-300 dark:border-amber-600 text-amber-900 dark:text-amber-100",
-                    t === "non_work" && "border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-100"
+                    "min-h-10 gap-1.5 text-sm font-semibold border-2",
+                    ACTIVITY_THEME[t].outlineButton
                   )}
                   onClick={() => addEvent(t)}
                 >
