@@ -137,4 +137,24 @@ describe("getDayWithCarriedOverCardInfo", () => {
     expect(wednesday.start_location).toBe("Perth");
     expect(wednesday.destination).toBe("Kalgoorlie");
   });
+
+  it("does not refill From/To from prior day when today has a run plan", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      {
+        truck_rego: "1ABC123",
+        start_location: "",
+        destination: "",
+        route_label: "Northam loop",
+        planned_on_duty_hours: 8,
+        route_preset_id: "preset-northam",
+      },
+    ];
+    const wednesday = getDayWithCarriedOverCardInfo(days, 3, WEEK_START, "2026-06-04");
+    expect(wednesday.start_location).toBe("");
+    expect(wednesday.destination).toBe("");
+    expect(wednesday.route_label).toBe("Northam loop");
+  });
 });

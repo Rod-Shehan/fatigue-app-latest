@@ -31,11 +31,7 @@ describe("shift-start-gate", () => {
   it("blocks work when setup fields are missing", () => {
     const reason = getWorkLogBlockReason([], { truck_rego: "ABC123" });
     expect(reason).toMatch(/shift setup/i);
-    expect(getShiftStartSetupMissing({ truck_rego: "ABC123" })).toEqual([
-      "Start location",
-      "Destination",
-      "Start KM",
-    ]);
+    expect(getShiftStartSetupMissing({ truck_rego: "ABC123" })).toEqual(["Start KM"]);
   });
 
   it("allows work when setup is complete and timeline is open on break", () => {

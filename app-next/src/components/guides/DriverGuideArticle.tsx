@@ -47,9 +47,11 @@ export function DriverGuideArticle() {
           <li>You tap buttons when you work, take a break, or end shift.</li>
           <li>Time you do not log is counted as non-work (rest / off duty) — like blank time on a paper diary.</li>
           <li>
-            Same route every day? The app fills{" "}
-            <strong className="text-slate-700 dark:text-slate-200">rego, from, to,</strong> and run plan from your last
-            trip. You always type <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
+            Same route every day? The app can fill{" "}
+            <strong className="text-slate-700 dark:text-slate-200">rego and run plan</strong> from your last trip.
+            Start location and destination only appear under{" "}
+            <strong className="text-slate-700 dark:text-slate-200">Enter run plan</strong> (blank when you open that
+            option). You always type <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
             <strong className="text-slate-700 dark:text-slate-200">end km</strong> yourself.
           </li>
         </ul>
@@ -243,8 +245,10 @@ export function DriverGuideArticle() {
         <p>Use Set up day (or Edit day) when something changes:</p>
         <ul className={`${ulClass} mt-1`}>
           <li>New truck (rego)</li>
-          <li>New run (from / to)</li>
-          <li>A saved run plan, a custom trip, or no run plan</li>
+          <li>
+            New run — a saved run plan, enter run plan (from / to, name, expected hours/km), or no run
+            plan
+          </li>
           <li>Shift pattern — Day (A) or Night (B)</li>
           <li>Solo or Two-up, and the relief driver&apos;s name</li>
           <li>
@@ -429,7 +433,7 @@ export function DriverGuideArticle() {
         <ol className="list-decimal pl-5 space-y-1">
           <li>Sign in (or stay signed in)</li>
           <li>Log more work</li>
-          <li>Check rego, from, and to on today&apos;s card</li>
+          <li>Check rego and run setup on today&apos;s card</li>
           <li>
             Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
             in trial — do not block Start shift). After a form is saved, use View to read it, or Redo / Add another for a

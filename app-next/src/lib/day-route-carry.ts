@@ -1,5 +1,6 @@
 import type { DayData } from "@/lib/api";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
+import { hasRunPlanContent } from "@/lib/route-plan";
 import { getSheetDayDateString } from "@/lib/weeks";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -69,13 +70,20 @@ export function getDayWithCarriedOverCardInfo(
   const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
   const hasOwnStartLocation = (day.start_location ?? "").toString().trim() !== "";
   const hasOwnDestination = (day.destination ?? "").toString().trim() !== "";
+  // A run plan / catalogue preset owns From/To — do not refill from the prior day trip.
+  const dayOwnsRoutePlaces =
+    !!(day.route_preset_id ?? "").toString().trim() || hasRunPlanContent(day);
   return {
     ...day,
     truck_rego: hasOwnRego ? day.truck_rego : (prev?.truck_rego ?? day.truck_rego ?? ""),
-    start_location: hasOwnStartLocation
-      ? day.start_location
-      : (prev?.start_location ?? day.start_location ?? ""),
-    destination: hasOwnDestination ? day.destination : (prev?.destination ?? day.destination ?? ""),
+    start_location:
+      dayOwnsRoutePlaces || hasOwnStartLocation
+        ? day.start_location
+        : (prev?.start_location ?? day.start_location ?? ""),
+    destination:
+      dayOwnsRoutePlaces || hasOwnDestination
+        ? day.destination
+        : (prev?.destination ?? day.destination ?? ""),
   };
 }
 

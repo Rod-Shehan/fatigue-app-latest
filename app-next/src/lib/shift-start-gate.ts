@@ -1,5 +1,6 @@
 /**
- * Shift-start setup gate — UI enforcement only (rego, route, start km before work).
+ * Shift-start setup gate — UI enforcement only (rego + start km before work).
+ * From/To are collected only under “Enter run plan” (validated in Set up day).
  * Rolling timeline decides whether the driver is already in open work/break.
  */
 
@@ -15,8 +16,6 @@ export type ShiftStartSetupFields = {
 export function getShiftStartSetupMissing(fields: ShiftStartSetupFields): string[] {
   const missing: string[] = [];
   if (!(fields.truck_rego ?? "").toString().trim()) missing.push("Rego");
-  if (!(fields.start_location ?? "").toString().trim()) missing.push("Start location");
-  if (!(fields.destination ?? "").toString().trim()) missing.push("Destination");
   if (fields.start_kms == null || Number.isNaN(Number(fields.start_kms))) missing.push("Start KM");
   return missing;
 }

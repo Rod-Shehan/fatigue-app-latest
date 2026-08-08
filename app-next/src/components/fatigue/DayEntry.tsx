@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { saveDriverRouteDefaults, hasRouteExceptKms, inferRouteCarryMode } from "@/lib/driver-route-defaults";
+import { saveDriverRouteDefaults, inferRouteCarryMode } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
 import WorkSafeDaySheet from "./WorkSafeDaySheet";
@@ -325,17 +325,13 @@ export default function DayEntry({
       dayData.start_kms != null &&
       !Number.isNaN(Number(dayData.start_kms))
     : (dayData.truck_rego ?? "").trim() !== "" &&
-      (dayData.start_location ?? "").trim() !== "" &&
-      (dayData.destination ?? "").trim() !== "" &&
       dayData.start_kms != null &&
       !Number.isNaN(Number(dayData.start_kms));
 
   const showInlineStartKm =
     isToday &&
     canEditDetails &&
-    (usesRunPlan
-      ? (dayData.truck_rego ?? "").trim() !== ""
-      : hasRouteExceptKms(dayData)) &&
+    (dayData.truck_rego ?? "").trim() !== "" &&
     !detailsComplete;
 
   const showRunPlanSection = usesRunPlan && isFuture && !!runPlanSummary;

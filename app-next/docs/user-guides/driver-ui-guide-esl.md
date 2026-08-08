@@ -12,7 +12,7 @@ Circadia24 keeps your **weekly fatigue record** — an electronic work diary (EW
 
 - You tap buttons when you **work**, take a **break**, or **end shift**.
 - Time you do not log is counted as **non-work** (rest / off duty) — like blank time on a paper diary.
-- If you drive the **same route often**, the app fills in **rego, from, to, and run plan** from your last trip. You always type **start km** and **end km** yourself.
+- If you drive the **same route often**, the app can fill in **rego and run plan** from your last trip. **Start location** and **destination** only appear under **Enter run plan** (blank when you open that option). You always type **start km** and **end km** yourself.
 
 ---
 
@@ -139,15 +139,14 @@ Many drivers use the **same rego and route** every day. The app remembers your l
 
           Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: truck reg, odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). Days with **no events** show a full **non-work** line (totals Work 0 / Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
 
-**Normal day:** open the week → check From/To/Rego → optionally tick **Daily checks** or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do **not** block Start shift) → type **start km** → tap **Start shift**.
+**Normal day:** open the week → check rego and run setup → optionally tick **Daily checks** or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do **not** block Start shift) → type **start km** → tap **Start shift**.
 
 ### Set up day / Edit day
 
 Use **Set up day** (or **Edit day**) when something changes:
 
 - New truck (rego)
-- New run (from / to)
-- A saved **run plan**, a **custom trip**, or **no run plan**
+- New run — **Saved run plan**, **Enter run plan** (from / to, name, expected hours/km), or **No run plan**
 - **Shift pattern** — Day (A) or Night (B)
 - **Solo** or **Two-up**, and the **relief driver's name**
 - **Last 2 or 4 × 24 hour non-work breaks** — each with absolute **start and end time** (Perth), not just a calendar day — under crew, above route setup in Set up day / Edit day. Shown when the app needs them (or after you have already saved them). The most recent end also resets short-horizon rules (17h / 72h). You can change them until you **sign** the week; after that only your manager can amend. If you are already on shift, tap **Set up week record** on the upcoming compliance banner, Work warning, or compliance snapshot — it opens Set up day on the field you need.

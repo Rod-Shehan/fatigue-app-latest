@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,6 +173,10 @@ export function DayCardDetailsDialog({
   const [saveCatalogueError, setSaveCatalogueError] = useState<string | null>(null);
   const [routeMode, setRouteMode] = useState<RouteSetupMode>("catalogue");
   const [presetPick, setPresetPick] = useState<string>("");
+  /** Once the driver picks a catalogue plan this open session, do not snap Select back to initial. */
+  const presetUserTouchedRef = useRef(false);
+  /** Preset id whose From/To we already synced onto the draft this open session. */
+  const syncedPresetPlacesRef = useRef<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
@@ -228,9 +232,11 @@ export function DayCardDetailsDialog({
       queryClient.invalidateQueries({ queryKey: ["route-presets"] });
       setSaveCatalogueError(null);
       setRouteMode("catalogue");
+      presetUserTouchedRef.current = true;
       setPresetPick(created.id);
       setDraft((prev) => {
         const fromPreset = dayCardFieldsFromPreset(created);
+        syncedPresetPlacesRef.current = created.id;
         return {
           ...prev,
           ...fromPreset,
@@ -247,7 +253,11 @@ export function DayCardDetailsDialog({
   });
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      presetUserTouchedRef.current = false;
+      syncedPresetPlacesRef.current = null;
+      return;
+    }
     // Important: keep dialog draft stable while open. The parent sheet can refetch/invalidate
     // during autosave which would otherwise blow away in-progress typing.
     setDraft(initial);
@@ -260,6 +270,8 @@ export function DayCardDetailsDialog({
     setPlanError(null);
     setSaveCatalogueError(null);
     setServerMaxEndKms(null);
+    presetUserTouchedRef.current = false;
+    syncedPresetPlacesRef.current = null;
     const pid = initial.route_preset_id?.trim();
     if (pid) {
       setRouteMode("catalogue");
@@ -271,10 +283,11 @@ export function DayCardDetailsDialog({
       setRouteMode("catalogue");
       setPresetPick("");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-seed when the dialog opens
   }, [open]);
 
   useEffect(() => {
-    if (!open || presetsLoading) return;
+    if (!open || presetsLoading || presetUserTouchedRef.current) return;
     const pid = initial.route_preset_id?.trim();
     if (pid && routePresets.some((p) => p.id === pid)) {
       setRouteMode("catalogue");
@@ -286,7 +299,30 @@ export function DayCardDetailsDialog({
       setRouteMode("custom");
       setPresetPick("");
     }
-  }, [open, presetsLoading, routePresets, presetsError, initial]);
+    // Do not depend on the whole `initial` object — parent recreates it every render and was
+    // snapping the Select back to the saved preset while the driver was picking a new one.
+  }, [open, presetsLoading, routePresets, presetsError, initial.route_preset_id]);
+
+  // Catalogue plan owns From/To: when presets arrive (or pick changes), overwrite stale day places.
+  useEffect(() => {
+    if (!open || presetsLoading) return;
+    const pid = presetPick.trim();
+    if (!pid || syncedPresetPlacesRef.current === pid) return;
+    const preset = routePresets.find((p) => p.id === pid);
+    if (!preset) return;
+    syncedPresetPlacesRef.current = pid;
+    const fromPreset = dayCardFieldsFromPreset(preset);
+    setDraft((prev) => ({
+      ...prev,
+      ...fromPreset,
+      start_location: fromPreset.start_location,
+      destination: fromPreset.destination,
+      start_kms: prev.start_kms,
+      end_kms: prev.end_kms,
+      truck_rego: prev.truck_rego,
+      shift_label: prev.shift_label,
+    }));
+  }, [open, presetsLoading, routePresets, presetPick]);
 
   const regoForGuide = (draft.truck_rego ?? "").trim();
 
@@ -348,6 +384,8 @@ export function DayCardDetailsDialog({
     setPlanError(null);
     setSaveCatalogueError(null);
     if (mode === "none") {
+      presetUserTouchedRef.current = true;
+      syncedPresetPlacesRef.current = null;
       setPresetPick("");
       setDraft((prev) => ({
         ...prev,
@@ -356,20 +394,47 @@ export function DayCardDetailsDialog({
         planned_on_duty_hours: null,
         route_preset_id: undefined,
         route_source: undefined,
+        start_location: "",
+        destination: "",
+      }));
+      return;
+    }
+    if (mode === "catalogue") {
+      presetUserTouchedRef.current = false;
+      syncedPresetPlacesRef.current = null;
+      setPresetPick("");
+      setDraft((prev) => ({
+        ...prev,
+        route_label: "",
+        planned_distance_km: null,
+        planned_on_duty_hours: null,
+        route_preset_id: undefined,
+        route_source: undefined,
+        start_location: "",
+        destination: "",
       }));
       return;
     }
     if (mode === "custom") {
+      // Enter run plan — always start blank (do not keep a prior trip's From/To or plan).
+      presetUserTouchedRef.current = true;
+      syncedPresetPlacesRef.current = null;
       setPresetPick("");
       setDraft((prev) => ({
         ...prev,
+        route_label: "",
+        planned_distance_km: null,
+        planned_on_duty_hours: null,
         route_preset_id: undefined,
-        route_source: hasRunPlanContent(prev) ? ("adhoc" as const) : undefined,
+        route_source: undefined,
+        start_location: "",
+        destination: "",
       }));
     }
   };
 
   const applyPresetSelection = (value: string) => {
+    presetUserTouchedRef.current = true;
     setPresetPick(value);
     setPlanError(null);
     setSaveCatalogueError(null);
@@ -377,6 +442,7 @@ export function DayCardDetailsDialog({
     if (!preset) return;
     setRouteMode("catalogue");
     const fromPreset = dayCardFieldsFromPreset(preset);
+    syncedPresetPlacesRef.current = value;
     setDraft((prev) => ({
       ...prev,
       ...fromPreset,
@@ -420,22 +486,51 @@ export function DayCardDetailsDialog({
     setKmError(null);
     setEventError(null);
     setPlanError(null);
-    const planErr = runPlanValidationError(draft);
+    if (routeMode === "catalogue" && !catalogueFilledRoute) {
+      setPlanError("Select a saved run plan, or choose Enter run plan / No run plan.");
+      return;
+    }
+    if (routeMode === "custom") {
+      if (!(draft.start_location ?? "").trim() || !(draft.destination ?? "").trim()) {
+        setPlanError("Start location and destination are required when entering a run plan.");
+        return;
+      }
+    }
+    const fieldsForSave: DayCardFields =
+      routeMode === "none"
+        ? {
+            ...draft,
+            route_label: "",
+            planned_distance_km: null,
+            planned_on_duty_hours: null,
+            route_preset_id: undefined,
+            route_source: undefined,
+            start_location: "",
+            destination: "",
+          }
+        : routeMode === "custom"
+          ? {
+              ...draft,
+              route_preset_id: undefined,
+              route_source: hasRunPlanContent(draft) ? ("adhoc" as const) : undefined,
+            }
+          : draft;
+    const planErr = routeMode === "none" ? null : runPlanValidationError(fieldsForSave);
     if (planErr) {
       setPlanError(planErr);
       return;
     }
-    const rego = (draft.truck_rego ?? "").trim();
+    const rego = (fieldsForSave.truck_rego ?? "").trim();
     if (rego) {
-      if (draft.start_kms == null || Number.isNaN(Number(draft.start_kms))) {
+      if (fieldsForSave.start_kms == null || Number.isNaN(Number(fieldsForSave.start_kms))) {
         setKmError("Start km is required when rego is set.");
         return;
       }
     }
-    const stopKmError = validateEndKmsRequiredForStop(draftEvents, draft.end_kms, {
+    const stopKmError = validateEndKmsRequiredForStop(draftEvents, fieldsForSave.end_kms, {
       sheetDays,
       dayIndex,
-      dayStartKms: draft.start_kms,
+      dayStartKms: fieldsForSave.start_kms,
     });
     if (stopKmError) {
       setKmError(stopKmError);
@@ -451,9 +546,9 @@ export function DayCardDetailsDialog({
     const daysForValidation: DayWithKms[] = sheetDays.map((d, i) =>
       i === dayIndex
         ? {
-            truck_rego: draft.truck_rego,
-            start_kms: draft.start_kms,
-            end_kms: draft.end_kms,
+            truck_rego: fieldsForSave.truck_rego,
+            start_kms: fieldsForSave.start_kms,
+            end_kms: fieldsForSave.end_kms,
           }
         : d
     );
@@ -476,15 +571,15 @@ export function DayCardDetailsDialog({
       daysForValidation,
       dayIndex,
       rego,
-      draft.start_kms ?? null,
-      draft.end_kms ?? null,
+      fieldsForSave.start_kms ?? null,
+      fieldsForSave.end_kms ?? null,
       serverMaxEndKms
     );
     if (!validation.valid) {
       setKmError(validation.message ?? "Invalid kilometres.");
       return;
     }
-    onConfirm(draft, normalizeDayEvents(draftEvents));
+    onConfirm(fieldsForSave, normalizeDayEvents(draftEvents));
     onOpenChange(false);
   };
 
@@ -625,14 +720,15 @@ export function DayCardDetailsDialog({
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Route setup</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-              Pick a saved run plan to fill From, To, and expected hours/km — or enter a custom trip.
-              Run plans feed forward-looking fatigue exposure only (not compliance until work is logged).
+              Pick a saved run plan, enter a new one (from / to and expected hours/km), or skip a run
+              plan. Run plans feed forward-looking fatigue exposure only (not compliance until work is
+              logged).
             </p>
             <div className="flex flex-wrap gap-2">
               {(
                 [
                   ["catalogue", "Saved run plan"],
-                  ["custom", "Custom trip"],
+                  ["custom", "Enter run plan"],
                   ["none", "No run plan"],
                 ] as const
               ).map(([mode, label]) => (
@@ -680,7 +776,7 @@ export function DayCardDetailsDialog({
                 </Select>
                 {catalogueFilledRoute ? (
                   <p className="text-xs text-teal-700 dark:text-teal-300">
-                    From, To, and run plan filled from catalogue — check below and adjust if needed.
+                    Run plan applied from catalogue.
                   </p>
                 ) : null}
                 {presetsError ? (
@@ -697,6 +793,30 @@ export function DayCardDetailsDialog({
             ) : null}
             {routeMode === "custom" ? (
               <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Start location
+                  </Label>
+                  <Input
+                    value={draft.start_location || ""}
+                    onChange={(e) => set("start_location", e.target.value)}
+                    placeholder="Where you started this day"
+                    className={fieldClass}
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                    Destination
+                  </Label>
+                  <Input
+                    value={draft.destination || ""}
+                    onChange={(e) => set("destination", e.target.value)}
+                    placeholder="Where you finished or are heading"
+                    className={fieldClass}
+                    autoComplete="off"
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Route name</Label>
                   <Input
@@ -764,26 +884,6 @@ export function DayCardDetailsDialog({
             ) : null}
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Start location</Label>
-            <Input
-              value={draft.start_location || ""}
-              onChange={(e) => set("start_location", e.target.value)}
-              placeholder="Where you started this day"
-              className={fieldClass}
-              autoComplete="off"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Destination</Label>
-            <Input
-              value={draft.destination || ""}
-              onChange={(e) => set("destination", e.target.value)}
-              placeholder="Where you finished or are heading"
-              className={fieldClass}
-              autoComplete="off"
-            />
-          </div>
           <div className="space-y-2">
             <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">Rego</Label>
             <Select
