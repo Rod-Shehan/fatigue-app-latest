@@ -31,6 +31,11 @@ export type DayEventDraft = {
 /** Event types drivers may add or change when correcting a day. */
 export const EDITABLE_DAY_EVENT_TYPES: ActivityKey[] = ["work", "break", "non_work", "stop"];
 
+/** First setup of a shift — only work and break (LogBar handles the rest live). */
+export const NEW_SHIFT_EVENT_TYPES: ActivityKey[] = ["work", "break"];
+
+export type DayEventsEditorVariant = "new_shift" | "edit";
+
 const TYPE_LABELS: Record<ActivityKey, string> = {
   work: "Work",
   break: "Break",
@@ -87,6 +92,7 @@ export function DayEventsEditor({
   sheetId,
   driverType,
   activityBeforeDay = null,
+  variant = "edit",
 }: {
   sheetDayYmd: string;
   events: DayEventDraft[];
@@ -98,6 +104,11 @@ export function DayEventsEditor({
   driverType?: string;
   /** Open activity carried from the previous calendar day (rolling timeline). */
   activityBeforeDay?: PriorOpenActivity;
+  /**
+   * `new_shift` — first setup: Add work / Add break only, no help copy.
+   * `edit` — day already has events: full correction UI.
+   */
+  variant?: DayEventsEditorVariant;
 }) {
   const sorted = normalizeDayEvents(events);
   const issues = useMemo(
@@ -106,6 +117,9 @@ export function DayEventsEditor({
   );
   const bannerMessages = dayEventEditMessages(issues);
   const issueIndexes = new Set(issues.map((i) => i.eventIndex).filter((i) => i >= 0));
+  const isNewShift = variant === "new_shift";
+  const addableTypes = isNewShift ? NEW_SHIFT_EVENT_TYPES : EDITABLE_DAY_EVENT_TYPES;
+  const selectableTypes = addableTypes;
 
   const addEvent = (type: ActivityKey) => {
     onChange([...events, { type, time: defaultTimeForNewEvent(sheetDayYmd, events) }]);
@@ -117,19 +131,21 @@ export function DayEventsEditor({
 
   return (
     <div className="space-y-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-950/40 p-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Work, break &amp; non-work times
-        </Label>
-        {sheetId && (
-          <Link
-            href={`/sheets/${sheetId}/shift-log`}
-            className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 underline underline-offset-2"
-          >
-            Full week log
-          </Link>
-        )}
-      </div>
+      {isNewShift ? null : (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Work, break &amp; non-work times
+          </Label>
+          {sheetId && (
+            <Link
+              href={`/sheets/${sheetId}/shift-log`}
+              className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 underline underline-offset-2"
+            >
+              Full week log
+            </Link>
+          )}
+        </div>
+      )}
 
       {readOnly ? (
         sorted.length === 0 ? (
@@ -150,19 +166,21 @@ export function DayEventsEditor({
         )
       ) : (
         <>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-            Correct work, break, non-work, or end-shift times for this day. Use{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">break</span> only during a work bout
-            (not in the middle of non-work — it needs work to break from),{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">non-work</span> when off duty or between
-            shifts (7h / 24h recovery), and{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished —
-            enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above when you
-            worked on this day before that End shift. Open work overnight is OK; leave a break open is not — resume
-            work, go to non-work, or End shift after a break. Declared{" "}
-            <span className="font-medium text-slate-600 dark:text-slate-300">24 hour non-work breaks</span>{" "}
-            (start and end times) are set above in this same form — not as an event type here.
-          </p>
+          {isNewShift ? null : (
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
+              Correct work, break, non-work, or end-shift times for this day. Use{" "}
+              <span className="font-medium text-slate-600 dark:text-slate-300">break</span> only during a work bout
+              (not in the middle of non-work — it needs work to break from),{" "}
+              <span className="font-medium text-slate-600 dark:text-slate-300">non-work</span> when off duty or between
+              shifts (7h / 24h recovery), and{" "}
+              <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished —
+              enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above when you
+              worked on this day before that End shift. Open work overnight is OK; leave a break open is not — resume
+              work, go to non-work, or End shift after a break. Declared{" "}
+              <span className="font-medium text-slate-600 dark:text-slate-300">24 hour non-work breaks</span>{" "}
+              (start and end times) are set above in this same form — not as an event type here.
+            </p>
+          )}
           {bannerMessages.length > 0 ? (
             <div
               className="rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 space-y-1"
@@ -176,9 +194,11 @@ export function DayEventsEditor({
             </div>
           ) : null}
           {sorted.length === 0 ? (
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              No events yet — add work, break, non-work, or end shift below.
-            </p>
+            isNewShift ? null : (
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                No events yet — add work, break, non-work, or end shift below.
+              </p>
+            )
           ) : (
             <div className="space-y-2">
               {events
@@ -196,7 +216,11 @@ export function DayEventsEditor({
                       )}
                     >
                       <Select
-                        value={typeKey}
+                        value={
+                          selectableTypes.includes(typeKey)
+                            ? typeKey
+                            : selectableTypes[0] ?? "work"
+                        }
                         onValueChange={(v) => {
                           const nextType = v as ActivityKey;
                           const patch: Partial<DayEventDraft> = { type: nextType };
@@ -208,7 +232,7 @@ export function DayEventsEditor({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {EDITABLE_DAY_EVENT_TYPES.map((t) => (
+                          {selectableTypes.map((t) => (
                             <SelectItem key={t} value={t} className="text-sm font-medium">
                               {TYPE_LABELS[t]}
                             </SelectItem>
@@ -241,7 +265,7 @@ export function DayEventsEditor({
             </div>
           )}
           <div className="flex flex-wrap gap-2 pt-1">
-            {EDITABLE_DAY_EVENT_TYPES.map((t) => {
+            {addableTypes.map((t) => {
               const Icon = TYPE_ICONS[t];
               return (
                 <Button

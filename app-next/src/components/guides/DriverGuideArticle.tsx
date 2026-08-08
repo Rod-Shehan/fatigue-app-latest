@@ -260,11 +260,13 @@ export function DriverGuideArticle() {
             warning, or compliance snapshot.
           </li>
           <li>
-            Work / break / non-work / End shift time corrections — if End shift is on that day after work the same day,
-            end km is required on the same card. Overnight finish (End shift only on this card): leave end km blank when
-            it is already on the previous day, then enter start km to begin the next shift. Break only during a work
-            bout (not in the middle of non-work). Don&apos;t leave a break open — resume work, go to non-work, or End
-            shift. Open work overnight is fine.
+            Work / break / non-work / End shift time corrections — when the day already has events (Edit
+            day), you get the full list. On a new shift with no events yet, Set up day only offers Add
+            work and Add break. If End shift is on that day after work the same day, end km is required
+            on the same card. Overnight finish (End shift only on this card): leave end km blank when
+            it is already on the previous day, then enter start km to begin the next shift. Break only
+            during a work bout (not in the middle of non-work). Don&apos;t leave a break open — resume
+            work, go to non-work, or End shift. Open work overnight is fine.
           </li>
         </ul>
       </section>

@@ -44,6 +44,7 @@ import {
   DayEventsEditor,
   normalizeDayEvents,
   type DayEventDraft,
+  type DayEventsEditorVariant,
 } from "@/components/fatigue/DayEventsEditor";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
 import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
@@ -167,6 +168,7 @@ export function DayCardDetailsDialog({
 }) {
   const [draft, setDraft] = useState<DayCardFields>(initial);
   const [draftEvents, setDraftEvents] = useState<DayEventDraft[]>(initialEvents);
+  const [eventsVariant, setEventsVariant] = useState<DayEventsEditorVariant>("new_shift");
   const [kmError, setKmError] = useState<string | null>(null);
   const [eventError, setEventError] = useState<string | null>(null);
   const [planError, setPlanError] = useState<string | null>(null);
@@ -266,6 +268,10 @@ export function DayCardDetailsDialog({
         initialEvents.filter((e) => e && typeof e.time === "string" && typeof e.type === "string")
       )
     );
+    const hadEvents = initialEvents.some(
+      (e) => e && typeof e.time === "string" && typeof e.type === "string"
+    );
+    setEventsVariant(hadEvents ? "edit" : "new_shift");
     setKmError(null);
     setPlanError(null);
     setSaveCatalogueError(null);
@@ -1015,6 +1021,7 @@ export function DayCardDetailsDialog({
             sheetId={sheetId}
             driverType={draft.driver_type ?? "solo"}
             activityBeforeDay={activityBeforeDay}
+            variant={eventsVariant}
           />
         )}
         {eventError ? (
