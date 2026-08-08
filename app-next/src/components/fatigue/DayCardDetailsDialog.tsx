@@ -39,7 +39,7 @@ import {
   validateDayKms,
   type DayWithKms,
 } from "@/lib/rego-kms-validation";
-import { dayEventsIncludeStop, validateEndKmsRequiredForStop } from "@/lib/end-shift-kms";
+import { validateEndKmsRequiredForStop } from "@/lib/end-shift-kms";
 import {
   DayEventsEditor,
   normalizeDayEvents,
@@ -998,28 +998,11 @@ export function DayCardDetailsDialog({
                 placeholder="At end of shift"
                 className={`${fieldClass} tabular-nums`}
               />
-              {dayEventsIncludeStop(draftEvents) ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-                  Required here when you worked on this day before End shift. For an overnight finish (End shift only
-                  on this card), leave blank if end km is already on the previous day — then you can enter start km and
-                  start the next shift.
-                </p>
-              ) : regoSet ? (
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-                  Optional now — enter when you End shift, or before signing the week.
-                </p>
-              ) : null}
             </div>
           </div>
           {kmError ? (
             <p className="text-sm text-red-600 dark:text-red-400" role="alert">
               {kmError}
-            </p>
-          ) : null}
-          {regoSet ? (
-            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-1">
-              Start km is required to begin work. End km is required when you End shift on the same day you worked, and
-              again before sign-off. Overnight finish: end km stays on the previous day.
             </p>
           ) : null}
         </div>
