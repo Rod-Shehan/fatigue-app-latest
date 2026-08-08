@@ -11,8 +11,7 @@ import {
   X,
   Loader2,
   AlertTriangle,
-  SlidersHorizontal,
-  MoreVertical,
+  Settings,
   CircleX,
   ChevronDown,
   ChevronUp,
@@ -48,7 +47,7 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { getEndShiftButtonChrome, resolveComplianceTone } from "@/lib/driver-compliance-chrome";
+import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
 import type { ComplianceCheckResult } from "@/lib/compliance";
@@ -255,9 +254,9 @@ export default function LogBar({
   /** Driver chose to view the sheet — keep compact top bar even at scroll top. */
   const [sheetViewMode, setSheetViewMode] = useState(false);
   const [sessionToolsMounted, setSessionToolsMounted] = useState(false);
-  /** Options sheet — only opened via explicit ⋯ tap (never from day card or parent state). */
+  /** Options sheet — opened via gear on focus or compact hero (never from day card or parent state). */
   const [sessionToolsOpen, setSessionToolsOpen] = useState(false);
-  const [legacyMobileToolsOpen, setLegacyMobileToolsOpen] = useState(false);
+  const wasSessionDimmedRef = useRef(false);
 
   useEffect(() => {
     setVoiceAlertsEnabled(getVoiceAlertsEnabled());
@@ -302,32 +301,6 @@ export default function LogBar({
     onShiftSegmentChange?.(shiftSegmentOpen);
   }, [shiftSegmentOpen, onShiftSegmentChange]);
 
-  useEffect(() => {
-    if (!shiftSegmentOpen) setLegacyMobileToolsOpen(false);
-  }, [shiftSegmentOpen]);
-
-  useEffect(() => {
-    if (!legacyMobileToolsOpen || !shiftSegmentOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [legacyMobileToolsOpen, shiftSegmentOpen]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const closeIfDesktop = () => {
-      if (mq.matches) {
-        setLegacyMobileToolsOpen(false);
-        setSessionToolsOpen(false);
-      }
-    };
-    mq.addEventListener("change", closeIfDesktop);
-    closeIfDesktop();
-    return () => mq.removeEventListener("change", closeIfDesktop);
-  }, []);
-
   /** Faster tick during work/break so compliance header (e.g. pending → OK) updates within a few seconds. */
   useEffect(() => {
     if (!isLiveNow) return;
@@ -363,13 +336,6 @@ export default function LogBar({
     isLiveNow && currentType && lastEvent ? Date.now() - new Date(lastEvent.time).getTime() : 0;
   const elapsedMinutes = Math.max(0, elapsedMs / 60000);
   const showSessionTimer = Boolean(isLiveNow && shiftSegmentOpen && lastEvent);
-
-  const complianceTone = resolveComplianceTone({
-    loading: complianceButton?.loading,
-    hasViolations: complianceButton?.hasViolations,
-    hasWarnings: complianceButton?.hasWarnings,
-    shiftSegmentOpen,
-  });
 
   const workPeriod =
     currentType === "work" ? computeWorkPeriodAtEnd(eventsForDriver, Date.now()) : null;
@@ -411,16 +377,16 @@ export default function LogBar({
 
   const breakRestStatus = useMemo(() => {
     if (!isLiveNow || currentType !== "break" || !lastEvent) return null;
-    const breakStartMs = new Date(lastEvent.time).getTime();
-    const windowStartMs = findWorkWindowStartMs(eventsForDriver, breakStartMs);
-    const priorSlots =
-      windowStartMs != null
-        ? getPriorRestSlotsBeforeTime(eventsForDriver, windowStartMs, breakStartMs)
-        : emptySlots();
-    const split = getBreakSplitBarState(priorSlots, elapsedMinutes);
-    const remaining = getRemainingBreakMinutesForDisplay(priorSlots, elapsedMinutes);
+      const breakStartMs = new Date(lastEvent.time).getTime();
+      const windowStartMs = findWorkWindowStartMs(eventsForDriver, breakStartMs);
+      const priorSlots =
+        windowStartMs != null
+          ? getPriorRestSlotsBeforeTime(eventsForDriver, windowStartMs, breakStartMs)
+          : emptySlots();
+      const split = getBreakSplitBarState(priorSlots, elapsedMinutes);
+      const remaining = getRemainingBreakMinutesForDisplay(priorSlots, elapsedMinutes);
     const banked = Math.max(0, 20 - remaining);
-    return {
+      return {
       incomplete: !split.complete,
       bankedMinutes: banked,
       progressLabel: split.complete ? null : `Rest ${banked}/20 min`,
@@ -557,26 +523,27 @@ export default function LogBar({
   }, [isLiveNow, currentType]);
 
   useEffect(() => {
-    if (!sessionDimmed) closeSessionTools();
+    if (wasSessionDimmedRef.current && !sessionDimmed) closeSessionTools();
+    wasSessionDimmedRef.current = sessionDimmed;
   }, [sessionDimmed, closeSessionTools]);
 
   useEffect(() => {
-    if (!sessionToolsOpen || !sessionDimmed) return;
+    if (!sessionToolsOpen) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prev;
     };
-  }, [sessionToolsOpen, sessionDimmed]);
+  }, [sessionToolsOpen]);
 
   useEffect(() => {
-    if (!sessionToolsOpen || !sessionDimmed) return;
+    if (!sessionToolsOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeSessionTools();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [sessionToolsOpen, sessionDimmed, closeSessionTools]);
+  }, [sessionToolsOpen, closeSessionTools]);
 
   useEffect(() => {
     setSessionToolsMounted(true);
@@ -740,21 +707,21 @@ export default function LogBar({
         return true;
       }
 
-      setWorkWarning({
+        setWorkWarning({
         message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
-        confirmLabel: "Go to today's card",
+          confirmLabel: "Go to today's card",
         subtext: "Confirm Set up day to start your shift on the timeline.",
-        onConfirm: () => {
-          setWorkWarning(null);
+          onConfirm: () => {
+            setWorkWarning(null);
           onStartShiftBlocked?.({
             openSetup: true,
             dayIndex: currentDayIndex,
             startWorkAfterSetup: true,
             episodeResume: options?.episodeResume === true,
           });
-        },
-        onCancel: () => setWorkWarning(null),
-      });
+          },
+          onCancel: () => setWorkWarning(null),
+        });
       return true;
     },
     [dayForCardFields, eventsForDriver, onStartShiftBlocked, currentDayIndex]
@@ -765,19 +732,19 @@ export default function LogBar({
       // Setup was just confirmed on the day card — do not re-gate on stale LogBar display fields.
       const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
       if (nonWorkMsg) {
-        setWorkWarning({
+          setWorkWarning({
           message: nonWorkMsg,
           confirmLabel: episodeResume ? "Resume shift anyway" : "Start anyway",
           subtext: "Your day setup is saved. Confirm to start work on the timeline.",
-          onConfirm: () => {
-            setWorkWarning(null);
-            clearPending();
+            onConfirm: () => {
+              setWorkWarning(null);
+              clearPending();
             onLogEvent(currentDayIndex, "work");
-          },
+            },
           onCancel: () => setWorkWarning(null),
-        });
-        return;
-      }
+          });
+          return;
+        }
       clearPending();
       onLogEvent(currentDayIndex, "work");
     },
@@ -839,7 +806,7 @@ export default function LogBar({
       clearPending();
       if (type === "stop") {
         if (onEndShiftRequest) {
-          onEndShiftRequest(currentDayIndex);
+        onEndShiftRequest(currentDayIndex);
         }
         return;
       }
@@ -895,13 +862,13 @@ export default function LogBar({
             ? {
                 setupRecordLabel: fixRoute.driverLabel,
                 onSetupRecord: () => {
-                  setWorkWarning(null);
+            setWorkWarning(null);
                   applyComplianceFix(fixRoute);
                 },
               }
             : {}),
-          onConfirm: () => {
-            setWorkWarning(null);
+            onConfirm: () => {
+              setWorkWarning(null);
             armPending("work", episodeResume);
             if (voiceAlertsEnabled) {
               speakVoiceAlert(
@@ -913,16 +880,16 @@ export default function LogBar({
               );
             }
           },
-        });
-        return;
+          });
+          return;
+        }
       }
-    }
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
       if (showShiftStartSetupBlock(type, { episodeResume })) return;
       if (type === "stop") {
         if (onEndShiftRequest) {
-          onEndShiftRequest(currentDayIndex);
+        onEndShiftRequest(currentDayIndex);
         }
         return;
       }
@@ -1037,11 +1004,11 @@ export default function LogBar({
           "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
       )}
     >
-      <button
-        type="button"
+            <button
+              type="button"
         onClick={() => handleLog("stop")}
         disabled={isMoving && !endShiftPending}
-        className={cn(
+                className={cn(
           "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
           "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
@@ -1050,8 +1017,8 @@ export default function LogBar({
           endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact, endShiftPending),
           endShiftChrome.surfaceClass,
           endShiftChrome.textClass
-        )}
-        aria-label={
+                )}
+                aria-label={
           isMoving && !endShiftPending
             ? "End shift locked while moving"
             : endShiftPending
@@ -1075,8 +1042,8 @@ export default function LogBar({
             End shift?
           </span>
         ) : null}
-      </button>
-    </div>
+                </button>
+        </div>
   ) : null;
 
   const barContent = (
@@ -1084,7 +1051,7 @@ export default function LogBar({
       {logBarBanner ? (
         <div
           role="status"
-          className={cn(
+              className={cn(
             "px-3 py-2 text-sm",
             isIdleAtTop || (sessionDimmed && shiftSegmentOpen)
               ? "text-center text-white/80 px-0 py-0"
@@ -1097,7 +1064,7 @@ export default function LogBar({
       <div className="flex flex-wrap items-stretch justify-center gap-3">
         {isTwoUp && reliefDriverName?.trim() ? (
           <p
-            className={cn(
+                      className={cn(
               "w-full text-center text-xs font-semibold uppercase tracking-wider",
               isIdleAtTop || sessionDimmed ? "text-white/70" : "text-slate-500 dark:text-slate-400",
               sessionDimmed && "pointer-events-auto"
@@ -1108,7 +1075,7 @@ export default function LogBar({
         ) : null}
         <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
           <div
-            className={cn(
+                        className={cn(
               "flex w-full flex-col items-center gap-2.5 min-w-0",
               sessionDimmed ? "max-w-md" : "sm:items-center"
             )}
@@ -1187,7 +1154,7 @@ export default function LogBar({
         <div
           aria-hidden
           className="max-w-[1400px] mx-auto w-full"
-          style={{
+                          style={{
             height: headerHeight > 0 ? headerHeight : undefined,
             minHeight: headerHeight > 0 ? undefined : "20rem",
           }}
@@ -1203,7 +1170,7 @@ export default function LogBar({
       )}
       <div
         ref={fixedHeaderRef}
-        className={cn(
+                      className={cn(
           "fixed z-50 px-4 transition-all duration-500 ease-out",
           sessionDimmed
             ? cn(
@@ -1224,11 +1191,11 @@ export default function LogBar({
               type="button"
               onClick={openSessionTools}
               className="relative flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-white/75 hover:text-white hover:bg-white/10 active:scale-95 transition-colors"
-              aria-label="More options"
+              aria-label="Options"
               aria-expanded={sessionToolsOpen}
               aria-controls="driver-focus-tools-sheet"
             >
-              <MoreVertical className="h-7 w-7" aria-hidden />
+              <Settings className="h-7 w-7" aria-hidden />
               {(complianceButton?.hasViolations || complianceButton?.hasWarnings) && (
                 <span
                   className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-black/40"
@@ -1238,8 +1205,8 @@ export default function LogBar({
             </button>
           </div>
         )}
-        <div
-          className={cn(
+                <div
+                  className={cn(
             "mx-auto w-full flex flex-col gap-2",
             sessionDimmed
               ? "shrink-0 items-center justify-center"
@@ -1262,13 +1229,13 @@ export default function LogBar({
                   "h-3.5 w-3.5 shrink-0",
                   sessionDimmed ? "text-white/70" : "text-slate-500 dark:text-slate-400"
                 )}
-                aria-hidden
-              />
+                  aria-hidden
+                />
               <span className="truncate">{driverName.trim()}</span>
             </p>
           ) : null}
           <div
-            className={cn(
+              className={cn(
               "w-full",
               sessionDimmed
                 ? "flex shrink-0 flex-col items-center justify-center"
@@ -1284,8 +1251,8 @@ export default function LogBar({
             )}
           >
             {barContent}
-          </div>
-          <div
+      </div>
+      <div
             className={cn(
               "flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start",
               hideSecondaryToolbar && "hidden"
@@ -1305,164 +1272,33 @@ export default function LogBar({
                 <ChevronDown className="h-8 w-8 stroke-[2.75]" aria-hidden />
               </button>
             )}
-            {complianceButton && !hideSecondaryToolbar && (
-            <button
-              type="button"
-              onClick={complianceButton.onClick}
-              disabled={complianceButton.loading}
-              className={cn(
-                driverTouchIconBtn,
-                "md:h-12 md:w-12 md:min-h-[48px] md:min-w-[48px] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:pointer-events-none transition-colors",
-                complianceTone === "ok" &&
-                  "bg-black/20 dark:bg-white/25 hover:bg-black/30 dark:hover:bg-white/35 focus-visible:ring-emerald-900 dark:focus-visible:ring-white focus-visible:ring-offset-emerald-400 dark:focus-visible:ring-offset-emerald-600",
-                (complianceTone === "warning" || complianceTone === "violation") &&
-                  "bg-amber-500 dark:bg-amber-600 hover:bg-amber-600 dark:hover:bg-amber-500 focus-visible:ring-amber-900 dark:focus-visible:ring-amber-100 focus-visible:ring-offset-amber-300 dark:focus-visible:ring-offset-amber-500",
-                complianceTone === "default" && "hover:bg-black/10 dark:hover:bg-white/15 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
-              )}
-              title={
-                complianceButton.loading
-                  ? "Checking compliance…"
-                  : complianceButton.hasViolations
-                    ? "View compliance — violations"
-                    : complianceButton.hasWarnings
-                      ? "View compliance — warnings"
-                      : complianceTone === "ok"
-                        ? "View compliance — session active"
-                        : "View compliance — all clear"
-              }
-              aria-label={
-                complianceButton.loading
-                  ? "Compliance checking"
-                  : complianceButton.hasViolations
-                    ? "Compliance: violations — jump to details"
-                    : complianceButton.hasWarnings
-                      ? "Compliance: warnings — jump to details"
-                      : complianceTone === "ok"
-                        ? "Compliance: session active — jump to details"
-                        : "Compliance: OK — jump to details"
-              }
-            >
-              {complianceButton.loading ? (
-                <Loader2
-                  className={cn(
-                    "w-8 h-8 md:w-9 md:h-9 animate-spin shrink-0",
-                    complianceTone === "default" ? "text-slate-700 dark:text-slate-200" : "text-slate-900 dark:text-white"
-                  )}
-                  aria-hidden
-                />
-              ) : complianceButton.hasViolations ? (
-                <X
-                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-white dark:text-amber-950 drop-shadow-sm"
-                  strokeWidth={3}
-                  aria-hidden
-                />
-              ) : complianceButton.hasWarnings ? (
-                <AlertTriangle
-                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-white dark:text-amber-950 drop-shadow-sm"
-                  strokeWidth={2.5}
-                  aria-hidden
-                />
-              ) : (
-                <ClipboardList
-                  className="w-8 h-8 md:w-9 md:h-9 shrink-0 text-emerald-950 dark:text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-              )}
-            </button>
-            )}
-            {shiftSegmentOpen && !hideSecondaryToolbar && (
+            {!hideSecondaryToolbar && (
               <button
                 type="button"
-                className="md:hidden shrink-0 flex items-center gap-2 min-h-[48px] px-3 py-2 rounded-xl font-semibold text-sm bg-black/25 dark:bg-black/30 border border-white/35 text-slate-900 dark:text-white shadow-sm active:scale-[0.98] transition-transform"
-                onClick={() => setLegacyMobileToolsOpen(true)}
-                aria-expanded={legacyMobileToolsOpen}
-                aria-controls="mobile-log-tools-sheet"
+                onClick={openSessionTools}
+                className={cn(
+                  touchHeaderBtn,
+                  "relative shrink-0 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+                )}
+                title="Options"
+                aria-label="Options"
+                aria-expanded={sessionToolsOpen}
+                aria-controls="driver-focus-tools-sheet"
               >
-                <SlidersHorizontal className="h-6 w-6 shrink-0" aria-hidden />
-                <span className="max-w-[10rem] leading-tight text-left">Voice &amp; display</span>
+                <Settings className={cn(touchHeaderIcon, "h-8 w-8")} aria-hidden />
+                {(complianceButton?.hasViolations || complianceButton?.hasWarnings) && (
+                  <span
+                    className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-900"
+                    aria-hidden
+                  />
+                )}
               </button>
             )}
-            {!hideSecondaryToolbar && (!shiftSegmentOpen || !legacyMobileToolsOpen) ? (
-              <div
-                className={cn(
-                  "shrink-0 items-center gap-1",
-                  shiftSegmentOpen ? "hidden md:flex" : "flex"
-                )}
-              >
-                <VoiceCommandControl
-                  {...voiceCommandProps}
-                  buttonClassName={touchHeaderBtn}
-                  iconClassName={touchHeaderIcon}
-                />
-                <VoiceAlertsToggle
-                  enabled={voiceAlertsEnabled}
-                  onChange={setVoiceAlertsEnabled}
-                  buttonClassName={touchHeaderBtn}
-                  iconClassName={touchHeaderIcon}
-                />
-                <ThemeToggle className={touchHeaderBtn} iconClassName={touchHeaderIcon} />
-              </div>
-            ) : null}
-          </div>
           </div>
         </div>
-        {shiftSegmentOpen && legacyMobileToolsOpen && !hideSecondaryToolbar && (
-          <div
-            className="fixed inset-0 z-[45] md:hidden"
-            role="dialog"
-            aria-modal
-            aria-labelledby="mobile-log-tools-title"
-            id="mobile-log-tools-sheet"
-          >
-            <button
-              type="button"
-              className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
-              aria-label="Dismiss voice and display tools"
-              onClick={() => setLegacyMobileToolsOpen(false)}
-            />
-            <div className="absolute bottom-0 left-0 right-0 z-10 flex justify-center pointer-events-none p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <div
-                className="pointer-events-auto w-full max-w-md rounded-2xl border-2 border-emerald-600/70 dark:border-emerald-400/60 bg-white dark:bg-slate-900 shadow-2xl p-4 space-y-4"
-                onPointerDown={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 id="mobile-log-tools-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                      Voice &amp; display
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Tap outside this panel to close. Voice confirm dialogs appear on top.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    className="shrink-0 rounded-xl p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"
-                    onClick={() => setLegacyMobileToolsOpen(false)}
-                    aria-label="Close"
-                  >
-                    <X className="h-7 w-7" />
-                  </button>
-                </div>
-                <div className="flex flex-wrap items-center justify-center gap-5 pt-1">
-                  <VoiceCommandControl
-                    {...voiceCommandProps}
-                    buttonClassName={touchSheetBtn}
-                    iconClassName={touchSheetIcon}
-                  />
-                  <VoiceAlertsToggle
-                    enabled={voiceAlertsEnabled}
-                    onChange={setVoiceAlertsEnabled}
-                    buttonClassName={touchSheetBtn}
-                    iconClassName={touchSheetIcon}
-                  />
-                  <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
         {forgottenActionReminder && (
+
           <div
             role="alert"
             className={cn(
@@ -1511,28 +1347,27 @@ export default function LogBar({
                   {workWarning.confirmLabel === "Start anyway" ? "Keep resting" : "Cancel"}
                 </button>
                 {workWarning.onSetupRecord && workWarning.setupRecordLabel ? (
-                  <button
-                    type="button"
-                    onClick={() => workWarning.onSetupRecord?.()}
-                    className={cn(driverAmberBtn, "bg-emerald-600 hover:bg-emerald-700 text-white")}
-                  >
-                    {workWarning.setupRecordLabel}
-                  </button>
-                ) : null}
                 <button
                   type="button"
+                    onClick={() => workWarning.onSetupRecord?.()}
+                    className={cn(driverAmberBtn, "bg-emerald-600 hover:bg-emerald-700 text-white")}
+                >
+                    {workWarning.setupRecordLabel}
+                </button>
+                ) : null}
+                  <button
+                    type="button"
                   onClick={() => workWarning.onConfirm()}
                   className={cn(driverAmberBtn, "bg-amber-500 hover:bg-amber-600")}
-                >
+                  >
                   {workWarning.confirmLabel}
-                </button>
+                  </button>
               </div>
             </div>
-          </div>
-        )}
+              </div>
+            )}
       </div>
       {sessionToolsMounted &&
-        sessionDimmed &&
         sessionToolsOpen &&
         createPortal(
           <div
@@ -1542,8 +1377,8 @@ export default function LogBar({
             aria-labelledby="driver-focus-tools-title"
             id="driver-focus-tools-sheet"
           >
-            <button
-              type="button"
+                <button
+                  type="button"
               className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
               aria-label="Dismiss options"
               onPointerDown={(e) => {
@@ -1560,9 +1395,9 @@ export default function LogBar({
                       Options
                     </h2>
                     <p className="text-xs text-white/60 mt-1">Compliance, voice, and display</p>
-                  </div>
-                  <button
-                    type="button"
+              </div>
+                <button
+                  type="button"
                     className="shrink-0 rounded-xl p-2 hover:bg-white/10 text-white/80"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
@@ -1572,11 +1407,11 @@ export default function LogBar({
                     aria-label="Close"
                   >
                     <X className="h-7 w-7" />
-                  </button>
+                </button>
                 </div>
                 {complianceButton && (
-                  <button
-                    type="button"
+                <button
+                  type="button"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1609,7 +1444,7 @@ export default function LogBar({
                             ? "Compliance — warnings"
                             : "Compliance — all clear"}
                     </span>
-                  </button>
+                </button>
                 )}
                 <div className="flex flex-wrap items-center justify-center gap-5 pt-1">
                   <VoiceCommandControl
@@ -1624,9 +1459,9 @@ export default function LogBar({
                     iconClassName={touchSheetIcon}
                   />
                   <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
-                </div>
               </div>
             </div>
+          </div>
           </div>,
           document.body
         )}
@@ -1640,7 +1475,7 @@ export default function LogBar({
           )}
         >
           <div className="pointer-events-auto">{endShiftButton}</div>
-        </div>
+      </div>
       )}
     </>
   );

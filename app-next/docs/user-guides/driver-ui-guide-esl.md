@@ -230,10 +230,11 @@ On the week sheet:
 
 ---
 
-## 14. Voice & display
+## 14. Options (voice & display)
 
-Tap **Voice & display** on the log bar for:
+Tap the **gear** on the log bar (full or compact hero) for:
 
+- **Compliance** — open the compliance snapshot details
 - **Voice commands** — log by speaking (where supported).
 - **Voice alerts** — spoken reminders while logging.
 - **Dark mode** — easier on the eyes at night.
@@ -244,7 +245,7 @@ You can also set **Dark mode** and **Voice alerts** in **Settings → Options**.
 
 ## 15. Settings
 
-Gear icon → **Settings**:
+**Day tools** → **Settings** (not the log-bar Options gear):
 
 - **Options** — Dark mode, Voice alerts.
 - **Device** — install the app, back up / restore on this device.

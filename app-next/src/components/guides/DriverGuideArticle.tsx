@@ -391,9 +391,10 @@ export function DriverGuideArticle() {
       </section>
 
       <section className={sectionClass}>
-        <h2 className={h2Class}>14. Voice &amp; display</h2>
-        <p>Tap Voice &amp; display on the log bar for:</p>
+        <h2 className={h2Class}>14. Options (voice &amp; display)</h2>
+        <p>Tap the gear on the log bar (full or compact hero) for:</p>
         <ul className={`${ulClass} mt-1`}>
+          <li>Compliance — open the compliance snapshot details.</li>
           <li>Voice commands — log by speaking (where supported).</li>
           <li>Voice alerts — spoken reminders while logging.</li>
           <li>Dark mode — easier on the eyes at night.</li>
