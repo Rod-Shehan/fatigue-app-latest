@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { Briefcase, Coffee, Moon, Square, Trash2 } from "lucide-react";
+import { Briefcase, ChevronDown, Coffee, Moon, Square, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -166,21 +166,6 @@ export function DayEventsEditor({
         )
       ) : (
         <>
-          {isNewShift ? null : (
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-snug">
-              Correct work, break, non-work, or end-shift times for this day. Use{" "}
-              <span className="font-medium text-slate-600 dark:text-slate-300">break</span> only during a work bout
-              (not in the middle of non-work — it needs work to break from),{" "}
-              <span className="font-medium text-slate-600 dark:text-slate-300">non-work</span> when off duty or between
-              shifts (7h / 24h recovery), and{" "}
-              <span className="font-medium text-slate-600 dark:text-slate-300">end shift</span> when you finished —
-              enter <span className="font-medium text-slate-600 dark:text-slate-300">end km</span> above when you
-              worked on this day before that End shift. Open work overnight is OK; leave a break open is not — resume
-              work, go to non-work, or End shift after a break. Declared{" "}
-              <span className="font-medium text-slate-600 dark:text-slate-300">24 hour non-work breaks</span>{" "}
-              (start and end times) are set above in this same form — not as an event type here.
-            </p>
-          )}
           {bannerMessages.length > 0 ? (
             <div
               className="rounded-md border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/40 px-3 py-2 space-y-1"
@@ -285,6 +270,46 @@ export function DayEventsEditor({
               );
             })}
           </div>
+          {isNewShift ? null : (
+            <details className="group rounded-lg border border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-900/50">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200 [&::-webkit-details-marker]:hidden">
+                <span>Work, break &amp; non-work tips</span>
+                <ChevronDown
+                  className="h-4 w-4 shrink-0 text-slate-500 transition-transform group-open:rotate-180"
+                  aria-hidden
+                />
+              </summary>
+              <ul className="space-y-1.5 border-t border-slate-200 dark:border-slate-700 px-3 py-2.5 text-xs leading-snug text-slate-600 dark:text-slate-400 list-disc pl-7">
+                <li>
+                  Correct <span className="font-medium text-slate-700 dark:text-slate-300">work</span>,{" "}
+                  <span className="font-medium text-slate-700 dark:text-slate-300">break</span>,{" "}
+                  <span className="font-medium text-slate-700 dark:text-slate-300">non-work</span>, or{" "}
+                  <span className="font-medium text-slate-700 dark:text-slate-300">end shift</span> times for this day.
+                </li>
+                <li>
+                  Use <span className="font-medium text-slate-700 dark:text-slate-300">break</span> only during a work
+                  bout — not in the middle of non-work.
+                </li>
+                <li>
+                  Use <span className="font-medium text-slate-700 dark:text-slate-300">non-work</span> when off duty or
+                  between shifts (7h / 24h recovery).
+                </li>
+                <li>
+                  Use <span className="font-medium text-slate-700 dark:text-slate-300">end shift</span> when you finished —
+                  enter <span className="font-medium text-slate-700 dark:text-slate-300">end km</span> above if you worked
+                  on this day before that End shift.
+                </li>
+                <li>Open work overnight is OK.</li>
+                <li>
+                  Do not leave a break open — resume work, go to non-work, or End shift after a break.
+                </li>
+                <li>
+                  Declared <span className="font-medium text-slate-700 dark:text-slate-300">24 hour non-work breaks</span>{" "}
+                  (start and end times) are set above in this form — not as an event type here.
+                </li>
+              </ul>
+            </details>
+          )}
         </>
       )}
     </div>

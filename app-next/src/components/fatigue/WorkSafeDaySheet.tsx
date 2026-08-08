@@ -86,15 +86,12 @@ export default function WorkSafeDaySheet({
   regulatoryTodayYmd,
   dayLabel,
   className,
-  suppressRoutePlaces = false,
 }: {
   dayData: DayDataGrid;
   regulatoryTodayYmd?: string;
   dayLabel?: string;
   driverName?: string | null;
   className?: string;
-  /** When a run plan is shown on the card, hide Start/Finish so two trips cannot appear. */
-  suppressRoutePlaces?: boolean;
 }) {
   const todayYmd = regulatoryTodayYmd ?? getTodayLocalDateString();
   const dateStr = dayData.date || todayYmd;
@@ -117,8 +114,8 @@ export default function WorkSafeDaySheet({
 
   const startKm = formatKm(dayData.start_kms);
   const endKm = formatKm(dayData.end_kms);
-  const from = suppressRoutePlaces ? "" : (dayData.start_location ?? "").trim();
-  const to = suppressRoutePlaces ? "" : (dayData.destination ?? "").trim();
+  const from = (dayData.start_location ?? "").trim();
+  const to = (dayData.destination ?? "").trim();
   const truckReg = (dayData.truck_rego ?? "").trim();
   const dayName = dayNameUpper(dayLabel);
   const dateDisplay = formatSheetDisplayDate(dateStr);

@@ -679,7 +679,6 @@ export default function DayEntry({
         dayLabel={DAY_NAMES[dayIndex]}
         driverName={driverName}
         className="mt-1"
-        suppressRoutePlaces={usesRunPlan}
       />
 
       {dayTools && (
