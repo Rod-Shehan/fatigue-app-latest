@@ -14,8 +14,8 @@ name: Neon DB backup to R2
 
 on:
   schedule:
-    # 16:00 UTC ≈ 00:00 AWST (Perth midnight). Adjust if owner prefers another window.
-    - cron: "0 16 * * *"
+    # 01:00 UTC = 09:00 AWST (Perth). Quiet after overnight EWD logging; avoid late-night WA peak.
+    - cron: "0 1 * * *"
   workflow_dispatch:
 
 permissions:

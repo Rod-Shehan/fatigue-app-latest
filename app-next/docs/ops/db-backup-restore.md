@@ -75,7 +75,7 @@ These are **not** Vercel app env vars.
 3. Confirm object appears in R2 under `backups/…dump.enc`.  
 4. Practice **decrypt + pg_restore into a throwaway Neon branch / local Postgres** (see below) at least once.
 
-Schedule: `0 16 * * *` UTC ≈ **midnight AWST**.
+Schedule: `0 1 * * *` UTC = **09:00 AWST** (quiet after overnight EWD logging).
 
 ---
 
