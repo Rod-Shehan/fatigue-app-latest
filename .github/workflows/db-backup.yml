@@ -41,7 +41,11 @@ jobs:
           sudo apt-get install -y postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" | sudo tee /etc/paths.d/postgresql-17 >/dev/null || true
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          which pg_dump
           pg_dump --version
+          test -x /usr/lib/postgresql/17/bin/pg_dump
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -62,6 +66,7 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+          PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
         run: |
           set -euo pipefail
 
@@ -78,6 +83,12 @@ jobs:
             exit 1
           fi
 
+          if [ ! -x "$PG_DUMP" ]; then
+            echo "PostgreSQL 17 pg_dump not found at $PG_DUMP"
+            exit 1
+          fi
+          "$PG_DUMP" --version
+
           STAMP=$(date -u +"%Y-%m-%d_%H-%M-%S")
           WORK_DIR="${RUNNER_TEMP}/circadia-db-backup"
           mkdir -p "$WORK_DIR"
@@ -86,7 +97,7 @@ jobs:
           OBJECT_KEY="backups/${STAMP}.dump.enc"
 
           echo "Running pg_dump -Fc (custom format)…"
-          pg_dump -Fc --no-owner --no-acl -f "$DUMP_PATH" "$DATABASE_URL_UNPOOLED"
+          "$PG_DUMP" -Fc --no-owner --no-acl -f "$DUMP_PATH" "$DATABASE_URL_UNPOOLED"
 
           echo "Encrypting with OpenSSL AES-256-CBC (PBKDF2)…"
           openssl enc -aes-256-cbc -pbkdf2 -salt \
