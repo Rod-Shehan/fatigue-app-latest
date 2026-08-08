@@ -101,10 +101,17 @@ Until then, dev/small Postgres remains acceptable; **code is already production-
 - [0001 Multi-jurisdiction architecture](./0001-multi-jurisdiction-fatigue-architecture.md)  
 - [WEEKLY_ARCHIVE_EXPORT.md](../WEEKLY_ARCHIVE_EXPORT.md) — PDF packaging and PA flow  
 - [record-retention-and-compliance-lookback.md](../regulatory/record-retention-and-compliance-lookback.md)  
+- [hot-cold-record-access-project-scope.md](../product/hot-cold-record-access-project-scope.md) — electronic SoR = data + signature; hot/cold access; off-site Neon dumps  
+- [db-backup-restore.md](../ops/db-backup-restore.md) — encrypted `pg_dump` → R2  
 - `src/lib/record-retention.ts` — retention vs rule-engine lookback constants  
+
+### Clarification (2026-08-08)
+
+Owner doctrine for Circadia-operated electronic records: the **system of record for legal production** is **structured sheet data + signature image** (plus attestation/audit metadata), retained via Postgres and Circadia-controlled off-site electronic copies. SharePoint/PDF publish remains **optional convenience for customers**, not Circadia’s substitute archive. Hot/cold graduation and purge rules are defined in the hot-cold project scope — do not purge hot SoR leaving **only** PDFs.
 
 ## Changelog
 
 | Date | Note |
 |------|------|
 | 2026-06-02 | Accepted: managed Postgres as SoR; SharePoint publish-only; archive at signedAt+30; no CSV/list app reads |
+| 2026-08-08 | Clarified electronic SoR vs PDF; linked hot/cold + DB backup docs |
