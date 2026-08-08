@@ -1,6 +1,6 @@
 # Project scope: Hot / cold electronic records (backup, retention, and access)
 
-**Status:** **P0–P4 done** (owner stream 2026-08-08). P1 backups live (09:00 AWST). P2 H1–H7 locked. P3 Older records UX. P4 cold fulfillment tooling + runbook. **Next: P5** contract schedule text.  
+**Status:** **P0–P5 done** (owner stream 2026-08-08). P1–P4 technical/ops + UX. **P5** counsel-ready SaaS schedule draft. **Next: P6** graduation design (optional) or **P7** remaining doc alignment.  
 **Owner doctrine locked (2026-08-08):** the **legal electronic record** is the **structured data + signature image** (plus attestation metadata and audit), not a PDF.  
 **Stack:** Circadia24 monorepo — shared Neon Postgres (`app-next` + `circadia-command`); Cloudflare R2 for encrypted database copies and future cold packs.  
 **Surfaces:** especially **Enterprise** (fleet history / date-range queries); EWD and Command inherit the same retention rules where they show historical records.
@@ -15,6 +15,7 @@
 | [product-surfaces-legacy-ewd-enterprise.md](../../../docs/architecture/product-surfaces-legacy-ewd-enterprise.md) | Enterprise as manager/owner product surface |
 | [db-backup-restore.md](../ops/db-backup-restore.md) | P1 nightly encrypted Neon → R2 dump + restore runbook |
 | [cold-access-fulfillment.md](../ops/cold-access-fulfillment.md) | P4 ops path: decrypt / restore / extract electronic SoR pack |
+| [saas-schedule-electronic-records-hot-cold.md](./saas-schedule-electronic-records-hot-cold.md) | P5 draft SaaS schedule for counsel (SoR, hot/cold, SLA, fees) |
 
 > **Disclaimer:** This document is product and architecture design for Circadia. It is **not legal advice**. Client contract wording must be reviewed by qualified counsel before use in commercial agreements.
 
@@ -187,9 +188,9 @@ Circadia’s commercial terms should set expectations **before** Enterprise ship
 | **P2** | Define **hot window** and **cold SLA** commercially | **Locked** 2026-08-08 (§8) |
 | **P3** | Enterprise UX: live range vs “request from archive” | **Done** 2026-08-08 — Overview banner + request dialog + `POST /api/manager/archive-request` |
 | **P4** | Cold access workflow | **Done** 2026-08-08 — [cold-access-fulfillment.md](../ops/cold-access-fulfillment.md) + `scripts/db-backup` list/download/decrypt/extract-sor |
-| **P5** | Contract schedule text | **Next** — counsel-ready plain English from §6 + locked §8 |
-| **P6** | Graduation design (optional after P1–P4) | Not started — never PDF-only purge |
-| **P7** | Align ADR 0002 / retention / WEEKLY_ARCHIVE docs | Partial (ADR note); finish remaining docs |
+| **P5** | Contract schedule text | **Done** 2026-08-08 — [saas-schedule-electronic-records-hot-cold.md](./saas-schedule-electronic-records-hot-cold.md) (draft for counsel) |
+| **P6** | Graduation design (optional after P1–P4) | **Next (optional)** — never PDF-only purge |
+| **P7** | Align ADR 0002 / retention / WEEKLY_ARCHIVE docs | Partial (ADR note); **next docs cleanup** |
 
 **Explicit non-goals until approved:** changing time-rule IP; enabling parked checklist photo R2 as the DB backup bucket; production Neon/Vercel/R2 changes without separate owner confirmation.
 
@@ -228,3 +229,4 @@ Circadia’s commercial terms should set expectations **before** Enterprise ship
 | 2026-08-08 | P2 H1–H7 locked as proposed; production R2 + GitHub secrets + first backup approved |
 | 2026-08-08 | P3 Enterprise Older records UX + archive-request API; P4 next |
 | 2026-08-08 | P4 cold access fulfillment runbook + SoR extract tooling |
+| 2026-08-08 | P5 SaaS schedule draft for electronic records / hot-cold retrieval |
