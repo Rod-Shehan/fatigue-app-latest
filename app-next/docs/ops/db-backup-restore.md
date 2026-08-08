@@ -108,15 +108,12 @@ Match `pg_restore` / `pg_dump` **major version to Neon** (production is **Postgr
 
 ### D. Produce electronic SoR for a cold request
 
-After restore (or after extracting from a restored copy):
+Follow **[cold-access-fulfillment.md](./cold-access-fulfillment.md)** (P4):
 
-1. Locate `FatigueSheet` (and related) rows for the requested driver / date range.  
-2. Export **structured data + signature + `signedAt` + audit** (SoR pack).  
-3. Optionally regenerate a PDF **labelled as a reproduction from the electronic record**.  
-4. Deliver under the cold-access SLA (see project scope H2).  
-5. Securely delete local decrypted dumps when finished.
-
-Full in-app cold request UX is **P3–P4** — until then this runbook is the ops path.
+1. Prefer live Neon extract while H1 keeps all sheets hot (`npm run extract-sor`).  
+2. Otherwise download R2 → decrypt → `pg_restore` to throwaway DB → extract.  
+3. Deliver the JSON SoR pack; optional PDF labelled as reproduction from the electronic record.  
+4. Securely delete local decrypted dumps when finished.
 
 ### E. Full production cutover (rare)
 

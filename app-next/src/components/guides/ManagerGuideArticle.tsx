@@ -52,6 +52,22 @@ export function ManagerGuideArticle() {
       </section>
 
       <section className={sectionClass}>
+        <h2 className={h2Class}>{MANAGER_EXPERIENCE.ARCHIVE_ACCESS_TITLE}</h2>
+        <p>{MANAGER_EXPERIENCE.ARCHIVE_ACCESS_HINT}</p>
+        <ul className={ulClass}>
+          <li>
+            On {MANAGER_EXPERIENCE.PAGE_TITLE}, use{" "}
+            <strong className="text-slate-700 dark:text-slate-200">
+              {MANAGER_EXPERIENCE.ARCHIVE_ACCESS_CHIP}
+            </strong>{" "}
+            above the week filters.
+          </li>
+          <li>{MANAGER_EXPERIENCE.ARCHIVE_ACCESS_SOR_NOTE}</li>
+          <li>{MANAGER_EXPERIENCE.ARCHIVE_ACCESS_LIVE_BANNER_ALL_HOT}</li>
+        </ul>
+      </section>
+
+      <section className={sectionClass}>
         <h2 className={h2Class}>Exposure tiers</h2>
         <p>{MANAGER_EXPERIENCE.HERO_WEEK_INTRO}</p>
         <ul className={ulClass}>

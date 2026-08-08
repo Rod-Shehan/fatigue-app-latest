@@ -62,6 +62,29 @@ export const MANAGER_EXPERIENCE = {
   SCOPE_TOGGLE_OPEN: "Show day picker",
   SCOPE_TOGGLE_CLOSE: "Hide day picker",
 
+  /** Hot vs cold electronic records (P3) — not the same as “past week” driver archive. */
+  ARCHIVE_ACCESS_CHIP: "Older records",
+  ARCHIVE_ACCESS_TITLE: "Request records from long-term storage",
+  ARCHIVE_ACCESS_HINT:
+    "Recent weeks open instantly here. Older retained records (data + signature) may sit in long-term storage — we reassemble them on request. This is not an instant date range.",
+  ARCHIVE_ACCESS_SLA: (days: number) =>
+    `Standard retrieval: about ${days} business day${days === 1 ? "" : "s"} (Perth). Urgent legal hold or regulator produce: escalate same day when practicable.`,
+  ARCHIVE_ACCESS_SOR_NOTE:
+    "We deliver the electronic source of truth (logged data + signature + attestation details). A PDF can be regenerated from that record if you need a printable copy.",
+  ARCHIVE_ACCESS_RANGE_FROM: "From week (Sunday)",
+  ARCHIVE_ACCESS_RANGE_TO: "To week (Sunday)",
+  ARCHIVE_ACCESS_REASON: "Why you need these records",
+  ARCHIVE_ACCESS_REASON_PLACEHOLDER: "e.g. audit, legal hold, regulator request…",
+  ARCHIVE_ACCESS_SUBMIT: "Submit request",
+  ARCHIVE_ACCESS_CANCEL: "Cancel",
+  ARCHIVE_ACCESS_OUTSIDE_LIVE:
+    "That week is outside the live (instant) window. Use Request older records — do not expect the overview filters to load it like last week.",
+  ARCHIVE_ACCESS_SUCCESS:
+    "Request received. Circadia will retrieve and reassemble the electronic record and contact you.",
+  ARCHIVE_ACCESS_ERROR: "Could not submit the request. Try again or contact Circadia support.",
+  ARCHIVE_ACCESS_LIVE_BANNER_ALL_HOT:
+    "All signed weeks are currently on the live system (pilot). Use Request older records for a formal pack or legal hold — not for everyday browsing.",
+
   /** Page title and back-link label for /manager. */
   NAV_RISK_BRIEF: "Driver Overview",
   /** App sign-in page — switch between Driver, Manager, and Owner. */

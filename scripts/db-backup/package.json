@@ -2,16 +2,22 @@
   "name": "circadia-db-backup",
   "private": true,
   "version": "1.0.0",
-  "description": "Upload encrypted Neon pg_dump archives to Cloudflare R2 (hot/cold electronic SoR)",
+  "description": "Upload encrypted Neon pg_dump archives to Cloudflare R2; cold SoR extract tooling",
   "type": "module",
   "scripts": {
-    "upload": "tsx upload.ts"
+    "upload": "tsx upload.ts",
+    "list": "tsx list-backups.ts",
+    "download": "tsx download-backup.ts",
+    "decrypt": "tsx decrypt-backup.ts",
+    "extract-sor": "tsx extract-sor-pack.ts"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.758.0"
+    "@aws-sdk/client-s3": "^3.758.0",
+    "pg": "^8.14.1"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "@types/pg": "^8.11.11",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   }

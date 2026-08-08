@@ -14,6 +14,8 @@ import { ManagerDriverRegister } from "@/components/manager/ManagerDriverRegiste
 import { ManagerRiskTimelineDashboard } from "@/components/manager/ManagerRiskTimelineDashboard";
 import { ManagerFleetRiskPulse } from "@/components/manager/ManagerFleetRiskPulse";
 import { ManagerRiskScopeBar } from "@/components/manager/ManagerRiskScopeBar";
+import { ManagerArchiveAccessControls } from "@/components/manager/ManagerArchiveAccessControls";
+import { HOT_WINDOW_ALL_LIVE, isWeekStartingInHotWindow } from "@/lib/hot-cold-records";
 import { pickHighestCurrentRiskDriver } from "@/lib/frms/fleet-risk-timeline";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 import type { ShiftLaneDayCoverage } from "@/lib/manager-risk-shift-lane";
@@ -1093,10 +1095,17 @@ export function ManagerView() {
           subtitle={MANAGER_EXPERIENCE.SECTION_RISK_SUBTITLE}
           boundary={MANAGER_EXPERIENCE.SECTION_RISK_BOUNDARY}
         >
+          <ManagerArchiveAccessControls />
           <ManagerRiskScopeBar
             weekSelectOptions={weekSelectOptions}
             activeWeekStarting={activeWeekStarting}
-            onWeekChange={setActiveWeekStarting}
+            onWeekChange={(week) => {
+              if (week && !HOT_WINDOW_ALL_LIVE && !isWeekStartingInHotWindow(week)) {
+                window.alert(MANAGER_EXPERIENCE.ARCHIVE_ACCESS_OUTSIDE_LIVE);
+                return;
+              }
+              setActiveWeekStarting(week);
+            }}
             dayLabel={
               activeWeekStarting
                 ? formatDayDateLabel(activeWeekStarting, activeDayIndex)

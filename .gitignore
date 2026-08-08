@@ -18,6 +18,12 @@ dist
 dist-ssr
 *.local
 
+# DB backup working copies (decrypted dumps / SoR packs)
+scripts/db-backup/work/
+
+# Wrangler local state
+.wrangler/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

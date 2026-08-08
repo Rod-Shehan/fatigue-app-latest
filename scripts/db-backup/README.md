@@ -1,17 +1,15 @@
-# Circadia Neon → R2 backup uploader
+# Circadia Neon → R2 backup + cold SoR tooling
 
-Upload-only helper for encrypted `pg_dump -Fc` archives.
-
-- **Workflow:** `../../.github/workflows/db-backup.yml`
-- **Restore runbook:** `../../app-next/docs/ops/db-backup-restore.md`
-- **Product doctrine:** `../../app-next/docs/product/hot-cold-record-access-project-scope.md`
+- **Upload (CI):** GitHub Action dumps/encrypts; `upload.ts` puts `*.dump.enc` in R2  
+- **Cold fulfill (P4):** list → download → decrypt → `pg_restore` (if needed) → `extract-sor`  
+- **Docs:** `../../app-next/docs/ops/db-backup-restore.md`, `../../app-next/docs/ops/cold-access-fulfillment.md`
 
 ```bash
 npm ci
-export BACKUP_FILE_PATH=/path/to/stamp.dump.enc
-export R2_ACCOUNT_ID=…
-export R2_ACCESS_KEY_ID=…
-export R2_SECRET_ACCESS_KEY=…
-export R2_BUCKET_NAME=circadia-db-backups
-npm run upload
+npm run list
+npm run download    # needs R2_OBJECT_KEY
+npm run decrypt     # needs ENC_PATH + BACKUP_ENCRYPTION_KEY
+npm run extract-sor # needs DATABASE_URL_UNPOOLED + FROM_WEEK + TO_WEEK
 ```
+
+Never commit `work/`, `.backup-encryption-key.local`, or dump files.

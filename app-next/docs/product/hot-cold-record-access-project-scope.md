@@ -1,6 +1,6 @@
 # Project scope: Hot / cold electronic records (backup, retention, and access)
 
-**Status:** **P0 accepted** (owner 2026-08-08). **P1 in-repo** (workflow + uploader + restore runbook). **P2 locked** (H1–H7 as proposed, owner 2026-08-08). Production R2 + GitHub secrets + first backup run: owner-approved 2026-08-08. P3+ not started.  
+**Status:** **P0–P4 done** (owner stream 2026-08-08). P1 backups live (09:00 AWST). P2 H1–H7 locked. P3 Older records UX. P4 cold fulfillment tooling + runbook. **Next: P5** contract schedule text.  
 **Owner doctrine locked (2026-08-08):** the **legal electronic record** is the **structured data + signature image** (plus attestation metadata and audit), not a PDF.  
 **Stack:** Circadia24 monorepo — shared Neon Postgres (`app-next` + `circadia-command`); Cloudflare R2 for encrypted database copies and future cold packs.  
 **Surfaces:** especially **Enterprise** (fleet history / date-range queries); EWD and Command inherit the same retention rules where they show historical records.
@@ -14,6 +14,7 @@
 | [WEEKLY_ARCHIVE_EXPORT.md](../WEEKLY_ARCHIVE_EXPORT.md) | Optional PDF publish to SharePoint (customer habit / filing — **not** Circadia SoR) |
 | [product-surfaces-legacy-ewd-enterprise.md](../../../docs/architecture/product-surfaces-legacy-ewd-enterprise.md) | Enterprise as manager/owner product surface |
 | [db-backup-restore.md](../ops/db-backup-restore.md) | P1 nightly encrypted Neon → R2 dump + restore runbook |
+| [cold-access-fulfillment.md](../ops/cold-access-fulfillment.md) | P4 ops path: decrypt / restore / extract electronic SoR pack |
 
 > **Disclaimer:** This document is product and architecture design for Circadia. It is **not legal advice**. Client contract wording must be reviewed by qualified counsel before use in commercial agreements.
 
@@ -182,13 +183,13 @@ Circadia’s commercial terms should set expectations **before** Enterprise ship
 | Phase | Deliverable | Status |
 |-------|-------------|--------|
 | **P0** | Doctrine + this scope accepted by owner | **Done** 2026-08-08 |
-| **P1** | Ops: encrypted Neon → R2 nightly dump + restore runbook | **In-repo** — enable secrets/R2 with owner prod approval ([runbook](../ops/db-backup-restore.md)) |
+| **P1** | Ops: encrypted Neon → R2 nightly dump + restore runbook | **Done** (prod secrets + first dump 2026-08-08; schedule 09:00 AWST) |
 | **P2** | Define **hot window** and **cold SLA** commercially | **Locked** 2026-08-08 (§8) |
-| **P3** | Enterprise UX: live range vs “request from archive” | Not started |
-| **P4** | Cold access workflow | Not started |
-| **P5** | Contract schedule text | Not started (uses §6 + locked §8) |
+| **P3** | Enterprise UX: live range vs “request from archive” | **Done** 2026-08-08 — Overview banner + request dialog + `POST /api/manager/archive-request` |
+| **P4** | Cold access workflow | **Done** 2026-08-08 — [cold-access-fulfillment.md](../ops/cold-access-fulfillment.md) + `scripts/db-backup` list/download/decrypt/extract-sor |
+| **P5** | Contract schedule text | **Next** — counsel-ready plain English from §6 + locked §8 |
 | **P6** | Graduation design (optional after P1–P4) | Not started — never PDF-only purge |
-| **P7** | Align ADR 0002 / retention / WEEKLY_ARCHIVE docs | Not started |
+| **P7** | Align ADR 0002 / retention / WEEKLY_ARCHIVE docs | Partial (ADR note); finish remaining docs |
 
 **Explicit non-goals until approved:** changing time-rule IP; enabling parked checklist photo R2 as the DB backup bucket; production Neon/Vercel/R2 changes without separate owner confirmation.
 
@@ -225,3 +226,5 @@ Circadia’s commercial terms should set expectations **before** Enterprise ship
 | 2026-08-08 | Initial upcoming project scope — hot/cold access integrated with DB backup path; electronic SoR doctrine; contract and Enterprise UX design notes |
 | 2026-08-08 | P0 accepted; P1 workflow/uploader/runbook added; P2 commercial defaults proposed for owner lock |
 | 2026-08-08 | P2 H1–H7 locked as proposed; production R2 + GitHub secrets + first backup approved |
+| 2026-08-08 | P3 Enterprise Older records UX + archive-request API; P4 next |
+| 2026-08-08 | P4 cold access fulfillment runbook + SoR extract tooling |

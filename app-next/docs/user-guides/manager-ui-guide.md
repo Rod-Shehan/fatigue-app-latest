@@ -61,6 +61,16 @@ Three cards link to anchored sections on the same page:
 
 Badges update when you change work week or driver scope. **All clear** means nothing actionable in that section for the current filters. Clicking a card smooth-scrolls to the section (sticky subnav offset is handled via `scroll-mt-24` on each section).
 
+### Older records (live vs long-term storage)
+
+Above the week / day / driver filters on Driver Overview:
+
+- **Recent weeks** load instantly from the live system (week picker).
+- **Older retained records** (electronic data + signature) may sit in long-term storage when Circadia graduates history off the live database. That is **not** the same as clicking any date in the last three years.
+- Use **Older records** to request a formal pack (audit, legal hold, regulator). Standard retrieval is about **2 business days** (Perth). Circadia delivers the **electronic source of truth**; a PDF can be regenerated from that data if you need a printable copy. Ops fulfill via the cold-access runbook (decrypt R2 dump if needed, extract SoR JSON pack).
+
+Pilot note: all signed weeks are still on the live system today — the request button is for formal packs / holds, not everyday browsing.
+
 ---
 
 ## 3. Risk brief — week at a glance
