@@ -78,8 +78,9 @@ export function parseRouteLabelToLocations(label: string): {
 }
 
 export type DayCardFieldsFromPreset = RunPlanFields & {
-  start_location?: string;
-  destination?: string;
+  /** Always set (may be "") so preset selection overwrites stale From/To. */
+  start_location: string;
+  destination: string;
 };
 
 /** Run plan + day-card route fields when a catalogue preset is selected. */
@@ -89,8 +90,9 @@ export function dayCardFieldsFromPreset(preset: RoutePresetRecord): DayCardField
   const parsed = parseRouteLabelToLocations(preset.label);
   return {
     ...runPlanFieldsFromPreset(preset),
-    start_location: explicitStart || parsed.start_location,
-    destination: explicitDest || parsed.destination,
+    // Always strings: selecting a plan owns From/To (clear when unknown).
+    start_location: explicitStart || parsed.start_location || "",
+    destination: explicitDest || parsed.destination || "",
   };
 }
 

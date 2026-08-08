@@ -229,14 +229,19 @@ export function DayCardDetailsDialog({
       setSaveCatalogueError(null);
       setRouteMode("catalogue");
       setPresetPick(created.id);
-      setDraft((prev) => ({
-        ...prev,
-        ...dayCardFieldsFromPreset(created),
-        start_kms: prev.start_kms,
-        end_kms: prev.end_kms,
-        truck_rego: prev.truck_rego,
-        shift_label: prev.shift_label,
-      }));
+      setDraft((prev) => {
+        const fromPreset = dayCardFieldsFromPreset(created);
+        return {
+          ...prev,
+          ...fromPreset,
+          start_location: fromPreset.start_location,
+          destination: fromPreset.destination,
+          start_kms: prev.start_kms,
+          end_kms: prev.end_kms,
+          truck_rego: prev.truck_rego,
+          shift_label: prev.shift_label,
+        };
+      });
     },
     onError: () => setSaveCatalogueError("Could not save to catalogue. Try again."),
   });
@@ -371,9 +376,13 @@ export function DayCardDetailsDialog({
     const preset = routePresets.find((p) => p.id === value);
     if (!preset) return;
     setRouteMode("catalogue");
+    const fromPreset = dayCardFieldsFromPreset(preset);
     setDraft((prev) => ({
       ...prev,
-      ...dayCardFieldsFromPreset(preset),
+      ...fromPreset,
+      // Plan owns places — never leave prior trip From/To when fields are empty.
+      start_location: fromPreset.start_location,
+      destination: fromPreset.destination,
       start_kms: prev.start_kms,
       end_kms: prev.end_kms,
       truck_rego: prev.truck_rego,

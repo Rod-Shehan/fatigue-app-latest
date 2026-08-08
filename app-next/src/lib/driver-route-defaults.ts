@@ -167,8 +167,16 @@ export function applyDriverRouteDefaultsToDay<T extends DayData>(
   };
 
   const truck_rego = pickStr(day.truck_rego, defaults.truck_rego);
-  const start_location = pickStr(day.start_location, defaults.start_location);
-  const destination = pickStr(day.destination, defaults.destination);
+  // When the day already has a run plan / catalogue preset, that plan owns From/To —
+  // do not refill empty places from a prior trip's defaults (would mix two runs).
+  const dayOwnsRoutePlaces =
+    !!(day.route_preset_id ?? "").trim() || hasRunPlanContent(day);
+  const start_location = dayOwnsRoutePlaces
+    ? day.start_location
+    : pickStr(day.start_location, defaults.start_location);
+  const destination = dayOwnsRoutePlaces
+    ? day.destination
+    : pickStr(day.destination, defaults.destination);
   const shift_label =
     day.shift_label === "A" || day.shift_label === "B"
       ? day.shift_label

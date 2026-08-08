@@ -87,4 +87,37 @@ describe("route-preset", () => {
     expect(fields.start_location).toBe("Perth");
     expect(fields.destination).toBe("Kalgoorlie");
   });
+
+  it("dayCardFieldsFromPreset clears From when label has no from/to pair", () => {
+    const fields = dayCardFieldsFromPreset({
+      id: "p4",
+      label: "Northam loop",
+      start_location: null,
+      destination: null,
+      planned_distance_km: 120,
+      planned_on_duty_hours: 6,
+      catalogue_source: "fleet",
+      created_by_name: null,
+      sort_order: 0,
+    });
+    // Always strings so draft spread overwrites a prior trip's From/To.
+    expect(fields.start_location).toBe("");
+    expect(fields.destination).toBe("Northam loop");
+  });
+
+  it("dayCardFieldsFromPreset returns empty strings when no place can be inferred", () => {
+    const fields = dayCardFieldsFromPreset({
+      id: "p5",
+      label: "   ",
+      start_location: null,
+      destination: null,
+      planned_distance_km: null,
+      planned_on_duty_hours: 8,
+      catalogue_source: "driver",
+      created_by_name: null,
+      sort_order: 0,
+    });
+    expect(fields.start_location).toBe("");
+    expect(fields.destination).toBe("");
+  });
 });

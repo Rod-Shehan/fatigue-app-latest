@@ -71,6 +71,44 @@ describe("driver-route-defaults", () => {
     expect(out.start_kms).toBeUndefined();
   });
 
+  it("applyDriverRouteDefaultsToDay does not refill places when run plan is set", () => {
+    const day: DayData = {
+      truck_rego: "1ABC",
+      start_location: "",
+      destination: "",
+      route_label: "Northam loop",
+      planned_on_duty_hours: 8,
+      route_preset_id: "preset-northam",
+    };
+    const out = applyDriverRouteDefaultsToDay(day, {
+      carry_mode: "run_plan",
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Kalgoorlie",
+      route_label: "Old Perth–Kal",
+      planned_on_duty_hours: 10,
+    });
+    expect(out.start_location).toBe("");
+    expect(out.destination).toBe("");
+    expect(out.route_label).toBe("Northam loop");
+    expect(out.route_preset_id).toBe("preset-northam");
+  });
+
+  it("applyDriverRouteDefaultsToDay still fills places when day has no plan", () => {
+    const day: DayData = { truck_rego: "", start_location: "", destination: "" };
+    const out = applyDriverRouteDefaultsToDay(day, {
+      carry_mode: "run_plan",
+      truck_rego: "1ABC",
+      start_location: "Perth",
+      destination: "Kalgoorlie",
+      route_label: "Perth – Kalgoorlie",
+      planned_on_duty_hours: 10,
+    });
+    expect(out.start_location).toBe("Perth");
+    expect(out.destination).toBe("Kalgoorlie");
+    expect(out.route_label).toBe("Perth – Kalgoorlie");
+  });
+
   it("findLastRouteDefaultsFromDays scans backward", () => {
     const days: DayData[] = [
       { truck_rego: "OLD", start_location: "A", destination: "B" },
