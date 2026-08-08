@@ -104,7 +104,7 @@ Use a **target** that is not production until verified (new Neon branch, empty l
 pg_restore --no-owner --no-acl -d "$RESTORE_DATABASE_URL" 2026-08-08_16-00-00.dump
 ```
 
-Match `pg_restore` major version to the dump / Neon Postgres version when possible.
+Match `pg_restore` / `pg_dump` **major version to Neon** (production is **Postgres 17**). The GitHub Action installs `postgresql-client-17`.
 
 ### D. Produce electronic SoR for a cold request
 
