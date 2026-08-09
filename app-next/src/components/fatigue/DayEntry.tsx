@@ -8,6 +8,7 @@ import { isShiftStartSetupComplete } from "@/lib/shift-start-gate";
 import { saveDriverRouteDefaults, inferRouteCarryMode, seedRouteSetupFormDefaults, loadDriverRouteDefaults } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
+import Link from "next/link";
 import WorkSafeDaySheet from "./WorkSafeDaySheet";
 import { motion } from "framer-motion";
 import type { Rego } from "@/lib/api";
@@ -33,6 +34,8 @@ import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogg
 import { cn } from "@/lib/utils";
 import {
   CONTINUED_SHIFT_ROUTE_CARD_NOTE,
+  EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
+  EDIT_PREVIOUS_WEEK_BUTTON_TITLE,
   formatContinuedShiftRouteBanner,
 } from "@/lib/product-copy";
 import {
@@ -148,6 +151,7 @@ export default function DayEntry({
   driverName,
   allowHeaderRestAmend = false,
   activityBeforeDay = null,
+  previousWeekEditHref = null,
 }: {
   dayIndex: number;
   dayData: DayData;
@@ -188,6 +192,8 @@ export default function DayEntry({
   allowHeaderRestAmend?: boolean;
   /** Open activity before this week day 0 (prior week carry). */
   activityBeforeDay?: import("@/lib/day-event-edit-rules").PriorOpenActivity;
+  /** Sunday current week — link to prior week Saturday Edit day across the week seam. */
+  previousWeekEditHref?: string | null;
 }) {
   const getDateStr = () => {
     if (!weekStart) return "";
@@ -301,6 +307,7 @@ export default function DayEntry({
   useEffect(() => {
     if (!setupOpenRequest || setupOpenRequest <= lastSetupOpenRequestRef.current) return;
     lastSetupOpenRequestRef.current = setupOpenRequest;
+    setExpanded(true);
     if (canEditDetails) setDetailsOpen(true);
   }, [setupOpenRequest, canEditDetails]);
 
@@ -494,6 +501,20 @@ export default function DayEntry({
               {hasRouteDetails ? "Edit day" : "Set up day"}
             </Button>
           )}
+          {previousWeekEditHref ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="default"
+              className={cn(driverCardBtn, "w-full sm:w-auto")}
+              asChild
+            >
+              <Link href={previousWeekEditHref} title={EDIT_PREVIOUS_WEEK_BUTTON_TITLE}>
+                <Pencil className="w-5 h-5 shrink-0" aria-hidden />
+                {EDIT_PREVIOUS_WEEK_BUTTON_LABEL}
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </div>
 

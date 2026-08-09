@@ -3,6 +3,7 @@ import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
+import { EDIT_PREVIOUS_WEEK_BUTTON_LABEL } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
@@ -277,6 +278,12 @@ export function DriverGuideArticle() {
             during a work bout (not in the middle of non-work). Don&apos;t leave a break open — resume
             work, go to non-work, or End shift. Open work overnight is fine.
           </li>
+          <li>
+            Sunday / week seam: Saturday is on the previous week sheet. On Sunday&apos;s card, tap{" "}
+            <strong>{EDIT_PREVIOUS_WEEK_BUTTON_LABEL}</strong> beside Edit day to open Saturday&apos;s Edit day
+            on last week (add non-work or fix times). The timeline is continuous; week labels are only for
+            display.
+          </li>
         </ul>
       </section>
 
@@ -487,6 +494,10 @@ export function DriverGuideArticle() {
             ["Rego", "Number plate"],
             ["Start km / End km", "Odometer readings you type"],
             ["Set up day", "Change route, truck, pattern, or crew"],
+            [
+              EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
+              "On Sunday — open Saturday Edit day on the previous week sheet",
+            ],
             ["Run plan", "Optional saved route (name, hours, km)"],
             ["Roadside PDF", "28-day record for a regulator"],
           ]}

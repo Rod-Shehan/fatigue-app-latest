@@ -140,6 +140,17 @@ export const DRIVER_SIGN_WEEK_NOT_ENDED_ERROR =
 export const CURRENT_WEEK_SIGN_UNAVAILABLE_HINT =
   "Sign unlocks after this week ends — from the following Sunday. Use Start shift and Set up day while the week is open.";
 
+/** Sunday current-week card — open prior week Saturday Edit day across the week seam (pre-sign fix). */
+export const EDIT_PREVIOUS_WEEK_BUTTON_LABEL = "Edit previous week";
+export const EDIT_PREVIOUS_WEEK_BUTTON_TITLE =
+  "Fix last week's final shift before you sign — opens Saturday Edit day";
+
+/** Deep-link to open Edit day on a sheet day (Saturday = 6). */
+export function sheetEditDayHref(sheetId: string, dayIndex: number): string {
+  const idx = Math.max(0, Math.min(6, Math.floor(dayIndex)));
+  return `/sheets/${sheetId}?editDay=${idx}#fatigue-day-${idx}`;
+}
+
 export const ROUTE_CATALOGUE_EMPTY_HINT =
   "No saved run plans yet. Use Enter run plan to enter today's route, or ask your manager to add fleet routes in the route catalogue.";
 

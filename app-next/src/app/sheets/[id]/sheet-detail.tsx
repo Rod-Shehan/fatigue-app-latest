@@ -83,8 +83,9 @@ import {
   canDriverLogOnSheet,
   isPrematureCurrentWeekAttestation,
   PREMATURE_ATTESTATION_REOPEN,
+  sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
-import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR } from "@/lib/product-copy";
+import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, sheetEditDayHref } from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import { DayEntryWeekGroup } from "@/components/fatigue/DayEntryWeekGroup";
 import { dayIndexRangeLabels, summarizeDayIndices } from "@/lib/day-entry-week-summary";
@@ -308,6 +309,9 @@ export function SheetDetail({
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
   const [todaySetupOpenRequest, setTodaySetupOpenRequest] = useState(0);
+  const [deepLinkEditDayRequest, setDeepLinkEditDayRequest] = useState(0);
+  const [deepLinkEditDayIndex, setDeepLinkEditDayIndex] = useState<number | null>(null);
+  const deepLinkEditHandledRef = useRef(false);
   const [pendingStartWorkAfterSetup, setPendingStartWorkAfterSetup] = useState<{
     episodeResume: boolean;
   } | null>(null);
@@ -1093,10 +1097,51 @@ export function SheetDetail({
   );
 
   useEffect(() => {
+    deepLinkEditHandledRef.current = false;
+    setDeepLinkEditDayIndex(null);
+  }, [sheetId]);
+
+  useEffect(() => {
     if (!sheetData?.days?.length || typeof window === "undefined") return;
     const match = window.location.hash.match(/^#fatigue-day-(\d+)$/);
     if (match) scrollToDayCard(Number(match[1]));
   }, [sheetData?.days?.length, scrollToDayCard]);
+
+  /** ?editDay=N — expand that day and open Edit day (week-seam deep link from Sunday). */
+  useEffect(() => {
+    if (!sheetData?.days?.length || typeof window === "undefined") return;
+    if (deepLinkEditHandledRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const raw = params.get("editDay");
+    if (raw == null) return;
+    const idx = Number(raw);
+    if (!Number.isInteger(idx) || idx < 0 || idx > 6) return;
+    deepLinkEditHandledRef.current = true;
+    setDeepLinkEditDayIndex(idx);
+    setDeepLinkEditDayRequest((n) => n + 1);
+    scrollToDayCard(idx);
+    params.delete("editDay");
+    const next = params.toString();
+    const url = `${window.location.pathname}${next ? `?${next}` : ""}${window.location.hash}`;
+    window.history.replaceState(null, "", url);
+  }, [sheetData?.days?.length, scrollToDayCard]);
+
+  const previousWeekEditHref = useMemo(() => {
+    if (isManager || !prevWeekSheet?.id) return null;
+    if (!sheetIsUnsignedForDriver(prevWeekSheet.status, prevWeekSheet.signature)) return null;
+    // Sunday of the current live week only — Saturday lives on the previous sheet.
+    if (currentDayIndex !== 0) return null;
+    if (getSheetDayDateString(sheetData.week_starting, 0) !== todayYmd) return null;
+    return sheetEditDayHref(prevWeekSheet.id, 6);
+  }, [
+    isManager,
+    prevWeekSheet?.id,
+    prevWeekSheet?.status,
+    prevWeekSheet?.signature,
+    currentDayIndex,
+    sheetData.week_starting,
+    todayYmd,
+  ]);
 
   const extendedDaysForShiftStreak = useMemo(() => {
     const prev = (prevWeekSheet?.days ?? []).slice(-3);
@@ -1952,12 +1997,18 @@ export function SheetDetail({
           }
         : undefined,
       dayTools: isCurrent && isTodayCard ? driverDayTools : undefined,
-      setupOpenRequest: isCurrent && isTodayCard ? todaySetupOpenRequest : undefined,
+      setupOpenRequest:
+        deepLinkEditDayIndex === dayIndex
+          ? deepLinkEditDayRequest
+          : isCurrent && isTodayCard
+            ? todaySetupOpenRequest
+            : undefined,
       startWorkAfterSetup:
         isCurrent && isTodayCard ? pendingStartWorkAfterSetup != null : undefined,
       onConfirmedStartWorkAfterSetup:
         isCurrent && isTodayCard ? handleConfirmedStartWorkAfterSetup : undefined,
       onDetailsDialogClosed: isCurrent && isTodayCard ? handleTodayDetailsDialogClosed : undefined,
+      previousWeekEditHref: isCurrent && isTodayCard ? previousWeekEditHref : null,
     };
   };
 
