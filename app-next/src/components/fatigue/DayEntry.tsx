@@ -502,18 +502,17 @@ export default function DayEntry({
             </Button>
           )}
           {previousWeekEditHref ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="default"
-              className={cn(driverCardBtn, "w-full sm:w-auto")}
-              asChild
+            <Link
+              href={previousWeekEditHref}
+              title={EDIT_PREVIOUS_WEEK_BUTTON_TITLE}
+              className={cn(
+                driverCardBtn,
+                "inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-md border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground"
+              )}
             >
-              <Link href={previousWeekEditHref} title={EDIT_PREVIOUS_WEEK_BUTTON_TITLE}>
-                <Pencil className="w-5 h-5 shrink-0" aria-hidden />
-                {EDIT_PREVIOUS_WEEK_BUTTON_LABEL}
-              </Link>
-            </Button>
+              <Pencil className="w-5 h-5 shrink-0" aria-hidden />
+              {EDIT_PREVIOUS_WEEK_BUTTON_LABEL}
+            </Link>
           ) : null}
         </div>
       </div>
