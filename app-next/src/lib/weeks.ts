@@ -33,6 +33,14 @@ export function getPreviousWeekSunday(weekStarting: string): string {
   return formatDateLocal(date);
 }
 
+/** Sunday of the week after the given week_starting (YYYY-MM-DD). */
+export function getNextWeekSunday(weekStarting: string): string {
+  const [y, m, d] = weekStarting.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + 7);
+  return formatDateLocal(date);
+}
+
 /** True if weekStarting is after this week's Sunday (i.e. "next week" or later). */
 export function isNextWeekOrLater(weekStarting: string): boolean {
   const thisWeek = getThisWeekSunday();

@@ -282,7 +282,8 @@ export function DriverGuideArticle() {
             Sunday / week seam: Saturday is on the previous week sheet. On Sunday&apos;s card, tap{" "}
             <strong>{EDIT_PREVIOUS_WEEK_BUTTON_LABEL}</strong> beside Edit day to open Saturday&apos;s Edit day
             on last week (add non-work or fix times). The timeline is continuous; week labels are only for
-            display.
+            display. If you add End shift on Saturday, any Work/Break left on Sunday from that same open shift
+            is removed automatically (with a short note).
           </li>
         </ul>
       </section>

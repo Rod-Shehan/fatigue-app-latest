@@ -64,6 +64,12 @@ import {
   validateCorrectEndShiftTime,
 } from "@/lib/shift-timeline-correction";
 import {
+  findNewlyAddedStopIso,
+  formatOrphanFollowOnClearedMessage,
+  pruneOrphanFollowOnEventsAfterStop,
+  type OrphanFollowOnRemoval,
+} from "@/lib/orphan-follow-on-events";
+import {
   findSheetDayIndexForYmd,
   resolveEndShiftFinishDayOptions,
 } from "@/lib/end-shift-finish-day";
@@ -73,6 +79,7 @@ import {
   formatSheetDisplayDate,
   getSheetDayDateString,
   getPreviousWeekSunday,
+  getNextWeekSunday,
   getRegulatoryTodayYmd,
   getThisWeekSunday,
   isPastRegulatoryWeek,
@@ -1387,6 +1394,40 @@ export function SheetDetail({
     [declared24hRestFields, declared24hRestUiFieldCount, handleHeaderChange]
   );
 
+  const pruneOrphansOnFollowingWeekSheet = useCallback(
+    async (stopTimeIso: string): Promise<OrphanFollowOnRemoval[]> => {
+      const weekStart = sheetDataRef.current.week_starting;
+      if (!weekStart) return [];
+      const nextSun = getNextWeekSunday(weekStart);
+      const nextSheet = allSheets.find(
+        (s) =>
+          s.id !== sheetId &&
+          s.driver_name?.toLowerCase() === (sheetDataRef.current.driver_name || "").toLowerCase() &&
+          s.week_starting === nextSun
+      );
+      if (!nextSheet?.days?.length) return [];
+      if (!canDriverEditSheetContent(nextSheet.week_starting, nextSheet.status, nextSheet.signature)) {
+        return [];
+      }
+      const pruned = pruneOrphanFollowOnEventsAfterStop(nextSheet.days, stopTimeIso);
+      if (pruned.removed.length === 0) return [];
+      const withGrids = deriveDaysWithRollover(pruned.days, nextSheet.week_starting, {
+        todayStr: getRegulatoryTodayYmd(sheetDataRef.current.jurisdiction_code),
+        openActivityBeforeFirstDay: null,
+      });
+      const days = applyLast24hBreakNonWorkRule(
+        withGrids,
+        nextSheet.week_starting,
+        nextSheet.last_24h_break || undefined
+      );
+      await updateSheetOfflineFirst(nextSheet.id, { days });
+      queryClient.invalidateQueries({ queryKey: ["sheet", nextSheet.id] });
+      queryClient.invalidateQueries({ queryKey: ["sheets"] });
+      return pruned.removed;
+    },
+    [allSheets, sheetId, queryClient]
+  );
+
   const handleDayUpdate = useCallback(
     async (dayIndex: number, dayData: DayData | ((prev: DayData) => DayData)) => {
       if (driverContentLocked) {
@@ -1396,6 +1437,13 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const current = (newDays[dayIndex] ?? {}) as DayData;
       newDays[dayIndex] = typeof dayData === "function" ? dayData(current) : dayData;
+      const closingStopIso = findNewlyAddedStopIso(current, newDays[dayIndex]);
+      let orphanNoteRemoved: OrphanFollowOnRemoval[] = [];
+      if (closingStopIso) {
+        const pruned = pruneOrphanFollowOnEventsAfterStop(newDays, closingStopIso);
+        for (let i = 0; i < pruned.days.length; i++) newDays[i] = pruned.days[i]!;
+        orphanNoteRemoved = pruned.removed;
+      }
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
         openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
@@ -1413,8 +1461,18 @@ export function SheetDetail({
         throw e;
       }
       setSheetData(next);
+      if (closingStopIso) {
+        try {
+          const crossWeek = await pruneOrphansOnFollowingWeekSheet(closingStopIso);
+          orphanNoteRemoved = [...orphanNoteRemoved, ...crossWeek];
+        } catch {
+          /* offline / lock — same-week orphans already cleared */
+        }
+        const note = formatOrphanFollowOnClearedMessage(orphanNoteRemoved);
+        if (note) window.alert(note);
+      }
     },
-    [driverContentLocked, parkDeviceAndScheduleSave]
+    [driverContentLocked, parkDeviceAndScheduleSave, pruneOrphansOnFollowingWeekSheet]
   );
 
   const handleOpenEndShiftCorrection = useCallback(
@@ -1690,11 +1748,15 @@ export function SheetDetail({
     }
     const markRouteOn = routeConfirmDayAfterPriorEndShift(dayIndex, currentDayIndex);
     let daysAfterEndShift: DayData[] | null = null;
+    let orphanNoteRemoved: OrphanFollowOnRemoval[] = [];
     setSheetData((prev) => {
-      const corrected = applyStopAtCorrectedTime(prev.days, dayIndex, stopTimeIso, endKmsParsed, {
+      let corrected = applyStopAtCorrectedTime(prev.days, dayIndex, stopTimeIso, endKmsParsed, {
         markRouteConfirmedOnDayIndex: markRouteOn,
         endKmsDayIndex,
       });
+      const pruned = pruneOrphanFollowOnEventsAfterStop(corrected, stopTimeIso);
+      corrected = pruned.days;
+      orphanNoteRemoved = pruned.removed;
       const withGrids = deriveDaysWithRollover(corrected, prev.week_starting, {
         todayStr: getRegulatoryTodayYmd(prev.jurisdiction_code),
         openActivityBeforeFirstDay: openActivityBeforeFirstDayRef.current,
@@ -1709,6 +1771,15 @@ export function SheetDetail({
     setEndShiftDialog(null);
     setEndShiftEndKms("");
     setEndShiftStopHhmm("");
+    void pruneOrphansOnFollowingWeekSheet(stopTimeIso)
+      .then((crossWeek) => {
+        const note = formatOrphanFollowOnClearedMessage([...orphanNoteRemoved, ...crossWeek]);
+        if (note) window.alert(note);
+      })
+      .catch(() => {
+        const note = formatOrphanFollowOnClearedMessage(orphanNoteRemoved);
+        if (note) window.alert(note);
+      });
     if (daysAfterEndShift && shouldEducateAfterEndShift(daysAfterEndShift, dayIndex)) {
       setShiftPatternPrompt({ dayIndex });
     }
@@ -1745,7 +1816,7 @@ export function SheetDetail({
         void parkDeviceAndScheduleSave().catch(() => {});
       })
       .catch(() => {});
-  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex, gpsMovementTrailEnabled, parkDeviceAndScheduleSave]);
+  }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex, gpsMovementTrailEnabled, parkDeviceAndScheduleSave, pruneOrphansOnFollowingWeekSheet]);
 
   const handleShiftPatternSave = useCallback(
     (todayShift: ShiftLabel | "", tomorrowShift: ShiftLabel | "") => {
