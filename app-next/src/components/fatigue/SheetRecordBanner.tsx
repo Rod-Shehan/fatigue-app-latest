@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Archive, PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { driverCardBtn } from "@/components/driver/driver-ui-classes";
 import {
   formatPastWeekArchiveBannerBody,
   formatPastWeekArchiveBannerTitle,
@@ -79,16 +80,11 @@ export function SheetRecordBanner({
         <PenLine className="w-5 h-5 text-emerald-700 dark:text-emerald-300 shrink-0 mt-0.5" aria-hidden />
       )}
       <div className="flex-1 min-w-0 space-y-2">
-        {isPastWeek && isArchive && (
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+        {isPastWeek ? (
+          <p className="text-sm font-bold uppercase tracking-wide text-red-600 dark:text-red-400">
             Not your current logging week
           </p>
-        )}
-        {isPastWeek && !isArchive && (
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-800/90 dark:text-emerald-200/90">
-            Past week · action needed
-          </p>
-        )}
+        ) : null}
         <p
           className={cn(
             "text-sm font-semibold",
@@ -109,10 +105,8 @@ export function SheetRecordBanner({
           <Link
             href="/driver"
             className={cn(
-              "inline-block text-sm font-semibold underline underline-offset-2",
-              isArchive
-                ? "text-slate-700 dark:text-slate-200"
-                : "text-emerald-800 dark:text-emerald-300"
+              driverCardBtn,
+              "inline-flex w-full sm:w-auto items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-800 shadow-sm hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
             )}
           >
             Go to current week (Drive home)
