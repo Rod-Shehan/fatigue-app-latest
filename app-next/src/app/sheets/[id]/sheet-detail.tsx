@@ -64,6 +64,7 @@ import {
   validateCorrectEndShiftTime,
 } from "@/lib/shift-timeline-correction";
 import {
+  dayHasFollowOnActivity,
   findNewlyAddedStopIso,
   formatOrphanFollowOnClearedMessage,
   pruneOrphanFollowOnEventsAfterStop,
@@ -78,11 +79,13 @@ import { isoToPerthYmd, last24hBreakEndMsFromIso } from "@/lib/last-24h-break-ra
 import {
   formatSheetDisplayDate,
   getSheetDayDateString,
+  findSheetForWeekStarting,
   getPreviousWeekSunday,
   getNextWeekSunday,
   getRegulatoryTodayYmd,
   getThisWeekSunday,
   isPastRegulatoryWeek,
+  normalizeWeekDateString,
 } from "@/lib/weeks";
 import {
   canDriverAttestSheet,
@@ -1395,35 +1398,56 @@ export function SheetDetail({
   );
 
   const pruneOrphansOnFollowingWeekSheet = useCallback(
-    async (stopTimeIso: string): Promise<OrphanFollowOnRemoval[]> => {
+    async (
+      stopTimeIso: string
+    ): Promise<{ removed: OrphanFollowOnRemoval[]; paintCleared: boolean }> => {
+      const empty = { removed: [] as OrphanFollowOnRemoval[], paintCleared: false };
       const weekStart = sheetDataRef.current.week_starting;
-      if (!weekStart) return [];
-      const nextSun = getNextWeekSunday(weekStart);
-      const nextSheet = allSheets.find(
+      if (!weekStart) return empty;
+      const nextSun = getNextWeekSunday(normalizeWeekDateString(weekStart));
+      const driverKey = (sheetDataRef.current.driver_name || "").toLowerCase();
+      // Sheets list deliberately omits day payloads (`days: []`) — match meta only, then load full sheet.
+      const nextMeta = allSheets.find(
         (s) =>
           s.id !== sheetId &&
-          s.driver_name?.toLowerCase() === (sheetDataRef.current.driver_name || "").toLowerCase() &&
-          s.week_starting === nextSun
+          s.driver_name?.toLowerCase() === driverKey &&
+          findSheetForWeekStarting([s], nextSun) != null
       );
-      if (!nextSheet?.days?.length) return [];
-      if (!canDriverEditSheetContent(nextSheet.week_starting, nextSheet.status, nextSheet.signature)) {
-        return [];
+      if (!nextMeta) return empty;
+      if (!canDriverEditSheetContent(nextMeta.week_starting, nextMeta.status, nextMeta.signature)) {
+        return empty;
       }
-      const pruned = pruneOrphanFollowOnEventsAfterStop(nextSheet.days, stopTimeIso);
-      if (pruned.removed.length === 0) return [];
-      const withGrids = deriveDaysWithRollover(pruned.days, nextSheet.week_starting, {
+      let full: FatigueSheet;
+      try {
+        full = await getSheetOfflineFirst(nextMeta.id);
+      } catch {
+        return empty;
+      }
+      const sourceDays = full.days?.length ? full.days : nextMeta.days;
+      if (!sourceDays?.length) return empty;
+      const hadFollowOn = sourceDays.some((d) => dayHasFollowOnActivity(d));
+      const pruned = pruneOrphanFollowOnEventsAfterStop(sourceDays, stopTimeIso);
+      if (pruned.removed.length === 0 && !hadFollowOn) return empty;
+      const weekStarting = full.week_starting || nextMeta.week_starting || nextSun;
+      const withGrids = deriveDaysWithRollover(pruned.days, weekStarting, {
         todayStr: getRegulatoryTodayYmd(sheetDataRef.current.jurisdiction_code),
         openActivityBeforeFirstDay: null,
       });
       const days = applyLast24hBreakNonWorkRule(
         withGrids,
-        nextSheet.week_starting,
-        nextSheet.last_24h_break || undefined
+        weekStarting,
+        full.last_24h_break || nextMeta.last_24h_break || undefined
       );
-      await updateSheetOfflineFirst(nextSheet.id, { days });
-      queryClient.invalidateQueries({ queryKey: ["sheet", nextSheet.id] });
+      await updateSheetOfflineFirst(nextMeta.id, { days });
+      queryClient.invalidateQueries({ queryKey: ["sheet", nextMeta.id] });
       queryClient.invalidateQueries({ queryKey: ["sheets"] });
-      return pruned.removed;
+      const gridsChanged =
+        JSON.stringify(sourceDays.map((d) => [d.work_time, d.breaks, d.non_work])) !==
+        JSON.stringify(days.map((d) => [d.work_time, d.breaks, d.non_work]));
+      return {
+        removed: pruned.removed,
+        paintCleared: pruned.removed.length === 0 && hadFollowOn && gridsChanged,
+      };
     },
     [allSheets, sheetId, queryClient]
   );
@@ -1462,13 +1486,15 @@ export function SheetDetail({
       }
       setSheetData(next);
       if (closingStopIso) {
+        let paintCleared = false;
         try {
           const crossWeek = await pruneOrphansOnFollowingWeekSheet(closingStopIso);
-          orphanNoteRemoved = [...orphanNoteRemoved, ...crossWeek];
+          orphanNoteRemoved = [...orphanNoteRemoved, ...crossWeek.removed];
+          paintCleared = crossWeek.paintCleared;
         } catch {
           /* offline / lock — same-week orphans already cleared */
         }
-        const note = formatOrphanFollowOnClearedMessage(orphanNoteRemoved);
+        const note = formatOrphanFollowOnClearedMessage(orphanNoteRemoved, { paintCleared });
         if (note) window.alert(note);
       }
     },
@@ -1773,7 +1799,10 @@ export function SheetDetail({
     setEndShiftStopHhmm("");
     void pruneOrphansOnFollowingWeekSheet(stopTimeIso)
       .then((crossWeek) => {
-        const note = formatOrphanFollowOnClearedMessage([...orphanNoteRemoved, ...crossWeek]);
+        const note = formatOrphanFollowOnClearedMessage(
+          [...orphanNoteRemoved, ...crossWeek.removed],
+          { paintCleared: crossWeek.paintCleared }
+        );
         if (note) window.alert(note);
       })
       .catch(() => {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  dayHasFollowOnActivity,
   findNewlyAddedStopIso,
   formatOrphanFollowOnClearedMessage,
   pruneOrphanFollowOnEventsAfterStop,
@@ -61,5 +62,17 @@ describe("orphan-follow-on-events", () => {
         { dayIndex: 0, dayName: "Sunday", time: "t", type: "work" },
       ])
     ).toBe("Removed Sunday Work that belonged to the shift you just ended.");
+  });
+
+  it("formatOrphanFollowOnClearedMessage reports paint-only clear", () => {
+    expect(formatOrphanFollowOnClearedMessage([], { paintCleared: true })).toBe(
+      "Cleared continued work on the next day that belonged to the shift you just ended."
+    );
+  });
+
+  it("dayHasFollowOnActivity detects events and painted work", () => {
+    expect(dayHasFollowOnActivity({ events: [{ time: "t", type: "work" }] })).toBe(true);
+    expect(dayHasFollowOnActivity({ work_time: [true] })).toBe(true);
+    expect(dayHasFollowOnActivity({ events: [], work_time: [false] })).toBe(false);
   });
 });

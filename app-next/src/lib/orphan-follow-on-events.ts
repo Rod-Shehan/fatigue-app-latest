@@ -106,9 +106,27 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   stop: "End shift",
 };
 
+/** True when a day still shows follow-on work/break (events or painted grids). */
+export function dayHasFollowOnActivity(day: DayData | undefined): boolean {
+  if (!day) return false;
+  if ((day.events ?? []).some((e) => e.type === "work" || e.type === "break" || e.type === "non_work")) {
+    return true;
+  }
+  if ((day.work_time ?? []).some(Boolean)) return true;
+  if ((day.breaks ?? []).some(Boolean)) return true;
+  return false;
+}
+
 /** Driver-facing note after orphan follow-on events were cleared. */
-export function formatOrphanFollowOnClearedMessage(removed: OrphanFollowOnRemoval[]): string {
-  if (removed.length === 0) return "";
+export function formatOrphanFollowOnClearedMessage(
+  removed: OrphanFollowOnRemoval[],
+  options?: { paintCleared?: boolean }
+): string {
+  if (removed.length === 0) {
+    return options?.paintCleared
+      ? "Cleared continued work on the next day that belonged to the shift you just ended."
+      : "";
+  }
   const actionable = removed.filter((r) => r.type === "work" || r.type === "break" || r.type === "non_work");
   const focus = actionable.length > 0 ? actionable : removed;
   const parts = focus.map((r) => {
