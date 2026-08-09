@@ -6,6 +6,7 @@ import {
   findLastRouteDefaultsFromDays,
   inferRouteCarryMode,
   mergeRouteDefaults,
+  seedRouteSetupFormDefaults,
 } from "@/lib/driver-route-defaults";
 import type { DayData } from "@/lib/api";
 
@@ -169,7 +170,7 @@ describe("driver-route-defaults", () => {
     expect(out.planned_distance_km).toBeUndefined();
   });
 
-  it("applyRouteDefaultsToWeekDays updates today when empty", () => {
+  it("applyRouteDefaultsToWeekDays never rewrites day JSON (form-seed only)", () => {
     const weekStarting = "2026-06-01"; // Sunday
     const todayYmd = "2026-06-03"; // Tuesday index 2
     const days: DayData[] = Array.from({ length: 7 }, () => ({}));
@@ -180,9 +181,30 @@ describe("driver-route-defaults", () => {
       todayYmd,
       null
     );
-    expect(changed).toBe(true);
-    expect(next[2]?.truck_rego).toBe("1ABC");
-    expect(next[2]?.start_location).toBe("Perth");
-    expect(next[2]?.start_kms).toBeUndefined();
+    expect(changed).toBe(false);
+    expect(next[2]?.truck_rego).toBeUndefined();
+    expect(next[2]?.start_location).toBeUndefined();
+  });
+
+  it("seedRouteSetupFormDefaults suggests prior day into the form object only", () => {
+    const weekStarting = "2026-06-01";
+    const todayYmd = "2026-06-03";
+    const days: DayData[] = Array.from({ length: 7 }, () => ({}));
+    days[1] = { truck_rego: "1ABC", start_location: "Perth", destination: "Kalgoorlie" };
+    const seeded = seedRouteSetupFormDefaults(days, 2, weekStarting, todayYmd, null);
+    expect(seeded.truck_rego).toBe("1ABC");
+    expect(seeded.start_location).toBe("Perth");
+    expect(days[2]?.truck_rego).toBeUndefined();
+  });
+
+  it("seedRouteSetupFormDefaults does not override a confirmed day", () => {
+    const weekStarting = "2026-06-01";
+    const todayYmd = "2026-06-03";
+    const days: DayData[] = Array.from({ length: 7 }, () => ({}));
+    days[1] = { truck_rego: "1ABC", start_location: "Perth", destination: "Kalgoorlie" };
+    days[2] = { route_confirmed: true, truck_rego: "2XYZ" };
+    const seeded = seedRouteSetupFormDefaults(days, 2, weekStarting, todayYmd, null);
+    expect(seeded.truck_rego).toBe("2XYZ");
+    expect(seeded.start_location).toBeUndefined();
   });
 });

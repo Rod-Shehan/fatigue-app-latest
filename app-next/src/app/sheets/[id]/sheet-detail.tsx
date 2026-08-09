@@ -70,11 +70,6 @@ import {
 import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
 import { isoToPerthYmd, last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 import {
-  applyRouteDefaultsToWeekDays,
-  getDayWithMergedRouteContext,
-  loadDriverRouteDefaults,
-} from "@/lib/driver-route-defaults";
-import {
   formatSheetDisplayDate,
   getSheetDayDateString,
   getPreviousWeekSunday,
@@ -416,11 +411,6 @@ export function SheetDetail({
   });
   const gpsMovementTrailEnabled = features?.gpsMovementTrailEnabled === true;
 
-  const storedRouteDefaults = useMemo(() => {
-    if (isManager || !driverUserKey) return null;
-    return loadDriverRouteDefaults(driverUserKey);
-  }, [isManager, driverUserKey]);
-
   const isPastWeek = useMemo(
     () => isPastRegulatoryWeek(sheetData.week_starting),
     [sheetData.week_starting]
@@ -599,13 +589,7 @@ export function SheetDetail({
       weekStart,
       sheet.last_24h_break || undefined
     );
-    let defaultsApplied = false;
-    if (!isManager && driverUserKey) {
-      const stored = loadDriverRouteDefaults(driverUserKey);
-      const applied = applyRouteDefaultsToWeekDays(days, weekStart, todayStr, stored);
-      days = applied.days;
-      defaultsApplied = applied.changed;
-    }
+    // Route/rego suggestions stay in Set up day only — do not write into day JSON on hydrate.
     let status = sheet.status || "draft";
     let signature = sheet.signature;
     let signed_at = sheet.signed_at;
@@ -670,7 +654,7 @@ export function SheetDetail({
       signature,
       signed_at,
     });
-    const dirty = defaultsApplied || seededPersisted;
+    const dirty = seededPersisted;
     if (dirty) {
       localEditGenRef.current += 1;
     }
@@ -1505,13 +1489,7 @@ export function SheetDetail({
       const prev = sheetDataRef.current;
       const timeline = concatenateTimelineSlices(priorTimelineSlices, prev.days);
       const driverEvents = getSheetOwnerEventsInOrder(timeline);
-      const dayFields = getDayWithMergedRouteContext(
-        prev.days,
-        dayIndex,
-        prev.week_starting,
-        getRegulatoryTodayYmd(prev.jurisdiction_code),
-        storedRouteDefaults
-      );
+      const dayFields = prev.days[dayIndex] ?? {};
       const blockReason = getWorkLogBlockReason(driverEvents, dayFields);
       if (blockReason) {
         window.alert(blockReason);
@@ -1583,7 +1561,6 @@ export function SheetDetail({
     priorTimelineSlices,
     currentDayIndex,
     scrollToCurrentDayCard,
-    storedRouteDefaults,
     parkDeviceAndScheduleSave,
   ]);
 
@@ -2009,13 +1986,7 @@ export function SheetDetail({
             onStartShiftBlocked={handleStartShiftBlocked}
             finalizeStartWorkRequest={finalizeStartWorkRequest}
             heroExpandRequest={heroExpandRequest}
-            currentDayDisplay={getDayWithMergedRouteContext(
-              sheetData.days,
-              currentDayIndex,
-              sheetData.week_starting,
-              todayYmd,
-              storedRouteDefaults
-            )}
+            currentDayDisplay={sheetData.days[currentDayIndex]}
             driverType={todayCrew.driver_type}
             reliefDriverName={todayCrew.second_driver}
             driverName={driverPageIdentity.name}
@@ -2239,13 +2210,7 @@ export function SheetDetail({
                       >
                         <DayEntry
                           dayIndex={idx}
-                          dayData={getDayWithMergedRouteContext(
-                            sheetData.days,
-                            idx,
-                            sheetData.week_starting,
-                            todayYmd,
-                            storedRouteDefaults
-                          )}
+                          dayData={sheetData.days[idx] ?? {}}
                           continuedShiftRoute={getContinuedShiftRoutePrompt(
                             sheetData.days,
                             idx,
@@ -2290,13 +2255,7 @@ export function SheetDetail({
                       >
                         <DayEntry
                           dayIndex={idx}
-                          dayData={getDayWithMergedRouteContext(
-                            sheetData.days,
-                            idx,
-                            sheetData.week_starting,
-                            todayYmd,
-                            storedRouteDefaults
-                          )}
+                          dayData={sheetData.days[idx] ?? {}}
                           continuedShiftRoute={getContinuedShiftRoutePrompt(
                             sheetData.days,
                             idx,
@@ -2330,13 +2289,7 @@ export function SheetDetail({
                 >
                   <DayEntry
                     dayIndex={idx}
-                    dayData={getDayWithMergedRouteContext(
-                      sheetData.days,
-                      idx,
-                      sheetData.week_starting,
-                      todayYmd,
-                      storedRouteDefaults
-                    )}
+                    dayData={sheetData.days[idx] ?? {}}
                     continuedShiftRoute={getContinuedShiftRoutePrompt(
                       sheetData.days,
                       idx,

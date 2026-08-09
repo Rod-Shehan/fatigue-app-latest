@@ -255,14 +255,22 @@ export function dayNeedsRouteAutofill(day: DayData, defaults?: DriverRouteDefaul
   return !hasRouteExceptKms(day) || !hasRunPlanContent(day);
 }
 
-/** Overnight carry, then this-week history, then per-login stored defaults. */
-export function getDayWithMergedRouteContext<T extends DayData>(
+/**
+ * Form-seed only: suggest prior-trip / stored defaults into a day object for Set up day.
+ * Do not use for day-card display, WorkSafe sheet, PDF, or silent persist — those must
+ * show only fields the driver has confirmed onto that day.
+ */
+export function seedRouteSetupFormDefaults<T extends DayData>(
   days: T[],
   dayIndex: number,
   weekStarting: string,
   todayYmd: string,
   storedDefaults: DriverRouteDefaults | null
 ): T {
+  const day = days[dayIndex] ?? ({} as T);
+  // Already confirmed on this day card — keep the driver's choice (including blanks).
+  if (day.route_confirmed) return day;
+
   const carried = getDayWithCarriedOverCardInfo(days, dayIndex, weekStarting, todayYmd) as T;
   const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
   if (sheetDayYmd < todayYmd) return carried;
@@ -274,28 +282,20 @@ export function getDayWithMergedRouteContext<T extends DayData>(
   return applyDriverRouteDefaultsToDay(carried, merged);
 }
 
-/** Apply defaults to today and future days in the week (not past days). */
+/** @deprecated Use seedRouteSetupFormDefaults — name kept for call-site migration. */
+export const getDayWithMergedRouteContext = seedRouteSetupFormDefaults;
+
+/**
+ * @deprecated No longer applied on sheet hydrate. Route fields persist only via Set up day Confirm.
+ * Kept as a no-op so older callers do not silently rewrite day JSON.
+ */
 export function applyRouteDefaultsToWeekDays<T extends DayData>(
   days: T[],
-  weekStarting: string,
-  todayYmd: string,
-  storedDefaults: DriverRouteDefaults | null
+  _weekStarting: string,
+  _todayYmd: string,
+  _storedDefaults: DriverRouteDefaults | null
 ): { days: T[]; changed: boolean } {
-  let changed = false;
-  const next = days.map((day, idx) => {
-    const sheetDayYmd = getSheetDayDateString(weekStarting, idx);
-    if (sheetDayYmd < todayYmd) return day;
-    const weekDefaults = findLastRouteDefaultsFromDays(days, idx);
-    const merged = mergeRouteDefaults(storedDefaults, weekDefaults);
-    if (!dayNeedsRouteAutofill(day, merged)) return day;
-    const withContext = getDayWithMergedRouteContext(days, idx, weekStarting, todayYmd, storedDefaults);
-    if (JSON.stringify(withContext) !== JSON.stringify(day)) {
-      changed = true;
-      return withContext;
-    }
-    return day;
-  });
-  return { days: next, changed };
+  return { days, changed: false };
 }
 
 export function hasRouteExceptKms(day: DayData): boolean {

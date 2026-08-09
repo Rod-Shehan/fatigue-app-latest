@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isShiftStartSetupComplete } from "@/lib/shift-start-gate";
-import { saveDriverRouteDefaults, inferRouteCarryMode } from "@/lib/driver-route-defaults";
+import { saveDriverRouteDefaults, inferRouteCarryMode, seedRouteSetupFormDefaults, loadDriverRouteDefaults } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
 import WorkSafeDaySheet from "./WorkSafeDaySheet";
@@ -312,6 +312,12 @@ export default function DayEntry({
     [onDetailsDialogClosed]
   );
 
+  const routeSetupSeed = useMemo(() => {
+    const daysForSeed = (allDays.length > 0 ? allDays : [dayData]) as DayData[];
+    const stored = driverUserKey ? loadDriverRouteDefaults(driverUserKey) : null;
+    return seedRouteSetupFormDefaults(daysForSeed, dayIndex, weekStart, todayYmd, stored);
+  }, [allDays, dayData, dayIndex, weekStart, todayYmd, driverUserKey]);
+
   const runPlanSummary = formatRunPlanSummary(dayData);
   const usesRunPlan = inferRouteCarryMode(dayData) === "run_plan" && hasRunPlanContent(dayData);
   const showManualFromTo = !usesRunPlan;
@@ -611,18 +617,15 @@ export default function DayEntry({
               onChange={(e) => {
                 const raw = e.target.value.trim();
                 const start_kms = raw === "" ? null : Number(raw);
-                const merged = {
-                  ...dayData,
+                onUpdate(dayIndex, (prev) => ({
+                  ...prev,
                   start_kms: start_kms != null && !Number.isNaN(start_kms) ? start_kms : null,
-                };
-                onUpdate(dayIndex, merged);
-                if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
+                }));
               }}
             />
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-              {usesRunPlan
-                ? "Run plan and rego are filled from your last trip. Check them, enter start km, then tap Work."
-                : "Rego and route are filled from your last trip. Check them, enter start km, then tap Work."}
+              Enter start km, then tap Work. Rego and route only appear on this sheet after you Confirm them in Set up
+              day.
             </p>
           </div>
         )}
@@ -788,17 +791,17 @@ export default function DayEntry({
           dateLabel={getDateStr()}
           driverName={driverName}
           initial={{
-            truck_rego: dayData.truck_rego,
-            start_location: dayData.start_location,
-            destination: dayData.destination,
+            truck_rego: routeSetupSeed.truck_rego,
+            start_location: routeSetupSeed.start_location,
+            destination: routeSetupSeed.destination,
             start_kms: dayData.start_kms,
             end_kms: dayData.end_kms,
-            shift_label: dayData.shift_label,
-            route_label: dayData.route_label,
-            planned_distance_km: dayData.planned_distance_km,
-            planned_on_duty_hours: dayData.planned_on_duty_hours,
-            route_source: dayData.route_source,
-            route_preset_id: dayData.route_preset_id,
+            shift_label: routeSetupSeed.shift_label ?? dayData.shift_label,
+            route_label: routeSetupSeed.route_label,
+            planned_distance_km: routeSetupSeed.planned_distance_km,
+            planned_on_duty_hours: routeSetupSeed.planned_on_duty_hours,
+            route_source: routeSetupSeed.route_source,
+            route_preset_id: routeSetupSeed.route_preset_id,
             // Preserve historical value if present; field is no longer editable in the dialog.
             alertness_level: dayData.alertness_level,
             fitness_for_work: dayData.fitness_for_work,

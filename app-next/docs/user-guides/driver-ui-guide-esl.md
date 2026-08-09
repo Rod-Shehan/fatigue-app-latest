@@ -12,7 +12,7 @@ Circadia24 keeps your **weekly fatigue record** — an electronic work diary (EW
 
 - You tap buttons when you **work**, take a **break**, or **end shift**.
 - Time you do not log is counted as **non-work** (rest / off duty) — like blank time on a paper diary.
-- If you drive the **same route often**, the app can fill in **rego and run plan** from your last trip. **Start location** and **destination** only appear under **Enter run plan** (blank when you open that option). You always type **start km** and **end km** yourself.
+- If you drive the **same route often**, the app can **suggest** rego and run plan in **Set up day** from your last trip. They appear on the day sheet and PDF only after you **Confirm**. **Start location** and **destination** only appear under **Enter run plan** (blank when you open that option), or from a **Saved run plan** you pick. You always type **start km** and **end km** yourself.
 
 ---
 
@@ -111,22 +111,21 @@ When you tap **End shift**:
 
 ## 7. Today's card — repeat routes (most days)
 
-Many drivers use the **same rego and route** every day. The app remembers your last trip.
+Many drivers use the **same rego and route** every day. The app can **suggest** those values in **Set up day** — they do **not** appear on the WorkSafe day sheet or PDF until you **Confirm**.
 
-| Field | Auto-filled? |
-|-------|--------------|
-| **Rego** (number plate) | Yes — from last trip or earlier this week |
-| **From** / **To** | Yes |
-| **Run plan** (name, hours, distance) | Yes, if you used it before |
-| **Start km** | **No — you type this every day** |
-| **End km** | **No — you type this at End shift** |
+| Field | Suggested in Set up day? | On sheet / PDF without Confirm? |
+|-------|--------------------------|----------------------------------|
+| **Rego** (number plate) | Yes — from last trip or earlier this week | **No** |
+| **From** / **To** | Yes (Enter run plan or Saved run plan) | **No** |
+| **Run plan** (name, hours, distance) | Yes, if you used it before | **No** until Confirm |
+| **Start km** | **No — you type this every day** | Only after you enter it |
+| **End km** | **No — you type this at End shift** | Only after you enter it |
 
 ```
 ┌─────────────────────────────┐
 │  Wednesday                  │
-│  From: Perth depot          │
-│  To:   Kalgoorlie           │
-│  Rego: 1ABC123              │
+│  Rego / From / To: blank    │
+│  until Set up day Confirm   │
 │                             │
 │  Start km (required):       │
 │  [ _________ ]  ← you type  │

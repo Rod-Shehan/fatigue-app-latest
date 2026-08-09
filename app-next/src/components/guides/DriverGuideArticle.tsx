@@ -47,11 +47,14 @@ export function DriverGuideArticle() {
           <li>You tap buttons when you work, take a break, or end shift.</li>
           <li>Time you do not log is counted as non-work (rest / off duty) — like blank time on a paper diary.</li>
           <li>
-            Same route every day? The app can fill{" "}
-            <strong className="text-slate-700 dark:text-slate-200">rego and run plan</strong> from your last trip.
-            Start location and destination only appear under{" "}
+            Same route every day? The app can suggest{" "}
+            <strong className="text-slate-700 dark:text-slate-200">rego and run plan</strong> in Set up day from your
+            last trip. They appear on the day sheet and PDF only after you{" "}
+            <strong className="text-slate-700 dark:text-slate-200">Confirm</strong>. Start location and destination
+            only appear under{" "}
             <strong className="text-slate-700 dark:text-slate-200">Enter run plan</strong> (blank when you open that
-            option). You always type <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
+            option), or from a saved run plan you pick. You always type{" "}
+            <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
             <strong className="text-slate-700 dark:text-slate-200">end km</strong> yourself.
           </li>
         </ul>
@@ -208,13 +211,15 @@ export function DriverGuideArticle() {
 
       <section className={sectionClass}>
         <h2 className={h2Class}>7. Today&apos;s card — repeat routes</h2>
-        <p className="mb-3">Most days you only check the route and type start km.</p>
-        <GuideDiagram title="Today with autofill">
+        <p className="mb-3">
+          Set up day can suggest last-trip values. Rego and locations appear on the WorkSafe sheet and PDF only after
+          you Confirm.
+        </p>
+        <GuideDiagram title="Today before Confirm">
           {`┌─────────────────────────────┐
 │  Wednesday                  │
-│  From: Perth depot          │
-│  To:   Kalgoorlie           │
-│  Rego: 1ABC123              │
+│  Rego / From / To: blank    │
+│  until Set up day Confirm   │
 │                             │
 │  Start km (required):       │
 │  [ _________ ]  ← you type  │
@@ -225,9 +230,9 @@ export function DriverGuideArticle() {
         </GuideDiagram>
         <TwoColTable
           rows={[
-            ["Rego (number plate)", "Filled from last trip or earlier this week"],
-            ["From / To", "Filled from your last trip"],
-            ["Run plan (name, hours, distance)", "Filled if you used it before"],
+            ["Rego (number plate)", "Suggested in Set up day — on sheet/PDF only after Confirm"],
+            ["From / To", "Suggested in Set up day — on sheet/PDF only after Confirm"],
+            ["Run plan (name, hours, distance)", "Suggested if used before — Confirm to save"],
             ["Start km", "You type this every day — never auto-filled"],
             ["End km", "You type this at End shift"],
           ]}
