@@ -7,7 +7,8 @@
 
 1. Circadia’s electronic system of record (structured diary + signature + audit).  
 2. The accredited operator’s **non-delegable** duty to retain records.  
-3. Honest PDF labelling (human reproduction, not the diary).
+3. Honest PDF labelling (human reproduction, not the diary).  
+4. Circadia’s **business**: we generate and keep **records of compliance** — that is what the client pays for (§12).
 
 **Related**
 
@@ -239,7 +240,8 @@ Use these as the briefing list when revisiting with counsel. They are product po
 10. Fair-use retrieval vs extraordinary forensic restore remains a commercial schedule item.  
 11. **Photos:** not in the base Electronic Record. Retained only if the customer purchases photo storage. If not purchased, photo bytes are not written into the record. (Confirm CoR / WAHVA photo practice with counsel.)  
 12. Disclaimer on fatigue PDFs remains: Circadia24 record; **not** an NHVR-approved EWD; not legal advice.  
-13. Email is delivery, not photo custody. A mailed PDF that embeds photos is a Circadia-held reproduction of those photos — do not do that on the base plan.
+13. Email is delivery, not photo custody. A mailed PDF that embeds photos is a Circadia-held reproduction of those photos — do not do that on the base plan.  
+14. Circadia’s commercial offering is the **compliance record** (create, retain, produce, weekly readable copy). The PDF renderer may change; the Electronic Record must remain producible for the retention period (§12).
 
 **Draft customer-facing line (UI / onboarding):**
 
@@ -258,9 +260,84 @@ Use these as the briefing list when revisiting with counsel. They are product po
 - [ ] Does contract copy still say Circadia is not their record keeper?  
 - [ ] Are we writing photo bytes into `days` JSON on a tenant that has not purchased photo retain?  
 - [ ] Are we embedding photos in a Circadia-held / emailed PDF on the base plan?  
-- [ ] If photo retain is on: are bytes off Neon (object store + hash), still retrievable for the add-on term?
+- [ ] If photo retain is on: are bytes off Neon (object store + hash), still retrievable for the add-on term?  
+- [ ] Are we selling “automatic weekly filing” before inbox + send ledger exist?
 
 If any answer is wrong, stop and re-read §§2–5 before coding.
+
+---
+
+## 12. First official driver and 40-driver sale (2026-08-16)
+
+**Context:** First real-world Circadia EWD conversion (one driver, official). The same story must hold for a business owner buying for **40+ drivers**, and remain true for **three years** even though PDF layout and app UX will change.
+
+**What Circadia sells:** not a logging toy. Circadia **creates, keeps, and produces** the compliance record, and **puts a readable copy in the operator’s hands** every attested week.
+
+### Resilience despite product updates
+
+Do not freeze the PDF renderer. Freeze **what was logged**, and **deliver a snapshot** when the week is signed.
+
+| Layer | Role when the app looks different in 2028 |
+|-------|-------------------------------------------|
+| **JSON + signature + audit** | The record. Regenerable. What Circadia is paid to keep. |
+| **PDF delivered at attest** | Frozen human copy of *that* week, in *that* layout. Why forced delivery matters. |
+| **Export PDF later** | May look newer. Still a reproduction of the same JSON. |
+| **28-day roadside** | Inspection pack. Not the 3-year office file. |
+
+### Live this morning vs locked-not-built
+
+| Live now | Locked in this note, not built |
+|----------|--------------------------------|
+| Driver logging → Neon JSON | Org **records inbox** (required) |
+| **Export PDF** (weekly) | **Auto** weekly email after attest |
+| **Produce 28 day roadside PDF** | **Send ledger** (sent / failed / retry) |
+| Checklist PDFs on demand | Reproduction label on the PDF |
+| Database backups | Stop persisting photo bytes on the base plan |
+
+For **one driver**, run the locked model **by hand**. For **40 drivers**, that is not honest — close the build gap (§9 items 1–4, 8) before the fleet sale is operationally true.
+
+### Today — first official driver (manual Circadia process)
+
+1. Get the **business owner’s records email in writing** (office inbox — not the driver’s login, not the workshop). That is the destination the contract will later require.  
+2. Driver logs as normal. **JSON on Neon is the record from the first tap.**  
+3. When they **sign the week**: tap **Export PDF** immediately and send that file to the records email. Keep a dated Circadia ops copy (`driver`, `weekStarting`, `signedAt`). This is forced delivery, done once by a human.  
+4. Show the driver **Produce 28 day roadside PDF** (Drive home / gear). Inspector pack, not the office file.  
+5. Checklists: useful, optional in trial. **Do not sell photo archive.** If they take photos, they are context — not Circadia’s 3-year record (code may still embed data URLs until §9.8 ships; do not advertise that).  
+6. Do not delete weeks. Do not treat the emailed PDF as permission to drop the sheet.
+
+Enough for **one** accredited conversion. Not enough to promise the owner “the system files itself.”
+
+### What to tell the business owner (40-driver sale)
+
+**You are buying a record of compliance.** Circadia:
+
+- Keeps the **electronic work diary** (work, rest, signed) for **at least three years**.  
+- **Delivers a weekly PDF** to **your** records inbox after each week is signed — so you hold a copy the law expects *you* to keep. Circadia does not become your record keeper.  
+- Lets the driver **produce the last 28 days** at roadside from the phone.  
+- Can **reproduce** the week later from the electronic record if the PDF layout changes or a file is lost.
+
+**You** nominate the records email, keep the PDFs, and remain the accredited operator.
+
+**Photos** are not in the base record. Context only, unless you buy photo storage later.
+
+**Price** is for that record service (create, retain, produce, weekly copy).
+
+### Before 40 drivers (build order)
+
+1. Records inbox on the org (required).  
+2. Auto weekly PDF after attest + send ledger.  
+3. Reproduction line on the PDF.  
+4. Stop saving photo bytes on the base plan.  
+5. Manager view: this week’s copies sent.
+
+SharePoint, R2 photos, and a packaged SoR zip can wait. Without 1–3, do not sell “we handle the records” at fleet scale.
+
+### Do not say today
+
+- That this is an NHVR-approved EWD.  
+- That they can skip filing because Circadia keeps it.  
+- That weekly PDFs already email themselves.  
+- That photos are kept for three years.
 
 ---
 
@@ -270,3 +347,4 @@ If any answer is wrong, stop and re-read §§2–5 before coding.
 |---------|------|------|
 | 0.1 | 2026-08-16 | Owner session: SoT JSON, bank-ledger custody, forced weekly PDF, 3-year hold, non-delegable operator duty, who/when for JSON vs PDF |
 | 0.2 | 2026-08-16 | Photos not in base legal record; paid photo-retain add-on; do not persist data URLs unless purchased |
+| 0.3 | 2026-08-16 | First official driver + 40-driver sale: Circadia sells the compliance record; manual PDF process today; auto-send required before fleet |
