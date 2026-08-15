@@ -8,4 +8,6 @@
 - Per-client email distribution (customer delivery)
 - Optional Cloudflare R2 (or SharePoint) for photo bytes + keys/hashes on the record (Q1)
 
+**Custody (2026-08-16):** Photos are **not** part of the base Electronic Record. R2 is for the **paid photo-retain add-on** only. Base tenants must not persist photo data URLs in `days` JSON. See [ewd-record-custody-and-pdf-delivery.md](../product/ewd-record-custody-and-pdf-delivery.md) §4.
+
 Do not enable R2 production env until that slice is deliberately un-parked.

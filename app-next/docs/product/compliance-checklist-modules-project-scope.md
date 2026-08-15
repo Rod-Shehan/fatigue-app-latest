@@ -63,6 +63,7 @@ During the current trial term, checklists are a **capability preview**:
 | **O** | **O1 — designed, off in trial** | Explicit post-load action / status — **only when gates on**. |
 | **P** | **P1 — trial lock** | Checklists optional. `checklistSheetGatesEnabled()` defaults **false**. |
 | **Q** | **Q1 — storage doctrine (2026-08-01; audit-aware)** | **System of record = structured JSON** in Neon (answers, paths, signatures, timestamps) — durable and re-producible for **WAHVA / CoR / WHS audits**. **PDF is a view**, generated on demand (or archived copy for filing) — not a substitute for the record. **Photos:** do not bloat Neon long-term; move to **object storage and/or customer SharePoint** with keys/hashes on the record so evidence stays auditable. **Email** is a delivery channel to the customer (copy for their mailbox), **not** Circadia’s only audit store. **No Circadia-owned physical photo server** in this phase unless a contract forces it. |
+| **Q2** | **Q2 — paid retain (2026-08-16)** | Photos are **not** in the base Electronic Record. No photo add-on ⇒ do not persist photo bytes (JSON is the only record saved). Paid photo retain ⇒ object store + hash for the add-on term. See [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md) §4. Counsel to confirm “not legally required” copy. |
 
 ### Implied rules
 

@@ -20,6 +20,7 @@
 | [WEEKLY_ARCHIVE_EXPORT.md](../WEEKLY_ARCHIVE_EXPORT.md) | Optional SharePoint PDF publish 30 days after attest |
 | [weekly-trip-sheet-pdf-project-scope.md](./weekly-trip-sheet-pdf-project-scope.md) | What the weekly PDF contains |
 | [compliance-checklist-modules-project-scope.md](./compliance-checklist-modules-project-scope.md) | Checklist PDF separate from fatigue; email = delivery |
+| [checklist-photo-r2-parked.md](../architecture/checklist-photo-r2-parked.md) | Photo object store parked; see §4 photos add-on |
 | [roadside-pdf-s6.md](../architecture/roadside-pdf-s6.md) | 28-day roadside produce + optional QR snapshot |
 
 ---
@@ -34,7 +35,7 @@
 
 | Artefact | Role | Who “has” it |
 |----------|------|----------------|
-| **Electronic Record** | System of record: week sheet JSON (`days` events + grids), signature image, `signedAt`, amendment / audit | Circadia holds and can produce. Customer **owns** the diary data as the subscriber. |
+| **Electronic Record** | System of record: week sheet JSON (`days` events + grids), checklist **answers / paths / timestamps**, signature image, `signedAt`, amendment / audit. **Photos are not in the base record** (§4). | Circadia holds and can produce. Customer **owns** the diary data as the subscriber. |
 | **Weekly Trip Sheet PDF** | Human-readable **reproduction** generated from the Electronic Record (same as in-app **Export PDF**) | Customer **must receive and retain** for their own filing. Circadia keeps a send ledger, not as a substitute SoR. |
 | **28-day roadside PDF** | Driver produce-at-inspection pack | Driver on demand. **Not** the operator’s 3-year filing copy. **Not** auto-emailed. |
 | **Checklist PDFs** | Separate CoR / WAHVA form packs (FFW, Prestart, Load) — never merged into roadside | Delivery to the same records inbox when that send path ships; still not the fatigue SoR. |
@@ -85,14 +86,43 @@ If the customer never files the PDF, **their** duty is unmet. Circadia’s send 
 
 | Payload | Cost character | Implication |
 |---------|----------------|-------------|
-| Events + minute grids + week header | Small | Not the cost problem. |
-| Week signature (data URL) | Moderate | Keep; required for attestation. |
-| Checklist photos embedded in day JSON | **High** | Move bytes to object storage; keep keys/hashes on the record (already parked as Q1). Do not use “email the PDF” as photo custody. |
-| Encrypted DB dumps / cold packs (R2) | Required independent copy | Hot Neon is not the only copy. See hot/cold project. |
+| Events + minute grids + week header | Small | Not the cost problem. Included in base 3-year hold. |
+| Week + checklist **signatures** (data URL) | Moderate | Keep; required for attestation. Included in base. |
+| Checklist **answers / paths / timestamps** | Small | Included in base Electronic Record. |
+| Checklist **photos** | **High** if persisted | **Not in the base record.** Paid retain add-on only (below). |
+| Encrypted DB dumps / cold packs (R2) | Required independent copy of the Electronic Record | Hot Neon is not the only copy. See hot/cold project. |
 
 **Do not** treat emailed PDFs as permission to purge JSON early. Purge of hot rows is only safe if a **Circadia-controlled electronic archive** (not PDF-only) remains authoritative.
 
 Rule-engine lookback (~12 weeks) and roadside 28 days are **not** retention. Do not size storage from those windows.
+
+### Photos — optional paid retain (owner 2026-08-16)
+
+**Principle:** A thing is part of Circadia’s retained Electronic Record **only if it was written into that record at completion**. Hours, answers, paths, timestamps, and signatures are in from the start. A photograph is in **only if** Circadia persists it (or keeps a Circadia-held PDF that embeds it).
+
+**Commercial split (owner direction):**
+
+| Plan | What Circadia retains ≥3 years | Photos |
+|------|--------------------------------|--------|
+| **Base (no photo add-on)** | JSON Electronic Record only | **Not saved.** Not part of the legal record Circadia contracted to keep. Assist context at generation time only. |
+| **Photo retain (paid extra)** | Same JSON **plus** photo bytes (object store) + key/hash on the record | Then **in** that customer’s retained pack for the add-on term. |
+
+Owner position for counsel to confirm: photographs are **not a legal requirement** for the fatigue / hours record (or, as proposed, for the checklist *answers* Circadia retains). They are optional context. Extra charge is for **storage**, not for making the diary valid.
+
+**Build rules (or the split fails):**
+
+- Base tenant: **do not** write photo data URLs into `days` / `checklists[]`. Today’s capture path does exactly that — that must change before we claim photos are outside the record.  
+- Do **not** email a checklist PDF that embeds photos, then delete the bytes and say Circadia never had them.  
+- Forced **weekly fatigue** PDF stays photo-free (already true).  
+- Mode C “photo required at capture” may remain a **form completeness** rule (honest loader-not-obtained gap). It does **not** mean Circadia stores the picture unless photo retain is purchased.  
+- Optional flag on the JSON (“photo taken, not retained”) is allowed; the image bytes are not.  
+- Paid retain: R2 (or equivalent) + hash/key; same retrieve story as the Electronic Record, separate line item. Un-park [checklist-photo-r2-parked.md](../architecture/checklist-photo-r2-parked.md) only for **paid** tenants.
+
+**Counsel one-liner:**
+
+> Circadia’s retained Electronic Record is the structured diary and signatures. Photographs are optional context and are retained only if the customer purchases photo storage. If they do not, photographs are not written into the record.
+
+**Counsel must confirm** before order-form copy says “photos are never part of the legal record” for CoR / WAHVA defect practice (usage vs statutory duty).
 
 ---
 
@@ -186,7 +216,8 @@ Do **not** start from more PDF layout. The layout already exists.
 4. Reproduction label on the PDF.  
 5. Retire Circadia holding inbox as the customer destination.  
 6. Keep 3-year JSON + signature + audit (hot/cold path unchanged).  
-7. Guides / in-app help: “Circadia keeps the electronic diary; the PDF is your printable copy; you must keep it.”
+7. Guides / in-app help: “Circadia keeps the electronic diary; the PDF is your printable copy; you must keep it.”  
+8. **Photos:** stop persisting data URLs on base tenants; photo retain is a paid add-on (R2 + hash), not default Neon.
 
 Production env, DNS, and mailbox changes still need **explicit owner approval** per production-change rules.
 
@@ -206,8 +237,9 @@ Use these as the briefing list when revisiting with counsel. They are product po
 8. Standard audit / exit fulfilment is an **SoR pack**; any PDF in that pack is labelled a reproduction.  
 9. Retrieval of older-than-live records follows the hot/cold SLA (draft: two AWST business days; best-efforts same-day for regulator / legal hold).  
 10. Fair-use retrieval vs extraordinary forensic restore remains a commercial schedule item.  
-11. Photos / media: durable for audit (object store + hashes). Email is delivery, not sole photo custody.  
-12. Disclaimer on fatigue PDFs remains: Circadia24 record; **not** an NHVR-approved EWD; not legal advice.
+11. **Photos:** not in the base Electronic Record. Retained only if the customer purchases photo storage. If not purchased, photo bytes are not written into the record. (Confirm CoR / WAHVA photo practice with counsel.)  
+12. Disclaimer on fatigue PDFs remains: Circadia24 record; **not** an NHVR-approved EWD; not legal advice.  
+13. Email is delivery, not photo custody. A mailed PDF that embeds photos is a Circadia-held reproduction of those photos — do not do that on the base plan.
 
 **Draft customer-facing line (UI / onboarding):**
 
@@ -224,7 +256,9 @@ Use these as the briefing list when revisiting with counsel. They are product po
 - [ ] Are we merging checklists into the fatigue roadside PDF?  
 - [ ] Is attest possible with no records inbox (if forced delivery has shipped)?  
 - [ ] Does contract copy still say Circadia is not their record keeper?  
-- [ ] Are photos still on a path that survives 3 years without bloating Neon?
+- [ ] Are we writing photo bytes into `days` JSON on a tenant that has not purchased photo retain?  
+- [ ] Are we embedding photos in a Circadia-held / emailed PDF on the base plan?  
+- [ ] If photo retain is on: are bytes off Neon (object store + hash), still retrievable for the add-on term?
 
 If any answer is wrong, stop and re-read §§2–5 before coding.
 
@@ -235,3 +269,4 @@ If any answer is wrong, stop and re-read §§2–5 before coding.
 | Version | Date | Note |
 |---------|------|------|
 | 0.1 | 2026-08-16 | Owner session: SoT JSON, bank-ledger custody, forced weekly PDF, 3-year hold, non-delegable operator duty, who/when for JSON vs PDF |
+| 0.2 | 2026-08-16 | Photos not in base legal record; paid photo-retain add-on; do not persist data URLs unless purchased |
