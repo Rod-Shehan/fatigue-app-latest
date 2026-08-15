@@ -1,7 +1,8 @@
 # Weekly archive export (Azure/SharePoint) — design note
 
 > **Policy:** [ADR 0002](./adr/0002-managed-postgres-and-data-access.md) — Postgres is the app’s system of record; SharePoint is **publish-only** for PDFs.  
-> **Retention:** Legal minimum **≥ 3 years** (WA Reg 184G, HVNL s 341). See [record-retention-and-compliance-lookback.md](./regulatory/record-retention-and-compliance-lookback.md).
+> **Retention:** Legal minimum **≥ 3 years** (WA Reg 184G, HVNL s 341). See [record-retention-and-compliance-lookback.md](./regulatory/record-retention-and-compliance-lookback.md).  
+> **Customer copy:** Forced weekly PDF to the operator records inbox is a **separate** track — [ewd-record-custody-and-pdf-delivery.md](./product/ewd-record-custody-and-pdf-delivery.md). SharePoint publish here stays optional habit, not Circadia SoR.
 
 Goal: produce **human-readable PDF hard copies** of attested weekly sheets in SharePoint (via Power Automate), without making SharePoint or CSV lists a second data source for the Circadia manager app.
 

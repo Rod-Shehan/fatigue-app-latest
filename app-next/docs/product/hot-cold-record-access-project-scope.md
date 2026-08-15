@@ -16,6 +16,7 @@
 | [db-backup-restore.md](../ops/db-backup-restore.md) | P1 nightly encrypted Neon → R2 dump + restore runbook |
 | [cold-access-fulfillment.md](../ops/cold-access-fulfillment.md) | P4 ops path: decrypt / restore / extract electronic SoR pack |
 | [saas-schedule-electronic-records-hot-cold.md](./saas-schedule-electronic-records-hot-cold.md) | P5 draft SaaS schedule for counsel (SoR, hot/cold, SLA, fees) |
+| [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md) | Living counsel note: 3-year JSON hold, forced weekly PDF to customer, operator duty not delegable |
 
 > **Disclaimer:** This document is product and architecture design for Circadia. It is **not legal advice**. Client contract wording must be reviewed by qualified counsel before use in commercial agreements.
 

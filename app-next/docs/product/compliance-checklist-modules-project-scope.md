@@ -200,7 +200,8 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 6 remaining** — per-client checklist email distribution + optional packing cadence (shift/day/week/…). R2/photo offload stays parked.
+**Phase 6 remaining** — per-client checklist email distribution + optional packing cadence (shift/day/week/…). R2/photo offload stays parked.  
+**Records inbox / forced weekly fatigue PDF** (separate from checklist packs): [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md).
 
 ---
 

@@ -1,0 +1,237 @@
+# EWD record custody, client availability, and forced PDF delivery
+
+**Status:** Owner product direction **2026-08-16** — living counsel / build note. Revisit whenever retention, export, email, archive, or contract copy changes.  
+**Not legal advice.** Contract wording must be reviewed by qualified counsel before use in customer agreements. Confirm WA WHS / WAHVA / HVNL duties against current official sources.
+
+**Owner locks this note exists to protect:**
+
+1. Circadia’s electronic system of record (structured diary + signature + audit).  
+2. The accredited operator’s **non-delegable** duty to retain records.  
+3. Honest PDF labelling (human reproduction, not the diary).
+
+**Related**
+
+| Doc | Role |
+|-----|------|
+| [hot-cold-record-access-project-scope.md](./hot-cold-record-access-project-scope.md) | Electronic Record = data + signature + audit; PDF is a view |
+| [saas-schedule-electronic-records-hot-cold.md](./saas-schedule-electronic-records-hot-cold.md) | Counsel-ready SaaS schedule draft (SoR pack, retrieval SLA) |
+| [record-retention-and-compliance-lookback.md](../regulatory/record-retention-and-compliance-lookback.md) | ≥3 year retention vs rule lookback vs 28-day roadside |
+| [ADR 0002](../adr/0002-managed-postgres-and-data-access.md) | Postgres is app SoR; SharePoint PDF is publish-only |
+| [WEEKLY_ARCHIVE_EXPORT.md](../WEEKLY_ARCHIVE_EXPORT.md) | Optional SharePoint PDF publish 30 days after attest |
+| [weekly-trip-sheet-pdf-project-scope.md](./weekly-trip-sheet-pdf-project-scope.md) | What the weekly PDF contains |
+| [compliance-checklist-modules-project-scope.md](./compliance-checklist-modules-project-scope.md) | Checklist PDF separate from fatigue; email = delivery |
+| [roadside-pdf-s6.md](../architecture/roadside-pdf-s6.md) | 28-day roadside produce + optional QR snapshot |
+
+---
+
+## 1. One-sentence doctrine (use in counsel / onboarding)
+
+> Circadia retains the electronic work diary for at least three years. Circadia must deliver a PDF copy of each attested week to the customer’s records address. The customer must keep that copy. Neither delivery nor storage by Circadia transfers the customer’s record-keeping duty. The PDF is a printable reproduction of the electronic record, not a replacement for it.
+
+---
+
+## 2. What the record is
+
+| Artefact | Role | Who “has” it |
+|----------|------|----------------|
+| **Electronic Record** | System of record: week sheet JSON (`days` events + grids), signature image, `signedAt`, amendment / audit | Circadia holds and can produce. Customer **owns** the diary data as the subscriber. |
+| **Weekly Trip Sheet PDF** | Human-readable **reproduction** generated from the Electronic Record (same as in-app **Export PDF**) | Customer **must receive and retain** for their own filing. Circadia keeps a send ledger, not as a substitute SoR. |
+| **28-day roadside PDF** | Driver produce-at-inspection pack | Driver on demand. **Not** the operator’s 3-year filing copy. **Not** auto-emailed. |
+| **Checklist PDFs** | Separate CoR / WAHVA form packs (FFW, Prestart, Load) — never merged into roadside | Delivery to the same records inbox when that send path ships; still not the fatigue SoR. |
+| **Customer SharePoint / mailbox** | Their habit / office file | Their choice of how to file the PDF. **Not** Circadia’s query store. **Not** an excuse to drop JSON. |
+
+**Bank analogy (keep using this):** Circadia holds the electronic ledger. The weekly PDF is the statement. On audit or exit, Circadia produces the ledger extract (SoR pack) **and** can regenerate the statement. The customer does not “own the statement instead of the ledger.”
+
+### Options considered (2026-08-16) — do not reopen without owner + counsel
+
+| Option | Verdict |
+|--------|---------|
+| 1. JSON alongside every routine PDF | Only at **produce / export / exit**. Not the daily habit. |
+| 2. Keep JSON like a bank ledger | **Custody model — locked.** |
+| 3. Provide both when they need to take something away | **Produce model — locked** (SoR pack + PDF labelled reproduction). |
+| 4. PDF on demand only | Allowed as *how humans read*. **Rejected** as the *only* client artefact. |
+| 5. Treat PDF as the client’s auditable record | What offices *read*. **Must not** become what Circadia *keeps* as SoR. |
+| 6. JSON is Circadia property; PDF is the client’s record | **Rejected.** Makes the printout the client’s legal copy and hides the real diary. |
+
+---
+
+## 3. Two duties (do not collapse)
+
+These run **in parallel**. One does not discharge the other.
+
+### A. Accredited operator (customer)
+
+- Record keeper under WA Reg 184G / WAHVA-style accreditation / HVNL s 341-style duties (confirm with counsel).  
+- Must retain work / break / non-work records for **at least three years**.  
+- **Cannot delegate** that legal responsibility to Circadia, a mailbox, or a vendor.  
+- They may keep records however they like (PDF folder, SharePoint, print). They still own the duty.  
+- They typically **think** the record is a PDF. Product and contract must give them a PDF **and** tell them it is a copy of the electronic diary.
+
+### B. Circadia (processor / SaaS)
+
+- Holds the **Electronic Record** for **at least three years** from the relevant last entry (or longer if law or the order form requires).  
+- Can **produce** that record to the customer (and, where lawful, support regulator / court produce).  
+- **Must deliver** the weekly PDF reproduction to the customer’s nominated records address after each attested week (forced provision — §5).  
+- Delivery does **not** appoint Circadia as the customer’s record keeper.  
+- Circadia must **not** delete or “graduate away” the Electronic Record merely because a PDF was sent or filed.
+
+If the customer never files the PDF, **their** duty is unmet. Circadia’s send ledger proves Circadia delivered. Circadia’s Neon / cold archive proves Circadia still has the Electronic Record.
+
+---
+
+## 4. How much data Circadia holds (cost)
+
+**Commitment:** ≥ **3 years** of Electronic Record storage. That is the WAHVA / WA / HVNL-style **minimum**, not a target to undercut.
+
+| Payload | Cost character | Implication |
+|---------|----------------|-------------|
+| Events + minute grids + week header | Small | Not the cost problem. |
+| Week signature (data URL) | Moderate | Keep; required for attestation. |
+| Checklist photos embedded in day JSON | **High** | Move bytes to object storage; keep keys/hashes on the record (already parked as Q1). Do not use “email the PDF” as photo custody. |
+| Encrypted DB dumps / cold packs (R2) | Required independent copy | Hot Neon is not the only copy. See hot/cold project. |
+
+**Do not** treat emailed PDFs as permission to purge JSON early. Purge of hot rows is only safe if a **Circadia-controlled electronic archive** (not PDF-only) remains authoritative.
+
+Rule-engine lookback (~12 weeks) and roadside 28 days are **not** retention. Do not size storage from those windows.
+
+---
+
+## 5. Forced PDF delivery (not optional)
+
+**Why force it:** If PDF delivery is optional, many operators will never file a copy and will treat Circadia as their only cabinet. That is Circadia intervening in a liability the operator cannot give away.
+
+**What “forced” means in the service:**
+
+1. Customer must nominate an **operator records inbox** (org-level). Using the EWD / attesting a week requires this address.  
+2. After each week is **attested** (`status = completed`, signature + `signedAt`), Circadia **sends** the weekly fatigue PDF (same generator as `GET /api/sheets/[id]/export`) to that inbox.  
+3. Circadia writes a **send ledger** row: artefact, sheet id, recipient, trigger, PDF checksum, provider id, sent / failed / skipped, time.  
+4. Failed send is Circadia’s problem to retry. A full or abandoned inbox is the customer’s problem.  
+5. Re-attest (new `signedAt` after amendment) queues a **new** send. Do not overwrite the old ledger row.  
+6. Every such PDF is labelled a **reproduction from the electronic record**.
+
+**What forced does *not* mean:**
+
+- Circadia becomes the record keeper.  
+- The PDF replaces JSON.  
+- Roadside 28-day packs are auto-emailed.  
+- Circadia’s Gmail holding inbox (`circadia24@gmail.com`) is the customer destination (interim checklist path only — retire once the records inbox exists).
+
+### Address book (do not overload login email)
+
+| Slot | Where | Used for |
+|------|--------|----------|
+| **Operator records inbox** | New org field (same policy surface as workshop contact) | Forced weekly PDF + later checklist copies |
+| **Optional driver copy** | Roster `recordsEmail` or opt-in login email | That driver’s own week / FFW — **not** the fleet. *Open — §8.* |
+| **Workshop / WAHVA** | Existing `maintenanceContactEmail` | Prestart **defects** only — not fatigue weeks, not FFW |
+| **Circadia holding** | Interim `CHECKLIST_ARCHIVE_EMAIL` | Circadia ops copy until per-client distribution ships |
+
+Login email is **identity**, not filing.
+
+---
+
+## 6. Who needs the JSON, and when
+
+Day-to-day, the client **views** the record **in the app** (EWD week sheet, Enterprise). They do not handle raw JSON to use the product.
+
+| Who | When | What they get |
+|-----|------|----------------|
+| Driver (roadside) | Inspection, now | 28-day roadside PDF on demand (device or server). Not JSON. |
+| Operator / office | After each attested week | Forced weekly PDF to records inbox. |
+| Operator / auditor who wants paper | Any time | Same weekly PDF on demand (Export PDF). |
+| Operator / counsel / Circadia ops | Audit, legal hold, exit, dispute, regulator produce | **SoR pack**: structured data + signature + `signedAt` + audit, **plus** optional PDF labelled reproduction. |
+| Circadia engines / support | Always | JSON in Postgres (and cold copies). |
+
+JSON is not hidden as “Circadia property.” It is produced when the **electronic** record is required. PDF is what humans read without understanding source-of-truth.
+
+---
+
+## 7. Live PDF families (do not mix)
+
+| Family | Auto-email? | Unit |
+|--------|-------------|------|
+| Weekly fatigue sheet | **Yes — forced after attest** (when inbox + ledger ship) | One PDF per driver-week. Two-up = one sheet (primary + second name). Fleet = N PDFs, not one booklet. |
+| 28-day roadside | **No** | One driver, last 28 calendar days. Produce only. |
+| Checklist pack | Later, same inbox / ledger | One type per file (FFW / Prestart / Load). Never inside roadside. |
+
+**Proposed checklist timing** (not a substitute for the weekly liability PDF):
+
+- **FFW** — send on signature (personal, complete then).  
+- **Prestart** — send on signature (including FAIL visible). Workshop address is extra, not a delay.  
+- **Dimension & Load** — send on driver sign even if loader pending (honest CoR gap); send again if loader later completes. Do not hold to Saturday.
+
+Nightly digest may be safer than one giant multi-attachment mail (provider size limits). Process one weekly PDF at a time if Chromium memory is tight (same constraint as archive export).
+
+---
+
+## 8. Open decisions (do not implement as if locked)
+
+| # | Question | Lean | Needs |
+|---|----------|------|--------|
+| O1 | Driver copy of the weekly PDF? | Opt-in per driver, or operator inbox only | Owner |
+| O2 | Load: send on driver sign + follow-up, or hold until loader resolved? | Send now with pending, then update | Owner |
+| O3 | SharePoint 30-day archive vs immediate email | **Both allowed.** Email is the forced customer copy. SharePoint remains optional Circadia/customer publish habit. Neither is SoR. | — |
+| O4 | Block week attest if records inbox missing / last send failed? | Lean **yes** for missing inbox; **no** hard-block attest on transient mail fail (retry + banner) | Owner + counsel |
+
+Roadside stays produce-only unless the owner explicitly reverses O-adjacent policy.
+
+---
+
+## 9. What this forces in the build (when we implement)
+
+Do **not** start from more PDF layout. The layout already exists.
+
+1. Org **records inbox** (required).  
+2. **Send ledger** table + manager visibility (sent / failed / retry) per driver-week.  
+3. Auto-generate and send weekly PDF after attest.  
+4. Reproduction label on the PDF.  
+5. Retire Circadia holding inbox as the customer destination.  
+6. Keep 3-year JSON + signature + audit (hot/cold path unchanged).  
+7. Guides / in-app help: “Circadia keeps the electronic diary; the PDF is your printable copy; you must keep it.”
+
+Production env, DNS, and mailbox changes still need **explicit owner approval** per production-change rules.
+
+---
+
+## 10. Counsel notes (paste / challenge list)
+
+Use these as the briefing list when revisiting with counsel. They are product positions, not executed terms.
+
+1. Customer remains the record keeper; Circadia is not appointed sole record keeper unless a future agreement expressly says so.  
+2. Electronic Record definition matches the hot/cold schedule: structured data + signature image + attestation metadata + audit.  
+3. PDF / print / SharePoint / email copies are convenient views; Circadia can regenerate them from the Electronic Record.  
+4. Minimum Circadia retention: **three years** (or longer if law / order form).  
+5. **Forced** weekly PDF delivery to a customer-nominated records address after attestation — so the customer holds a copy they understand.  
+6. Forced delivery **does not** transfer or reduce the customer’s statutory retention duty.  
+7. Circadia **does not** treat customer-held PDFs as Circadia’s archive or as grounds to drop the Electronic Record.  
+8. Standard audit / exit fulfilment is an **SoR pack**; any PDF in that pack is labelled a reproduction.  
+9. Retrieval of older-than-live records follows the hot/cold SLA (draft: two AWST business days; best-efforts same-day for regulator / legal hold).  
+10. Fair-use retrieval vs extraordinary forensic restore remains a commercial schedule item.  
+11. Photos / media: durable for audit (object store + hashes). Email is delivery, not sole photo custody.  
+12. Disclaimer on fatigue PDFs remains: Circadia24 record; **not** an NHVR-approved EWD; not legal advice.
+
+**Draft customer-facing line (UI / onboarding):**
+
+> Circadia keeps your electronic work diary. The PDF is a printable copy of that diary. You must keep the copies we send to your records email. For an audit we can give you both — the printout, and the signed electronic record it was made from.
+
+---
+
+## 11. Revisit checklist (every time this topic comes back)
+
+- [ ] Are we about to make PDF the only thing the customer can take away?  
+- [ ] Are we about to delete or cold-drop JSON because “they have the PDF”?  
+- [ ] Are we treating login email or workshop email as the records inbox?  
+- [ ] Are we auto-emailing the 28-day roadside pack?  
+- [ ] Are we merging checklists into the fatigue roadside PDF?  
+- [ ] Is attest possible with no records inbox (if forced delivery has shipped)?  
+- [ ] Does contract copy still say Circadia is not their record keeper?  
+- [ ] Are photos still on a path that survives 3 years without bloating Neon?
+
+If any answer is wrong, stop and re-read §§2–5 before coding.
+
+---
+
+## Document control
+
+| Version | Date | Note |
+|---------|------|------|
+| 0.1 | 2026-08-16 | Owner session: SoT JSON, bank-ledger custody, forced weekly PDF, 3-year hold, non-delegable operator duty, who/when for JSON vs PDF |

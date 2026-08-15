@@ -112,7 +112,8 @@ Under NHVR **work diary** rules (e.g. **s 293** — production of records), a dr
 1. **Rolling minute timeline** is the source of truth for rule mathematics.
 2. **Weekly sheet** is the legal attestation slice (driver sign-off for that week).
 3. **Record** (what happened) and **rules** (whether limits were met) are separate concerns — see `product-copy.ts` / manager risk framing.
-4. **Retention** protects the business for audits and disputes; **lookback** powers real-time and weekly compliance checks; **roadside produce** satisfies immediate inspection needs.
+4. **Retention** protects the business for audits and disputes; **lookback** powers real-time and weekly compliance checks; **roadside produce** satisfies immediate inspection needs.  
+5. **Custody vs PDF delivery** (who holds JSON, forced customer PDF, non-delegable operator duty): [ewd-record-custody-and-pdf-delivery.md](../product/ewd-record-custody-and-pdf-delivery.md).
 
 ```mermaid
 flowchart LR

@@ -3,7 +3,8 @@
 **Status:** P5 deliverable — **draft for qualified legal counsel** (not executed terms).  
 **Owner product lock:** 2026-08-08 (hot/cold project H1–H7).  
 **Product doctrine:** Circadia’s electronic system of record is **structured diary data + signature image** (plus attestation metadata and audit), **not** a PDF file.  
-**Source:** [hot-cold-record-access-project-scope.md](./hot-cold-record-access-project-scope.md) §§3, 5–6, 8.
+**Source:** [hot-cold-record-access-project-scope.md](./hot-cold-record-access-project-scope.md) §§3, 5–6, 8.  
+**Custody / forced PDF (2026-08-16):** [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md) — revisit when this schedule is next edited.
 
 > **Disclaimer:** This document is a **product-aligned drafting aid** for incorporation into Circadia customer agreements (master services agreement, SaaS schedule, or order form). It is **not legal advice** and is **not** a binding contract until counsel reviews and the parties execute. Confirm obligations under WA WHS / HVNL (and any other applicable law) with qualified counsel before use.
 
