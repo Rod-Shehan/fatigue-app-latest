@@ -23,6 +23,7 @@
 | [compliance-checklist-modules-project-scope.md](./compliance-checklist-modules-project-scope.md) | Checklist PDF separate from fatigue; email = delivery |
 | [checklist-photo-r2-parked.md](../architecture/checklist-photo-r2-parked.md) | Photo object store parked; see §4 photos add-on |
 | [roadside-pdf-s6.md](../architecture/roadside-pdf-s6.md) | 28-day roadside produce + optional QR snapshot |
+| [db-backup-restore.md](../ops/db-backup-restore.md) | Plan B: encrypted Neon → R2. Plan C suggestion: §13 |
 
 ---
 
@@ -241,7 +242,8 @@ Use these as the briefing list when revisiting with counsel. They are product po
 11. **Photos:** not in the base Electronic Record. Retained only if the customer purchases photo storage. If not purchased, photo bytes are not written into the record. (Confirm CoR / WAHVA photo practice with counsel.)  
 12. Disclaimer on fatigue PDFs remains: Circadia24 record; **not** an NHVR-approved EWD; not legal advice.  
 13. Email is delivery, not photo custody. A mailed PDF that embeds photos is a Circadia-held reproduction of those photos — do not do that on the base plan.  
-14. Circadia’s commercial offering is the **compliance record** (create, retain, produce, weekly readable copy). The PDF renderer may change; the Electronic Record must remain producible for the retention period (§12).
+14. Circadia’s commercial offering is the **compliance record** (create, retain, produce, weekly readable copy). The PDF renderer may change; the Electronic Record must remain producible for the retention period (§12).  
+15. **Plan C (suggestion, §13):** per-client encrypted exhibit (physical drive + that client’s key) for court/order produce. Not the live store. Clone, do not surrender the only copy. Counsel to confirm exhibit practice.
 
 **Draft customer-facing line (UI / onboarding):**
 
@@ -261,7 +263,8 @@ Use these as the briefing list when revisiting with counsel. They are product po
 - [ ] Are we writing photo bytes into `days` JSON on a tenant that has not purchased photo retain?  
 - [ ] Are we embedding photos in a Circadia-held / emailed PDF on the base plan?  
 - [ ] If photo retain is on: are bytes off Neon (object store + hash), still retrievable for the add-on term?  
-- [ ] Are we selling “automatic weekly filing” before inbox + send ledger exist?
+- [ ] Are we selling “automatic weekly filing” before inbox + send ledger exist?  
+- [ ] If using Plan C: is the drive **that client only**, encrypted, cloned for the court, key not the fleet key?
 
 If any answer is wrong, stop and re-read §§2–5 before coding.
 
@@ -341,6 +344,69 @@ SharePoint, R2 photos, and a packaged SoR zip can wait. Without 1–3, do not se
 
 ---
 
+## 13. Plan C — per-client exhibit drive (suggestion, 2026-08-16)
+
+**Status:** Owner **suggestion** for counsel / ops — not built, not the live path. Does **not** replace Plan A or Plan B.
+
+**Intent:** In a high-profile matter (e.g. fatigue-related prosecution years later), Circadia can produce **that client’s** record as a **physical drive** under court order, and provide **that drive’s key**. The court receives a sealed exhibit, not a login to Circadia and not a dump of every other customer.
+
+This is **not** a home server as the product disk. The box (and a second local drive) only hold **Plan C masters**. Drivers and the app never talk to it.
+
+### Plans A / B / C
+
+| Plan | What | Role |
+|------|------|------|
+| **A** | Live Neon Electronic Record | Day-to-day create / read. First place to extract while sheets are hot. |
+| **B** | Nightly encrypted `pg_dump` → R2, retain ≥ 3 years | Off-site DR and cold restore. Shared platform dump today (one Neon). See [db-backup-restore.md](../ops/db-backup-restore.md). |
+| **C** (suggested) | **Per-client** encrypted archive + physical exhibit drive | How Circadia **produces** one operator to a court without opening the fleet. Spare iron; not availability for logging. |
+
+Availability when it matters is **A or B first**. Plan C is produce-and-spare: if A and B are gone, or the order is “hand over the media.”
+
+### What must be on a client drive
+
+Only that operator’s Electronic Record:
+
+- Attested weeks: `days` JSON, signature image, `signedAt`, amendment / audit  
+- Identity: driver names, `weekStarting`, sheet ids, jurisdiction  
+- Manifest: generated at (UTC/AWST), source snapshot (Plan A extract and/or Plan B restore point), checksums of each object  
+- Optional: weekly PDF reproductions as delivered (labelled reproductions)
+
+**Must not** include other customers, Circadia platform secrets, or a decrypted “working folder.”
+
+Today Neon is **shared**. A raw platform `pg_dump` on a drive is **not** Plan C. Plan C requires a **per-client SoR extract** (and, if useful, a full encrypted platform dump kept separately for Circadia DR only).
+
+### Keys
+
+- **Per-client key** (or a key envelope that opens only that drive).  
+- One Circadia key that unlocks every client is unsafe under a single order.  
+- Key custody: not only on the home server. Dual custody (same class of problem as `BACKUP_ENCRYPTION_KEY`).  
+- Court receives the **clone’s** key material as counsel directs — not a key that unlocks Plan A or other clients.
+
+### How to hand it over
+
+The court keeps exhibits. Do **not** surrender the only copy.
+
+1. Keep a **master** per client: encrypted image/archive on the Plan C server; second local drive holds ciphertext of those masters.  
+2. On order / legal hold: **clone** the master onto a **new** physical drive. Record serial, hash, date, who cloned.  
+3. Hand the **clone + that client’s key**.  
+4. Master stays in Circadia custody.
+
+### Cadence
+
+Do not rewrite forty live USB sticks every night.
+
+- **Continuous:** per-client encrypted archive updated from Plan A (or from a Plan B restore) — nightly or weekly.  
+- **Physical media:** refresh on a schedule (e.g. monthly) **and** always cut a fresh clone on hold/order.  
+- **First official driver:** one client archive + one spare clone in the safe is enough to start.
+
+### Counsel to confirm
+
+- Whether a labelled encrypted drive + key is an acceptable produce form, or they also want a hash-verified file extract.  
+- Chain-of-custody wording (who may clone, who may open).  
+- That handing Plan C does **not** make Circadia the operator’s record keeper (§3) and does **not** replace forced weekly PDF to the client (§5).
+
+---
+
 ## Document control
 
 | Version | Date | Note |
@@ -348,3 +414,4 @@ SharePoint, R2 photos, and a packaged SoR zip can wait. Without 1–3, do not se
 | 0.1 | 2026-08-16 | Owner session: SoT JSON, bank-ledger custody, forced weekly PDF, 3-year hold, non-delegable operator duty, who/when for JSON vs PDF |
 | 0.2 | 2026-08-16 | Photos not in base legal record; paid photo-retain add-on; do not persist data URLs unless purchased |
 | 0.3 | 2026-08-16 | First official driver + 40-driver sale: Circadia sells the compliance record; manual PDF process today; auto-send required before fleet |
+| 0.4 | 2026-08-16 | Plan C suggestion: per-client encrypted exhibit drive + key for court produce; not live store |
