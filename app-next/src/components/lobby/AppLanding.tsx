@@ -453,8 +453,8 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
                 Circadia client manager
               </span>
               <span className="block text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                Paying operators — create, rename, pause, and set the product pack. This is Circadia
-                staff, not the fleet Owner console.
+                Desktop Circadia desk — create, rename, pause, and set the product pack. Not the
+                public website and not the fleet Owner console.
               </span>
             </span>
           </a>

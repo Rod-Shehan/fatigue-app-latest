@@ -15,6 +15,7 @@ const PROTECTED_PREFIXES = [
   "/messages",
   "/drivers",
   "/admin",
+  "/circadia",
 ];
 
 function isProtectedPath(pathname: string): boolean {
@@ -90,6 +91,8 @@ export const config = {
     "/messages/:path*",
     "/drivers/:path*",
     "/admin/:path*",
+    "/circadia",
+    "/circadia/:path*",
     "/access-restricted",
     "/api/:path*",
     // Lobby + surface redirects need Host / APP_SURFACE on `/` only via explicit visit;

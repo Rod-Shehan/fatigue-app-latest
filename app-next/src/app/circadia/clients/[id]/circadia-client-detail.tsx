@@ -77,8 +77,7 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className={`${MANAGER_PAGE_SHELL} space-y-8`}>
+    <div className={`${MANAGER_PAGE_SHELL} space-y-8`}>
         <PageHeader
           backHref="/circadia"
           backLabel="Circadia client manager"
@@ -221,7 +220,6 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
         ) : null}
 
         {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
-      </div>
     </div>
   );
 }

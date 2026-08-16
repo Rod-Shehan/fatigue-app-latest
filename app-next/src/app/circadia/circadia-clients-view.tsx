@@ -69,14 +69,10 @@ export function CircadiaClientsView({ staffEmail }: { staffEmail: string }) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className={`${MANAGER_PAGE_SHELL} space-y-8`}>
+    <div className={`${MANAGER_PAGE_SHELL} space-y-8`}>
         <PageHeader
-          backHref="/"
-          backLabel="Log-in Page"
-          backText="Lobby"
-          title="Circadia client manager"
-          subtitle="Paying operators — not the fleet Owner console"
+          title="Clients"
+          subtitle="Paying operators — desktop Circadia desk, not the fleet Owner console"
           icon={<Building2 className="w-5 h-5" />}
         />
 
@@ -170,7 +166,6 @@ export function CircadiaClientsView({ staffEmail }: { staffEmail: string }) {
             {createMutation.isPending ? "Creating…" : "Create client"}
           </Button>
         </form>
-      </div>
     </div>
   );
 }
