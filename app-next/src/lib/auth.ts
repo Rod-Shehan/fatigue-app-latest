@@ -19,7 +19,7 @@ import { getSystemPolicy, loginBlockedForRole } from "./system-policy";
 import { ALPHA_RESTRICTED_ERROR, isEmailAllowedForAlphaAccess } from "./auth-alpha-allowlist";
 import { assertProductionAuthConfig, isSharedLoginPasswordAllowed, useSecureAuthCookies } from "./auth-env";
 import { logLoginAttempt, type LoginAuditOutcome } from "./auth-login-audit";
-import { canAccessSheet as canAccessSheetInTenant } from "./tenant";
+import { canAccessSheet as canAccessSheetInTenant, CLIENT_PAUSED_ERROR, isPlatformAdminUser } from "./tenant";
 
 assertProductionAuthConfig();
 
@@ -107,6 +107,7 @@ export const authOptions: NextAuthOptions = {
           role: string | null;
           disabledAt: Date | null;
           tenantId: string;
+          platformAdmin?: boolean;
         }) {
           try {
             return await finalizeCredentialsLogin(user);
@@ -117,6 +118,9 @@ export const authOptions: NextAuthOptions = {
             if (err instanceof Error && err.message === ALPHA_RESTRICTED_ERROR) {
               throw err;
             }
+            if (err instanceof Error && err.message === CLIENT_PAUSED_ERROR) {
+              throw err;
+            }
             return null;
           }
         }
@@ -125,7 +129,7 @@ export const authOptions: NextAuthOptions = {
         if (localDev) {
           const devUser = await prisma.user.findUnique({
             where: { id: localDev.id },
-            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true, platformAdmin: true },
           });
           if (!devUser) return null;
           return completeLogin(devUser);
@@ -135,7 +139,7 @@ export const authOptions: NextAuthOptions = {
         if (bypass) {
           const bypassUser = await prisma.user.findUnique({
             where: { id: bypass.id },
-            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true, platformAdmin: true },
           });
           if (!bypassUser) return null;
           return completeLogin(bypassUser);
@@ -145,7 +149,7 @@ export const authOptions: NextAuthOptions = {
         if (passwordlessStaging) {
           const stagingUser = await prisma.user.findUnique({
             where: { id: passwordlessStaging.id },
-            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true, platformAdmin: true },
           });
           if (!stagingUser) return null;
           return completeLogin(stagingUser);
@@ -155,7 +159,7 @@ export const authOptions: NextAuthOptions = {
 
         const existing = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true, tenantId: true },
+          select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true, tenantId: true, platformAdmin: true },
         });
 
         if (existing?.disabledAt) return reject("account_disabled", existing.role);
@@ -215,7 +219,7 @@ export const authOptions: NextAuthOptions = {
             email: true,
             tenantId: true,
             platformAdmin: true,
-            tenant: { select: { legalName: true } },
+            tenant: { select: { legalName: true, status: true } },
           },
         });
         if (dbUser?.disabledAt) {
@@ -225,10 +229,20 @@ export const authOptions: NextAuthOptions = {
         if (email && !isEmailAllowedForAlphaAccess(email)) {
           return {};
         }
+        if (
+          dbUser &&
+          dbUser.tenant.status === "paused" &&
+          !isPlatformAdminUser({ platformAdmin: dbUser.platformAdmin, email: dbUser.email })
+        ) {
+          return {};
+        }
         token.role = dbUser?.role ?? null;
         token.tenantId = dbUser?.tenantId ?? null;
         token.tenantLegalName = dbUser?.tenant.legalName ?? null;
-        token.platformAdmin = dbUser?.platformAdmin ?? false;
+        token.platformAdmin = isPlatformAdminUser({
+          platformAdmin: dbUser?.platformAdmin,
+          email: dbUser?.email ?? email,
+        });
       }
       return token;
     },
@@ -354,6 +368,13 @@ export async function getManagerSession(): Promise<AuthSessionResult | null> {
 export async function getOwnerSession(): Promise<AuthSessionResult | null> {
   const loaded = await loadAuthUser();
   if (!loaded || !isOwnerRole(loaded.user.role)) return null;
+  return loaded;
+}
+
+/** Circadia staff desk — platform admin flag or CIRCADIA_PLATFORM_ADMIN_EMAILS. Need not be a fleet owner. */
+export async function getPlatformAdminSession(): Promise<AuthSessionResult | null> {
+  const loaded = await loadAuthUser();
+  if (!loaded || !isPlatformAdminUser(loaded.user)) return null;
   return loaded;
 }
 

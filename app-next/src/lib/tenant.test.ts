@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertClientLoginAllowed,
+  CLIENT_PAUSED_ERROR,
+  DEFAULT_CLIENT_ENTITLEMENTS,
   EMAIL_OTHER_TENANT_ERROR,
   isPlatformAdminUser,
   isSameTenant,
   normalizeTenantSlug,
+  parseClientEntitlements,
   parseTenantLegalName,
+  parseTenantStatus,
   platformAdminEmailsFromEnv,
   tenantWhere,
 } from "./tenant";
@@ -75,5 +80,30 @@ describe("canAccessSheet tenant isolation", () => {
 describe("cross-tenant email", () => {
   it("keeps a stable error string for APIs", () => {
     expect(EMAIL_OTHER_TENANT_ERROR).toMatch(/another organisation/i);
+  });
+});
+
+describe("client pack", () => {
+  it("parses status", () => {
+    expect(parseTenantStatus("paused")).toBe("paused");
+    expect(parseTenantStatus("nope")).toBeNull();
+  });
+
+  it("fills entitlement defaults and keeps known booleans", () => {
+    expect(parseClientEntitlements(null)).toEqual(DEFAULT_CLIENT_ENTITLEMENTS);
+    expect(parseClientEntitlements({ camera: true, unknown: true }).camera).toBe(true);
+    expect(parseClientEntitlements({ camera: true }).ewd).toBe(true);
+  });
+
+  it("blocks customer login when the client is paused", () => {
+    expect(() =>
+      assertClientLoginAllowed({ tenantStatus: "paused", user: { platformAdmin: false, email: "a@x.com" } })
+    ).toThrow(CLIENT_PAUSED_ERROR);
+    expect(() =>
+      assertClientLoginAllowed({ tenantStatus: "paused", user: { platformAdmin: true, email: "staff@circadia24.com" } })
+    ).not.toThrow();
+    expect(() =>
+      assertClientLoginAllowed({ tenantStatus: "active", user: { platformAdmin: false, email: "a@x.com" } })
+    ).not.toThrow();
   });
 });

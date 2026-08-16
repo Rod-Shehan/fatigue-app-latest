@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { getOwnerSession } from "@/lib/auth";
+import { getPlatformAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { isPlatformAdminUser } from "@/lib/tenant";
+import { parseClientEntitlements } from "@/lib/tenant";
 import { ensureDefaultTenant, provisionTenant } from "@/lib/tenant-provision";
 
 export async function GET() {
-  const owner = await getOwnerSession();
-  if (!owner || !isPlatformAdminUser(owner.user)) {
+  const staff = await getPlatformAdminSession();
+  if (!staff) {
     return NextResponse.json({ error: "Platform admin required" }, { status: 403 });
   }
   await ensureDefaultTenant(prisma);
@@ -16,6 +16,7 @@ export async function GET() {
       id: true,
       legalName: true,
       slug: true,
+      status: true,
       createdAt: true,
       _count: { select: { users: true, drivers: true, fatigueSheets: true } },
     },
@@ -25,6 +26,7 @@ export async function GET() {
       id: t.id,
       legal_name: t.legalName,
       slug: t.slug,
+      status: t.status,
       created_at: t.createdAt.toISOString(),
       users: t._count.users,
       drivers: t._count.drivers,
@@ -34,8 +36,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const owner = await getOwnerSession();
-  if (!owner || !isPlatformAdminUser(owner.user)) {
+  const staff = await getPlatformAdminSession();
+  if (!staff) {
     return NextResponse.json({ error: "Platform admin required" }, { status: 403 });
   }
   try {
@@ -58,6 +60,8 @@ export async function POST(req: Request) {
         id: result.tenant.id,
         legal_name: result.tenant.legalName,
         slug: result.tenant.slug,
+        status: result.tenant.status,
+        entitlements: parseClientEntitlements(result.tenant.entitlements),
       },
       owner: {
         id: result.owner.id,

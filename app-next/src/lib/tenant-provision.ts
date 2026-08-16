@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import {
+  DEFAULT_CLIENT_ENTITLEMENTS,
   DEFAULT_TENANT_ID,
   DEFAULT_TENANT_LEGAL_NAME,
   DEFAULT_TENANT_SLUG,
@@ -66,7 +67,7 @@ export async function provisionTenant(
     : undefined;
 
   const tenant = await prisma.tenant.create({
-    data: { legalName, slug },
+    data: { legalName, slug, entitlements: { ...DEFAULT_CLIENT_ENTITLEMENTS } },
   });
 
   const owner = await prisma.user.create({

@@ -159,6 +159,7 @@ export function isPathAllowedOnSurface(pathname: string, surface: AppSurface): b
   if (path === "/manager" || path.startsWith("/manager/")) return true;
   if (path === "/drivers" || path.startsWith("/drivers/")) return true;
   if (path === "/admin" || path.startsWith("/admin/")) return true;
+  if (path === "/circadia" || path.startsWith("/circadia/")) return true;
   if (path === "/messages") return true;
   return false;
 }

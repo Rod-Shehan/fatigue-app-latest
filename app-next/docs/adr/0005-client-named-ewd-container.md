@@ -3,7 +3,7 @@
 ## Status
 
 **Accepted as global design** — 2026-08-16 (owner).  
-**This-week implementation started:** `Tenant` row + `tenantId` on EWD users/drivers/sheets/regos/presets; APIs deny cross-client reads; `npm run tenant:provision` and Owner console (platform admin) create client 2+.  
+**This-week implementation started:** `Tenant` row + `tenantId` on EWD users/drivers/sheets/regos/presets; APIs deny cross-client reads; `npm run tenant:provision` and Circadia client manager (`/circadia`) create, rename, and pause clients.  
 **Still later:** dedicated Neon, RLS, versioned config packs, Plan C extract. Command already carries a pilot `tenant_id_uuid` on some incident paths.
 
 **Not legal advice.** Record-custody and produce practice: [ewd-record-custody-and-pdf-delivery.md](../product/ewd-record-custody-and-pdf-delivery.md).

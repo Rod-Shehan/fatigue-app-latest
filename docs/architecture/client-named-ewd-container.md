@@ -1,7 +1,7 @@
 # Global design: client identity and named EWD container
 
 **Status:** Accepted as **global Circadia design** — 2026-08-16 (owner).  
-**This-week build (in progress):** `Tenant` + `tenantId` on users, drivers, sheets, regos, and route presets. Session-scoped APIs. Provision script / Owner console for Circadia platform admins.  
+**This-week build (in progress):** `Tenant` + `tenantId` on users, drivers, sheets, regos, and route presets. Session-scoped APIs. Circadia client manager at `/circadia` for platform admins.  
 **Canonical decision record:** [ADR 0005](../../app-next/docs/adr/0005-client-named-ewd-container.md)  
 **Not this week:** dedicated Neon, RLS, config packs, Plan C extract, Command billing.
 

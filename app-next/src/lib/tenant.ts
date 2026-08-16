@@ -8,6 +8,72 @@ export const DEFAULT_TENANT_SLUG = "default";
 export const DEFAULT_TENANT_LEGAL_NAME = "Default operator";
 
 export const EMAIL_OTHER_TENANT_ERROR = "This email already belongs to another organisation.";
+export const CLIENT_PAUSED_ERROR = "client_paused";
+export const CLIENT_PAUSED_MESSAGE =
+  "This organisation is paused. Contact Circadia24 if you should still have access.";
+
+export const TENANT_STATUSES = ["active", "paused"] as const;
+export type TenantStatus = (typeof TENANT_STATUSES)[number];
+
+export const DEFAULT_CLIENT_ENTITLEMENTS = {
+  ewd: true,
+  enterprise: true,
+  gpsTrail: false,
+  checklists: true,
+  camera: false,
+  command: false,
+  frms: false,
+  photoRetain: false,
+} as const;
+
+export type ClientEntitlements = {
+  [K in keyof typeof DEFAULT_CLIENT_ENTITLEMENTS]: boolean;
+};
+
+export const ENTITLEMENT_LABELS: Record<keyof ClientEntitlements, string> = {
+  ewd: "EWD (driver diary)",
+  enterprise: "Enterprise (fleet manager)",
+  gpsTrail: "GPS movement trail",
+  checklists: "Checklists (FFW / Prestart / Load)",
+  camera: "Camera / live alerts",
+  command: "Circadia Command desk",
+  frms: "FRMS heatmap",
+  photoRetain: "Photo retain (paid)",
+};
+
+export function parseTenantStatus(raw: unknown): TenantStatus | null {
+  if (raw === "active" || raw === "paused") return raw;
+  return null;
+}
+
+export function parseClientEntitlements(raw: unknown): ClientEntitlements {
+  const src = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
+  const out = { ...DEFAULT_CLIENT_ENTITLEMENTS };
+  for (const key of Object.keys(DEFAULT_CLIENT_ENTITLEMENTS) as (keyof ClientEntitlements)[]) {
+    if (typeof src[key] === "boolean") out[key] = src[key];
+  }
+  return out;
+}
+
+export function parseRecordsInbox(raw: unknown): string | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim().toLowerCase();
+  if (!trimmed) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return null;
+  return trimmed;
+}
+
+/** Paused clients cannot sign in. Circadia platform admins still can (their home tenant may be paused). */
+export function assertClientLoginAllowed(args: {
+  tenantStatus: string | null | undefined;
+  user: { platformAdmin?: boolean | null; email?: string | null };
+}): void {
+  if (parseTenantStatus(args.tenantStatus) !== "paused") return;
+  if (isPlatformAdminUser(args.user)) return;
+  throw new Error(CLIENT_PAUSED_ERROR);
+}
 
 export function normalizeTenantSlug(raw: string): string {
   return raw

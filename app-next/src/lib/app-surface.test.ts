@@ -48,6 +48,9 @@ describe("app-surface", () => {
     expect(isPathAllowedOnSurface("/driver", "legacy")).toBe(true);
     expect(isPathAllowedOnSurface("/reset-password", "ewd")).toBe(true);
     expect(isPathAllowedOnSurface("/reset-password", "enterprise")).toBe(true);
+    expect(isPathAllowedOnSurface("/circadia", "enterprise")).toBe(true);
+    expect(isPathAllowedOnSurface("/circadia/clients/abc", "enterprise")).toBe(true);
+    expect(isPathAllowedOnSurface("/circadia", "ewd")).toBe(false);
   });
 
   it("builds document titles per product surface", () => {

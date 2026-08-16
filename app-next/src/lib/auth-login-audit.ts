@@ -10,6 +10,7 @@ export type LoginAuditOutcome =
   | "invalid_credentials"
   | "roster_rejected"
   | "alpha_restricted"
+  | "client_paused"
   | "account_disabled"
   | "policy_blocked"
   | "rate_limited";

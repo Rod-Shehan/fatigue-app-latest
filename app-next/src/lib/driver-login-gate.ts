@@ -11,6 +11,7 @@ import {
   isEmailAllowedForAlphaAccess,
 } from "@/lib/auth-alpha-allowlist";
 import { logLoginAttempt } from "@/lib/auth-login-audit";
+import { assertClientLoginAllowed, CLIENT_PAUSED_ERROR } from "@/lib/tenant";
 
 /** NextAuth credentials error code surfaced to the lobby sign-in form. */
 export const ROSTER_LOGIN_ERROR = "not_on_roster";
@@ -42,6 +43,7 @@ export type CredentialsUserRow = {
   role: string | null;
   disabledAt: Date | null;
   tenantId: string;
+  platformAdmin?: boolean;
 };
 
 export async function ensureLoginUserForRosterDriver(
@@ -54,7 +56,7 @@ export async function ensureLoginUserForRosterDriver(
     where: { email: normalized },
     create: { email: normalized, name: rosterName, role: null, tenantId },
     update: { name: rosterName },
-    select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
+    select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true, platformAdmin: true },
   });
 }
 
@@ -82,6 +84,24 @@ export async function finalizeCredentialsLogin(
       role: user.role,
     });
     return null;
+  }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: user.tenantId },
+    select: { status: true },
+  });
+  try {
+    assertClientLoginAllowed({ tenantStatus: tenant?.status, user });
+  } catch (err) {
+    if (err instanceof Error && err.message === CLIENT_PAUSED_ERROR) {
+      logLoginAttempt({
+        outcome: "client_paused",
+        email: user.email,
+        role: user.role,
+      });
+      throw err;
+    }
+    throw err;
   }
 
   if (!isEmailAllowedForAlphaAccess(user.email)) {
@@ -134,7 +154,7 @@ export async function resolveRosterDriverUserForLogin(
   if (!roster) return null;
   const existing = await prisma.user.findUnique({
     where: { email: normalizeLoginEmail(email) },
-    select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
+    select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true, platformAdmin: true },
   });
   if (existing) return existing;
   return ensureLoginUserForRosterDriver(email, roster.name, roster.tenantId);
