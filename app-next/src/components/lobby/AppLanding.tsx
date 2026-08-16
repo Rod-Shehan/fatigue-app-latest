@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { getSession, signIn, signOut, useSession } from "next-auth/react";
-import { Briefcase, Building2, ChevronRight, LayoutDashboard, LogOut, Shield } from "lucide-react";
+import { Briefcase, ChevronRight, LayoutDashboard, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,8 +106,6 @@ const LOBBY_ERROR_MESSAGES: Record<string, string> = {
   [ALPHA_RESTRICTED_ERROR]:
     "This email is not on the approved pilot list yet. Contact your fleet administrator if you should have access.",
   [CLIENT_PAUSED_ERROR]: CLIENT_PAUSED_MESSAGE,
-  circadia_required:
-    "Circadia client manager is for Circadia staff only. Sign in with a platform admin account.",
 };
 
 function lobbyErrorMessage(searchParams: URLSearchParams): string | null {
@@ -313,7 +311,6 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
   const signedInEmail =
     status === "authenticated" && session?.user?.email ? session.user.email : null;
   const signedInRole = (session?.user as { role?: string | null } | undefined)?.role;
-  const isPlatformAdmin = Boolean((session?.user as { platformAdmin?: boolean } | undefined)?.platformAdmin);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-4 py-10">
@@ -439,26 +436,6 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
             );
           })}
         </div>
-
-        {isPlatformAdmin ? (
-          <a
-            href="/circadia"
-            className="flex items-start gap-4 rounded-xl border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 p-5 hover:bg-teal-100/80 dark:hover:bg-teal-950/70"
-          >
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white bg-teal-700 shrink-0">
-              <Building2 className="w-5 h-5" aria-hidden />
-            </div>
-            <span className="min-w-0">
-              <span className="block text-lg font-bold text-slate-900 dark:text-slate-100">
-                Circadia client manager
-              </span>
-              <span className="block text-sm text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
-                Desktop Circadia desk — create, rename, pause, and set the product pack. Not the
-                public website and not the fleet Owner console.
-              </span>
-            </span>
-          </a>
-        ) : null}
 
         {showSignIn && status !== "authenticated" ? (
           showForgotPassword ? (

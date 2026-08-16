@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getOwnerOrBootstrapSession } from "@/lib/auth";
-import { isPlatformAdminUser } from "@/lib/tenant";
 import { OwnerSecurityView } from "./owner-security-view";
 
 export default async function OwnerSecurityPage() {
@@ -10,7 +9,6 @@ export default async function OwnerSecurityPage() {
   return (
     <OwnerSecurityView
       isOwner={isOwner}
-      isPlatformAdmin={isPlatformAdminUser(access.user)}
       userEmail={access.user.email ?? ""}
       currentUserId={access.user.id}
     />

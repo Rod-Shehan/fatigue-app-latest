@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Shield, Loader2, Download, UserPlus, LogOut, Trash2, Building2 } from "lucide-react";
+import { Shield, Loader2, Download, UserPlus, LogOut, Trash2 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
@@ -77,12 +77,10 @@ function PolicyToggle({
 
 export function OwnerSecurityView({
   isOwner,
-  isPlatformAdmin = false,
   userEmail,
   currentUserId,
 }: {
   isOwner: boolean;
-  isPlatformAdmin?: boolean;
   userEmail: string;
   currentUserId: string;
 }) {
@@ -206,25 +204,6 @@ export function OwnerSecurityView({
           subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
         />
-
-        {isPlatformAdmin ? (
-          <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-2">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              Circadia desk
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Paying clients are managed on the Circadia client manager — not this fleet Owner
-              console.
-            </p>
-            <Link
-              href="/circadia"
-              className="inline-flex text-sm font-semibold text-teal-700 hover:text-teal-800 dark:text-teal-400 dark:hover:text-teal-300"
-            >
-              Open Circadia client manager
-            </Link>
-          </section>
-        ) : null}
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
