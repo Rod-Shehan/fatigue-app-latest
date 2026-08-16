@@ -97,6 +97,7 @@ function summarizeRow(
 export async function loadFleetDriverNames(
   prisma: PrismaClient,
   weekStarting: string,
+  tenantId: string,
   requested?: string[]
 ): Promise<string[]> {
   if (requested?.length) {
@@ -107,7 +108,7 @@ export async function loadFleetDriverNames(
   }
 
   const sheets = await prisma.fatigueSheet.findMany({
-    where: { weekStarting },
+    where: { tenantId, weekStarting },
     select: { driverName: true, secondDriver: true },
   });
 
@@ -164,12 +165,13 @@ export async function resolveFleetRiskTimeline(
     weekStarting?: string;
     driverNames?: string[];
     userId?: string;
+    tenantId: string;
     nowMs?: number;
   }
 ): Promise<FleetRiskTimelineResult | null> {
   const weekStarting = args.weekStarting ?? getThisWeekSunday();
   const { fromMs, toMs, nowBlock } = defaultTimelineWindow(args.nowMs);
-  const driverNames = await loadFleetDriverNames(prisma, weekStarting, args.driverNames);
+  const driverNames = await loadFleetDriverNames(prisma, weekStarting, args.tenantId, args.driverNames);
 
   if (driverNames.length === 0) return null;
 
@@ -198,6 +200,7 @@ export async function resolveFleetRiskTimeline(
     if (isFrmsEngineEnabled()) {
       const frms = await resolveFrmsRiskTimeline(prisma, {
         driverName,
+        tenantId: args.tenantId,
         fromMs,
         toMs,
         storedBlocks,

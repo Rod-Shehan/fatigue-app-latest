@@ -31,7 +31,7 @@ export async function findActiveDriverRosterByEmail(email: string) {
   if (!normalized) return null;
   return prisma.driver.findFirst({
     where: { email: normalized, isActive: true },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, tenantId: true },
   });
 }
 
@@ -41,18 +41,20 @@ export type CredentialsUserRow = {
   name: string | null;
   role: string | null;
   disabledAt: Date | null;
+  tenantId: string;
 };
 
 export async function ensureLoginUserForRosterDriver(
   email: string,
-  rosterName: string
+  rosterName: string,
+  tenantId: string
 ): Promise<CredentialsUserRow> {
   const normalized = normalizeLoginEmail(email);
   return prisma.user.upsert({
     where: { email: normalized },
-    create: { email: normalized, name: rosterName, role: null },
+    create: { email: normalized, name: rosterName, role: null, tenantId },
     update: { name: rosterName },
-    select: { id: true, email: true, name: true, role: true, disabledAt: true },
+    select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
   });
 }
 
@@ -101,7 +103,7 @@ export async function finalizeCredentialsLogin(
   }
 
   const roster = await findActiveDriverRosterByEmail(user.email);
-  if (!roster) {
+  if (!roster || roster.tenantId !== user.tenantId) {
     logLoginAttempt({
       outcome: "roster_rejected",
       email: user.email,
@@ -132,8 +134,8 @@ export async function resolveRosterDriverUserForLogin(
   if (!roster) return null;
   const existing = await prisma.user.findUnique({
     where: { email: normalizeLoginEmail(email) },
-    select: { id: true, email: true, name: true, role: true, disabledAt: true },
+    select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
   });
   if (existing) return existing;
-  return ensureLoginUserForRosterDriver(email, roster.name);
+  return ensureLoginUserForRosterDriver(email, roster.name, roster.tenantId);
 }

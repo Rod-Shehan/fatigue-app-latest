@@ -13,14 +13,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     const { id } = await params;
     const sheet = await prisma.fatigueSheet.findUnique({
       where: { id },
-      select: { id: true, driverName: true, weekStarting: true, createdById: true },
+      select: { id: true, driverName: true, weekStarting: true, createdById: true, tenantId: true },
     });
     if (!sheet) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (!canAccessSheet(sheet, access)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const ctx = await loadComplianceWeekContext(prisma, sheet.driverName, sheet.weekStarting);
+    const ctx = await loadComplianceWeekContext(prisma, sheet.tenantId, sheet.driverName, sheet.weekStarting);
 
     return NextResponse.json({
       prev_week_starting: ctx.prevWeekStarting ?? null,

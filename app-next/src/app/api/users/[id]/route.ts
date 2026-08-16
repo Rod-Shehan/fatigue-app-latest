@@ -39,6 +39,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         name: typeof name === "string" ? name : undefined,
         password,
         setByUserId: owner.user.id,
+        tenantId: owner.user.tenantId,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Update failed";

@@ -14,6 +14,8 @@
 
 Until aliases are attached, keep serving the combined app from the current production host; it defaults to **legacy** behaviour.
 
+**Not the same as a client container.** EWD vs Enterprise is which **product surface** a host serves. A paying operator is a **named container** (`tenant_id` + legal name + config pack) that can use both surfaces. See [client-named-ewd-container.md](./client-named-ewd-container.md) and [ADR 0005](../../app-next/docs/adr/0005-client-named-ewd-container.md).
+
 ## Env (per Vercel project / alias)
 
 ```bash

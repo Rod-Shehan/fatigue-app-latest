@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
         jurisdictionCode: true,
         driverType: true,
         createdById: true,
+        tenantId: true,
       },
     });
 
@@ -52,7 +53,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No sheets for driver" }, { status: 404 });
     }
 
-    const weekMap = await loadDriverWeekMap(prisma, driverName);
+    const tenantId = driverSheets[0]!.tenantId;
+    const weekMap = await loadDriverWeekMap(prisma, driverName, tenantId);
     const focus =
       driverSheets.find((s) => s.weekStarting === weekStarting) ?? driverSheets[0];
 

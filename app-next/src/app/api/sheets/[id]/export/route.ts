@@ -31,7 +31,10 @@ export async function GET(
   if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const { id } = await params;
-    const row = await prisma.fatigueSheet.findUnique({ where: { id } });
+    const row = await prisma.fatigueSheet.findUnique({
+      where: { id },
+      include: { tenant: { select: { legalName: true } } },
+    });
     if (!row) return NextResponse.json({ error: "Sheet not found" }, { status: 404 });
     if (!canAccessSheet(row, access)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -80,6 +83,7 @@ export async function GET(
       last_24h_rest_2: row.last24hRest2,
       last_24h_rest_3: row.last24hRest3,
       last_24h_rest_4: row.last24hRest4,
+      operator_legal_name: row.tenant.legalName,
     };
 
     const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, id);
@@ -132,6 +136,7 @@ export async function GET(
           status: row.status,
           signed_at: row.signedAt?.toISOString() ?? null,
           signature: row.signature,
+          operator_legal_name: row.tenant.legalName,
         },
         todayStr,
         generatedAtLabel,

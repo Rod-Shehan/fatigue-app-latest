@@ -114,6 +114,7 @@ export async function resolveFrmsRiskTimeline(
   prisma: PrismaClient,
   args: {
     driverName: string;
+    tenantId: string;
     fromMs: number;
     toMs: number;
     storedBlocks: StoredRiskBlockRow[];
@@ -127,16 +128,16 @@ export async function resolveFrmsRiskTimeline(
   if (!isFrmsEngineEnabled()) return null;
 
   const weekStarting = args.weekStarting ?? getThisWeekSunday();
-  const weekMap = await loadDriverWeekMap(prisma, args.driverName);
+  const weekMap = await loadDriverWeekMap(prisma, args.driverName, args.tenantId);
   if (weekMap.size === 0) return null;
 
   const focusSheet =
     (await prisma.fatigueSheet.findFirst({
-      where: { driverName: args.driverName, weekStarting },
+      where: { tenantId: args.tenantId, driverName: args.driverName, weekStarting },
       select: { jurisdictionCode: true, driverType: true },
     })) ??
     (await prisma.fatigueSheet.findFirst({
-      where: { driverName: args.driverName },
+      where: { tenantId: args.tenantId, driverName: args.driverName },
       orderBy: { weekStarting: "desc" },
       select: { jurisdictionCode: true, driverType: true, weekStarting: true },
     }));

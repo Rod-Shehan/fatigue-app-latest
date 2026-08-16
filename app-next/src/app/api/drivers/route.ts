@@ -32,6 +32,7 @@ export async function GET() {
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const drivers = await prisma.driver.findMany({
+      where: { tenantId: manager.user.tenantId },
       orderBy: { name: "asc" },
     });
     const emails = drivers.map((d) => d.email).filter((email): email is string => !!email);
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
         licenceNumber: licence_number?.trim() ?? null,
         cvdMedicalExpiry: cvd ?? null,
         isActive: is_active ?? true,
+        tenantId: manager.user.tenantId,
       },
     });
 
@@ -96,6 +98,7 @@ export async function POST(req: Request) {
           name: driver.name,
           password,
           setByUserId: manager.user.id,
+          tenantId: manager.user.tenantId,
         });
         temporaryPassword = synced.temporaryPassword;
       } catch (err) {

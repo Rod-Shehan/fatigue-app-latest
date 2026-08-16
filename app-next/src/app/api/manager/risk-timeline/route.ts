@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     if (isFrmsEngineEnabled()) {
       frmsResult = await resolveFrmsRiskTimeline(prisma, {
         driverName,
+        tenantId: manager.user.tenantId,
         fromMs,
         toMs,
         storedBlocks: rows,

@@ -14,7 +14,7 @@ Nightly (and manual) **encrypted** Postgres custom-format dumps of the shared Ci
 2. Foundation for **cold** retrieval when older electronic records are no longer in the live (hot) DB.  
 3. Disaster recovery if the live project is lost or corrupted.
 
-This is **Plan B** (off-site encrypted platform dump). **Plan C** (suggested) is a **per-client** encrypted exhibit drive for court/order produce — not this dump on a USB. See [ewd-record-custody-and-pdf-delivery.md](../product/ewd-record-custody-and-pdf-delivery.md) §13.
+This is **Plan B** (off-site encrypted platform dump). **Plan C** (suggested) is a **per-client** encrypted exhibit drive for court/order produce — not this dump on a USB. See [ewd-record-custody-and-pdf-delivery.md](../product/ewd-record-custody-and-pdf-delivery.md) §13. Client identity / extract scope: [ADR 0005](../adr/0005-client-named-ewd-container.md).
 
 This is **not** a substitute for Neon instant restore for yesterday’s accidental delete (use Neon PITR first when still in-window).
 

@@ -72,13 +72,14 @@ export function buildComplianceWeekContextFromMap(
 
 export async function loadComplianceWeekContext(
   prisma: PrismaClient,
+  tenantId: string,
   driverName: string,
   weekStarting: string,
   lookbackWeeks = COMPLIANCE_PRIOR_WEEKS_LOOKBACK
 ): Promise<ComplianceWeekContext> {
   const sundays = priorWeekSundays(weekStarting, lookbackWeeks);
   const sheets = await prisma.fatigueSheet.findMany({
-    where: { driverName, weekStarting: { in: sundays } },
+    where: { tenantId, driverName, weekStarting: { in: sundays } },
     select: { weekStarting: true, days: true },
   });
   const byWeek = new Map(sheets.map((s) => [s.weekStarting, { days: s.days }]));

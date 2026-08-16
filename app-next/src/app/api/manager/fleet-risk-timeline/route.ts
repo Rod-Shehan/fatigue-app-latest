@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       weekStarting,
       driverNames,
       userId: manager.user.id,
+      tenantId: manager.user.tenantId,
     });
 
     if (!result) {

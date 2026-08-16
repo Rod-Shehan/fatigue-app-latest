@@ -32,7 +32,7 @@ export async function GET() {
   const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
 
   const rows = await prisma.fatigueSheet.findMany({
-    where: { createdById: access.userId },
+    where: { tenantId: access.tenantId, createdById: access.userId },
     orderBy: { weekStarting: "asc" },
   });
 

@@ -8,6 +8,23 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/** Paying operator. One codebase; each client is a named container (ADR 0005). */
+model Tenant {
+  id        String   @id @default(cuid())
+  legalName String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  drivers       Driver[]
+  fatigueSheets FatigueSheet[]
+  truckRegos    TruckRego[]
+  routePresets  RoutePreset[]
+
+  @@index([legalName])
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String?   @unique
@@ -20,6 +37,11 @@ model User {
   passwordsSetFor User[]    @relation("UserPasswordSetBy")
   /** driver (null) | manager | owner — owner is org/IT governance above fleet managers */
   role          String?
+  /** Home client. Required for EWD isolation. Default backfills existing rows. */
+  tenantId      String    @default("tenant_default")
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /** Circadia staff who may create tenants. Still scoped to home tenant in the EWD UI. */
+  platformAdmin Boolean   @default(false)
   /** When set, sign-in is blocked until cleared by an owner */
   disabledAt    DateTime?
   emailVerified DateTime?
@@ -34,6 +56,8 @@ model User {
   routePresetsCreated RoutePreset[]
   systemPoliciesUpdated SystemPolicy[]
   passwordResetTokens PasswordResetToken[]
+
+  @@index([tenantId])
 }
 
 /** One-time login password reset (self-service forgot password). */
@@ -108,14 +132,22 @@ model Driver {
   /** WA Commercial Driver's Medical certificate expiry — optional reminder only (S7). */
   cvdMedicalExpiry DateTime?
   isActive       Boolean  @default(true)
+  tenantId       String   @default("tenant_default")
+  tenant         Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   createdAt      DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model TruckRego {
   id        String   @id @default(cuid())
   label     String   // e.g. "1ABC 234"
   sortOrder Int      @default(0)
+  tenantId  String   @default("tenant_default")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 /** Shared run-plan catalogue — managers (fleet) and drivers can add entries (ADR 0003). */
@@ -134,7 +166,11 @@ model RoutePreset {
   sortOrder          Int      @default(0)
   createdById        String?
   createdBy          User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  tenantId           String   @default("tenant_default")
+  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   createdAt          DateTime @default(now())
+
+  @@index([tenantId])
 }
 
 model FatigueSheet {
@@ -172,11 +208,16 @@ model FatigueSheet {
   signedAt        DateTime?
   createdById     String?
   createdBy       User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  tenantId        String    @default("tenant_default")
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   auditEvents     AuditEvent[]
   messageThreads  MessageThread[]
+
+  @@index([tenantId])
+  @@index([tenantId, driverName, weekStarting])
 }
 
 model AuditEvent {

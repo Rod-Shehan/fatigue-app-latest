@@ -17,6 +17,7 @@
 | [cold-access-fulfillment.md](../ops/cold-access-fulfillment.md) | P4 ops path: decrypt / restore / extract electronic SoR pack |
 | [saas-schedule-electronic-records-hot-cold.md](./saas-schedule-electronic-records-hot-cold.md) | P5 draft SaaS schedule for counsel (SoR, hot/cold, SLA, fees) |
 | [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md) | Living counsel note: 3-year JSON hold, forced weekly PDF to customer, operator duty not delegable |
+| [ADR 0005](../adr/0005-client-named-ewd-container.md) | **Global design:** named client container; SoR / Plan C extract is per `tenant_id` |
 
 > **Disclaimer:** This document is product and architecture design for Circadia. It is **not legal advice**. Client contract wording must be reviewed by qualified counsel before use in commercial agreements.
 

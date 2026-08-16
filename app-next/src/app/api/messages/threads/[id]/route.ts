@@ -24,12 +24,18 @@ export async function GET(
       createdAt: true,
       updatedAt: true,
       createdById: true,
-      createdBy: { select: { id: true, name: true, email: true } },
+      createdBy: { select: { id: true, name: true, email: true, tenantId: true } },
       sheet: { select: { id: true, weekStarting: true, driverName: true } },
     },
   });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!isManager && thread.createdById !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (isManager) {
+    if (thread.createdBy.tenantId !== manager.user.tenantId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else if (thread.createdById !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const messages = await prisma.message.findMany({
     where: { threadId: id },

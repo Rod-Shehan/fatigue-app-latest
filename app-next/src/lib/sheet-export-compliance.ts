@@ -19,10 +19,12 @@ export async function computeComplianceForSheetExport(
     | "last24hBreakEnd"
     | "days"
     | "jurisdictionCode"
+    | "tenantId"
   >
 ): Promise<{ results: ComplianceCheckResult[]; jurisdictionCode: JurisdictionCode }> {
   const { prevWeekDays, prevWeekStarting, historyDays } = await loadComplianceWeekContext(
     prisma,
+    row.tenantId,
     row.driverName,
     row.weekStarting
   );

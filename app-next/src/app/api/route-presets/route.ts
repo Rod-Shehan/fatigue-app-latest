@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions, getSessionForSheetAccess } from "@/lib/auth";
+import { getSessionForSheetAccess } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   catalogueSourceForSession,
@@ -11,11 +10,11 @@ import {
 import { serializeRoutePreset } from "@/lib/route-preset-db";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const access = await getSessionForSheetAccess();
+  if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const list = await prisma.routePreset.findMany({
-      where: { isActive: true },
+      where: { isActive: true, tenantId: access.tenantId },
       orderBy: [{ sortOrder: "asc" }, { label: "asc" }],
       include: { createdBy: { select: { name: true } } },
     });
@@ -43,11 +42,12 @@ export async function POST(req: Request) {
     }
 
     const maxOrder = await prisma.routePreset
-      .aggregate({ _max: { sortOrder: true } })
+      .aggregate({ where: { tenantId: access.tenantId }, _max: { sortOrder: true } })
       .then((r) => r._max.sortOrder ?? -1);
 
     const row = await prisma.routePreset.create({
       data: {
+        tenantId: access.tenantId,
         label: body.label.trim(),
         startLocation:
           typeof body.start_location === "string" && body.start_location.trim()

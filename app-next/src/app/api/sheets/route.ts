@@ -181,6 +181,7 @@ export async function GET(request: NextRequest) {
       await autoCloseStaleDraftSheetsForUser(access.userId);
     }
     const where = {
+      tenantId: access.tenantId,
       ...(access.isManager ? {} : { createdById: access.userId }),
       ...(weekStarting ? { weekStarting } : {}),
     };
@@ -224,6 +225,7 @@ export async function POST(req: Request) {
     const thisWeekSunday = getThisWeekSunday();
     const existingCurrentWeekDraft = await prisma.fatigueSheet.findFirst({
       where: {
+        tenantId: access.tenantId,
         createdById: access.userId,
         status: { not: "completed" },
         weekStarting: thisWeekSunday,
@@ -274,6 +276,7 @@ export async function POST(req: Request) {
       const thisWeekSunday = getThisWeekSunday();
       const thisWeekSheet = await prisma.fatigueSheet.findFirst({
         where: {
+          tenantId: access.tenantId,
           weekStarting: thisWeekSunday,
           driverName,
         },
@@ -329,6 +332,7 @@ export async function POST(req: Request) {
         signature: signature ?? null,
         signedAt: signed_at ? new Date(signed_at) : null,
         createdById: access.userId,
+        tenantId: access.tenantId,
       },
     });
 

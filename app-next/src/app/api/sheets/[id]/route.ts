@@ -121,7 +121,7 @@ export async function GET(
     };
 
     if (isFrmsEngineEnabled()) {
-      const weekMap = await loadDriverWeekMap(prisma, sheet.driverName);
+      const weekMap = await loadDriverWeekMap(prisma, sheet.driverName, sheet.tenantId);
       const frms = await resolveFrmsProspectiveRegister(prisma, {
         driverName: sheet.driverName,
         weekStarting: sheet.weekStarting,
@@ -263,6 +263,7 @@ export async function PATCH(
       const previousWeekSunday = getPreviousWeekSunday(week_starting);
       const prevSheet = await prisma.fatigueSheet.findFirst({
         where: {
+          tenantId: access.tenantId,
           driverName,
           weekStarting: previousWeekSunday,
         },

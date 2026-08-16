@@ -39,14 +39,14 @@ export async function GET(request: NextRequest) {
     const weeksEvaluated = [priorWeek, focusWeek];
 
     const snapshotSheets = await prisma.fatigueSheet.findMany({
-      where: { weekStarting: { in: weeksEvaluated } },
+      where: { tenantId: manager.user.tenantId, weekStarting: { in: weeksEvaluated } },
       orderBy: [{ weekStarting: "desc" }, { driverName: "asc" }],
     });
 
     const drivers = [...new Set(snapshotSheets.map((s) => s.driverName))];
     const driverSheets = drivers.length
       ? await prisma.fatigueSheet.findMany({
-          where: { driverName: { in: drivers } },
+          where: { tenantId: manager.user.tenantId, driverName: { in: drivers } },
           select: {
             driverName: true,
             weekStarting: true,

@@ -28,7 +28,9 @@ export async function GET(request: Request) {
 
   try {
     const sheets = await prisma.fatigueSheet.findMany({
-      where: access.isManager ? {} : { createdById: access.userId },
+      where: access.isManager
+        ? { tenantId: access.tenantId }
+        : { tenantId: access.tenantId, createdById: access.userId },
       select: { id: true, weekStarting: true, days: true },
     });
 

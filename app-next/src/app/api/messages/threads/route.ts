@@ -46,8 +46,20 @@ export async function GET() {
   const manager = await getManagerSession();
   const isManager = !!manager;
 
+  const tenantId = manager?.user.tenantId
+    ?? (session?.user as { tenantId?: string | null } | undefined)?.tenantId
+    ?? (
+      await prisma.user.findUnique({
+        where: { id: userId },
+        select: { tenantId: true },
+      })
+    )?.tenantId;
+  if (!tenantId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const threads = await prisma.messageThread.findMany({
-    where: isManager ? {} : { createdById: userId },
+    where: isManager
+      ? { createdBy: { tenantId } }
+      : { createdById: userId, createdBy: { tenantId } },
     orderBy: { updatedAt: "desc" },
     take: 200,
     select: {
@@ -94,10 +106,16 @@ export async function POST(req: Request) {
   if (sheetId) {
     const sheet = await prisma.fatigueSheet.findUnique({
       where: { id: sheetId },
-      select: { id: true, createdById: true },
+      select: { id: true, createdById: true, tenantId: true },
+    });
+    const poster = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true },
     });
     if (!sheet) return NextResponse.json({ error: "Sheet not found" }, { status: 404 });
-    if (sheet.createdById !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!poster || sheet.tenantId !== poster.tenantId || sheet.createdById !== userId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   const thread = await prisma.messageThread.create({

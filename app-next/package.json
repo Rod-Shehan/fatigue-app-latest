@@ -21,7 +21,8 @@
     "db:push": "prisma db push",
     "db:seed": "prisma db seed",
     "db:seed-fleet-routes": "npx tsx scripts/seed-fleet-routes.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "tenant:provision": "npx tsx scripts/provision-tenant.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

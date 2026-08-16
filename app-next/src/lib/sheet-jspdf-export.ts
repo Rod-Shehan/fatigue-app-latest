@@ -532,6 +532,7 @@ export function renderPdfHtml(opts: {
     status: string;
     signed_at: string | null;
     signature?: string | null;
+    operator_legal_name?: string | null;
     days: Array<{
       work_time?: boolean[];
       breaks?: boolean[];
@@ -600,6 +601,7 @@ export function renderPdfHtml(opts: {
     weekWorkMinutes,
     signature: sheet.signature ?? null,
     signedAt: sheet.signed_at,
+    operatorLegalName: sheet.operator_legal_name ?? null,
     checklistTicks: checklistMatrixFromDays(dayList),
   };
 
@@ -675,7 +677,11 @@ export function renderPdfHtml(opts: {
         <div class="headerRow">
           <div>
             <div class="title">${PRODUCT_NAME_EXPORT}</div>
-            <div class="subtitle">${TAGLINE_DRIVER}</div>
+            <div class="subtitle">${TAGLINE_DRIVER}${
+              sheet.operator_legal_name?.trim()
+                ? ` · ${escapeHtml(sheet.operator_legal_name.trim())}`
+                : ""
+            }</div>
           </div>
           <div class="generated">Generated: ${escapeHtml(generatedAtLabel)}</div>
         </div>
@@ -1009,6 +1015,7 @@ export type SheetJsPdfInput = {
     last_24h_rest_2?: string | null;
     last_24h_rest_3?: string | null;
     last_24h_rest_4?: string | null;
+    operator_legal_name?: string | null;
   };
   roadsidePayload: RoadsidePdfPayload;
   todayStr: string;
@@ -1062,6 +1069,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     weekStarting: sheet.week_starting,
     driverName: sheet.driver_name,
     truckRegs,
+    operatorLegalName: sheet.operator_legal_name ?? null,
     checklistTicks: checklistMatrixFromDays(dayList),
   });
 

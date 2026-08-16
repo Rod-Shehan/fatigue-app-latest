@@ -10,9 +10,9 @@ async function canMutatePreset(
 ): Promise<{ ok: true; preset: { id: string; catalogueSource: string; createdById: string | null } } | { ok: false; status: number; error: string }> {
   const preset = await prisma.routePreset.findUnique({
     where: { id: presetId },
-    select: { id: true, catalogueSource: true, createdById: true },
+    select: { id: true, catalogueSource: true, createdById: true, tenantId: true },
   });
-  if (!preset) return { ok: false, status: 404, error: "Not found" };
+  if (!preset || preset.tenantId !== access.tenantId) return { ok: false, status: 404, error: "Not found" };
   if (access.isManager) return { ok: true, preset };
   if (preset.catalogueSource === "driver" && preset.createdById === access.userId) {
     return { ok: true, preset };

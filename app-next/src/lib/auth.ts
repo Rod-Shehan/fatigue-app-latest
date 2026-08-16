@@ -19,6 +19,7 @@ import { getSystemPolicy, loginBlockedForRole } from "./system-policy";
 import { ALPHA_RESTRICTED_ERROR, isEmailAllowedForAlphaAccess } from "./auth-alpha-allowlist";
 import { assertProductionAuthConfig, isSharedLoginPasswordAllowed, useSecureAuthCookies } from "./auth-env";
 import { logLoginAttempt, type LoginAuditOutcome } from "./auth-login-audit";
+import { canAccessSheet as canAccessSheetInTenant } from "./tenant";
 
 assertProductionAuthConfig();
 
@@ -105,6 +106,7 @@ export const authOptions: NextAuthOptions = {
           name: string | null;
           role: string | null;
           disabledAt: Date | null;
+          tenantId: string;
         }) {
           try {
             return await finalizeCredentialsLogin(user);
@@ -123,7 +125,7 @@ export const authOptions: NextAuthOptions = {
         if (localDev) {
           const devUser = await prisma.user.findUnique({
             where: { id: localDev.id },
-            select: { id: true, email: true, name: true, role: true, disabledAt: true },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
           });
           if (!devUser) return null;
           return completeLogin(devUser);
@@ -133,7 +135,7 @@ export const authOptions: NextAuthOptions = {
         if (bypass) {
           const bypassUser = await prisma.user.findUnique({
             where: { id: bypass.id },
-            select: { id: true, email: true, name: true, role: true, disabledAt: true },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
           });
           if (!bypassUser) return null;
           return completeLogin(bypassUser);
@@ -143,7 +145,7 @@ export const authOptions: NextAuthOptions = {
         if (passwordlessStaging) {
           const stagingUser = await prisma.user.findUnique({
             where: { id: passwordlessStaging.id },
-            select: { id: true, email: true, name: true, role: true, disabledAt: true },
+            select: { id: true, email: true, name: true, role: true, disabledAt: true, tenantId: true },
           });
           if (!stagingUser) return null;
           return completeLogin(stagingUser);
@@ -153,7 +155,7 @@ export const authOptions: NextAuthOptions = {
 
         const existing = await prisma.user.findUnique({
           where: { email },
-          select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true },
+          select: { id: true, email: true, name: true, passwordHash: true, role: true, disabledAt: true, tenantId: true },
         });
 
         if (existing?.disabledAt) return reject("account_disabled", existing.role);
@@ -207,7 +209,14 @@ export const authOptions: NextAuthOptions = {
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, disabledAt: true, email: true },
+          select: {
+            role: true,
+            disabledAt: true,
+            email: true,
+            tenantId: true,
+            platformAdmin: true,
+            tenant: { select: { legalName: true } },
+          },
         });
         if (dbUser?.disabledAt) {
           return {};
@@ -217,6 +226,9 @@ export const authOptions: NextAuthOptions = {
           return {};
         }
         token.role = dbUser?.role ?? null;
+        token.tenantId = dbUser?.tenantId ?? null;
+        token.tenantLegalName = dbUser?.tenant.legalName ?? null;
+        token.platformAdmin = dbUser?.platformAdmin ?? false;
       }
       return token;
     },
@@ -225,14 +237,32 @@ export const authOptions: NextAuthOptions = {
       token,
     }: {
       session: import("next-auth").Session;
-      token: Record<string, unknown> & { id?: string; name?: string | null; email?: string | null; role?: string | null };
+      token: Record<string, unknown> & {
+        id?: string;
+        name?: string | null;
+        email?: string | null;
+        role?: string | null;
+        tenantId?: string | null;
+        tenantLegalName?: string | null;
+        platformAdmin?: boolean;
+      };
     }) {
       if (!token.id) return session;
       if (session.user) {
-        (session.user as { id?: string; role?: string | null }).id = token.id as string;
+        const u = session.user as {
+          id?: string;
+          role?: string | null;
+          tenantId?: string | null;
+          tenantLegalName?: string | null;
+          platformAdmin?: boolean;
+        };
+        u.id = token.id as string;
         if ("name" in token) session.user.name = (token.name as string | null) ?? session.user.name ?? null;
         if ("email" in token) session.user.email = (token.email as string | null) ?? session.user.email ?? null;
-        (session.user as { role?: string | null }).role = (token.role as string | null) ?? null;
+        u.role = (token.role as string | null) ?? null;
+        u.tenantId = (token.tenantId as string | null) ?? null;
+        u.tenantLegalName = (token.tenantLegalName as string | null) ?? null;
+        u.platformAdmin = Boolean(token.platformAdmin);
       }
       return session;
     },
@@ -242,6 +272,8 @@ export const authOptions: NextAuthOptions = {
 export type SheetAccess = {
   session: { user?: { id?: string; email?: string | null; name?: string | null } };
   userId: string;
+  tenantId: string;
+  tenantLegalName: string | null;
   isManager: boolean;
   isOwner: boolean;
 };
@@ -251,25 +283,44 @@ export async function getSessionForSheetAccess(): Promise<SheetAccess | null> {
   const userId = session?.user && "id" in session.user ? (session.user as { id: string }).id : undefined;
   if (!userId) return null;
   const role = (session?.user as { role?: string | null } | undefined)?.role;
+  let tenantId = (session?.user as { tenantId?: string | null } | undefined)?.tenantId ?? null;
+  let tenantLegalName = (session?.user as { tenantLegalName?: string | null } | undefined)?.tenantLegalName ?? null;
+  if (!tenantId) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { tenantId: true, tenant: { select: { legalName: true } } },
+    });
+    tenantId = dbUser?.tenantId ?? null;
+    tenantLegalName = dbUser?.tenant.legalName ?? null;
+  }
+  if (!tenantId) return null;
   return {
     session: session!,
     userId,
+    tenantId,
+    tenantLegalName,
     isManager: isFleetManagerRole(role),
     isOwner: isOwnerRole(role),
   };
 }
 
 export function canAccessSheet(
-  sheet: { createdById: string | null },
+  sheet: { createdById: string | null; tenantId: string },
   access: SheetAccess
 ): boolean {
-  if (access.isManager) return true;
-  return sheet.createdById === access.userId;
+  return canAccessSheetInTenant(sheet, access);
 }
 
 type AuthSessionResult = {
   session: NonNullable<Awaited<ReturnType<typeof getServerSession>>>;
-  user: { id: string; email: string | null; name: string | null; role: string | null };
+  user: {
+    id: string;
+    email: string | null;
+    name: string | null;
+    role: string | null;
+    tenantId: string;
+    platformAdmin: boolean;
+  };
 };
 
 export async function loadAuthUser(): Promise<AuthSessionResult | null> {
@@ -278,7 +329,15 @@ export async function loadAuthUser(): Promise<AuthSessionResult | null> {
   if (!userId || !session) return null;
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, name: true, role: true, disabledAt: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      disabledAt: true,
+      tenantId: true,
+      platformAdmin: true,
+    },
   });
   if (!user || user.disabledAt) return null;
   return { session, user };

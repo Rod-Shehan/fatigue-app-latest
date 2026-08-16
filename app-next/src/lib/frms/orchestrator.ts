@@ -44,10 +44,11 @@ export function buildFrmsPayloadAndHash(args: FrmsRunArgs): {
 
 export async function loadDriverWeekMap(
   prisma: PrismaClient,
-  driverName: string
+  driverName: string,
+  tenantId: string
 ): Promise<Map<string, { days: string }>> {
   const rows = await prisma.fatigueSheet.findMany({
-    where: { driverName },
+    where: { tenantId, driverName },
     select: { weekStarting: true, days: true },
   });
   return new Map(rows.map((r) => [r.weekStarting, { days: r.days }]));

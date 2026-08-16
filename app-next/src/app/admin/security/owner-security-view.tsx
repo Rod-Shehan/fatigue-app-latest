@@ -12,6 +12,7 @@ import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
 import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
+import { TenantsAdminPanel } from "./tenants-admin-panel";
 import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
 
 const POLICY_KEY = ["admin", "policy"] as const;
@@ -77,10 +78,12 @@ function PolicyToggle({
 
 export function OwnerSecurityView({
   isOwner,
+  isPlatformAdmin = false,
   userEmail,
   currentUserId,
 }: {
   isOwner: boolean;
+  isPlatformAdmin?: boolean;
   userEmail: string;
   currentUserId: string;
 }) {
@@ -204,6 +207,8 @@ export function OwnerSecurityView({
           subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
         />
+
+        {isPlatformAdmin ? <TenantsAdminPanel /> : null}
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">

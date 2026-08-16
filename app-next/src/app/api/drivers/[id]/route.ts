@@ -81,6 +81,12 @@ export async function PATCH(
       ...(cvd_medical_expiry !== undefined ? { cvdMedicalExpiry: cvdParsed ?? null } : null),
     } as Parameters<typeof prisma.driver.update>[0]["data"];
 
+    const existing = await prisma.driver.findFirst({
+      where: { id, tenantId: manager.user.tenantId },
+      select: { id: true },
+    });
+    if (!existing) return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
+
     const driver = await prisma.driver.update({
       where: { id },
       data,
@@ -94,6 +100,7 @@ export async function PATCH(
           name: driver.name,
           password,
           setByUserId: manager.user.id,
+          tenantId: manager.user.tenantId,
         });
         temporaryPassword = synced.temporaryPassword;
       } catch (err) {
@@ -126,6 +133,11 @@ export async function DELETE(
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const { id } = await params;
+    const existing = await prisma.driver.findFirst({
+      where: { id, tenantId: manager.user.tenantId },
+      select: { id: true },
+    });
+    if (!existing) return NextResponse.json({ error: "Not found or unauthorized" }, { status: 404 });
     await prisma.driver.delete({ where: { id } });
     return new NextResponse(null, { status: 204 });
   } catch {

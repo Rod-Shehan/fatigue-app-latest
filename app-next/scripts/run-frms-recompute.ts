@@ -30,15 +30,15 @@ async function main() {
 
   const prisma = new PrismaClient();
   try {
-    const weekMap = await loadDriverWeekMap(prisma, driverName);
     const focus = await prisma.fatigueSheet.findFirst({
       where: { driverName, weekStarting },
-      select: { jurisdictionCode: true, driverType: true },
+      select: { jurisdictionCode: true, driverType: true, tenantId: true },
     });
     if (!focus) {
       console.error(`No sheet for ${driverName} week ${weekStarting}`);
       process.exit(1);
     }
+    const weekMap = await loadDriverWeekMap(prisma, driverName, focus.tenantId);
 
     console.log(`Recomputing FRMS for ${driverName} (${weekStarting})…`);
     const result = await runFrmsAndPersist(prisma, {

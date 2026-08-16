@@ -48,7 +48,7 @@ async function resolvePasswordlessRosterUser(
     return { id: existing.id, email: existing.email!, name: existing.name };
   }
 
-  const user = existing ?? (await ensureLoginUserForRosterDriver(normalized, roster.name));
+  const user = existing ?? (await ensureLoginUserForRosterDriver(normalized, roster.name, roster.tenantId));
   return { id: user.id, email: user.email!, name: user.name };
 }
 

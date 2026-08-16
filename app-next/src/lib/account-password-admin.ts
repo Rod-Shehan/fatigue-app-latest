@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { EMAIL_OTHER_TENANT_ERROR } from "@/lib/tenant";
 import { buildUserPasswordWriteFields, parseOptionalPasswordInput } from "@/lib/user-password";
 
 export type SyncDriverLoginUserResult = {
@@ -11,6 +12,7 @@ export async function syncDriverLoginUser(args: {
   name: string;
   password: unknown;
   setByUserId: string;
+  tenantId: string;
 }): Promise<SyncDriverLoginUserResult> {
   const parsed = parseOptionalPasswordInput(args.password);
   if (!parsed.ok) {
@@ -24,11 +26,20 @@ export async function syncDriverLoginUser(args: {
     passwordData = await buildUserPasswordWriteFields(parsed.value, args.setByUserId);
   }
 
+  const existing = await prisma.user.findUnique({
+    where: { email: args.email },
+    select: { tenantId: true },
+  });
+  if (existing && existing.tenantId !== args.tenantId) {
+    throw new Error(EMAIL_OTHER_TENANT_ERROR);
+  }
+
   await prisma.user.upsert({
     where: { email: args.email },
     create: {
       email: args.email,
       name: args.name,
+      tenantId: args.tenantId,
       ...(passwordData ?? null),
     },
     update: {
@@ -52,6 +63,7 @@ export async function upsertManagerAccount(args: {
   name: string;
   password: unknown;
   setByUserId: string;
+  tenantId: string;
 }): Promise<ManagerAccountWriteResult> {
   const parsed = parseOptionalPasswordInput(args.password);
   if (!parsed.ok) {
@@ -67,6 +79,9 @@ export async function upsertManagerAccount(args: {
 
   const existing = await prisma.user.findUnique({ where: { email: args.email } });
   if (existing) {
+    if (existing.tenantId !== args.tenantId) {
+      throw new Error(EMAIL_OTHER_TENANT_ERROR);
+    }
     const updated = await prisma.user.update({
       where: { id: existing.id },
       data: {
@@ -84,6 +99,7 @@ export async function upsertManagerAccount(args: {
       email: args.email,
       name: args.name,
       role: "manager",
+      tenantId: args.tenantId,
       ...(passwordData ?? null),
     },
     select: { id: true, email: true, name: true },
@@ -96,6 +112,7 @@ export async function updateManagerAccount(args: {
   name?: string;
   password: unknown;
   setByUserId: string;
+  tenantId: string;
 }): Promise<ManagerAccountWriteResult> {
   const parsed = parseOptionalPasswordInput(args.password);
   if (!parsed.ok) {
@@ -104,9 +121,9 @@ export async function updateManagerAccount(args: {
 
   const target = await prisma.user.findUnique({
     where: { id: args.userId },
-    select: { id: true, email: true, name: true, role: true },
+    select: { id: true, email: true, name: true, role: true, tenantId: true },
   });
-  if (!target || target.role !== "manager") {
+  if (!target || target.role !== "manager" || target.tenantId !== args.tenantId) {
     throw new Error("Manager not found");
   }
 

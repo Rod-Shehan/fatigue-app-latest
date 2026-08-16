@@ -29,6 +29,17 @@ function getSheetDayDate(weekStarting, dayIndex) {
 }
 
 async function main() {
+  const defaultTenant = await prisma.tenant.upsert({
+    where: { id: "tenant_default" },
+    update: {},
+    create: {
+      id: "tenant_default",
+      legalName: process.env.CIRCADIA_DEFAULT_TENANT_LEGAL_NAME || "Default operator",
+      slug: "default",
+    },
+  });
+  console.log("Tenant:", defaultTenant.legalName, defaultTenant.id);
+
   const seedPassRaw = process.env.SEED_USER_PASSWORD || process.env.NEXTAUTH_CREDENTIALS_PASSWORD;
   const seedPass = typeof seedPassRaw === "string" && seedPassRaw.trim().length > 0 ? seedPassRaw.trim() : null;
   const passwordHash = seedPass ? await bcrypt.hash(seedPass, 10) : undefined;
@@ -48,6 +59,7 @@ async function main() {
       email: "driver@test.local",
       licenceNumber: "12345678",
       isActive: true,
+      tenantId: defaultTenant.id,
     },
   });
   const driver2 = await prisma.driver.upsert({
@@ -58,6 +70,7 @@ async function main() {
       name: "Second Driver",
       licenceNumber: null,
       isActive: true,
+      tenantId: defaultTenant.id,
     },
   });
   console.log("Drivers:", driver1.name, driver2.name);
@@ -70,6 +83,7 @@ async function main() {
       id: "seed-rego-1",
       label: "1ABC 234",
       sortOrder: 0,
+      tenantId: defaultTenant.id,
     },
   });
   const rego2 = await prisma.truckRego.upsert({
@@ -79,6 +93,7 @@ async function main() {
       id: "seed-rego-2",
       label: "2XYZ 567",
       sortOrder: 1,
+      tenantId: defaultTenant.id,
     },
   });
   console.log("Regos:", rego1.label, rego2.label);
@@ -102,7 +117,7 @@ async function main() {
     } else {
       routeOrder += 1;
       await prisma.routePreset.create({
-        data: { ...route, catalogueSource: "fleet", sortOrder: routeOrder, isActive: true },
+        data: { ...route, catalogueSource: "fleet", sortOrder: routeOrder, isActive: true, tenantId: defaultTenant.id },
       });
     }
   }
@@ -113,12 +128,16 @@ async function main() {
     where: { email: ownerEmail },
     update: {
       role: "owner",
+      tenantId: defaultTenant.id,
+      platformAdmin: true,
       ...(passwordHash ? { passwordHash } : {}),
     },
     create: {
       email: ownerEmail,
       name: "Organisation Owner",
       role: "owner",
+      tenantId: defaultTenant.id,
+      platformAdmin: true,
       ...(passwordHash ? { passwordHash } : {}),
     },
   });
@@ -134,12 +153,14 @@ async function main() {
     where: { email: "manager@test.local" },
     update: {
       role: "manager",
+      tenantId: defaultTenant.id,
       ...(passwordHash ? { passwordHash } : {}),
     },
     create: {
       email: "manager@test.local",
       name: "Test Manager",
       role: "manager",
+      tenantId: defaultTenant.id,
       ...(passwordHash ? { passwordHash } : {}),
     },
   });
@@ -147,12 +168,14 @@ async function main() {
     where: { email: "driver@test.local" },
     update: {
       name: "Test Driver",
+      tenantId: defaultTenant.id,
       ...(passwordHash ? { passwordHash } : {}),
     },
     create: {
       email: "driver@test.local",
       name: "Test Driver",
       role: null,
+      tenantId: defaultTenant.id,
       ...(passwordHash ? { passwordHash } : {}),
     },
   });
@@ -200,6 +223,7 @@ async function main() {
       signature: null,
       signedAt: null,
       createdById: driverUser.id,
+      tenantId: defaultTenant.id,
     },
   });
   console.log("Sheet:", sheet.driverName, "week", sheet.weekStarting, "status", sheet.status);

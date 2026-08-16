@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
 
     const sheets = await prisma.fatigueSheet.findMany({
       where: {
+        tenantId: manager.user.tenantId,
         ...(weekStarting && { weekStarting }),
         ...(driverName && { driverName: driverName }),
       },

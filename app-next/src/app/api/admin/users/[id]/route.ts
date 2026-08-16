@@ -28,8 +28,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: "No valid fields" }, { status: 400 });
     }
 
-    const target = await prisma.user.findUnique({ where: { id }, select: { role: true } });
-    if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const target = await prisma.user.findUnique({ where: { id }, select: { role: true, tenantId: true } });
+    if (!target || target.tenantId !== owner.user.tenantId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
     if (target.role === "owner") {
       return NextResponse.json({ error: "Cannot modify another owner account" }, { status: 400 });
     }
@@ -65,12 +67,14 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   try {
     const target = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true, email: true },
+      select: { id: true, role: true, email: true, tenantId: true },
     });
-    if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!target || target.tenantId !== owner.user.tenantId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     if (target.role === "owner") {
-      const ownerCount = await prisma.user.count({ where: { role: "owner" } });
+      const ownerCount = await prisma.user.count({ where: { role: "owner", tenantId: owner.user.tenantId } });
       if (ownerCount <= 1) {
         return NextResponse.json({ error: "Cannot delete the last organisation owner" }, { status: 400 });
       }

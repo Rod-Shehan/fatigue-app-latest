@@ -14,6 +14,8 @@ How sign-in works on **Circadia24** (`app-next`). Use this as the source of trut
 
 Managers **cannot** create other managers. Owners **cannot** delete their own account or the last owner.
 
+**Multi-client:** every user belongs to one `Tenant`. Managers and owners only see drivers, sheets, and users in their own client. Circadia staff listed in `CIRCADIA_PLATFORM_ADMIN_EMAILS` (or `User.platformAdmin`) can create additional clients from the Owner console. Existing data backfills to `tenant_default`.
+
 ---
 
 ## Production sign-in (https://www.circadia24.com)

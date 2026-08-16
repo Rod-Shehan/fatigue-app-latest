@@ -15,6 +15,8 @@ This document combines the original project outline with a **design review synop
 
 **Recommended path:** Option A (shared DB + selective RLS) first, with a **hybrid database routing service** so enterprise customers can upgrade to Neon branches or projects without forking application code.
 
+**Global design (2026-08-16):** Client identity is a **named EWD container** (one codebase, versioned config pack, identity stamped on every file). This outline is the Command/isolation *how*. The locked *what* is [ADR 0005](../../app-next/docs/adr/0005-client-named-ewd-container.md) and [client-named-ewd-container.md](./client-named-ewd-container.md).
+
 ---
 
 ## Part A - Current state
@@ -249,6 +251,8 @@ Merged from original outline + design review. Identity sync moved up - do not on
 | Deploy / env vars | circadia-command/docs/DEPLOY_VERCEL.md |
 | Manager critical alerts | app-next/docs/architecture/manager-critical-alert-spec.md |
 | ADR Postgres scaling | app-next/docs/adr/0002-managed-postgres-and-data-access.md |
+| **Global design: named EWD container** | [ADR 0005](../../app-next/docs/adr/0005-client-named-ewd-container.md) / [this folder](./client-named-ewd-container.md) |
+| Record custody / Plan C | app-next/docs/product/ewd-record-custody-and-pdf-delivery.md |
 
 ---
 

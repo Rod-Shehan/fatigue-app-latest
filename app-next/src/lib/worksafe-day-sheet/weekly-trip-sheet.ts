@@ -63,6 +63,8 @@ export type WeeklyTripSheetChromeInput = {
   weekWorkMinutes: number;
   signature?: string | null;
   signedAt?: string | null;
+  /** Paying operator legal name (ADR 0005). */
+  operatorLegalName?: string | null;
   /** Optional 3×7 matrix; missing/false → empty box. */
   checklistTicks?: ChecklistTickMatrix;
 };
@@ -95,6 +97,7 @@ export function renderWeeklyTripSheetHeaderHtml(input: WeeklyTripSheetChromeInpu
     <div class="wtsHead">
       <div class="wtsHeadLeft">
         <div><span class="wtsLab">WEEK ENDING:</span> <span class="wtsVal mono">${escapeHtml(ending)}</span></div>
+        <div><span class="wtsLab">OPERATOR:</span> <span class="wtsVal">${escapeHtml((input.operatorLegalName || "").trim() || "—")}</span></div>
         <div><span class="wtsLab">DRIVER'S NAME (PRINT):</span> <span class="wtsVal">${escapeHtml(driver)}</span></div>
       </div>
       <div class="wtsTitle">WEEKLY TRIP SHEET</div>
@@ -179,13 +182,14 @@ export function drawWeeklyTripSheetHeaderJsPdf(
     weekStarting: string;
     driverName: string;
     truckRegs: string[];
+    operatorLegalName?: string | null;
     checklistTicks?: ChecklistTickMatrix;
   }
 ): number {
   const { x, width } = opts;
   let y = opts.y;
   const ink: [number, number, number] = [0, 0, 0];
-  const headH = 18;
+  const headH = 22;
   const checkH = 22;
   const totalH = headH + checkH;
 
@@ -208,7 +212,14 @@ export function drawWeeklyTripSheetHeaderJsPdf(
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
-  doc.text("DRIVER'S NAME (PRINT):", x + 2, y + 11);
+  doc.text("OPERATOR:", x + 2, y + 9);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text((opts.operatorLegalName || "").trim() || "—", x + 22, y + 9);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.text("DRIVER'S NAME (PRINT):", x + 2, y + 13);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   const driverClipped = doc.splitTextToSize((opts.driverName || "").trim() || "—", colL - 4);

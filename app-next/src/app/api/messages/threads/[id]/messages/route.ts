@@ -16,10 +16,16 @@ export async function POST(
 
   const thread = await prisma.messageThread.findUnique({
     where: { id },
-    select: { id: true, createdById: true, status: true },
+    select: { id: true, createdById: true, status: true, createdBy: { select: { tenantId: true } } },
   });
   if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!isManager && thread.createdById !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (isManager) {
+    if (thread.createdBy.tenantId !== manager.user.tenantId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else if (thread.createdById !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   if ((thread.status ?? "").toLowerCase() === "closed") {
     return NextResponse.json({ error: "Thread is closed" }, { status: 400 });
   }

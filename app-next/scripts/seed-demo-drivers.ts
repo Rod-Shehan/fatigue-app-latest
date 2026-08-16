@@ -486,7 +486,7 @@ async function computeFrmsRuns(prisma: PrismaClient): Promise<void> {
   console.log("\nComputing TPMA risk runs…");
   for (const driver of ROSTER) {
     try {
-      const weekMap = await loadDriverWeekMap(prisma, driver.name);
+      const weekMap = await loadDriverWeekMap(prisma, driver.name, "tenant_default");
       const result = await runFrmsAndPersist(prisma, {
         driverName: driver.name,
         weekStarting: thisWeek,

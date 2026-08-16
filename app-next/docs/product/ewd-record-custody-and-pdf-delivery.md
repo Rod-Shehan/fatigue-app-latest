@@ -18,6 +18,8 @@
 | [saas-schedule-electronic-records-hot-cold.md](./saas-schedule-electronic-records-hot-cold.md) | Counsel-ready SaaS schedule draft (SoR pack, retrieval SLA) |
 | [record-retention-and-compliance-lookback.md](../regulatory/record-retention-and-compliance-lookback.md) | ≥3 year retention vs rule lookback vs 28-day roadside |
 | [ADR 0002](../adr/0002-managed-postgres-and-data-access.md) | Postgres is app SoR; SharePoint PDF is publish-only |
+| [ADR 0005](../adr/0005-client-named-ewd-container.md) | **Global design:** named client container; identity on every file |
+| [client-named-ewd-container.md](../../../docs/architecture/client-named-ewd-container.md) | Repo-level index for the same global design |
 | [WEEKLY_ARCHIVE_EXPORT.md](../WEEKLY_ARCHIVE_EXPORT.md) | Optional SharePoint PDF publish 30 days after attest |
 | [weekly-trip-sheet-pdf-project-scope.md](./weekly-trip-sheet-pdf-project-scope.md) | What the weekly PDF contains |
 | [compliance-checklist-modules-project-scope.md](./compliance-checklist-modules-project-scope.md) | Checklist PDF separate from fatigue; email = delivery |
@@ -219,7 +221,8 @@ Do **not** start from more PDF layout. The layout already exists.
 5. Retire Circadia holding inbox as the customer destination.  
 6. Keep 3-year JSON + signature + audit (hot/cold path unchanged).  
 7. Guides / in-app help: “Circadia keeps the electronic diary; the PDF is your printable copy; you must keep it.”  
-8. **Photos:** stop persisting data URLs on base tenants; photo retain is a paid add-on (R2 + hash), not default Neon.
+8. **Photos:** stop persisting data URLs on base tenants; photo retain is a paid add-on (R2 + hash), not default Neon.  
+9. **Client identity on the file** ([ADR 0005](../adr/0005-client-named-ewd-container.md)): stamp legal name + `tenant_id` + config pack version on PDF, SoR, Plan C. Photo retain and form modules are per-container, not a forever-global `SystemPolicy`.
 
 Production env, DNS, and mailbox changes still need **explicit owner approval** per production-change rules.
 
@@ -243,7 +246,8 @@ Use these as the briefing list when revisiting with counsel. They are product po
 12. Disclaimer on fatigue PDFs remains: Circadia24 record; **not** an NHVR-approved EWD; not legal advice.  
 13. Email is delivery, not photo custody. A mailed PDF that embeds photos is a Circadia-held reproduction of those photos — do not do that on the base plan.  
 14. Circadia’s commercial offering is the **compliance record** (create, retain, produce, weekly readable copy). The PDF renderer may change; the Electronic Record must remain producible for the retention period (§12).  
-15. **Plan C (suggestion, §13):** per-client encrypted exhibit (physical drive + that client’s key) for court/order produce. Not the live store. Clone, do not surrender the only copy. Counsel to confirm exhibit practice.
+15. **Plan C (suggestion, §13):** per-client encrypted exhibit (physical drive + that client’s key) for court/order produce. Not the live store. Clone, do not surrender the only copy. Counsel to confirm exhibit practice.  
+16. **Client identity (global, ADR 0005 / §14):** every produce artefact names the operator (`tenant_id` + legal name + config pack version). Circadia branding alone is not enough.
 
 **Draft customer-facing line (UI / onboarding):**
 
@@ -264,7 +268,8 @@ Use these as the briefing list when revisiting with counsel. They are product po
 - [ ] Are we embedding photos in a Circadia-held / emailed PDF on the base plan?  
 - [ ] If photo retain is on: are bytes off Neon (object store + hash), still retrievable for the add-on term?  
 - [ ] Are we selling “automatic weekly filing” before inbox + send ledger exist?  
-- [ ] If using Plan C: is the drive **that client only**, encrypted, cloned for the court, key not the fleet key?
+- [ ] If using Plan C: is the drive **that client only**, encrypted, cloned for the court, key not the fleet key?  
+- [ ] Does every PDF / SoR / Plan C artefact carry the client legal name + `tenant_id` + config pack version ([ADR 0005](../adr/0005-client-named-ewd-container.md))?
 
 If any answer is wrong, stop and re-read §§2–5 before coding.
 
@@ -302,11 +307,12 @@ For **one driver**, run the locked model **by hand**. For **40 drivers**, that i
 ### Today — first official driver (manual Circadia process)
 
 1. Get the **business owner’s records email in writing** (office inbox — not the driver’s login, not the workshop). That is the destination the contract will later require.  
-2. Driver logs as normal. **JSON on Neon is the record from the first tap.**  
-3. When they **sign the week**: tap **Export PDF** immediately and send that file to the records email. Keep a dated Circadia ops copy (`driver`, `weekStarting`, `signedAt`). This is forced delivery, done once by a human.  
-4. Show the driver **Produce 28 day roadside PDF** (Drive home / gear). Inspector pack, not the office file.  
-5. Checklists: useful, optional in trial. **Do not sell photo archive.** If they take photos, they are context — not Circadia’s 3-year record (code may still embed data URLs until §9.8 ships; do not advertise that).  
-6. Do not delete weeks. Do not treat the emailed PDF as permission to drop the sheet.
+2. Record the operator’s **legal name** (and a slug). Stamp that name on the Export PDF filename / cover and on any Plan C folder until `tenant_id` exists ([ADR 0005](../adr/0005-client-named-ewd-container.md)). Do not put a second company’s drivers on this deployment.  
+3. Driver logs as normal. **JSON on Neon is the record from the first tap.**  
+4. When they **sign the week**: tap **Export PDF** immediately and send that file to the records email. Keep a dated Circadia ops copy (`legal name`, `driver`, `weekStarting`, `signedAt`). This is forced delivery, done once by a human.  
+5. Show the driver **Produce 28 day roadside PDF** (Drive home / gear). Inspector pack, not the office file.  
+6. Checklists: useful, optional in trial. **Do not sell photo archive.** If they take photos, they are context — not Circadia’s 3-year record (code may still embed data URLs until §9.8 ships; do not advertise that).  
+7. Do not delete weeks. Do not treat the emailed PDF as permission to drop the sheet.
 
 Enough for **one** accredited conversion. Not enough to promise the owner “the system files itself.”
 
@@ -367,7 +373,7 @@ Availability when it matters is **A or B first**. Plan C is produce-and-spare: i
 Only that operator’s Electronic Record:
 
 - Attested weeks: `days` JSON, signature image, `signedAt`, amendment / audit  
-- Identity: driver names, `weekStarting`, sheet ids, jurisdiction  
+- Identity: **client legal name + `tenant_id` + config pack version** ([ADR 0005](../adr/0005-client-named-ewd-container.md)), driver names, `weekStarting`, sheet ids, jurisdiction  
 - Manifest: generated at (UTC/AWST), source snapshot (Plan A extract and/or Plan B restore point), checksums of each object  
 - Optional: weekly PDF reproductions as delivered (labelled reproductions)
 
@@ -407,6 +413,18 @@ Do not rewrite forty live USB sticks every night.
 
 ---
 
+## 14. Client identity on the file (global design)
+
+**Canonical:** [ADR 0005](../adr/0005-client-named-ewd-container.md) and [docs/architecture/client-named-ewd-container.md](../../../docs/architecture/client-named-ewd-container.md).
+
+Custody, PDF delivery, photo retain, and Plan C all assume **one named operator** owns the file. That is a **platform-wide** rule, not a custody-only detail:
+
+- One codebase; customisation is a **config pack**, not a forked EWD.  
+- Stamp **legal name + `tenant_id` + config pack version** on every weekly PDF, SoR pack, and Plan C drive.  
+- Until the Tenant table exists: stamp the first official driver’s **legal client name**; do not mix a second company on this deployment as if they were isolated.
+
+---
+
 ## Document control
 
 | Version | Date | Note |
@@ -415,3 +433,4 @@ Do not rewrite forty live USB sticks every night.
 | 0.2 | 2026-08-16 | Photos not in base legal record; paid photo-retain add-on; do not persist data URLs unless purchased |
 | 0.3 | 2026-08-16 | First official driver + 40-driver sale: Circadia sells the compliance record; manual PDF process today; auto-send required before fleet |
 | 0.4 | 2026-08-16 | Plan C suggestion: per-client encrypted exhibit drive + key for court produce; not live store |
+| 0.5 | 2026-08-16 | §14 pointer: client identity / named container is global design (ADR 0005), not a custody-only note |

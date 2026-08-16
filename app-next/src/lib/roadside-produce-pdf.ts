@@ -198,11 +198,16 @@ export async function buildRoadsideSheetExportInput(
     status: string;
     signed_at: string | null;
     signature: string | null;
+    operator_legal_name?: string | null;
   };
   roadsidePayload: RoadsidePdfPayload;
 }> {
   const days = parseSheetDays(row);
   const jurisdictionLabel = jurisdictionDisplayLabel(parseJurisdictionCode(row.jurisdictionCode));
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: row.tenantId },
+    select: { legalName: true },
+  });
   const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, sheetId);
   const rv = roadsideExtras.results.filter((r) => r.type === "violation");
   const rw = roadsideExtras.results.filter((r) => r.type === "warning");
@@ -224,6 +229,7 @@ export async function buildRoadsideSheetExportInput(
       status: row.status,
       signed_at: row.signedAt?.toISOString() ?? null,
       signature: row.signature,
+      operator_legal_name: tenant?.legalName ?? null,
     },
     roadsidePayload: {
       driverName: row.driverName,
@@ -265,6 +271,7 @@ export async function buildWeekPdfBodyForSheet(
       status: sheet.status,
       signed_at: sheet.signed_at,
       signature: sheet.signature,
+      operator_legal_name: sheet.operator_legal_name,
     },
     todayStr,
     generatedAtLabel,

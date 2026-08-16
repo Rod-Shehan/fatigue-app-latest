@@ -24,7 +24,7 @@ export async function GET() {
   const owner = await getOwnerSession();
   if (!owner) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
   const managers = await prisma.user.findMany({
-    where: { role: "manager" },
+    where: { role: "manager", tenantId: owner.user.tenantId },
     orderBy: [{ email: "asc" }],
     select: {
       id: true,
@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         name: displayName,
         password,
         setByUserId: owner.user.id,
+        tenantId: owner.user.tenantId,
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Invalid password";
