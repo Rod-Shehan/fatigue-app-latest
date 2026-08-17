@@ -47,6 +47,7 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
+import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL } from "@/lib/product-copy";
 import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
@@ -104,7 +105,7 @@ const EVENT_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string 
   stop: Square,
 };
 const EVENT_LABELS: Record<ActivityKey, string> = {
-  work: "Start Work",
+  work: DRIVER_CONTINUE_SHIFT_LABEL,
   break: "Start Break",
   non_work: "Non-Work Time",
   stop: "End shift",
@@ -397,7 +398,7 @@ export default function LogBar({
   const primaryLogType = (idlePrimary?.type ?? nextWorkBreak) as "work" | "break" | "non_work";
   const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
   const isStartingShift = primaryLogType === "work" && needsShiftStartSetup;
-  /** Idle after End shift inside an active 17h episode — hero is Resume shift (not a second button). */
+  /** Idle after End shift inside an active 17h episode — same Start shift hero (episode resume path). */
   const showResumeShiftPrimary =
     isLiveNow &&
     currentType === null &&
@@ -406,10 +407,10 @@ export default function LogBar({
     !idleRestBlocked;
   const primaryActionLabel = idlePrimary
     ? idlePrimary.label
-    : showResumeShiftPrimary
-      ? "Resume shift"
-      : isStartingShift
-        ? "Start shift"
+    : currentType === "break"
+      ? DRIVER_CONTINUE_SHIFT_LABEL
+      : showResumeShiftPrimary || isStartingShift
+        ? DRIVER_START_SHIFT_LABEL
         : EVENT_LABELS[nextWorkBreak];
   const primaryActionPending =
     pendingType === primaryLogType &&
@@ -734,7 +735,7 @@ export default function LogBar({
       if (nonWorkMsg) {
           setWorkWarning({
           message: nonWorkMsg,
-          confirmLabel: episodeResume ? "Resume shift anyway" : "Start anyway",
+          confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
           subtext: "Your day setup is saved. Confirm to start work on the timeline.",
             onConfirm: () => {
               setWorkWarning(null);
@@ -819,19 +820,13 @@ export default function LogBar({
       if (nonWorkMsg) {
         setWorkWarning({
           message: nonWorkMsg,
-          confirmLabel: episodeResume ? "Resume shift anyway" : "Start anyway",
-          subtext: episodeResume
-            ? "Tap Resume shift again within a few seconds to confirm."
-            : "Tap Start shift again within a few seconds to confirm.",
+          confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
+          subtext: `Tap ${DRIVER_START_SHIFT_LABEL} again within a few seconds to confirm.`,
           onConfirm: () => {
             setWorkWarning(null);
             armPending("work", episodeResume);
             if (voiceAlertsEnabled) {
-              speakVoiceAlert(
-                episodeResume
-                  ? "Tap Resume shift again to confirm."
-                  : "Tap Start shift again to confirm."
-              );
+              speakVoiceAlert(`Tap ${DRIVER_START_SHIFT_LABEL} again to confirm.`);
             }
           },
         });
@@ -848,16 +843,17 @@ export default function LogBar({
         const fixable = fixRoute != null && isComplianceFixActionable(fixRoute);
         setWorkWarning({
           message,
-          confirmLabel: episodeResume
-            ? "Resume shift anyway"
-            : needsShiftStartSetup
-              ? "Start shift anyway"
-              : "Log work anyway",
+          confirmLabel:
+            episodeResume || needsShiftStartSetup
+              ? `${DRIVER_START_SHIFT_LABEL} anyway`
+              : `${DRIVER_CONTINUE_SHIFT_LABEL} anyway`,
           subtext: fixable
             ? "Fix the issue on your record, or confirm to log work anyway."
-            : episodeResume
-              ? "Tap Resume shift again within a few seconds to confirm."
-              : "Tap Work again within a few seconds to confirm.",
+            : `Tap ${
+                episodeResume || needsShiftStartSetup
+                  ? DRIVER_START_SHIFT_LABEL
+                  : DRIVER_CONTINUE_SHIFT_LABEL
+              } again within a few seconds to confirm.`,
           ...(fixable && fixRoute
             ? {
                 setupRecordLabel: fixRoute.driverLabel,
@@ -873,10 +869,8 @@ export default function LogBar({
             if (voiceAlertsEnabled) {
               speakVoiceAlert(
                 episodeResume
-                  ? "Tap Resume shift again to confirm."
-                  : needsShiftStartSetup
-                    ? "Tap Start shift again to confirm."
-                    : "Tap Work again to confirm."
+                  ? `Tap ${DRIVER_START_SHIFT_LABEL} again to confirm.`
+                  : `Tap ${needsShiftStartSetup ? DRIVER_START_SHIFT_LABEL : DRIVER_CONTINUE_SHIFT_LABEL} again to confirm.`
               );
             }
           },
@@ -903,11 +897,9 @@ export default function LogBar({
           ? "End shift"
           : type === "break"
             ? "Break"
-            : episodeResume
-              ? "Resume shift"
-              : needsShiftStartSetup
-                ? "Start shift"
-                : "Work";
+            : episodeResume || needsShiftStartSetup
+              ? DRIVER_START_SHIFT_LABEL
+              : DRIVER_CONTINUE_SHIFT_LABEL;
       speakVoiceAlert(`Tap ${label} again to confirm.`);
     }
   };
@@ -925,7 +917,9 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        getNextWorkBreakType(currentType) === "work" && needsShiftStartSetup ? "Start shift" : "Start Work",
+        getNextWorkBreakType(currentType) === "work" && needsShiftStartSetup
+          ? DRIVER_START_SHIFT_LABEL
+          : DRIVER_CONTINUE_SHIFT_LABEL,
       break: "Start Break",
       stop: EVENT_LABELS.stop,
     },

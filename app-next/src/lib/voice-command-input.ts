@@ -22,7 +22,7 @@ export function normalizeVoiceTranscript(raw: string): string {
  * driver would say — easier for STT and less ambiguous than single words.
  */
 const PHRASES: Record<VoiceIntent, readonly string[]> = {
-  work: ["start shift", "start my shift", "begin shift", "log work"],
+  work: ["start shift", "start my shift", "begin shift", "continue shift", "log work"],
   break: ["take a break", "start break", "rest break", "log break"],
   stop: ["end shift", "end my shift", "finish shift", "finish my shift", "stop shift"],
 } as const;

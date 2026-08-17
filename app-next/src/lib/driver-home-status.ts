@@ -68,7 +68,7 @@ export function getDriverHomeShiftStatus(
     return {
       activity: "break",
       headline: `On break · ${elapsed}`,
-      detail: "Tap Work when you resume or End shift when finished.",
+      detail: "Tap Continue shift when you resume or End shift when finished.",
     };
   }
 

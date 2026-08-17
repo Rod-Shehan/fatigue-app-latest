@@ -3,7 +3,11 @@ import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
-import { EDIT_PREVIOUS_WEEK_BUTTON_LABEL } from "@/lib/product-copy";
+import {
+  DRIVER_CONTINUE_SHIFT_LABEL,
+  DRIVER_START_SHIFT_LABEL,
+  EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
+} from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
@@ -123,29 +127,25 @@ export function DriverGuideArticle() {
         <p>The buttons change to match what you are doing:</p>
         <GuideDiagram title="Log bar">
           {`┌─────────────────────────────┐
-│ [ Start shift ] [ Break ]   │
+│ [ ${DRIVER_START_SHIFT_LABEL} ] [ Break ]   │
 │           [ End shift ]     │
 └─────────────────────────────┘`}
         </GuideDiagram>
         <TwoColTable
           rows={[
-            ["Start shift", "Starts work on the timeline (opens Set up day first if details are missing)"],
-            ["Start Work / Work", "Begin or resume driving / on-duty work"],
+            [DRIVER_START_SHIFT_LABEL, "Starts work on the timeline (opens Set up day first if details are missing)"],
+            [DRIVER_CONTINUE_SHIFT_LABEL, "Back to work after a break — same shift, not a new start"],
             ["Break", "Short rest during work (30 minutes or less)"],
-            [
-              "Resume shift",
-              "Same hero as Start shift when continuing the same episode after End shift (not a second button)",
-            ],
             ["End shift", "You finish work — enter finish time and end km"],
           ]}
         />
         <GuideDiagram title="Activity flow (read left to right)">
           {`  OFF / Non-work
        │
-       ▼ Start shift (after start km)
+       ▼ ${DRIVER_START_SHIFT_LABEL} (after start km)
      WORK ──────► Tap Break ──► BREAK
        │                           │
-       │◄──── Tap Work again ──────┘
+       │◄──── ${DRIVER_CONTINUE_SHIFT_LABEL} ──────┘
        │
        ▼ Tap End shift (+ end km)
   OFF / Non-work`}
@@ -153,8 +153,8 @@ export function DriverGuideArticle() {
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Simple rule:</p>
         <p>Tap the button that matches what you are doing now.</p>
         <p className="mt-2">
-          Then tap again within a few seconds when the button pulses — that second tap is what records the event (Start
-          shift, Work, Break, End shift).
+          Then tap again within a few seconds when the button pulses — that second tap is what records the event (
+          {DRIVER_START_SHIFT_LABEL}, {DRIVER_CONTINUE_SHIFT_LABEL}, Break, End shift).
         </p>
         <p className="mt-2">
           When your organisation has the GPS trail addon on and the vehicle is moving, Work / Break / End shift stay
@@ -162,13 +162,13 @@ export function DriverGuideArticle() {
           that fills while you are stopped. Pull over and wait a few seconds after you stop — then tap. If you already
           tapped once to confirm, the second tap still works. View diary stays available.
         </p>
-        <p className="mt-2">You cannot start Work until start km is on today&apos;s card (see section 7).</p>
+        <p className="mt-2">You cannot start a shift until start km is on today&apos;s card (see section 7).</p>
       </section>
 
       <section className={sectionClass}>
         <h2 className={h2Class}>5. Non-work time</h2>
         <ul className={ulClass}>
-          <li>If you do not tap Work or Break, the app shows non-work.</li>
+          <li>If you do not tap Start shift, Continue shift, or Break, the app shows non-work.</li>
           <li>
             Break only appears when you tap Break. A short logged break (30 minutes or less) stays Break; longer logged
             breaks become non-work.
@@ -463,8 +463,8 @@ export function DriverGuideArticle() {
             that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
             day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
-          <li>Tap Start shift when you begin (Confirm Set up day if prompted — that starts work)</li>
-          <li>Tap Break for short rest</li>
+          <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted — that starts work)</li>
+          <li>Tap Break for short rest, then {DRIVER_CONTINUE_SHIFT_LABEL} when you go back to work</li>
           <li>Tap End shift when finished — enter finish time and end km</li>
           <li>When the week has ended — Sign</li>
         </ol>
@@ -485,11 +485,8 @@ export function DriverGuideArticle() {
               "Weekly Trip Sheet (PDF)",
               "Week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature with the day sheets",
             ],
-            ["Start shift / End shift", "Begin / finish work for a shift"],
-            [
-              "Resume shift",
-              "Hero label instead of Start shift when continuing the same episode after End shift",
-            ],
+            [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish work for a shift"],
+            [DRIVER_CONTINUE_SHIFT_LABEL, "Back to work after a break (same shift)"],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],
             ["Rego", "Number plate"],

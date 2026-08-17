@@ -8,7 +8,7 @@ import {
 describe("matchStrictVoiceIntent", () => {
   it("matches exact sensible phrases only", () => {
     expect(matchStrictVoiceIntent("start shift")?.intent).toBe("work");
-    expect(matchStrictVoiceIntent("start my shift")?.intent).toBe("work");
+    expect(matchStrictVoiceIntent("continue shift")?.intent).toBe("work");
     expect(matchStrictVoiceIntent("take a break")?.intent).toBe("break");
     expect(matchStrictVoiceIntent("End Shift")?.intent).toBe("stop");
     expect(matchStrictVoiceIntent("finish my shift")?.intent).toBe("stop");

@@ -3,7 +3,9 @@ import { DriverAccessGate } from "@/components/auth/DriverAccessGate";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 import {
+  DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_HELP_RECORDS_SIGNING_BULLETS,
+  DRIVER_START_SHIFT_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
   SHEET_ATTESTATION_WORKFLOW,
@@ -107,8 +109,11 @@ export default async function DriverHelpPage() {
                 <strong className="text-slate-700 dark:text-slate-200">end km</strong> yourself.
               </li>
               <li>
-                <strong className="text-slate-700 dark:text-slate-200">Start shift / Work / Break / End shift</strong>{" "}
-                — tap when your activity changes. These buttons log your day.
+                <strong className="text-slate-700 dark:text-slate-200">
+                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} / Break / End shift
+                </strong>{" "}
+                — tap when your activity changes. These buttons log your day. {DRIVER_START_SHIFT_LABEL} begins work;{" "}
+                {DRIVER_CONTINUE_SHIFT_LABEL} is after a break.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Break</strong> — when you tap Break for a short rest

@@ -60,7 +60,7 @@ export interface DriverActionHeroProps {
 }
 
 /**
- * Expanded round primary action — Start Work / Start Break / Continue rest.
+ * Expanded round primary action — Start shift / Continue shift / Start Break / Continue rest.
  * Button colour reflects live operational state (not sheet retrospective warnings).
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({

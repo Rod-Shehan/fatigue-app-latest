@@ -1,3 +1,5 @@
+import { DRIVER_START_SHIFT_LABEL } from "@/lib/product-copy";
+
 export type PrimaryLogAction = {
   /** The event type to be logged if the primary action is tapped. */
   type: "work" | "break" | "non_work";
@@ -27,7 +29,7 @@ export function resolveIdlePrimaryLogAction(options: {
       helper: `7h rest required · ${remainingLabel} remaining`,
     };
   }
-  return { type: "work", label: "Start shift", helper: null };
+  return { type: "work", label: DRIVER_START_SHIFT_LABEL, helper: null };
 }
 
 /** Two-Up idle primary when rolling 24h non-work is below 7h (Reg 184E(3)(a)). */

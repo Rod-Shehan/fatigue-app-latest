@@ -191,3 +191,8 @@ export function formatContinuedShiftRouteBanner(previousDayName: string): string
 
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
   "Suggested from your open shift — Confirm in Set up day to save on this day's record (and the timesheet/PDF).";
+
+/** First work of a shift (idle / after End shift). */
+export const DRIVER_START_SHIFT_LABEL = "Start shift";
+/** Return to work after a break — same shift, not a new start. */
+export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";

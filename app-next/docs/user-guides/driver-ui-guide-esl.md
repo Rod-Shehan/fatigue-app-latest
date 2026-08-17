@@ -53,9 +53,8 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 | Button | When it shows / what to tap |
 |--------|------------------------------|
 | **Start shift** | Starts work on the timeline (opens Set up day first if details are missing; Confirm finishes the start) |
-| **Start Work / Work** | Begin or resume driving/on-duty work |
+| **Continue shift** | Back to work after a break — same shift, not a new start |
 | **Break** | Short rest during work (30 minutes or less) |
-| **Resume shift** | Same hero button as Start shift when you are continuing the *same* fatigue episode after End shift (not a second button) |
 | **End shift** | You finish work — enter finish time and end km |
 
 ```
@@ -71,24 +70,24 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 flowchart LR
   A[Off / Non-work] -->|Start shift + start km| B[Work]
   B -->|Break| C[Break]
-  C -->|Work| B
+  C -->|Continue shift| B
   B -->|End shift + end km| A
 ```
 
-**Simple rule:** Tap the button that matches **what you are doing now**. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start shift, Work, Break, End shift).
+**Simple rule:** Tap the button that matches **what you are doing now**. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start shift, Continue shift, Break, End shift).
 
 **While the vehicle is moving** (when your organisation has the GPS trail addon on): Work / Break / End shift stay locked but you still see the usual timer and labels (dimmed), with **Moving · pull over to unlock** and a ring that fills while you are stopped. Pull over and wait a few seconds — then tap. If you already tapped once to confirm, the second tap still works. **View diary** stays available.
 
-You **cannot** start Work until **start km** is on today's card (see section 7).
+You **cannot** start a shift until **start km** is on today's card (see section 7).
 
 ---
 
 ## 5. Non-work time
 
-- If you do **not** tap Work or Break, the app shows **non-work**.
+- If you do **not** tap Start shift, Continue shift, or Break, the app shows **non-work**.
 - **Break** only appears when you **tap Break**. A short logged break (30 minutes or less) stays Break; longer logged breaks become **non-work**.
 - The app does **not** invent Break from a short gap after **End shift** or other time off.
-- When you finish for the day, tap **End shift**. From that moment, time is **non-work** until you tap Work again.
+- When you finish for the day, tap **End shift**. From that moment, time is **non-work** until you tap **Start shift** again.
 
 ---
 
@@ -277,7 +276,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to Circadia. Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
 5. Type **start km**
 6. Tap **Start shift** when you begin
-7. Tap **Break** for short rest
+7. Tap **Break** for short rest, then **Continue shift** when you go back to work
 8. Tap **End shift** when finished — enter finish time and end km
 9. When the **week has ended** — **Sign**
 
@@ -293,7 +292,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files — not combined). **Email checklist week packs** sends those to Circadia. Prestart asks if you are responsible (two-up second drivers can say no with a reason). Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
 | Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature with the day sheets |
 | Start shift / End shift | Begin / finish work for a shift |
-| Resume shift | Hero label instead of Start shift when continuing the same episode after End shift |
+| Continue shift | Back to work after a break (same shift) |
 | Week | Sunday–Saturday slice of your record |
 | Sign | You attest the week is correct |
 | Rego | Number plate |
