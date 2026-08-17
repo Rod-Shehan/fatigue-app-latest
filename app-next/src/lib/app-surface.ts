@@ -4,14 +4,15 @@
  * - legacy     — combined driver + manager (parked original)
  * - ewd        — driver PWA only
  * - enterprise — manager/owner + APIs (full fleet functions; no driver lobby)
+ * - circadia   — Circadia staff client manager (desktop PWA on admin.circadia24.com)
  *
  * Set APP_SURFACE / NEXT_PUBLIC_APP_SURFACE, or infer from Host
- * (legacy. / ewd. / enterprise. subdomains).
+ * (legacy. / ewd. / enterprise. / admin. subdomains).
  */
 
-export type AppSurface = "legacy" | "ewd" | "enterprise";
+export type AppSurface = "legacy" | "ewd" | "enterprise" | "circadia";
 
-export const APP_SURFACE_VALUES: AppSurface[] = ["legacy", "ewd", "enterprise"];
+export const APP_SURFACE_VALUES: AppSurface[] = ["legacy", "ewd", "enterprise", "circadia"];
 
 export type LobbyBranchId = "driver" | "manager" | "owner";
 
@@ -20,6 +21,7 @@ function normalizeSurface(raw: string | undefined | null): AppSurface | null {
   if (v === "legacy" || v === "v1" || v === "classic") return "legacy";
   if (v === "ewd" || v === "driver") return "ewd";
   if (v === "enterprise" || v === "manager") return "enterprise";
+  if (v === "circadia" || v === "admin") return "circadia";
   return null;
 }
 
@@ -28,6 +30,7 @@ export function appSurfaceFromHost(host: string | null | undefined): AppSurface 
   if (!host) return null;
   const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
   if (!hostname) return null;
+  if (hostname === "admin" || hostname.startsWith("admin.")) return "circadia";
   if (hostname === "legacy" || hostname.startsWith("legacy.")) return "legacy";
   if (hostname === "ewd" || hostname.startsWith("ewd.")) return "ewd";
   if (hostname === "enterprise" || hostname.startsWith("enterprise.")) return "enterprise";
@@ -36,17 +39,19 @@ export function appSurfaceFromHost(host: string | null | undefined): AppSurface 
 
 /**
  * Resolve active surface.
- * Priority: explicit env → host → legacy (safe default = combined app).
+ * Priority: admin host always wins (same Vercel project as www) → explicit env → other hosts → legacy.
  */
 export function resolveAppSurface(opts?: {
   envValue?: string | null;
   publicEnvValue?: string | null;
   host?: string | null;
 }): AppSurface {
+  const fromHost = appSurfaceFromHost(opts?.host);
+  if (fromHost === "circadia") return "circadia";
   return (
     normalizeSurface(opts?.envValue) ??
     normalizeSurface(opts?.publicEnvValue) ??
-    appSurfaceFromHost(opts?.host) ??
+    fromHost ??
     "legacy"
   );
 }
@@ -75,6 +80,8 @@ export function appSurfaceLabel(surface: AppSurface): string {
       return "EWD";
     case "enterprise":
       return "Enterprise";
+    case "circadia":
+      return "Client Manager";
   }
 }
 
@@ -85,6 +92,8 @@ export function documentTitleForSurface(surface: AppSurface): string {
       return "Circadia24 EWD";
     case "enterprise":
       return "Circadia24 Enterprise";
+    case "circadia":
+      return "Circadia24 Client Manager";
     case "legacy":
     default:
       return "Circadia24 Helper";
@@ -103,6 +112,8 @@ export function appSurfaceTagline(surface: AppSurface): string {
       return "Electronic Work Diary — driver logging on this device";
     case "enterprise":
       return "Fleet oversight, records, and compliance processing";
+    case "circadia":
+      return "Circadia staff desk for paying operators";
   }
 }
 
@@ -118,6 +129,8 @@ export function lobbyBranchesForSurface(surface: AppSurface): LobbyBranchId[] {
       return ["driver"];
     case "enterprise":
       return ["manager", "owner"];
+    case "circadia":
+      return [];
     case "legacy":
     default:
       return ["driver", "manager", "owner"];
@@ -142,6 +155,10 @@ export function isPathAllowedOnSurface(pathname: string, surface: AppSurface): b
     path.startsWith("/api/")
   ) {
     return true;
+  }
+
+  if (surface === "circadia") {
+    return path === "/circadia" || path.startsWith("/circadia/");
   }
 
   if (surface === "ewd") {
@@ -176,7 +193,9 @@ function siblingBaseUrl(surface: AppSurface): string | null {
       ? process.env.NEXT_PUBLIC_EWD_APP_URL
       : surface === "enterprise"
         ? process.env.NEXT_PUBLIC_ENTERPRISE_APP_URL
-        : process.env.NEXT_PUBLIC_LEGACY_APP_URL;
+        : surface === "circadia"
+          ? process.env.NEXT_PUBLIC_CIRCADIA_DESK_URL
+          : process.env.NEXT_PUBLIC_LEGACY_APP_URL;
   const trimmed = raw?.trim();
   if (!trimmed) return null;
   return trimmed.replace(/\/+$/, "");
@@ -191,6 +210,10 @@ export function redirectForBlockedPath(
   current: AppSurface
 ): SurfaceRedirect {
   const path = pathname.replace(/\/+$/, "") || "/";
+
+  if (current === "circadia") {
+    return { location: "/", external: false };
+  }
 
   if (current === "ewd") {
     const enterprise = siblingBaseUrl("enterprise");

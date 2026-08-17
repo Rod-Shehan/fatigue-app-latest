@@ -24,8 +24,8 @@ export const TAGLINE_VEHICLE = "WA Commercial Vehicle Fatigue Management";
 export const TAGLINE_DRIVER = "WA Commercial Driver Fatigue Management";
 
 /** PWA / home-screen icons per surface (Circadia mark + simple name). */
-export function pwaIconPathsForSurface(surface: "legacy" | "ewd" | "enterprise") {
-  const key = surface === "legacy" ? "helper" : surface;
+export function pwaIconPathsForSurface(surface: "legacy" | "ewd" | "enterprise" | "circadia") {
+  const key = surface === "ewd" ? "ewd" : surface === "enterprise" ? "enterprise" : "helper";
   return {
     icon192: `/icons/icon-${key}-192.png`,
     icon512: `/icons/icon-${key}-512.png`,

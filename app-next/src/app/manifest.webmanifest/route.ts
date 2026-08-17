@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server";
-import {
-  appSurfaceTagline,
-  documentTitleForSurface,
-  getAppSurface,
-} from "@/lib/app-surface";
+import { appSurfaceTagline, documentTitleForSurface, getAppSurface } from "@/lib/app-surface";
 import { pwaIconPathsForSurface } from "@/lib/branding";
+import { circadiaDeskManifest } from "@/lib/circadia-desk";
 
 /**
- * Host-aware web app manifest so installed shortcuts match Helper / EWD / Enterprise.
+ * Host-aware web app manifest so installed shortcuts match Helper / EWD / Enterprise / Circadia desk.
  */
 export async function GET(request: Request) {
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const surface = getAppSurface(host);
+
+  if (surface === "circadia") {
+    return NextResponse.json(circadiaDeskManifest({ hostScoped: true }), {
+      headers: {
+        "Content-Type": "application/manifest+json; charset=utf-8",
+        "Cache-Control": "public, max-age=0, must-revalidate",
+      },
+    });
+  }
+
   const name = documentTitleForSurface(surface);
   const shortName =
     surface === "enterprise" ? "Enterprise" : surface === "ewd" ? "EWD" : "Helper";

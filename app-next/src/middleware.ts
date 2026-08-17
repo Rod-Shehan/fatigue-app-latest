@@ -7,6 +7,7 @@ import {
   isPathAllowedOnSurface,
   redirectForBlockedPath,
 } from "@/lib/app-surface";
+import { circadiaDeskPublicUrl, CIRCADIA_DESK_PATH } from "@/lib/circadia-desk";
 
 const PROTECTED_PREFIXES = [
   "/driver",
@@ -39,6 +40,22 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/api/auth")) {
     return applySecurityHeaders(NextResponse.next());
+  }
+
+  if (surface === "circadia" && (pathname === "/" || pathname === "")) {
+    const url = request.nextUrl.clone();
+    url.pathname = CIRCADIA_DESK_PATH;
+    return applySecurityHeaders(NextResponse.rewrite(url));
+  }
+
+  const deskUrl = circadiaDeskPublicUrl();
+  if (
+    deskUrl &&
+    surface !== "circadia" &&
+    (pathname === CIRCADIA_DESK_PATH || pathname.startsWith(`${CIRCADIA_DESK_PATH}/`))
+  ) {
+    const suffix = pathname === CIRCADIA_DESK_PATH ? "/" : pathname.slice(CIRCADIA_DESK_PATH.length);
+    return applySecurityHeaders(NextResponse.redirect(`${deskUrl}${suffix}`));
   }
 
   // Soft product split: send wrong-audience pages to sibling host or lobby.
@@ -85,6 +102,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/driver/:path*",
     "/sheets/:path*",
     "/manager/:path*",
@@ -95,7 +113,5 @@ export const config = {
     "/circadia/:path*",
     "/access-restricted",
     "/api/:path*",
-    // Lobby + surface redirects need Host / APP_SURFACE on `/` only via explicit visit;
-    // blocked paths above cover cross-surface navigations.
   ],
 };

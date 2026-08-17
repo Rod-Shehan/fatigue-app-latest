@@ -13,7 +13,7 @@ export async function GET() {
   return new NextResponse(SOURCE, {
     headers: {
       "Content-Type": "application/javascript; charset=utf-8",
-      "Service-Worker-Allowed": "/circadia/",
+      "Service-Worker-Allowed": "/",
       "Cache-Control": "public, max-age=0, must-revalidate",
     },
   });

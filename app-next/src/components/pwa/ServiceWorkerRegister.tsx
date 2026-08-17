@@ -11,6 +11,12 @@ export function ServiceWorkerRegister() {
     if (process.env.NODE_ENV !== "production") return;
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
     if (window.location.pathname.startsWith("/circadia")) return;
+    if (
+      window.location.hostname === "admin.circadia24.com" ||
+      window.location.hostname.startsWith("admin.")
+    ) {
+      return;
+    }
 
     navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
       /* optional — PWA still works without SW */

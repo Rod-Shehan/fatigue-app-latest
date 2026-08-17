@@ -10,4 +10,10 @@ describe("circadia desk PWA", () => {
     expect(manifest.display_override).toContain("window-controls-overlay");
     expect(manifest.display_override).not.toContain("fullscreen");
   });
+
+  it("uses the admin host as the desktop PWA root", () => {
+    const manifest = circadiaDeskManifest({ hostScoped: true });
+    expect(manifest.start_url).toBe("/");
+    expect(manifest.scope).toBe("/");
+  });
 });

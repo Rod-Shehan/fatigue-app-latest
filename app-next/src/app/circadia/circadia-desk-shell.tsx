@@ -20,8 +20,11 @@ export function CircadiaDeskShell({ children }: { children: ReactNode }) {
       setInstalled(true);
     }
     if ("serviceWorker" in navigator) {
+      const hostScoped =
+        window.location.hostname === "admin.circadia24.com" ||
+        window.location.hostname.startsWith("admin.");
       void navigator.serviceWorker.register(`${CIRCADIA_DESK_PATH}/sw.js`, {
-        scope: `${CIRCADIA_DESK_PATH}/`,
+        scope: hostScoped ? "/" : `${CIRCADIA_DESK_PATH}/`,
       });
     }
     const onPrompt = (event: Event) => {
