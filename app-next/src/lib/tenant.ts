@@ -27,7 +27,7 @@ export const DEFAULT_CLIENT_ENTITLEMENTS = {
 } as const;
 
 export type ClientEntitlements = {
-  [K in keyof typeof DEFAULT_CLIENT_ENTITLEMENTS]: boolean;
+  -readonly [K in keyof typeof DEFAULT_CLIENT_ENTITLEMENTS]: boolean;
 };
 
 export const ENTITLEMENT_LABELS: Record<keyof ClientEntitlements, string> = {
@@ -48,7 +48,7 @@ export function parseTenantStatus(raw: unknown): TenantStatus | null {
 
 export function parseClientEntitlements(raw: unknown): ClientEntitlements {
   const src = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : {};
-  const out = { ...DEFAULT_CLIENT_ENTITLEMENTS };
+  const out: ClientEntitlements = { ...DEFAULT_CLIENT_ENTITLEMENTS };
   for (const key of Object.keys(DEFAULT_CLIENT_ENTITLEMENTS) as (keyof ClientEntitlements)[]) {
     if (typeof src[key] === "boolean") out[key] = src[key];
   }
