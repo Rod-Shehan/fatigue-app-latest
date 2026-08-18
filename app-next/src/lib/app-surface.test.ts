@@ -4,6 +4,7 @@ import {
   documentTitleForSurface,
   isPathAllowedOnSurface,
   lobbyBranchesForSurface,
+  redirectForBlockedPath,
   resolveAppSurface,
 } from "./app-surface";
 
@@ -62,6 +63,17 @@ describe("app-surface", () => {
     expect(isPathAllowedOnSurface("/circadia", "circadia")).toBe(true);
     expect(isPathAllowedOnSurface("/manager", "circadia")).toBe(false);
     expect(isPathAllowedOnSurface("/admin/security", "circadia")).toBe(false);
+  });
+
+  it("sends random admin traffic to the marketing site, not the public lobby", () => {
+    expect(redirectForBlockedPath("/", "circadia")).toEqual({
+      location: "https://www.circadia24.com",
+      external: true,
+    });
+    expect(redirectForBlockedPath("/manager", "circadia")).toEqual({
+      location: "https://www.circadia24.com",
+      external: true,
+    });
   });
 
   it("builds document titles per product surface", () => {

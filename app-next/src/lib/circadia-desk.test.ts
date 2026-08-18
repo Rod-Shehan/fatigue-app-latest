@@ -11,9 +11,10 @@ describe("circadia desk PWA", () => {
     expect(manifest.display_override).not.toContain("fullscreen");
   });
 
-  it("uses the admin host as the desktop PWA root", () => {
+  it("uses the admin host as the desktop PWA identity, with start URL on the desk path", () => {
     const manifest = circadiaDeskManifest({ hostScoped: true });
-    expect(manifest.start_url).toBe("/");
-    expect(manifest.scope).toBe("/");
+    expect(manifest.id).toBe("https://admin.circadia24.com/");
+    expect(manifest.start_url).toBe(CIRCADIA_DESK_PATH);
+    expect(manifest.scope).toBe(CIRCADIA_DESK_PATH);
   });
 });

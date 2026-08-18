@@ -7,7 +7,7 @@ import {
   isPathAllowedOnSurface,
   redirectForBlockedPath,
 } from "@/lib/app-surface";
-import { circadiaDeskPublicUrl, CIRCADIA_DESK_PATH } from "@/lib/circadia-desk";
+import { CIRCADIA_DESK_PATH, MARKETING_SITE_URL } from "@/lib/circadia-desk";
 
 const PROTECTED_PREFIXES = [
   "/driver",
@@ -42,20 +42,12 @@ export async function middleware(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
-  if (surface === "circadia" && (pathname === "/" || pathname === "")) {
-    const url = request.nextUrl.clone();
-    url.pathname = CIRCADIA_DESK_PATH;
-    return applySecurityHeaders(NextResponse.rewrite(url));
-  }
-
-  const deskUrl = circadiaDeskPublicUrl();
-  if (
-    deskUrl &&
-    surface !== "circadia" &&
-    (pathname === CIRCADIA_DESK_PATH || pathname.startsWith(`${CIRCADIA_DESK_PATH}/`))
-  ) {
-    const suffix = pathname === CIRCADIA_DESK_PATH ? "/" : pathname.slice(CIRCADIA_DESK_PATH.length);
-    return applySecurityHeaders(NextResponse.redirect(`${deskUrl}${suffix}`));
+  if (surface === "circadia") {
+    const onDesk =
+      pathname === CIRCADIA_DESK_PATH || pathname.startsWith(`${CIRCADIA_DESK_PATH}/`);
+    if (!onDesk && !pathname.startsWith("/api/")) {
+      return applySecurityHeaders(NextResponse.redirect(MARKETING_SITE_URL));
+    }
   }
 
   // Soft product split: send wrong-audience pages to sibling host or lobby.
@@ -102,16 +94,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
-    "/driver/:path*",
-    "/sheets/:path*",
-    "/manager/:path*",
-    "/messages/:path*",
-    "/drivers/:path*",
-    "/admin/:path*",
-    "/circadia",
-    "/circadia/:path*",
-    "/access-restricted",
-    "/api/:path*",
+    "/((?!_next/static|_next/image|favicon.ico|branding/).*)",
   ],
 };

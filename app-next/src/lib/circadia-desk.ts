@@ -5,8 +5,9 @@ export const CIRCADIA_DESK_HOST = "admin.circadia24.com";
 export const CIRCADIA_DESK_TITLE = "Circadia24 Client Manager";
 export const CIRCADIA_DESK_SHORT_NAME = "Client Manager";
 export const CIRCADIA_DESK_TAGLINE = "Circadia staff desk for paying operators — desktop app, not the public website.";
+export const MARKETING_SITE_URL = "https://www.circadia24.com";
 
-/** Set after DNS + Vercel alias. Until then, /circadia on www remains a fallback. */
+/** Staff/dev desk host only. Never send the public marketing site here. */
 export function circadiaDeskPublicUrl(): string | null {
   const raw = process.env.NEXT_PUBLIC_CIRCADIA_DESK_URL?.trim();
   if (!raw) return null;
@@ -21,8 +22,8 @@ export function circadiaDeskManifest(opts?: { hostScoped?: boolean }) {
     name: CIRCADIA_DESK_TITLE,
     short_name: CIRCADIA_DESK_SHORT_NAME,
     description: CIRCADIA_DESK_TAGLINE,
-    start_url: hostScoped ? "/" : CIRCADIA_DESK_PATH,
-    scope: hostScoped ? "/" : CIRCADIA_DESK_PATH,
+    start_url: CIRCADIA_DESK_PATH,
+    scope: CIRCADIA_DESK_PATH,
     display: "standalone",
     display_override: ["window-controls-overlay", "standalone"],
     orientation: "any",

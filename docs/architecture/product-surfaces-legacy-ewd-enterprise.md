@@ -40,14 +40,14 @@ If `APP_SURFACE` / `NEXT_PUBLIC_APP_SURFACE` are unset, middleware and the home 
 | **legacy** | Driver + Manager + Owner | All routes |
 | **ewd** | Driver only | `/driver`, `/sheets*`; manager/admin → Enterprise URL (if set) |
 | **enterprise** | Manager + Owner | Manager/admin + `/sheets/[id]*` for review; `/driver` and `/sheets` list/new → EWD URL (if set) |
-| **circadia** | None (desk sign-in) | `/` rewrites to `/circadia`; driver/manager/owner console blocked |
+| **circadia** | None (desk sign-in) | `/circadia` is the staff desk. Random traffic on `/` and other paths redirects to `https://www.circadia24.com`. Never funnel www `/circadia` to admin. |
 
 APIs remain on **enterprise** (and legacy) so connected EWD can sync. Route handlers keep existing auth.
 
 ## Ops checklist (do not run without owner approval)
 
 1. Add domain aliases: `legacy`, `ewd`, `enterprise`, `admin` on the appropriate Vercel project(s).
-2. Set `APP_SURFACE` + `NEXTAUTH_URL` (+ sibling `NEXT_PUBLIC_*_APP_URL`) per host. For `admin.circadia24.com` on the shared project, Host inference is enough; set `NEXT_PUBLIC_CIRCADIA_DESK_URL=https://admin.circadia24.com` after the alias is live so `/circadia` on www redirects to the desk.
+2. Set `APP_SURFACE` + `NEXTAUTH_URL` (+ sibling `NEXT_PUBLIC_*_APP_URL`) per host. For `admin.circadia24.com` on the shared project, Host inference is enough. Do **not** redirect `www.circadia24.com/circadia` to admin; that host is the marketing site. Random admin traffic goes to `https://www.circadia24.com`.
 3. Keep current `www` on **legacy** until EWD/Enterprise are verified.
 4. Point drivers at EWD; managers at Enterprise; Circadia staff at `admin.circadia24.com`; leave Legacy as fallback.
 

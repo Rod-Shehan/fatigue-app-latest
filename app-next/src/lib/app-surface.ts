@@ -8,7 +8,12 @@
  *
  * Set APP_SURFACE / NEXT_PUBLIC_APP_SURFACE, or infer from Host
  * (legacy. / ewd. / enterprise. / admin. subdomains).
+ *
+ * admin.circadia24.com is staff/dev only. Random traffic there goes to
+ * https://www.circadia24.com. Do not funnel the public site to admin.
  */
+
+import { MARKETING_SITE_URL } from "./circadia-desk";
 
 export type AppSurface = "legacy" | "ewd" | "enterprise" | "circadia";
 
@@ -212,7 +217,7 @@ export function redirectForBlockedPath(
   const path = pathname.replace(/\/+$/, "") || "/";
 
   if (current === "circadia") {
-    return { location: "/", external: false };
+    return { location: MARKETING_SITE_URL, external: true };
   }
 
   if (current === "ewd") {
