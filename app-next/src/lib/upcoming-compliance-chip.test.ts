@@ -65,6 +65,24 @@ describe("upcoming-compliance-chip", () => {
     ).toMatch(/14-day rest/);
   });
 
+  it("shows the 5h violation wording, not a generic review-first line", () => {
+    const chip = resolveUpcomingComplianceChip({
+      prospectiveWorkWarnings: [],
+      complianceResults: [
+        {
+          type: "violation",
+          iconKey: "AlertTriangle",
+          day: "Sun",
+          message:
+            "20 min rest per 5h work not met (11:24 pm). Last 5h work (5.9h). Longest rest in that block: 19 min (need one more 10 min, or 20 min continuous).",
+        },
+      ],
+    });
+    expect(chip.tone).toBe("attention");
+    expect(chip.lines[0]).toContain("19 min");
+    expect(chip.lines[0]).not.toMatch(/review first/i);
+  });
+
   it("shouldShowUpcomingComplianceChip always on idle live sheet", () => {
     expect(
       shouldShowUpcomingComplianceChip({
@@ -83,5 +101,15 @@ describe("upcoming-compliance-chip", () => {
         chip: { tone: "clear", lines: ["All clear"] },
       })
     ).toBe(false);
+  });
+
+  it("shows record issues even when not on the live day card", () => {
+    expect(
+      shouldShowUpcomingComplianceChip({
+        isLiveNow: false,
+        shiftIdle: false,
+        chip: { tone: "attention", lines: ["20 min rest per 5h work not met"] },
+      })
+    ).toBe(true);
   });
 });

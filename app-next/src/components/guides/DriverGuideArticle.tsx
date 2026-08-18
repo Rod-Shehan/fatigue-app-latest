@@ -394,8 +394,9 @@ export function DriverGuideArticle() {
             last 24-hour break, Compliance, Roadside, records to sign, and Settings.
           </li>
           <li>
-            <strong className="text-slate-700 dark:text-slate-200">Compliance</strong> — shows if your week meets the
-            rest / hours rules, with plain-language notes.
+            <strong className="text-slate-700 dark:text-slate-200">Compliance</strong> — if a rule is not met, an amber
+            banner on the week (and a red/amber notice on the log bar) shows the same wording as the office check, including
+            which day and what was short. Tap it for the full snapshot.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Shift log</strong> — a list of every event on your

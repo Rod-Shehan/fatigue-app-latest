@@ -225,7 +225,7 @@ You must keep signed records for at least **3 years** — this export is for roa
 On the week sheet:
 
 - **Day tools** (clipboard icon) — week summary, last 24-hour break, **Compliance**, **Roadside**, records to sign, and Settings.
-- **Compliance** — shows if your week meets the rest/hours rules, with plain-language notes.
+- **Compliance** — if a rule is not met, an amber banner on the week (and a red/amber notice on the log bar) shows the same wording as the office check, including which day and what was short. Tap it for the full snapshot.
 - **Shift log** — a list of every event on your record.
 
 ---

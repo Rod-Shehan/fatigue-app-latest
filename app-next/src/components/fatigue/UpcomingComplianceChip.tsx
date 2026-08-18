@@ -8,6 +8,7 @@ import { driverChipShell } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Upcoming compliance issues";
+const ISSUE_TITLE = "Compliance issue";
 
 function toneStyles(tone: UpcomingComplianceTone, onDark: boolean) {
   if (onDark) {
@@ -41,6 +42,7 @@ export function UpcomingComplianceChip({
   compact?: boolean;
   className?: string;
 }) {
+  const heading = model.tone === "clear" ? TITLE : ISSUE_TITLE;
   const Icon = model.tone === "clear" ? CheckCircle2 : AlertTriangle;
   const actionable = fixRoute != null && isComplianceFixActionable(fixRoute) && Boolean(onFix);
   const reviewOnly = fixRoute != null && !isComplianceFixActionable(fixRoute);
@@ -75,7 +77,7 @@ export function UpcomingComplianceChip({
               compact ? "text-[9px]" : "text-[10px] sm:text-[11px]"
             )}
           >
-            {TITLE}
+            {heading}
           </p>
           {model.lines.map((line) => (
             <p
@@ -138,7 +140,7 @@ export function UpcomingComplianceChip({
           shellClass,
           "pointer-events-auto text-left hover:brightness-[1.02] active:scale-[0.99] cursor-pointer"
         )}
-        aria-label={`${TITLE}: ${model.lines.join(". ")}. ${primaryLabel}.`}
+        aria-label={`${heading}: ${model.lines.join(". ")}. ${primaryLabel}.`}
       >
         {body}
       </button>
@@ -154,7 +156,7 @@ export function UpcomingComplianceChip({
           shellClass,
           "pointer-events-auto text-left hover:brightness-[1.02] active:scale-[0.99] cursor-pointer"
         )}
-        aria-label={`${TITLE}: ${model.lines.join(". ")}. Open compliance details.`}
+        aria-label={`${heading}: ${model.lines.join(". ")}. Open compliance details.`}
       >
         {body}
       </button>
@@ -162,7 +164,7 @@ export function UpcomingComplianceChip({
   }
 
   return (
-    <div role="status" className={shellClass} aria-label={`${TITLE}: ${model.lines.join(". ")}`}>
+    <div role="status" className={shellClass} aria-label={`${heading}: ${model.lines.join(". ")}`}>
       {body}
     </div>
   );

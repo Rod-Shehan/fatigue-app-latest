@@ -126,18 +126,20 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
   ]);
 
   const localComplianceResults = useMemo(() => {
-    if (!compliancePayload || isManager) return null;
+    if (!compliancePayload) return null;
     return runLocalSheetComplianceCheck(compliancePayload);
-  }, [compliancePayload, isManager]);
+  }, [compliancePayload]);
 
   const { data: complianceDataRemote, isLoading: complianceLoadingRemote } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],
     queryFn: () => api.compliance.check(compliancePayload!),
-    enabled: isManager && !!compliancePayload,
+    enabled: !!compliancePayload,
   });
 
-  const complianceResults = isManager ? (complianceDataRemote?.results ?? null) : localComplianceResults;
-  const complianceLoading = isManager ? complianceLoadingRemote : false;
+  const complianceResults = complianceDataRemote?.results ?? localComplianceResults;
+  const complianceLoading = Boolean(
+    complianceLoadingRemote && (complianceResults == null || complianceResults.length === 0)
+  );
 
   const onScrollToDay = useCallback(
     (dayIndex: number) => {

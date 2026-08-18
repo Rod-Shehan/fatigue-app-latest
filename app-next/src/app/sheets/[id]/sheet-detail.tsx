@@ -767,20 +767,21 @@ export function SheetDetail({
   ]);
 
   const localComplianceResults = useMemo(() => {
-    if (!sheetData.days?.length || isManager) return [];
+    if (!sheetData.days?.length) return [];
     return runLocalSheetComplianceCheck(compliancePayload);
-  }, [isManager, sheetData.days?.length, compliancePayload]);
+  }, [sheetData.days?.length, compliancePayload]);
 
   const { data: complianceDataRemote, isLoading: complianceLoadingRemote } = useQuery({
     queryKey: ["compliance", sheetId, compliancePayload],
     queryFn: () => api.compliance.check(compliancePayload),
-    enabled: isManager && !!sheetData.days?.length,
+    enabled: !!sheetData.days?.length,
   });
 
-  const complianceResults: ComplianceCheckResult[] = isManager
-    ? (complianceDataRemote?.results ?? [])
-    : localComplianceResults;
-  const complianceLoading = isManager ? complianceLoadingRemote : false;
+  const complianceResults: ComplianceCheckResult[] =
+    complianceDataRemote?.results ?? localComplianceResults;
+  const complianceLoading = Boolean(
+    complianceLoadingRemote && complianceResults.length === 0
+  );
 
   /** Chronological record slices before this sheet — for rolling event timeline (7h gate, open segment). */
   const priorTimelineSlices = useMemo((): TimelineSlice[] => {
@@ -2235,22 +2236,18 @@ export function SheetDetail({
           )}
 
         <div ref={dayCardsRef} className="space-y-2 max-w-4xl">
-            {isManager && (
-              <>
-                {sheetData.days?.length > 0 &&
-                  (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
-                    <ComplianceAlertBar
-                      sheetId={sheetId}
-                      loading={complianceLoading}
-                      results={complianceResults}
-                      isManager
-                      onComplianceFix={handleComplianceFix}
-                    />
-                  )}
-                {sheetData.days?.length > 0 && !complianceLoading && hasComplianceInfo && (
-                  <ComplianceNoticeBar results={complianceResults} />
-                )}
-              </>
+            {sheetData.days?.length > 0 &&
+              (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
+                <ComplianceAlertBar
+                  sheetId={sheetId}
+                  loading={complianceLoading}
+                  results={complianceResults}
+                  isManager={isManager}
+                  onComplianceFix={handleComplianceFix}
+                />
+              )}
+            {isManager && sheetData.days?.length > 0 && !complianceLoading && hasComplianceInfo && (
+              <ComplianceNoticeBar results={complianceResults} />
             )}
             {isPastWeek && !isManager && weekOfLabel && (
               <SheetRecordBanner

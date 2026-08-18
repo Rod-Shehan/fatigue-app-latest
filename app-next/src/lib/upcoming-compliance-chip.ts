@@ -117,11 +117,13 @@ export function resolveUpcomingComplianceChip(input: {
   }
 
   if (violations.length > 0) {
-    lines.push(
-      violations.length === 1
-        ? "Record has a compliance issue — review first"
-        : `Record has ${violations.length} compliance issues — review first`
-    );
+    const first = violations[0]!;
+    lines.push(first.message);
+    if (violations.length > 1) {
+      lines.push(
+        `${violations.length - 1} more compliance issue${violations.length === 2 ? "" : "s"} — open details`
+      );
+    }
     tone = "attention";
   }
 
@@ -167,12 +169,13 @@ export function resolveUpcomingComplianceChip(input: {
   };
 }
 
-/** Idle: always show. On shift: only when not all-clear (reduces clutter). */
+/** Idle: always show. On shift: only when not all-clear (reduces clutter). Record issues always show. */
 export function shouldShowUpcomingComplianceChip(input: {
   isLiveNow: boolean;
   shiftIdle: boolean;
   chip: UpcomingComplianceChipModel;
 }): boolean {
+  if (input.chip.tone === "attention") return true;
   if (!input.isLiveNow) return false;
   if (input.shiftIdle) return true;
   return input.chip.tone !== "clear";
