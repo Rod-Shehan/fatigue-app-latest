@@ -27,6 +27,7 @@ function whenLabel(
   prevWeekStarting?: string
 ): string {
   if (day === "14-day") return "in the last 14 days";
+  if (day === "AMI") return "this week";
   const prevMatch = prevWeekStarting && day.match(/^prev\+(\d+)$/);
   if (prevMatch) {
     const n = parseInt(prevMatch[1], 10);

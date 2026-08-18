@@ -28,6 +28,7 @@ describe("AMI five-hour (Phase 4 parity)", () => {
     const result = evaluateFiveHourBreakRule(tape);
     expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
     expect(result.restComplete).toBe(false);
+    expect(result.restRunMinutes.every((m) => m < 10)).toBe(true);
   });
 
   it("≥31 min meal break reclassed to non_work still covers the 5h rest rule", () => {

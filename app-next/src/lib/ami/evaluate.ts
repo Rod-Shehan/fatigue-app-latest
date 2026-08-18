@@ -140,6 +140,10 @@ export function evaluateFiveHourBreakRule(tape: AmiTape): {
   workMinutesInWindow: number;
   slots: AmiRestSlots;
   restComplete: boolean;
+  /** Rest runs (break or non_work) inside the last 300 work-minute window. */
+  restRunMinutes: number[];
+  lastWorkMinute: number;
+  windowStartMinute: number;
 } {
   const { kinds } = tape;
   let lastWork = -1;
@@ -151,7 +155,14 @@ export function evaluateFiveHourBreakRule(tape: AmiTape): {
   }
   const slots: AmiRestSlots = { slot1: false, slot2: false };
   if (lastWork < 0) {
-    return { workMinutesInWindow: 0, slots, restComplete: true };
+    return {
+      workMinutesInWindow: 0,
+      slots,
+      restComplete: true,
+      restRunMinutes: [],
+      lastWorkMinute: -1,
+      windowStartMinute: 0,
+    };
   }
 
   let remaining = AMI_WORK_WINDOW;
@@ -171,6 +182,9 @@ export function evaluateFiveHourBreakRule(tape: AmiTape): {
     workMinutesInWindow,
     slots,
     restComplete: qualifyingRestComplete(slots) || workMinutesInWindow < AMI_WORK_WINDOW,
+    restRunMinutes: restRuns.map((r) => r.length),
+    lastWorkMinute: lastWork,
+    windowStartMinute: windowStart,
   };
 }
 

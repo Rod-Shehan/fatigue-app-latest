@@ -27,7 +27,12 @@ import {
   evaluateTwoUp48hOption,
   evaluateTwoUp7dOption,
 } from "./evaluate";
+import {
+  fiveHourViolationDayAttribution,
+  formatFiveHourViolationMessage,
+} from "./five-hour-message";
 import { isAmiComplianceEngineEnabled } from "./flag";
+import { tapeMinuteToMs } from "./paint";
 import type { AmiEvent } from "./types";
 
 type RunOpts = Parameters<typeof runComplianceChecks>[1];
@@ -99,13 +104,21 @@ function buildAmiOwnedResults(
 
   const tapeShort = buildEvalTape(events, asOf, Math.max(AMI_72H_WINDOW, 24 * 60));
   const five = evaluateFiveHourBreakRule(tapeShort);
-  if (!five.restComplete && five.workMinutesInWindow >= 300) {
+  if (!five.restComplete && five.workMinutesInWindow >= 300 && five.lastWorkMinute >= 0) {
+    const lastWorkMs = tapeMinuteToMs(tapeShort, five.lastWorkMinute + 1);
+    const windowStartMs = tapeMinuteToMs(tapeShort, five.windowStartMinute);
+    const attr = fiveHourViolationDayAttribution(lastWorkMs, options.weekStarting);
     out.push({
       type: "violation",
       iconKey: "AlertTriangle",
-      day: "AMI",
-      message: "More than 5h work without valid break",
-      ruleId: undefined,
+      day: attr.day,
+      scrollDayIndex: attr.scrollDayIndex,
+      message: formatFiveHourViolationMessage({
+        workMinutesInWindow: five.workMinutesInWindow,
+        restRunMinutes: five.restRunMinutes,
+        lastWorkMs,
+        windowStartMs,
+      }),
     });
   }
 
