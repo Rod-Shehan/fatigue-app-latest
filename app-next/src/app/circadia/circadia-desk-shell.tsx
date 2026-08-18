@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CIRCADIA_DESK_PATH, CIRCADIA_DESK_TITLE } from "@/lib/circadia-desk";
+import { CIRCADIA_DESK_PATH, CIRCADIA_DESK_TITLE, isCircadiaDeskHostname } from "@/lib/circadia-desk";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -20,9 +20,7 @@ export function CircadiaDeskShell({ children }: { children: ReactNode }) {
       setInstalled(true);
     }
     if ("serviceWorker" in navigator) {
-      const hostScoped =
-        window.location.hostname === "admin.circadia24.com" ||
-        window.location.hostname.startsWith("admin.");
+      const hostScoped = isCircadiaDeskHostname(window.location.hostname);
       void navigator.serviceWorker.register(`${CIRCADIA_DESK_PATH}/sw.js`, {
         scope: hostScoped ? "/" : `${CIRCADIA_DESK_PATH}/`,
       });

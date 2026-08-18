@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { isCircadiaDeskHostname, isLegacyCircadiaDeskHostname } from "@/lib/circadia-desk";
 
 /**
  * Registers shell-only service worker in production builds.
@@ -12,8 +13,8 @@ export function ServiceWorkerRegister() {
     if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
     if (window.location.pathname.startsWith("/circadia")) return;
     if (
-      window.location.hostname === "admin.circadia24.com" ||
-      window.location.hostname.startsWith("admin.")
+      isCircadiaDeskHostname(window.location.hostname) ||
+      isLegacyCircadiaDeskHostname(window.location.hostname)
     ) {
       return;
     }

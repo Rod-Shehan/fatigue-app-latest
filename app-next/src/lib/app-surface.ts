@@ -4,16 +4,22 @@
  * - legacy     — combined driver + manager (parked original)
  * - ewd        — driver PWA only
  * - enterprise — manager/owner + APIs (full fleet functions; no driver lobby)
- * - circadia   — Circadia staff client manager (desktop PWA on admin.circadia24.com)
+ * - circadia   — Circadia staff desk (desktop PWA on staff-desk.circadia24.com)
  *
  * Set APP_SURFACE / NEXT_PUBLIC_APP_SURFACE, or infer from Host
- * (legacy. / ewd. / enterprise. / admin. subdomains).
+ * (legacy. / ewd. / enterprise. / staff-desk. subdomains).
  *
- * admin.circadia24.com is staff/dev only. Random traffic there goes to
- * https://www.circadia24.com. Do not funnel the public site to admin.
+ * staff-desk.circadia24.com is Circadia staff only. Random paths go to
+ * https://www.circadia24.com. Do not funnel the public site here.
+ * The customer Owner console stays at /admin on Enterprise — different product.
  */
 
-import { MARKETING_SITE_URL } from "./circadia-desk";
+import {
+  hostnameFromHostHeader,
+  isCircadiaDeskHostname,
+  isLegacyCircadiaDeskHostname,
+  MARKETING_SITE_URL,
+} from "./circadia-desk";
 
 export type AppSurface = "legacy" | "ewd" | "enterprise" | "circadia";
 
@@ -26,16 +32,16 @@ function normalizeSurface(raw: string | undefined | null): AppSurface | null {
   if (v === "legacy" || v === "v1" || v === "classic") return "legacy";
   if (v === "ewd" || v === "driver") return "ewd";
   if (v === "enterprise" || v === "manager") return "enterprise";
-  if (v === "circadia" || v === "admin") return "circadia";
+  if (v === "circadia" || v === "admin" || v === "staff" || v === "staff-desk") return "circadia";
   return null;
 }
 
 /** Infer surface from Host / hostname (e.g. ewd.circadia24.com). */
 export function appSurfaceFromHost(host: string | null | undefined): AppSurface | null {
   if (!host) return null;
-  const hostname = host.split(":")[0]?.trim().toLowerCase() ?? "";
+  const hostname = hostnameFromHostHeader(host);
   if (!hostname) return null;
-  if (hostname === "admin" || hostname.startsWith("admin.")) return "circadia";
+  if (isCircadiaDeskHostname(hostname) || isLegacyCircadiaDeskHostname(hostname)) return "circadia";
   if (hostname === "legacy" || hostname.startsWith("legacy.")) return "legacy";
   if (hostname === "ewd" || hostname.startsWith("ewd.")) return "ewd";
   if (hostname === "enterprise" || hostname.startsWith("enterprise.")) return "enterprise";
@@ -44,7 +50,7 @@ export function appSurfaceFromHost(host: string | null | undefined): AppSurface 
 
 /**
  * Resolve active surface.
- * Priority: admin host always wins (same Vercel project as www) → explicit env → other hosts → legacy.
+ * Priority: staff-desk host always wins (same Vercel project) → explicit env → other hosts → legacy.
  */
 export function resolveAppSurface(opts?: {
   envValue?: string | null;
@@ -86,7 +92,7 @@ export function appSurfaceLabel(surface: AppSurface): string {
     case "enterprise":
       return "Enterprise";
     case "circadia":
-      return "Client Manager";
+      return "Staff desk";
   }
 }
 
@@ -98,7 +104,7 @@ export function documentTitleForSurface(surface: AppSurface): string {
     case "enterprise":
       return "Circadia24 Enterprise";
     case "circadia":
-      return "Circadia24 Client Manager";
+      return "Circadia24 Staff Desk";
     case "legacy":
     default:
       return "Circadia24 Helper";
@@ -118,7 +124,7 @@ export function appSurfaceTagline(surface: AppSurface): string {
     case "enterprise":
       return "Fleet oversight, records, and compliance processing";
     case "circadia":
-      return "Circadia staff desk for paying operators";
+      return "Circadia staff desk for paying operators — not a client Owner console";
   }
 }
 

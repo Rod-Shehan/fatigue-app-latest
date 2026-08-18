@@ -72,7 +72,7 @@ export function CircadiaClientsView({ staffEmail }: { staffEmail: string }) {
     <div className={`${MANAGER_PAGE_SHELL} space-y-8`}>
         <PageHeader
           title="Clients"
-          subtitle="Paying operators — desktop Circadia desk, not the fleet Owner console"
+          subtitle="Paying operators — Circadia staff desk, not the fleet Owner /admin console"
           icon={<Building2 className="w-5 h-5" />}
         />
 

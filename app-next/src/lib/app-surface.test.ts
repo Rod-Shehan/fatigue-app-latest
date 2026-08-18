@@ -13,11 +13,12 @@ describe("app-surface", () => {
     expect(appSurfaceFromHost("ewd.circadia24.com")).toBe("ewd");
     expect(appSurfaceFromHost("enterprise.circadia24.com")).toBe("enterprise");
     expect(appSurfaceFromHost("legacy.circadia24.com")).toBe("legacy");
+    expect(appSurfaceFromHost("staff-desk.circadia24.com")).toBe("circadia");
     expect(appSurfaceFromHost("admin.circadia24.com")).toBe("circadia");
     expect(appSurfaceFromHost("www.circadia24.com")).toBe(null);
   });
 
-  it("prefers env over host except admin desk", () => {
+  it("prefers env over host except the staff-desk host", () => {
     expect(
       resolveAppSurface({
         envValue: "enterprise",
@@ -27,7 +28,7 @@ describe("app-surface", () => {
     expect(
       resolveAppSurface({
         envValue: "legacy",
-        host: "admin.circadia24.com",
+        host: "staff-desk.circadia24.com",
       })
     ).toBe("circadia");
   });
@@ -66,11 +67,13 @@ describe("app-surface", () => {
   });
 
   it("sends random admin traffic to the marketing site, not the public lobby", () => {
-    expect(redirectForBlockedPath("/", "circadia")).toEqual({
+    expect(isPathAllowedOnSurface("/", "circadia")).toBe(true);
+    expect(isPathAllowedOnSurface("/circadia", "circadia")).toBe(true);
+    expect(redirectForBlockedPath("/manager", "circadia")).toEqual({
       location: "https://www.circadia24.com",
       external: true,
     });
-    expect(redirectForBlockedPath("/manager", "circadia")).toEqual({
+    expect(redirectForBlockedPath("/driver", "circadia")).toEqual({
       location: "https://www.circadia24.com",
       external: true,
     });
@@ -80,6 +83,6 @@ describe("app-surface", () => {
     expect(documentTitleForSurface("ewd")).toBe("Circadia24 EWD");
     expect(documentTitleForSurface("enterprise")).toBe("Circadia24 Enterprise");
     expect(documentTitleForSurface("legacy")).toBe("Circadia24 Helper");
-    expect(documentTitleForSurface("circadia")).toBe("Circadia24 Client Manager");
+    expect(documentTitleForSurface("circadia")).toBe("Circadia24 Staff Desk");
   });
 });

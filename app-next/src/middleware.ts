@@ -7,7 +7,13 @@ import {
   isPathAllowedOnSurface,
   redirectForBlockedPath,
 } from "@/lib/app-surface";
-import { CIRCADIA_DESK_PATH, MARKETING_SITE_URL } from "@/lib/circadia-desk";
+import {
+  CIRCADIA_DESK_HOST,
+  CIRCADIA_DESK_PATH,
+  hostnameFromHostHeader,
+  isLegacyCircadiaDeskHostname,
+  MARKETING_SITE_URL,
+} from "@/lib/circadia-desk";
 
 const PROTECTED_PREFIXES = [
   "/driver",
@@ -42,7 +48,19 @@ export async function middleware(request: NextRequest) {
     return applySecurityHeaders(NextResponse.next());
   }
 
+  const hostname = hostnameFromHostHeader(host);
+  if (isLegacyCircadiaDeskHostname(hostname)) {
+    const dest = new URL(request.nextUrl.pathname + request.nextUrl.search, `https://${CIRCADIA_DESK_HOST}`);
+    return applySecurityHeaders(NextResponse.redirect(dest, 308));
+  }
+
   if (surface === "circadia") {
+    // Staff door is the host itself. /circadia is the desk; / is rewritten, not sent to www.
+    if (pathname === "/" || pathname === "") {
+      const url = request.nextUrl.clone();
+      url.pathname = CIRCADIA_DESK_PATH;
+      return applySecurityHeaders(NextResponse.rewrite(url));
+    }
     const onDesk =
       pathname === CIRCADIA_DESK_PATH || pathname.startsWith(`${CIRCADIA_DESK_PATH}/`);
     if (!onDesk && !pathname.startsWith("/api/")) {
