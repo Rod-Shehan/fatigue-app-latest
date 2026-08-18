@@ -171,7 +171,8 @@ export function DriverGuideArticle() {
           <li>If you do not tap Start shift, Continue shift, or Break, the app shows non-work.</li>
           <li>
             Break only appears when you tap Break. A short logged break (30 minutes or less) stays Break; longer logged
-            breaks become non-work.
+            breaks (31 minutes or more) become non-work. For the 20 min rest per 5 hours work rule, Break and Non-work
+            count the same; the two rows are only how the rest is shown.
           </li>
           <li>The app does not invent Break from a short gap after End shift or other time off.</li>
           <li>When you finish for the day, tap End shift. From that moment, time is non-work until you tap Work again.</li>

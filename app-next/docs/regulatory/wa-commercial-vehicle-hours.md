@@ -80,7 +80,7 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
   - `non_work` minute grid
   - plus an event timeline for rolling 5h/break qualification
 
-- Project-specific rule (implemented in UI derivation and AMI reclass): **any logged break >30 minutes is recorded as non‑work time**. Break only comes from a driver **Break** action — End shift and other short off-duty gaps stay **non-work**.
+- Project-specific display rule (UI derivation and AMI reclass): **any logged break ≥31 minutes is recorded as non‑work time**. Break only comes from a driver **Break** action — End shift and other short off-duty gaps stay **non-work**. For the **5h / 20 min rest** rule, the break and non-work rows have the same effect (2×10 or 1×20); they are only shown differently. Other rules (7h / 17h / 72h / 168h) still treat non-work as recovery, not as a short break from driving.
 
 ## Prospective risk (separate from compliance)
 

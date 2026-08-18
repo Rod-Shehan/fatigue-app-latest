@@ -5,7 +5,8 @@
  * Standard fatigue rule: within each rolling 5h block of work time,
  * qualifying rest is either one continuous ≥20 min break, or two separate ≥10 min breaks.
  * Breaks &lt;10 min do not count toward rest (counted as work in coverage). This module
- * only models the slot filling; &gt;30 min as non-work is handled in derive-minute-coverage.
+ * models slot filling from `break` events. Display conversion (&gt;30 min → non-work row)
+ * is in derive-minute-coverage; AMI 5h treats both rest rows the same.
  */
 
 export const MIN_QUAL_BREAK_MIN = 10;

@@ -1,12 +1,11 @@
 # AMI dual-run report (Phase 2)
 
-Generated against 10 fixtures. Live WA compliance uses the AMI overlay by default
-(kill-switch: `AMI_COMPLIANCE_ENGINE_ENABLED=false`).
+Generated against 10 fixtures. Live WA compliance uses the AMI overlay by default (kill-switch: `AMI_COMPLIANCE_ENGINE_ENABLED=false`).
 
 ## Summary
 
-- **match:** 47
-- **diff:** 3
+- **match:** 46
+- **diff:** 4
 - **skip:** 30 (current rule not extracted as a pure function yet)
 
 ## Rows
@@ -80,7 +79,7 @@ Generated against 10 fixtures. Live WA compliance uses the AMI overlay by defaul
 | 72h-three-blocks | seventeen_hour_episode | match |  |
 | 72h-three-blocks | solo_between_shift_7h | match |  |
 | 72h-three-blocks | two_up_24h | match |  |
-| 72h-three-blocks | five_hour_break | match |  |
+| 72h-three-blocks | five_hour_break | diff | Current scores break events in work-minute window; AMI scores break and non-work rest the same after reclass |
 | 72h-three-blocks | work_168h | match |  |
 | 72h-three-blocks | solo_72h | diff | Legacy scored window; AMI soft-reset inactive — investigate parity |
 | 72h-three-blocks | solo_14d_long_rests | diff |  |
@@ -95,6 +94,30 @@ Generated against 10 fixtures. Live WA compliance uses the AMI overlay by defaul
 | pattern-gap-with-break | shift_pattern_184E4_gap | match | Wall-clock/current and only-work-interrupts may agree while continuous-non_work differs when breaks sit in the gap |
 
 ## Diff details
+
+### 72h-three-blocks — five_hour_break
+
+```json
+{
+  "current": {
+    "restComplete": false,
+    "slots": {
+      "slot1": false,
+      "slot2": false
+    },
+    "windowStart": 1781190000000
+  },
+  "ami": {
+    "restComplete": true,
+    "slots": {
+      "slot1": true,
+      "slot2": true
+    },
+    "workMinutesInWindow": 300
+  },
+  "note": "Current scores break events in work-minute window; AMI scores break and non-work rest the same after reclass"
+}
+```
 
 ### 72h-three-blocks — solo_72h
 

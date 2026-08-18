@@ -198,14 +198,14 @@ export default function CompliancePanel({
             <p className="text-[10px] text-blue-400 font-mono">14d: {formatHoursStatistic(totalWork + prevWeekWork)}h</p>
           )}
         </div>
-        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.break.statsCard}`} title="Time you logged as Break (≤30 min). Longer logged breaks count as non-work. End shift is non-work, not break.">
+        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.break.statsCard}`} title="Time you logged as Break (30 min or less). Longer logged breaks show as non-work. End shift is non-work, not break. Both rest rows count for the 20 min / 5h rule.">
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.break.statsLabel}`}>Break</p>
           <p className="text-[9px] text-slate-400 mt-0.5">logged break ≤30 min</p>
           <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.break.statsValue}`}>{formatHoursStatistic(totalBreaks)}h</p>
         </div>
-        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.non_work.statsCard}`} title="Recovery time: End shift, logged non-work, and logged breaks &gt;30 min.">
+        <div className={`rounded-lg p-3 text-center ${ACTIVITY_THEME.non_work.statsCard}`} title="Recovery time: End shift, logged non-work, and logged breaks of 31 min or more. Counts as rest for the 20 min / 5h rule, same as a break.">
           <p className={`text-[10px] uppercase tracking-wider font-semibold ${ACTIVITY_THEME.non_work.statsLabel}`}>Non-Work Time</p>
-          <p className="text-[9px] text-slate-400 mt-0.5">incl. End shift; breaks &gt;30 min</p>
+          <p className="text-[9px] text-slate-400 mt-0.5">incl. End shift; breaks ≥31 min</p>
           <p className={`text-xl font-bold font-mono ${ACTIVITY_THEME.non_work.statsValue}`}>{formatHoursStatistic(totalNonWork)}h</p>
         </div>
       </div>
@@ -334,8 +334,8 @@ export default function CompliancePanel({
       </div>
       <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
         <p className="text-[10px] text-slate-500 dark:text-slate-400 mb-2">
-          <strong className="text-slate-600 dark:text-slate-300">Break</strong> = time you logged as Break (≤30 min); counts toward the 20 min / 5h rule.{" "}
-          <strong className="text-slate-600 dark:text-slate-300">Non-work time</strong> = End shift, logged non-work, and any logged break longer than 30 min.
+          <strong className="text-slate-600 dark:text-slate-300">Break</strong> = time you logged as Break (30 min or less).{" "}
+          <strong className="text-slate-600 dark:text-slate-300">Non-work time</strong> = End shift, logged non-work, and any logged break of 31 min or more. For the 20 min / 5h rule both rows count as rest; they are only shown differently.
         </p>
         <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold mb-2">
           WA OSH Reg 3.132 — {isTwoUp ? "Two-Up" : "Solo"} Rules

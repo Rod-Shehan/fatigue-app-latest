@@ -117,11 +117,12 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Break</strong> — when you tap Break for a short rest
-                (≤30 min) during work; counts toward your 20 min per 5 hours work.
+                (30 min or less) during work. Shown on the break row; counts toward your 20 min per 5 hours work.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — End shift, longer rests,
-                and any logged break over 30 minutes.
+                and any logged break of 31 min or more. Shown on the non-work row; for the 20 min / 5h rule it counts
+                the same as a break.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">WorkSafe day sheet</strong> — on each day card (and

@@ -27,9 +27,9 @@ const SHEET_GRID = `${LABEL_W} repeat(${WORKSAFE_QUARTERS_PER_DAY}, minmax(0, 1f
 const ROW_TOOLTIPS: Record<WorkSafeTrack, string> = {
   work: "WORK TIME — driving, loading/unloading, maintenance, paperwork, and other work incidental to driving.",
   break:
-    "BREAKS FROM DRIVING — short rest you logged as Break (≤30 min), including napping. Longer logged breaks count as non-work.",
+    "BREAKS FROM DRIVING — short rest you logged as Break (30 min or less), including napping. Counts as rest for the 20 min / 5h rule.",
   non_work:
-    "NON WORK TIME — End shift, logged non-work, and logged breaks longer than 30 min (rest / sleep / away).",
+    "NON WORK TIME — End shift, logged non-work, and logged breaks of 31 min or more. Shown here, but counts as rest for the 20 min / 5h rule the same as a break.",
 };
 
 type DayDataGrid = {

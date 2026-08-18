@@ -115,7 +115,12 @@ export function deriveMinuteGridFromEvents(
     const clampedEnd = Math.min(end, workBreakCap ?? effectiveEnd);
     const durationMinutes = Math.floor((clampedEnd - clampedStart) / 60000);
     const startMin = Math.floor((clampedStart - dayStart) / 60000);
-    const endMin = Math.ceil((clampedEnd - dayStart) / 60000);
+    // Completed segments: floor both ends so a clock-30 min break stays 30 cells (not ceil'd to 31 → non-work).
+    // Open tail to now / day end: ceil so the current minute is included.
+    const endMin =
+      nextEv != null
+        ? Math.floor((clampedEnd - dayStart) / 60000)
+        : Math.ceil((clampedEnd - dayStart) / 60000);
     const isCompletedBreak = ev.type === "break" && nextEv != null;
     const treatBreakAsWork = isCompletedBreak && durationMinutes < MIN_BREAK_BLOCK_MINUTES;
     for (let m = Math.max(0, startMin); m < Math.min(workBreakMaxMinute, endMin); m++) {

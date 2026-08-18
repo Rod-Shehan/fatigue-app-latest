@@ -45,4 +45,46 @@ describe("AMI five-hour (Phase 4 parity)", () => {
     expect(result.restComplete).toBe(true);
     expect(result.slots.slot1 && result.slots.slot2).toBe(true);
   });
+
+  it("30 min logged break stays rest for 5h (Jaydin-shaped: ~4.5h work, 30 min off, ~1.4h work)", () => {
+    const events: AmiEvent[] = [
+      { time: "2026-08-16T17:00:00", type: "work" },
+      { time: "2026-08-16T21:30:00", type: "break" },
+      { time: "2026-08-16T22:00:00", type: "work" },
+      { time: "2026-08-16T23:24:00", type: "stop" },
+    ];
+    const asOf = Date.parse("2026-08-16T23:30:00");
+    const tape = buildEvalTape(events, asOf, 72 * 60);
+    const result = evaluateFiveHourBreakRule(tape);
+    expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
+    expect(result.restComplete).toBe(true);
+  });
+
+  it("31 min logged break converted to non_work still covers 5h", () => {
+    const events: AmiEvent[] = [
+      { time: "2026-08-16T17:00:00", type: "work" },
+      { time: "2026-08-16T21:30:00", type: "break" },
+      { time: "2026-08-16T22:01:00", type: "work" },
+      { time: "2026-08-16T23:24:00", type: "stop" },
+    ];
+    const asOf = Date.parse("2026-08-16T23:30:00");
+    const tape = buildEvalTape(events, asOf, 72 * 60);
+    const result = evaluateFiveHourBreakRule(tape);
+    expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
+    expect(result.restComplete).toBe(true);
+  });
+
+  it("30 min non_work between work bouts covers 5h the same as a 30 min break", () => {
+    const events: AmiEvent[] = [
+      { time: "2026-08-16T17:00:00", type: "work" },
+      { time: "2026-08-16T21:30:00", type: "stop" },
+      { time: "2026-08-16T22:00:00", type: "work" },
+      { time: "2026-08-16T23:24:00", type: "stop" },
+    ];
+    const asOf = Date.parse("2026-08-16T23:30:00");
+    const tape = buildEvalTape(events, asOf, 72 * 60);
+    const result = evaluateFiveHourBreakRule(tape);
+    expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
+    expect(result.restComplete).toBe(true);
+  });
 });

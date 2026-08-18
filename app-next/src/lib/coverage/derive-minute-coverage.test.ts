@@ -75,6 +75,41 @@ describe("deriveMinuteGridFromEvents", () => {
     expect(grid.breaks.slice(start, end).every(Boolean)).toBe(true);
     expect(grid.non_work.slice(start, end).some(Boolean)).toBe(false);
   });
+
+  it("keeps an exact 30 min actioned break as break (does not ceil to 31 → non-work)", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T17:00:00`, type: "work" },
+        { time: `${dateStr}T21:30:00`, type: "break" },
+        { time: `${dateStr}T22:00:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const start = 21 * 60 + 30;
+    const end = 22 * 60;
+    expect(grid.breaks.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.breaks.slice(start, end).filter(Boolean).length).toBe(30);
+    expect(grid.non_work.slice(start, end).some(Boolean)).toBe(false);
+  });
+
+  it("records actioned break ≥31 min as non-work", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T17:00:00`, type: "work" },
+        { time: `${dateStr}T21:30:00`, type: "break" },
+        { time: `${dateStr}T22:01:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const start = 21 * 60 + 30;
+    const end = 22 * 60 + 1;
+    expect(grid.non_work.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.breaks.slice(start, end).some(Boolean)).toBe(false);
+  });
 });
 
 describe("normalizeSheetDaysForApi", () => {

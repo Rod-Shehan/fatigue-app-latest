@@ -224,7 +224,7 @@ export function compareFiveHour(fixture: DualRunFixture): DualRunRow {
     },
     note:
       status === "diff"
-        ? "Current scores break events in work-minute window; AMI scores break paint after reclass"
+        ? "Current scores break events in work-minute window; AMI scores break and non-work rest the same after reclass"
         : undefined,
   };
 }
@@ -494,7 +494,7 @@ export function formatDualRunMarkdown(
   const lines: string[] = [
     "# AMI dual-run report (Phase 2)",
     "",
-    `Generated against ${fixtures.length} fixtures. Live compliance is still the legacy engines.`,
+    `Generated against ${fixtures.length} fixtures. Live WA compliance uses the AMI overlay by default (kill-switch: \`AMI_COMPLIANCE_ENGINE_ENABLED=false\`).`,
     "",
     "## Summary",
     "",

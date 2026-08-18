@@ -23,7 +23,6 @@ import {
   AMI_7D_MIN_NON_WORK_PIECE,
   AMI_7D_MIN_TOTAL_NON_WORK,
   AMI_7D_WINDOW,
-  AMI_LONG_BREAK_AS_NON_WORK_MIN,
   AMI_NON_WORK_ANCHOR,
   AMI_PATTERN_CHANGE_REST,
   AMI_QUAL_BREAK_FRAGMENT,
@@ -58,6 +57,31 @@ function continuousRuns(
     }
     let e = s;
     while (e < end && kinds[e] === kind) e++;
+    runs.push({ start: s, end: e, length: e - s });
+    s = e;
+  }
+  return runs;
+}
+
+/** Day-sheet break and non-work rows: same 5h rest effect, different display. */
+function isFiveHourRestKind(kind: AmiKind): boolean {
+  return kind === "break" || kind === "non_work";
+}
+
+function continuousFiveHourRestRuns(
+  kinds: AmiKind[],
+  from = 0,
+  toExclusive?: number
+): Array<{ start: number; end: number; length: number }> {
+  const end = toExclusive ?? kinds.length;
+  const runs: Array<{ start: number; end: number; length: number }> = [];
+  for (let s = from; s < end; ) {
+    if (!isFiveHourRestKind(kinds[s]!)) {
+      s++;
+      continue;
+    }
+    let e = s;
+    while (e < end && isFiveHourRestKind(kinds[e]!)) e++;
     runs.push({ start: s, end: e, length: e - s });
     s = e;
   }
@@ -108,10 +132,9 @@ export function qualifyingRestComplete(slots: AmiRestSlots): boolean {
  * Rolling last 300 work minutes ending at the last work on the tape (not at trailing
  * non_work after End shift). Matches event-window scoring used by five-hour-break-rule.
  *
- * Qualifying rest on the reclassified tape:
- * - continuous `break` ≥10 / ≥20 (2×10 or 1×20), and
- * - continuous `non_work` ≥31 (long breaks reclassed from break — still covers the 5h rest rule,
- *   same as derive-minute-coverage + event-based five-hour-break-rule).
+ * Qualifying rest (owner): break and non-work rows have the same 5h effect.
+ * Display still splits ≤30 min as break vs ≥31 min as non-work; 5h uses 2×10 or 1×20
+ * on continuous rest of either kind (including converted long breaks).
  */
 export function evaluateFiveHourBreakRule(tape: AmiTape): {
   workMinutesInWindow: number;
@@ -141,17 +164,8 @@ export function evaluateFiveHourBreakRule(tape: AmiTape): {
   }
   // Rest between windowStart and lastWork inclusive (same work-block span)
   const endExclusive = lastWork + 1;
-  const breakRuns = continuousRuns(kinds, "break", windowStart, endExclusive);
-  for (const run of breakRuns) applyQualifyingBreakToSlots(run.length, slots);
-  // ≥31 min break→non_work reclass still satisfies 20 min rest (fills both slots).
-  if (!qualifyingRestComplete(slots)) {
-    const nonWorkRuns = continuousRuns(kinds, "non_work", windowStart, endExclusive);
-    for (const run of nonWorkRuns) {
-      if (run.length >= AMI_LONG_BREAK_AS_NON_WORK_MIN) {
-        applyQualifyingBreakToSlots(run.length, slots);
-      }
-    }
-  }
+  const restRuns = continuousFiveHourRestRuns(kinds, windowStart, endExclusive);
+  for (const run of restRuns) applyQualifyingBreakToSlots(run.length, slots);
   const workMinutesInWindow = countKind(kinds, "work", windowStart, endExclusive);
   return {
     workMinutesInWindow,
