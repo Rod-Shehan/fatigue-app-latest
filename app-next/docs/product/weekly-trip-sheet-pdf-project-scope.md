@@ -8,7 +8,9 @@
 
 ## Goal
 
-Week **Export PDF** (and the same body used by roadside/archive) reads as a **Weekly Trip Sheet**: paper-like week chrome + seven WorkSafe day rows consistent with Day Entry, plus retained Circadia compliance/appendix value.
+Week **Export PDF** reads as a **Weekly Trip Sheet**: paper-like week chrome + seven WorkSafe day rows, plus Circadia compliance summary and shift-log appendix.
+
+**Roadside produce (28-day PDF)** is trip-sheet pages only (one week per page) — no Circadia header, compliance summary, or shift-log appendix. Owner decision 2026-08-19.
 
 Every filled cell must have a real data source (or an explicit blank). No decorative fake ticks.
 
@@ -60,7 +62,7 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 
 - [x] Page breaks so seven day rows remain readable (tile-only day cards; shift log keeps event detail; HTML/jsPDF page breaks)
 - [x] Visual QA checklist documented below (layout only; 15‑min retained)
-- [x] Confirmed roadside produce uses `renderPdfHtml` / `buildSingleSheetJsPdfBuffer` week body + trip-sheet CSS; archive design remains “same PDF as Export PDF”
+- [x] Confirmed roadside produce uses trip-sheet-only layout (one week per page). Week **Export PDF** still includes Circadia header, compliance summary, and shift-log appendix.
 - [ ] Owner spot-check on production after deploy approval
 
 ### Visual QA checklist (owner / engineering)

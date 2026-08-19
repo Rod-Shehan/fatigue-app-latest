@@ -418,10 +418,10 @@ export function DriverGuideArticle() {
             Settings.
           </li>
           <li>
-            It builds one PDF of your last 28 calendar days — for each week: compliance summary, a Weekly Trip Sheet
-            frame (week ending, driver, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
-            sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week
-            signature on the same page as the day sheets when signed), then the shift log appendix with event detail.
+            It builds one PDF of your last 28 calendar days — one Weekly Trip Sheet page per week (week
+            ending, driver, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
+            sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your
+            week signature when signed). No Circadia header, compliance summary, or shift-log appendix.
           </li>
           <li>It works offline from saved weeks. Share or show it on your phone.</li>
         </ul>
@@ -546,7 +546,10 @@ export function DriverGuideArticle() {
               "On Sunday — open Saturday Edit day on the previous week sheet",
             ],
             ["Run plan", "Optional saved route (name, hours, km)"],
-            ["Roadside PDF", "28-day record for a regulator"],
+            [
+              "Roadside PDF",
+              "Last 28 days as weekly trip sheets — one week per page",
+            ],
           ]}
         />
       </section>

@@ -264,6 +264,9 @@ export type RoadsidePdfPayload = {
   qrDataUrl?: string;
 };
 
+/** `full` = week Export PDF. `tripSheetOnly` = roadside produce (one week per page). */
+export type SheetPdfLayout = "full" | "tripSheetOnly";
+
 function buildRoadsideSectionHtml(r: RoadsidePdfPayload): string {
   const vList = r.violations
     .slice(0, 14)
@@ -557,8 +560,10 @@ export function renderPdfHtml(opts: {
   todayStr: string;
   generatedAtLabel: string;
   roadside?: RoadsidePdfPayload;
+  layout?: SheetPdfLayout;
 }) {
   const { sheet, todayStr, generatedAtLabel, roadside } = opts;
+  const tripSheetOnly = opts.layout === "tripSheetOnly";
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
   const driverName = (sheet.driver_name || "").trim();
@@ -628,13 +633,14 @@ export function renderPdfHtml(opts: {
         .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
         .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
         .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-        .dayCard { margin: 3px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
-        .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
+        .dayCard { margin: ${tripSheetOnly ? "1px" : "3px"} 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
+        .wtsWeekBody { margin: ${tripSheetOnly ? "0" : "10px 0 0"}; break-before: ${tripSheetOnly ? "auto" : "page"}; page-break-before: ${tripSheetOnly ? "auto" : "always"}; }
         .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
         .wtsLastWithFooter { break-inside: avoid; page-break-inside: avoid; }
         .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 8px; }
         ${WORKSAFE_PDF_DAY_CSS}
         ${WEEKLY_TRIP_SHEET_PDF_CSS}
+        ${tripSheetOnly ? ".wtsChrome { margin: 4px 0; } .wtsOffice, .wtsSig { min-height: 40px; }" : ""}
         .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
         .roadside { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; break-inside: avoid; }
         .roadside h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
@@ -673,7 +679,10 @@ export function renderPdfHtml(opts: {
       </style>
     </head>
     <body>
-      <div class="header">
+      ${
+        tripSheetOnly
+          ? ""
+          : `<div class="header">
         <div class="headerRow">
           <div>
             <div class="title">${PRODUCT_NAME_EXPORT}</div>
@@ -686,12 +695,13 @@ export function renderPdfHtml(opts: {
           <div class="generated">Generated: ${escapeHtml(generatedAtLabel)}</div>
         </div>
       </div>
-      ${roadside ? buildRoadsideSectionHtml(roadside) : ""}
+      ${roadside ? buildRoadsideSectionHtml(roadside) : ""}`
+      }
       <div class="wtsWeekBody">
         ${renderWeeklyTripSheetHeaderHtml(tripChrome)}
         ${tripDaysAndFooter}
       </div>
-      ${buildShiftLogHtml({ sheet, todayStr })}
+      ${tripSheetOnly ? "" : buildShiftLogHtml({ sheet, todayStr })}
     </body>
   </html>`;
 }
@@ -1017,39 +1027,40 @@ export type SheetJsPdfInput = {
     last_24h_rest_4?: string | null;
     operator_legal_name?: string | null;
   };
-  roadsidePayload: RoadsidePdfPayload;
+  roadsidePayload?: RoadsidePdfPayload;
   todayStr: string;
   generatedAtLabel: string;
+  layout?: SheetPdfLayout;
 };
 
 /** jsPDF export (used when Chromium is unavailable, e.g. Vercel serverless). */
 export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promise<ArrayBuffer> {
   const { sheet, roadsidePayload, todayStr, generatedAtLabel } = input;
+  const tripSheetOnly = input.layout === "tripSheetOnly";
   const { jsPDF } = await import("jspdf");
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageW = 210;
   const margin = 14;
   const colW = pageW - margin * 2;
-  let y = 30;
+  let y = tripSheetOnly ? 12 : 30;
 
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageW, 24, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(PRODUCT_NAME_EXPORT, margin, 11);
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.text(TAGLINE_DRIVER, margin, 18);
-  doc.text(
-    `Generated: ${new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" })}`,
-    pageW - margin,
-    18,
-    { align: "right" }
-  );
+  if (!tripSheetOnly) {
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, pageW, 24, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(PRODUCT_NAME_EXPORT, margin, 11);
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.text(TAGLINE_DRIVER, margin, 18);
+    doc.text(`Generated: ${generatedAtLabel}`, pageW - margin, 18, { align: "right" });
+  }
 
-  y = renderRoadsideJsPDF(doc, margin, colW, y, roadsidePayload);
+  if (!tripSheetOnly && roadsidePayload) {
+    y = renderRoadsideJsPDF(doc, margin, colW, y, roadsidePayload);
+  }
 
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
@@ -1057,7 +1068,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
   let weekWorkMinutes = 0;
 
   // Start Weekly Trip Sheet body on a fresh page when compliance already filled the first page.
-  if (y > 55) {
+  if (!tripSheetOnly && y > 55) {
     doc.addPage();
     y = 16;
   }
@@ -1081,8 +1092,10 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     // Reserve footer space when placing the last day so signature stays on the same page.
     const needMm = TILE_BUDGET_MM + (isLastDay ? FOOTER_BUDGET_MM : 0);
     if (y + needMm > 285) {
-      doc.addPage();
-      y = 16;
+      if (!tripSheetOnly) {
+        doc.addPage();
+        y = 16;
+      }
     }
     const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
     const dateStr = getDateStr(sheet.week_starting, idx);
@@ -1136,7 +1149,9 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     signedAt: sheet.signed_at,
   });
 
-  y = renderShiftLogJsPDF(doc, margin, colW, sheet, todayStr);
+  if (!tripSheetOnly) {
+    y = renderShiftLogJsPDF(doc, margin, colW, sheet, todayStr);
+  }
 
   return doc.output("arraybuffer");
 }

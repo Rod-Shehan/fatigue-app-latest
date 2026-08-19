@@ -241,7 +241,7 @@ Menu: **Your weeks** (`/sheets`)
 When an officer asks to see your records:
 
 - Tap **Produce 28 day roadside PDF** on **Drive home**, on your **week sheet** (Day tools → Roadside), or in **Settings**.
-- It builds one PDF of your **last 28 calendar days** — for each week: compliance summary, a **Weekly Trip Sheet** frame (week ending, driver name, truck reg, fitness/load/vehicle tick boxes from your day cards, seven WorkSafe day sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week signature on the same page as the day sheets when signed), then the **shift log** appendix (event detail).
+- It builds one PDF of your **last 28 calendar days** — **one Weekly Trip Sheet per page** (week ending, driver name, truck reg, fitness/load/vehicle tick boxes from your day cards, seven WorkSafe day sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week signature when signed). It does **not** include the Circadia header, compliance summary, or shift-log appendix.
 - It works **offline** from saved weeks. Share or show it on your phone.
 
 You must keep signed records for at least **3 years** — this export is for roadside produce only.
@@ -333,4 +333,4 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Start km / End km | Odometer readings you type |
 | Set up day | Change route, truck, pattern, or crew |
 | Run plan | Optional saved route (name, hours, km) |
-| Roadside PDF | 28-day record for a regulator |
+| Roadside PDF | Last 28 days as weekly trip sheets — one week per page |

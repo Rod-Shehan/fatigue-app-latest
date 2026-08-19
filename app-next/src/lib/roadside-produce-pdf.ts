@@ -1,17 +1,9 @@
 import type { FatigueSheet, PrismaClient } from "@prisma/client";
-import { PRODUCT_NAME_EXPORT, TAGLINE_DRIVER } from "@/lib/branding";
-import { computeEvidenceSummary } from "@/lib/evidence";
 import { jurisdictionDisplayLabel, parseJurisdictionCode } from "@/lib/jurisdiction";
-import { buildProduceCoverPdfBytes } from "@/lib/roadside-cover-jspdf";
 import { formatProduceWindowLabel } from "@/lib/roadside-produce";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
-import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
 import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
-import {
-  buildSingleSheetJsPdfBuffer,
-  renderPdfHtml,
-  type RoadsidePdfPayload,
-} from "@/lib/sheet-jspdf-export";
+import { buildSingleSheetJsPdfBuffer, renderPdfHtml } from "@/lib/sheet-jspdf-export";
 import { WORKSAFE_PDF_DAY_CSS } from "@/lib/worksafe-day-sheet/pdf-render";
 import { WEEKLY_TRIP_SHEET_PDF_CSS } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
 
@@ -49,7 +41,7 @@ export function renderRoadsideProduceCoverHtml(opts: {
       </tbody>
     </table>
     <p class="produceDisclaimer">${escapeHtml(ROADSIDE_PDF_DISCLAIMER)}</p>
-    <p class="produceNote">Each following section is one weekly sheet (compliance summary, Weekly Trip Sheet with WorkSafe day rows, and shift log).</p>
+    <p class="produceNote">Each following page is one weekly trip sheet.</p>
   </section>`;
 }
 
@@ -61,13 +53,11 @@ export function renderRoadsideProduceDocumentHtml(opts: {
   todayStr: string;
   weekBodies: string[];
 }): string {
-  const cover = renderRoadsideProduceCoverHtml({
-    driverName: opts.driverName,
-    fromYmd: opts.fromYmd,
-    toYmd: opts.toYmd,
-    weekCount: opts.weekBodies.length,
-    generatedAtLabel: opts.generatedAtLabel,
-  });
+  void opts.driverName;
+  void opts.fromYmd;
+  void opts.toYmd;
+  void opts.generatedAtLabel;
+  void opts.todayStr;
   const weeks = opts.weekBodies
     .map((body) => `<div class="produceWeek">${body}</div>`)
     .join("");
@@ -77,80 +67,23 @@ export function renderRoadsideProduceDocumentHtml(opts: {
   <head>
     <meta charset="utf-8" />
     <style>
-      @page { size: A4; margin: 12mm; }
-      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; }
-      .produceCover { margin: 0 0 12px; padding: 12px 14px; border: 2px solid #b45309; border-radius: 12px; background: #fffbeb; break-after: avoid; page-break-after: avoid; }
-      .produceCover h1 { font-size: 18px; font-weight: 800; margin: 0 0 6px; color: #78350f; }
-      .produceLead { font-size: 11px; line-height: 1.4; margin: 0 0 8px; color: #92400e; }
-      .produceMeta { width: 100%; border-collapse: collapse; font-size: 10.5px; margin-bottom: 8px; }
-      .produceMeta th { text-align: left; width: 34%; padding: 4px 10px 4px 0; color: #78350f; font-weight: 700; vertical-align: top; border-bottom: 1px solid #fde68a; }
-      .produceMeta td { padding: 4px 0; border-bottom: 1px solid #fde68a; color: #1e293b; }
-      .produceDisclaimer { font-size: 8.5px; color: #57534e; line-height: 1.35; margin: 0 0 6px; }
-      .produceNote { font-size: 9.5px; color: #78716c; margin: 0; }
-      /* First week continues after cover; later weeks start on a new page */
-      .produceWeek { page-break-before: always; break-before: page; }
+      @page { size: A4; margin: 8mm; }
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: #1e293b; margin: 0; }
+      /* One weekly trip sheet per page */
+      .produceWeek { page-break-before: always; break-before: page; page-break-inside: avoid; break-inside: avoid; }
       .produceWeek:first-of-type { page-break-before: auto; break-before: auto; }
-      .produceWeek .header { display: none; }
-      .header { background: #0f172a; color: white; padding: 12px 14px; border-radius: 10px; }
-      .headerRow { display:flex; justify-content:space-between; align-items:flex-end; gap: 10px; }
-      .title { font-weight: 800; font-size: 18px; letter-spacing: 0.02em; }
-      .subtitle { font-size: 11px; opacity: 0.9; margin-top: 2px; }
-      .generated { font-size: 10px; opacity: 0.9; text-align:right; white-space:nowrap; }
-      .dayCard { margin: 3px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
-      .wtsWeekBody { margin: 10px 0 0; break-before: page; page-break-before: always; }
+      .dayCard { margin: 1px 0; padding: 0; border: none; background: transparent; break-inside: avoid; page-break-inside: avoid; }
+      .wtsWeekBody { margin: 0; break-before: auto; page-break-before: auto; }
       .wtsWeekBody .wtsHeaderBlock { break-after: avoid; page-break-after: avoid; }
       .wtsLastWithFooter { break-inside: avoid; page-break-inside: avoid; }
-      .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 8px; }
+      .wtsWeekBody .wtsFooterBlock { break-before: avoid; page-break-before: avoid; margin-top: 4px; }
+      .wtsChrome { margin: 4px 0; }
       ${WORKSAFE_PDF_DAY_CSS}
       ${WEEKLY_TRIP_SHEET_PDF_CSS}
       .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-      .roadside { margin: 12px 0 16px; padding: 12px 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #f8fafc; break-inside: avoid; }
-      .roadside h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
-      .roadside h3 { font-size: 11px; font-weight: 800; margin: 0 0 4px; color: #334155; }
-      .roadMeta { font-size: 10px; color: #334155; margin: 0 0 6px; line-height: 1.35; }
-      .roadCounts { font-size: 11px; font-weight: 700; color: #0f172a; margin: 0 0 8px; }
-      .roadEvidence { margin: 8px 0 10px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #ffffff; }
-      .roadEvidenceGrid { display: flex; gap: 10px; font-size: 9.5px; color: #334155; }
-      .roadEvidenceGrid > div { flex: 1; min-width: 0; }
-      .roadEvidenceNote { margin: 6px 0 0; font-size: 9.5px; color: #334155; }
-      .roadCols { display: flex; gap: 12px; align-items: flex-start; }
-      .roadCol { flex: 1; min-width: 0; }
-      .roadList { margin: 0; padding-left: 14px; font-size: 9.5px; color: #1e293b; }
-      .roadList li { margin-bottom: 2px; }
-      .roadEmpty { color: #94a3b8; font-style: italic; list-style: none; margin-left: -14px; }
-      .roadMore { font-size: 9px; color: #64748b; margin: 4px 0 0; }
-      .qrWrap { display: flex; flex-direction: column; align-items: flex-start; margin-top: 10px; gap: 4px; }
-      .qrImg { width: 120px; height: 120px; image-rendering: pixelated; }
-      .qrCap { font-size: 9px; color: #64748b; }
-      .roadDisclaimer { font-size: 8.5px; color: #475569; margin: 10px 0 0; line-height: 1.35; }
-      .shiftLog { margin-top: 18px; page-break-before: always; break-inside: auto; }
-      .shiftLog h2 { font-size: 15px; font-weight: 800; margin: 0 0 8px; color: #0f172a; }
-      .shiftIntro { font-size: 9.5px; color: #64748b; margin: 0 0 12px; line-height: 1.45; }
-      .shiftMeta { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 14px; }
-      .shiftMeta th { text-align: left; width: 42%; padding: 4px 8px 4px 0; color: #475569; font-weight: 700; vertical-align: top; border-bottom: 1px solid #e2e8f0; }
-      .shiftMeta td { padding: 4px 0; border-bottom: 1px solid #e2e8f0; color: #1e293b; }
-      .shiftDay { border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; margin: 0 0 10px; break-inside: avoid; background: #fafafa; }
-      .shiftDay h4 { font-size: 12px; font-weight: 800; margin: 0 0 6px; color: #0f172a; }
-      .shiftCard { font-size: 10px; color: #334155; margin: 0 0 8px; line-height: 1.4; }
-      .shiftAssume { font-size: 9.5px; color: #92400e; margin: 0 0 8px; }
-      .shiftSource { font-size: 9.5px; color: #64748b; margin: 0 0 6px; line-height: 1.35; }
-      .shiftEventTable { width: 100%; border-collapse: collapse; font-size: 9.5px; }
-      .shiftEventTable thead th { text-align: left; padding: 5px 6px; border-bottom: 1px solid #cbd5e1; color: #475569; font-weight: 800; background: #f1f5f9; }
-      .shiftEventTable tbody td { padding: 4px 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
-      .shiftEventTable tbody tr:nth-child(even) td { background: #fff; }
     </style>
   </head>
   <body>
-    <div class="header" style="margin-bottom: 16px;">
-      <div class="headerRow">
-        <div>
-          <div class="title">${PRODUCT_NAME_EXPORT}</div>
-          <div class="subtitle">${TAGLINE_DRIVER} · Roadside produce</div>
-        </div>
-        <div class="generated">Generated: ${escapeHtml(opts.generatedAtLabel)}</div>
-      </div>
-    </div>
-    ${cover}
     ${weeks}
   </body>
 </html>`;
@@ -200,18 +133,14 @@ export async function buildRoadsideSheetExportInput(
     signature: string | null;
     operator_legal_name?: string | null;
   };
-  roadsidePayload: RoadsidePdfPayload;
 }> {
+  void sheetId;
   const days = parseSheetDays(row);
   const jurisdictionLabel = jurisdictionDisplayLabel(parseJurisdictionCode(row.jurisdictionCode));
   const tenant = await prisma.tenant.findUnique({
     where: { id: row.tenantId },
     select: { legalName: true },
   });
-  const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, sheetId);
-  const rv = roadsideExtras.results.filter((r) => r.type === "violation");
-  const rw = roadsideExtras.results.filter((r) => r.type === "warning");
-  const ev = computeEvidenceSummary(days);
 
   return {
     sheet: {
@@ -231,22 +160,6 @@ export async function buildRoadsideSheetExportInput(
       signature: row.signature,
       operator_legal_name: tenant?.legalName ?? null,
     },
-    roadsidePayload: {
-      driverName: row.driverName,
-      weekStarting: row.weekStarting,
-      jurisdictionLabel: roadsideExtras.jurisdictionLabel,
-      violations: rv.map((v) => ({ day: v.day, message: v.message })),
-      warnings: rw.map((w) => ({ day: w.day, message: w.message })),
-      evidence: {
-        gpsCoveragePct: ev.gpsCoveragePct,
-        gpsKm: ev.gpsKm,
-        odometerKm: ev.odometerKm,
-        movingDuringRestCount: ev.movingDuringRestCount,
-        flags: ev.flags.map((f) => ({ severity: f.severity, message: f.message })),
-      },
-      disclaimer: ROADSIDE_PDF_DISCLAIMER,
-      qrDataUrl: roadsideExtras.qrDataUrl,
-    },
   };
 }
 
@@ -257,7 +170,7 @@ export async function buildWeekPdfBodyForSheet(
   todayStr: string,
   generatedAtLabel: string
 ): Promise<string> {
-  const { sheet, roadsidePayload } = await buildRoadsideSheetExportInput(prisma, row, sheetId);
+  const { sheet } = await buildRoadsideSheetExportInput(prisma, row, sheetId);
 
   const full = renderPdfHtml({
     sheet: {
@@ -275,13 +188,11 @@ export async function buildWeekPdfBodyForSheet(
     },
     todayStr,
     generatedAtLabel,
-    roadside: roadsidePayload,
+    layout: "tripSheetOnly",
   });
 
   return extractPdfHtmlBody(full);
 }
-
-export { buildProduceCoverPdfBytes } from "@/lib/roadside-cover-jspdf";
 
 /** Merge per-week jsPDF exports when Chromium HTML print is unavailable (Vercel). */
 export async function buildRoadsideProducePdfMergedJsPdf(
@@ -295,31 +206,23 @@ export async function buildRoadsideProducePdfMergedJsPdf(
     generatedAtLabel: string;
   }
 ): Promise<Buffer | null> {
+  void opts.driverName;
+  void opts.fromYmd;
+  void opts.toYmd;
   try {
     const { PDFDocument } = await import("pdf-lib");
     const merged = await PDFDocument.create();
 
-    const coverBytes = await buildProduceCoverPdfBytes({
-      driverName: opts.driverName,
-      fromYmd: opts.fromYmd,
-      toYmd: opts.toYmd,
-      weekCount: rows.length,
-      generatedAtLabel: opts.generatedAtLabel,
-    });
-    const coverDoc = await PDFDocument.load(coverBytes);
-    const coverPages = await merged.copyPages(coverDoc, coverDoc.getPageIndices());
-    coverPages.forEach((p) => merged.addPage(p));
-
     for (const row of rows) {
-      const { sheet, roadsidePayload } = await buildRoadsideSheetExportInput(prisma, row, row.id);
+      const { sheet } = await buildRoadsideSheetExportInput(prisma, row, row.id);
       const weekBytes = await buildSingleSheetJsPdfBuffer({
         sheet: {
           ...sheet,
           days: sheet.days as Array<Record<string, unknown>>,
         },
-        roadsidePayload,
         todayStr: opts.todayStr,
         generatedAtLabel: opts.generatedAtLabel,
+        layout: "tripSheetOnly",
       });
       const weekDoc = await PDFDocument.load(weekBytes);
       const weekPages = await merged.copyPages(weekDoc, weekDoc.getPageIndices());

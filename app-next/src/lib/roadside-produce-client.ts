@@ -1,45 +1,15 @@
 import type { FatigueSheet } from "@/lib/api";
-import { computeEvidenceSummary } from "@/lib/evidence";
-import { jurisdictionDisplayLabel } from "@/lib/jurisdiction";
 import { listSheetsOfflineFirst } from "@/lib/offline-api";
 import { getPerthNowParts } from "@/lib/perth-now";
-import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { getRoadsideProduceFromYmd, selectSheetsForRoadsideProduce } from "@/lib/roadside-produce";
-import { computeComplianceForCachedSheets } from "@/lib/sheet-export-compliance-cache";
-import type { RoadsidePdfPayload, SheetJsPdfInput } from "@/lib/sheet-jspdf-export";
+import type { SheetJsPdfInput } from "@/lib/sheet-jspdf-export";
 
 export type RoadsideProduceClientResult =
   | { ok: true; blob: Blob; filename: string; weekCount: number }
   | { ok: false; error: string };
 
-function buildRoadsidePayloadForSheet(
-  sheet: FatigueSheet,
-  allSheets: FatigueSheet[]
-): RoadsidePdfPayload {
-  const { results, jurisdictionCode } = computeComplianceForCachedSheets(allSheets, sheet);
-  const rv = results.filter((r) => r.type === "violation");
-  const rw = results.filter((r) => r.type === "warning");
-  const ev = computeEvidenceSummary(sheet.days ?? []);
-  return {
-    driverName: sheet.driver_name,
-    weekStarting: sheet.week_starting,
-    jurisdictionLabel: jurisdictionDisplayLabel(jurisdictionCode),
-    violations: rv.map((v) => ({ day: v.day, message: v.message })),
-    warnings: rw.map((w) => ({ day: w.day, message: w.message })),
-    evidence: {
-      gpsCoveragePct: ev.gpsCoveragePct,
-      gpsKm: ev.gpsKm,
-      odometerKm: ev.odometerKm,
-      movingDuringRestCount: ev.movingDuringRestCount,
-      flags: ev.flags.map((f) => ({ severity: f.severity, message: f.message })),
-    },
-    disclaimer: ROADSIDE_PDF_DISCLAIMER,
-  };
-}
-
 function sheetJsPdfInput(
   sheet: FatigueSheet,
-  roadsidePayload: RoadsidePdfPayload,
   todayStr: string,
   generatedAtLabel: string
 ): SheetJsPdfInput {
@@ -53,16 +23,16 @@ function sheetJsPdfInput(
       status: sheet.status,
       signature: sheet.signature ?? null,
       signed_at: sheet.signed_at ?? null,
-      jurisdiction_label: roadsidePayload.jurisdictionLabel,
+      jurisdiction_label: "",
       last_24h_break: sheet.last_24h_break ?? null,
       last_24h_rest_1: sheet.last_24h_rest_1 ?? null,
       last_24h_rest_2: sheet.last_24h_rest_2 ?? null,
       last_24h_rest_3: sheet.last_24h_rest_3 ?? null,
       last_24h_rest_4: sheet.last_24h_rest_4 ?? null,
     },
-    roadsidePayload,
     todayStr,
     generatedAtLabel,
+    layout: "tripSheetOnly",
   };
 }
 
@@ -99,29 +69,15 @@ export async function buildRoadsideProducePdfFromCache(
   const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
 
   try {
-    const [{ buildProduceCoverPdfBytes }, { buildSingleSheetJsPdfBuffer }, { PDFDocument }] =
-      await Promise.all([
-        import("@/lib/roadside-cover-jspdf"),
-        import("@/lib/sheet-jspdf-export"),
-        import("pdf-lib"),
-      ]);
+    const [{ buildSingleSheetJsPdfBuffer }, { PDFDocument }] = await Promise.all([
+      import("@/lib/sheet-jspdf-export"),
+      import("pdf-lib"),
+    ]);
     const merged = await PDFDocument.create();
 
-    const coverBytes = await buildProduceCoverPdfBytes({
-      driverName: trimmed,
-      fromYmd,
-      toYmd: todayStr,
-      weekCount: inWindow.length,
-      generatedAtLabel,
-    });
-    const coverDoc = await PDFDocument.load(coverBytes);
-    const coverPages = await merged.copyPages(coverDoc, coverDoc.getPageIndices());
-    coverPages.forEach((p) => merged.addPage(p));
-
     for (const sheet of inWindow) {
-      const roadsidePayload = buildRoadsidePayloadForSheet(sheet, mine);
       const weekBytes = await buildSingleSheetJsPdfBuffer(
-        sheetJsPdfInput(sheet, roadsidePayload, todayStr, generatedAtLabel)
+        sheetJsPdfInput(sheet, todayStr, generatedAtLabel)
       );
       const weekDoc = await PDFDocument.load(weekBytes);
       const weekPages = await merged.copyPages(weekDoc, weekDoc.getPageIndices());
