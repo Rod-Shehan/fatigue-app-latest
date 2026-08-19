@@ -43,7 +43,7 @@ export {
   qualifyingRestComplete,
   softResetSegmentStartMinute,
 } from "./evaluate";
-export type { AmiSolo72hResult, AmiSolo14dLongRestOptions } from "./evaluate";
+export type { AmiSolo72hResult, AmiSolo14dLongRestOptions, BuildEvalTapeOptions } from "./evaluate";
 export { isAmiComplianceEngineEnabled } from "./flag";
 export { runWaComplianceChecks } from "./compliance-bridge";
 export {

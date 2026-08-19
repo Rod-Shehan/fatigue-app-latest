@@ -52,25 +52,31 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
 
     const days = emptyWeek();
-    // Short work week with no logged 24h non-work blocks on the event tape.
+    // First-week Sunday: work after only a few hours of blank time — not 2×24h yet.
     days[0] = {
       ...days[0],
-      work_time: Array(1440).fill(false).map((_, i) => i >= 600 && i < 900),
+      work_time: Array(1440).fill(false).map((_, i) => i >= 8 * 60 && i < 13 * 60),
       events: [
-        { type: "work", time: "2026-07-20T10:00:00.000Z" },
-        { type: "stop", time: "2026-07-20T15:00:00.000Z" },
+        { type: "work", time: "2026-07-19T08:00:00" },
+        { type: "stop", time: "2026-07-19T13:00:00" },
       ],
     };
 
+    const asOf = {
+      weekStarting: "2026-07-19",
+      currentDayIndex: 0,
+      slotOffsetWithinToday: 15 * 60,
+    } as const;
+
     const without = runWaComplianceChecks(days, {
       driverType: "solo",
-      weekStarting: "2026-07-19",
+      ...asOf,
     });
     expect(without.some((r) => r.message.includes("2×24h"))).toBe(true);
 
     const withDecls = runWaComplianceChecks(days, {
       driverType: "solo",
-      weekStarting: "2026-07-19",
+      ...asOf,
       declared24hRests: {
         last_24h_rest_1: "2026-07-10",
         last_24h_rest_1_start: "2026-07-09T16:00:00.000Z",
@@ -81,6 +87,25 @@ describe("AMI Phase 3 flag + WA bridge", () => {
       },
     });
     expect(withDecls.some((r) => r.message.includes("2×24h"))).toBe(false);
+  });
+
+  it("counts blank days before first work as 14-day rest (paper-diary non-work)", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const days = emptyWeek();
+    days[3] = {
+      ...days[3],
+      events: [{ type: "work", time: "2026-08-19T10:51:00" }],
+    };
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "solo",
+      weekStarting: "2026-08-16",
+      currentDayIndex: 3,
+      slotOffsetWithinToday: 10 * 60 + 52,
+    });
+    expect(results.some((r) => r.message.includes("2×24h"))).toBe(false);
   });
 
   it("5h flag names the weekday and rest minutes, not AMI", () => {

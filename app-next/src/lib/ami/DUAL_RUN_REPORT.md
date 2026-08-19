@@ -4,8 +4,8 @@ Generated against 10 fixtures. Live WA compliance uses the AMI overlay by defaul
 
 ## Summary
 
-- **match:** 46
-- **diff:** 4
+- **match:** 47
+- **diff:** 3
 - **skip:** 30 (current rule not extracted as a pure function yet)
 
 ## Rows
@@ -82,7 +82,7 @@ Generated against 10 fixtures. Live WA compliance uses the AMI overlay by defaul
 | 72h-three-blocks | five_hour_break | diff | Current scores break events in work-minute window; AMI scores break and non-work rest the same after reclass |
 | 72h-three-blocks | work_168h | match |  |
 | 72h-three-blocks | solo_72h | diff | Legacy scored window; AMI soft-reset inactive — investigate parity |
-| 72h-three-blocks | solo_14d_long_rests | diff |  |
+| 72h-three-blocks | solo_14d_long_rests | match |  |
 | 72h-three-blocks | shift_pattern_184E4_gap | skip | No A↔B transition on fixture |
 | pattern-gap-with-break | seventeen_hour_episode | match |  |
 | pattern-gap-with-break | solo_between_shift_7h | match |  |
@@ -133,20 +133,6 @@ Generated against 10 fixtures. Live WA compliance uses the AMI overlay by defaul
     "qualBlockCount": 0
   },
   "note": "Legacy scored window; AMI soft-reset inactive — investigate parity"
-}
-```
-
-### 72h-three-blocks — solo_14d_long_rests
-
-```json
-{
-  "current": {
-    "longRestCount": 2
-  },
-  "ami": {
-    "longRestCount": 1,
-    "ok": false
-  }
 }
 ```
 

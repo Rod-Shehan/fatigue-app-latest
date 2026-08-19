@@ -17,13 +17,15 @@ import {
 } from "@/lib/rolling-events";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { findShiftPatternTransitionsOnTimeline } from "@/lib/shift-change";
-import { getSheetDayDateString } from "@/lib/weeks";
+import { countFullNonWorkPeriods } from "@/lib/declared-24h-rests";
+import { getSheetDayDateString, parseLocalDate } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
   AMI_17H_LOOKBACK,
   AMI_72H_EVAL_LOOKBACK,
   AMI_72H_WINDOW,
   AMI_PATTERN_CHANGE_REST,
+  AMI_14D_LONG_REST_BLOCK,
 } from "./constants";
 import {
   buildEvalTape,
@@ -38,7 +40,7 @@ import {
   measurePatternChangeRestOnlyWorkInterrupts,
   patternChangeRestMet,
 } from "./evaluate";
-import { legacySolo14dLongRestCount, legacySolo72hWindowMetrics } from "./legacy-flat-metrics";
+import { legacySolo72hWindowMetrics } from "./legacy-flat-metrics";
 import type { AmiEvent } from "./types";
 
 export type DualRunStatus = "match" | "diff" | "skip";
@@ -65,6 +67,12 @@ export type DualRunFixture = {
 
 function asOfMs(fixture: DualRunFixture): number {
   return new Date(fixture.asOfIso).getTime();
+}
+
+function recordStartMsFromWeek(weekStarting?: string): number | undefined {
+  if (!weekStarting) return undefined;
+  const ms = parseLocalDate(weekStarting).getTime();
+  return Number.isFinite(ms) ? ms : undefined;
 }
 
 function toTimelineEvents(events: AmiEvent[]) {
@@ -245,7 +253,7 @@ export function compare168h(fixture: DualRunFixture): DualRunRow {
   const days = eventsToDerivedDays(fixture.events, fixture.weekStarting, todayStr, fixture.shiftLabels);
   const current = computeRolling168hMetricsFromDays(days);
   const tape = buildEvalTape(fixture.events, asOf, AMI_14D_WINDOW + AMI_72H_WINDOW, {
-    clipToFirstEvent: true,
+    recordStartMs: recordStartMsFromWeek(fixture.weekStarting),
   });
   const ami = evaluate168hWork(tape);
   const amiHours = Math.round((ami.maxRollingWorkMinutes / 60) * 10) / 10;
@@ -367,7 +375,9 @@ export function compareSolo72h(fixture: DualRunFixture): DualRunRow {
 
 export function compareSolo14dRests(fixture: DualRunFixture): DualRunRow {
   const asOf = asOfMs(fixture);
-  const tape = buildEvalTape(fixture.events, asOf, AMI_14D_WINDOW, { clipToFirstEvent: true });
+  const tape = buildEvalTape(fixture.events, asOf, AMI_14D_WINDOW, {
+    recordStartMs: recordStartMsFromWeek(fixture.weekStarting),
+  });
   const ami = evaluateSolo14dLongRests(tape);
 
   if (!fixture.weekStarting) {
@@ -383,7 +393,8 @@ export function compareSolo14dRests(fixture: DualRunFixture): DualRunRow {
   const todayStr = fixture.asOfIso.slice(0, 10);
   const days = eventsToDerivedDays(fixture.events, fixture.weekStarting, todayStr, fixture.shiftLabels);
   const nonWork = days.flatMap((d) => d.non_work ?? []);
-  const legacyCount = legacySolo14dLongRestCount(nonWork);
+  const from = Math.max(0, nonWork.length - AMI_14D_WINDOW);
+  const legacyCount = countFullNonWorkPeriods(nonWork.slice(from), AMI_14D_LONG_REST_BLOCK);
   const status = compareNum(legacyCount, ami.longRestCount, 0);
   return {
     fixtureId: fixture.id,

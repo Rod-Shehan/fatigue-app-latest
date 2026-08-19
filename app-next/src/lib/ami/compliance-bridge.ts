@@ -8,10 +8,11 @@ import { runComplianceChecks } from "@/lib/compliance";
 import {
   collectDeclared24hRestRanges,
   collectDeclared24hRests,
+  timelineStartYmdFromPriorDays,
 } from "@/lib/declared-24h-rests";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import { toAmiEventType } from "@/lib/activity-kind";
-import { getSheetDayDateString } from "@/lib/weeks";
+import { getSheetDayDateString, parseLocalDate } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
   AMI_72H_EVAL_LOOKBACK,
@@ -94,12 +95,25 @@ function resolveAsOfMs(options: RunOpts): number {
   return Date.now();
 }
 
+/** Local midnight of the first loaded sheet day (history + prev week + current). */
+function resolveRecordStartMs(options: RunOpts): number | undefined {
+  const weekStarting = options.weekStarting;
+  if (!weekStarting) return undefined;
+  const priorDayCount =
+    ((options.historyDays as unknown[] | null | undefined)?.length ?? 0) +
+    ((options.prevWeekDays as unknown[] | null | undefined)?.length ?? 0);
+  const startYmd = timelineStartYmdFromPriorDays(weekStarting, priorDayCount);
+  const ms = parseLocalDate(startYmd).getTime();
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
 function buildAmiOwnedResults(
   days: ComplianceDayData[],
   options: RunOpts
 ): ComplianceCheckResult[] {
   const events = collectAmiEvents(days, options);
   const asOf = resolveAsOfMs(options);
+  const recordStartMs = resolveRecordStartMs(options);
   const driverType = options.driverType ?? "solo";
   const out: ComplianceCheckResult[] = [];
 
@@ -180,7 +194,7 @@ function buildAmiOwnedResults(
     }
 
     const rests = evaluateSolo14dLongRests(
-      buildEvalTape(events, asOf, AMI_14D_WINDOW, { clipToFirstEvent: true }),
+      buildEvalTape(events, asOf, AMI_14D_WINDOW, { recordStartMs }),
       {
         declaredRanges: collectDeclared24hRestRanges(options.declared24hRests),
         declaredYmdds: collectDeclared24hRests(options.declared24hRests),
@@ -198,7 +212,7 @@ function buildAmiOwnedResults(
   }
 
   const tape168 = buildEvalTape(events, asOf, AMI_14D_WINDOW + AMI_PATTERN_CHANGE_REST, {
-    clipToFirstEvent: true,
+    recordStartMs,
   });
   const w168 = evaluate168hWork(tape168);
   if (w168.wouldExceed168) {

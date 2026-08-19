@@ -31,9 +31,24 @@ import {
   AMI_TWO_UP_24H_WINDOW,
   AMI_WORK_WINDOW,
 } from "./constants";
+import { countFullNonWorkPeriods } from "@/lib/declared-24h-rests";
 import { eventTimeMs, lastAmiEventAt, paintAmiTape, segmentsFromTape, sortAmiEvents } from "./paint";
 import { reclassifyAmiTape } from "./reclassify";
 import type { AmiEvent, AmiKind, AmiTape } from "./types";
+
+export type BuildEvalTapeOptions = {
+  /**
+   * Start of the loaded record (first sheet day in lookback). Minutes before the
+   * first tap on that record are non-work — same as blank days on the day cards.
+   * Do not pass the first event time here; that drops pre-shift rest.
+   */
+  recordStartMs?: number;
+  /**
+   * Drops minutes before the first tap. Live WA overlay must not use this for
+   * 14-day / 168h — it ignores blank-day non-work already on the sheet.
+   */
+  clipToFirstEvent?: boolean;
+};
 
 function countKind(kinds: AmiKind[], kind: AmiKind, from = 0, toExclusive?: number): number {
   const end = toExclusive ?? kinds.length;
@@ -92,17 +107,20 @@ export function buildEvalTape(
   events: AmiEvent[],
   asOfMs: number,
   lookbackMin: number,
-  options?: { clipToFirstEvent?: boolean }
+  options?: BuildEvalTapeOptions
 ): AmiTape {
   let originMs = asOfMs - lookbackMin * 60_000;
-  if (options?.clipToFirstEvent) {
+  const recordStart = options?.recordStartMs;
+  if (recordStart != null && Number.isFinite(recordStart)) {
+    // Clip to the first loaded sheet day, not the first tap.
+    originMs = Math.max(originMs, recordStart);
+  } else if (options?.clipToFirstEvent) {
     const sorted = sortAmiEvents(events);
     const first = sorted.find((e) => {
       const t = eventTimeMs(e);
       return Number.isFinite(t) && t <= asOfMs;
     });
     if (first) {
-      // Do not invent non_work before the record starts (avoids fake 24h rests / 168h padding).
       originMs = Math.max(originMs, eventTimeMs(first));
     }
   }
@@ -518,8 +536,11 @@ function countDeclared14dRestCredit(options?: AmiSolo14dLongRestOptions): number
 }
 
 /**
- * Count ≥24h continuous `non_work` on the tape, plus declared rests when logs cannot
- * yet prove Reg 184E(2)(b) option (i) — same product role as legacy `option14Satisfied`.
+ * Count 24h non-work periods on the tape, plus declared rests when logs cannot
+ * yet prove Reg 184E(2)(b) option (i) — same as legacy `option14Satisfied`.
+ *
+ * A continuous run is credited as `floor(minutes / 24h)` (48h blank = 2×24h),
+ * not as a single block.
  */
 export function evaluateSolo14dLongRests(
   tape: AmiTape,
@@ -529,16 +550,15 @@ export function evaluateSolo14dLongRests(
   ok: boolean;
 } {
   const from = Math.max(0, tape.kinds.length - AMI_14D_WINDOW);
-  const longs = continuousRuns(tape.kinds, "non_work", from).filter(
-    (r) => r.length >= AMI_14D_LONG_REST_BLOCK
-  );
+  const nonWork = tape.kinds.slice(from).map((k) => k === "non_work");
+  const loggedCount = countFullNonWorkPeriods(nonWork, AMI_14D_LONG_REST_BLOCK);
   const declaredCredit = countDeclared14dRestCredit(options);
   // When the tape already proves ≥2, ignore declarations (avoid double-count noise).
   // Otherwise add declarations the same way legacy credits sheet-declared rests.
   const longRestCount =
-    longs.length >= AMI_14D_LONG_REST_COUNT
-      ? longs.length
-      : longs.length + declaredCredit;
+    loggedCount >= AMI_14D_LONG_REST_COUNT
+      ? loggedCount
+      : loggedCount + declaredCredit;
   return {
     longRestCount,
     ok: longRestCount >= AMI_14D_LONG_REST_COUNT,
