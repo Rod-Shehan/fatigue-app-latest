@@ -1,3 +1,8 @@
+import {
+  DRIVER_CONTINUE_SHIFT_LABEL,
+  DRIVER_START_WORK_LABEL,
+  DRIVER_END_SHIFT_LABEL,
+} from "@/lib/product-copy";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getSheetDayDateString } from "@/lib/weeks";
 import type { DayData } from "@/lib/api";
@@ -68,7 +73,7 @@ export function getDriverHomeShiftStatus(
     return {
       activity: "break",
       headline: `On rest · ${elapsed}`,
-      detail: "Tap Continue shift when you resume driving or End shift when finished.",
+      detail: `Tap ${DRIVER_START_WORK_LABEL} to choose driving or Other work, or ${DRIVER_END_SHIFT_LABEL} when finished.`,
     };
   }
 
@@ -76,7 +81,7 @@ export function getDriverHomeShiftStatus(
     return {
       activity: "other_work",
       headline: `On other work · ${elapsed}`,
-      detail: "Tap Continue shift when you resume driving or End shift when finished.",
+      detail: `Tap ${DRIVER_CONTINUE_SHIFT_LABEL} when you resume driving or ${DRIVER_END_SHIFT_LABEL} when finished.`,
     };
   }
 

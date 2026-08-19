@@ -6,6 +6,7 @@ import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_HELP_RECORDS_SIGNING_BULLETS,
   DRIVER_START_SHIFT_LABEL,
+  DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_START_REST_LABEL,
   DRIVER_START_OTHER_WORK_LABEL,
@@ -115,14 +116,16 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">
-                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} / {DRIVER_STOP_DRIVING_LABEL} /{" "}
-                  {DRIVER_END_SHIFT_LABEL}
+                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_START_WORK_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} /{" "}
+                  {DRIVER_STOP_DRIVING_LABEL} / {DRIVER_END_SHIFT_LABEL}
                 </strong>{" "}
                 — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} opens a split:{" "}
                 {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} (Set up day first if details are
-                missing — Confirm does not start driving by itself). {DRIVER_STOP_DRIVING_LABEL}{" "}
+                missing — Confirm does not start driving by itself). On Rest, {DRIVER_START_WORK_LABEL} opens the same
+                split (driving or Other work / loading). {DRIVER_STOP_DRIVING_LABEL}{" "}
                 opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}.{" "}
-                {DRIVER_CONTINUE_SHIFT_LABEL} is back to driving. {DRIVER_END_SHIFT_LABEL} is off the job.
+                {DRIVER_CONTINUE_SHIFT_LABEL} is back to driving after Other work. {DRIVER_END_SHIFT_LABEL} is off the
+                job.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_REST_LABEL}</strong> — not driving

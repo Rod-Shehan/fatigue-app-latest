@@ -57,10 +57,11 @@ export interface DriverActionHeroProps {
     icon?: React.ComponentType<{ className?: string }>;
     /** Ghost pill on dark focus overlay. */
     onDark?: boolean;
+    chrome?: { surfaceClass: string; textClass: string };
   }>;
-  /** Work → Stop Driving chooser, or idle → Start shift chooser. Vertical split of the same hero. */
+  /** Work → Stop Driving chooser, idle → Start shift chooser, Rest → Start work chooser. */
   stopDrivingChooser?: {
-    variant?: "stop-driving" | "start-shift";
+    variant?: "stop-driving" | "start-shift" | "start-work";
     restLabel: string;
     otherWorkLabel: string;
     onStartRest: () => void;
@@ -72,8 +73,8 @@ export interface DriverActionHeroProps {
 }
 
 /**
- * Expanded round primary action — Start shift / Continue shift / Stop Driving.
- * After Start shift: vertical split Start driving / Start Other Work.
+ * Expanded round primary action — Start shift / Start work / Stop Driving.
+ * After Start shift or Start work: vertical split Start driving / Start Other Work.
  * After Stop Driving: vertical split Start Rest / Start Other Work.
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
@@ -235,6 +236,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             disabled: aux.disabled,
             icon: aux.icon,
             onDark: aux.onDark,
+            chrome: aux.chrome,
           })
         )}
       </div>
@@ -290,11 +292,14 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]"
   );
 
-  const startShiftSplit = stopDrivingChooser?.variant === "start-shift";
-  const chooserAria = startShiftSplit
-    ? "Start shift — choose driving or Other work"
+  const workKindSplit =
+    stopDrivingChooser?.variant === "start-shift" || stopDrivingChooser?.variant === "start-work";
+  const chooserAria = workKindSplit
+    ? stopDrivingChooser?.variant === "start-work"
+      ? "Start work — choose driving or Other work"
+      : "Start shift — choose driving or Other work"
     : "Stop Driving — choose Rest or Other work";
-  const topHalfClass = startShiftSplit
+  const topHalfClass = workKindSplit
     ? "h-1/2 bg-emerald-600 hover:bg-emerald-700"
     : "h-1/2 bg-amber-500 hover:bg-amber-600";
 
