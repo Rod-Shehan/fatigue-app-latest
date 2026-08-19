@@ -159,7 +159,7 @@ export function buildCycledWorkSegments(
   let workInWindowMs =
     last?.type === "work" ? workMsInWindowEndingAt(sorted, nowMs) : 0;
 
-  if (last?.type === "break") {
+  if (last?.type === "break" || last?.type === "other_work") {
     const breakStart = new Date(last.time).getTime();
     const breakCompleteAt = breakStart + BREAK_MS;
     if (cursor < breakCompleteAt) {

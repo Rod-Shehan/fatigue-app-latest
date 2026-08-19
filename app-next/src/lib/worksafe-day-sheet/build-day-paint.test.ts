@@ -91,6 +91,23 @@ describe("buildWorkSafeDayPaint", () => {
     expect(paint.totalsMinutes.non_work).toBeGreaterThanOrEqual(60);
   });
 
+  it("paints 45 min other_work as BREAKS FROM DRIVING, not non_work", () => {
+    const paint = buildWorkSafeDayPaint({
+      dateStr: PAST,
+      todayStr: TODAY,
+      events: [
+        { time: `${PAST}T08:00:00`, type: "work" },
+        { time: `${PAST}T10:00:00`, type: "other_work" },
+        { time: `${PAST}T10:45:00`, type: "work" },
+        { time: `${PAST}T12:00:00`, type: "stop" },
+      ],
+    });
+
+    expect(trackAt(paint, 10 * 60, 10 * 60 + 45).every((t) => t === "break")).toBe(true);
+    expect(trackAt(paint, 10 * 60, 10 * 60 + 45).some((t) => t === "non_work")).toBe(false);
+    expect(paint.totalsMinutes.break).toBe(45);
+  });
+
   it("continues overnight carry as the same track until next event", () => {
     const paint = buildWorkSafeDayPaint({
       dateStr: PAST,

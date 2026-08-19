@@ -6,7 +6,9 @@
  * Used by EventLogger, compliance, WorkSafe day sheet, and PDF export (via dayData grids).
  *
  * Driver-logged events are the paint source of truth:
- * - Only an actioned `break` paints as break (while ≤30 min; longer actioned breaks become non-work).
+ * - Actioned `break` (Rest) paints as break (while ≤30 min; longer Rest becomes non-work).
+ * - `other_work` paints as break from driving and is never converted to non-work.
+ *   It is also marked work_time so 168h still counts it.
  * - `stop` (End shift) ends the prior segment; time after it is non-work — never invent break from short gaps.
  */
 
@@ -17,6 +19,21 @@ export const MINUTES_PER_DAY = 1440;
 /** Actioned break runs longer than this are recorded as non-work (not invented gaps). */
 const MAX_BREAK_AS_BREAK_MINUTES = 30;
 const MIN_BREAK_BLOCK_MINUTES = 10;
+
+function overlayOtherWorkAsBreakFromDriving(
+  work_time: boolean[],
+  breaks: boolean[],
+  non_work: boolean[],
+  otherWork: boolean[],
+  maxMinuteExclusive: number
+): void {
+  for (let m = 0; m < maxMinuteExclusive; m++) {
+    if (!otherWork[m]) continue;
+    breaks[m] = true;
+    work_time[m] = true;
+    non_work[m] = false;
+  }
+}
 
 function reclassifyLongBreaksAsNonWork(
   work_time: boolean[],
@@ -44,7 +61,7 @@ function reclassifyLongBreaksAsNonWork(
   return { work_time, breaks, non_work };
 }
 
-export type CarryOverActivity = "work" | "break" | "non_work";
+export type CarryOverActivity = "work" | "break" | "other_work" | "non_work";
 
 export type DeriveMinuteGridOptions = {
   carryOverType?: CarryOverActivity;
@@ -69,6 +86,7 @@ export function deriveMinuteGridFromEvents(
   const work_time = Array(MINUTES_PER_DAY).fill(false);
   const breaks = Array(MINUTES_PER_DAY).fill(false);
   const non_work = Array(MINUTES_PER_DAY).fill(false);
+  const otherWork = Array(MINUTES_PER_DAY).fill(false);
   const todayStr = options?.todayStr ?? getTodayLocalDateString();
   if (dateStr > todayStr) return { work_time, breaks, non_work };
 
@@ -93,15 +111,24 @@ export function deriveMinuteGridFromEvents(
     for (let m = 0; m < end; m++) {
       if (carryOverType === "work") work_time[m] = true;
       else if (carryOverType === "break") breaks[m] = true;
+      else if (carryOverType === "other_work") otherWork[m] = true;
       else non_work[m] = true;
     }
   }
 
   if (!events?.length) {
     for (let m = 0; m < maxMinuteExclusive; m++) {
-      if (!work_time[m] && !breaks[m]) non_work[m] = true;
+      if (!work_time[m] && !breaks[m] && !otherWork[m]) non_work[m] = true;
     }
-    return reclassifyLongBreaksAsNonWork(work_time, breaks, non_work, maxMinuteExclusive);
+    const converted = reclassifyLongBreaksAsNonWork(work_time, breaks, non_work, maxMinuteExclusive);
+    overlayOtherWorkAsBreakFromDriving(
+      converted.work_time,
+      converted.breaks,
+      converted.non_work,
+      otherWork,
+      maxMinuteExclusive
+    );
+    return converted;
   }
 
   for (let i = 0; i < events.length; i++) {
@@ -126,13 +153,22 @@ export function deriveMinuteGridFromEvents(
     for (let m = Math.max(0, startMin); m < Math.min(workBreakMaxMinute, endMin); m++) {
       if (ev.type === "work" || treatBreakAsWork) work_time[m] = true;
       else if (ev.type === "break") breaks[m] = true;
+      else if (ev.type === "other_work") otherWork[m] = true;
       else if (ev.type === "non_work") non_work[m] = true;
     }
   }
   for (let m = 0; m < maxMinuteExclusive; m++) {
-    if (!work_time[m] && !breaks[m]) non_work[m] = true;
+    if (!work_time[m] && !breaks[m] && !otherWork[m]) non_work[m] = true;
   }
-  return reclassifyLongBreaksAsNonWork(work_time, breaks, non_work, maxMinuteExclusive);
+  const converted = reclassifyLongBreaksAsNonWork(work_time, breaks, non_work, maxMinuteExclusive);
+  overlayOtherWorkAsBreakFromDriving(
+    converted.work_time,
+    converted.breaks,
+    converted.non_work,
+    otherWork,
+    maxMinuteExclusive
+  );
+  return converted;
 }
 
 /** Expand legacy 48 half-hour slots to 1440 minutes (each true slot → 30 minutes). */

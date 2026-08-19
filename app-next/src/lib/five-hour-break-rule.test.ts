@@ -118,4 +118,27 @@ describe("five-hour-break-rule", () => {
     expect(dueBy).not.toBeNull();
     expect(dueBy!).toBeLessThan(nowMs);
   });
+
+  it("counts other_work as break-from-driving rest, not 5h work minutes", () => {
+    const t0 = new Date("2026-06-01T08:00:00.000Z").getTime();
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const events = [
+      { time: iso(t0), type: "work" },
+      { time: iso(t0 + 60 * 60 * 1000), type: "other_work" },
+    ];
+    const nowMs = t0 + 2 * 60 * 60 * 1000;
+    const period = computeWorkPeriodAtEnd(events, nowMs);
+    expect(period?.workMins).toBe(60);
+  });
+
+  it("20 min other_work after 5h work satisfies qualifying rest", () => {
+    const t0 = new Date("2026-06-01T08:00:00.000Z").getTime();
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const work300 = 300 * 60 * 1000;
+    const events = [
+      { time: iso(t0), type: "work" },
+      { time: iso(t0 + work300), type: "other_work" },
+    ];
+    expect(qualifyingRestMetForWorkAfterBreak(events, [20])).toBe(true);
+  });
 });

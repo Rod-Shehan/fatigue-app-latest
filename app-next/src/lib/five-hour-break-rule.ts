@@ -9,6 +9,8 @@
  * is in derive-minute-coverage; AMI 5h treats both rest rows the same.
  */
 
+import { isBreakFromDrivingEventType, isWorkTimeEventType } from "@/lib/activity-kind";
+
 export const MIN_QUAL_BREAK_MIN = 10;
 export const TOTAL_QUAL_BREAK_MIN = 20;
 export const WORK_WINDOW_MIN = 5 * 60;
@@ -54,7 +56,7 @@ export function findWorkWindowStartMs(events: TimelineEvent[], endMs: number): n
     const segEnd = i === events.length - 1 ? endMs : toMs(events[i + 1].time);
     if (segEnd <= segStart) continue;
     const durationMin = Math.floor((segEnd - segStart) / 60000);
-    if (events[i].type !== "work") continue;
+    if (!isWorkTimeEventType(events[i].type)) continue;
     if (remainingWork <= durationMin) {
       windowStartMs = segEnd - remainingWork * 60 * 1000;
       break;
@@ -62,8 +64,12 @@ export function findWorkWindowStartMs(events: TimelineEvent[], endMs: number): n
     remainingWork -= durationMin;
   }
   if (windowStartMs == null) {
-    const last = events[events.length - 1];
-    if (last.type === "work") windowStartMs = toMs(last.time);
+    for (let i = events.length - 1; i >= 0; i--) {
+      if (isWorkTimeEventType(events[i].type)) {
+        windowStartMs = toMs(events[i].time);
+        break;
+      }
+    }
   }
   return windowStartMs;
 }
@@ -79,14 +85,14 @@ export function collectBreakRunMinutesOverlappingRange(
   const runs: number[] = [];
   let i = 0;
   while (i < events.length) {
-    if (events[i].type !== "break") {
+    if (!isBreakFromDrivingEventType(events[i].type)) {
       i += 1;
       continue;
     }
     const runStartIdx = i;
     let runEndMs = i + 1 < events.length ? toMs(events[i + 1].time) : rangeEndMs;
     let j = i + 1;
-    while (j < events.length && events[j].type === "break") {
+    while (j < events.length && isBreakFromDrivingEventType(events[j].type)) {
       runEndMs = j + 1 < events.length ? toMs(events[j + 1].time) : rangeEndMs;
       j += 1;
     }
@@ -157,7 +163,7 @@ export function qualifyingRestMetForWorkAfterBreak(
 ): boolean {
   if (events.length === 0) return true;
   const last = events[events.length - 1];
-  if (last.type !== "break") return true;
+  if (!isBreakFromDrivingEventType(last.type)) return true;
   const breakStartMs = toMs(last.time);
   const windowStartMs = findWorkWindowStartMs(events, breakStartMs);
   if (windowStartMs == null) return true;
@@ -219,7 +225,7 @@ export function getBreakSplitBarState(
 export function isRestRequirementAlreadyMetBeforeCurrentBreak(events: TimelineEvent[]): boolean {
   if (events.length === 0) return false;
   const last = events[events.length - 1];
-  if (last.type !== "break") return false;
+  if (!isBreakFromDrivingEventType(last.type)) return false;
   const breakStartMs = toMs(last.time);
   const windowStartMs = findWorkWindowStartMs(events, breakStartMs);
   if (windowStartMs == null) return false;
@@ -252,7 +258,7 @@ export function computeWorkPeriodAtEnd(
     const dur = Math.floor((segEnd - segStart) / 60000);
     const type = events[i].type;
 
-    if (type === "work") {
+    if (isWorkTimeEventType(type)) {
       if (breakRunDurations.length > 0) {
         const slice = events.slice(0, i);
         if (qualifyingRestMetForWorkAfterBreak(slice, breakRunDurations)) {
@@ -262,7 +268,7 @@ export function computeWorkPeriodAtEnd(
         breakRunDurations = [];
       }
       workMins += dur;
-    } else if (type === "break") {
+    } else if (isBreakFromDrivingEventType(type)) {
       breakRunDurations.push(dur);
     } else {
       periodStartMs = segEnd;
@@ -282,7 +288,7 @@ export function findWallClockMsAtWorkMinutes(
 ): number {
   let accumulated = 0;
   for (let i = 0; i < events.length; i++) {
-    if (events[i].type !== "work") continue;
+    if (!isWorkTimeEventType(events[i].type)) continue;
     const segStart = toMs(events[i].time);
     const segEnd = i + 1 < events.length ? toMs(events[i + 1].time) : Number.MAX_SAFE_INTEGER;
     if (segEnd <= periodStartMs) continue;
@@ -305,7 +311,7 @@ export function findWallClockMsAtWorkMinutes(
 export function getBreakDueByTime(events: TimelineEvent[], nowMs: number): number | null {
   if (events.length === 0) return null;
   const last = events[events.length - 1];
-  if (last.type !== "work") return null;
+  if (!isWorkTimeEventType(last.type)) return null;
 
   const period = computeWorkPeriodAtEnd(events, nowMs);
   if (period == null) return null;

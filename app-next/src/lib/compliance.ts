@@ -16,6 +16,7 @@ import {
   normalizeCoverageFieldToMinutes,
   normalizeDayCoverageArrays,
 } from "@/lib/coverage/derive-minute-coverage";
+import { isBreakFromDrivingEventType, isWorkTimeEventType } from "@/lib/activity-kind";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
@@ -426,7 +427,7 @@ function checkBreakFromDriving(days: ComplianceDayData[], results: ComplianceChe
     const dur = Math.max(0, Math.floor((segEnd - segStart) / 60000));
     if (dur === 0) continue;
 
-    if (ev.type === "work") {
+    if (isWorkTimeEventType(ev.type)) {
       // If a break run just ended and we’re moving into work, decide if that run qualified.
       if (breakSegments.length > 0) {
         const slice = ordered
@@ -464,7 +465,7 @@ function checkBreakFromDriving(days: ComplianceDayData[], results: ComplianceChe
       continue;
     }
 
-    if (ev.type === "break") {
+    if (isBreakFromDrivingEventType(ev.type)) {
       breakSegments.push(dur);
       continue;
     }

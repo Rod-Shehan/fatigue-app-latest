@@ -1,4 +1,5 @@
 import type { AmiEvent, AmiKind, AmiSegment, AmiTape } from "./types";
+import { toCoverageKind } from "@/lib/activity-kind";
 
 const MIN_MS = 60_000;
 
@@ -35,8 +36,7 @@ export function lastAmiEventAt(events: AmiEvent[], asOfMs: number): AmiEvent | n
 export function openKindAtAsOf(events: AmiEvent[], asOfMs: number): AmiKind | null {
   const last = lastAmiEventAt(events, asOfMs);
   if (!last || last.type === "stop") return null;
-  if (last.type === "work" || last.type === "break" || last.type === "non_work") return last.type;
-  return null;
+  return toCoverageKind(last.type);
 }
 
 /**
@@ -76,7 +76,7 @@ export function paintAmiTape(
   let open: AmiKind | "after_stop" | null = null;
   if (lastBefore) {
     if (lastBefore.type === "stop") open = "after_stop";
-    else open = lastBefore.type;
+    else open = toCoverageKind(lastBefore.type);
   }
 
   for (let i = 0; i < sorted.length; i++) {
@@ -86,7 +86,7 @@ export function paintAmiTape(
     if (t < origin) continue;
 
     // Paint open kind from cursor → this event.
-    if (open === "work" || open === "break" || open === "non_work") {
+    if (open === "work" || open === "break" || open === "other_work" || open === "non_work") {
       fill(cursorMs, t, open);
     } else {
       fill(cursorMs, t, "non_work");
@@ -98,12 +98,12 @@ export function paintAmiTape(
       continue;
     }
 
-    open = ev.type;
+    open = toCoverageKind(ev.type);
     cursorMs = t;
   }
 
   // Tail to asOf
-  if (open === "work" || open === "break" || open === "non_work") {
+  if (open === "work" || open === "break" || open === "other_work" || open === "non_work") {
     fill(cursorMs, end, open);
   } else {
     fill(cursorMs, end, "non_work");

@@ -12,7 +12,7 @@ export type CorrectEndShiftValidation =
   | { valid: true }
   | { valid: false; message: string };
 
-const OPEN_SEGMENT_TYPES = new Set(["work", "break"]);
+const OPEN_SEGMENT_TYPES = new Set(["work", "break", "other_work"]);
 
 /**
  * @deprecated Prefer {@link timelineHasOpenWorkOrBreak}. Calendar-day last-event
@@ -46,7 +46,7 @@ export function findOpenWorkOrBreakOnTimeline(
     ordered.map(({ time, type }) => ({ time, type })),
     asOfMs
   );
-  if (!last || (last.type !== "work" && last.type !== "break")) return null;
+  if (!last || !OPEN_SEGMENT_TYPES.has(last.type)) return null;
   const match = [...ordered].reverse().find((ev) => ev.time === last.time && ev.type === last.type);
   return match ?? null;
 }

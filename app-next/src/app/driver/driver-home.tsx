@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useDriverAuth } from "@/hooks/use-driver-auth";
-import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square } from "lucide-react";
+import { Briefcase, ChevronRight, Coffee, Loader2, Moon, Square, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
@@ -29,6 +29,7 @@ const ACTIVITY_ICON: Record<DriverShiftActivity, React.ComponentType<{ className
   idle: Moon,
   work: Briefcase,
   break: Coffee,
+  other_work: Wrench,
   stopped: Square,
 };
 
@@ -163,7 +164,7 @@ export function DriverHome() {
                   className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
                     shiftStatus.activity === "work"
                       ? "bg-blue-600 text-white"
-                      : shiftStatus.activity === "break"
+                      : shiftStatus.activity === "break" || shiftStatus.activity === "other_work"
                         ? "bg-amber-500 text-white"
                         : "bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-100"
                   }`}

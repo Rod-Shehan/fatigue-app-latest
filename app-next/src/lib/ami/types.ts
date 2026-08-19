@@ -3,7 +3,7 @@
  * Calendar day / week are not part of this model.
  */
 
-export type AmiEventType = "work" | "break" | "non_work" | "stop";
+export type AmiEventType = "work" | "break" | "other_work" | "non_work" | "stop";
 
 export type AmiEvent = {
   time: string;
@@ -11,7 +11,7 @@ export type AmiEvent = {
 };
 
 /** Painted / reclassified activity at one AMI minute (no `stop` — stop is a point event). */
-export type AmiKind = "work" | "break" | "non_work";
+export type AmiKind = "work" | "break" | "other_work" | "non_work";
 
 export type AmiTape = {
   /** Inclusive start of minute 0 (epoch ms, aligned to minute). */

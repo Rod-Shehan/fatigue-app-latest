@@ -6,6 +6,7 @@
  * Days are only used to know "where" events came from (for display); rules use time only.
  */
 
+import { isOpenShiftEventType } from "@/lib/activity-kind";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 
 export type RollingEvent = {
@@ -152,7 +153,7 @@ export function isOpenWorkOrBreakAt(
   asOfMs: number = Date.now()
 ): boolean {
   const last = getLastRollingEventAt(events, asOfMs);
-  return last?.type === "work" || last?.type === "break";
+  return isOpenShiftEventType(last?.type);
 }
 
 export type ShiftRestStatus = {
@@ -211,7 +212,7 @@ type RollingSegmentKind = "work" | "break" | "non_work";
 
 function openSegmentKindAfterEvent(type: string): RollingSegmentKind {
   if (type === "work") return "work";
-  if (type === "break") return "break";
+  if (type === "break" || type === "other_work") return "break";
   return "non_work";
 }
 

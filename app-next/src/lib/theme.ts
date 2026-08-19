@@ -1,13 +1,14 @@
 /**
- * Activity theme – single source of truth for Work / Break / Non-Work Time / End shift.
+ * Activity theme – colours and button styles for logged types.
+ * Locked words: docs/product/activity-glossary.md (Work, Rest, Other work, Non-work).
  * Used by LogBar, EventLogger, CompliancePanel, and related UI.
  *
- * Terminology: We use "non-work time" (not "rest") for recovery time away from work.
- * Break = short break during work (e.g. 20 min per 5 hours). Non-work time = any time
- * not logged as work or break; rules refer to "7-hr non-work" and "24h non-work time".
+ * Terminology: locked in docs/product/activity-glossary.md.
+ * Rest = not driving and not doing a job task. Other work = not driving but still a job task.
+ * Non-work = off the job (7h / 24h / 72h). Do not call non-work "rest".
  */
 
-export type ActivityKey = "work" | "break" | "non_work" | "stop";
+export type ActivityKey = "work" | "break" | "other_work" | "non_work" | "stop";
 
 export const ACTIVITY_THEME: Record<
   ActivityKey,
@@ -44,6 +45,17 @@ export const ACTIVITY_THEME: Record<
     statsCard: "bg-amber-50 dark:bg-amber-900/30 dark:border-amber-800/50",
     statsLabel: "text-amber-500 dark:text-amber-400",
     statsValue: "text-amber-700 dark:text-amber-200",
+  },
+  other_work: {
+    hex: "#6366f1",
+    rgb: [99, 102, 241],
+    button: "bg-indigo-500 hover:bg-indigo-600 disabled:bg-indigo-300",
+    outlineButton:
+      "border-indigo-400 dark:border-indigo-500 text-indigo-900 dark:text-indigo-100 hover:bg-indigo-50 dark:hover:bg-indigo-950/40",
+    badge: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-200",
+    statsCard: "bg-indigo-50 dark:bg-indigo-900/30 dark:border-indigo-800/50",
+    statsLabel: "text-indigo-500 dark:text-indigo-400",
+    statsValue: "text-indigo-700 dark:text-indigo-200",
   },
   non_work: {
     hex: "#10b981",

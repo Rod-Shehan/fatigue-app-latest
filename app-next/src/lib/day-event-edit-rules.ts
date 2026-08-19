@@ -32,13 +32,14 @@ export type DayEventEditIssue = {
 
 const LABELS: Record<string, string> = {
   work: "Work",
-  break: "Break",
+  break: "Rest",
+  other_work: "Other work",
   non_work: "Non-work",
   stop: "End shift",
 };
 
 function isEditableType(type: string): type is ActivityKey {
-  return type === "work" || type === "break" || type === "non_work" || type === "stop";
+  return type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop";
 }
 
 function sortEvents(events: DayEventLike[]): DayEventLike[] {
@@ -59,6 +60,7 @@ export function activityBeforeEvent(
   }
   const prev = sorted[index - 1]!;
   if (prev.type === "stop") return "stop";
+  if (prev.type === "other_work") return "work";
   if (prev.type === "work" || prev.type === "break" || prev.type === "non_work") {
     return prev.type;
   }
@@ -124,7 +126,7 @@ export function validateDayEventEdits(
       continue;
     }
 
-    if (ev.type === "break") {
+    if (ev.type === "break" || ev.type === "other_work") {
       if (!inWorkBout(prior)) {
         const from =
           prior === "non_work"
@@ -132,10 +134,11 @@ export function validateDayEventEdits(
             : prior === "stop"
               ? "End shift"
               : "the start of the day (no open work)";
+        const kind = ev.type === "other_work" ? "Other work" : "Rest";
         issues.push({
           eventIndex: oi,
           code: "break_without_work",
-          message: `Break needs work before it — you can’t take a break from ${from}. Add or keep Work first, then Break.`,
+          message: `${kind} needs work before it — you can’t start ${kind.toLowerCase()} from ${from}. Add or keep Work first.`,
         });
       }
     }
@@ -146,7 +149,7 @@ export function validateDayEventEdits(
           eventIndex: oi,
           code: "end_shift_without_work",
           message:
-            "End shift needs open Work or Break first — it can’t follow non-work or sit alone with no shift.",
+            "End shift needs open Work, Rest, or Other work first — it can’t follow non-work or sit alone with no shift.",
         });
       }
     }
@@ -158,7 +161,7 @@ export function validateDayEventEdits(
       eventIndex: originalIndex(last),
       code: "open_break_at_end",
       message:
-        "Break is still open — add Work (resume), Non-work, or End shift after the break. A break can’t be the last event.",
+        "Rest is still open — add Work (continue), Other work, Non-work, or End shift after Rest. Rest can’t be the last event.",
     });
   }
 

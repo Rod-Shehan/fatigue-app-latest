@@ -57,11 +57,21 @@ export interface DriverActionHeroProps {
     /** Ghost pill on dark focus overlay. */
     onDark?: boolean;
   }>;
+  /** Work → Stop Driving chooser: vertical split of the same hero. */
+  stopDrivingChooser?: {
+    restLabel: string;
+    otherWorkLabel: string;
+    onStartRest: () => void;
+    onStartOtherWork: () => void;
+    onCancel: () => void;
+    restPending?: boolean;
+    otherWorkPending?: boolean;
+  } | null;
 }
 
 /**
- * Expanded round primary action — Start shift / Continue shift / Start Break / Continue rest.
- * Button colour reflects live operational state (not sheet retrospective warnings).
+ * Expanded round primary action — Start shift / Continue shift / Stop Driving.
+ * After Stop Driving, a vertical split: Start Rest / Start Other Work.
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   workMinutesUsed,
@@ -89,6 +99,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   className,
   secondaryAction,
   auxiliaryActions,
+  stopDrivingChooser = null,
 }) => {
   const action = useMemo(
     () =>
@@ -270,14 +281,87 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     elapsedLabel,
   ].filter(Boolean);
 
-  return (
-    <div
-      className={cn(
-        "mx-auto flex shrink-0",
-        auxInlineCompact ? "flex-row items-center gap-2" : "flex-col items-center",
-        className
-      )}
-    >
+  const splitHalfClass = cn(
+    "flex w-full flex-col items-center justify-center font-bold text-white",
+    "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
+    "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]"
+  );
+
+  const heroControl = stopDrivingChooser ? (
+    <div className={cn("flex flex-col items-center", locked && "opacity-70 saturate-75")}>
+      <div
+        className={cn(
+          sizeClass,
+          "relative overflow-hidden rounded-full border-4 border-white/80 shadow-lg shadow-black/40",
+          "flex flex-col"
+        )}
+        role="group"
+        aria-label="Stop Driving — choose Rest or Other work"
+      >
+        <button
+          type="button"
+          onClick={stopDrivingChooser.onStartRest}
+          disabled={locked}
+          className={cn(
+            splitHalfClass,
+            "h-1/2 bg-amber-500 hover:bg-amber-600",
+            stopDrivingChooser.restPending && "animate-pulse ring-2 ring-inset ring-white"
+          )}
+          aria-label={
+            stopDrivingChooser.restPending
+              ? `Tap again to confirm ${stopDrivingChooser.restLabel}`
+              : stopDrivingChooser.restLabel
+          }
+        >
+          <span
+            className={cn(
+              "text-center leading-tight px-2",
+              expanded ? "text-base sm:text-lg" : compact ? "text-[8px] leading-none" : "text-sm sm:text-base"
+            )}
+          >
+            {stopDrivingChooser.restPending ? "Tap again" : stopDrivingChooser.restLabel}
+          </span>
+        </button>
+        <div className="h-px shrink-0 bg-white/50" aria-hidden />
+        <button
+          type="button"
+          onClick={stopDrivingChooser.onStartOtherWork}
+          disabled={locked}
+          className={cn(
+            splitHalfClass,
+            "h-1/2 bg-indigo-500 hover:bg-indigo-600",
+            stopDrivingChooser.otherWorkPending && "animate-pulse ring-2 ring-inset ring-white"
+          )}
+          aria-label={
+            stopDrivingChooser.otherWorkPending
+              ? `Tap again to confirm ${stopDrivingChooser.otherWorkLabel}`
+              : stopDrivingChooser.otherWorkLabel
+          }
+        >
+          <span
+            className={cn(
+              "text-center leading-tight px-2",
+              expanded ? "text-base sm:text-lg" : compact ? "text-[8px] leading-none" : "text-sm sm:text-base"
+            )}
+          >
+            {stopDrivingChooser.otherWorkPending ? "Tap again" : stopDrivingChooser.otherWorkLabel}
+          </span>
+        </button>
+      </div>
+      {!locked ? (
+        <button
+          type="button"
+          onClick={stopDrivingChooser.onCancel}
+          className={cn(
+            "mt-2 rounded-full px-3 py-1 text-xs font-semibold",
+            expanded ? "text-white/90" : "text-slate-600 dark:text-slate-300"
+          )}
+        >
+          Cancel
+        </button>
+      ) : null}
+    </div>
+  ) : (
       <button
         type="button"
         onClick={onAction}
@@ -439,6 +523,17 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           ) : null}
         </div>
       </button>
+  );
+
+  return (
+    <div
+      className={cn(
+        "mx-auto flex shrink-0",
+        auxInlineCompact ? "flex-row items-center gap-2" : "flex-col items-center",
+        className
+      )}
+    >
+      {heroControl}
       {locked && !compact ? (
         <p
           className={cn(

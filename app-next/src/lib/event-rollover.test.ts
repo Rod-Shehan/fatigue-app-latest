@@ -33,6 +33,20 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     );
     expect(t).toBeNull();
   });
+
+  it("returns other_work so overnight loading is not converted as Rest", () => {
+    const t = getEffectiveOpenActivityAtDayEnd(
+      {
+        events: [
+          { time: "2026-06-03T08:00:00", type: "work" },
+          { time: "2026-06-03T22:00:00", type: "other_work" },
+        ],
+      },
+      "2026-06-03",
+      "2026-06-04"
+    );
+    expect(t).toBe("other_work");
+  });
 });
 
 describe("deriveDaysWithRollover", () => {
@@ -80,6 +94,20 @@ describe("deriveDaysWithRollover", () => {
     // Actioned break carry stays break (≤30m); then work from the driver's next tap
     expect((wed.breaks ?? []).slice(0, 15).every(Boolean)).toBe(true);
     expect((wed.work_time ?? []).slice(15, 60).every(Boolean)).toBe(true);
+  });
+
+  it("carries open other_work across midnight as break-from-driving, never non-work", () => {
+    const days = [
+      {},
+      {},
+      { events: [{ time: "2026-06-03T22:00:00", type: "other_work" }] },
+      { events: [] },
+    ];
+    const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
+    const wed = derived[3]!;
+    expect((wed.breaks ?? []).filter(Boolean).length).toBe(MINUTES_PER_DAY);
+    expect((wed.work_time ?? []).filter(Boolean).length).toBe(MINUTES_PER_DAY);
+    expect((wed.non_work ?? []).filter(Boolean).length).toBe(0);
   });
 
   it("carries work across midnight after driver logs work on the new day", () => {

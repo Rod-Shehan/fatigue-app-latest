@@ -60,8 +60,8 @@ export const SHEET_ATTESTATION_WORKFLOW = {
 
 /** One paragraph: what the app is for. */
 export const PRODUCT_RECORD_PROMISE =
-  "Circadia keeps a weekly fatigue record automatically. Time is classified as work, break, or non-work; " +
-  "if you do not log work or a break, the rest of that period is non-work—like blank days on a paper work diary. " +
+  "Circadia keeps a weekly fatigue record automatically. Time is classified as work, rest, other work, or non-work; " +
+  "if you do not log work, rest, or other work, the rest of that period is non-work—like blank days on a paper work diary. " +
   "Each week is a slice of that timeline for you to review and sign when required.";
 
 /** Short line under major headings (e.g. Your Sheets). */
@@ -70,7 +70,7 @@ export const SHEETS_LIST_TAGLINE =
 
 /** Driver help: records, archives, and signing (plain language). */
 export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
-  "The app opens on this week — use Work, Break, and End shift on today while the week is unsigned.",
+  "The app opens on this week — use Start shift, Stop Driving, and End shift on today while the week is unsigned.",
   "Past weeks that are still unsigned: open the week, expand a day, and fix route or times before you sign.",
   "Your signature means you attest that week is your record. It is not the manager's signature.",
   "Sign a week only after it has ended (from the following Sunday) — not while you are still logging that week.",
@@ -80,7 +80,7 @@ export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
 
 /** Bullets: how weeks appear to the driver in the UI. */
 export const USER_VISIBLE_SHEET_STATE_BULLETS = [
-  "Current regulatory week — log Work/Break/End shift on today; edit any day until the week ends; sign from the following Sunday.",
+  "Current regulatory week — log Start shift / Stop Driving / End shift on today; edit any day until the week ends; sign from the following Sunday.",
   "Unsigned past weeks — expand a day to fix route or times, then sign when correct.",
   "Signed weeks — locked for you; manager edits need your signature again.",
 ] as const;
@@ -194,5 +194,24 @@ export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
 
 /** First work of a shift (idle / after End shift). */
 export const DRIVER_START_SHIFT_LABEL = "Start shift";
-/** Return to work after a break — same shift, not a new start. */
+/** Return to work after Rest or Other work — same shift, not a new start. */
 export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";
+
+/**
+ * Activity glossary — locked words. See docs/product/activity-glossary.md.
+ * Do not add synonyms in driver copy.
+ */
+/** Not driving and not doing a job task (eat, drink, nap). */
+export const DRIVER_REST_LABEL = "Rest";
+/** Not driving, still a job task (load, forklift, tyre, paperwork, fuel). */
+export const DRIVER_OTHER_WORK_LABEL = "Other work";
+/** Off the job — End shift. Never call this Rest. */
+export const DRIVER_NON_WORK_LABEL = "Non-work";
+/** End of the on-duty stretch. Starts non-work. */
+export const DRIVER_END_SHIFT_LABEL = "End shift";
+/** On Work: opens Rest / Other work chooser. Not stored. Not End shift. */
+export const DRIVER_STOP_DRIVING_LABEL = "Stop Driving";
+/** Top half of the Stop Driving split. */
+export const DRIVER_START_REST_LABEL = "Start Rest";
+/** Bottom half of the Stop Driving split. */
+export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";

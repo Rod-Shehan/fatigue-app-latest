@@ -21,4 +21,13 @@ describe("getDriverHomeShiftStatus", () => {
     expect(s.activity).toBe("work");
     expect(s.headline).toContain("On work");
   });
+
+  it("other_work is a live on-duty state, not idle", () => {
+    const t = new Date(`${today}T08:00:00`).toISOString();
+    const days = [{ events: [{ time: t, type: "other_work" }] }] as DayData[];
+    const now = new Date(`${today}T08:20:00`).getTime();
+    const s = getDriverHomeShiftStatus(days, 4, week, today, now);
+    expect(s.activity).toBe("other_work");
+    expect(s.headline).toContain("On other work");
+  });
 });

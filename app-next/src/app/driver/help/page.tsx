@@ -6,6 +6,10 @@ import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_HELP_RECORDS_SIGNING_BULLETS,
   DRIVER_START_SHIFT_LABEL,
+  DRIVER_STOP_DRIVING_LABEL,
+  DRIVER_START_REST_LABEL,
+  DRIVER_START_OTHER_WORK_LABEL,
+  DRIVER_END_SHIFT_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
   SHEET_ATTESTATION_WORKFLOW,
@@ -110,19 +114,27 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">
-                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} / Break / End shift
+                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} / {DRIVER_STOP_DRIVING_LABEL} /{" "}
+                  {DRIVER_END_SHIFT_LABEL}
                 </strong>{" "}
-                — tap when your activity changes. These buttons log your day. {DRIVER_START_SHIFT_LABEL} begins work;{" "}
-                {DRIVER_CONTINUE_SHIFT_LABEL} is after a break.
+                — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} begins work. {DRIVER_STOP_DRIVING_LABEL}{" "}
+                opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}.{" "}
+                {DRIVER_CONTINUE_SHIFT_LABEL} is back to driving. {DRIVER_END_SHIFT_LABEL} is off the job.
               </li>
               <li>
-                <strong className="text-slate-700 dark:text-slate-200">Break</strong> — when you tap Break for a short rest
-                (30 min or less) during work. Shown on the break row; counts toward your 20 min per 5 hours work.
+                <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_REST_LABEL}</strong> — not driving
+                and not doing a job (eat, drink, nap). 30 min or less stays Rest on the breaks-from-driving row. 31 min
+                or more becomes non-work.
               </li>
               <li>
-                <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — End shift, longer rests,
-                and any logged break of 31 min or more. Shown on the non-work row; for the 20 min / 5h rule it counts
-                the same as a break.
+                <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_OTHER_WORK_LABEL}</strong> — not
+                driving, still a job (load, forklift, tyre, paperwork, fuel). Shown on breaks from driving. Never
+                becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still work time for 168h.
+              </li>
+              <li>
+                <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — End shift, and Rest of
+                31 min or more. Shown on the non-work row; for the 20 min / 5h rule it counts the same as Rest. Other
+                work does not become non-work.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">WorkSafe day sheet</strong> — on each day card (and

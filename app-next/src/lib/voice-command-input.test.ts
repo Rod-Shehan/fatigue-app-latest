@@ -9,7 +9,9 @@ describe("matchStrictVoiceIntent", () => {
   it("matches exact sensible phrases only", () => {
     expect(matchStrictVoiceIntent("start shift")?.intent).toBe("work");
     expect(matchStrictVoiceIntent("continue shift")?.intent).toBe("work");
-    expect(matchStrictVoiceIntent("take a break")?.intent).toBe("break");
+    expect(matchStrictVoiceIntent("start rest")?.intent).toBe("break");
+    expect(matchStrictVoiceIntent("start other work")?.intent).toBe("other_work");
+    expect(matchStrictVoiceIntent("stop driving")?.intent).toBe("stop_driving");
     expect(matchStrictVoiceIntent("End Shift")?.intent).toBe("stop");
     expect(matchStrictVoiceIntent("finish my shift")?.intent).toBe("stop");
   });

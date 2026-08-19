@@ -63,9 +63,9 @@ function continuousRuns(
   return runs;
 }
 
-/** Day-sheet break and non-work rows: same 5h rest effect, different display. */
+/** Day-sheet break, other work, and non-work rows: same 5h rest effect, different display. */
 function isFiveHourRestKind(kind: AmiKind): boolean {
-  return kind === "break" || kind === "non_work";
+  return kind === "break" || kind === "other_work" || kind === "non_work";
 }
 
 function continuousFiveHourRestRuns(
@@ -222,7 +222,7 @@ export function evaluateSeventeenHourEpisode(
   if (anchorMinute != null) {
     for (const seg of segs) {
       if (seg.endMinute <= anchorMinute) continue;
-      if (seg.kind === "work" || seg.kind === "break") {
+      if (seg.kind === "work" || seg.kind === "break" || seg.kind === "other_work") {
         const start = Math.max(seg.startMinute, anchorMinute);
         used += seg.endMinute - start;
       }
@@ -432,6 +432,19 @@ export type Ami168hResult = {
   wouldExceed168: boolean;
 };
 
+function is168hWorkKind(kind: AmiKind): boolean {
+  return kind === "work" || kind === "other_work";
+}
+
+function count168hWorkKind(kinds: AmiKind[], from = 0, toExclusive?: number): number {
+  const end = toExclusive ?? kinds.length;
+  let n = 0;
+  for (let i = from; i < end; i++) {
+    if (is168hWorkKind(kinds[i]!)) n += 1;
+  }
+  return n;
+}
+
 export function evaluate168hWork(tape: AmiTape): Ami168hResult {
   const { kinds } = tape;
   // Split on ≥48h continuous non_work resets
@@ -458,15 +471,15 @@ export function evaluate168hWork(tape: AmiTape): Ami168hResult {
   for (const seg of segments) {
     const slice = kinds.slice(seg.start, seg.end);
     if (slice.length < AMI_14D_WINDOW) {
-      maxWork = Math.max(maxWork, countKind(slice, "work"));
+      maxWork = Math.max(maxWork, count168hWorkKind(slice));
       continue;
     }
     // rolling window
-    let windowWork = countKind(slice, "work", 0, AMI_14D_WINDOW);
+    let windowWork = count168hWorkKind(slice, 0, AMI_14D_WINDOW);
     maxWork = Math.max(maxWork, windowWork);
     for (let start = 1; start <= slice.length - AMI_14D_WINDOW; start++) {
-      if (slice[start - 1] === "work") windowWork -= 1;
-      if (slice[start + AMI_14D_WINDOW - 1] === "work") windowWork += 1;
+      if (is168hWorkKind(slice[start - 1]!)) windowWork -= 1;
+      if (is168hWorkKind(slice[start + AMI_14D_WINDOW - 1]!)) windowWork += 1;
       if (windowWork > maxWork) maxWork = windowWork;
     }
   }
@@ -602,7 +615,7 @@ export function measurePatternChangeRestOnlyWorkInterrupts(
   // Consecutive non-work+break ending immediately before next work (toMinute).
   let trailing = 0;
   for (let i = end - 1; i >= start; i--) {
-    if (tape.kinds[i] === "work") break;
+    if (tape.kinds[i] === "work" || tape.kinds[i] === "other_work") break;
     trailing += 1;
   }
   return trailing;

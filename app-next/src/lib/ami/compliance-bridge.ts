@@ -10,6 +10,7 @@ import {
   collectDeclared24hRests,
 } from "@/lib/declared-24h-rests";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
+import { toAmiEventType } from "@/lib/activity-kind";
 import { getSheetDayDateString } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
@@ -71,9 +72,9 @@ function collectAmiEvents(
     .filter((e) => e.driver !== "second")
     .map((e) => ({
       time: e.time,
-      type: e.type as AmiEvent["type"],
+      type: toAmiEventType(e.type),
     }))
-    .filter((e) => ["work", "break", "non_work", "stop"].includes(e.type));
+    .filter((e): e is { time: string; type: AmiEvent["type"] } => e.type != null);
 }
 
 function resolveAsOfMs(options: RunOpts): number {

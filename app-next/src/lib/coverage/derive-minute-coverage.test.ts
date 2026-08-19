@@ -110,6 +110,48 @@ describe("deriveMinuteGridFromEvents", () => {
     expect(grid.non_work.slice(start, end).every(Boolean)).toBe(true);
     expect(grid.breaks.slice(start, end).some(Boolean)).toBe(false);
   });
+
+  it("records other_work as break from driving even when longer than 30 min", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T17:00:00`, type: "work" },
+        { time: `${dateStr}T18:00:00`, type: "other_work" },
+        { time: `${dateStr}T18:45:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const start = 18 * 60;
+    const end = 18 * 60 + 45;
+    expect(grid.breaks.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.work_time.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.non_work.slice(start, end).some(Boolean)).toBe(false);
+  });
+
+  it("does not convert other_work to non-work when a long Rest on the same day does convert", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T08:00:00`, type: "work" },
+        { time: `${dateStr}T10:00:00`, type: "break" },
+        { time: `${dateStr}T10:45:00`, type: "work" },
+        { time: `${dateStr}T12:00:00`, type: "other_work" },
+        { time: `${dateStr}T12:45:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const restStart = 10 * 60;
+    const restEnd = 10 * 60 + 45;
+    expect(grid.non_work.slice(restStart, restEnd).every(Boolean)).toBe(true);
+    expect(grid.breaks.slice(restStart, restEnd).some(Boolean)).toBe(false);
+    const loadStart = 12 * 60;
+    const loadEnd = 12 * 60 + 45;
+    expect(grid.breaks.slice(loadStart, loadEnd).every(Boolean)).toBe(true);
+    expect(grid.work_time.slice(loadStart, loadEnd).every(Boolean)).toBe(true);
+    expect(grid.non_work.slice(loadStart, loadEnd).some(Boolean)).toBe(false);
+  });
 });
 
 describe("normalizeSheetDaysForApi", () => {

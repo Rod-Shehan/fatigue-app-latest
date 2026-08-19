@@ -6,6 +6,8 @@
  * End shift inside an active episode does not require a fresh 7h rest before resume.
  */
 
+import { isBreakFromDrivingEventType } from "@/lib/activity-kind";
+
 type EpisodeEvent = { time: string; type: string };
 
 export const MINUTES_7H_NON_WORK = 7 * 60;
@@ -86,7 +88,7 @@ export function buildEpisodeSegmentsFromEvents(
 
     if (ev.type === "work") {
       segments.push({ startMs: t, endMs: end, kind: "work" });
-    } else if (ev.type === "break") {
+    } else if (isBreakFromDrivingEventType(ev.type)) {
       segments.push({ startMs: t, endMs: end, kind: "break" });
     } else if (ev.type === "non_work") {
       pushNonWork(t, end);

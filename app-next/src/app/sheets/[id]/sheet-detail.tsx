@@ -95,7 +95,7 @@ import {
   PREMATURE_ATTESTATION_REOPEN,
   sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
-import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, sheetEditDayHref } from "@/lib/product-copy";
+import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, DRIVER_STOP_DRIVING_LABEL, sheetEditDayHref } from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import { DayEntryWeekGroup } from "@/components/fatigue/DayEntryWeekGroup";
 import { dayIndexRangeLabels, summarizeDayIndices } from "@/lib/day-entry-week-summary";
@@ -210,7 +210,12 @@ function getForgottenActionReminder(
     if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
       return { message: "No log updates for 7+ hours.", variant: "end-shift" };
     if (elapsedMin >= WORK_BREAK_DUE_MIN)
-      return { message: "Time for your 20 min break — tap Break when you start.", variant: "break-due" };
+      return { message: `Time for your 20 min rest — tap ${DRIVER_STOP_DRIVING_LABEL}.`, variant: "break-due" };
+    return null;
+  }
+  if (last.type === "other_work") {
+    if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
+      return { message: "No log updates for 7+ hours.", variant: "end-shift" };
     return null;
   }
   if (last.type === "break") {

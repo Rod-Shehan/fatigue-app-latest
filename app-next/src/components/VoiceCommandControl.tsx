@@ -21,6 +21,8 @@ type RecInstance = InstanceType<SpeechRecognitionCtor>;
 type VoiceLabels = {
   work: string;
   break: string;
+  other_work: string;
+  stop_driving: string;
   stop: string;
 };
 
@@ -199,6 +201,8 @@ export function VoiceCommandControl({
     (intent: VoiceIntent): string => {
       if (intent === "work") return voiceLabels.work;
       if (intent === "break") return voiceLabels.break;
+      if (intent === "other_work") return voiceLabels.other_work;
+      if (intent === "stop_driving") return voiceLabels.stop_driving;
       return voiceLabels.stop;
     },
     [voiceLabels]

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { Briefcase, ChevronDown, Coffee, Moon, Square, Trash2 } from "lucide-react";
+import { Briefcase, ChevronDown, Coffee, Moon, Square, Trash2, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,16 +29,17 @@ export type DayEventDraft = {
 };
 
 /** Event types drivers may add or change when correcting a day. */
-export const EDITABLE_DAY_EVENT_TYPES: ActivityKey[] = ["work", "break", "non_work", "stop"];
+export const EDITABLE_DAY_EVENT_TYPES: ActivityKey[] = ["work", "break", "other_work", "non_work", "stop"];
 
-/** First setup of a shift — only work and break (LogBar handles the rest live). */
-export const NEW_SHIFT_EVENT_TYPES: ActivityKey[] = ["work", "break"];
+/** First setup of a shift — work, rest, and other work (LogBar handles End shift live). */
+export const NEW_SHIFT_EVENT_TYPES: ActivityKey[] = ["work", "break", "other_work"];
 
 export type DayEventsEditorVariant = "new_shift" | "edit";
 
 const TYPE_LABELS: Record<ActivityKey, string> = {
   work: "Work",
-  break: "Break",
+  break: "Rest",
+  other_work: "Other work",
   non_work: "Non-work",
   stop: "End shift",
 };
@@ -46,6 +47,7 @@ const TYPE_LABELS: Record<ActivityKey, string> = {
 const TYPE_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string }>> = {
   work: Briefcase,
   break: Coffee,
+  other_work: Wrench,
   non_work: Moon,
   stop: Square,
 };

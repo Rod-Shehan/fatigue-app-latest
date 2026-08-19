@@ -4,7 +4,7 @@
  * Recognition uses the browser Web Speech API (Chrome/Android; Safari/iOS varies).
  */
 
-export type VoiceIntent = "work" | "break" | "stop";
+export type VoiceIntent = "work" | "break" | "other_work" | "stop_driving" | "stop";
 
 /** Normalise transcript for exact phrase matching only (strict). */
 export function normalizeVoiceTranscript(raw: string): string {
@@ -23,7 +23,9 @@ export function normalizeVoiceTranscript(raw: string): string {
  */
 const PHRASES: Record<VoiceIntent, readonly string[]> = {
   work: ["start shift", "start my shift", "begin shift", "continue shift", "log work"],
-  break: ["take a break", "start break", "rest break", "log break"],
+  break: ["start rest", "take a rest", "take a break", "start break", "log break"],
+  other_work: ["start other work", "other work", "log other work"],
+  stop_driving: ["stop driving"],
   stop: ["end shift", "end my shift", "finish shift", "finish my shift", "stop shift"],
 } as const;
 
@@ -32,7 +34,7 @@ export function matchStrictVoiceIntent(transcript: string): { intent: VoiceInten
   if (!n) return null;
   const variants = [n, n.replace(/ now$/, "").trim()].filter((x, i, a) => a.indexOf(x) === i);
   for (const candidate of variants) {
-    for (const intent of ["work", "break", "stop"] as const) {
+    for (const intent of ["work", "break", "other_work", "stop_driving", "stop"] as const) {
       for (const phrase of PHRASES[intent]) {
         if (candidate === phrase || candidate === `${phrase} now`) {
           return { intent, matchedPhrase: phrase };
@@ -120,4 +122,4 @@ export function isVoiceCommandInputSupported(): boolean {
 
 /** Short hint for UI when recognition is unavailable or user needs examples. */
 export const VOICE_COMMAND_HINT =
-  'Say a command phrase, e.g. "start shift", "take a break", or "end shift".';
+  'Say a command phrase, e.g. "start shift", "stop driving", "start rest", or "end shift".';

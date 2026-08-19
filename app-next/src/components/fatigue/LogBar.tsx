@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   UserRound,
+  Pause,
+  Wrench,
 } from "lucide-react";
 import { type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -47,7 +49,8 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL } from "@/lib/product-copy";
+import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
+import { isOpenShiftEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
 import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
@@ -101,20 +104,17 @@ const FIXED_LOG_BAR_SHELL =
 const EVENT_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string }>> = {
   work: Briefcase,
   break: Coffee,
+  other_work: Wrench,
   non_work: Moon,
   stop: Square,
 };
 const EVENT_LABELS: Record<ActivityKey, string> = {
   work: DRIVER_CONTINUE_SHIFT_LABEL,
-  break: "Start Break",
+  break: DRIVER_START_REST_LABEL,
+  other_work: DRIVER_START_OTHER_WORK_LABEL,
   non_work: "Non-Work Time",
-  stop: "End shift",
+  stop: DRIVER_END_SHIFT_LABEL,
 };
-
-/** Break follows work, work follows break. When idle or after End shift, next is Work. */
-function getNextWorkBreakType(currentType: string | null): "work" | "break" {
-  return currentType === "work" ? "break" : "work";
-}
 
 const MIN_NON_WORK_HOURS_BETWEEN_SHIFTS = 7;
 const MIN_NON_WORK_MIN_BETWEEN_SHIFTS = MIN_NON_WORK_HOURS_BETWEEN_SHIFTS * 60;
@@ -224,6 +224,8 @@ export default function LogBar({
 }) {
   void weekStarting;
   const [pendingType, setPendingType] = useState<string | null>(null);
+  /** Work → Stop Driving chooser (not a logged event). */
+  const [stopDrivingChooserOpen, setStopDrivingChooserOpen] = useState(false);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
   /** Sync mirror of pending arm — rapid second tap must see this before React re-renders. */
@@ -287,8 +289,12 @@ export default function LogBar({
     return getSeventeenHourEpisodeStatus(eventsForDriver, Date.now())
       .canResumeWithoutSevenHourRest;
   }, [isLiveNow, soloEpisodeResume, eventsForDriver, tick]);
-  /** Open segment for this driver: only work or break can be ended (last event stop or idle → null). */
-  const shiftSegmentOpen = currentType === "work" || currentType === "break";
+  /** Open segment for this driver: Work, Rest, or Other work can be ended. */
+  const shiftSegmentOpen = isOpenShiftEventType(currentType);
+
+  useEffect(() => {
+    if (currentType !== "work") setStopDrivingChooserOpen(false);
+  }, [currentType]);
 
   const openSessionTools = useCallback(() => {
     setSessionToolsOpen(true);
@@ -305,7 +311,7 @@ export default function LogBar({
   /** Faster tick during work/break so compliance header (e.g. pending → OK) updates within a few seconds. */
   useEffect(() => {
     if (!isLiveNow) return;
-    const ms = currentType === "work" || currentType === "break" ? 2000 : 10000;
+    const ms = isOpenShiftEventType(currentType) ? 2000 : 10000;
     const id = setInterval(() => setTick((t) => t + 1), ms);
     return () => clearInterval(id);
   }, [currentType, isLiveNow]);
@@ -377,7 +383,7 @@ export default function LogBar({
         : null;
 
   const breakRestStatus = useMemo(() => {
-    if (!isLiveNow || currentType !== "break" || !lastEvent) return null;
+    if (!isLiveNow || (currentType !== "break" && currentType !== OTHER_WORK_EVENT_TYPE) || !lastEvent) return null;
       const breakStartMs = new Date(lastEvent.time).getTime();
       const windowStartMs = findWorkWindowStartMs(eventsForDriver, breakStartMs);
       const priorSlots =
@@ -394,10 +400,9 @@ export default function LogBar({
     };
   }, [isLiveNow, currentType, lastEvent, eventsForDriver, elapsedMinutes]);
 
-  const nextWorkBreak = getNextWorkBreakType(currentType) as "work" | "break";
-  const primaryLogType = (idlePrimary?.type ?? nextWorkBreak) as "work" | "break" | "non_work";
   const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
-  const isStartingShift = primaryLogType === "work" && needsShiftStartSetup;
+  const primaryLogType = (idlePrimary?.type ?? "work") as "work" | "break" | "non_work";
+  const isStartingShift = primaryLogType === "work" && needsShiftStartSetup && currentType !== "work";
   /** Idle after End shift inside an active 17h episode — same Start shift hero (episode resume path). */
   const showResumeShiftPrimary =
     isLiveNow &&
@@ -407,21 +412,26 @@ export default function LogBar({
     !idleRestBlocked;
   const primaryActionLabel = idlePrimary
     ? idlePrimary.label
-    : currentType === "break"
-      ? DRIVER_CONTINUE_SHIFT_LABEL
-      : showResumeShiftPrimary || isStartingShift
-        ? DRIVER_START_SHIFT_LABEL
-        : EVENT_LABELS[nextWorkBreak];
+    : currentType === "work"
+      ? DRIVER_STOP_DRIVING_LABEL
+      : currentType === "break" || currentType === OTHER_WORK_EVENT_TYPE
+        ? DRIVER_CONTINUE_SHIFT_LABEL
+        : showResumeShiftPrimary || isStartingShift
+          ? DRIVER_START_SHIFT_LABEL
+          : DRIVER_CONTINUE_SHIFT_LABEL;
   const primaryActionPending =
+    currentType !== "work" &&
     pendingType === primaryLogType &&
     (showResumeShiftPrimary ? workLogEpisodeResume : !workLogEpisodeResume);
 
   const primaryActionIcon =
     idleRestBlocked
       ? CircleX
-      : primaryLogType === "non_work"
-        ? EVENT_ICONS.non_work
-        : EVENT_ICONS[primaryLogType === "break" ? "break" : "work"];
+      : currentType === "work"
+        ? Pause
+        : primaryLogType === "non_work"
+          ? EVENT_ICONS.non_work
+          : EVENT_ICONS.work;
 
   const upcomingComplianceChip = useMemo(
     () =>
@@ -894,12 +904,14 @@ export default function LogBar({
     if (voiceAlertsEnabled) {
       const label =
         type === "stop"
-          ? "End shift"
+          ? DRIVER_END_SHIFT_LABEL
           : type === "break"
-            ? "Break"
-            : episodeResume || needsShiftStartSetup
-              ? DRIVER_START_SHIFT_LABEL
-              : DRIVER_CONTINUE_SHIFT_LABEL;
+            ? DRIVER_START_REST_LABEL
+            : type === OTHER_WORK_EVENT_TYPE
+              ? DRIVER_START_OTHER_WORK_LABEL
+              : episodeResume || needsShiftStartSetup
+                ? DRIVER_START_SHIFT_LABEL
+                : DRIVER_CONTINUE_SHIFT_LABEL;
       speakVoiceAlert(`Tap ${label} again to confirm.`);
     }
   };
@@ -917,13 +929,19 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        getNextWorkBreakType(currentType) === "work" && needsShiftStartSetup
+        currentType === null && needsShiftStartSetup
           ? DRIVER_START_SHIFT_LABEL
           : DRIVER_CONTINUE_SHIFT_LABEL,
-      break: "Start Break",
+      break: DRIVER_START_REST_LABEL,
+      other_work: DRIVER_START_OTHER_WORK_LABEL,
+      stop_driving: DRIVER_STOP_DRIVING_LABEL,
       stop: EVENT_LABELS.stop,
     },
-    onConfirmIntent: (intent: "work" | "break" | "stop") => {
+    onConfirmIntent: (intent: "work" | "break" | "other_work" | "stop_driving" | "stop") => {
+      if (intent === "stop_driving") {
+        setStopDrivingChooserOpen(true);
+        return;
+      }
       voiceFinalizeNextLogRef.current = true;
       try {
         handleLog(intent);
@@ -1089,7 +1107,11 @@ export default function LogBar({
             workMinutesUsed={workMinutesUsed}
             totalWindowMinutes={WORK_WINDOW_MIN}
             currentSegment={
-              currentType === "work" ? "work" : currentType === "break" ? "break" : null
+              currentType === "break" || currentType === OTHER_WORK_EVENT_TYPE
+                ? "break"
+                : currentType === "work"
+                  ? "work"
+                  : null
             }
             complianceLoading={complianceButton?.loading}
             shiftSegmentOpen={shiftSegmentOpen}
@@ -1099,13 +1121,18 @@ export default function LogBar({
               isMoving && !primaryActionPending ? gpsUnlockProgress : 1
             }
             actionLabel={primaryActionLabel}
-            onAction={() =>
-              primaryLogType === "work" && isStartingShift
-                ? showResumeShiftPrimary
-                  ? handleResumeShift()
-                  : handleStartShift()
-                : handleLog(primaryLogType)
-            }
+            onAction={() => {
+              if (currentType === "work") {
+                setStopDrivingChooserOpen(true);
+                return;
+              }
+              if (primaryLogType === "work" && isStartingShift) {
+                if (showResumeShiftPrimary) handleResumeShift();
+                else handleStartShift();
+                return;
+              }
+              handleLog(primaryLogType);
+            }}
             actionPending={primaryActionPending}
             actionIcon={primaryActionIcon}
             elapsedLabel={
@@ -1122,6 +1149,21 @@ export default function LogBar({
             expanded={primaryHeroExpanded}
             compact={primaryBarCompact && !sessionDimmed}
             className={cn("shrink-0", sessionDimmed && "pointer-events-auto")}
+            stopDrivingChooser={
+              stopDrivingChooserOpen && currentType === "work"
+                ? {
+                    restLabel: DRIVER_START_REST_LABEL,
+                    otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
+                    onStartRest: () => handleLog("break"),
+                    onStartOtherWork: () => handleLog(OTHER_WORK_EVENT_TYPE),
+                    onCancel: () => {
+                      setStopDrivingChooserOpen(false);
+                    },
+                    restPending: pendingType === "break",
+                    otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
+                  }
+                : null
+            }
             auxiliaryActions={
               sessionDimmed
                 ? [
@@ -1310,11 +1352,11 @@ export default function LogBar({
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={() => handleLog("break")}
+                  onClick={() => setStopDrivingChooserOpen(true)}
                   className={driverAmberBtn}
                 >
-                  <Coffee className="w-4 h-4" />
-                  Start break now
+                  <Pause className="w-4 h-4" />
+                  {DRIVER_STOP_DRIVING_LABEL}
                 </button>
               </div>
             )}

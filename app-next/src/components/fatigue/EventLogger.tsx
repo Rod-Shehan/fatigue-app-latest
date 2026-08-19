@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin } from "lucide-react";
+import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin, Wrench } from "lucide-react";
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { getTodayLocalDateString, getSheetDayDateString } from "@/lib/weeks";
 import { deriveMinuteGridFromEvents, MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
+import { isBreakFromDrivingEventType } from "@/lib/activity-kind";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 
 const EVENT_CONFIG: Record<ActivityKey, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   work: { label: "Work", icon: Briefcase },
-  break: { label: "Break", icon: Coffee },
+  break: { label: "Rest", icon: Coffee },
+  other_work: { label: "Other work", icon: Wrench },
   non_work: { label: "Non-Work Time", icon: Moon },
   stop: { label: "End shift", icon: Square },
 };
@@ -78,7 +80,7 @@ export function applyLast24hBreakNonWorkRule<T extends { work_time?: boolean[]; 
 }
 
 /** Open segment at end of a sheet calendar day — may continue on the rolling timeline until the next event. */
-export type OpenActivityAtDayEnd = "work" | "break" | "non_work";
+export type OpenActivityAtDayEnd = "work" | "break" | "other_work" | "non_work";
 
 /**
  * Open activity on the calendar day before `days[0]` of a sheet week (e.g. prior
@@ -126,6 +128,7 @@ export function getEffectiveOpenActivityAtDayEnd(
   if (
     lastEv?.type === "work" ||
     lastEv?.type === "break" ||
+    lastEv?.type === "other_work" ||
     lastEv?.type === "non_work"
   ) {
     return lastEv.type;
@@ -139,6 +142,7 @@ export function getEffectiveOpenActivityAtDayEnd(
       ? 48
       : Math.min(Math.max(w.length, b.length, nw.length) || MINUTES_PER_DAY, MINUTES_PER_DAY);
   for (let s = len - 1; s >= 0; s--) {
+    if (w[s] && b[s]) return "other_work";
     if (w[s]) return "work";
     if (b[s]) return "break";
     if (nw[s]) return "non_work";
@@ -245,7 +249,7 @@ export default function EventLogger({
   const breakRun = (() => {
     const segments: number[] = [];
     for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].type !== "break") break;
+      if (!isBreakFromDrivingEventType(events[i].type)) break;
       const end = i + 1 < events.length ? new Date(events[i + 1].time).getTime() : Date.now();
       const start = new Date(events[i].time).getTime();
       segments.unshift(Math.floor((end - start) / 60000));
@@ -274,7 +278,7 @@ export default function EventLogger({
             <Clock className="w-3 h-3" />
             {formatDuration(elapsedMinutes)}
           </span>
-          {currentType === "break" && (
+          {isBreakFromDrivingEventType(currentType) && (
             <span className={`text-[10px] font-semibold flex items-center gap-1 ${breakValid ? "text-emerald-600" : "text-amber-600"}`}>
               {breakValid ? <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" /> : <AlertTriangle className="w-3 h-3 shrink-0" />}
               20 min rest per 5h work (2×10 min or 1×20 min)

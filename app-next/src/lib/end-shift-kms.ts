@@ -54,7 +54,7 @@ export function hasWorkOrBreakBeforeLastStop(
   }
   if (!Number.isFinite(lastStopMs) || lastStopMs === -Infinity) return false;
   return list.some((e) => {
-    if (e.type !== "work" && e.type !== "break") return false;
+    if (e.type !== "work" && e.type !== "break" && e.type !== "other_work") return false;
     const t = eventTimeMs(e.time ?? "");
     return Number.isFinite(t) && t < lastStopMs;
   });
@@ -72,7 +72,7 @@ export function hasWorkOrBreakAfterLastStop(
   }
   if (!Number.isFinite(lastStopMs) || lastStopMs === -Infinity) return false;
   return list.some((e) => {
-    if (e.type !== "work" && e.type !== "break") return false;
+    if (e.type !== "work" && e.type !== "break" && e.type !== "other_work") return false;
     const t = eventTimeMs(e.time ?? "");
     return Number.isFinite(t) && t > lastStopMs;
   });

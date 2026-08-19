@@ -74,7 +74,7 @@ export function pruneOrphanFollowOnEventsAfterStop(
       });
       break;
     }
-    if (ev.type === "work" || ev.type === "break" || ev.type === "non_work") {
+    if (ev.type === "work" || ev.type === "break" || ev.type === "other_work" || ev.type === "non_work") {
       removeKeys.add(eventKey(ev.dayIndex, ev.time, ev.type));
       removed.push({
         dayIndex: ev.dayIndex,
@@ -101,7 +101,8 @@ export function pruneOrphanFollowOnEventsAfterStop(
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   work: "Work",
-  break: "Break",
+  break: "Rest",
+  other_work: "Other work",
   non_work: "Non-work",
   stop: "End shift",
 };
@@ -109,7 +110,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 /** True when a day still shows follow-on work/break (events or painted grids). */
 export function dayHasFollowOnActivity(day: DayData | undefined): boolean {
   if (!day) return false;
-  if ((day.events ?? []).some((e) => e.type === "work" || e.type === "break" || e.type === "non_work")) {
+  if ((day.events ?? []).some((e) => e.type === "work" || e.type === "break" || e.type === "other_work" || e.type === "non_work")) {
     return true;
   }
   if ((day.work_time ?? []).some(Boolean)) return true;
@@ -127,7 +128,7 @@ export function formatOrphanFollowOnClearedMessage(
       ? "Cleared continued work on the next day that belonged to the shift you just ended."
       : "";
   }
-  const actionable = removed.filter((r) => r.type === "work" || r.type === "break" || r.type === "non_work");
+  const actionable = removed.filter((r) => r.type === "work" || r.type === "break" || r.type === "other_work" || r.type === "non_work");
   const focus = actionable.length > 0 ? actionable : removed;
   const parts = focus.map((r) => {
     const label = EVENT_TYPE_LABEL[r.type] ?? r.type;

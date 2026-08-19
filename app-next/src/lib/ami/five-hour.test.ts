@@ -88,4 +88,20 @@ describe("AMI five-hour (Phase 4 parity)", () => {
     expect(result.workMinutesInWindow).toBeGreaterThanOrEqual(300);
     expect(result.restComplete).toBe(true);
   });
+
+  it("45 min other_work stays break-from-driving rest and does not convert to non_work", () => {
+    const events: AmiEvent[] = [
+      { time: "2026-08-16T17:00:00", type: "work" },
+      { time: "2026-08-16T21:00:00", type: "other_work" },
+      { time: "2026-08-16T21:45:00", type: "work" },
+      { time: "2026-08-16T23:00:00", type: "stop" },
+    ];
+    const asOf = Date.parse("2026-08-16T23:30:00");
+    const tape = buildEvalTape(events, asOf, 72 * 60);
+    const loadStart = Math.floor((Date.parse("2026-08-16T21:00:00") - tape.originMs) / 60_000);
+    const loadEnd = Math.floor((Date.parse("2026-08-16T21:45:00") - tape.originMs) / 60_000);
+    expect(tape.kinds.slice(loadStart, loadEnd).every((k) => k === "other_work")).toBe(true);
+    const result = evaluateFiveHourBreakRule(tape);
+    expect(result.restComplete).toBe(true);
+  });
 });

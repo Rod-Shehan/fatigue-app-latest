@@ -584,7 +584,7 @@ export function ManagerView() {
       }
 
       // 2) No stop logged for a long time (likely missing End shift).
-      if ((last.type === "work" || last.type === "break") && elapsedHrs >= 12) {
+      if ((last.type === "work" || last.type === "break" || last.type === "other_work") && elapsedHrs >= 12) {
         out.push({
           sheetId: s.id,
           driver,

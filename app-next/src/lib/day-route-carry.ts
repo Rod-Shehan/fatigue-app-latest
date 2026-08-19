@@ -1,12 +1,13 @@
 import type { DayData } from "@/lib/api";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
+import { isBreakFromDrivingEventType, isOpenShiftEventType } from "@/lib/activity-kind";
 import { hasRunPlanContent } from "@/lib/route-plan";
 import { getSheetDayDateString } from "@/lib/weeks";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function todayHasLoggedWorkOrBreak(day: DayData | undefined): boolean {
-  return (day?.events ?? []).some((e) => e.type === "work" || e.type === "break");
+  return (day?.events ?? []).some((e) => e.type === "work" || isBreakFromDrivingEventType(e.type));
 }
 
 function previousDayEndedWithOpenWorkOrBreak(
@@ -20,7 +21,7 @@ function previousDayEndedWithOpenWorkOrBreak(
   if (!prev) return false;
   const dateStrPrev = getSheetDayDateString(weekStarting, dayIndex - 1);
   const open = getEffectiveOpenActivityAtDayEnd(prev, dateStrPrev, todayYmd);
-  return open === "work" || open === "break";
+  return open === "work" || isBreakFromDrivingEventType(open);
 }
 
 /**
@@ -113,7 +114,7 @@ export function suggestedEndShiftTimeAfterLastEvent(day: DayData): string | null
   const events = day.events ?? [];
   const last = events[events.length - 1];
   if (!last || last.type === "stop") return null;
-  if (last.type !== "work" && last.type !== "break" && last.type !== "non_work") return null;
+  if (!isOpenShiftEventType(last.type) && last.type !== "non_work") return null;
   const lastMs = new Date(last.time).getTime();
   if (!Number.isFinite(lastMs)) return null;
   return new Date(lastMs + STOP_AFTER_LAST_EVENT_MS).toISOString();

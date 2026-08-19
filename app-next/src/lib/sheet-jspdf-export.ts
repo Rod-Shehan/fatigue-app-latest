@@ -134,7 +134,7 @@ function buildSegmentsFromEvents(
     if (ev.type === "work" || treatBreakAsWork) {
       segments.work_time.push({ startMin, endMin });
       workOrBreakRanges.push({ startMin, endMin });
-    } else if (ev.type === "break") {
+    } else if (ev.type === "break" || ev.type === "other_work") {
       segments.breaks.push({ startMin, endMin });
       workOrBreakRanges.push({ startMin, endMin });
     }

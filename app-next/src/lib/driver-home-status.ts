@@ -2,7 +2,7 @@ import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getSheetDayDateString } from "@/lib/weeks";
 import type { DayData } from "@/lib/api";
 
-export type DriverShiftActivity = "idle" | "work" | "break" | "stopped";
+export type DriverShiftActivity = "idle" | "work" | "break" | "other_work" | "stopped";
 
 export type DriverHomeShiftStatus = {
   activity: DriverShiftActivity;
@@ -67,8 +67,16 @@ export function getDriverHomeShiftStatus(
   if (last.type === "break") {
     return {
       activity: "break",
-      headline: `On break · ${elapsed}`,
-      detail: "Tap Continue shift when you resume or End shift when finished.",
+      headline: `On rest · ${elapsed}`,
+      detail: "Tap Continue shift when you resume driving or End shift when finished.",
+    };
+  }
+
+  if (last.type === "other_work") {
+    return {
+      activity: "other_work",
+      headline: `On other work · ${elapsed}`,
+      detail: "Tap Continue shift when you resume driving or End shift when finished.",
     };
   }
 

@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Briefcase, Coffee, Moon, Square, MapPin } from "lucide-react";
+import { Briefcase, Coffee, Moon, Square, MapPin, Wrench } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { getSheetDayDateString, getTodayLocalDateString } from "@/lib/weeks";
 
 const EVENT_CONFIG: Record<ActivityKey, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   work: { label: "Work", icon: Briefcase },
-  break: { label: "Break", icon: Coffee },
+  break: { label: "Rest", icon: Coffee },
+  other_work: { label: "Other work", icon: Wrench },
   non_work: { label: "Non-Work Time", icon: Moon },
   stop: { label: "End shift", icon: Square },
 };

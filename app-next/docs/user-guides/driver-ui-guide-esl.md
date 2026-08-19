@@ -10,7 +10,7 @@ This guide explains how to use the app. It is **not** legal advice. Your company
 
 Circadia24 keeps your **weekly fatigue record** — an electronic work diary (EWD).
 
-- You tap buttons when you **work**, take a **break**, or **end shift**.
+- You tap buttons when you **work**, **stop driving** (then rest or other work), or **end shift**.
 - Time you do not log is counted as **non-work** (rest / off duty) — like blank time on a paper diary.
 - If you drive the **same route often**, the app can **suggest** rego and run plan in **Set up day** from your last trip. They appear on the day sheet and PDF only after you **Confirm**. **Start location** and **destination** only appear under **Enter run plan** (blank when you open that option), or from a **Saved run plan** you pick. You always type **start km** and **end km** yourself.
 
@@ -53,13 +53,19 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 | Button | When it shows / what to tap |
 |--------|------------------------------|
 | **Start shift** | Starts work on the timeline (opens Set up day first if details are missing; Confirm finishes the start) |
-| **Continue shift** | Back to work after a break — same shift, not a new start |
-| **Break** | Short rest during work (30 minutes or less) |
+| **Continue shift** | Back to driving after Rest or Other work — same shift, not a new start |
+| **Stop Driving** | You have stopped driving. Still on shift. Not End shift. Opens the split. |
+| **Start Rest** | Top of the split. Sit still — eat, drink, nap. 31 minutes or more becomes non-work |
+| **Start Other Work** | Bottom of the split. Not driving, still a job — load, forklift, tyre, paperwork, fuel |
 | **End shift** | You finish work — enter finish time and end km |
 
 ```
 ┌─────────────────────────────┐
-│ [ Start shift ] [ Break ]   │
+│ [ Start shift ]             │
+│ [ Stop Driving ]            │
+│   then split:               │
+│ [ Start Rest ]              │
+│ [ Start Other Work ]        │
 │           [ End shift ]     │
 └─────────────────────────────┘
 ```
@@ -69,14 +75,19 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 ```mermaid
 flowchart LR
   A[Off / Non-work] -->|Start shift + start km| B[Work]
-  B -->|Break| C[Break]
-  C -->|Continue shift| B
+  B -->|Stop Driving| C[Chooser]
+  C -->|Start Rest| D[Rest]
+  C -->|Start Other Work| E[Other work]
+  D -->|Continue shift| B
+  E -->|Continue shift| B
   B -->|End shift + end km| A
+  D -->|End shift + end km| A
+  E -->|End shift + end km| A
 ```
 
-**Simple rule:** Tap the button that matches **what you are doing now**. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start shift, Continue shift, Break, End shift).
+**Simple rule:** Tap the button that matches **what you are doing now**. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start shift, Continue shift, Start Rest, Start Other Work, End shift). **Stop Driving** only opens the split — it does not log until you pick Rest or Other work.
 
-**While the vehicle is moving** (when your organisation has the GPS trail addon on): Work / Break / End shift stay locked but you still see the usual timer and labels (dimmed), with **Moving · pull over to unlock** and a ring that fills while you are stopped. Pull over and wait a few seconds — then tap. If you already tapped once to confirm, the second tap still works. **View diary** stays available.
+**While the vehicle is moving** (when your organisation has the GPS trail addon on): Start shift / Stop Driving / End shift stay locked but you still see the usual timer and labels (dimmed), with **Moving · pull over to unlock** and a ring that fills while you are stopped. Pull over and wait a few seconds — then tap. If you already tapped once to confirm, the second tap still works. **View diary** stays available.
 
 You **cannot** start a shift until **start km** is on today's card (see section 7).
 
@@ -84,10 +95,11 @@ You **cannot** start a shift until **start km** is on today's card (see section 
 
 ## 5. Non-work time
 
-- If you do **not** tap Start shift, Continue shift, or Break, the app shows **non-work**.
-- **Break** only appears when you **tap Break**. A short logged break (30 minutes or less) stays Break; longer logged breaks (31 minutes or more) become **non-work**.
-- For the **20 min rest per 5 hours work** rule, Break and Non-work count the same; the two rows are only how the rest is shown.
-- The app does **not** invent Break from a short gap after **End shift** or other time off.
+- If you do **not** tap Start shift, Continue shift, Rest, or Other work, the app shows **non-work**.
+- **Rest** only appears when you tap **Start Rest**. A short logged rest (30 minutes or less) stays Rest; longer logged rest (31 minutes or more) becomes **non-work**.
+- **Other work** is a break from driving on the sheet. It never becomes **non-work**, even if it is long (a loading job is not off the job).
+- For the **20 min rest per 5 hours work** rule, Rest, Other work, and Non-work all count. Other work is still work time for the 168h limit.
+- The app does **not** invent Rest from a short gap after **End shift** or other time off.
 - When you finish for the day, tap **End shift**. From that moment, time is **non-work** until you tap **Start shift** again.
 
 ---
@@ -277,7 +289,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to Circadia. Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
 5. Type **start km**
 6. Tap **Start shift** when you begin
-7. Tap **Break** for short rest, then **Continue shift** when you go back to work
+7. Tap **Stop Driving**, then **Start Rest** or **Start Other Work**, then **Continue shift** when you drive again
 8. Tap **End shift** when finished — enter finish time and end km
 9. When the **week has ended** — **Sign**
 
@@ -287,13 +299,16 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 
 | Word | Meaning |
 |------|---------|
-| Work | Solo means driving or working. Two-up means driving. |
-| Break | Short rest (≤30 min) during work |
-| Non-work | Off duty / long rest / sleep / in sleeper cab for two-up |
+| Work | Driving, or the main on-duty stretch |
+| Rest | Not driving and not doing a job task (eat, drink, nap). 31+ min becomes non-work |
+| Other work | Not driving, still a job (load, forklift, tyre, paperwork, fuel). Break from driving; never non-work |
+| Non-work | Off the job / End shift / sleep |
+| Stop Driving | On Work: opens Start Rest / Start Other Work. Not End shift. |
+| Start Rest / Start Other Work | The two halves after Stop Driving |
 | Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files — not combined). **Email checklist week packs** sends those to Circadia. Prestart asks if you are responsible (two-up second drivers can say no with a reason). Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
 | Weekly Trip Sheet (PDF) | Week export frame: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature with the day sheets |
 | Start shift / End shift | Begin / finish work for a shift |
-| Continue shift | Back to work after a break (same shift) |
+| Continue shift | Back to driving after Rest or Other work (same shift) |
 | Week | Sunday–Saturday slice of your record |
 | Sign | You attest the week is correct |
 | Rego | Number plate |
