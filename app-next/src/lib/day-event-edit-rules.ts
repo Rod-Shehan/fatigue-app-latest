@@ -15,7 +15,7 @@ export type DayEventLike = {
 };
 
 /** Activity still open when this calendar day starts (prior day last event). */
-export type PriorOpenActivity = "work" | "break" | "non_work" | null;
+export type PriorOpenActivity = "work" | "break" | "other_work" | "non_work" | null;
 
 export type DayEventEditIssue = {
   /** Index in the sorted event list, or -1 for whole-list issues. */
@@ -60,15 +60,19 @@ export function activityBeforeEvent(
   }
   const prev = sorted[index - 1]!;
   if (prev.type === "stop") return "stop";
-  if (prev.type === "other_work") return "work";
-  if (prev.type === "work" || prev.type === "break" || prev.type === "non_work") {
+  if (
+    prev.type === "work" ||
+    prev.type === "break" ||
+    prev.type === "other_work" ||
+    prev.type === "non_work"
+  ) {
     return prev.type;
   }
   return activityBeforeDay;
 }
 
 function inWorkBout(prior: PriorOpenActivity | "stop"): boolean {
-  return prior === "work" || prior === "break";
+  return prior === "work" || prior === "break" || prior === "other_work";
 }
 
 /**

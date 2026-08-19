@@ -102,6 +102,29 @@ describe("day-event-edit-rules", () => {
     expect(issues.some((i) => i.code === "duplicate_consecutive")).toBe(true);
   });
 
+  it("allows other_work after work and as the last event", () => {
+    const issues = validateDayEventEdits(
+      [
+        { time: t("08:00"), type: "work" },
+        { time: t("10:00"), type: "other_work" },
+      ],
+      { activityBeforeDay: null }
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("allows End shift after other_work", () => {
+    const issues = validateDayEventEdits(
+      [
+        { time: t("08:00"), type: "work" },
+        { time: t("10:00"), type: "other_work" },
+        { time: t("12:00"), type: "stop" },
+      ],
+      { activityBeforeDay: null }
+    );
+    expect(issues).toEqual([]);
+  });
+
   it("activityBeforeEvent uses prior day for first event", () => {
     expect(activityBeforeEvent([{ time: t("01:00"), type: "break" }], 0, "work")).toBe("work");
     expect(activityBeforeEvent([{ time: t("01:00"), type: "break" }], 0, null)).toBe(null);

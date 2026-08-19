@@ -21,7 +21,7 @@ function previousDayEndedWithOpenWorkOrBreak(
   if (!prev) return false;
   const dateStrPrev = getSheetDayDateString(weekStarting, dayIndex - 1);
   const open = getEffectiveOpenActivityAtDayEnd(prev, dateStrPrev, todayYmd);
-  return open === "work" || isBreakFromDrivingEventType(open);
+  return isOpenShiftEventType(open);
 }
 
 /**
