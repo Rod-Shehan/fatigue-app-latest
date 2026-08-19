@@ -9,6 +9,7 @@ import {
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_START_REST_LABEL,
   DRIVER_START_OTHER_WORK_LABEL,
+  DRIVER_START_DRIVING_LABEL,
   DRIVER_END_SHIFT_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
@@ -117,7 +118,9 @@ export default async function DriverHelpPage() {
                   {DRIVER_START_SHIFT_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} / {DRIVER_STOP_DRIVING_LABEL} /{" "}
                   {DRIVER_END_SHIFT_LABEL}
                 </strong>{" "}
-                — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} begins work. {DRIVER_STOP_DRIVING_LABEL}{" "}
+                — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} opens a split:{" "}
+                {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} (Set up day first if details are
+                missing — Confirm does not start driving by itself). {DRIVER_STOP_DRIVING_LABEL}{" "}
                 opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}.{" "}
                 {DRIVER_CONTINUE_SHIFT_LABEL} is back to driving. {DRIVER_END_SHIFT_LABEL} is off the job.
               </li>

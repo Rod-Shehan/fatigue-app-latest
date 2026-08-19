@@ -9,6 +9,7 @@ import {
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_START_REST_LABEL,
   DRIVER_START_OTHER_WORK_LABEL,
+  DRIVER_START_DRIVING_LABEL,
   DRIVER_END_SHIFT_LABEL,
   DRIVER_REST_LABEL,
   DRIVER_OTHER_WORK_LABEL,
@@ -134,6 +135,9 @@ export function DriverGuideArticle() {
         <GuideDiagram title="Log bar">
           {`┌─────────────────────────────┐
 │ [ ${DRIVER_START_SHIFT_LABEL} ]              │
+│   then split:               │
+│ [ ${DRIVER_START_DRIVING_LABEL} ]            │
+│ [ ${DRIVER_START_OTHER_WORK_LABEL} ]        │
 │ [ ${DRIVER_STOP_DRIVING_LABEL} ]             │
 │   then split:               │
 │ [ ${DRIVER_START_REST_LABEL} ]              │
@@ -143,11 +147,12 @@ export function DriverGuideArticle() {
         </GuideDiagram>
         <TwoColTable
           rows={[
-            [DRIVER_START_SHIFT_LABEL, "Starts work on the timeline (opens Set up day first if details are missing)"],
+            [DRIVER_START_SHIFT_LABEL, "Opens Set up day if details are missing, then Start driving or Start Other Work. Does not log by itself."],
+            [DRIVER_START_DRIVING_LABEL, "Top of the Start shift split. Starts driving on the timeline"],
             [DRIVER_CONTINUE_SHIFT_LABEL, "Back to driving after Rest or Other work — same shift, not a new start"],
             [DRIVER_STOP_DRIVING_LABEL, "You have stopped driving. Still on shift. Not End shift."],
             [DRIVER_START_REST_LABEL, "Sit still — eat, drink, nap. 31 minutes or more becomes non-work"],
-            [DRIVER_START_OTHER_WORK_LABEL, "Not driving, still a job — load, forklift, tyre, paperwork, fuel"],
+            [DRIVER_START_OTHER_WORK_LABEL, "Not driving, still a job — load, forklift, tyre, paperwork, fuel. After Start shift or Stop Driving"],
             [DRIVER_END_SHIFT_LABEL, "You finish work — enter finish time and end km"],
           ]}
         />
@@ -155,6 +160,8 @@ export function DriverGuideArticle() {
           {`  OFF / Non-work
        │
        ▼ ${DRIVER_START_SHIFT_LABEL} (after start km)
+  ${DRIVER_START_DRIVING_LABEL} → WORK
+  ${DRIVER_START_OTHER_WORK_LABEL} → Other work
      WORK ──► ${DRIVER_STOP_DRIVING_LABEL} ──► ${DRIVER_START_REST_LABEL} or ${DRIVER_START_OTHER_WORK_LABEL}
        │                           │
        │◄──── ${DRIVER_CONTINUE_SHIFT_LABEL} ──────┘
@@ -166,9 +173,9 @@ export function DriverGuideArticle() {
         <p>Tap the button that matches what you are doing now.</p>
         <p className="mt-2">
           Then tap again within a few seconds when the button pulses — that second tap is what records the event (
-          {DRIVER_START_SHIFT_LABEL}, {DRIVER_CONTINUE_SHIFT_LABEL}, {DRIVER_START_REST_LABEL},{" "}
-          {DRIVER_START_OTHER_WORK_LABEL}, {DRIVER_END_SHIFT_LABEL}). {DRIVER_STOP_DRIVING_LABEL} only opens the split — it
-          does not log until you pick Rest or Other work.
+          {DRIVER_START_DRIVING_LABEL}, {DRIVER_CONTINUE_SHIFT_LABEL}, {DRIVER_START_REST_LABEL},{" "}
+          {DRIVER_START_OTHER_WORK_LABEL}, {DRIVER_END_SHIFT_LABEL}). {DRIVER_START_SHIFT_LABEL} and{" "}
+          {DRIVER_STOP_DRIVING_LABEL} only open a split — they do not log until you pick a kind.
         </p>
         <p className="mt-2">
           When your organisation has the GPS trail addon on and the vehicle is moving, Start shift / Stop Driving / End
@@ -182,7 +189,7 @@ export function DriverGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>5. Non-work time</h2>
         <ul className={ulClass}>
-          <li>If you do not tap Start shift, Continue shift, Rest, or Other work, the app shows non-work.</li>
+          <li>If you do not tap Start driving, Continue shift, Rest, or Other work, the app shows non-work.</li>
           <li>
             Rest only appears when you tap {DRIVER_START_REST_LABEL}. A short logged rest (30 minutes or less) stays
             Rest; longer logged rest (31 minutes or more) becomes non-work. Other work is a break from driving on the
@@ -265,8 +272,9 @@ export function DriverGuideArticle() {
           Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
-          Normal day: open the week → tap Start shift. If day details are missing, Set up day opens — Confirm starts
-          work on the timeline. If setup is already done, tap Start shift again to confirm. Optionally tick Daily
+          Normal day: open the week → tap {DRIVER_START_SHIFT_LABEL}. If day details are missing, Set up day opens —
+          Confirm then choose {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring. If setup is
+          already done, the same split opens (tap again to confirm the kind). Optionally tick Daily
           checks or open signed Fitness for Work / Prestart / Dimension & Load forms (optional in trial — do not block
           Start shift).
         </p>
@@ -483,7 +491,7 @@ export function DriverGuideArticle() {
             that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
             day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
-          <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted — that starts work)</li>
+          <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted, then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL})</li>
           <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}, then {DRIVER_CONTINUE_SHIFT_LABEL} when you drive again</li>
           <li>Tap End shift when finished — enter finish time and end km</li>
           <li>When the week has ended — Sign</li>
@@ -506,8 +514,9 @@ export function DriverGuideArticle() {
               "Weekly Trip Sheet (PDF)",
               "Week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature with the day sheets",
             ],
-            [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish work for a shift"],
-            [DRIVER_CONTINUE_SHIFT_LABEL, "Back to work after a break (same shift)"],
+            [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish a shift. Start shift opens driving or Other work"],
+            [DRIVER_START_DRIVING_LABEL, "After Start shift — log driving"],
+            [DRIVER_CONTINUE_SHIFT_LABEL, "Back to driving after Rest or Other work (same shift)"],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],
             ["Rego", "Number plate"],

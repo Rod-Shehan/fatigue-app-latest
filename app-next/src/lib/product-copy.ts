@@ -192,7 +192,7 @@ export function formatContinuedShiftRouteBanner(previousDayName: string): string
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
   "Suggested from your open shift — Confirm in Set up day to save on this day's record (and the timesheet/PDF).";
 
-/** First work of a shift (idle / after End shift). */
+/** First tap when idle / after End shift. Opens Driving / Other work chooser (or Set up day first). */
 export const DRIVER_START_SHIFT_LABEL = "Start shift";
 /** Return to work after Rest or Other work — same shift, not a new start. */
 export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";
@@ -213,5 +213,7 @@ export const DRIVER_END_SHIFT_LABEL = "End shift";
 export const DRIVER_STOP_DRIVING_LABEL = "Stop Driving";
 /** Top half of the Stop Driving split. */
 export const DRIVER_START_REST_LABEL = "Start Rest";
-/** Bottom half of the Stop Driving split. */
+/** Bottom half of the Stop Driving / Start shift split. */
 export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";
+/** Top half of the Start shift split. Logs driving work. */
+export const DRIVER_START_DRIVING_LABEL = "Start driving";

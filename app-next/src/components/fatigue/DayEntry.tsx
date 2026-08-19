@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isShiftStartSetupComplete } from "@/lib/shift-start-gate";
+import { isOpenShiftEventType } from "@/lib/activity-kind";
 import { saveDriverRouteDefaults, inferRouteCarryMode, seedRouteSetupFormDefaults, loadDriverRouteDefaults } from "@/lib/driver-route-defaults";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
@@ -181,7 +182,7 @@ export default function DayEntry({
   dayTools?: DayCardToolsConfig;
   /** Parent bump opens Set up day (e.g. Start shift blocked → Go to today's card). */
   setupOpenRequest?: number;
-  /** Hero Start/Resume deferred here — Confirm starts work on the timeline. */
+  /** Hero Start/Resume deferred here — Confirm then opens driving / Other work chooser. */
   startWorkAfterSetup?: boolean;
   onConfirmedStartWorkAfterSetup?: (opts?: { skipLog?: boolean }) => void;
   /** Fired when Set up / Edit day dialog closes. */
@@ -894,8 +895,9 @@ export default function DayEntry({
             }
             if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
             if (startWorkAfterSetup && isToday && isShiftStartSetupComplete(merged)) {
-              const alreadyHasWork = (updatedEvents ?? []).some((e) => e.type === "work");
-              onConfirmedStartWorkAfterSetup?.(alreadyHasWork ? { skipLog: true } : undefined);
+              const last = [...(updatedEvents ?? [])].at(-1);
+              const alreadyOnShift = isOpenShiftEventType(last?.type);
+              onConfirmedStartWorkAfterSetup?.(alreadyOnShift ? { skipLog: true } : undefined);
             }
           }}
           onChecklistCompleted={async (record) => {

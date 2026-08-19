@@ -7,6 +7,7 @@ import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
+import { X } from "lucide-react";
 
 const UNLOCK_RING_R = 46;
 const UNLOCK_RING_C = 2 * Math.PI * UNLOCK_RING_R;
@@ -57,8 +58,9 @@ export interface DriverActionHeroProps {
     /** Ghost pill on dark focus overlay. */
     onDark?: boolean;
   }>;
-  /** Work → Stop Driving chooser: vertical split of the same hero. */
+  /** Work → Stop Driving chooser, or idle → Start shift chooser. Vertical split of the same hero. */
   stopDrivingChooser?: {
+    variant?: "stop-driving" | "start-shift";
     restLabel: string;
     otherWorkLabel: string;
     onStartRest: () => void;
@@ -71,7 +73,8 @@ export interface DriverActionHeroProps {
 
 /**
  * Expanded round primary action — Start shift / Continue shift / Stop Driving.
- * After Stop Driving, a vertical split: Start Rest / Start Other Work.
+ * After Start shift: vertical split Start driving / Start Other Work.
+ * After Stop Driving: vertical split Start Rest / Start Other Work.
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   workMinutesUsed,
@@ -287,6 +290,14 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]"
   );
 
+  const startShiftSplit = stopDrivingChooser?.variant === "start-shift";
+  const chooserAria = startShiftSplit
+    ? "Start shift — choose driving or Other work"
+    : "Stop Driving — choose Rest or Other work";
+  const topHalfClass = startShiftSplit
+    ? "h-1/2 bg-emerald-600 hover:bg-emerald-700"
+    : "h-1/2 bg-amber-500 hover:bg-amber-600";
+
   const heroControl = stopDrivingChooser ? (
     <div className={cn("flex flex-col items-center", locked && "opacity-70 saturate-75")}>
       <div
@@ -296,7 +307,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           "flex flex-col"
         )}
         role="group"
-        aria-label="Stop Driving — choose Rest or Other work"
+        aria-label={chooserAria}
       >
         <button
           type="button"
@@ -304,7 +315,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           disabled={locked}
           className={cn(
             splitHalfClass,
-            "h-1/2 bg-amber-500 hover:bg-amber-600",
+            topHalfClass,
             stopDrivingChooser.restPending && "animate-pulse ring-2 ring-inset ring-white"
           )}
           aria-label={
@@ -349,16 +360,19 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         </button>
       </div>
       {!locked ? (
-        <button
-          type="button"
-          onClick={stopDrivingChooser.onCancel}
-          className={cn(
-            "mt-2 rounded-full px-3 py-1 text-xs font-semibold",
-            expanded ? "text-white/90" : "text-slate-600 dark:text-slate-300"
-          )}
-        >
-          Cancel
-        </button>
+        <div className={cn(expanded ? "mt-3" : "mt-2")}>
+          {renderAuxPill("chooser-cancel", {
+            label: "Cancel",
+            onAction: stopDrivingChooser.onCancel,
+            icon: X,
+            onDark: expanded,
+            chrome: {
+              surfaceClass:
+                "border border-slate-300 bg-white shadow-sm hover:bg-slate-50 dark:border-slate-500 dark:bg-slate-800 dark:hover:bg-slate-700",
+              textClass: "text-slate-800 dark:text-slate-100",
+            },
+          })}
+        </div>
       ) : null}
     </div>
   ) : (

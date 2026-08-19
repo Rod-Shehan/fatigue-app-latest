@@ -20,12 +20,16 @@ describe("shift-start-gate", () => {
     expect(workLogRequiresShiftStartSetup([{ time: "2026-06-11T08:00:00", type: "non_work" }])).toBe(true);
   });
 
-  it("does not require setup when resuming from break", () => {
+  it("does not require setup when resuming from other work", () => {
     const events = [
       { time: "2026-06-11T08:00:00", type: "work" },
-      { time: "2026-06-11T09:00:00", type: "break" },
+      { time: "2026-06-11T09:00:00", type: "other_work" },
     ];
     expect(workLogRequiresShiftStartSetup(events, Date.parse("2026-06-11T10:00:00"))).toBe(false);
+  });
+
+  it("requires setup when idle even if the next tap will be other work", () => {
+    expect(workLogRequiresShiftStartSetup([])).toBe(true);
   });
 
   it("blocks work when setup fields are missing", () => {

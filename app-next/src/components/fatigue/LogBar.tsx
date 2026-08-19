@@ -49,7 +49,7 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
+import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
 import { isOpenShiftEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
 import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
@@ -226,6 +226,8 @@ export default function LogBar({
   const [pendingType, setPendingType] = useState<string | null>(null);
   /** Work → Stop Driving chooser (not a logged event). */
   const [stopDrivingChooserOpen, setStopDrivingChooserOpen] = useState(false);
+  /** Idle → Start shift chooser: Start driving / Start Other Work (not a logged event). */
+  const [startShiftChooserOpen, setStartShiftChooserOpen] = useState(false);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
   /** Sync mirror of pending arm — rapid second tap must see this before React re-renders. */
@@ -294,6 +296,7 @@ export default function LogBar({
 
   useEffect(() => {
     if (currentType !== "work") setStopDrivingChooserOpen(false);
+    if (currentType != null) setStartShiftChooserOpen(false);
   }, [currentType]);
 
   const openSessionTools = useCallback(() => {
@@ -402,7 +405,7 @@ export default function LogBar({
 
   const needsShiftStartSetup = workLogRequiresShiftStartSetup(eventsForDriver);
   const primaryLogType = (idlePrimary?.type ?? "work") as "work" | "break" | "non_work";
-  const isStartingShift = primaryLogType === "work" && needsShiftStartSetup && currentType !== "work";
+  const isStartingShift = primaryLogType === "work" && currentType === null;
   /** Idle after End shift inside an active 17h episode — same Start shift hero (episode resume path). */
   const showResumeShiftPrimary =
     isLiveNow &&
@@ -702,12 +705,13 @@ export default function LogBar({
 
   const showShiftStartSetupBlock = useCallback(
     (type: string, options?: { episodeResume?: boolean; deferToSetup?: boolean }): boolean => {
-      if (type !== "work" || !workLogRequiresShiftStartSetup(eventsForDriver)) return false;
+      if (type !== "work" && type !== OTHER_WORK_EVENT_TYPE) return false;
+      if (!workLogRequiresShiftStartSetup(eventsForDriver)) return false;
 
       const missing = getShiftStartSetupMissing(dayForCardFields ?? {});
       if (missing.length === 0) return false;
 
-      // Hero Start/Resume is the event — open Set up day and finish work after Confirm.
+      // Hero Start shift — open Set up day; chooser after Confirm.
       if (options?.deferToSetup !== false) {
         onStartShiftBlocked?.({
           openSetup: true,
@@ -721,7 +725,7 @@ export default function LogBar({
         setWorkWarning({
         message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
           confirmLabel: "Go to today's card",
-        subtext: "Confirm Set up day to start your shift on the timeline.",
+        subtext: "Confirm Set up day, then choose Start driving or Start Other Work.",
           onConfirm: () => {
             setWorkWarning(null);
           onStartShiftBlocked?.({
@@ -740,30 +744,31 @@ export default function LogBar({
 
   const finalizeStartWorkOnTimeline = useCallback(
     (episodeResume: boolean) => {
-      // Setup was just confirmed on the day card — do not re-gate on stale LogBar display fields.
+      // Setup was just confirmed — open Driving / Other work chooser (do not log driving).
       const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
       if (nonWorkMsg) {
           setWorkWarning({
           message: nonWorkMsg,
           confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
-          subtext: "Your day setup is saved. Confirm to start work on the timeline.",
+          subtext: "Your day setup is saved. Confirm, then choose Start driving or Start Other Work.",
             onConfirm: () => {
               setWorkWarning(null);
               clearPending();
-            onLogEvent(currentDayIndex, "work");
+              setWorkLogEpisodeResume(episodeResume);
+              setStartShiftChooserOpen(true);
             },
           onCancel: () => setWorkWarning(null),
           });
           return;
         }
       clearPending();
-      onLogEvent(currentDayIndex, "work");
+      setWorkLogEpisodeResume(episodeResume);
+      setStartShiftChooserOpen(true);
     },
     // getInsufficientNonWorkWarning / clearPending close over live state
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional live closure
     [
       currentDayIndex,
-      onLogEvent,
       eventsForDriver,
       currentType,
       isTwoUp,
@@ -826,22 +831,29 @@ export default function LogBar({
     }
 
     if (type === "work") {
-      const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
-      if (nonWorkMsg) {
-        setWorkWarning({
-          message: nonWorkMsg,
-          confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
-          subtext: `Tap ${DRIVER_START_SHIFT_LABEL} again within a few seconds to confirm.`,
-          onConfirm: () => {
-            setWorkWarning(null);
-            armPending("work", episodeResume);
-            if (voiceAlertsEnabled) {
-              speakVoiceAlert(`Tap ${DRIVER_START_SHIFT_LABEL} again to confirm.`);
-            }
-          },
-        });
-        return;
+      if (!startShiftChooserOpen) {
+        const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
+        if (nonWorkMsg) {
+          setWorkWarning({
+            message: nonWorkMsg,
+            confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
+            subtext: `Tap ${DRIVER_START_SHIFT_LABEL} again within a few seconds to confirm.`,
+            onConfirm: () => {
+              setWorkWarning(null);
+              armPending("work", episodeResume);
+              if (voiceAlertsEnabled) {
+                speakVoiceAlert(`Tap ${DRIVER_START_SHIFT_LABEL} again to confirm.`);
+              }
+            },
+          });
+          return;
+        }
       }
+      const workConfirmLabel = startShiftChooserOpen
+        ? DRIVER_START_DRIVING_LABEL
+        : episodeResume || needsShiftStartSetup
+          ? DRIVER_START_SHIFT_LABEL
+          : DRIVER_CONTINUE_SHIFT_LABEL;
       if (workRelevantComplianceMessages?.length) {
         const message =
           workRelevantComplianceMessages.length === 1
@@ -853,41 +865,48 @@ export default function LogBar({
         const fixable = fixRoute != null && isComplianceFixActionable(fixRoute);
         setWorkWarning({
           message,
-          confirmLabel:
-            episodeResume || needsShiftStartSetup
-              ? `${DRIVER_START_SHIFT_LABEL} anyway`
-              : `${DRIVER_CONTINUE_SHIFT_LABEL} anyway`,
+          confirmLabel: `${workConfirmLabel} anyway`,
           subtext: fixable
             ? "Fix the issue on your record, or confirm to log work anyway."
-            : `Tap ${
-                episodeResume || needsShiftStartSetup
-                  ? DRIVER_START_SHIFT_LABEL
-                  : DRIVER_CONTINUE_SHIFT_LABEL
-              } again within a few seconds to confirm.`,
+            : `Tap ${workConfirmLabel} again within a few seconds to confirm.`,
           ...(fixable && fixRoute
             ? {
                 setupRecordLabel: fixRoute.driverLabel,
                 onSetupRecord: () => {
-            setWorkWarning(null);
+                  setWorkWarning(null);
                   applyComplianceFix(fixRoute);
                 },
               }
             : {}),
-            onConfirm: () => {
-              setWorkWarning(null);
+          onConfirm: () => {
+            setWorkWarning(null);
             armPending("work", episodeResume);
             if (voiceAlertsEnabled) {
-              speakVoiceAlert(
-                episodeResume
-                  ? `Tap ${DRIVER_START_SHIFT_LABEL} again to confirm.`
-                  : `Tap ${needsShiftStartSetup ? DRIVER_START_SHIFT_LABEL : DRIVER_CONTINUE_SHIFT_LABEL} again to confirm.`
-              );
+              speakVoiceAlert(`Tap ${workConfirmLabel} again to confirm.`);
             }
           },
-          });
-          return;
-        }
+        });
+        return;
       }
+    }
+    if (type === OTHER_WORK_EVENT_TYPE && currentType === null && !startShiftChooserOpen) {
+      const nonWorkMsg = getInsufficientNonWorkWarning(showResumeShiftPrimary);
+      if (nonWorkMsg) {
+        setWorkWarning({
+          message: nonWorkMsg,
+          confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
+          subtext: `Tap ${DRIVER_START_OTHER_WORK_LABEL} again within a few seconds to confirm.`,
+          onConfirm: () => {
+            setWorkWarning(null);
+            armPending(OTHER_WORK_EVENT_TYPE);
+            if (voiceAlertsEnabled) {
+              speakVoiceAlert(`Tap ${DRIVER_START_OTHER_WORK_LABEL} again to confirm.`);
+            }
+          },
+        });
+        return;
+      }
+    }
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
       if (showShiftStartSetupBlock(type, { episodeResume })) return;
@@ -907,17 +926,41 @@ export default function LogBar({
           ? DRIVER_END_SHIFT_LABEL
           : type === "break"
             ? DRIVER_START_REST_LABEL
-            : type === OTHER_WORK_EVENT_TYPE
+              : type === OTHER_WORK_EVENT_TYPE
               ? DRIVER_START_OTHER_WORK_LABEL
-              : episodeResume || needsShiftStartSetup
+              : startShiftChooserOpen
+                ? DRIVER_START_DRIVING_LABEL
+                : episodeResume || needsShiftStartSetup
                 ? DRIVER_START_SHIFT_LABEL
                 : DRIVER_CONTINUE_SHIFT_LABEL;
       speakVoiceAlert(`Tap ${label} again to confirm.`);
     }
   };
 
-  const handleStartShift = () => handleLog("work", { episodeResume: false });
-  const handleResumeShift = () => handleLog("work", { episodeResume: true });
+  const beginStartShift = (opts?: { episodeResume?: boolean }) => {
+    const episodeResume = opts?.episodeResume === true;
+    if (showShiftStartSetupBlock("work", { episodeResume })) return;
+    const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
+    if (nonWorkMsg) {
+      setWorkWarning({
+        message: nonWorkMsg,
+        confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
+        subtext: "Confirm, then choose Start driving or Start Other Work.",
+        onConfirm: () => {
+          setWorkWarning(null);
+          setWorkLogEpisodeResume(episodeResume);
+          setStartShiftChooserOpen(true);
+        },
+        onCancel: () => setWorkWarning(null),
+      });
+      return;
+    }
+    setWorkLogEpisodeResume(episodeResume);
+    setStartShiftChooserOpen(true);
+  };
+
+  const handleStartShift = () => beginStartShift({ episodeResume: false });
+  const handleResumeShift = () => beginStartShift({ episodeResume: true });
 
   /** Header / sheet utility control sizing. */
   const touchHeaderBtn = driverTouchIconBtn;
@@ -929,9 +972,11 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        currentType === null && needsShiftStartSetup
-          ? DRIVER_START_SHIFT_LABEL
-          : DRIVER_CONTINUE_SHIFT_LABEL,
+        startShiftChooserOpen
+          ? DRIVER_START_DRIVING_LABEL
+          : currentType === null
+            ? DRIVER_START_SHIFT_LABEL
+            : DRIVER_CONTINUE_SHIFT_LABEL,
       break: DRIVER_START_REST_LABEL,
       other_work: DRIVER_START_OTHER_WORK_LABEL,
       stop_driving: DRIVER_STOP_DRIVING_LABEL,
@@ -940,6 +985,19 @@ export default function LogBar({
     onConfirmIntent: (intent: "work" | "break" | "other_work" | "stop_driving" | "stop") => {
       if (intent === "stop_driving") {
         setStopDrivingChooserOpen(true);
+        return;
+      }
+      if (intent === "work" && currentType === null) {
+        if (startShiftChooserOpen) {
+          voiceFinalizeNextLogRef.current = true;
+          try {
+            handleLog("work", { episodeResume: workLogEpisodeResume });
+          } finally {
+            voiceFinalizeNextLogRef.current = false;
+          }
+          return;
+        }
+        beginStartShift({ episodeResume: showResumeShiftPrimary });
         return;
       }
       voiceFinalizeNextLogRef.current = true;
@@ -1126,7 +1184,7 @@ export default function LogBar({
                 setStopDrivingChooserOpen(true);
                 return;
               }
-              if (primaryLogType === "work" && isStartingShift) {
+              if (primaryLogType === "work" && currentType === null) {
                 if (showResumeShiftPrimary) handleResumeShift();
                 else handleStartShift();
                 return;
@@ -1152,6 +1210,7 @@ export default function LogBar({
             stopDrivingChooser={
               stopDrivingChooserOpen && currentType === "work"
                 ? {
+                    variant: "stop-driving",
                     restLabel: DRIVER_START_REST_LABEL,
                     otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
                     onStartRest: () => handleLog("break"),
@@ -1162,7 +1221,22 @@ export default function LogBar({
                     restPending: pendingType === "break",
                     otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
                   }
-                : null
+                : startShiftChooserOpen && currentType === null
+                  ? {
+                      variant: "start-shift",
+                      restLabel: DRIVER_START_DRIVING_LABEL,
+                      otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
+                      onStartRest: () =>
+                        handleLog("work", { episodeResume: workLogEpisodeResume }),
+                      onStartOtherWork: () =>
+                        handleLog(OTHER_WORK_EVENT_TYPE, { episodeResume: workLogEpisodeResume }),
+                      onCancel: () => {
+                        setStartShiftChooserOpen(false);
+                      },
+                      restPending: pendingType === "work",
+                      otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
+                    }
+                  : null
             }
             auxiliaryActions={
               sessionDimmed

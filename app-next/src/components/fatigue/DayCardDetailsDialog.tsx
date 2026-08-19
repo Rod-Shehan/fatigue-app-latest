@@ -27,7 +27,7 @@ import {
   formatRoutePresetOption,
   validateRoutePresetCreateInput,
 } from "@/lib/route-preset";
-import { ROUTE_CATALOGUE_EMPTY_HINT, ROUTE_CATALOGUE_LOAD_ERROR_HINT } from "@/lib/product-copy";
+import { ROUTE_CATALOGUE_EMPTY_HINT, ROUTE_CATALOGUE_LOAD_ERROR_HINT, DRIVER_START_DRIVING_LABEL, DRIVER_START_OTHER_WORK_LABEL } from "@/lib/product-copy";
 import { Loader2 } from "lucide-react";
 import {
   SHIFT_PATTERN_FIELD_HELP,
@@ -156,7 +156,7 @@ export function DayCardDetailsDialog({
   onConfirm: (fields: DayCardFields, events: DayEventDraft[]) => void | Promise<void>;
   /** When a signed form completes, flush to the sheet without waiting for Confirm. */
   onChecklistCompleted?: (record: import("@/lib/checklist").ChecklistRecord) => void | Promise<void>;
-  /** Hero Start/Resume opened this dialog — Confirm also starts work on the timeline. */
+  /** Hero Start/Resume opened this dialog — Confirm then opens driving / Other work chooser. */
   startWorkAfterSetup?: boolean;
   showShiftPatternEducation?: boolean;
   /** Rolling minutes on same shift pattern ending at this day. */
@@ -629,8 +629,8 @@ export function DayCardDetailsDialog({
 
         {startWorkAfterSetup ? (
           <p className="text-sm leading-snug text-teal-900 dark:text-teal-100 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2">
-            <span className="font-semibold">Starting your shift:</span> fill the fields below and tap Confirm — work
-            begins on your timeline (same as the Start shift you tapped).
+            <span className="font-semibold">Starting your shift:</span> fill the fields below and tap Confirm. Then
+            choose {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring.
           </p>
         ) : null}
 
