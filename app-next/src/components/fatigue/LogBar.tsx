@@ -50,7 +50,8 @@ import {
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
-import { isOpenShiftEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
+import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
+import { resolveDriverHeroPrimaryLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
 import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
@@ -109,7 +110,7 @@ const EVENT_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string 
   stop: Square,
 };
 const EVENT_LABELS: Record<ActivityKey, string> = {
-  work: DRIVER_CONTINUE_SHIFT_LABEL,
+  work: DRIVER_STOP_DRIVING_LABEL,
   break: DRIVER_START_REST_LABEL,
   other_work: DRIVER_START_OTHER_WORK_LABEL,
   non_work: "Non-Work Time",
@@ -419,17 +420,9 @@ export default function LogBar({
     !idleRestBlocked;
   const primaryActionLabel = idlePrimary
     ? idlePrimary.label
-    : currentType === "work"
-      ? DRIVER_STOP_DRIVING_LABEL
-      : currentType === "break"
-        ? DRIVER_START_WORK_LABEL
-        : currentType === OTHER_WORK_EVENT_TYPE
-          ? DRIVER_CONTINUE_SHIFT_LABEL
-          : showResumeShiftPrimary || isStartingShift
-            ? DRIVER_START_SHIFT_LABEL
-            : DRIVER_CONTINUE_SHIFT_LABEL;
+    : resolveDriverHeroPrimaryLabel(currentType);
   const primaryActionPending =
-    currentType !== "work" &&
+    !isWorkTimeEventType(currentType ?? "") &&
     pendingType === primaryLogType &&
     (showResumeShiftPrimary ? workLogEpisodeResume : !workLogEpisodeResume);
 
@@ -812,8 +805,6 @@ export default function LogBar({
       void requestDriverImmersive().then(() => syncDriverImmersiveClass());
     }
 
-    if (type === currentType) return;
-
     if (
       type === "stop" &&
       !shiftSegmentOpen &&
@@ -832,9 +823,13 @@ export default function LogBar({
         }
         return;
       }
-      onLogEvent(currentDayIndex, type);
+      if (type !== currentType) {
+        onLogEvent(currentDayIndex, type);
+      }
       return;
     }
+
+    if (type === currentType) return;
 
     if (type === "work") {
       if (!startShiftChooserOpen && !restWorkChooserOpen) {
@@ -855,11 +850,13 @@ export default function LogBar({
           return;
         }
       }
-      const workConfirmLabel = startShiftChooserOpen || restWorkChooserOpen
-        ? DRIVER_START_DRIVING_LABEL
-        : episodeResume || needsShiftStartSetup
-          ? DRIVER_START_SHIFT_LABEL
-          : DRIVER_CONTINUE_SHIFT_LABEL;
+      const workConfirmLabel = resolveWorkConfirmLabel({
+        startShiftChooserOpen,
+        restWorkChooserOpen,
+        currentType,
+        episodeResume,
+        needsShiftStartSetup,
+      });
       if (workRelevantComplianceMessages?.length) {
         const message =
           workRelevantComplianceMessages.length === 1
@@ -934,11 +931,13 @@ export default function LogBar({
             ? DRIVER_START_REST_LABEL
               : type === OTHER_WORK_EVENT_TYPE
               ? DRIVER_START_OTHER_WORK_LABEL
-              : startShiftChooserOpen || restWorkChooserOpen
-                ? DRIVER_START_DRIVING_LABEL
-                : episodeResume || needsShiftStartSetup
-                ? DRIVER_START_SHIFT_LABEL
-                : DRIVER_CONTINUE_SHIFT_LABEL;
+              : resolveWorkConfirmLabel({
+                  startShiftChooserOpen,
+                  restWorkChooserOpen,
+                  currentType,
+                  episodeResume,
+                  needsShiftStartSetup,
+                });
       speakVoiceAlert(`Tap ${label} again to confirm.`);
     }
   };
@@ -978,13 +977,15 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        startShiftChooserOpen || restWorkChooserOpen
+        startShiftChooserOpen || restWorkChooserOpen || currentType === "break"
           ? DRIVER_START_DRIVING_LABEL
           : currentType === null
             ? DRIVER_START_SHIFT_LABEL
-            : currentType === "break"
-              ? DRIVER_START_WORK_LABEL
-              : DRIVER_CONTINUE_SHIFT_LABEL,
+            : currentType === OTHER_WORK_EVENT_TYPE
+              ? DRIVER_CONTINUE_SHIFT_LABEL
+              : isWorkTimeEventType(currentType ?? "")
+                ? DRIVER_STOP_DRIVING_LABEL
+                : DRIVER_START_WORK_LABEL,
       break: DRIVER_START_REST_LABEL,
       other_work: DRIVER_START_OTHER_WORK_LABEL,
       stop_driving: DRIVER_STOP_DRIVING_LABEL,
@@ -1245,6 +1246,7 @@ export default function LogBar({
                     onStartRest: () => handleLog("break"),
                     onStartOtherWork: () => handleLog(OTHER_WORK_EVENT_TYPE),
                     onCancel: () => {
+                      clearPending();
                       setStopDrivingChooserOpen(false);
                     },
                     restPending: pendingType === "break",
@@ -1260,6 +1262,7 @@ export default function LogBar({
                       onStartOtherWork: () =>
                         handleLog(OTHER_WORK_EVENT_TYPE, { episodeResume: workLogEpisodeResume }),
                       onCancel: () => {
+                        clearPending();
                         setStartShiftChooserOpen(false);
                       },
                       restPending: pendingType === "work",
@@ -1273,6 +1276,7 @@ export default function LogBar({
                         onStartRest: () => handleLog("work"),
                         onStartOtherWork: () => handleLog(OTHER_WORK_EVENT_TYPE),
                         onCancel: () => {
+                          clearPending();
                           setRestWorkChooserOpen(false);
                         },
                         restPending: pendingType === "work",
