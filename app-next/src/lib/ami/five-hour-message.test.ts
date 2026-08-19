@@ -26,8 +26,8 @@ describe("five-hour violation copy", () => {
   });
 
   it("puts clock time, work hours, and rest detail in the message (not AMI)", () => {
-    const lastWorkMs = new Date(2026, 7, 16, 23, 24).getTime();
-    const windowStartMs = new Date(2026, 7, 16, 17, 0).getTime();
+    const lastWorkMs = Date.parse("2026-08-16T15:24:00.000Z"); // 23:24 Perth
+    const windowStartMs = Date.parse("2026-08-16T09:00:00.000Z"); // 17:00 Perth
     const msg = formatFiveHourViolationMessage({
       workMinutesInWindow: 354,
       restRunMinutes: [19],
@@ -38,20 +38,22 @@ describe("five-hour violation copy", () => {
     expect(msg.toLowerCase()).not.toContain("ami");
     expect(msg).toContain("5.9h");
     expect(msg).toContain("19 min");
+    expect(msg).toContain("23:24");
+    expect(msg.toLowerCase()).not.toMatch(/\b(am|pm)\b/);
   });
 
   it("notes when the 5h work block started on a previous calendar day", () => {
     const msg = formatFiveHourViolationMessage({
       workMinutesInWindow: 360,
       restRunMinutes: [],
-      lastWorkMs: new Date(2026, 7, 16, 2, 0).getTime(),
-      windowStartMs: new Date(2026, 7, 15, 22, 0).getTime(),
+      lastWorkMs: Date.parse("2026-08-15T18:00:00.000Z"), // 02:00 Perth Mon 16 Aug
+      windowStartMs: Date.parse("2026-08-15T14:00:00.000Z"), // 22:00 Perth Sun 15 Aug
     });
     expect(msg).toMatch(/From Sat 15 Aug/i);
   });
 
   it("attributes last work on this week to the weekday and scroll index", () => {
-    const lastWorkMs = new Date(2026, 7, 16, 23, 24).getTime();
+    const lastWorkMs = Date.parse("2026-08-16T15:24:00.000Z"); // 23:24 Perth Sunday
     expect(fiveHourViolationDayAttribution(lastWorkMs, "2026-08-16")).toEqual({
       day: "Sun",
       scrollDayIndex: 0,
@@ -59,7 +61,7 @@ describe("five-hour violation copy", () => {
   });
 
   it("uses a calendar date when last work is not on the open week", () => {
-    const lastWorkMs = new Date(2026, 7, 9, 12, 0).getTime();
+    const lastWorkMs = Date.parse("2026-08-09T04:00:00.000Z"); // 12:00 Perth Sun 9 Aug
     const attr = fiveHourViolationDayAttribution(lastWorkMs, "2026-08-16");
     expect(attr.scrollDayIndex).toBeUndefined();
     expect(attr.day).toMatch(/Sun 9 Aug/i);

@@ -2,22 +2,35 @@
  * Driver/owner copy for AMI 5h rest flags. Does not change scoring.
  */
 
-import { formatDateLocal, getSheetDayDateString } from "@/lib/weeks";
+import { getTodayYmdInTimeZone, getSheetDayDateString } from "@/lib/weeks";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+const WA_TZ = "Australia/Perth";
 
 export function formatClockHm(ms: number): string {
   return new Date(ms).toLocaleTimeString("en-AU", {
-    hour: "numeric",
+    hour: "2-digit",
     minute: "2-digit",
-    hour12: true,
+    hour12: false,
+    timeZone: WA_TZ,
   });
 }
 
 export function formatWeekdayDate(ms: number): string {
   const d = new Date(ms);
-  return `${DAY_LABELS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const weekday = new Intl.DateTimeFormat("en-AU", {
+    weekday: "short",
+    timeZone: WA_TZ,
+  }).format(d);
+  const day = new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    timeZone: WA_TZ,
+  }).format(d);
+  const month = new Intl.DateTimeFormat("en-AU", {
+    month: "short",
+    timeZone: WA_TZ,
+  }).format(d);
+  return `${weekday} ${day} ${month}`;
 }
 
 export function formatWorkHoursFromMinutes(mins: number): string {
@@ -56,8 +69,8 @@ export function formatFiveHourViolationMessage(input: {
   const workH = formatWorkHoursFromMinutes(input.workMinutesInWindow);
   const time = formatClockHm(input.lastWorkMs);
   const rest = formatFiveHourRestDetail(input.restRunMinutes);
-  const startYmd = formatDateLocal(new Date(input.windowStartMs));
-  const endYmd = formatDateLocal(new Date(input.lastWorkMs));
+  const startYmd = getTodayYmdInTimeZone(WA_TZ, new Date(input.windowStartMs));
+  const endYmd = getTodayYmdInTimeZone(WA_TZ, new Date(input.lastWorkMs));
   const fromClause =
     startYmd !== endYmd
       ? ` From ${formatWeekdayDate(input.windowStartMs)}, ${formatClockHm(input.windowStartMs)}.`
@@ -73,7 +86,7 @@ export function fiveHourViolationDayAttribution(
   if (!weekStarting) {
     return { day: formatWeekdayDate(lastWorkMs) };
   }
-  const ymd = formatDateLocal(new Date(lastWorkMs));
+  const ymd = getTodayYmdInTimeZone(WA_TZ, new Date(lastWorkMs));
   for (let i = 0; i < 7; i++) {
     if (getSheetDayDateString(weekStarting, i) === ymd) {
       return { day: DAY_LABELS[i], scrollDayIndex: i };

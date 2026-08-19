@@ -12,7 +12,7 @@ import {
 } from "@/lib/declared-24h-rests";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import { toAmiEventType } from "@/lib/activity-kind";
-import { getSheetDayDateString, parseLocalDate } from "@/lib/weeks";
+import { getPerthMidnightUtcMs, getSheetDayDateString } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
   AMI_72H_EVAL_LOOKBACK,
@@ -88,14 +88,16 @@ function resolveAsOfMs(options: RunOpts): number {
     slotOffsetWithinToday != null
   ) {
     const ymd = getSheetDayDateString(weekStarting, currentDayIndex);
-    const [y, m, d] = ymd.split("-").map(Number);
-    const start = new Date(y!, m! - 1, d!).getTime();
+    // Slot offset is minutes since 00:00 on the WA regulatory day
+    // (getSlotOffsetWithinTodayLocal). Adding that onto the host's 00:00
+    // (Vercel is +00:00) stretched a 10:51 start into an 8h+ work block.
+    const start = getPerthMidnightUtcMs(ymd);
     return start + Math.min(1440, Math.max(0, slotOffsetWithinToday)) * 60_000;
   }
   return Date.now();
 }
 
-/** Local midnight of the first loaded sheet day (history + prev week + current). */
+/** 00:00 of the first loaded sheet day (history + prev week + current). */
 function resolveRecordStartMs(options: RunOpts): number | undefined {
   const weekStarting = options.weekStarting;
   if (!weekStarting) return undefined;
@@ -103,7 +105,7 @@ function resolveRecordStartMs(options: RunOpts): number | undefined {
     ((options.historyDays as unknown[] | null | undefined)?.length ?? 0) +
     ((options.prevWeekDays as unknown[] | null | undefined)?.length ?? 0);
   const startYmd = timelineStartYmdFromPriorDays(weekStarting, priorDayCount);
-  const ms = parseLocalDate(startYmd).getTime();
+  const ms = getPerthMidnightUtcMs(startYmd);
   return Number.isFinite(ms) ? ms : undefined;
 }
 

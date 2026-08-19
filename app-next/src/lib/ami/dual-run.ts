@@ -18,7 +18,7 @@ import {
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 import { findShiftPatternTransitionsOnTimeline } from "@/lib/shift-change";
 import { countFullNonWorkPeriods } from "@/lib/declared-24h-rests";
-import { getSheetDayDateString, parseLocalDate } from "@/lib/weeks";
+import { getPerthMidnightUtcMs, getSheetDayDateString } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
   AMI_17H_LOOKBACK,
@@ -71,7 +71,7 @@ function asOfMs(fixture: DualRunFixture): number {
 
 function recordStartMsFromWeek(weekStarting?: string): number | undefined {
   if (!weekStarting) return undefined;
-  const ms = parseLocalDate(weekStarting).getTime();
+  const ms = getPerthMidnightUtcMs(weekStarting);
   return Number.isFinite(ms) ? ms : undefined;
 }
 

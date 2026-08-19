@@ -57,8 +57,8 @@ describe("AMI Phase 3 flag + WA bridge", () => {
       ...days[0],
       work_time: Array(1440).fill(false).map((_, i) => i >= 8 * 60 && i < 13 * 60),
       events: [
-        { type: "work", time: "2026-07-19T08:00:00" },
-        { type: "stop", time: "2026-07-19T13:00:00" },
+        { type: "work", time: "2026-07-19T00:00:00.000Z" }, // 08:00 Perth
+        { type: "stop", time: "2026-07-19T05:00:00.000Z" }, // 13:00 Perth
       ],
     };
 
@@ -96,7 +96,7 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     const days = emptyWeek();
     days[3] = {
       ...days[3],
-      events: [{ type: "work", time: "2026-08-19T10:51:00" }],
+      events: [{ type: "work", time: "2026-08-19T02:51:00.000Z" }], // 10:51 Perth
     };
 
     const results = runWaComplianceChecks(days, {
@@ -108,6 +108,25 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     expect(results.some((r) => r.message.includes("2×24h"))).toBe(false);
   });
 
+  it("does not flag 5h when the shift started this morning (00:00 of the sheet day, not the host's 00:00)", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const days = emptyWeek();
+    days[3] = {
+      ...days[3],
+      events: [{ type: "work", time: "2026-08-19T02:51:00.000Z" }], // 10:51 Perth
+    };
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "solo",
+      weekStarting: "2026-08-16",
+      currentDayIndex: 3,
+      slotOffsetWithinToday: 11 * 60 + 38, // 11:38 Perth
+    });
+    expect(results.some((r) => r.message.includes("20 min rest per 5h"))).toBe(false);
+  });
+
   it("5h flag names the weekday and rest minutes, not AMI", () => {
     delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
     delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
@@ -116,10 +135,10 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     days[0] = {
       ...days[0],
       events: [
-        { type: "work", time: "2026-08-16T08:00:00" },
-        { type: "break", time: "2026-08-16T13:00:00" },
-        { type: "work", time: "2026-08-16T13:19:00" },
-        { type: "stop", time: "2026-08-16T14:19:00" },
+        { type: "work", time: "2026-08-16T00:00:00.000Z" }, // 08:00 Perth
+        { type: "break", time: "2026-08-16T05:00:00.000Z" }, // 13:00 Perth
+        { type: "work", time: "2026-08-16T05:19:00.000Z" },
+        { type: "stop", time: "2026-08-16T06:19:00.000Z" },
       ],
     };
 
