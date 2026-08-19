@@ -898,7 +898,7 @@ export default function LogBar({
           subtext: `Tap ${DRIVER_START_OTHER_WORK_LABEL} again within a few seconds to confirm.`,
           onConfirm: () => {
             setWorkWarning(null);
-            armPending(OTHER_WORK_EVENT_TYPE);
+            armPending(OTHER_WORK_EVENT_TYPE, false);
             if (voiceAlertsEnabled) {
               speakVoiceAlert(`Tap ${DRIVER_START_OTHER_WORK_LABEL} again to confirm.`);
             }
