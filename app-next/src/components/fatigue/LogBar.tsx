@@ -299,7 +299,8 @@ export default function LogBar({
   useEffect(() => {
     if (currentType !== "work") setStopDrivingChooserOpen(false);
     if (currentType != null) setStartShiftChooserOpen(false);
-    if (currentType !== "break") setRestWorkChooserOpen(false);
+    if (currentType === "break") setRestWorkChooserOpen(true);
+    else setRestWorkChooserOpen(false);
   }, [currentType]);
 
   const openSessionTools = useCallback(() => {
@@ -1030,6 +1031,10 @@ export default function LogBar({
   };
 
   const showEndShiftDock = shiftSegmentOpen || pendingType === "stop";
+  const heroChooserOpen =
+    (stopDrivingChooserOpen && currentType === "work") ||
+    (startShiftChooserOpen && currentType === null) ||
+    (restWorkChooserOpen && currentType === "break");
 
   useLayoutEffect(() => {
     const el = fixedHeaderRef.current;
@@ -1229,7 +1234,7 @@ export default function LogBar({
             idleRestHelper={idlePrimary?.helper ?? null}
             idleRestRemainingMinutes={idleRestRemainingMinutes}
             expanded={primaryHeroExpanded}
-            compact={primaryBarCompact && !sessionDimmed}
+            compact={primaryBarCompact && !sessionDimmed && !heroChooserOpen}
             className={cn("shrink-0", sessionDimmed && "pointer-events-auto")}
             stopDrivingChooser={
               stopDrivingChooserOpen && currentType === "work"
