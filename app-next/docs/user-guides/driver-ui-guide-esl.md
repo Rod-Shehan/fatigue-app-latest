@@ -101,7 +101,7 @@ flowchart LR
   E -->|End shift + end km| A
 ```
 
-**Simple rule:** Tap the button that matches **what you are doing now**. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start driving, Start Rest, Start Other Work, End shift). **Start shift**, **Start work**, **Continue shift**, and **Stop Driving** only open a split — they do not log until you pick a kind.
+**Simple rule:** Tap the button that matches **what you are doing now**. The timer under the ring has a small note — **(Work)**, **(Rest)**, or **(Other work)** — so Start Rest is not confused with Other work. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start driving, Start Rest, Start Other Work, End shift). **Start shift**, **Start work**, **Continue shift**, and **Stop Driving** only open a split — they do not log until you pick a kind.
 
 **While the vehicle is moving** (when your organisation has the GPS trail addon on): Start shift / Stop Driving / End shift stay locked but you still see the usual timer and labels (dimmed), with **Moving · pull over to unlock** and a ring that fills while you are stopped. Pull over and wait a few seconds — then tap. If you already tapped once to confirm, the second tap still works. **View diary** stays available.
 

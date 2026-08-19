@@ -30,6 +30,8 @@ export interface DriverActionHeroProps {
   actionIcon?: React.ComponentType<{ className?: string }>;
   /** Elapsed work/break timer under the action label. */
   elapsedLabel?: string | null;
+  /** What the driver is on now — Work / Rest / Other work — shown as a small note. */
+  activityNowLabel?: string | null;
   /** On break while 2×10 rest not yet banked — e.g. "Rest 14/20 min". */
   breakRestProgressLabel?: string | null;
   breakRestIncomplete?: boolean;
@@ -93,6 +95,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   actionDisabled = false,
   actionIcon: ActionIcon,
   elapsedLabel,
+  activityNowLabel = null,
   breakRestProgressLabel,
   breakRestIncomplete = false,
   breakRestBankedMinutes = null,
@@ -282,10 +285,16 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const ariaParts = [
     locked ? "Logging locked while moving" : null,
     hubLabel,
+    activityNowLabel ? `On ${activityNowLabel}` : null,
     currentSegment === "work" ? `${action.countdown} ${action.statusLabel}` : null,
     breakRestProgressLabel,
     elapsedLabel,
   ].filter(Boolean);
+
+  const activityNowNoteClass = cn(
+    "text-center font-medium leading-tight",
+    expanded ? "text-xs" : "text-[10px]"
+  );
 
   const splitHalfClass = cn(
     "flex w-full flex-col items-center justify-center font-bold text-white",
@@ -375,6 +384,37 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           </span>
         </button>
       </div>
+      {elapsedLabel || activityNowLabel ? (
+        <div
+          className={cn(
+            "flex flex-col items-center gap-0.5",
+            expanded ? "mt-2" : "mt-1.5"
+          )}
+        >
+          {elapsedLabel ? (
+            <span
+              className={cn(
+                "font-mono font-extrabold tabular-nums leading-none",
+                expanded ? "text-lg sm:text-xl text-white" : "text-base sm:text-lg text-slate-900 dark:text-slate-100"
+              )}
+              aria-live="polite"
+            >
+              {elapsedLabel}
+            </span>
+          ) : null}
+          {activityNowLabel ? (
+            <span
+              className={cn(
+                activityNowNoteClass,
+                expanded ? "text-white/85" : "text-slate-500 dark:text-slate-400"
+              )}
+              aria-live="polite"
+            >
+              ({activityNowLabel})
+            </span>
+          ) : null}
+        </div>
+      ) : null}
       {!locked ? (
         <div className={cn(expanded ? "mt-3" : "mt-2")}>
           {renderAuxPill("chooser-cancel", {
@@ -487,6 +527,17 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               >
                 {action.statusLabel}
               </span>
+              {activityNowLabel ? (
+                <span
+                  className={cn(
+                    activityNowNoteClass,
+                    action.chrome.onColoredSurface ? "text-white/85 dark:text-emerald-950/85" : "text-slate-500"
+                  )}
+                  aria-live="polite"
+                >
+                  ({activityNowLabel})
+                </span>
+              ) : null}
             </>
           ) : null}
           {showIdleRestCountdown ? (
@@ -522,6 +573,31 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               {idleRestHelper}
             </span>
           ) : null}
+          {elapsedLabel && !compact && !showWorkCountdown && !showIdleRestCountdown ? (
+            <span
+              className={cn(
+                "font-mono font-extrabold tabular-nums leading-none",
+                expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
+                action.chrome.onColoredSurface
+                  ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                  : "text-slate-900 dark:text-slate-100"
+              )}
+              aria-live="polite"
+            >
+              {elapsedLabel}
+            </span>
+          ) : null}
+          {activityNowLabel && !compact && !showWorkCountdown ? (
+            <span
+              className={cn(
+                activityNowNoteClass,
+                action.chrome.onColoredSurface ? "text-white/85 dark:text-emerald-950/85" : "text-slate-500 dark:text-slate-400"
+              )}
+              aria-live="polite"
+            >
+              ({activityNowLabel})
+            </span>
+          ) : null}
           {breakRestProgressLabel &&
           !compact &&
           currentSegment === "break" &&
@@ -535,20 +611,6 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               aria-live="polite"
             >
               {breakRestProgressLabel}
-            </span>
-          ) : null}
-          {elapsedLabel && !compact && !showWorkCountdown && !showIdleRestCountdown ? (
-            <span
-              className={cn(
-                "font-mono font-extrabold tabular-nums leading-none",
-                expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
-                action.chrome.onColoredSurface
-                  ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
-                  : "text-slate-900 dark:text-slate-100"
-              )}
-              aria-live="polite"
-            >
-              {elapsedLabel}
             </span>
           ) : null}
         </div>

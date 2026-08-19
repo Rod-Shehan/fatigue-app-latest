@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 import { OTHER_WORK_EVENT_TYPE } from "./activity-kind";
 import {
   DRIVER_CONTINUE_SHIFT_LABEL,
+  DRIVER_OTHER_WORK_LABEL,
+  DRIVER_REST_LABEL,
   DRIVER_START_DRIVING_LABEL,
   DRIVER_START_SHIFT_LABEL,
   DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
+  DRIVER_WORK_LABEL,
 } from "./product-copy";
-import { resolveDriverHeroPrimaryLabel, resolveWorkConfirmLabel } from "./driver-hero-primary";
+import {
+  resolveDriverHeroPrimaryLabel,
+  resolveHeroActivityNowLabel,
+  resolveWorkConfirmLabel,
+} from "./driver-hero-primary";
 
 describe("resolveDriverHeroPrimaryLabel", () => {
   it("shows Stop Driving after a driving (work) log — not Continue shift", () => {
@@ -84,5 +91,14 @@ describe("resolveWorkConfirmLabel", () => {
         needsShiftStartSetup: false,
       })
     ).toBe(DRIVER_START_DRIVING_LABEL);
+  });
+});
+
+describe("resolveHeroActivityNowLabel", () => {
+  it("names Work, Rest, and Other work so the split is not mistaken for the current state", () => {
+    expect(resolveHeroActivityNowLabel("work")).toBe(DRIVER_WORK_LABEL);
+    expect(resolveHeroActivityNowLabel("break")).toBe(DRIVER_REST_LABEL);
+    expect(resolveHeroActivityNowLabel(OTHER_WORK_EVENT_TYPE)).toBe(DRIVER_OTHER_WORK_LABEL);
+    expect(resolveHeroActivityNowLabel(null)).toBeNull();
   });
 });

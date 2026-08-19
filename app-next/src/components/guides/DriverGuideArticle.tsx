@@ -12,6 +12,7 @@ import {
   DRIVER_START_OTHER_WORK_LABEL,
   DRIVER_START_DRIVING_LABEL,
   DRIVER_END_SHIFT_LABEL,
+  DRIVER_WORK_LABEL,
   DRIVER_REST_LABEL,
   DRIVER_OTHER_WORK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
@@ -182,6 +183,11 @@ export function DriverGuideArticle() {
         </GuideDiagram>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Simple rule:</p>
         <p>Tap the button that matches what you are doing now.</p>
+        <p className="mt-2">
+          The timer on the ring shows how long this stretch has been open, with a small note under it for where you are
+          now ({DRIVER_WORK_LABEL}, {DRIVER_REST_LABEL}, or {DRIVER_OTHER_WORK_LABEL}) so Start Rest is not confused with
+          Other work.
+        </p>
         <p className="mt-2">
           Then tap again within a few seconds when the button pulses — that second tap is what records the event (
           {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL},{" "}

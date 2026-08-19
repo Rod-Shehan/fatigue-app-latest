@@ -51,7 +51,7 @@ import {
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
 import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
 import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
-import { resolveDriverHeroPrimaryLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
+import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
 import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
@@ -1262,11 +1262,14 @@ export default function LogBar({
             elapsedLabel={
               showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
             }
+            activityNowLabel={resolveHeroActivityNowLabel(currentType)}
             breakRestIncomplete={breakRestStatus?.incomplete ?? false}
             breakRestBankedMinutes={
               breakRestStatus?.incomplete ? breakRestStatus.bankedMinutes : null
             }
-            breakRestProgressLabel={breakRestStatus?.progressLabel ?? null}
+            breakRestProgressLabel={
+              currentType === "break" ? breakRestStatus?.progressLabel ?? null : null
+            }
             idleRestBlocked={idleRestBlocked}
             idleRestHelper={idlePrimary?.helper ?? null}
             idleRestRemainingMinutes={idleRestRemainingMinutes}

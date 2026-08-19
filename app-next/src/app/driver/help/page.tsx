@@ -12,6 +12,9 @@ import {
   DRIVER_START_OTHER_WORK_LABEL,
   DRIVER_START_DRIVING_LABEL,
   DRIVER_END_SHIFT_LABEL,
+  DRIVER_WORK_LABEL,
+  DRIVER_REST_LABEL,
+  DRIVER_OTHER_WORK_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
   SHEET_ATTESTATION_WORKFLOW,
@@ -124,8 +127,9 @@ export default async function DriverHelpPage() {
                 missing — Confirm does not start driving by itself). On Rest, {DRIVER_START_WORK_LABEL} opens the same
                 split (driving or Other work / loading). {DRIVER_STOP_DRIVING_LABEL}{" "}
                 opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. On Other work,{" "}
-                {DRIVER_CONTINUE_SHIFT_LABEL} opens a split: {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_REST_LABEL}.{" "}
-                {DRIVER_END_SHIFT_LABEL} is off the
+                {DRIVER_CONTINUE_SHIFT_LABEL} opens a split: {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_REST_LABEL}.
+                A small note under the timer shows {DRIVER_WORK_LABEL}, {DRIVER_REST_LABEL}, or{" "}
+                {DRIVER_OTHER_WORK_LABEL}. {DRIVER_END_SHIFT_LABEL} is off the
                 job.
               </li>
               <li>

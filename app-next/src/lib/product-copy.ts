@@ -203,6 +203,8 @@ export const DRIVER_START_WORK_LABEL = "Start work";
  * Activity glossary — locked words. See docs/product/activity-glossary.md.
  * Do not add synonyms in driver copy.
  */
+/** Driving — the Work state. */
+export const DRIVER_WORK_LABEL = "Work";
 /** Not driving and not doing a job task (eat, drink, nap). */
 export const DRIVER_REST_LABEL = "Rest";
 /** Not driving, still a job task (load, forklift, tyre, paperwork, fuel). */
