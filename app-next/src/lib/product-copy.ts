@@ -194,7 +194,7 @@ export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
 
 /** First tap when idle / after End shift. Opens Driving / Other work chooser (or Set up day first). */
 export const DRIVER_START_SHIFT_LABEL = "Start shift";
-/** Return to driving after Other work — same shift, not a new start. */
+/** On Other work: opens Driving / Rest chooser. Does not log by itself. */
 export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";
 /** From Rest: opens Driving / Other work chooser. Does not log by itself. */
 export const DRIVER_START_WORK_LABEL = "Start work";
@@ -213,9 +213,9 @@ export const DRIVER_NON_WORK_LABEL = "Non-work";
 export const DRIVER_END_SHIFT_LABEL = "End shift";
 /** On Work: opens Rest / Other work chooser. Not stored. Not End shift. */
 export const DRIVER_STOP_DRIVING_LABEL = "Stop Driving";
-/** Top half of the Stop Driving split. */
+/** Top half of the Stop Driving split, or bottom of the Continue shift split. */
 export const DRIVER_START_REST_LABEL = "Start Rest";
 /** Bottom half of the Stop Driving / Start shift / Start work split. */
 export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";
-/** Top half of the Start shift / Start work split. Logs driving work. */
+/** Top half of the Start shift / Start work / Continue shift split. Logs driving work. */
 export const DRIVER_START_DRIVING_LABEL = "Start driving";

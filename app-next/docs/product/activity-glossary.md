@@ -8,8 +8,8 @@ WorkSafe interchanges **break** and **rest**. We do not. **Rest** is used for on
 
 | What the driver is doing | Driver word | How they get there |
 |--------------------------|-------------|--------------------|
-| Driving | **Work** | Start shift → Start driving, Start work → Start driving, or Continue shift |
-| Not driving, and not doing a job task — eat, drink, nap, sit still | **Rest** | Stop Driving → Start Rest |
+| Driving | **Work** | Start shift → Start driving, Start work → Start driving, or Continue shift → Start driving |
+| Not driving, and not doing a job task — eat, drink, nap, sit still | **Rest** | Stop Driving → Start Rest, or Continue shift → Start Rest |
 | Not driving, but still doing a job task — load, unload, forklift, tyre, paperwork, fuel | **Other work** | Start shift → Start Other Work, Stop Driving → Start Other Work, or Start work → Start Other Work |
 | Off the job / sleep away from work | **Non-work** | End shift |
 
@@ -26,23 +26,24 @@ WorkSafe interchanges **break** and **rest**. We do not. **Rest** is used for on
 
 ## Button phrases (chooser only)
 
-These are taps, not extra states. **Stop Driving**, **Start shift**, and **Start work** are not stored as those names. The record changes only when they pick a kind.
+These are taps, not extra states. **Stop Driving**, **Start shift**, **Start work**, and **Continue shift** are not stored as those names. The record changes only when they pick a kind.
 
 | Phrase | Role |
 |--------|------|
 | **Start shift** | Idle: one hero tap. Opens Set up day if needed, else the Driving / Other work chooser. Does not log by itself. |
 | **Start work** | On Rest: one hero tap. Opens the Driving / Other work chooser. Does not log by itself. |
-| **Start driving** | Top half of the Start shift / Start work split. Logs Work (driving). |
+| **Continue shift** | On Other work: one hero tap. Opens the Driving / Rest chooser. Does not log by itself. |
+| **Start driving** | Top half of the Start shift / Start work / Continue shift split. Logs Work (driving). |
 | **Stop Driving** | On Work: one hero tap. Opens the Rest / Other work chooser. Not End shift. |
-| **Start Rest** | Top half of the Stop Driving split. Logs Rest. |
-| **Start Other Work** | Bottom half of either kind of split. Logs Other work (break from driving — load, unload). |
-| **Cancel** | Closes the chooser. Idle stays idle; Rest stays Rest; Work stays on Work. |
+| **Start Rest** | Top half of the Stop Driving split, or bottom of the Continue shift split. Logs Rest. |
+| **Start Other Work** | Bottom half of the Start shift / Start work / Stop Driving split. Logs Other work (break from driving — load, unload). |
+| **Cancel** | Closes the chooser. Idle stays idle; Rest stays Rest; Work stays on Work; Other work stays Other work. |
 
 **End shift** stays in the dock, never inside the split. Stop Driving = still on the job, not driving. End shift = off the job.
 
 ## Taps (locked)
 
-Idle Start shift and Rest Start work both open the same Driving / Other work split. Confirm in Set up day does **not** auto-log driving. The two kinds after Stop Driving are unchanged.
+Idle Start shift and Rest Start work both open the same Driving / Other work split. Other work Continue shift opens Driving / Rest. Confirm in Set up day does **not** auto-log driving.
 
 | Driver is on | Hero | Dock |
 |--------------|------|------|
@@ -51,9 +52,9 @@ Idle Start shift and Rest Start work both open the same Driving / Other work spl
 | **Work** | **Stop Driving** | **End shift** |
 | **Work**, chooser open | Split: **Start Rest** / **Start Other Work** | **End shift** |
 | **Rest** | Split: **Start driving** / **Start Other Work** (Cancel → **Start work**) | **End shift** |
-| **Other work** | **Continue shift** | **End shift** |
+| **Other work** | Split: **Start driving** / **Start Rest** (Cancel → **Continue shift**) | **End shift** |
 
-The split is a chooser, not a log. First tap of Start shift or Stop Driving opens it (no extra tap-again before the split). On Rest the Driving / Other work split is already open. Start driving, Start Rest, and Start Other Work keep the usual tap-again confirm.
+The split is a chooser, not a log. First tap of Start shift or Stop Driving opens it (no extra tap-again before the split). On Rest the Driving / Other work split is already open. On Other work the Driving / Rest split is already open. Start driving, Start Rest, and Start Other Work keep the usual tap-again confirm.
 
 Do not show Rest and Other work as two always-visible taps on Work. Do not add a button named Break.
 
@@ -63,16 +64,16 @@ Do not show Rest and Other work as two always-visible taps on Work. Do not add a
 |-----|-------------|-------|
 | Start shift | *(nothing)* | Chooser only (or Set up day first) |
 | Start work | *(nothing)* | Chooser only — from Rest, including when Rest has painted as non-work after 31 min |
-| Start driving | `work` | Driving. Same 7h rest gate as Start shift when idle. |
-| Continue shift | `work` | Back to driving after Other work |
-| Start Rest | `break` | Existing 30 min floor: 30 min stays Rest; 31+ becomes **non-work** |
+| Start driving | `work` | Driving. Same 7h rest gate as Start shift when idle. From Start shift, Start work, or Continue shift. |
+| Continue shift | *(nothing)* | Chooser only — from Other work |
+| Start Rest | `break` | Existing 30 min floor: 30 min stays Rest; 31+ becomes **non-work**. From Stop Driving or Continue shift. |
 | Start Other Work | `other_work` | Break from driving on the sheet. Never convert to non-work. Counts toward 20 min / 5h. Still work time for 168h. From Start shift, Start work, or Stop Driving. |
 | End shift | `stop` | Unchanged — starts **non-work** |
 | Stop Driving | *(nothing)* | Chooser only |
 
 ### Reminders and voice
 
-The 5h reminder opens the same Stop Driving split. Voice: start shift (opens Driving / Other work chooser), start work (from Rest, same split), start driving, stop driving, start rest, start other work.
+The 5h reminder opens the same Stop Driving split. Voice: start shift (opens Driving / Other work chooser), start work (from Rest, same split), continue shift (from Other work, Driving / Rest split), start driving, stop driving, start rest, start other work.
 
 ## Do not say
 

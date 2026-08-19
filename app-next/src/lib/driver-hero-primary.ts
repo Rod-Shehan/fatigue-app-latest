@@ -9,7 +9,7 @@ import {
 
 /**
  * Compact/expanded hero label from the last logged kind.
- * Continue shift is only for Other work → driving. Driving itself is Stop Driving.
+ * Continue shift is the Other work opener (chooser only). Driving itself is Stop Driving.
  */
 export function resolveDriverHeroPrimaryLabel(currentType: string | null): string {
   if (isWorkTimeEventType(currentType ?? "")) return DRIVER_STOP_DRIVING_LABEL;
@@ -22,16 +22,28 @@ export function resolveDriverHeroPrimaryLabel(currentType: string | null): strin
 export function resolveWorkConfirmLabel(options: {
   startShiftChooserOpen: boolean;
   restWorkChooserOpen: boolean;
+  otherWorkChooserOpen?: boolean;
   currentType: string | null;
   episodeResume: boolean;
   needsShiftStartSetup: boolean;
 }): string {
-  const { startShiftChooserOpen, restWorkChooserOpen, currentType, episodeResume, needsShiftStartSetup } =
-    options;
-  if (startShiftChooserOpen || restWorkChooserOpen || currentType === "break") {
+  const {
+    startShiftChooserOpen,
+    restWorkChooserOpen,
+    otherWorkChooserOpen = false,
+    currentType,
+    episodeResume,
+    needsShiftStartSetup,
+  } = options;
+  if (
+    startShiftChooserOpen ||
+    restWorkChooserOpen ||
+    otherWorkChooserOpen ||
+    currentType === "break" ||
+    currentType === OTHER_WORK_EVENT_TYPE
+  ) {
     return DRIVER_START_DRIVING_LABEL;
   }
-  if (currentType === OTHER_WORK_EVENT_TYPE) return DRIVER_CONTINUE_SHIFT_LABEL;
   if (episodeResume || needsShiftStartSetup || currentType === null) {
     return DRIVER_START_SHIFT_LABEL;
   }

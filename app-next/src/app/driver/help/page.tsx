@@ -123,8 +123,9 @@ export default async function DriverHelpPage() {
                 {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} (Set up day first if details are
                 missing — Confirm does not start driving by itself). On Rest, {DRIVER_START_WORK_LABEL} opens the same
                 split (driving or Other work / loading). {DRIVER_STOP_DRIVING_LABEL}{" "}
-                opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}.{" "}
-                {DRIVER_CONTINUE_SHIFT_LABEL} is back to driving after Other work. {DRIVER_END_SHIFT_LABEL} is off the
+                opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. On Other work,{" "}
+                {DRIVER_CONTINUE_SHIFT_LABEL} opens a split: {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_REST_LABEL}.{" "}
+                {DRIVER_END_SHIFT_LABEL} is off the
                 job.
               </li>
               <li>

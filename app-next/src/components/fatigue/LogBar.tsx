@@ -231,6 +231,8 @@ export default function LogBar({
   const [startShiftChooserOpen, setStartShiftChooserOpen] = useState(false);
   /** Rest → Start work chooser: Start driving / Start Other Work (not a logged event). */
   const [restWorkChooserOpen, setRestWorkChooserOpen] = useState(false);
+  /** Other work → Continue shift chooser: Start driving / Start Rest (not a logged event). */
+  const [otherWorkChooserOpen, setOtherWorkChooserOpen] = useState(false);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
   /** Sync mirror of pending arm — rapid second tap must see this before React re-renders. */
@@ -302,6 +304,8 @@ export default function LogBar({
     if (currentType != null) setStartShiftChooserOpen(false);
     if (currentType === "break") setRestWorkChooserOpen(true);
     else setRestWorkChooserOpen(false);
+    if (currentType === OTHER_WORK_EVENT_TYPE) setOtherWorkChooserOpen(true);
+    else setOtherWorkChooserOpen(false);
   }, [currentType]);
 
   const openSessionTools = useCallback(() => {
@@ -832,7 +836,7 @@ export default function LogBar({
     if (type === currentType) return;
 
     if (type === "work") {
-      if (!startShiftChooserOpen && !restWorkChooserOpen) {
+      if (!startShiftChooserOpen && !restWorkChooserOpen && !otherWorkChooserOpen) {
         const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
         if (nonWorkMsg) {
           setWorkWarning({
@@ -853,6 +857,7 @@ export default function LogBar({
       const workConfirmLabel = resolveWorkConfirmLabel({
         startShiftChooserOpen,
         restWorkChooserOpen,
+        otherWorkChooserOpen,
         currentType,
         episodeResume,
         needsShiftStartSetup,
@@ -934,6 +939,7 @@ export default function LogBar({
               : resolveWorkConfirmLabel({
                   startShiftChooserOpen,
                   restWorkChooserOpen,
+                  otherWorkChooserOpen,
                   currentType,
                   episodeResume,
                   needsShiftStartSetup,
@@ -977,7 +983,10 @@ export default function LogBar({
     allowStopIntent: shiftSegmentOpen || pendingType === "stop",
     voiceLabels: {
       work:
-        startShiftChooserOpen || restWorkChooserOpen || currentType === "break"
+        startShiftChooserOpen ||
+        restWorkChooserOpen ||
+        otherWorkChooserOpen ||
+        currentType === "break"
           ? DRIVER_START_DRIVING_LABEL
           : currentType === null
             ? DRIVER_START_SHIFT_LABEL
@@ -1009,6 +1018,28 @@ export default function LogBar({
         setRestWorkChooserOpen(true);
         return;
       }
+      if (intent === "work" && currentType === OTHER_WORK_EVENT_TYPE) {
+        if (otherWorkChooserOpen) {
+          voiceFinalizeNextLogRef.current = true;
+          try {
+            handleLog("work");
+          } finally {
+            voiceFinalizeNextLogRef.current = false;
+          }
+          return;
+        }
+        setOtherWorkChooserOpen(true);
+        return;
+      }
+      if (intent === "break" && currentType === OTHER_WORK_EVENT_TYPE && otherWorkChooserOpen) {
+        voiceFinalizeNextLogRef.current = true;
+        try {
+          handleLog("break");
+        } finally {
+          voiceFinalizeNextLogRef.current = false;
+        }
+        return;
+      }
       if (intent === "work" && currentType === null) {
         if (startShiftChooserOpen) {
           voiceFinalizeNextLogRef.current = true;
@@ -1035,7 +1066,8 @@ export default function LogBar({
   const heroChooserOpen =
     (stopDrivingChooserOpen && currentType === "work") ||
     (startShiftChooserOpen && currentType === null) ||
-    (restWorkChooserOpen && currentType === "break");
+    (restWorkChooserOpen && currentType === "break") ||
+    (otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE);
 
   useLayoutEffect(() => {
     const el = fixedHeaderRef.current;
@@ -1214,6 +1246,10 @@ export default function LogBar({
                 setRestWorkChooserOpen(true);
                 return;
               }
+              if (currentType === OTHER_WORK_EVENT_TYPE) {
+                setOtherWorkChooserOpen(true);
+                return;
+              }
               if (primaryLogType === "work" && currentType === null) {
                 if (showResumeShiftPrimary) handleResumeShift();
                 else handleStartShift();
@@ -1282,7 +1318,21 @@ export default function LogBar({
                         restPending: pendingType === "work",
                         otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
                       }
-                    : null
+                    : otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE
+                      ? {
+                          variant: "continue-shift",
+                          restLabel: DRIVER_START_DRIVING_LABEL,
+                          otherWorkLabel: DRIVER_START_REST_LABEL,
+                          onStartRest: () => handleLog("work"),
+                          onStartOtherWork: () => handleLog("break"),
+                          onCancel: () => {
+                            clearPending();
+                            setOtherWorkChooserOpen(false);
+                          },
+                          restPending: pendingType === "work",
+                          otherWorkPending: pendingType === "break",
+                        }
+                      : null
             }
             auxiliaryActions={
               sessionDimmed

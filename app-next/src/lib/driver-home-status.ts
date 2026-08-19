@@ -1,6 +1,8 @@
 import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_START_WORK_LABEL,
+  DRIVER_START_DRIVING_LABEL,
+  DRIVER_START_REST_LABEL,
   DRIVER_END_SHIFT_LABEL,
 } from "@/lib/product-copy";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
@@ -81,7 +83,7 @@ export function getDriverHomeShiftStatus(
     return {
       activity: "other_work",
       headline: `On other work · ${elapsed}`,
-      detail: `Tap ${DRIVER_CONTINUE_SHIFT_LABEL} when you resume driving or ${DRIVER_END_SHIFT_LABEL} when finished.`,
+      detail: `Tap ${DRIVER_CONTINUE_SHIFT_LABEL} to choose ${DRIVER_START_DRIVING_LABEL} or ${DRIVER_START_REST_LABEL}, or ${DRIVER_END_SHIFT_LABEL} when finished.`,
     };
   }
 

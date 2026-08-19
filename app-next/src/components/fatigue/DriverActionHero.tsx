@@ -59,9 +59,9 @@ export interface DriverActionHeroProps {
     onDark?: boolean;
     chrome?: { surfaceClass: string; textClass: string };
   }>;
-  /** Work → Stop Driving chooser, idle → Start shift chooser, Rest → Start work chooser. */
+  /** Work → Stop Driving, idle → Start shift, Rest → Start work, Other work → Continue shift. */
   stopDrivingChooser?: {
-    variant?: "stop-driving" | "start-shift" | "start-work";
+    variant?: "stop-driving" | "start-shift" | "start-work" | "continue-shift";
     restLabel: string;
     otherWorkLabel: string;
     onStartRest: () => void;
@@ -73,8 +73,9 @@ export interface DriverActionHeroProps {
 }
 
 /**
- * Expanded round primary action — Start shift / Start work / Stop Driving.
+ * Expanded round primary action — Start shift / Start work / Continue shift / Stop Driving.
  * After Start shift or Start work: vertical split Start driving / Start Other Work.
+ * After Continue shift: vertical split Start driving / Start Rest.
  * After Stop Driving: vertical split Start Rest / Start Other Work.
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
@@ -292,16 +293,26 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]"
   );
 
+  const chooserVariant = stopDrivingChooser?.variant ?? "stop-driving";
   const workKindSplit =
-    stopDrivingChooser?.variant === "start-shift" || stopDrivingChooser?.variant === "start-work";
-  const chooserAria = workKindSplit
-    ? stopDrivingChooser?.variant === "start-work"
+    chooserVariant === "start-shift" ||
+    chooserVariant === "start-work" ||
+    chooserVariant === "continue-shift";
+  const chooserAria =
+    chooserVariant === "start-work"
       ? "Start work — choose driving or Other work"
-      : "Start shift — choose driving or Other work"
-    : "Stop Driving — choose Rest or Other work";
+      : chooserVariant === "start-shift"
+        ? "Start shift — choose driving or Other work"
+        : chooserVariant === "continue-shift"
+          ? "Continue shift — choose driving or Rest"
+          : "Stop Driving — choose Rest or Other work";
   const topHalfClass = workKindSplit
     ? "h-1/2 bg-emerald-600 hover:bg-emerald-700"
     : "h-1/2 bg-amber-500 hover:bg-amber-600";
+  const bottomHalfClass =
+    chooserVariant === "continue-shift"
+      ? "h-1/2 bg-amber-500 hover:bg-amber-600"
+      : "h-1/2 bg-indigo-500 hover:bg-indigo-600";
 
   const heroControl = stopDrivingChooser ? (
     <div className={cn("flex flex-col items-center", locked && "opacity-70 saturate-75")}>
@@ -345,7 +356,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           disabled={locked}
           className={cn(
             splitHalfClass,
-            "h-1/2 bg-indigo-500 hover:bg-indigo-600",
+            bottomHalfClass,
             stopDrivingChooser.otherWorkPending && "animate-pulse ring-2 ring-inset ring-white"
           )}
           aria-label={

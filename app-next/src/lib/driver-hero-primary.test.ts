@@ -63,15 +63,26 @@ describe("resolveWorkConfirmLabel", () => {
     ).toBe(DRIVER_START_DRIVING_LABEL);
   });
 
-  it("uses Continue shift only when returning from Other work", () => {
+  it("uses Start driving from Other work — Continue shift only opens the split", () => {
     expect(
       resolveWorkConfirmLabel({
         startShiftChooserOpen: false,
         restWorkChooserOpen: false,
+        otherWorkChooserOpen: false,
         currentType: OTHER_WORK_EVENT_TYPE,
         episodeResume: false,
         needsShiftStartSetup: false,
       })
-    ).toBe(DRIVER_CONTINUE_SHIFT_LABEL);
+    ).toBe(DRIVER_START_DRIVING_LABEL);
+    expect(
+      resolveWorkConfirmLabel({
+        startShiftChooserOpen: false,
+        restWorkChooserOpen: false,
+        otherWorkChooserOpen: true,
+        currentType: OTHER_WORK_EVENT_TYPE,
+        episodeResume: false,
+        needsShiftStartSetup: false,
+      })
+    ).toBe(DRIVER_START_DRIVING_LABEL);
   });
 });
