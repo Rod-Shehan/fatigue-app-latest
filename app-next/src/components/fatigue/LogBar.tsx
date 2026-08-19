@@ -890,7 +890,7 @@ export default function LogBar({
       }
     }
     if (type === OTHER_WORK_EVENT_TYPE && currentType === null && !startShiftChooserOpen) {
-      const nonWorkMsg = getInsufficientNonWorkWarning(showResumeShiftPrimary);
+      const nonWorkMsg = getInsufficientNonWorkWarning(Boolean(showResumeShiftPrimary));
       if (nonWorkMsg) {
         setWorkWarning({
           message: nonWorkMsg,
