@@ -66,6 +66,15 @@ describe("app-surface", () => {
     expect(isPathAllowedOnSurface("/admin/security", "circadia")).toBe(false);
   });
 
+  it("allows PWA install assets on every gated surface", () => {
+    for (const surface of ["ewd", "enterprise", "circadia"] as const) {
+      expect(isPathAllowedOnSurface("/manifest.webmanifest", surface)).toBe(true);
+      expect(isPathAllowedOnSurface("/sw.js", surface)).toBe(true);
+      expect(isPathAllowedOnSurface("/offline.html", surface)).toBe(true);
+      expect(isPathAllowedOnSurface("/icons/icon-ewd-192.png", surface)).toBe(true);
+    }
+  });
+
   it("sends random admin traffic to the marketing site, not the public lobby", () => {
     expect(isPathAllowedOnSurface("/", "circadia")).toBe(true);
     expect(isPathAllowedOnSurface("/circadia", "circadia")).toBe(true);

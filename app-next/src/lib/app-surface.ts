@@ -152,18 +152,29 @@ export function lobbyBranchesForSurface(surface: AppSurface): LobbyBranchId[] {
  * Page-path gating (HTML navigations). APIs stay available on Enterprise
  * so connected EWD can sync; route handlers keep their own auth.
  */
+function isPwaShellPath(path: string): boolean {
+  return (
+    path === "/manifest.webmanifest" ||
+    path === "/sw.js" ||
+    path === "/offline.html" ||
+    path === "/icons" ||
+    path.startsWith("/icons/")
+  );
+}
+
 export function isPathAllowedOnSurface(pathname: string, surface: AppSurface): boolean {
   if (surface === "legacy") return true;
 
   const path = pathname.replace(/\/+$/, "") || "/";
 
-  // Always allow public / auth / health-style pages
+  // Always allow public / auth / health-style pages and PWA install assets.
   if (
     path === "/" ||
     path === "/login" ||
     path === "/reset-password" ||
     path === "/access-restricted" ||
-    path.startsWith("/api/")
+    path.startsWith("/api/") ||
+    isPwaShellPath(path)
   ) {
     return true;
   }
