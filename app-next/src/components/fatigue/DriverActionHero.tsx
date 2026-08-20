@@ -7,10 +7,85 @@ import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
-import { X } from "lucide-react";
+import { Briefcase, Coffee, Wrench, X } from "lucide-react";
+import { HERO_SPLIT_CHROME } from "@/lib/theme";
 
 const UNLOCK_RING_R = 46;
 const UNLOCK_RING_C = 2 * Math.PI * UNLOCK_RING_R;
+
+type HeroSplitKind = "work" | "break" | "other_work";
+
+const HERO_SPLIT_ICONS: Record<
+  HeroSplitKind,
+  React.ComponentType<{ className?: string }>
+> = {
+  work: Briefcase,
+  break: Coffee,
+  other_work: Wrench,
+};
+
+function HeroSplitHalf({
+  kind,
+  edge,
+  label,
+  pending,
+  onClick,
+  disabled,
+  compact,
+  expanded,
+}: {
+  kind: HeroSplitKind;
+  edge: "top" | "bottom";
+  label: string;
+  pending?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+  compact?: boolean;
+  expanded?: boolean;
+}) {
+  const chrome = HERO_SPLIT_CHROME[kind];
+  const Icon = HERO_SPLIT_ICONS[kind];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "relative flex h-1/2 w-full flex-col items-center justify-center font-bold",
+        "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
+        "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]",
+        chrome.half,
+        chrome.text,
+        pending && "animate-pulse ring-2 ring-inset ring-white"
+      )}
+      aria-label={pending ? `Tap again to confirm ${label}` : label}
+    >
+      <span
+        className={cn(
+          "absolute left-1/2 -translate-x-1/2 rounded-full",
+          chrome.pip,
+          compact ? "h-0.5 w-5" : "h-1 w-9",
+          edge === "top" ? (compact ? "top-1" : "top-2.5") : compact ? "bottom-1" : "bottom-2.5"
+        )}
+        aria-hidden
+      />
+      {!compact ? (
+        <Icon
+          className={cn("shrink-0 opacity-90", expanded ? "mb-1 h-6 w-6" : "mb-0.5 h-5 w-5")}
+          aria-hidden
+        />
+      ) : null}
+      <span
+        className={cn(
+          "text-center leading-tight px-2",
+          expanded ? "text-base sm:text-lg" : compact ? "text-[8px] leading-none" : "text-sm sm:text-base"
+        )}
+      >
+        {pending ? "Tap again" : label}
+      </span>
+    </button>
+  );
+}
 
 export interface DriverActionHeroProps {
   workMinutesUsed: number;
@@ -296,12 +371,6 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     expanded ? "text-xs" : "text-[10px]"
   );
 
-  const splitHalfClass = cn(
-    "flex w-full flex-col items-center justify-center font-bold text-white",
-    "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
-    "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]"
-  );
-
   const chooserVariant = stopDrivingChooser?.variant ?? "stop-driving";
   const workKindSplit =
     chooserVariant === "start-shift" ||
@@ -315,74 +384,41 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         : chooserVariant === "continue-shift"
           ? "Continue shift — choose driving or Rest"
           : "Stop Driving — choose Rest or Other work";
-  const topHalfClass = workKindSplit
-    ? "h-1/2 bg-emerald-600 hover:bg-emerald-700"
-    : "h-1/2 bg-amber-500 hover:bg-amber-600";
-  const bottomHalfClass =
-    chooserVariant === "continue-shift"
-      ? "h-1/2 bg-amber-500 hover:bg-amber-600"
-      : "h-1/2 bg-indigo-500 hover:bg-indigo-600";
+  const topKind: HeroSplitKind = workKindSplit ? "work" : "break";
+  const bottomKind: HeroSplitKind = chooserVariant === "continue-shift" ? "break" : "other_work";
 
   const heroControl = stopDrivingChooser ? (
     <div className={cn("flex flex-col items-center", locked && "opacity-70 saturate-75")}>
       <div
         className={cn(
           sizeClass,
-          "relative overflow-hidden rounded-full border-4 border-white/80 shadow-lg shadow-black/40",
+          "relative overflow-hidden rounded-full border-4 border-white/80 bg-slate-950 shadow-lg shadow-black/40",
           "flex flex-col"
         )}
         role="group"
         aria-label={chooserAria}
       >
-        <button
-          type="button"
+        <HeroSplitHalf
+          kind={topKind}
+          edge="top"
+          label={stopDrivingChooser.restLabel}
+          pending={stopDrivingChooser.restPending}
           onClick={stopDrivingChooser.onStartRest}
           disabled={locked}
-          className={cn(
-            splitHalfClass,
-            topHalfClass,
-            stopDrivingChooser.restPending && "animate-pulse ring-2 ring-inset ring-white"
-          )}
-          aria-label={
-            stopDrivingChooser.restPending
-              ? `Tap again to confirm ${stopDrivingChooser.restLabel}`
-              : stopDrivingChooser.restLabel
-          }
-        >
-          <span
-            className={cn(
-              "text-center leading-tight px-2",
-              expanded ? "text-base sm:text-lg" : compact ? "text-[8px] leading-none" : "text-sm sm:text-base"
-            )}
-          >
-            {stopDrivingChooser.restPending ? "Tap again" : stopDrivingChooser.restLabel}
-          </span>
-        </button>
-        <div className="h-px shrink-0 bg-white/50" aria-hidden />
-        <button
-          type="button"
+          compact={compact}
+          expanded={expanded}
+        />
+        <div className="h-px shrink-0 bg-white/15" aria-hidden />
+        <HeroSplitHalf
+          kind={bottomKind}
+          edge="bottom"
+          label={stopDrivingChooser.otherWorkLabel}
+          pending={stopDrivingChooser.otherWorkPending}
           onClick={stopDrivingChooser.onStartOtherWork}
           disabled={locked}
-          className={cn(
-            splitHalfClass,
-            bottomHalfClass,
-            stopDrivingChooser.otherWorkPending && "animate-pulse ring-2 ring-inset ring-white"
-          )}
-          aria-label={
-            stopDrivingChooser.otherWorkPending
-              ? `Tap again to confirm ${stopDrivingChooser.otherWorkLabel}`
-              : stopDrivingChooser.otherWorkLabel
-          }
-        >
-          <span
-            className={cn(
-              "text-center leading-tight px-2",
-              expanded ? "text-base sm:text-lg" : compact ? "text-[8px] leading-none" : "text-sm sm:text-base"
-            )}
-          >
-            {stopDrivingChooser.otherWorkPending ? "Tap again" : stopDrivingChooser.otherWorkLabel}
-          </span>
-        </button>
+          compact={compact}
+          expanded={expanded}
+        />
       </div>
       {elapsedLabel || activityNowLabel ? (
         <div

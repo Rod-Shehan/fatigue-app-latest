@@ -80,3 +80,27 @@ export const ACTIVITY_THEME: Record<
     statsValue: "text-red-700 dark:text-red-200",
   },
 };
+
+/**
+ * Hero split chooser — related to time-record hues, not the same solid bars.
+ * Work / Rest / Non-work on the day sheet are blue-500 / amber-500 / emerald-500.
+ * The split is a dark disk with a colour pip: driving = work blue, rest = rest amber,
+ * other work = quieter slate + blue pip (still on the job — not non-work green).
+ */
+export const HERO_SPLIT_CHROME = {
+  work: {
+    half: "bg-blue-950 hover:bg-blue-900",
+    text: "text-blue-50",
+    pip: "bg-blue-400",
+  },
+  break: {
+    half: "bg-amber-950 hover:bg-amber-900",
+    text: "text-amber-50",
+    pip: "bg-amber-400",
+  },
+  other_work: {
+    half: "bg-slate-800 hover:bg-slate-700",
+    text: "text-slate-50",
+    pip: "bg-blue-300",
+  },
+} as const;
