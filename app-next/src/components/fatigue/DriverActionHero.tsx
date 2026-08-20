@@ -392,7 +392,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
       <div
         className={cn(
           sizeClass,
-          "relative overflow-hidden rounded-full border-4 border-white/80 bg-slate-950 shadow-lg shadow-black/40",
+          "relative overflow-hidden rounded-full border-4 border-white/80 bg-slate-800 shadow-lg shadow-black/40",
           "flex flex-col"
         )}
         role="group"
@@ -408,7 +408,14 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           compact={compact}
           expanded={expanded}
         />
-        <div className="h-px shrink-0 bg-white/15" aria-hidden />
+        <div
+          className={cn(
+            "relative z-10 w-full shrink-0 bg-white",
+            compact ? "h-0.5" : "h-[3px]",
+            "shadow-[0_1px_0_rgba(15,23,42,0.4),0_-1px_0_rgba(15,23,42,0.4)]"
+          )}
+          aria-hidden
+        />
         <HeroSplitHalf
           kind={bottomKind}
           edge="bottom"
