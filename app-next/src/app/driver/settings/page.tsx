@@ -17,6 +17,7 @@ import { DriverSettingsChangePassword } from "./driver-settings-change-password"
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { DriverSettingsDeviceSection } from "@/components/pwa/DriverSettingsDeviceSection";
+import { ChecklistDeliverySettingsPanel } from "@/components/driver/ChecklistDeliverySettingsPanel";
 import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
 import {
   DRIVER_SETTINGS_CONNECT_LINKS,
@@ -73,6 +74,8 @@ export default async function DriverSettingsPage({
           </section>
 
           <DriverSettingsDeviceSection />
+
+          <ChecklistDeliverySettingsPanel />
 
           <MaintenanceContactSettingsPanel title="Workshop contact" />
 

@@ -25,12 +25,13 @@ const roadside = {
 };
 
 describe("sheet PDF layouts", () => {
-  it("full week export keeps compliance summary and shift log", () => {
+  it("legacy full layout still has compliance summary and shift log", () => {
     const html = renderPdfHtml({
       sheet,
       todayStr: "2026-08-19",
       generatedAtLabel: "19/08/2026, 7:30:48 pm",
       roadside,
+      layout: "full",
     });
     expect(html).toContain("Roadside compliance summary");
     expect(html).toContain("SHIFT LOG (Appendix)");
@@ -38,7 +39,7 @@ describe("sheet PDF layouts", () => {
     expect(html).toContain("CIRCADIA24");
   });
 
-  it("roadside trip-sheet-only layout omits header, compliance, and appendix", () => {
+  it("week export and roadside trip-sheet-only omit header, compliance, and appendix", () => {
     const html = renderPdfHtml({
       sheet,
       todayStr: "2026-08-19",

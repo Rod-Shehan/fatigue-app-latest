@@ -17,7 +17,11 @@ import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
-import { CHECKLIST_EMAIL_BUTTON_LABEL } from "@/lib/checklist";
+import { api } from "@/lib/api";
+import {
+  CHECKLIST_EMAIL_BUTTON_LABEL,
+  CHECKLIST_EMAIL_MISSING_MESSAGE,
+} from "@/lib/checklist";
 
 export function DayCardToolsSheet({
   open,
@@ -83,11 +87,24 @@ export function DayCardToolsSheet({
     tone: "ok" | "err";
     text: string;
   } | null>(null);
+  const [deliveryEmail, setDeliveryEmail] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setEmailBusy(false);
     setEmailFeedback(null);
+    let cancelled = false;
+    api.settings
+      .getChecklistDelivery()
+      .then((d) => {
+        if (!cancelled) setDeliveryEmail(d.email);
+      })
+      .catch(() => {
+        if (!cancelled) setDeliveryEmail(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   if (!open) return null;
@@ -419,7 +436,7 @@ export function DayCardToolsSheet({
                             const text = await onEmailChecklistPdf();
                             setEmailFeedback({
                               tone: "ok",
-                              text: text || "Sent to Circadia.",
+                              text: text || "Sent.",
                             });
                           } catch (e) {
                             setEmailFeedback({
@@ -448,7 +465,9 @@ export function DayCardToolsSheet({
                           {emailBusy ? "Sending…" : CHECKLIST_EMAIL_BUTTON_LABEL}
                         </span>
                         <span className="block text-xs text-slate-500 dark:text-slate-400">
-                          Separate PDF per type to Circadia — types not combined
+                          {deliveryEmail
+                            ? `Separate PDF per type to ${deliveryEmail}`
+                            : CHECKLIST_EMAIL_MISSING_MESSAGE}
                         </span>
                       </span>
                       {!emailBusy ? (

@@ -1,16 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionForSheetAccess, canAccessSheet } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { prepareRoadsidePdfExtras } from "@/lib/roadside-pdf-extras";
-import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
-import { computeEvidenceSummary } from "@/lib/evidence";
 import { jurisdictionDisplayLabel, parseJurisdictionCode } from "@/lib/jurisdiction";
 import { getPerthNowParts } from "@/lib/perth-now";
-import {
-  buildSingleSheetJsPdfBuffer,
-  renderPdfHtml,
-  type RoadsidePdfPayload,
-} from "@/lib/sheet-jspdf-export";
+import { buildSingleSheetJsPdfBuffer, renderPdfHtml } from "@/lib/sheet-jspdf-export";
 
 export { getPerthNowParts } from "@/lib/perth-now";
 export {
@@ -86,28 +79,8 @@ export async function GET(
       operator_legal_name: row.tenant.legalName,
     };
 
-    const roadsideExtras = await prepareRoadsidePdfExtras(prisma, row, id);
-    const rv = roadsideExtras.results.filter((r) => r.type === "violation");
-    const rw = roadsideExtras.results.filter((r) => r.type === "warning");
-    const roadsidePayload: RoadsidePdfPayload = {
-      driverName: row.driverName,
-      weekStarting: row.weekStarting,
-      jurisdictionLabel: roadsideExtras.jurisdictionLabel,
-      violations: rv.map((v) => ({ day: v.day, message: v.message })),
-      warnings: rw.map((w) => ({ day: w.day, message: w.message })),
-      evidence: (() => {
-        const ev = computeEvidenceSummary(days);
-        return {
-          gpsCoveragePct: ev.gpsCoveragePct,
-          gpsKm: ev.gpsKm,
-          odometerKm: ev.odometerKm,
-          movingDuringRestCount: ev.movingDuringRestCount,
-          flags: ev.flags.map((f) => ({ severity: f.severity, message: f.message })),
-        };
-      })(),
-      disclaimer: ROADSIDE_PDF_DISCLAIMER,
-      qrDataUrl: roadsideExtras.qrDataUrl,
-    };
+    const todayStr = getPerthNowParts().ymd;
+    const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
 
     try {
       const [{ default: chromium }, puppeteer] = await Promise.all([
@@ -118,29 +91,11 @@ export async function GET(
       const executablePath = await chromium.executablePath();
       if (!executablePath) throw new Error("Chromium executablePath not available");
 
-      const todayStr = getPerthNowParts().ymd;
-      const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
       const html = renderPdfHtml({
-        sheet: {
-          driver_name: row.driverName,
-          second_driver: row.secondDriver,
-          driver_type: row.driverType,
-          week_starting: row.weekStarting,
-          days,
-          jurisdiction_label: jurisdictionLabel,
-          last_24h_break: row.last24hBreak,
-          last_24h_rest_1: row.last24hRest1,
-          last_24h_rest_2: row.last24hRest2,
-          last_24h_rest_3: row.last24hRest3,
-          last_24h_rest_4: row.last24hRest4,
-          status: row.status,
-          signed_at: row.signedAt?.toISOString() ?? null,
-          signature: row.signature,
-          operator_legal_name: row.tenant.legalName,
-        },
+        sheet,
         todayStr,
         generatedAtLabel,
-        roadside: roadsidePayload,
+        layout: "tripSheetOnly",
       });
 
       const browser = await puppeteer.launch({
@@ -187,9 +142,9 @@ export async function GET(
 
     const pdfBytes = await buildSingleSheetJsPdfBuffer({
       sheet,
-      roadsidePayload,
-      todayStr: getPerthNowParts().ymd,
-      generatedAtLabel: new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" }),
+      todayStr,
+      generatedAtLabel,
+      layout: "tripSheetOnly",
     });
     const timeStamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(/:/g, "");
     const safeName = (sheet.driver_name || "unknown")

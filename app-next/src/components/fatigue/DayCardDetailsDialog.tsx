@@ -690,6 +690,7 @@ export function DayCardDetailsDialog({
             open={prestartOpen}
             onClose={() => setPrestartOpen(false)}
             driverName={driverName}
+            vehicleRego={draft.truck_rego}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
@@ -702,6 +703,7 @@ export function DayCardDetailsDialog({
             onClose={() => setDimensionLoadOpen(false)}
             driverName={driverName}
             truckRego={draft.truck_rego}
+            previousLoadRecords={listCompletedChecklistsOfType(draft.checklists, "dimension_load")}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));

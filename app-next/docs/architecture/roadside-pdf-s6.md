@@ -1,18 +1,14 @@
 # Roadside PDF & QR snapshot (S6)
 
-## PDF export
+## PDF export (superseded for printed extras)
 
-`GET /api/sheets/[id]/export` (authenticated) now includes a **Roadside compliance summary** after the title block:
+Week **Export PDF** (`GET /api/sheets/[id]/export`) and **Produce 28 day roadside PDF** are **Weekly Trip Sheet pages only** — no Circadia header, **Roadside compliance summary**, QR, or shift-log appendix. Owner decisions 2026-08-19 (roadside produce) and 2026-08-20 (week Export). See `docs/product/weekly-trip-sheet-pdf-project-scope.md`.
 
-- Driver name, week starting, fatigue rules label  
-- Violation / warning counts and lists (same engine as the app)  
-- **Disclaimer** (`ROADSIDE_PDF_DISCLAIMER` in `src/lib/roadside-pdf.ts`) — not legal advice; not an NHVR-approved EWD  
-
-The Chromium HTML path and the **jsPDF fallback** both include this block.
+A `layout: "full"` renderer still exists in `sheet-jspdf-export.ts` for tests; it is not used by Export PDF or roadside produce.
 
 ## Optional QR (read-only JSON)
 
-When all of the following are true, a **QR code** is embedded in the PDF pointing at a **time-limited** public API:
+The signed snapshot API remains for time-limited JSON (not printed on the trip-sheet PDFs):
 
 1. `ROADSIDE_QR_IN_PDF_ENABLED=true`  
 2. A signing secret is configured: `ROADSIDE_SNAPSHOT_SECRET` (preferred) or `NEXTAUTH_SECRET`  

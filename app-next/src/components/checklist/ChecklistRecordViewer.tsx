@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
+  checklistAuditIdentity,
   checklistFaultMobilityLabel,
   type ChecklistRecord,
   type ChecklistRecordType,
@@ -52,6 +53,7 @@ function formatCompletedWhen(record: ChecklistRecord): string {
 }
 
 function RecordBody({ record, index, total }: { record: ChecklistRecord; index: number; total: number }) {
+  const identity = checklistAuditIdentity(record);
   const headerEntries = Object.entries(record.header ?? {}).filter(
     ([, v]) => v != null && String(v).trim() !== ""
   );
@@ -63,6 +65,11 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
           Record {index + 1} of {total}
         </p>
       ) : null}
+      <p className="text-sm font-semibold text-ck-fg">{identity.summary}</p>
+      <p className="text-xs text-ck-steel">
+        {identity.primaryLabel}: {identity.primaryValue}
+        {identity.secondaryValue ? ` · ${identity.secondaryLabel}: ${identity.secondaryValue}` : ""}
+      </p>
       <p className="text-sm text-ck-fg">
         Completed{" "}
         <span className="font-semibold tabular-nums">{formatCompletedWhen(record)}</span>

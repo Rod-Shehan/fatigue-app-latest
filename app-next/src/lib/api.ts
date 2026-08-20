@@ -484,7 +484,7 @@ export const api = {
       return `${base}/api/sheets/${id}/checklists/export?${sp.toString()}`;
     },
     /**
-     * Email week pack PDF(s) to Circadia holding inbox.
+     * Email week pack PDF(s) to the signed-in user’s address (Settings, else login email).
      * Omit type → one attachment per type that has records. Never merges types.
      */
     emailChecklistPdf: (
@@ -853,6 +853,21 @@ export const api = {
         };
         outboundEmailConfigured: boolean;
       }>("/api/settings/maintenance-contact", { method: "PATCH", body: patch }),
+    /** Where this signed-in user wants checklist week PDFs emailed. */
+    getChecklistDelivery: () =>
+      fetchApi<{
+        email: string | null;
+        loginEmail: string | null;
+        usingLoginEmail: boolean;
+        outboundEmailConfigured: boolean;
+      }>("/api/settings/checklist-delivery"),
+    updateChecklistDelivery: (patch: { email: string }) =>
+      fetchApi<{
+        email: string | null;
+        loginEmail: string | null;
+        usingLoginEmail: boolean;
+        outboundEmailConfigured: boolean;
+      }>("/api/settings/checklist-delivery", { method: "PATCH", body: patch }),
     /** Send Prestart actioned fault text to workshop contact. */
     sendMaintenanceFaultReport: (body: {
       faultText: string;

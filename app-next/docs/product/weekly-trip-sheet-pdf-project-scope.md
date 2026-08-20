@@ -8,9 +8,7 @@
 
 ## Goal
 
-Week **Export PDF** reads as a **Weekly Trip Sheet**: paper-like week chrome + seven WorkSafe day rows, plus Circadia compliance summary and shift-log appendix.
-
-**Roadside produce (28-day PDF)** is trip-sheet pages only (one week per page) — no Circadia header, compliance summary, or shift-log appendix. Owner decision 2026-08-19.
+Week **Export PDF** and **roadside produce** are **trip-sheet pages only** — no Circadia header, compliance summary, or shift-log appendix. Owner decisions 2026-08-19 (roadside) and 2026-08-20 (week Export).
 
 Every filled cell must have a real data source (or an explicit blank). No decorative fake ticks.
 
@@ -18,7 +16,7 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 
 | # | Choice | Meaning |
 |---|--------|---------|
-| **A** | **A1 + A2** | **Paper week body** (title, week ending, driver, regs, checklist, ×7 day tiles, footer) **and** keep Circadia **compliance summary** + **shift-log appendix** around/after that body. |
+| **A** | **A1** | **Paper week body** (title, week ending, driver, regs, checklist, ×7 day tiles, footer). **A2 superseded 2026-08-20:** do not print Circadia compliance summary or shift-log appendix on Export PDF or roadside produce. |
 | **B** | **B1 + B2** | **Capture** Fitness for Work / Dimension & load / Daily vehicle checklist in the app (day-level Sun–Sat ticks) **and** print **empty** tick boxes when a day is unset — never invent ticks. |
 | **C** | **C3 — deferred** | Trailer / dolly reg lines: **not in this project**. See [Deferred](#deferred-come-back). |
 | **D** | **D1** | **One week signature** in the footer (reuse `FatigueSheet.signature` / `signedAt`). No per-day signature column for now. |
@@ -45,7 +43,7 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 - [x] Paper-style **week header**: title, week ending, driver name, truck reg summary (H)
 - [x] **×7** WorkSafe day tiles (existing paint); per-day truck reg on tile (H)
 - [x] **Footer**: Total Working Hours Per Week (G), OFFICE USE blank (F), week signature (D1) on **both** export paths
-- [x] Preserve **A2**: roadside/compliance summary + shift-log appendix (order: compliance → paper week body → appendix)
+- [x] Preserve **A1** paper week body. **A2 dropped** — no compliance summary or shift-log appendix on Export PDF / roadside
 - [x] Checklist strip: **empty** Sun–Sat boxes only (B2 preview), until Phase 2 wires data
 - [x] Tests for header/footer totals and signature presence
 - [x] Driver / manager guide: what the week PDF shows
@@ -60,9 +58,9 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 
 ### Phase 3 — Polish + QA — DONE (code); owner prod spot-check pending
 
-- [x] Page breaks so seven day rows remain readable (tile-only day cards; shift log keeps event detail; HTML/jsPDF page breaks)
+- [x] Page breaks so seven day rows remain readable (tile-only day cards; HTML/jsPDF page breaks)
 - [x] Visual QA checklist documented below (layout only; 15‑min retained)
-- [x] Confirmed roadside produce uses trip-sheet-only layout (one week per page). Week **Export PDF** still includes Circadia header, compliance summary, and shift-log appendix.
+- [x] Week **Export PDF** and roadside produce both use trip-sheet-only layout (no Circadia header, compliance summary, or shift log)
 - [ ] Owner spot-check on production after deploy approval
 
 ### Visual QA checklist (owner / engineering)
@@ -73,7 +71,7 @@ Compare Export PDF to the paper Weekly Trip Sheet blank:
 2. Three checklist rows × SUN–SAT — ticks only where day cards were ticked
 3. Seven WorkSafe day rows (15‑min grid, blank first hour, step line) — not split mid-tile; empty days paint full non-work (0 / 0 / 24)
 4. Footer: OFFICE USE blank, week work-hours total, week signature on the same page as the last day tile(s) when signed
-5. Compliance summary before the trip sheet; shift log appendix after
+5. Trip sheet only — no Circadia header, compliance summary, or shift log appendix
 6. No fabricated trailer/dolly or licence-valid fields (deferred)
 
 ## Deferred (come back)
@@ -110,7 +108,7 @@ Documented so we do not silently drop them:
 2. Truck regs appear in header and on day tiles when present.  
 3. Week work-hours total and OFFICE USE + week signature behave as locked.  
 4. Checklist ticks are either **captured and printed** or **empty** — never fabricated.  
-5. Compliance summary + shift-log appendix still present (A1+A2).  
+5. Export PDF and roadside pages are the Weekly Trip Sheet only (no Circadia extras).  
 6. Trailer/dolly and licence-valid remain documented deferred items until a follow-up project.
 
 ## Related

@@ -20,6 +20,7 @@ import {
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
+  CHECKLIST_EMAIL_SETTINGS_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
 } from "@/lib/checklist";
 
@@ -444,7 +445,11 @@ export function DriverGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Shift log</strong> — a list of every event on your
-            record.
+            record (in the app). It is not in Export PDF or the 28-day roadside PDF.
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">Export PDF</strong> — this week&apos;s Weekly Trip
+            Sheet only (same page as each roadside week). No Circadia header, compliance summary, or shift-log appendix.
           </li>
         </ul>
       </section>
@@ -469,6 +474,10 @@ export function DriverGuideArticle() {
           rows={[
             ["Options", "Dark mode, Voice alerts"],
             ["Device", "Install the app, back up / restore on this device"],
+            [
+              CHECKLIST_EMAIL_SETTINGS_LABEL,
+              "Your address for Fitness for Work / Prestart / Load week PDFs — defaults to your sign-in email. Each person sets their own. Not the workshop address",
+            ],
             [
               "Workshop contact",
               "Who receives vehicle fault reports (WAHVA) — name, company, email, phone",
@@ -505,9 +514,10 @@ export function DriverGuideArticle() {
             in trial — do not block Start shift). After a form is saved, use View to read it, or Redo / Add another for a
             new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) downloads a week pack per checklist type
             (FFW / Prestart / Load as separate files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL}{" "}
-            sends those to Circadia (customer packing options come later). Two-up drivers who are not responsible for the vehicle prestart can record
-            that on the Prestart form instead of inventing answers. Dimension & Load can be completed more than once per
-            day; loader CoR stays separate (present sign, pending, or photo gap — no proxy).
+            sends those PDFs to your address in Settings → {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to your sign-in email). Two-up drivers who are not responsible for the vehicle prestart can record
+            that on the Prestart form instead of inventing answers. Prestart is filed under the vehicle registration.
+            Dimension & Load is one form per load (prime + every trailer/dolly on that load); Add another for the next
+            load. Loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
           <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted, then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL})</li>
           <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. From Rest, tap {DRIVER_START_WORK_LABEL} then driving or Other work. From Other work, tap {DRIVER_CONTINUE_SHIFT_LABEL} then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_REST_LABEL}</li>
@@ -530,12 +540,24 @@ export function DriverGuideArticle() {
             ],
             [
               "Weekly Trip Sheet (PDF)",
-              "Week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature with the day sheets",
+              "Export PDF and each roadside page: week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
             ],
             [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish a shift. Start shift opens driving or Other work"],
             [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],
             [DRIVER_START_DRIVING_LABEL, "After Start shift, Start work, or Continue shift — log driving"],
             [DRIVER_CONTINUE_SHIFT_LABEL, "On Other work — choose driving or Rest"],
+            [
+              "Fitness for Work",
+              "Signed form filed under your name. Optional in trial. Separate PDF from Prestart and Load",
+            ],
+            [
+              "Prestart",
+              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial",
+            ],
+            [
+              "Dimension & Load",
+              "One signed form per load. Enter prime mover and every trailer/dolly on that load. Add another for the next load. Loader CoR is separate (no proxy)",
+            ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],
             ["Rego", "Number plate"],

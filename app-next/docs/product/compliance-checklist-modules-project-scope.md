@@ -146,7 +146,7 @@ During the current trial term, checklists are a **capability preview**:
 - [x] Checklist PDF renderer from completed records (jsPDF; brand **I**)
 - [x] On-demand produce + email — **week pack per type** (FFW / Prestart / Load separate; never merged; not fatigue roadside)
 - [x] Honest pending / not-obtained presentation (**K2**)
-- [x] Interim email to Circadia holding inbox (`circadia24@gmail.com`); per-client distribution later
+- [x] Email to the signed-in user’s **Settings → Checklist PDF email** (`User.checklistDeliveryEmail`, else login email); no Circadia Gmail fallback
 - [x] Explicit UI copy: checklist PDF ≠ fatigue roadside; types not combined
 - [x] Guides updated
 - [ ] Customer packing choice (per shift / day / week / fortnight / month) — deferred
@@ -201,7 +201,7 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 6 remaining** — per-client checklist email distribution + optional packing cadence (shift/day/week/…). R2/photo offload stays parked.  
+**Phase 6 remaining (narrow):** packing choice (per shift / day / week / …) and R2/photo offload stay parked. Checklist PDF → email is live: each user sets **Settings → Checklist PDF email** (defaults to sign-in email); send needs `RESEND_API_KEY` + `EMAIL_FROM`. Hide or replace with an org inbox later per client. Later: Circadia-designed packing vs client-specified forms + delivery.  
 **Records inbox / forced weekly fatigue PDF** (separate from checklist packs): [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md).
 
 ---
@@ -211,5 +211,9 @@ During the current trial term, checklists are a **capability preview**:
 - Fatigue roadside / week sheets are **never** included in checklist PDFs.
 - **One PDF = one checklist type** for one driver (default scope: **week**).
 - Do **not** merge FFW + Prestart + Dimension & Load — different regulations; auditors often call them up separately.
+- **Audit identity (2026-08-20):** treat each type as its own filing key.
+  - **Prestart** — primary: **vehicle registration** (WAHVA maintenance). Driver name is who inspected.
+  - **Fitness for Work** — primary: **driver name**.
+  - **Dimension & Load** — primary: the **loaded combination** (trailer / dolly when present; rigid/prime only if the load sits on that vehicle). One signed record = one load. Multiple loads on a shift = Add another. Prime mover from the day card is context, not the CoR subject when a trailer is on the load.
 - Legacy practice often treated each form iteration as its own output; week-per-type is the interim demo packing.
-- Later: customer choice of packing (per shift / day / week / fortnight / month).
+- Later: either Circadia designs packing and delivery for the client, or the client specifies the forms and the delivery method. Until then, week-per-type PDFs to one email is the working endpoint.

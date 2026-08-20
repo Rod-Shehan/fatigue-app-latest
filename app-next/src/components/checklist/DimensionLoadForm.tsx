@@ -7,12 +7,15 @@ import {
   emptyPassFailItem,
   isPassFailItemComplete,
   LOAD_SCHEMA_STUB,
+  lastLoadCombinationFromRecords,
   newChecklistRecordId,
+  serializeLoadCombinationHeader,
   validateCompletedChecklistRecord,
   type ChecklistLoaderPath,
   type ChecklistPassFailItemState,
   type ChecklistRecord,
   type ChecklistSignatureCapture,
+  type LoadCombinationUnit,
 } from "@/lib/checklist";
 import { ChecklistItemControl } from "./ChecklistItemControl";
 import { ChecklistModalShell } from "./ChecklistModalShell";
@@ -49,6 +52,7 @@ export function DimensionLoadForm({
   driverName,
   truckRego,
   trailerRego,
+  previousLoadRecords,
   onCompleted,
 }: {
   open: boolean;
@@ -56,13 +60,15 @@ export function DimensionLoadForm({
   driverName?: string | null;
   truckRego?: string | null;
   trailerRego?: string | null;
+  /** Earlier load checks today — prefills combination for Add another. */
+  previousLoadRecords?: ChecklistRecord[] | null;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
   const [client, setClient] = useState("");
   const [loadType, setLoadType] = useState("");
   const [loadWeight, setLoadWeight] = useState("");
   const [truck, setTruck] = useState("");
-  const [trailer, setTrailer] = useState("");
+  const [units, setUnits] = useState<LoadCombinationUnit[]>([{ role: "trailer", rego: "" }]);
   const [selfLoad, setSelfLoad] = useState<SelfLoad>("unset");
   const [knowLoader, setKnowLoader] = useState<KnowLoader>("unset");
   const [loaderName, setLoaderName] = useState("");
@@ -77,9 +83,17 @@ export function DimensionLoadForm({
 
   useEffect(() => {
     if (!open) return;
-    setTruck((prev) => prev || (truckRego || "").trim());
-    setTrailer((prev) => prev || (trailerRego || "").trim());
-  }, [open, truckRego, trailerRego]);
+    const last = lastLoadCombinationFromRecords(previousLoadRecords);
+    setTruck(last?.truckRego || (truckRego || "").trim());
+    if (last?.units.length) {
+      setUnits(last.units);
+    } else {
+      const seeded = (trailerRego || "").trim();
+      setUnits([{ role: "trailer", rego: seeded }]);
+    }
+    // Seed once per open so Add another can change trailers without the list resetting.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- snapshot on open
+  }, [open]);
 
   const loaderPath = resolveLoaderPath(selfLoad, knowLoader);
 
@@ -98,14 +112,15 @@ export function DimensionLoadForm({
     !!driverSig &&
     (!needsLoaderName || Boolean(loaderName.trim())) &&
     (!needsLoaderSig || !!loaderSig) &&
-    (!needsEvidence || evidencePhotos.length >= 1);
+    (!needsEvidence || evidencePhotos.length >= 1) &&
+    (Boolean(truck.trim()) || units.some((u) => u.rego.trim()));
 
   const reset = () => {
     setClient("");
     setLoadType("");
     setLoadWeight("");
     setTruck("");
-    setTrailer("");
+    setUnits([{ role: "trailer", rego: "" }]);
     setSelfLoad("unset");
     setKnowLoader("unset");
     setLoaderName("");
@@ -153,6 +168,10 @@ export function DimensionLoadForm({
       setError("Add at least one photo when loader CoR acknowledgment is not obtained.");
       return;
     }
+    if (!truck.trim() && !units.some((u) => u.rego.trim())) {
+      setError("Enter the prime mover and every trailer or dolly on this load.");
+      return;
+    }
 
     const signatures: ChecklistRecord["signatures"] = [
       { ...driverSig, role: "driver" },
@@ -185,14 +204,14 @@ export function DimensionLoadForm({
           : needsLoaderName
             ? loaderName.trim()
             : null,
-      header: {
-        client: client.trim() || undefined,
-        driver_name: (driverName || "").trim() || undefined,
-        truck_rego: truck.trim() || undefined,
-        trailer_rego: trailer.trim() || undefined,
-        load_type: loadType.trim() || undefined,
-        load_weight: loadWeight.trim() || undefined,
-      },
+      header: serializeLoadCombinationHeader({
+        truckRego: truck,
+        units,
+        client,
+        driverName: driverName || "",
+        loadType,
+        loadWeight,
+      }),
       evidencePhotoDataUrls: needsEvidence ? evidencePhotos : undefined,
     };
 
@@ -235,8 +254,10 @@ export function DimensionLoadForm({
     >
       <div className="space-y-4 pb-2">
         <p className="text-xs text-ck-steel leading-relaxed">
-          Optional during the trial. Complete after a load when useful. You may save more than one
-          per day. A driver cannot sign for the loader — use present sign, pending, or photo gap.
+          Optional during the trial. One form = one load. Use Add another for the next load on this
+          shift. This check is for the <strong className="text-ck-fg">loaded combination</strong>{" "}
+          (trailer or dolly when used) — not only the prime mover. A driver cannot sign for the
+          loader — use present sign, pending, or photo gap.
         </p>
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
@@ -249,23 +270,70 @@ export function DimensionLoadForm({
               className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
             />
           </label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
             <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Truck rego</span>
+              <span className="text-xs text-ck-steel">Prime mover / rigid</span>
               <input
                 value={truck}
                 onChange={(e) => setTruck(e.target.value)}
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
+                autoCapitalize="characters"
+                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
               />
             </label>
-            <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Trailer rego</span>
-              <input
-                value={trailer}
-                onChange={(e) => setTrailer(e.target.value)}
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm text-ck-fg"
-              />
-            </label>
+            <p className="text-xs text-ck-steel leading-relaxed">
+              Add every trailer or dolly on <strong className="text-ck-fg">this</strong> load. Leave
+              empty only if the load sits on this rigid / prime.
+            </p>
+            {units.map((unit, i) => (
+              <div key={`${unit.role}-${i}`} className="grid grid-cols-[7rem_1fr_auto] gap-2">
+                <select
+                  value={unit.role}
+                  onChange={(e) => {
+                    const role = e.target.value === "dolly" ? "dolly" : "trailer";
+                    setUnits((prev) => prev.map((u, j) => (j === i ? { ...u, role } : u)));
+                  }}
+                  className="min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-2 text-xs font-semibold text-ck-fg"
+                >
+                  <option value="trailer">Trailer</option>
+                  <option value="dolly">Dolly</option>
+                </select>
+                <input
+                  value={unit.rego}
+                  onChange={(e) =>
+                    setUnits((prev) =>
+                      prev.map((u, j) => (j === i ? { ...u, rego: e.target.value } : u))
+                    )
+                  }
+                  autoCapitalize="characters"
+                  className="min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
+                  placeholder="Rego"
+                />
+                <button
+                  type="button"
+                  onClick={() => setUnits((prev) => prev.filter((_, j) => j !== i))}
+                  className="min-h-[44px] min-w-[44px] rounded-lg border border-ck-border text-ck-steel text-lg"
+                  aria-label="Remove unit"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setUnits((prev) => [...prev, { role: "trailer", rego: "" }])}
+                className="min-h-[44px] rounded-lg border border-ck-border text-sm font-semibold text-ck-fg"
+              >
+                Add trailer
+              </button>
+              <button
+                type="button"
+                onClick={() => setUnits((prev) => [...prev, { role: "dolly", rego: "" }])}
+                className="min-h-[44px] rounded-lg border border-ck-border text-sm font-semibold text-ck-fg"
+              >
+                Add dolly
+              </button>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <label className="block space-y-1">

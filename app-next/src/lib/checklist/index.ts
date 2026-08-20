@@ -36,6 +36,15 @@ export {
   formatSignedAtUtc,
 } from "./signature-meta";
 export { FFW_SCHEMA_STUB, LOAD_SCHEMA_STUB, PRESTART_SCHEMA_STUB } from "./schema-stubs";
+export type { LoadCombinationUnit, LoadCombinationUnitRole } from "./audit-identity";
+export {
+  checklistAuditIdentity,
+  formatLoadCombinationLine,
+  lastLoadCombinationFromRecords,
+  loadAuditVehicleRego,
+  serializeLoadCombinationHeader,
+  unitsFromLoadHeader,
+} from "./audit-identity";
 export type {
   ChecklistLoaderPath,
   ChecklistRecord,
@@ -70,9 +79,13 @@ export {
 } from "./checklist-pdf";
 export type { ChecklistPdfDayBundle } from "./checklist-pdf";
 export {
-  CHECKLIST_ARCHIVE_EMAIL,
   CHECKLIST_EMAIL_BUTTON_LABEL,
-  CHECKLIST_EMAIL_HINT,
+  CHECKLIST_EMAIL_MISSING_MESSAGE,
+  CHECKLIST_EMAIL_SETTINGS_HINT,
+  CHECKLIST_EMAIL_SETTINGS_LABEL,
+  checklistDeliveryEmailReady,
+  normalizeChecklistDeliveryEmail,
+  resolveChecklistDeliveryTo,
 } from "./checklist-email";
 export type { DayWithChecklists, DerivedTripChecklistFields } from "./derive-trip-ticks";
 export {

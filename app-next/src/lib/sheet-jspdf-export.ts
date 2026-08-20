@@ -264,7 +264,7 @@ export type RoadsidePdfPayload = {
   qrDataUrl?: string;
 };
 
-/** `full` = week Export PDF. `tripSheetOnly` = roadside produce (one week per page). */
+/** `full` = unused Circadia extras. `tripSheetOnly` = week Export PDF and roadside produce. */
 export type SheetPdfLayout = "full" | "tripSheetOnly";
 
 function buildRoadsideSectionHtml(r: RoadsidePdfPayload): string {

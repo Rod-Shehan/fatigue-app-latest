@@ -24,7 +24,7 @@ export function ManagerGuideArticle() {
         ├── Drivers (roster)
         ├── Managers (accounts)
         ├── Rego (vehicles)
-        └── Test desk (addons + WAHVA maintenance contact)`}
+        └── Test desk (checklist PDF email + WAHVA maintenance contact)`}
         </GuideDiagram>
         <ul className={ulClass}>
           <li>
@@ -44,9 +44,9 @@ export function ManagerGuideArticle() {
             drivers
           </li>
           <li>
-            <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set workshop /
-            maintenance contact for WAHVA fault reporting (also on driver Settings; email send process comes
-            next)
+            <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
+            email (where FFW / Prestart / Load week packs go — each person sets their own; defaults to sign-in
+            email) and workshop / maintenance contact for WAHVA fault reporting (also on driver Settings)
           </li>
         </ul>
       </section>

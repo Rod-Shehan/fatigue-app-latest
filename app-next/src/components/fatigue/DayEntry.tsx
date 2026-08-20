@@ -280,8 +280,10 @@ export default function DayEntry({
     }
     const res = await api.sheets.emailChecklistPdf(dayTools.sheetId);
     const n = res.filenames?.length ?? 0;
-    if (!n) return "Sent to Circadia holding inbox.";
-    return `Sent ${n} week pack PDF${n === 1 ? "" : "s"} to Circadia (separate file per checklist type).`;
+    const dest = res.to;
+    if (!dest) throw new Error("No delivery address on the send.");
+    if (!n) return `Sent to ${dest}.`;
+    return `Sent ${n} PDF${n === 1 ? "" : "s"} to ${dest} (one file per form type).`;
   }, [dayTools?.sheetId]);
 
   const saveFfwRecord = useCallback(
@@ -752,6 +754,7 @@ export default function DayEntry({
         open={prestartOpen}
         onClose={() => setPrestartOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
+        vehicleRego={dayData.truck_rego}
         sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
         onCompleted={savePrestartRecord}
       />
@@ -761,6 +764,7 @@ export default function DayEntry({
         onClose={() => setDimensionLoadOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
         truckRego={dayData.truck_rego}
+        previousLoadRecords={listCompletedChecklistsOfType(dayData.checklists, "dimension_load")}
         onCompleted={saveDimensionLoadRecord}
       />
 
@@ -794,10 +798,11 @@ export default function DayEntry({
           onEmailPdf={
             dayTools?.sheetId
               ? async () => {
-                  await api.sheets.emailChecklistPdf(dayTools.sheetId, {
+                  const res = await api.sheets.emailChecklistPdf(dayTools.sheetId, {
                     type: viewChecklistType,
                   });
-                  return "Week pack for this checklist type emailed to Circadia.";
+                  if (!res.to) throw new Error("No delivery address on the send.");
+                  return `Week pack emailed to ${res.to}.`;
                 }
               : undefined
           }

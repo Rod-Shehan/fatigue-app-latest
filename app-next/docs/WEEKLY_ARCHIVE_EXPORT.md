@@ -35,7 +35,7 @@ Power Automate uploads PDFs; managers query history through the **API and Postgr
 - **Re-import into app**: not required
 - **Identification**: PDF filenames and manifest include driver, week, sheet id
 - **Security**: authenticated export endpoint; cron secret for scheduled jobs
-- **Readability**: same PDF as manual **Export PDF** in the app (`GET /api/sheets/[id]/export`) — Weekly Trip Sheet chrome + WorkSafe day rows + shift log (see `product/weekly-trip-sheet-pdf-project-scope.md`)
+- **Readability**: same PDF as manual **Export PDF** in the app (`GET /api/sheets/[id]/export`) — Weekly Trip Sheet chrome + WorkSafe day rows (see `product/weekly-trip-sheet-pdf-project-scope.md`)
 
 ## Recommended export format
 

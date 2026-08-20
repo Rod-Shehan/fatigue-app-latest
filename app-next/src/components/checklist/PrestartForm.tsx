@@ -35,16 +35,20 @@ export function PrestartForm({
   open,
   onClose,
   driverName,
+  vehicleRego,
   sheetDayLabel,
   onCompleted,
 }: {
   open: boolean;
   onClose: () => void;
   driverName?: string | null;
+  /** Day-card / catalogue truck — primary WAHVA audit key. Editable. */
+  vehicleRego?: string | null;
   /** Optional day label for the workshop email subject. */
   sheetDayLabel?: string | null;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
+  const [vehicle, setVehicle] = useState("");
   const [responsibility, setResponsibility] = useState<Responsibility>("unset");
   const [skipReason, setSkipReason] = useState("");
   const [items, setItems] = useState(initPassFailMap);
@@ -78,6 +82,11 @@ export function PrestartForm({
   );
 
   useEffect(() => {
+    if (!open) return;
+    setVehicle((prev) => prev || (vehicleRego || "").trim());
+  }, [open, vehicleRego]);
+
+  useEffect(() => {
     if (!hasFault) {
       setActionedFaultText("");
       setFaultTextEdited(false);
@@ -90,6 +99,7 @@ export function PrestartForm({
     responsibility === "yes"
       ? allItemsComplete &&
         !!signature &&
+        Boolean(vehicle.trim()) &&
         (!hasFault || Boolean(actionedFaultText.trim()))
       : responsibility === "no"
         ? Boolean(skipReason.trim()) && !!signature
@@ -98,6 +108,7 @@ export function PrestartForm({
   const reset = () => {
     setResponsibility("unset");
     setSkipReason("");
+    setVehicle("");
     setItems(initPassFailMap());
     setActionedFaultText("");
     setFaultTextEdited(false);
@@ -130,6 +141,16 @@ export function PrestartForm({
       return;
     }
 
+    if (responsibility === "yes" && !vehicle.trim()) {
+      setError("Enter the vehicle registration this prestart is for.");
+      return;
+    }
+
+    const vehicleHeader = {
+      driver_name: (driverName || "").trim() || undefined,
+      vehicle_rego: vehicle.trim() || undefined,
+    };
+
     if (responsibility === "no") {
       if (!skipReason.trim()) {
         setError("Add a short reason (for example: second driver — other driver did prestart).");
@@ -146,9 +167,7 @@ export function PrestartForm({
         prestartResponsible: false,
         prestartSkipReason: skipReason.trim(),
         actionedFaultText: null,
-        header: {
-          driver_name: (driverName || "").trim() || undefined,
-        },
+        header: vehicleHeader,
       };
       const validated = validateCompletedChecklistRecord(draft);
       if (!validated.ok) {
@@ -198,9 +217,7 @@ export function PrestartForm({
       prestartResponsible: true,
       prestartSkipReason: null,
       actionedFaultText: hasFault ? actionedFaultText.trim() : null,
-      header: {
-        driver_name: (driverName || "").trim() || undefined,
-      },
+      header: vehicleHeader,
     };
 
     const validated = validateCompletedChecklistRecord(draft);
@@ -222,7 +239,9 @@ export function PrestartForm({
     if (hasFault && validated.record.actionedFaultText) {
       try {
         const sent = await api.settings.sendMaintenanceFaultReport({
-          faultText: validated.record.actionedFaultText,
+          faultText: vehicle.trim()
+            ? `Vehicle ${vehicle.trim()}\n${validated.record.actionedFaultText}`
+            : validated.record.actionedFaultText,
           driverName: (driverName || "").trim() || undefined,
           sheetDayLabel: sheetDayLabel?.trim() || undefined,
         });
@@ -301,10 +320,23 @@ export function PrestartForm({
     >
       <div className="space-y-4 pb-2">
         <p className="text-xs text-ck-steel leading-relaxed">
-          Optional during the trial. If you are the driver who must do the vehicle prestart, complete
-          the checks and sign. Mark <strong className="text-ck-fg">Fault</strong> where needed —
-          then fill the actioned fault text above the signature so workshop can be emailed.
+          Optional during the trial. This inspection is filed against the{" "}
+          <strong className="text-ck-fg">vehicle registration</strong> (maintenance / WAHVA). Your
+          name is stored as the person who did it. If you are responsible, complete the checks and
+          sign. Mark <strong className="text-ck-fg">Fault</strong> where needed — then fill the
+          actioned fault text above the signature so workshop can be emailed.
         </p>
+
+        <label className="block space-y-1">
+          <span className="text-xs font-semibold text-ck-steel">Vehicle registration (required)</span>
+          <input
+            value={vehicle}
+            onChange={(e) => setVehicle(e.target.value)}
+            autoCapitalize="characters"
+            className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
+            placeholder="The truck or plant you inspected"
+          />
+        </label>
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
           <h3 className="text-sm font-bold text-ck-steel">

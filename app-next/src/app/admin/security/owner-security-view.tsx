@@ -12,6 +12,7 @@ import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
 import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
+import { ChecklistDeliverySettingsPanel } from "@/components/driver/ChecklistDeliverySettingsPanel";
 import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
 
 const POLICY_KEY = ["admin", "policy"] as const;
@@ -255,6 +256,7 @@ export function OwnerSecurityView({
           ) : null}
         </section>
 
+        <ChecklistDeliverySettingsPanel showOutboundStatus />
         <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" showOutboundStatus />
 
         <TriageShiftAdminPanel />

@@ -8,7 +8,7 @@ import {
   CHECKLIST_PDF_TYPES,
   CHECKLIST_PDF_TYPE_TITLE,
 } from "@/lib/checklist/checklist-pdf";
-import { CHECKLIST_ARCHIVE_EMAIL } from "@/lib/checklist/checklist-email";
+import { resolveChecklistDeliveryTo } from "@/lib/checklist/checklist-email";
 import {
   isChecklistRecordType,
   type ChecklistRecord,
@@ -20,7 +20,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST — email week pack PDF(s) by checklist type to Circadia holding inbox.
+ * POST — email week pack PDF(s) by checklist type to the signed-in user’s address.
  * Body: { type?: ffw|prestart|dimension_load } — omit type to attach one PDF per type that has records.
  * Types are never merged into one PDF (different regs / audit call-ups).
  * Fatigue roadside PDF is never included.
@@ -121,8 +121,21 @@ export async function POST(
       ? `${CHECKLIST_PDF_TYPE_TITLE[onlyType]} week pack — ${row.driverName} — ${row.weekStarting}`
       : `Checklist week packs — ${row.driverName} — ${row.weekStarting}`;
 
+    const sender = await prisma.user.findUnique({
+      where: { id: access.userId },
+      select: { email: true, checklistDeliveryEmail: true },
+    });
+    const resolved = resolveChecklistDeliveryTo({
+      checklistDeliveryEmail: sender?.checklistDeliveryEmail,
+      loginEmail: sender?.email,
+    });
+    if ("error" in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+    const to = resolved.to;
+
     const result = await sendOutboundEmail({
-      to: CHECKLIST_ARCHIVE_EMAIL,
+      to,
       subject,
       text: [
         "Circadia24 checklist week pack(s).",
@@ -151,7 +164,7 @@ export async function POST(
           actorId: access.userId,
           action: "checklist_pdf_emailed",
           payload: {
-            to: CHECKLIST_ARCHIVE_EMAIL,
+            to,
             types: onlyType ? [onlyType] : included,
             filenames: attachments.map((a) => a.filename),
             resend_id: result.id ?? null,
@@ -164,7 +177,7 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-      to: CHECKLIST_ARCHIVE_EMAIL,
+      to,
       filenames: attachments.map((a) => a.filename),
       id: result.id,
     });

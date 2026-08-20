@@ -47,6 +47,11 @@ model User {
   /** Home client. Required for EWD isolation. Default backfills existing rows. */
   tenantId      String    @default("tenant_default")
   tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /**
+   * Where this user wants checklist week PDFs emailed.
+   * Empty = use login email. Per-user for now; hide later for clients that use an org inbox.
+   */
+  checklistDeliveryEmail String?
   /** Circadia staff who may create tenants. Still scoped to home tenant in the EWD UI. */
   platformAdmin Boolean   @default(false)
   /** When set, sign-in is blocked until cleared by an owner */
