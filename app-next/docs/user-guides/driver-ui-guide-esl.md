@@ -58,6 +58,7 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 | **Continue shift** | On Other work: choose Start driving or Start Rest. Does not log by itself |
 | **Stop Driving** | You have stopped driving. Still on shift. Not End shift. Opens the split. |
 | **Start Rest** | Sit still — eat, drink, nap. 31 minutes or more becomes non-work. Top of Stop Driving, or bottom of Continue shift |
+| **Taking a nap?** | Bottom-left, only while on Rest. Not in the hero. Tap once if you are napping — still Rest on the record. Compact: **Nap?**. After tap: **On nap** (tap again to clear). |
 | **Start Other Work** | Bottom of Start shift / Start work / Stop Driving. Not driving, still a job — load, forklift, tyre, paperwork, fuel |
 | **End shift** | You finish work — enter finish time and end km |
 
@@ -76,7 +77,7 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 │   then split:               │
 │ [ Start Rest ]              │
 │ [ Start Other Work ]        │
-│           [ End shift ]     │
+│ [ Taking a nap? ] [ End shift ] │
 └─────────────────────────────┘
 ```
 
@@ -102,6 +103,8 @@ flowchart LR
 ```
 
 **Simple rule:** Tap the button that matches **what you are doing now**. The timer under the ring has a small note — **(Work)**, **(Rest)**, or **(Other work)** — so Start Rest is not confused with Other work. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start driving, Start Rest, Start Other Work, End shift). **Start shift**, **Start work**, **Continue shift**, and **Stop Driving** only open a split — they do not log until you pick a kind.
+
+While you are on **Rest**, a corner control asks **Taking a nap?** It is not in the hero split. Tap it only if you are napping — the record stays Rest. It then shows **On nap**. Tap again to clear.
 
 **While the vehicle is moving** (when your organisation has the GPS trail addon on): Start shift / Stop Driving / End shift stay locked but you still see the usual timer and labels (dimmed), with **Moving · pull over to unlock** and a ring that fills while you are stopped. Pull over and wait a few seconds — then tap. If you already tapped once to confirm, the second tap still works. **View diary** stays available.
 
@@ -176,7 +179,7 @@ Use **Set up day** (or **Edit day**) when something changes:
 - New run — **Saved run plan**, **Enter run plan** (from / to, name, expected hours/km), or **No run plan**
 - **Shift pattern** — Day (A) or Night (B)
 - **Solo** or **Two-up**, and the **relief driver's name**
-- **Last 2 or 4 × 24 hour non-work breaks** — each with absolute **start and end time** (Perth), not just a calendar day — under crew, above route setup in Set up day / Edit day. Shown when the app needs them (or after you have already saved them). The most recent end also resets short-horizon rules (17h / 72h). You can change them until you **sign** the week; after that only your manager can amend. If you are already on shift, tap **Set up week record** on the upcoming compliance banner, Work warning, or compliance snapshot — it opens Set up day on the field you need.
+- **Last 2 or 4 × 24 hour non-work breaks** — set the **start time** for each (Perth); **end fills 24 hours later** (change the end only if the rest ran longer) — under crew, above route setup in Set up day / Edit day. Shown when the app needs them (or after you have already saved them). The most recent end also resets short-horizon rules (17h / 72h). You can change them until you **sign** the week; after that only your manager can amend. If you are already on shift, tap **Set up week record** on the upcoming compliance banner, Work warning, or compliance snapshot — it opens Set up day on the field you need.
 - Work / break / non-work / **End shift** time corrections — when the day **already has** logged events (**Edit day**), you get the full correction list. On a **new shift** (no events yet), Set up day only offers **Add work** and **Add break**. If End shift is on that day after work the same day, **end km is required** on the same card. Overnight finish (End shift only on this card): leave end km blank when it is already on the **previous day**, then enter start km to begin the next shift.
 - **Sunday / week seam:** Saturday is on the **previous week** sheet. On Sunday’s card, tap **Edit previous week** beside Edit day — it opens Saturday’s Edit day on last week so you can add non-work or fix times. The timeline is continuous; week labels are only for display. If you add **End shift** on Saturday, any Work/Break left on Sunday from that same open shift is removed automatically (with a short note).
   - **Break** only during a work bout (not in the middle of non-work). Finish a break with Work, Non-work, or End shift — don’t leave a break open. Open **work** overnight is fine.
@@ -317,6 +320,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 |------|---------|
 | Work | Driving, or the main on-duty stretch |
 | Rest | Not driving and not doing a job task (eat, drink, nap). 31+ min becomes non-work |
+| Taking a nap? | Only on Rest, bottom-left. Not a new activity. After tap: On nap |
 | Other work | Not driving, still a job (load, forklift, tyre, paperwork, fuel). Break from driving; never non-work |
 | Non-work | Off the job / End shift / sleep |
 | Stop Driving | On Work: opens Start Rest / Start Other Work. Not End shift. |

@@ -49,11 +49,12 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
+import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL } from "@/lib/product-copy";
 import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
 import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
 import { isHeroChooserGhostClick } from "@/lib/hero-chooser-guard";
-import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
+import { getEndShiftButtonChrome, getNapQuestionChrome, getOnNapChrome } from "@/lib/driver-compliance-chrome";
+import { isRestNapTagged } from "@/lib/rest-nap";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
 import type { ComplianceCheckResult } from "@/lib/compliance";
@@ -133,7 +134,7 @@ function formatDurationHoursMinutes(totalMinutes: number): string {
 }
 
 type DayData = {
-  events?: { time: string; type: string }[];
+  events?: { time: string; type: string; napFrom?: string }[];
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
@@ -149,6 +150,7 @@ export default function LogBar({
   weekStarting,
   onLogEvent,
   onEndShiftRequest,
+  onSetRestNap,
   workRelevantComplianceMessages,
   complianceCheckResults = [],
   prospectiveRouteHint = null,
@@ -178,6 +180,8 @@ export default function LogBar({
   onLogEvent: (dayIndex: number, type: string) => void;
   /** When provided, End shift opens the correction dialog (end time + end km). */
   onEndShiftRequest?: (dayIndex: number) => void;
+  /** Rest-only nap qualifier. Diary stays Rest. */
+  onSetRestNap?: (on: boolean) => void;
   /** Prospective compliance messages (non-work time, limits) if work were logged now. When set, shown when user taps Work. */
   workRelevantComplianceMessages?: string[];
   /** Full compliance check output for the upcoming-issues chip (live sheet). */
@@ -1076,6 +1080,9 @@ export default function LogBar({
   };
 
   const showEndShiftDock = shiftSegmentOpen || pendingType === "stop";
+  const restNapTagged = isRestNapTagged(lastEvent);
+  const showNapDock =
+    Boolean(isLiveNow && onSetRestNap && currentType === "break" && pendingType !== "stop");
   const heroChooserOpen =
     (stopDrivingChooserOpen && currentType === "work") ||
     (startShiftChooserOpen && currentType === null) ||
@@ -1185,6 +1192,65 @@ export default function LogBar({
         ) : null}
                 </button>
         </div>
+  ) : null;
+
+  const napChrome = restNapTagged ? getOnNapChrome() : getNapQuestionChrome();
+  const napLabel = restNapTagged
+    ? DRIVER_ON_NAP_LABEL
+    : primaryBarCompact
+      ? DRIVER_NAP_QUESTION_COMPACT_LABEL
+      : DRIVER_NAP_QUESTION_LABEL;
+  const napButton = showNapDock ? (
+    <div
+      className={cn(
+        "inline-flex shrink-0 rounded-full transition-all duration-500 ease-out",
+        endShiftTrimPaddingClass(primaryHeroExpanded, primaryBarCompact, false),
+        napChrome.trimClass,
+        restNapTagged && "animate-driver-nap-puck"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => onSetRestNap?.(!restNapTagged)}
+        disabled={isMoving}
+        className={cn(
+          "flex flex-col items-center justify-center rounded-full font-bold",
+          "touch-manipulation select-none",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+          "disabled:opacity-50 disabled:pointer-events-none",
+          "gap-0.5 px-1",
+          endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact, false),
+          napChrome.surfaceClass,
+          napChrome.textClass
+        )}
+        aria-pressed={restNapTagged}
+        aria-label={
+          isMoving
+            ? `${DRIVER_NAP_QUESTION_LABEL} locked while moving`
+            : restNapTagged
+              ? `${DRIVER_ON_NAP_LABEL}. Tap to clear`
+              : DRIVER_NAP_QUESTION_LABEL
+        }
+      >
+        {!primaryBarCompact && restNapTagged ? (
+          <Moon
+            className={cn(
+              "shrink-0",
+              endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact, false)
+            )}
+            aria-hidden
+          />
+        ) : null}
+        <span
+          className={cn(
+            "text-center leading-tight",
+            primaryHeroExpanded ? "text-[10px] sm:text-xs" : "text-[8px] sm:text-[9px]"
+          )}
+        >
+          {napLabel}
+        </span>
+      </button>
+    </div>
   ) : null;
 
   const barContent = (
@@ -1693,6 +1759,17 @@ export default function LogBar({
           </div>,
           document.body
         )}
+      {showNapDock && (
+        <div
+          className={cn(
+            "fixed z-[55] flex pointer-events-none",
+            "left-[max(0.75rem,env(safe-area-inset-left))]",
+            "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
+          )}
+        >
+          <div className="pointer-events-auto">{napButton}</div>
+        </div>
+      )}
       {showEndShiftDock && (
         <div
           ref={fixedEndShiftRef}

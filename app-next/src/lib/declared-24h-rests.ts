@@ -460,17 +460,17 @@ export const DECLARED_24H_REST_COPY = {
   TITLE_2: "Last 2 × 24 hour non-work breaks",
   TITLE_4: "Last 4 × 24 hour non-work breaks",
   WHY_2:
-    "The fatigue rules need two full days of non-work (each 24 hours) in any 14-day period. This week is your legal record. If the app does not yet have enough of your past days to show those rests, you must enter the start and end of each break yourself. Signing the week means you say this is true.",
+    "The fatigue rules need two full days of non-work (each 24 hours) in any 14-day period. This week is your legal record. If the app does not yet have enough of your past days to show those rests, you must enter when each break started (end fills 24 hours later). Signing the week means you say this is true.",
   WHY_4:
-    "The 28-day alternative needs four full days of non-work (each 24 hours), and no more than 144 hours of work in any 14 days inside that period. Enter the start and end of each rest the record relies on. Signing the week means you say this is true.",
+    "The 28-day alternative needs four full days of non-work (each 24 hours), and no more than 144 hours of work in any 14 days inside that period. Enter when each rest started (end fills 24 hours later). Signing the week means you say this is true.",
   LABEL_1: "First 24 hour non-work break",
   LABEL_2: "Second 24 hour non-work break",
   LABEL_3: "Third 24 hour non-work break",
   LABEL_4: "Fourth 24 hour non-work break",
   LOCKED_HINT: "Locked after sign-off — ask your manager to amend.",
-  EDITABLE_HINT: "Set start and end times (Perth). You can change these until you sign the week. The most recent end also resets short-horizon rules (17h / 72h).",
+  EDITABLE_HINT: "Set the start (Perth). End fills 24 hours later — change it only if the rest ran longer. You can change these until you sign the week. The most recent end also resets short-horizon rules (17h / 72h).",
   MANAGER_HINT:
-    "Full 24 hour non-work breaks when logs cannot prove Reg 184E 2×24h. Enter absolute start and end; ask the driver to sign again after amendment.",
+    "Full 24 hour non-work breaks when logs cannot prove Reg 184E 2×24h. Set start; end fills 24 hours later. Ask the driver to sign again after amendment.",
 } as const;
 
 function declaredRestSlotFilled(fields: Declared24hRestFields, key: Declared24hRestKey): boolean {

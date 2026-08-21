@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addHoursToPerthDatetimeLocal,
   formatLast24hBreakRangeDisplay,
   isoToPerthDatetimeLocal,
   perthDatetimeLocalToIso,
@@ -7,6 +8,12 @@ import {
 } from "./last-24h-break-range";
 
 describe("last-24h-break-range", () => {
+  it("adds 24 hours on the Perth wall clock", () => {
+    expect(addHoursToPerthDatetimeLocal("2026-10-10T06:00", 24)).toBe("2026-10-11T06:00");
+    expect(addHoursToPerthDatetimeLocal("2026-10-31T22:00", 24)).toBe("2026-11-01T22:00");
+    expect(addHoursToPerthDatetimeLocal("not-a-time", 24)).toBe("");
+  });
+
   it("round-trips Perth datetime-local via ISO", () => {
     const iso = perthDatetimeLocalToIso("2026-07-19T14:30");
     expect(iso).toBeTruthy();

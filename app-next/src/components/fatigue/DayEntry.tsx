@@ -79,7 +79,7 @@ type DayData = DayCardFields & {
   work_time?: boolean[];
   breaks?: boolean[];
   non_work?: boolean[];
-  events?: { time: string; type: string; driver?: "primary" | "second" }[];
+  events?: { time: string; type: string; driver?: "primary" | "second"; napFrom?: string }[];
   date?: string;
   checklists?: ChecklistRecord[];
 };

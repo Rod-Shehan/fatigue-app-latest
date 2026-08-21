@@ -102,6 +102,8 @@ export type DayData = {
     history_1m?: Array<{ lat: number; lng: number; t: string }>;
   /** @deprecated Legacy shared-sheet tag — not set on new events. */
     driver?: "primary" | "second";
+    /** Rest qualifier from the Nap? puck. FRMS only — still Rest on the diary. */
+    napFrom?: string;
   }>;
   /** When set (ISO string), legacy grid cap only — prefer end-shift events on the rolling timeline. */
   assume_idle_from?: string;

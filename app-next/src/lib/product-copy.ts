@@ -221,3 +221,9 @@ export const DRIVER_START_REST_LABEL = "Start Rest";
 export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";
 /** Top half of the Start shift / Start work / Continue shift split. Logs driving work. */
 export const DRIVER_START_DRIVING_LABEL = "Start driving";
+/** Rest-only corner puck — question, not a fifth activity. */
+export const DRIVER_NAP_QUESTION_LABEL = "Taking a nap?";
+/** Compact Rest-only nap question. */
+export const DRIVER_NAP_QUESTION_COMPACT_LABEL = "Nap?";
+/** Rest-only corner puck after they tap the question. */
+export const DRIVER_ON_NAP_LABEL = "On nap";

@@ -18,8 +18,10 @@ import {
   declaredRestRangeKeys,
 } from "@/lib/declared-24h-rests";
 import {
+  addHoursToPerthDatetimeLocal,
   formatLast24hBreakRangeDisplay,
   isoToPerthDatetimeLocal,
+  LAST_24H_RANGE_EDITOR_HINT,
   perthDatetimeLocalToIso,
   validateLast24hBreakRange,
   type Last24hBreakRange,
@@ -208,7 +210,7 @@ function RestRangeRow({
                 <p className="text-sm font-semibold text-amber-950 dark:text-amber-50 tabular-nums mt-0.5">
                   {hintLabel}
                   <span className="block text-[11px] font-normal text-amber-900/80 dark:text-amber-200/80">
-                    Date saved — set start &amp; end times (Perth)
+                    Date saved — set start time (Perth); end fills 24 hours later
                   </span>
                 </p>
               ) : null}
@@ -223,7 +225,7 @@ function RestRangeRow({
               )}
             >
               <Clock className="w-4 h-4 shrink-0" aria-hidden />
-              Set start & end
+              Set start time
             </button>
           </>
         )}
@@ -243,8 +245,7 @@ function RestRangeRow({
           <DialogHeader>
             <DialogTitle>{label}</DialogTitle>
             <DialogDescription>
-              Enter the real start and end on the timeline (Perth time). Must be at least 24 continuous
-              hours.
+              {LAST_24H_RANGE_EDITOR_HINT} Must be at least 24 continuous hours.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -254,12 +255,17 @@ function RestRangeRow({
                 id={`rest-start-${label}`}
                 type="datetime-local"
                 value={startLocal}
-                onChange={(e) => setStartLocal(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setStartLocal(next);
+                  const filled = addHoursToPerthDatetimeLocal(next, 24);
+                  if (filled) setEndLocal(filled);
+                }}
                 className="flex h-11 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor={`rest-end-${label}`}>End</Label>
+              <Label htmlFor={`rest-end-${label}`}>End (24 hours later)</Label>
               <input
                 id={`rest-end-${label}`}
                 type="datetime-local"

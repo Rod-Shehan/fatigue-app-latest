@@ -14,10 +14,12 @@ export type RollingEvent = {
   type: string;
   dayIndex: number;
   driver?: "primary" | "second";
+  /** Rest qualifier — FRMS only. Not a diary activity. */
+  napFrom?: string;
 };
 
 export type TimelineSlice = {
-  events?: { time: string; type: string; driver?: "primary" | "second" }[];
+  events?: { time: string; type: string; driver?: "primary" | "second"; napFrom?: string }[];
 };
 
 export type RollingEventPoint = { time: string; type: string };
@@ -36,6 +38,7 @@ export function getEventsInTimeOrder(days: TimelineSlice[]): RollingEvent[] {
     (day.events ?? []).map((ev) => {
       const row: RollingEvent = { time: ev.time, type: ev.type, dayIndex };
       if (ev.driver) row.driver = ev.driver;
+      if (ev.napFrom) row.napFrom = ev.napFrom;
       return row;
     })
   );
@@ -49,10 +52,10 @@ export function getEventsInTimeOrder(days: TimelineSlice[]): RollingEvent[] {
  */
 export function getSheetOwnerEventsInOrder(
   days: TimelineSlice[]
-): { time: string; type: string }[] {
+): { time: string; type: string; napFrom?: string }[] {
   return getEventsInTimeOrder(days)
     .filter((ev) => ev.driver !== "second")
-    .map(({ time, type }) => ({ time, type }));
+    .map(({ time, type, napFrom }) => (napFrom ? { time, type, napFrom } : { time, type }));
 }
 
 /**

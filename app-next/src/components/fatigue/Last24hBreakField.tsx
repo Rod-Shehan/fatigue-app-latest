@@ -12,8 +12,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  addHoursToPerthDatetimeLocal,
   formatLast24hBreakRangeDisplay,
   isoToPerthDatetimeLocal,
+  LAST_24H_RANGE_EDITOR_HINT,
   perthDatetimeLocalToIso,
   validateLast24hBreakRange,
   type Last24hBreakRange,
@@ -96,8 +98,8 @@ export function Last24hBreakField({
         ) : null}
         <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-snug">
           {hasValue
-            ? "Absolute start and end of your last full 24+ hours off (resets 17h / 72h). Change until you sign the week."
-            : "Set the start and end time of your last continuous 24+ hours of non-work — not just a calendar day. Required once per week before compliance checks are complete."}
+            ? "Start and end of your last full 24+ hours off (resets 17h / 72h). End fills 24 hours after start unless you change it. Change until you sign the week."
+            : "Set when your last continuous 24+ hours of non-work started — not just a calendar day. End fills 24 hours later. Required once per week before compliance checks are complete."}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -110,7 +112,7 @@ export function Last24hBreakField({
             )}
           >
             <Clock className="w-4 h-4 shrink-0" aria-hidden />
-            {hasValue ? "Edit times" : "Set start & end"}
+            {hasValue ? "Edit times" : "Set start time"}
           </button>
           {hasValue ? (
             <Button
@@ -141,8 +143,7 @@ export function Last24hBreakField({
           <DialogHeader>
             <DialogTitle>{LAST_24H_BREAK_CHIP_LABEL}</DialogTitle>
             <DialogDescription>
-              Enter the real start and end of the break on the timeline (Perth time). Must be at least
-              24 continuous hours.
+              {LAST_24H_RANGE_EDITOR_HINT} Must be at least 24 continuous hours.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -152,12 +153,17 @@ export function Last24hBreakField({
                 id="last24h-start"
                 type="datetime-local"
                 value={startLocal}
-                onChange={(e) => setStartLocal(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setStartLocal(next);
+                  const filled = addHoursToPerthDatetimeLocal(next, 24);
+                  if (filled) setEndLocal(filled);
+                }}
                 className="flex h-11 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="last24h-end">End</Label>
+              <Label htmlFor="last24h-end">End (24 hours later)</Label>
               <input
                 id="last24h-end"
                 type="datetime-local"

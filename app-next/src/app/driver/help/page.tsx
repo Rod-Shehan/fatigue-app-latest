@@ -15,6 +15,8 @@ import {
   DRIVER_WORK_LABEL,
   DRIVER_REST_LABEL,
   DRIVER_OTHER_WORK_LABEL,
+  DRIVER_NAP_QUESTION_LABEL,
+  DRIVER_ON_NAP_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
   SHEET_ATTESTATION_WORKFLOW,
@@ -135,7 +137,8 @@ export default async function DriverHelpPage() {
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_REST_LABEL}</strong> — not driving
                 and not doing a job (eat, drink, nap). 30 min or less stays Rest on the breaks-from-driving row. 31 min
-                or more becomes non-work.
+                or more becomes non-work. While on Rest, a corner control asks {DRIVER_NAP_QUESTION_LABEL} — tap only if
+                you are napping (still Rest on the record; then {DRIVER_ON_NAP_LABEL}).
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_OTHER_WORK_LABEL}</strong> — not

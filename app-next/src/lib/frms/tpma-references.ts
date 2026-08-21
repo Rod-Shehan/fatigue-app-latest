@@ -3,6 +3,8 @@
  * Aligned with frms-engine frms-py-2 dual-layer — assurance only, not NHVR FRMSc.
  */
 
+import { DRIVER_NAP_QUESTION_LABEL } from "@/lib/product-copy";
+
 export const FRMS_TPMA_REFERENCES = [
   {
     id: "akerstedt-folkard-1990",
@@ -44,7 +46,7 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
     summary:
       "Teal is the TPMA floor — it moves when they sleep (inferred after End shift, or a nap tag). Grey is that floor plus acute task strain from driving and other work. A Start Rest dumps strain: grey steps down toward teal, teal stays put. That is the control measure working for a break.",
     factors: [
-      "Process S — homeostatic sleep pressure: rises during work and other work. Awake Rest and converted long Rest hold S flat. Main sleep is inferred in End-shift non-work (7 h sleep, 30 min travel each way, remaining home) — not a driver tap.",
+      `Process S — homeostatic sleep pressure: rises during work and other work. Awake Rest and converted long Rest hold S flat. Main sleep is inferred in End-shift non-work (7 h sleep, 30 min travel each way, remaining home) — not a driver tap. An in-shift nap is tagged only if the driver answers ${DRIVER_NAP_QUESTION_LABEL} on Rest.`,
       "Process C — two-harmonic circadian alertness (Folkard & Akerstedt): afternoon dip and deep circadian nadir",
       "Process W — sleep inertia after inferred main sleep or a nap tag, once they are back on duty. The last 30 min of an off-duty bout is commute, so inertia has usually worn off before Start driving.",
       "Task-strain index — charges while driving/loading; a 20-minute awake Rest clears about two-thirds of acute strain. This is the visible downward sawtooth on breaks.",

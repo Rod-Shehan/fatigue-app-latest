@@ -88,6 +88,32 @@ export function getEndShiftButtonChrome(): {
   };
 }
 
+/** Rest-only nap question — slate trim, not Rest amber and not End shift red. */
+export function getNapQuestionChrome(): {
+  trimClass: string;
+  surfaceClass: string;
+  textClass: string;
+} {
+  return {
+    trimClass: "bg-slate-300/80 dark:bg-slate-700/90",
+    surfaceClass: driverPuckNeutral,
+    textClass: "text-slate-900 dark:text-slate-100",
+  };
+}
+
+/** Tagged Rest nap — same family, slow pulse applied by the puck. */
+export function getOnNapChrome(): {
+  trimClass: string;
+  surfaceClass: string;
+  textClass: string;
+} {
+  return {
+    trimClass: "bg-slate-400/80 dark:bg-slate-600/90",
+    surfaceClass: driverPuckSlate,
+    textClass: "text-white",
+  };
+}
+
 /** Round Resume shift secondary — neutral grey trim matching hero border pattern. */
 export function getResumeShiftButtonChrome(): ReturnType<typeof getComplianceChrome> {
   return {

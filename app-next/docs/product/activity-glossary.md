@@ -51,8 +51,8 @@ Idle Start shift and Rest Start work both open the same Driving / Other work spl
 | Idle, Start shift chooser open | Split: **Start driving** / **Start Other Work** | — |
 | **Work** | **Stop Driving** | **End shift** |
 | **Work**, chooser open | Split: **Start Rest** / **Start Other Work** | **End shift** |
-| **Rest** | **Start work** | **End shift** |
-| **Rest**, chooser open | Split: **Start driving** / **Start Other Work** | **End shift** |
+| **Rest** | **Start work** | **End shift** + **Taking a nap?** (bottom-left; not a fifth activity) |
+| **Rest**, chooser open | Split: **Start driving** / **Start Other Work** | **End shift** + **Taking a nap?** |
 | **Other work** | **Continue shift** | **End shift** |
 | **Other work**, chooser open | Split: **Start driving** / **Start Rest** | **End shift** |
 
@@ -71,6 +71,7 @@ Do not show Rest and Other work as two always-visible taps on Work. Do not add a
 | Start driving | `work` | Driving. Same 7h rest gate as Start shift when idle. From Start shift, Start work, or Continue shift. |
 | Continue shift | *(nothing)* | Chooser only — from Other work |
 | Start Rest | `break` | Existing 30 min floor: 30 min stays Rest; 31+ becomes **non-work**. From Stop Driving or Continue shift. |
+| Taking a nap? | *(qualifier on Rest)* | Rest-only corner. Sets `napFrom` on the open Rest for FRMS. Diary stays Rest. Compact **Nap?**. Active **On nap**. |
 | Start Other Work | `other_work` | Break from driving on the sheet. Never convert to non-work. Counts toward 20 min / 5h. Still work time for 168h. From Start shift, Start work, or Stop Driving. |
 | End shift | `stop` | Unchanged — starts **non-work** |
 | Stop Driving | *(nothing)* | Chooser only |

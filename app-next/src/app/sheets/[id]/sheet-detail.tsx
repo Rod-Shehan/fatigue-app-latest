@@ -35,7 +35,7 @@ import { ComplianceAlertBar, ComplianceNoticeBar } from "@/components/fatigue/Co
 import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialog";
 import type { ComplianceFixRoute } from "@/lib/compliance-fix-routes";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
-import LogBar from "@/components/fatigue/LogBar";
+import { patchOpenRestNapFrom } from "@/lib/rest-nap";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
 import { EndShiftCorrectionDialog } from "@/components/fatigue/EndShiftCorrectionDialog";
 import { DriverGearDrawer } from "@/components/driver/DriverGearDrawer";
@@ -1699,6 +1699,24 @@ export function SheetDetail({
     parkDeviceAndScheduleSave,
   ]);
 
+  const handleSetRestNap = useCallback(
+    (on: boolean) => {
+      if (driverContentLocked) return;
+      setSheetData((prev) => {
+        const patchedDays = patchOpenRestNapFrom(
+          prev.days,
+          on ? new Date().toISOString() : null
+        );
+        if (patchedDays === prev.days) return prev;
+        const next = { ...prev, days: patchedDays };
+        sheetDataRef.current = next;
+        return next;
+      });
+      void parkDeviceAndScheduleSave().catch(() => {});
+    },
+    [driverContentLocked, parkDeviceAndScheduleSave]
+  );
+
   const handleEndShiftFinishDayChange = useCallback(
     (ymd: string) => {
       setEndShiftDialog((prev) => {
@@ -2136,6 +2154,7 @@ export function SheetDetail({
             priorTimelineSlices={priorTimelineSlices}
             onLogEvent={handleLogEvent}
             onEndShiftRequest={handleEndShiftRequest}
+            onSetRestNap={handleSetRestNap}
             workRelevantComplianceMessages={prospectiveLogMessages}
             complianceCheckResults={complianceResults}
             prospectiveRouteHint={prospectiveRouteHint}

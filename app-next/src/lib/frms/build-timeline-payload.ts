@@ -10,8 +10,8 @@ import { getPerthMidnightUtcMs, getSheetDayDateString } from "@/lib/weeks";
 import {
   blockOverlapsInferredSleep,
   inferMainSleepWindowsFromEvents,
-  type FrmsSleepWindow,
 } from "@/lib/frms/infer-off-duty-sleep";
+import { restNapOverlapsBlock, taggedRestNapWindowsFromEvents } from "@/lib/rest-nap";
 
 export type FrmsTimelinePayload = {
   schema_version: 1;
@@ -148,8 +148,12 @@ function blockFlags(
   return { is_work, is_rest, is_other_work, is_nap, ...(sub_type ? { sub_type } : {}) };
 }
 
-function collectDiaryEvents(weekMap: Map<string, { days: string }>): Array<{ time: string; type: string }> {
-  const events: Array<{ time: string; type: string }> = [];
+function collectDiaryEvents(weekMap: Map<string, { days: string }>): Array<{
+  time: string;
+  type: string;
+  napFrom?: string;
+}> {
+  const events: Array<{ time: string; type: string; napFrom?: string }> = [];
   const sortedWeeks = Array.from(weekMap.keys()).sort();
   for (const weekKey of sortedWeeks) {
     const weekData = weekMap.get(weekKey);
@@ -158,19 +162,28 @@ function collectDiaryEvents(weekMap: Map<string, { days: string }>): Array<{ tim
     for (const raw of days) {
       const day = raw as DayData;
       for (const ev of day.events ?? []) {
-        if (ev?.time && ev?.type) events.push({ time: ev.time, type: ev.type });
+        if (!ev?.time || !ev?.type) continue;
+        const napFrom =
+          typeof (ev as { napFrom?: unknown }).napFrom === "string"
+            ? (ev as { napFrom: string }).napFrom
+            : undefined;
+        events.push(napFrom ? { time: ev.time, type: ev.type, napFrom } : { time: ev.time, type: ev.type });
       }
     }
   }
   return events;
 }
 
-function applyInferredSleep(
+function applyNapFlags(
   flags: ReturnType<typeof blockFlags>,
-  inferredSleep: boolean
+  inferredSleep: boolean,
+  taggedNap: boolean
 ): ReturnType<typeof blockFlags> {
-  if (!inferredSleep || flags.is_work || flags.is_other_work) return flags;
-  return { ...flags, is_nap: true, is_rest: true, sub_type: "nap" };
+  if (flags.is_work || flags.is_other_work) return flags;
+  if (taggedNap || inferredSleep) {
+    return { ...flags, is_nap: true, is_rest: true, sub_type: "nap" };
+  }
+  return flags;
 }
 
 export function buildFrmsTimelinePayload(input: {
@@ -211,10 +224,9 @@ export function buildFrmsTimelinePayload(input: {
   const horizon_from_ms = alignToBlockStartMs(now - fourteenDaysMs);
   const horizon_to_ms = alignToBlockStartMs(now + sevenDaysMs);
 
-  const sleepWindows: FrmsSleepWindow[] = inferMainSleepWindowsFromEvents(
-    collectDiaryEvents(input.weekMap),
-    horizon_to_ms
-  );
+  const diaryEvents = collectDiaryEvents(input.weekMap);
+  const sleepWindows = inferMainSleepWindowsFromEvents(diaryEvents, horizon_to_ms);
+  const taggedNapWindows = taggedRestNapWindowsFromEvents(diaryEvents, now, horizon_to_ms);
 
   const timeline_blocks: FrmsTimelinePayload["timeline_blocks"] = [];
   for (let t = horizon_from_ms; t <= horizon_to_ms; t += blockMs) {
@@ -222,6 +234,7 @@ export function buildFrmsTimelinePayload(input: {
     const counts = blockCounts.get(start_ms);
     const alertness_level = alertnessByBlock.get(start_ms);
     const inferredSleep = blockOverlapsInferredSleep(start_ms, blockMs, sleepWindows);
+    const taggedNap = restNapOverlapsBlock(start_ms, blockMs, taggedNapWindows);
     if (!counts) {
       const elapsedUnlogged = start_ms <= now;
       timeline_blocks.push({
@@ -241,7 +254,7 @@ export function buildFrmsTimelinePayload(input: {
     }
     timeline_blocks.push({
       start_ms,
-      ...applyInferredSleep(blockFlags(counts, inferredSleep), inferredSleep),
+      ...applyNapFlags(blockFlags(counts, inferredSleep), inferredSleep, taggedNap),
       ...(alertness_level ? { alertness_level } : {}),
     });
   }

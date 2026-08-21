@@ -13,6 +13,20 @@
     animation: driver-action-ring-spin 14s linear infinite;
   }
 
+  @keyframes driver-nap-puck-pulse {
+    0%,
+    100% {
+      filter: brightness(1);
+    }
+    50% {
+      filter: brightness(1.18);
+    }
+  }
+
+  .animate-driver-nap-puck {
+    animation: driver-nap-puck-pulse 2.4s ease-in-out infinite;
+  }
+
   .fleet-heatmap-scroll {
     scrollbar-width: thin;
     scrollbar-color: rgb(148 163 184 / 0.55) transparent;
@@ -266,5 +280,8 @@ html.driver-immersive body {
   .driver-puck-face:active:not(:disabled) {
     transform: none;
     transition: none;
+  }
+  .animate-driver-nap-puck {
+    animation: none;
   }
 }

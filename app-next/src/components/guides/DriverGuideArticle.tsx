@@ -15,6 +15,9 @@ import {
   DRIVER_WORK_LABEL,
   DRIVER_REST_LABEL,
   DRIVER_OTHER_WORK_LABEL,
+  DRIVER_NAP_QUESTION_LABEL,
+  DRIVER_NAP_QUESTION_COMPACT_LABEL,
+  DRIVER_ON_NAP_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
 } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
@@ -151,7 +154,7 @@ export function DriverGuideArticle() {
 │   then split:               │
 │ [ ${DRIVER_START_REST_LABEL} ]              │
 │ [ ${DRIVER_START_OTHER_WORK_LABEL} ]        │
-│           [ ${DRIVER_END_SHIFT_LABEL} ]     │
+│ [ ${DRIVER_NAP_QUESTION_LABEL} ] [ ${DRIVER_END_SHIFT_LABEL} ] │
 └─────────────────────────────┘`}
         </GuideDiagram>
         <TwoColTable
@@ -162,6 +165,7 @@ export function DriverGuideArticle() {
             [DRIVER_CONTINUE_SHIFT_LABEL, "On Other work: choose Start driving or Start Rest. Does not log by itself."],
             [DRIVER_STOP_DRIVING_LABEL, "You have stopped driving. Still on shift. Not End shift."],
             [DRIVER_START_REST_LABEL, "Sit still — eat, drink, nap. 31 minutes or more becomes non-work"],
+            [DRIVER_NAP_QUESTION_LABEL, `Bottom-left, only on Rest. Not in the hero. Tap once if you are napping — still Rest on the record. Compact: ${DRIVER_NAP_QUESTION_COMPACT_LABEL}. After tap: ${DRIVER_ON_NAP_LABEL} (tap again to clear).`],
             [DRIVER_START_OTHER_WORK_LABEL, "Not driving, still a job — load, forklift, tyre, paperwork, fuel"],
             [DRIVER_END_SHIFT_LABEL, "You finish work — enter finish time and end km"],
           ]}
@@ -189,6 +193,10 @@ export function DriverGuideArticle() {
           The timer on the ring shows how long this stretch has been open, with a small note under it for where you are
           now ({DRIVER_WORK_LABEL}, {DRIVER_REST_LABEL}, or {DRIVER_OTHER_WORK_LABEL}) so Start Rest is not confused with
           Other work.
+        </p>
+        <p className="mt-2">
+          While you are on Rest, a corner control asks {DRIVER_NAP_QUESTION_LABEL} It is not in the hero split. Tap
+          it only if you are napping — the record stays Rest. It then shows {DRIVER_ON_NAP_LABEL}. Tap again to clear.
         </p>
         <p className="mt-2">
           Then tap again within a few seconds when the button pulses — that second tap is what records the event (
@@ -309,8 +317,9 @@ export function DriverGuideArticle() {
           <li>Shift pattern — Day (A) or Night (B)</li>
           <li>Solo or Two-up, and the relief driver&apos;s name</li>
           <li>
-            Last 2 or 4 × 24 hour non-work breaks — each with start and end times (week record —
-            under crew, above route setup). Shown when the app needs them. The most recent end also
+            Last 2 or 4 × 24 hour non-work breaks — set the start time for each (week record —
+            under crew, above route setup). End fills 24 hours later; change it only if the rest ran
+            longer. Shown when the app needs them. The most recent end also
             resets short-horizon rules. Change them until you sign; after sign-off only your manager
             can amend. If you are already on shift, tap{" "}
             <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the upcoming compliance banner, Work
@@ -536,6 +545,7 @@ export function DriverGuideArticle() {
           rows={[
             ["Work", "Driving, or the main on-duty stretch"],
             [DRIVER_REST_LABEL, "Not driving and not doing a job task (eat, drink, nap). 31+ min becomes non-work"],
+            [DRIVER_NAP_QUESTION_LABEL, `Only on Rest, bottom-left. Not a new activity. After tap: ${DRIVER_ON_NAP_LABEL}`],
             [DRIVER_OTHER_WORK_LABEL, "Not driving, still a job (load, forklift, tyre, paperwork, fuel). Break from driving; never non-work"],
             ["Non-work", "Off the job / End shift / sleep"],
             [

@@ -19,6 +19,15 @@ export function perthDatetimeLocalToIso(local: string): string | null {
   return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
 }
 
+/** Add whole hours to a Perth `datetime-local` value (no DST in Perth). */
+export function addHoursToPerthDatetimeLocal(local: string, hours: number): string {
+  const iso = perthDatetimeLocalToIso(local);
+  if (!iso) return "";
+  const ms = Date.parse(iso) + hours * 3600_000;
+  if (!Number.isFinite(ms)) return "";
+  return isoToPerthDatetimeLocal(new Date(ms).toISOString());
+}
+
 /** UTC ISO → `datetime-local` string in Perth wall time. */
 export function isoToPerthDatetimeLocal(iso: string): string {
   const ms = Date.parse(iso);
@@ -72,6 +81,9 @@ export function formatLast24hBreakRangeDisplay(startIso: string, endIso: string)
   };
   return `${fmt(startIso)} → ${fmt(endIso)}`;
 }
+
+export const LAST_24H_RANGE_EDITOR_HINT =
+  "Set when the break started (Perth). End is filled 24 hours later — change it only if the rest ran longer.";
 
 /** Absolute end of declared ≥24h break → AMI soft-reset instant (ms), or null. */
 export function last24hBreakEndMsFromIso(iso: string | null | undefined): number | null {

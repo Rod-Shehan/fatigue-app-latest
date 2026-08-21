@@ -26,6 +26,8 @@ export type DayEventDraft = {
   time: string;
   type: string;
   driver?: "primary" | "second";
+  /** Rest qualifier — FRMS only. Strip when the type is no longer Rest. */
+  napFrom?: string;
 };
 
 /** Event types drivers may add or change when correcting a day. */
@@ -128,7 +130,14 @@ export function DayEventsEditor({
   };
 
   const updateAt = (eventIndex: number, patch: Partial<DayEventDraft>) => {
-    onChange(events.map((item, j) => (j === eventIndex ? { ...item, ...patch } : item)));
+    onChange(
+      events.map((item, j) => {
+        if (j !== eventIndex) return item;
+        const next = { ...item, ...patch };
+        if (patch.type && patch.type !== "break") delete next.napFrom;
+        return next;
+      })
+    );
   };
 
   return (
@@ -307,7 +316,7 @@ export function DayEventsEditor({
                 </li>
                 <li>
                   Declared <span className="font-medium text-slate-700 dark:text-slate-300">24 hour non-work breaks</span>{" "}
-                  (start and end times) are set above in this form — not as an event type here.
+                  (start time; end fills 24 hours later) are set above in this form — not as an event type here.
                 </li>
               </ul>
             </details>
