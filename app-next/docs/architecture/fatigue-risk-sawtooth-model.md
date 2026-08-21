@@ -48,6 +48,16 @@ Then: z-score with `DEFAULT_RISK_INDEX_STATS` → logistic → 0–100%.
 
 When only single-block diary fields exist, `inferCarryFromDiaryProxies()` uses `minutes_since_break` plus inferred recovery from zero work minutes. Full sawtooth accuracy improves when diary supplies sequential context per block.
 
+## Dual-layer Python engine (frms-py-2)
+
+When `FRMS_ENGINE=hybrid`, the chart baseline is **not** this TypeScript sawtooth. The Python engine (`frms-engine`, version `frms-py-2`) splits:
+
+1. **Biological TPMA** — Process S holds flat on awake Rest / non-work; exponential S recovery only on an explicit nap/sleep tag. Process W only after nap → work.
+2. **Task-strain index** — charges on driving and other work; a ~20-minute awake Rest clears about two-thirds of acute strain (the visible sawtooth).
+3. **Fusion** — combined score ≥ biological floor. Acute breaks cannot repay sleep debt.
+
+See `frms-engine/app/pipeline.py` and ADR 0003.
+
 ## Related
 
 - [ADR 0003](../adr/0003-prospective-risk-engine.md)

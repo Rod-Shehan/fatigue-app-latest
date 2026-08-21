@@ -46,19 +46,52 @@ describe("buildFrmsTimelinePayload", () => {
         non_work: Array(1440).fill(false),
       }),
     ]);
-    const weekMap = new Map([["2026-06-07", { days }]]);
+    const weekStarting = "2026-08-16";
+    const weekMap = new Map([[weekStarting, { days }]]);
     const payload = buildFrmsTimelinePayload({
       driverName: "Test Driver",
       jurisdictionCode: "WA_OSH_3132",
       driverType: "solo",
-      weekStarting: "2026-06-07",
+      weekStarting,
       weekMap,
     });
-    const sundayYmd = "2026-06-07";
     const sundayBlock = payload.timeline_blocks.find(
-      (b) => b.start_ms === getPerthMidnightUtcMs(sundayYmd)
+      (b) => b.start_ms === getPerthMidnightUtcMs(weekStarting)
     );
     expect(sundayBlock?.alertness_level).toBe(5);
+  });
+
+  it("marks other_work overlay minutes as is_other_work, not driving", () => {
+    const work = Array(1440).fill(false);
+    const breaks = Array(1440).fill(false);
+    const nonWork = Array(1440).fill(false);
+    for (let m = 600; m < 615; m++) {
+      work[m] = true;
+      breaks[m] = true;
+    }
+    const days = JSON.stringify([
+      { work_time: work, breaks, non_work: nonWork },
+      ...Array(6).fill({
+        work_time: Array(1440).fill(false),
+        breaks: Array(1440).fill(false),
+        non_work: Array(1440).fill(false),
+      }),
+    ]);
+    const weekStarting = "2026-08-16";
+    const weekMap = new Map([[weekStarting, { days }]]);
+    const payload = buildFrmsTimelinePayload({
+      driverName: "Test Driver",
+      jurisdictionCode: "WA_OSH_3132",
+      driverType: "solo",
+      weekStarting,
+      weekMap,
+    });
+    const blockStart = getPerthMidnightUtcMs(weekStarting) + 600 * 60 * 1000;
+    const aligned = payload.timeline_blocks.find((b) => b.start_ms === blockStart);
+    expect(aligned?.is_other_work).toBe(true);
+    expect(aligned?.is_work).toBe(false);
+    expect(aligned?.is_nap).toBe(false);
+    expect(aligned?.sub_type).toBe("heavy_labor");
   });
 
   it("hashFrmsPayload is stable for identical payloads", () => {

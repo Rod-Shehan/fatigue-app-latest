@@ -22,6 +22,11 @@ export type FrmsTimelinePayload = {
     start_ms: number;
     is_work: boolean;
     is_rest: boolean;
+    /** Loading/admin on BREAKS FROM DRIVING — TSI γ 1.2 (or 0.5 if light_duty). */
+    is_other_work?: boolean;
+    /** Explicit nap/sleep only. Awake Rest never sets this. */
+    is_nap?: boolean;
+    sub_type?: "awake_rest" | "nap" | "heavy_labor" | "light_duty";
     /** Driver self-report 1–5 from day card for this Perth calendar day. */
     alertness_level?: 1 | 2 | 3 | 4 | 5;
   }>;
@@ -36,18 +41,33 @@ type DayWithIntervals = ComplianceDayData & {
 
 type BlockMinuteCounts = {
   work: number;
+  otherWork: number;
   break: number;
   nonWork: number;
+  nap: number;
 };
+
+function emptyCounts(): BlockMinuteCounts {
+  return { work: 0, otherWork: 0, break: 0, nonWork: 0, nap: 0 };
+}
 
 function isWorkIntervalType(type: string): boolean {
   const t = type.toLowerCase();
   return t === "work" || t === "driving";
 }
 
+function isOtherWorkIntervalType(type: string): boolean {
+  return type.toLowerCase() === "other_work";
+}
+
+function isNapIntervalType(type: string): boolean {
+  const t = type.toLowerCase();
+  return t === "nap" || t === "sleep";
+}
+
 function isRestIntervalType(type: string): boolean {
   const t = type.toLowerCase();
-  return t === "rest" || t === "sleep" || t === "break" || t === "non_work";
+  return t === "rest" || t === "break" || t === "non_work" || isNapIntervalType(t);
 }
 
 /** Merge explicit interval rows (when present on day JSON) into 15-minute block counts. */
@@ -59,12 +79,16 @@ function accumulateFromIntervals(
   for (const interval of intervals) {
     const start = alignToBlockStartMs(interval.startMs);
     const end = start + blockMs;
+    const nap = isNapIntervalType(interval.type);
+    const otherWork = isOtherWorkIntervalType(interval.type);
     const work = isWorkIntervalType(interval.type);
     const rest = isRestIntervalType(interval.type);
     for (let t = start; t < end; t += 60 * 1000) {
       const blockStart = alignToBlockStartMs(t);
-      const bucket = counts.get(blockStart) ?? { work: 0, break: 0, nonWork: 0 };
-      if (work) bucket.work += 1;
+      const bucket = counts.get(blockStart) ?? emptyCounts();
+      if (nap) bucket.nap += 1;
+      else if (otherWork) bucket.otherWork += 1;
+      else if (work) bucket.work += 1;
       else if (rest) bucket.nonWork += 1;
       else bucket.nonWork += 1;
       counts.set(blockStart, bucket);
@@ -85,19 +109,35 @@ function accumulateFromCoverageDay(
   for (let minute = 0; minute < normalized.work_time.length; minute++) {
     const minuteMs = dayStartMs + minute * 60 * 1000;
     const blockStart = alignToBlockStartMs(minuteMs);
-    const bucket = counts.get(blockStart) ?? { work: 0, break: 0, nonWork: 0 };
-    if (normalized.work_time[minute]) bucket.work += 1;
-    else if (normalized.breaks[minute]) bucket.break += 1;
-    else if (normalized.non_work[minute]) bucket.nonWork += 1;
+    const bucket = counts.get(blockStart) ?? emptyCounts();
+    const driving = Boolean(normalized.work_time[minute]);
+    const onBreaksRow = Boolean(normalized.breaks[minute]);
+    const nonWork = Boolean(normalized.non_work[minute]);
+    // other_work overlay: work_time + breaks (loading). Driving is work_time only.
+    if (driving && onBreaksRow) bucket.otherWork += 1;
+    else if (driving) bucket.work += 1;
+    else if (onBreaksRow) bucket.break += 1;
+    else if (nonWork) bucket.nonWork += 1;
     counts.set(blockStart, bucket);
   }
 }
 
-function blockFlags(counts: BlockMinuteCounts): { is_work: boolean; is_rest: boolean } {
-  const { work, break: brk, nonWork } = counts;
-  const is_work = work > 0 && work >= brk && work >= nonWork;
-  const is_rest = !is_work && (brk > 0 || nonWork > 0);
-  return { is_work, is_rest };
+function blockFlags(counts: BlockMinuteCounts): {
+  is_work: boolean;
+  is_rest: boolean;
+  is_other_work: boolean;
+  is_nap: boolean;
+  sub_type?: "awake_rest" | "nap" | "heavy_labor";
+} {
+  const { work, otherWork, break: brk, nonWork, nap } = counts;
+  const restish = brk + nonWork + nap;
+  const is_nap = nap > 0 && nap >= work && nap >= otherWork && nap >= brk && nap >= nonWork;
+  const is_other_work =
+    !is_nap && otherWork > 0 && otherWork >= work && otherWork >= restish;
+  const is_work = !is_nap && !is_other_work && work > 0 && work >= restish;
+  const is_rest = !is_work && !is_other_work && (is_nap || brk > 0 || nonWork > 0);
+  const sub_type = is_nap ? "nap" : is_other_work ? "heavy_labor" : is_rest ? "awake_rest" : undefined;
+  return { is_work, is_rest, is_other_work, is_nap, ...(sub_type ? { sub_type } : {}) };
 }
 
 export function buildFrmsTimelinePayload(input: {
@@ -144,10 +184,14 @@ export function buildFrmsTimelinePayload(input: {
     const counts = blockCounts.get(start_ms);
     const alertness_level = alertnessByBlock.get(start_ms);
     if (!counts) {
+      const elapsedUnlogged = start_ms <= now;
       timeline_blocks.push({
         start_ms,
         is_work: false,
-        is_rest: false,
+        is_rest: elapsedUnlogged,
+        is_other_work: false,
+        is_nap: false,
+        ...(elapsedUnlogged ? { sub_type: "awake_rest" as const } : {}),
         ...(alertness_level ? { alertness_level } : {}),
       });
       continue;

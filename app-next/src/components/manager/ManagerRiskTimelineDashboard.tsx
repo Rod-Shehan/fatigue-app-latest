@@ -566,7 +566,7 @@ export function ManagerRiskTimelineDashboard({
             <p className="text-slate-500 dark:text-slate-400">{chartHelp.shaded}</p>
             <div>
               <p className="font-semibold text-slate-800 dark:text-slate-100">
-                References ({usesFrmsHelp ? "TPMA · frms-py-1" : "model v1"})
+                References ({usesFrmsHelp ? "TPMA · frms-py-2" : "model v1"})
               </p>
               <p className="mt-1 text-slate-500 dark:text-slate-400">{chartHelp.referencesNote}</p>
               <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] text-slate-500 dark:text-slate-400">

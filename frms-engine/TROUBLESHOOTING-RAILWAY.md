@@ -92,7 +92,7 @@ Replace `YOUR-DOMAIN` and `YOUR-KEY`:
 # 1. Health (no auth)
 Invoke-RestMethod https://YOUR-DOMAIN/health
 
-# Expected: status=ok, engine=frms-py-1
+# Expected: status=ok, engine=frms-py-2
 
 # 2. Risk profile (auth required)
 $headers = @{ Authorization = "Bearer YOUR-KEY"; "Content-Type" = "application/json" }

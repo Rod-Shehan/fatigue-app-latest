@@ -7,6 +7,16 @@ export type FrmsPythonSnapshot = {
   model_pct?: number;
   combined_pct: number;
   band?: string;
+  process_s?: number;
+  process_c?: number;
+  process_w?: number;
+  tpma_biological_impairment?: number;
+  task_strain_index?: number;
+  effective_combined_risk?: number;
+  is_nap?: boolean;
+  activity_label?: string;
+  task_strain_relief_active?: boolean;
+  biological_sleep_deprived?: boolean;
 };
 
 export type FrmsPythonResponse = {

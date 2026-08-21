@@ -159,7 +159,7 @@ model FrmsProfileRun {
   horizonFromMs   BigInt
   horizonToMs     BigInt
   timezone        String    @default("Australia/Perth")
-  engineVersion   String    /// e.g. "frms-py-1"
+  engineVersion   String    /// e.g. "frms-py-2"
   modelVersion    String?   /// xgboost artifact id
   inputHash       String    /// sha256(canonical payload)
   status          String    @default("pending") // pending | ready | failed
@@ -358,7 +358,7 @@ import {
 } from "@/lib/frms/build-timeline-payload";
 import { callFrmsPython } from "@/lib/frms/python-client";
 
-const ENGINE_VERSION = "frms-py-1";
+const ENGINE_VERSION = "frms-py-2";
 
 export async function runFrmsAndPersist(
   prisma: PrismaClient,

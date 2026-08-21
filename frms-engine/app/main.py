@@ -8,16 +8,20 @@ from typing import Any
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from app.constants import ENGINE_VERSION, MODEL_VERSION
 from app.math_engine import calculate_frms_metrics
 from app.schemas import BlockEnrichment, TimelineBlock
 
-app = FastAPI(title="Circadia FRMS Engine", version="frms-py-1")
+app = FastAPI(title="Circadia FRMS Engine", version=ENGINE_VERSION)
 
 
 class TimelineBlockIn(BaseModel):
     start_ms: int
     is_work: bool
     is_rest: bool
+    is_other_work: bool = False
+    is_nap: bool = False
+    sub_type: str | None = None
     enrichment: BlockEnrichment | None = None
     alertness_level: int | None = Field(None, ge=1, le=5)
 
@@ -48,7 +52,8 @@ def verify_api_key(authorization: str | None = Header(default=None)) -> None:
 def health() -> dict[str, str | bool]:
     return {
         "status": "ok",
-        "engine": "frms-py-1",
+        "engine": ENGINE_VERSION,
+        "model": MODEL_VERSION,
         "auth_configured": bool(os.environ.get("FRMS_PYTHON_API_KEY", "")),
     }
 
@@ -63,6 +68,9 @@ def risk_profile(
             start_ms=b.start_ms,
             is_work=b.is_work,
             is_rest=b.is_rest,
+            is_other_work=b.is_other_work,
+            is_nap=b.is_nap,
+            sub_type=b.sub_type,
             enrichment=b.enrichment,
             alertness_level=b.alertness_level,
         )
@@ -76,25 +84,15 @@ def risk_profile(
     )
 
     return {
-        "engine_version": "frms-py-1",
-        "model_version": "tpma-progressive-compression-1",
+        "engine_version": ENGINE_VERSION,
+        "model_version": MODEL_VERSION,
         "prospective_register": {
             "baselineHeadroomHours": 0.0,
             "entries": [item.model_dump() for item in register],
             "worstLevel": _worst_level(register),
             "driverHint": _driver_hint(register),
         },
-        "snapshots": [
-            {
-                "block_start_ms": s.block_start_ms,
-                "process_s_pct": s.process_s_pct,
-                "process_c_pct": s.process_c_pct,
-                "model_pct": s.model_pct,
-                "combined_pct": s.combined_pct,
-                "band": s.band,
-            }
-            for s in snapshots
-        ],
+        "snapshots": [s.model_dump() for s in snapshots],
     }
 
 

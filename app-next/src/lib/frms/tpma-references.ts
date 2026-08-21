@@ -1,6 +1,6 @@
 /**
  * TPMA (Three-Process Model of Alertness) references for manager risk timeline.
- * Aligned with frms-engine/app/math_engine.py — assurance only, not NHVR FRMSc.
+ * Aligned with frms-engine frms-py-2 dual-layer — assurance only, not NHVR FRMSc.
  */
 
 export const FRMS_TPMA_REFERENCES = [
@@ -38,20 +38,21 @@ export const FRMS_TPMA_REFERENCES = [
 /** In-app explanation when chart is fed by FrmsRiskSnapshot (Python TPMA). */
 export const FRMS_RISK_TIMELINE_CHART_HELP = {
   intro:
-    "Each 15-minute block gets a 0–100% TPMA impairment score from the Python FRMS engine. Prospective assurance only — not a compliance breach score, fleet average, or NHVR FRMSc certification.",
+    "Each 15-minute block gets a 0–100% dual-layer impairment score (biological TPMA floor plus acute task strain). Prospective assurance only — not a compliance breach score, fleet average, or NHVR FRMSc certification.",
   baseline: {
     title: "Expected baseline (grey line)",
     summary:
-      "Three-Process Model (TPMA) impairment from the driver’s logged diary timeline — work, rest, and break blocks across the horizon. No cab camera in this curve.",
+      "Three-Process Model (TPMA) biological floor from the driver’s logged diary, plus a fast task-strain overlay so awake Rest shows a downward sawtooth without pretending to repay sleep debt. No cab camera in this curve.",
     factors: [
-      "Process S — homeostatic sleep pressure: rises during work/wake (dynamic χ_w with progressive workload μ), falls during rest with daytime and heat/cold modifiers",
+      "Process S — homeostatic sleep pressure: rises during work and other work. Awake Rest and non-work hold S flat (no artificial decay). Exponential recovery only on an explicit nap/sleep tag.",
       "Process C — two-harmonic circadian alertness (Folkard & Akerstedt): afternoon dip and deep circadian nadir",
-      "Process W — sleep inertia on waking after qualifying rest",
+      "Process W — sleep inertia only after nap → work. An awake Rest does not create inertia.",
+      "Task-strain index — charges while driving/loading; a 20-minute awake Rest clears about two-thirds of acute strain. This is the visible downward sawtooth on breaks.",
       "Progressive compression — continuous on-duty legs tracked for 5.5 h / 7 h / 10 h coaching thresholds",
       "Driver self-reported alertness (1–5 from Set up day) — subjective impairment bump on all blocks that calendar day",
     ],
     mapping:
-      "Net alertness capacity C − S − W is mapped to 0–100% impairment, then adjusted for self-reported alertness (higher = higher fatigue risk). Bands: low ≤35%, monitor ≤54%, elevated ≤74%, critical ≥75%.",
+      "Biological TPMA impairment (1 − C_alert + S + W) is the floor. Acute task strain can raise the combined 0–100% score by at most 20% of the remaining headroom — it cannot pull the line below sleep debt. Bands: low ≤35%, monitor ≤54%, elevated ≤74%, critical ≥75%.",
     horizon:
       "Computed for past and future 15-minute blocks from attested sheets so you can see the expected trajectory; future segments use declared diary context where the app has it.",
   },
@@ -69,5 +70,5 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
   shaded:
     "Amber shading marks intervals where live risk sits above the expected baseline for that block.",
   referencesNote:
-    "TPMA constants and progressive thresholds are implemented in frms-engine (frms-py-1). Assurance coaching only — not statutory compliance verdicts.",
+    "TPMA dual-layer (frms-py-2): biological floor plus task-strain overlay. Assurance coaching only — not statutory compliance verdicts.",
 } as const;

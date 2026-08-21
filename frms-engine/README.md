@@ -1,6 +1,8 @@
 # Circadia FRMS Engine (Python / FastAPI)
 
-Three-Process Model of Alertness (TPMA) microservice for manager assurance — **not** NHVR FRMSc compliance.
+Three-Process Model of Alertness (TPMA) dual-layer microservice for manager assurance — **not** NHVR FRMSc compliance.
+
+**frms-py-2:** biological Process S holds during awake Rest / non-work (decay only on nap/sleep). Acute **task-strain index** charges on work / other work and discharges on Rest so the chart can sawtooth without faking sleep recovery.
 
 ## Endpoints
 
@@ -50,7 +52,7 @@ pytest -q
 4. **Variables:**
    - `FRMS_PYTHON_API_KEY` = generate a long random string (save it — you need the same on Vercel)
 5. **Settings → Networking → Generate Domain** → copy URL (e.g. `https://frms-engine-production.up.railway.app`)
-6. Confirm health: `https://YOUR-DOMAIN/health` → `{"status":"ok","engine":"frms-py-1"}`
+6. Confirm health: `https://YOUR-DOMAIN/health` → `{"status":"ok","engine":"frms-py-2"}`
 
 **Deploy looks wrong?** See [TROUBLESHOOTING-RAILWAY.md](./TROUBLESHOOTING-RAILWAY.md).
 

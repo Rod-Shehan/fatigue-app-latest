@@ -7,7 +7,7 @@ import {
 import { callFrmsPython } from "@/lib/frms/python-client";
 import type { RiskRegisterResult } from "@/lib/risk-register";
 
-export const FRMS_ENGINE_VERSION = "frms-py-1";
+export const FRMS_ENGINE_VERSION = "frms-py-2";
 
 export type FrmsRunArgs = {
   driverName: string;
