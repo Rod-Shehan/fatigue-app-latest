@@ -11,11 +11,11 @@ describe("mergeFrmsSnapshotsWithLiveBlocks", () => {
   const pastBlock = nowBlock - blockMs;
   const futureBlock = nowBlock + blockMs;
 
-  it("maps combinedPct to baseline and past live when no device block", () => {
+  it("maps combinedPct to baseline and recovers the biological floor from TSI", () => {
     const series = mergeFrmsSnapshotsWithLiveBlocks(
       "Rod Shehan",
       [
-        { blockStartMs: BigInt(pastBlock), combinedPct: 42, processSPct: 30, processCPct: 20, band: "monitor" },
+        { blockStartMs: BigInt(pastBlock), combinedPct: 58, processSPct: 30, processCPct: 20, modelPct: 80, band: "monitor" },
         { blockStartMs: BigInt(nowBlock), combinedPct: 55, processSPct: 40, processCPct: 25, band: "elevated" },
         { blockStartMs: BigInt(futureBlock), combinedPct: 38, processSPct: 25, processCPct: 18, band: "monitor" },
       ],
@@ -24,8 +24,9 @@ describe("mergeFrmsSnapshotsWithLiveBlocks", () => {
     );
 
     expect(series.blocks).toHaveLength(3);
-    expect(series.blocks[0].baselinePct).toBe(42);
-    expect(series.blocks[0].livePct).toBe(42);
+    expect(series.blocks[0].baselinePct).toBe(58);
+    expect(series.blocks[0].biologicalPct).toBeLessThan(58);
+    expect(series.blocks[0].livePct).toBe(58);
     expect(series.blocks[2].livePct).toBeUndefined();
     expect(series.blocks[1].isNow).toBe(true);
   });

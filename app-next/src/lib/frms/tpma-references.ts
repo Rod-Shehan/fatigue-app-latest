@@ -38,11 +38,11 @@ export const FRMS_TPMA_REFERENCES = [
 /** In-app explanation when chart is fed by FrmsRiskSnapshot (Python TPMA). */
 export const FRMS_RISK_TIMELINE_CHART_HELP = {
   intro:
-    "Each 15-minute block gets a 0–100% dual-layer impairment score (biological TPMA floor plus acute task strain). Prospective assurance only — not a compliance breach score, fleet average, or NHVR FRMSc certification.",
+    "Two diary lines: teal is sleep / biological (nap and End-shift sleep). Grey is combined risk, which sits on or above that floor because of task strain. Awake Rest closes the gap; sleep lowers both. Prospective assurance only — not a compliance score.",
   baseline: {
-    title: "Expected baseline (grey line)",
+    title: "Sleep / biological (teal) and combined risk (grey)",
     summary:
-      "Three-Process Model (TPMA) biological floor from the driver’s logged diary, plus a fast task-strain overlay so awake Rest shows a downward sawtooth without pretending to repay sleep debt. No cab camera in this curve.",
+      "Teal is the TPMA floor — it moves when they sleep (inferred after End shift, or a nap tag). Grey is that floor plus acute task strain from driving and other work. A Start Rest dumps strain: grey steps down toward teal, teal stays put. That is the control measure working for a break.",
     factors: [
       "Process S — homeostatic sleep pressure: rises during work and other work. Awake Rest and converted long Rest hold S flat. Main sleep is inferred in End-shift non-work (7 h sleep, 30 min travel each way, remaining home) — not a driver tap.",
       "Process C — two-harmonic circadian alertness (Folkard & Akerstedt): afternoon dip and deep circadian nadir",
@@ -52,7 +52,7 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
       "Driver self-reported alertness (1–5 from Set up day) — subjective impairment bump on all blocks that calendar day",
     ],
     mapping:
-      "Biological TPMA impairment (1 − C_alert + S + W) is the floor. Acute task strain can raise the combined 0–100% score by at most 20% of the remaining headroom — it cannot pull the line below sleep debt. Bands: low ≤35%, monitor ≤54%, elevated ≤74%, critical ≥75%.",
+      "Grey cannot fall below teal. Rest cannot repay sleep debt. Nap / inferred main sleep lowers teal (and grey follows). Bands on combined risk: low ≤35%, monitor ≤54%, elevated ≤74%, critical ≥75%.",
     horizon:
       "Computed for past and future 15-minute blocks from attested sheets so you can see the expected trajectory; future segments use declared diary context where the app has it.",
   },
@@ -68,7 +68,7 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
       "Filled for blocks up to right now; later blocks appear as diary context and device data arrive (or in demo controls when FRMS cache is empty).",
   },
   shaded:
-    "Amber shading marks intervals where live risk sits above the expected baseline for that block.",
+    "Amber shading marks intervals where live risk sits above the grey combined line.",
   referencesNote:
     "TPMA dual-layer (frms-py-2): biological floor plus task-strain overlay. Assurance coaching only — not statutory compliance verdicts.",
 } as const;

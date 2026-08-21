@@ -95,7 +95,10 @@ function chartRows(blocks: RiskTimelineBlock[], nowBlockStartMs: number) {
     ...b,
     time: b.label,
     livePct: b.livePct ?? null,
+    biologicalPct: b.biologicalPct ?? null,
     prospectivePct: b.blockStartMs > nowBlockStartMs ? b.baselinePct : null,
+    prospectiveBiologicalPct:
+      b.blockStartMs > nowBlockStartMs && b.biologicalPct != null ? b.biologicalPct : null,
   }));
 }
 
@@ -106,6 +109,7 @@ const CHART_THEME = {
     crossoverFill: "#fef3c7",
     crossoverOpacity: 0.4,
     baselineStroke: "#94a3b8",
+    biologicalStroke: "#0f766e",
     nowLine: "#0d9488",
     nowLabel: "#0d9488",
     dotStroke: "#ffffff",
@@ -120,6 +124,7 @@ const CHART_THEME = {
     crossoverFill: "#f59e0b",
     crossoverOpacity: 0.12,
     baselineStroke: "#94a3b8",
+    biologicalStroke: "#2dd4bf",
     nowLine: "#2dd4bf",
     nowLabel: "#5eead4",
     dotStroke: "#0f172a",
@@ -233,6 +238,8 @@ export function ManagerRiskTimelineDashboard({
         : "Live risk narrative will appear as 15-minute blocks arrive.",
     [latestLiveBlock, driverName, latestCamera]
   );
+
+  const showBiologicalLine = usesFrmsHelp && feed.blocks.some((b) => b.biologicalPct != null);
 
   const liveStroke = latestLiveBlock?.livePct != null
     ? riskPercentToColor(latestLiveBlock.livePct)
@@ -384,11 +391,13 @@ export function ManagerRiskTimelineDashboard({
                 formatter={(value: number, name: string) => {
                   if (value == null) return ["—", name];
                   const label =
-                    name === "baselinePct"
-                      ? "Expected (baseline)"
-                      : name === "prospectivePct"
-                        ? "Projected risk (TPMA)"
-                        : "Live risk";
+                    name === "biologicalPct" || name === "prospectiveBiologicalPct"
+                      ? "Sleep / biological"
+                      : name === "baselinePct"
+                        ? "Combined risk (Rest + sleep)"
+                        : name === "prospectivePct"
+                          ? "Projected combined"
+                          : "Live risk";
                   return [`${value}%`, label];
                 }}
                 labelFormatter={(label) => `Block ${label} AWST`}
@@ -415,6 +424,31 @@ export function ManagerRiskTimelineDashboard({
                 strokeDasharray="4 4"
                 label={{ value: "Now", position: "top", fill: chart.nowLabel, fontSize: 10 }}
               />
+              {showBiologicalLine ? (
+                <Line
+                  type="monotone"
+                  dataKey="biologicalPct"
+                  name="biologicalPct"
+                  stroke={chart.biologicalStroke}
+                  strokeWidth={2}
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              ) : null}
+              {showBiologicalLine ? (
+                <Line
+                  type="monotone"
+                  dataKey="prospectiveBiologicalPct"
+                  name="prospectiveBiologicalPct"
+                  stroke={chart.biologicalStroke}
+                  strokeWidth={2}
+                  strokeDasharray="4 4"
+                  dot={false}
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+              ) : null}
               <Line
                 type="monotone"
                 dataKey="baselinePct"
@@ -506,9 +540,17 @@ export function ManagerRiskTimelineDashboard({
         />
 
         <div className="mt-2 flex flex-wrap gap-3 px-2 text-[10px] text-slate-500 dark:text-slate-400">
+          {showBiologicalLine ? (
+            <span className="inline-flex items-center gap-1" title="Nap and End-shift sleep lower this floor. Awake Rest does not.">
+              <span className="h-0.5 w-4 bg-teal-700 dark:bg-teal-400" aria-hidden /> Sleep / biological
+            </span>
+          ) : null}
           <span className="inline-flex items-center gap-1" title={chartHelp.baseline.summary}>
-            <span className="h-0.5 w-4 bg-slate-400" aria-hidden /> Expected baseline
-            <span className="text-slate-400 dark:text-slate-500">(diary-only expected %)</span>
+            <span className="h-0.5 w-4 bg-slate-400" aria-hidden />{" "}
+            {showBiologicalLine ? "Combined risk (Rest closes the gap)" : "Expected baseline"}
+            <span className="text-slate-400 dark:text-slate-500">
+              {showBiologicalLine ? "(task strain on top of sleep)" : "(diary-only expected %)"}
+            </span>
           </span>
           <span className="inline-flex items-center gap-1">
             <span className="h-0.5 w-4 border-b border-dashed border-slate-500" aria-hidden /> Projected

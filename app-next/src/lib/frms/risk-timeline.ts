@@ -23,12 +23,15 @@ import {
 } from "@/lib/frms/orchestrator";
 import type { StoredRiskBlockRow } from "@/lib/risk-block-timeline";
 import { getThisWeekSunday } from "@/lib/weeks";
+import { biologicalFloorPct } from "@/lib/frms/biological-floor";
 
 export type FrmsSnapshotRow = {
   blockStartMs: bigint;
   combinedPct: number;
   processSPct: number | null;
   processCPct: number | null;
+  /** Task-strain index 0–100 when stored by frms-py-2 (model_pct). */
+  modelPct?: number | null;
   band: string | null;
 };
 
@@ -59,6 +62,7 @@ export function mergeFrmsSnapshotsWithLiveBlocks(
     const stored = liveByBlock.get(ms);
     const hasCamera = stored?.fusionSources.includes("camera") ?? false;
     const baselinePct = snap.combinedPct;
+    const biologicalPct = biologicalFloorPct(snap.combinedPct, snap.modelPct);
     let livePct: number | undefined;
     if (stored?.livePct != null) {
       livePct = stored.livePct;
@@ -70,6 +74,7 @@ export function mergeFrmsSnapshotsWithLiveBlocks(
       blockStartMs: ms,
       label: formatBlockLabelPerth(ms),
       baselinePct,
+      biologicalPct,
       livePct,
       isNow: ms === nowBlock,
       hasCamera,
@@ -102,6 +107,7 @@ async function loadSnapshotsForRun(
       combinedPct: true,
       processSPct: true,
       processCPct: true,
+      modelPct: true,
       band: true,
     },
   });

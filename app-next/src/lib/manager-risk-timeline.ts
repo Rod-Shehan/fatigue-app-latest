@@ -24,8 +24,13 @@ export type RiskTimelineBlock = {
   blockStartMs: number;
   /** Short label for axis (Perth HH:mm). */
   label: string;
-  /** Expected trajectory from diary-only inputs (no camera); see RISK_TIMELINE_CHART_HELP. */
+  /** Expected combined trajectory from diary-only inputs (no camera). */
   baselinePct: number;
+  /**
+   * TPMA biological floor (sleep / nap). Combined risk (baselinePct) sits on or above this.
+   * Rest closes the gap (task strain); inferred sleep / nap lowers this floor.
+   */
+  biologicalPct?: number;
   /** Observed risk at this block — undefined until the block is received. */
   livePct?: number;
   /** True for the block containing regulatory "now". */
