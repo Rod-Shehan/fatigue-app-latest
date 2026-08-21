@@ -3,6 +3,7 @@
  * Add new settings/subnav/domain links here; tests enforce audience compatibility.
  */
 
+import { DRIVER_SETTINGS_SECTIONS } from "@/lib/driver-settings-sections";
 import type { NavLinkKind, NavSurface } from "@/lib/navigation/route-access";
 
 export type NavLinkEntry = {
@@ -53,6 +54,45 @@ export const DRIVER_SETTINGS_DRIVE_LINKS: NavLinkEntry[] = [
     title: "Route catalogue",
     description: "Saved run plans — pick on day setup or add your own",
     href: "/driver/routes",
+  },
+];
+
+export const DRIVER_SETTINGS_RECORD_LINKS: NavLinkEntry[] = DRIVER_SETTINGS_DRIVE_LINKS.filter(
+  (l) => l.id === "this-week" || l.id === "your-weeks" || l.id === "route-catalogue"
+);
+
+export const DRIVER_SETTINGS_HELP_LINKS: NavLinkEntry[] = DRIVER_SETTINGS_DRIVE_LINKS.filter(
+  (l) => l.id === "driver-guide" || l.id === "driver-help"
+);
+
+export const DRIVER_SETTINGS_ANCHOR_LINKS: NavLinkEntry[] = [
+  {
+    id: DRIVER_SETTINGS_SECTIONS.device.id,
+    surface: "driver-settings",
+    title: DRIVER_SETTINGS_SECTIONS.device.overviewTitle,
+    href: `#${DRIVER_SETTINGS_SECTIONS.device.id}`,
+    kind: "anchor",
+  },
+  {
+    id: DRIVER_SETTINGS_SECTIONS.delivery.id,
+    surface: "driver-settings",
+    title: DRIVER_SETTINGS_SECTIONS.delivery.overviewTitle,
+    href: `#${DRIVER_SETTINGS_SECTIONS.delivery.id}`,
+    kind: "anchor",
+  },
+  {
+    id: DRIVER_SETTINGS_SECTIONS.record.id,
+    surface: "driver-settings",
+    title: DRIVER_SETTINGS_SECTIONS.record.overviewTitle,
+    href: `#${DRIVER_SETTINGS_SECTIONS.record.id}`,
+    kind: "anchor",
+  },
+  {
+    id: DRIVER_SETTINGS_SECTIONS.account.id,
+    surface: "driver-settings",
+    title: DRIVER_SETTINGS_SECTIONS.account.overviewTitle,
+    href: `#${DRIVER_SETTINGS_SECTIONS.account.id}`,
+    kind: "anchor",
   },
 ];
 
@@ -191,6 +231,7 @@ export const MANAGER_DOMAIN_ANCHOR_LINKS: NavLinkEntry[] = [
 export const ALL_NAVIGATION_LINKS: NavLinkEntry[] = [
   ...DRIVER_SETTINGS_DRIVE_LINKS,
   ...DRIVER_SETTINGS_CONNECT_LINKS,
+  ...DRIVER_SETTINGS_ANCHOR_LINKS,
   ...DRIVER_HELP_FOOTER_LINKS,
   ...MANAGER_SUBNAV_WORKSPACE,
   ...MANAGER_SUBNAV_FLEET,

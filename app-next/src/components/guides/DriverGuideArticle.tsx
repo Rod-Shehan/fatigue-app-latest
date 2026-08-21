@@ -23,6 +23,7 @@ import {
   CHECKLIST_EMAIL_SETTINGS_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
 } from "@/lib/checklist";
+import { DRIVER_SETTINGS_SECTIONS } from "@/lib/driver-settings-sections";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -464,7 +465,7 @@ export function DriverGuideArticle() {
           <li>Dark mode — easier on the eyes at night.</li>
         </ul>
         <p className="mt-3 text-slate-500 dark:text-slate-400">
-          You can also set Dark mode and Voice alerts in Settings → Options.
+          You can also set Dark mode and Voice alerts in Settings → {DRIVER_SETTINGS_SECTIONS.device.title}.
         </p>
       </section>
 
@@ -472,20 +473,22 @@ export function DriverGuideArticle() {
         <h2 className={h2Class}>15. Settings</h2>
         <TwoColTable
           rows={[
-            ["Options", "Dark mode, Voice alerts"],
-            ["Device", "Install the app, back up / restore on this device"],
             [
-              CHECKLIST_EMAIL_SETTINGS_LABEL,
-              "Your address for Fitness for Work / Prestart / Load week PDFs — defaults to your sign-in email. Each person sets their own. Not the workshop address",
+              DRIVER_SETTINGS_SECTIONS.device.overviewTitle,
+              "Dark mode, voice alerts, install the app, backup on this device",
             ],
             [
-              "Workshop contact",
-              "Who receives vehicle fault reports (WAHVA) — name, company, email, phone",
+              DRIVER_SETTINGS_SECTIONS.delivery.overviewTitle,
+              `${CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to sign-in email) and Workshop contact (vehicle faults)`,
             ],
-            ["Records", "Past weeks that need your signature"],
-            ["Drive", "This week, Your weeks, Driver guide, How your record works, Route catalogue"],
-            ["Connect", "Messages, Manager sign-in"],
-            ["Account", "Change password, Sign out"],
+            [
+              DRIVER_SETTINGS_SECTIONS.record.overviewTitle,
+              "Weeks to sign, This week, Your weeks, Route catalogue, Driver guide, How your record works",
+            ],
+            [
+              DRIVER_SETTINGS_SECTIONS.account.overviewTitle,
+              "Messages, Manager sign-in, Change password, Log out",
+            ],
           ]}
         />
       </section>
@@ -514,7 +517,8 @@ export function DriverGuideArticle() {
             in trial — do not block Start shift). After a form is saved, use View to read it, or Redo / Add another for a
             new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) downloads a week pack per checklist type
             (FFW / Prestart / Load as separate files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL}{" "}
-            sends those PDFs to your address in Settings → {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to your sign-in email). Two-up drivers who are not responsible for the vehicle prestart can record
+            sends those PDFs to your address in Settings → {DRIVER_SETTINGS_SECTIONS.delivery.title} →{" "}
+            {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to your sign-in email). Two-up drivers who are not responsible for the vehicle prestart can record
             that on the Prestart form instead of inventing answers. Prestart is filed under the vehicle registration.
             Dimension & Load is one form per load (prime + every trailer/dolly on that load); Add another for the next
             load. Loader CoR stays separate (present sign, pending, or photo gap — no proxy).

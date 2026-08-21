@@ -19,11 +19,14 @@ export function MaintenanceContactSettingsPanel({
   title = "Workshop contact",
   className,
   showOutboundStatus = false,
+  hideHeading = false,
 }: {
   title?: string;
   className?: string;
   /** Ops detail — leave off on driver Settings. */
   showOutboundStatus?: boolean;
+  /** When nested in a framed Settings section. */
+  hideHeading?: boolean;
 }) {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -69,19 +72,36 @@ export function MaintenanceContactSettingsPanel({
 
   return (
     <section className={cn("space-y-3", className)}>
-      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-        <Wrench className="w-4 h-4" aria-hidden />
-        {title}
-      </h2>
-      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-        Who should receive vehicle fault reports (WAHVA — defects must be reported for repair). Name,
-        company, and email for your workshop or maintenance contact. Automatic email from Prestart is
-        not enabled yet — this stores the destination for the reporting pathway.
-      </p>
+      {hideHeading ? null : (
+        <>
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+            <Wrench className="w-4 h-4" aria-hidden />
+            {title}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Who should receive vehicle fault reports (WAHVA — defects must be reported for repair). Name,
+            company, and email for your workshop or maintenance contact. Automatic email from Prestart is
+            not enabled yet — this stores the destination for the reporting pathway.
+          </p>
+        </>
+      )}
       {query.isLoading ? (
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       ) : (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
+          {hideHeading ? (
+            <>
+              <p className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                <Wrench className="w-4 h-4" aria-hidden />
+                {title}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                Who should receive vehicle fault reports (WAHVA — defects must be reported for repair). Name,
+                company, and email for your workshop or maintenance contact. Automatic email from Prestart is
+                not enabled yet — this stores the destination for the reporting pathway.
+              </p>
+            </>
+          ) : null}
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label

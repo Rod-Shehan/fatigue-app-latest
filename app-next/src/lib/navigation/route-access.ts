@@ -3,6 +3,8 @@
  * Keep in sync with page-level gates (DriverAccessGate, getManagerSession redirects).
  */
 
+import { DRIVER_SETTINGS_SECTION_IDS, type DriverSettingsSectionId } from "@/lib/driver-settings-sections";
+
 export type RouteAudience = "public" | "driver" | "manager" | "owner" | "shared" | "anchor";
 
 export type ParsedHref =
@@ -22,6 +24,9 @@ export const MANAGER_PAGE_SECTION_IDS = [
 ] as const;
 
 export type ManagerPageSectionId = (typeof MANAGER_PAGE_SECTION_IDS)[number];
+
+export { DRIVER_SETTINGS_SECTION_IDS };
+export type { DriverSettingsSectionId };
 
 export function parseHref(href: string): ParsedHref {
   const trimmed = href.trim();
@@ -103,13 +108,19 @@ export function isLinkAllowedOnSurface(
     if (kind !== "anchor") {
       return { ok: false, reason: "Anchor href must use kind: anchor" };
     }
-    if (surface !== "manager-domains") {
-      return { ok: false, reason: "Anchors are only used on manager-domains surface" };
+    if (surface === "manager-domains") {
+      if (!MANAGER_PAGE_SECTION_IDS.includes(parsed.anchor as ManagerPageSectionId)) {
+        return { ok: false, reason: `Unknown section anchor #${parsed.anchor}` };
+      }
+      return { ok: true };
     }
-    if (!MANAGER_PAGE_SECTION_IDS.includes(parsed.anchor as ManagerPageSectionId)) {
-      return { ok: false, reason: `Unknown section anchor #${parsed.anchor}` };
+    if (surface === "driver-settings") {
+      if (!DRIVER_SETTINGS_SECTION_IDS.includes(parsed.anchor as DriverSettingsSectionId)) {
+        return { ok: false, reason: `Unknown section anchor #${parsed.anchor}` };
+      }
+      return { ok: true };
     }
-    return { ok: true };
+    return { ok: false, reason: "Anchors are only used on manager-domains or driver-settings" };
   }
 
   if (kind === "login-redirect") {

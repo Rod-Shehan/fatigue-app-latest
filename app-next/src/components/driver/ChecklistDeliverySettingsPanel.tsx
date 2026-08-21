@@ -20,10 +20,13 @@ const KEY = ["settings", "checklist-delivery"] as const;
 export function ChecklistDeliverySettingsPanel({
   className,
   showOutboundStatus = false,
+  hideHeading = false,
 }: {
   className?: string;
   /** Ops detail — leave off on driver Settings. */
   showOutboundStatus?: boolean;
+  /** When nested in a framed Settings section. */
+  hideHeading?: boolean;
 }) {
   const queryClient = useQueryClient();
   const query = useQuery({
@@ -54,17 +57,32 @@ export function ChecklistDeliverySettingsPanel({
 
   return (
     <section className={cn("space-y-3", className)}>
-      <h2 className={cn(driverSectionLabel, "flex items-center gap-2")}>
-        <Mail className="w-4 h-4" aria-hidden />
-        {CHECKLIST_EMAIL_SETTINGS_LABEL}
-      </h2>
-      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-        {CHECKLIST_EMAIL_SETTINGS_HINT}
-      </p>
+      {hideHeading ? null : (
+        <>
+          <h2 className={cn(driverSectionLabel, "flex items-center gap-2")}>
+            <Mail className="w-4 h-4" aria-hidden />
+            {CHECKLIST_EMAIL_SETTINGS_LABEL}
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            {CHECKLIST_EMAIL_SETTINGS_HINT}
+          </p>
+        </>
+      )}
       {query.isLoading ? (
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       ) : (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
+          {hideHeading ? (
+            <>
+              <p className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                <Mail className="w-4 h-4" aria-hidden />
+                {CHECKLIST_EMAIL_SETTINGS_LABEL}
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                {CHECKLIST_EMAIL_SETTINGS_HINT}
+              </p>
+            </>
+          ) : null}
           <div className="space-y-1.5">
             <Label
               htmlFor="checklist-delivery-email"

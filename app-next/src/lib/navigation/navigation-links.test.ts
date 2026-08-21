@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_NAVIGATION_LINKS,
   DRIVER_FORBIDDEN_HREF_PREFIXES,
+  DRIVER_SETTINGS_ANCHOR_LINKS,
   DRIVER_SETTINGS_CONNECT_LINKS,
   DRIVER_SETTINGS_DRIVE_LINKS,
   MANAGER_DOMAIN_ANCHOR_LINKS,
@@ -59,6 +60,14 @@ describe("navigation link manifest", () => {
     for (const link of MANAGER_DOMAIN_ANCHOR_LINKS) {
       expect(link.kind).toBe("anchor");
       expect(link.href.startsWith("#")).toBe(true);
+    }
+  });
+
+  it("driver settings jump cards match settings section ids", () => {
+    for (const link of DRIVER_SETTINGS_ANCHOR_LINKS) {
+      expect(link.kind).toBe("anchor");
+      expect(link.href.startsWith("#")).toBe(true);
+      expect(link.surface).toBe("driver-settings");
     }
   });
 

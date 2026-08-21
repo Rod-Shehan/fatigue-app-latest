@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { driverListRow } from "@/components/driver/driver-ui-classes";
 
-export function DriverSettingsRecordsSection() {
+export function DriverSettingsRecordsSection({ hideHeading = false }: { hideHeading?: boolean }) {
   const { data: session } = useSession();
   const driverName = getDisplayNameFromSession(session ?? null);
   const unsigned = useUnsignedPastWeeks(driverName);
@@ -17,9 +17,16 @@ export function DriverSettingsRecordsSection() {
 
   return (
     <section>
-      <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
-        Records to sign
-      </h2>
+      {hideHeading ? null : (
+        <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2 px-1">
+          Records to sign
+        </h2>
+      )}
+      {hideHeading ? (
+        <p className="px-4 pt-3 pb-0 text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+          Weeks to sign
+        </p>
+      ) : null}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 overflow-hidden divide-y divide-slate-200 dark:divide-slate-700">
         {unsigned.map((s) => (
           <Link

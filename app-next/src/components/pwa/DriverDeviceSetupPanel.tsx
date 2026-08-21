@@ -7,7 +7,7 @@ import { DeviceSetupDialog } from "@/components/pwa/DeviceSetupDialog";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { isDeviceSetupComplete, isStandaloneDisplay } from "@/lib/device-setup";
 
-export function DriverDeviceSetupPanel() {
+export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: boolean }) {
   const [open, setOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [standalone, setStandalone] = useState(false);
@@ -22,7 +22,7 @@ export function DriverDeviceSetupPanel() {
 
   return (
     <section>
-      <h2 className={driverSectionLabel}>Device</h2>
+      {hideHeading ? null : <h2 className={driverSectionLabel}>Device</h2>}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">

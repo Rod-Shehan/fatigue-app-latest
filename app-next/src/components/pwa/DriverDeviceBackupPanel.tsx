@@ -13,7 +13,13 @@ import {
 } from "@/lib/device-backup";
 import { useQueryClient } from "@tanstack/react-query";
 
-export function DriverDeviceBackupPanel({ driverEmail }: { driverEmail?: string | null }) {
+export function DriverDeviceBackupPanel({
+  driverEmail,
+  hideHeading = false,
+}: {
+  driverEmail?: string | null;
+  hideHeading?: boolean;
+}) {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<{
     snapshotCount: number;
@@ -63,13 +69,16 @@ export function DriverDeviceBackupPanel({ driverEmail }: { driverEmail?: string 
 
   return (
     <section>
-      <h2 className={driverSectionLabel}>On-device backup</h2>
+      {hideHeading ? null : <h2 className={driverSectionLabel}>On-device backup</h2>}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
             <HardDrive className="w-5 h-5 text-slate-700 dark:text-slate-200" aria-hidden />
           </div>
           <div className="min-w-0 flex-1 text-sm text-slate-700 dark:text-slate-300 space-y-1">
+            {hideHeading ? (
+              <p className="font-bold text-slate-900 dark:text-slate-100">On-device backup</p>
+            ) : null}
             <p>
               <span className="font-semibold text-slate-900 dark:text-slate-100">Last backup: </span>
               {status ? formatBackupTime(status.lastBackupAt) : "…"}

@@ -268,22 +268,20 @@ Tap the **gear** on the log bar (full or compact hero) for:
 - **Voice alerts** — spoken reminders while logging.
 - **Dark mode** — easier on the eyes at night.
 
-You can also set **Dark mode** and **Voice alerts** in **Settings → Options**.
+You can also set **Dark mode** and **Voice alerts** in **Settings → This phone**.
 
 ---
 
 ## 15. Settings
 
-**Day tools** → **Settings** (not the log-bar Options gear):
+**Day tools** → **Settings & tools** → **All settings** (not the log-bar Options gear).
 
-- **Options** — Dark mode, Voice alerts.
-- **Device** — install the app, back up / restore on this device.
-- **Checklist PDF email** — your address for Fitness for Work / Prestart / Dimension & Load week packs. Defaults to your **sign-in email**. Each driver or manager sets their own. Change it before **Email checklist week packs** if packs should go somewhere else. Not the workshop address, and not the 28-day fatigue roadside PDF.
-- **Workshop contact** — name, company, email, and phone for who receives vehicle fault reports (WAHVA). Automatic email from Prestart is not on yet; this stores the destination.
-- **Records** — past weeks that need your signature.
-- **Drive** — This week, Your weeks, Driver guide (pictures), How your record works, Route catalogue.
-- **Connect** — Messages, Manager sign-in.
-- **Account** — Change password, Sign out.
+Four coloured sections (same idea as the manager Overview page). Tap a card at the top to jump:
+
+- **1. This phone** — Dark mode, Voice alerts, install the app, backup / restore on this device.
+- **2. Emails & workshop** — **Checklist PDF email** (your address for Fitness for Work / Prestart / Dimension & Load week packs; defaults to your **sign-in email**) and **Workshop contact** (vehicle faults only — WAHVA). Not the 28-day fatigue roadside PDF.
+- **3. Your record** — weeks that need your signature, This week, Your weeks, Route catalogue, Driver guide (pictures), How your record works.
+- **4. Account** — Messages, Manager sign-in, Change password, Log out.
 
 ---
 
@@ -304,7 +302,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 1. Sign in (or stay signed in)
 2. **Log more work**
 3. Check rego, from, and to on today's card
-4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. Prestart is filed under the **vehicle registration**. Dimension & Load is **one form per load** (prime + trailers/dollies on that load). **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to **your** address in **Settings → Checklist PDF email** (defaults to your sign-in email). Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
+4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. Prestart is filed under the **vehicle registration**. Dimension & Load is **one form per load** (prime + trailers/dollies on that load). **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
 5. Type **start km**
 6. Tap **Start shift** when you begin, then **Start driving** or **Start Other Work**
 7. Tap **Stop Driving**, then **Start Rest** or **Start Other Work**. From Rest, tap **Start work** then driving or Other work. From Other work, tap **Continue shift** then **Start driving** or **Start Rest**
@@ -324,7 +322,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Stop Driving | On Work: opens Start Rest / Start Other Work. Not End shift. |
 | Start driving | After Start shift, Start work, or Continue shift — log driving |
 | Start Rest / Start Other Work | After Stop Driving, Start shift, Start work, or Continue shift (Start Rest) |
-| Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. Each form is a **separate** record (not combined). **Fitness for Work** is filed under your name. **Prestart** is filed under the **vehicle registration** (you are the person who inspected). **Dimension & Load** is one form per load — enter the prime mover and every trailer/dolly on that load; **Add another** for the next load. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files). **Email checklist week packs** sends those PDFs to **your** address in **Settings → Checklist PDF email** (defaults to your sign-in email). Prestart asks if you are responsible. Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
+| Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. Each form is a **separate** record (not combined). **Fitness for Work** is filed under your name. **Prestart** is filed under the **vehicle registration** (you are the person who inspected). **Dimension & Load** is one form per load — enter the prime mover and every trailer/dolly on that load; **Add another** for the next load. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files). **Email checklist week packs** sends those PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Prestart asks if you are responsible. Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
 | Weekly Trip Sheet (PDF) | **Export PDF** and each roadside page: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix |
 | Start shift / End shift | Begin / finish a shift. Start shift opens driving or Other work |
 | Start work | On Rest — choose driving or Other work |

@@ -173,7 +173,7 @@ When present, a solid sky line into a marker is the driver’s **GPS movement tr
 
 ## 7b. Checklist PDF email and WAHVA maintenance contact
 
-On **Test desk** (managers), **Owner console → Security** (owners), or **driver Settings** (EWD gear → Settings):
+On **Test desk** (managers), **Owner console → Security** (owners), or **driver Settings → Emails & workshop** (EWD gear → All settings):
 
 - **Checklist PDF email** — each signed-in person sets where Fitness for Work / Prestart / Dimension & Load **week packs** go (**Email checklist week packs** on the day card). Defaults to that person’s sign-in email. Not a shared organisation inbox (that can come later per client). Not the 28-day fatigue roadside PDF. Sending also needs server mail (`RESEND_API_KEY` + `EMAIL_FROM`).
 - **Workshop / maintenance contact** (name, company, email, phone) — destination for vehicle fault reports required for WAHVA accreditation. Automatic email of prestart defects is not enabled yet — the contact is stored so the reporting pathway can use it next. This is a **different** address from checklist PDF email.
