@@ -89,17 +89,17 @@ export const ACTIVITY_THEME: Record<
  */
 export const HERO_SPLIT_CHROME = {
   work: {
-    half: "bg-blue-800 hover:bg-blue-700",
-    text: "text-blue-50",
-    pip: "bg-blue-300",
+    half: "driver-puck-face driver-puck-blue",
+    text: "text-white",
+    pip: "bg-blue-200",
   },
   break: {
-    half: "bg-amber-700 hover:bg-amber-600",
-    text: "text-amber-50",
-    pip: "bg-amber-200",
+    half: "driver-puck-face driver-puck-amber",
+    text: "text-white",
+    pip: "bg-amber-100",
   },
   other_work: {
-    half: "bg-slate-600 hover:bg-slate-500",
+    half: "driver-puck-face driver-puck-slate",
     text: "text-slate-50",
     pip: "bg-blue-200",
   },

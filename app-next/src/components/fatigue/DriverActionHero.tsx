@@ -69,7 +69,7 @@ function HeroSplitHalf({
       className={cn(
         "relative flex h-1/2 w-full flex-col items-center justify-center font-bold",
         "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
-        "disabled:opacity-60 disabled:pointer-events-none active:scale-[0.99]",
+        "disabled:opacity-60 disabled:pointer-events-none active:brightness-95",
         chrome.half,
         chrome.text,
         pending && "animate-pulse ring-2 ring-inset ring-white"
@@ -252,7 +252,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const auxInlineCompact = compact && !expanded && Boolean(secondaryAction);
 
   const auxPillBase =
-    "flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold transition-all duration-500 ease-out active:scale-[0.98] touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:pointer-events-none";
+    "flex shrink-0 items-center justify-center gap-1.5 rounded-full font-semibold transition-[filter] duration-300 ease-out touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:opacity-50 disabled:pointer-events-none";
 
   const renderAuxPill = (
     key: string,
@@ -297,11 +297,10 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   };
 
   const sharedSurfaceClass = cn(
-    "relative overflow-hidden flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out",
+    "relative flex flex-col items-center justify-center rounded-full font-bold transition-[filter] duration-300 ease-out",
     action.chrome.surfaceClass,
     action.chrome.textClass,
     expanded ? "gap-1.5 px-3" : compact ? "gap-0 px-0.5" : "gap-1 px-2",
-    expanded && !locked && "shadow-lg shadow-black/40",
     locked && "opacity-70 saturate-75"
   );
 
@@ -343,7 +342,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
       onClick={secondaryAction.onAction}
       disabled={locked || secondaryAction.disabled}
       className={cn(
-        "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+        "flex shrink-0 flex-col items-center justify-center rounded-full font-bold transition-[filter] duration-300 ease-out",
         "touch-manipulation select-none",
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
         "disabled:opacity-50 disabled:pointer-events-none",
@@ -406,14 +405,11 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
   const heroControl = stopDrivingChooser ? (
     <div className={cn("flex flex-col items-center", locked && "opacity-70 saturate-75")}>
       <div
-        className={cn(
-          sizeClass,
-          "relative overflow-hidden rounded-full border-4 border-white/80 bg-slate-800 shadow-lg shadow-black/40",
-          "flex flex-col"
-        )}
+        className={cn(sizeClass, "relative driver-puck-shell rounded-full")}
         role="group"
         aria-label={chooserAria}
       >
+        <div className="absolute inset-0 flex flex-col overflow-hidden rounded-full">
         <HeroSplitHalf
           kind={topKind}
           edge="top"
@@ -442,6 +438,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           compact={compact}
           expanded={expanded}
         />
+        </div>
       </div>
       {elapsedLabel || activityNowLabel ? (
         <div
@@ -500,7 +497,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           sharedSurfaceClass,
           "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
-          "active:scale-[0.98] disabled:pointer-events-none",
+          "disabled:pointer-events-none",
           !locked && "disabled:opacity-60",
           actionPending &&
             !locked &&
@@ -566,7 +563,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
                   "font-black tabular-nums tracking-tight leading-none",
                   expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
                   action.chrome.onColoredSurface &&
-                    "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                    "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                 )}
               >
                 {action.countdown}
@@ -578,9 +575,9 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
                   action.breakDueTone === "red"
                     ? "text-white"
                     : action.breakDueTone === "amber"
-                      ? "text-white dark:text-amber-950"
+                      ? "text-white"
                       : action.chrome.onColoredSurface
-                        ? "text-white/80 dark:text-emerald-950/80"
+                        ? "text-white/85"
                         : "text-slate-500"
                 )}
               >
@@ -590,7 +587,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
                 <span
                   className={cn(
                     activityNowNoteClass,
-                    action.chrome.onColoredSurface ? "text-white/85 dark:text-emerald-950/85" : "text-slate-500"
+                    action.chrome.onColoredSurface ? "text-white/85" : "text-slate-500"
                   )}
                   aria-live="polite"
                 >
@@ -626,7 +623,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               className={cn(
                 "text-center font-semibold leading-tight opacity-90",
                 expanded ? "text-xs" : "text-[10px]",
-                action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-500"
+                action.chrome.onColoredSurface ? "text-white/90" : "text-slate-500"
               )}
             >
               {idleRestHelper}
@@ -638,7 +635,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
                 "font-mono font-extrabold tabular-nums leading-none",
                 expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
                 action.chrome.onColoredSurface
-                  ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] dark:drop-shadow-[0_1px_2px_rgba(255,255,255,0.35)]"
+                  ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   : "text-slate-900 dark:text-slate-100"
               )}
               aria-live="polite"
@@ -650,7 +647,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             <span
               className={cn(
                 activityNowNoteClass,
-                action.chrome.onColoredSurface ? "text-white/85 dark:text-emerald-950/85" : "text-slate-500 dark:text-slate-400"
+                action.chrome.onColoredSurface ? "text-white/85" : "text-slate-500 dark:text-slate-400"
               )}
               aria-live="polite"
             >
@@ -665,7 +662,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               className={cn(
                 "font-semibold tabular-nums leading-tight",
                 expanded ? "text-sm" : compact ? "text-[8px]" : "text-xs",
-                action.chrome.onColoredSurface ? "text-white/90 dark:text-emerald-950/90" : "text-slate-600"
+                action.chrome.onColoredSurface ? "text-white/90" : "text-slate-600"
               )}
               aria-live="polite"
             >

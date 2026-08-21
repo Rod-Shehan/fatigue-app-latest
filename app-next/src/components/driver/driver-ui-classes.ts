@@ -110,9 +110,12 @@ export const driverTouchIconBtn =
 export const driverToolbarBtn =
   "inline-flex items-center justify-center gap-1.5 min-h-[44px] h-11 px-3 text-sm font-semibold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1";
 
-/** Primary warning / confirm CTA (amber). */
-export const driverAmberBtn =
-  "inline-flex items-center justify-center gap-2 min-h-[44px] h-11 w-full rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-semibold transition-colors active:scale-[0.99] disabled:opacity-60 disabled:pointer-events-none";
+/** Raised cab confirm — add a colour class (`driver-puck-amber` / `driver-puck-emerald`). */
+export const driverPuckBtn =
+  "driver-puck inline-flex items-center justify-center gap-2 min-h-[44px] h-11 w-full rounded-xl text-white font-semibold disabled:opacity-60 disabled:pointer-events-none";
+
+/** Primary warning / confirm CTA (amber machined puck). */
+export const driverAmberBtn = `${driverPuckBtn} driver-puck-amber`;
 
 /** Dialog / modal action buttons (full width on mobile). */
 export const driverDialogBtn =

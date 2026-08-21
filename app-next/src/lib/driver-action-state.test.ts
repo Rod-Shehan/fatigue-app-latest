@@ -41,7 +41,7 @@ describe("resolveActionChrome", () => {
       breakDueTone: null,
       isIdleAtTop: true,
     });
-    expect(chrome.surfaceClass).toContain("bg-emerald-500");
+    expect(chrome.surfaceClass).toContain("driver-puck-emerald");
   });
 });
 
@@ -82,7 +82,7 @@ describe("resolveDriverActionState", () => {
       shiftSegmentOpen: true,
     });
     expect(state.breakDueTone).toBe("red");
-    expect(state.chrome.surfaceClass).toContain("bg-red-600");
+    expect(state.chrome.surfaceClass).toContain("driver-puck-red");
     expect(state.statusLabel).toBe("BREAK REQUIRED NOW");
   });
 
@@ -96,8 +96,8 @@ describe("resolveDriverActionState", () => {
       breakRestBankedMinutes: 6,
     });
     expect(state.operationalTone).toBe("pending");
-    expect(state.chrome.surfaceClass).toContain("bg-amber-500");
-    expect(state.chrome.surfaceClass).not.toContain("gradient");
+    expect(state.chrome.surfaceClass).toContain("driver-puck-amber");
+    expect(state.chrome.surfaceClass).not.toContain("lime-emerald");
   });
 
   it("uses lime/emerald pending chrome from 10 min rest toward 20", () => {
@@ -110,8 +110,7 @@ describe("resolveDriverActionState", () => {
       breakRestBankedMinutes: 14,
     });
     expect(state.operationalTone).toBe("pending");
-    expect(state.chrome.surfaceClass).toContain("from-lime-500");
-    expect(state.chrome.surfaceClass).toContain("to-emerald-500");
+    expect(state.chrome.surfaceClass).toContain("driver-puck-lime-emerald");
   });
 
   it("stays emerald on work when 5h window is safe", () => {
@@ -122,7 +121,7 @@ describe("resolveDriverActionState", () => {
       shiftSegmentOpen: true,
     });
     expect(state.breakDueTone).toBe(null);
-    expect(state.chrome.surfaceClass).toContain("bg-emerald-500");
+    expect(state.chrome.surfaceClass).toContain("driver-puck-emerald");
     expect(state.statusLabel).toBe("WORK WINDOW LEFT");
   });
 });

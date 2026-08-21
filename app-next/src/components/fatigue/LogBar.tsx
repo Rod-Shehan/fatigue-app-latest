@@ -88,6 +88,7 @@ import {
 import {
   driverAmberBtn,
   driverMutedBtn,
+  driverPuckBtn,
   driverSheetUtilityBtn,
   driverTouchIconBtn,
 } from "@/components/driver/driver-ui-classes";
@@ -101,7 +102,7 @@ function formatElapsedBarDisplay(totalMinutes: number): string {
 }
 
 const FIXED_LOG_BAR_SHELL =
-  "bg-slate-50/95 dark:bg-slate-950/95 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 shadow-sm";
+  "bg-gradient-to-b from-slate-300/90 via-slate-50/95 to-slate-50/95 dark:from-black/55 dark:via-slate-950/95 dark:to-slate-950/95 backdrop-blur-sm border-b border-slate-300/80 dark:border-slate-800 shadow-[0_8px_20px_-12px_rgb(15_23_42_/_0.45)]";
 
 const EVENT_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string }>> = {
   work: Briefcase,
@@ -1149,7 +1150,7 @@ export default function LogBar({
         onClick={() => handleLog("stop")}
         disabled={isMoving && !endShiftPending}
                 className={cn(
-          "flex flex-col items-center justify-center rounded-full font-bold transition-all duration-500 ease-out active:scale-[0.98]",
+          "flex flex-col items-center justify-center rounded-full font-bold",
           "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
           "disabled:opacity-50 disabled:pointer-events-none",
@@ -1577,7 +1578,7 @@ export default function LogBar({
                 <button
                   type="button"
                     onClick={() => workWarning.onSetupRecord?.()}
-                    className={cn(driverAmberBtn, "bg-emerald-600 hover:bg-emerald-700 text-white")}
+                    className={cn(driverPuckBtn, "driver-puck-emerald")}
                 >
                     {workWarning.setupRecordLabel}
                 </button>
@@ -1585,7 +1586,7 @@ export default function LogBar({
                   <button
                     type="button"
                   onClick={() => workWarning.onConfirm()}
-                  className={cn(driverAmberBtn, "bg-amber-500 hover:bg-amber-600")}
+                  className={driverAmberBtn}
                   >
                   {workWarning.confirmLabel}
                   </button>

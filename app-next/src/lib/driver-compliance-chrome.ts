@@ -1,6 +1,11 @@
-/**
- * Shared compliance colours for driver primary actions (LogBar, DriverActionHero).
- */
+import {
+  driverPuckAmber,
+  driverPuckEmerald,
+  driverPuckLimeEmerald,
+  driverPuckNeutral,
+  driverPuckRed,
+  driverPuckSlate,
+} from "@/lib/driver-puck";
 
 export type ComplianceTone = "default" | "violation" | "warning" | "pending" | "ok";
 export type BreakDueTone = null | "amber" | "red";
@@ -22,16 +27,14 @@ function pendingBreakRestChrome(phase: BreakRestPendingPhase): {
   if (phase === "first_10") {
     return {
       // Strong amber until the first 10 minutes are banked.
-      surfaceClass:
-        "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700",
-      textClass: "text-white dark:text-amber-950",
+      surfaceClass: driverPuckAmber,
+      textClass: "text-white",
     };
   }
   return {
     // Second 10 toward 20 — lime into emerald.
-    surfaceClass:
-      "bg-gradient-to-r from-lime-500 to-emerald-500 dark:from-lime-600 dark:to-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg",
-    textClass: "text-white dark:text-emerald-950",
+      surfaceClass: driverPuckLimeEmerald,
+    textClass: "text-white",
   };
 }
 
@@ -48,29 +51,26 @@ export function getComplianceChrome(
 
   const surfaceClass =
     complianceTone === "violation" || complianceTone === "warning"
-      ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
+      ? driverPuckAmber
       : breakDueTone === "red"
-        ? "bg-red-600 dark:bg-red-700 border-4 border-red-100 dark:border-red-950 shadow-lg hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800"
+        ? driverPuckRed
         : breakDueTone === "amber"
-          ? "bg-amber-500 dark:bg-amber-600 border-4 border-amber-100 dark:border-amber-950 shadow-lg hover:bg-amber-600 dark:hover:bg-amber-500 active:bg-amber-700"
+          ? driverPuckAmber
           : pendingChrome
             ? pendingChrome.surfaceClass
             : complianceTone === "ok"
-              ? "bg-emerald-500 dark:bg-emerald-600 border-4 border-emerald-100 dark:border-emerald-950 shadow-lg hover:bg-emerald-600 dark:hover:bg-emerald-500 active:bg-emerald-700"
-              : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 shadow-md hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-600";
+              ? driverPuckEmerald
+              : driverPuckNeutral;
 
   const textClass =
-    complianceTone === "violation" || complianceTone === "warning"
-      ? "text-white dark:text-amber-950"
-      : breakDueTone === "red"
-        ? "text-white"
-        : breakDueTone === "amber"
-          ? "text-white dark:text-amber-950"
-          : pendingChrome
-            ? pendingChrome.textClass
-            : complianceTone === "ok"
-              ? "text-white dark:text-emerald-950"
-              : "text-slate-900 dark:text-slate-100";
+    complianceTone === "violation" ||
+    complianceTone === "warning" ||
+    breakDueTone === "red" ||
+    breakDueTone === "amber" ||
+    pendingChrome != null ||
+    complianceTone === "ok"
+      ? "text-white"
+      : "text-slate-900 dark:text-slate-100";
 
   return { onColoredSurface, surfaceClass, textClass };
 }
@@ -82,10 +82,8 @@ export function getEndShiftButtonChrome(): {
   textClass: string;
 } {
   return {
-    trimClass:
-      "bg-red-100 dark:bg-red-950 shadow-lg shadow-black/25 dark:shadow-black/40",
-    surfaceClass:
-      "bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-600 active:bg-red-800",
+    trimClass: "bg-red-200/80 dark:bg-red-950/90",
+    surfaceClass: driverPuckRed,
     textClass: "text-white",
   };
 }
@@ -94,8 +92,7 @@ export function getEndShiftButtonChrome(): {
 export function getResumeShiftButtonChrome(): ReturnType<typeof getComplianceChrome> {
   return {
     onColoredSurface: true,
-    surfaceClass:
-      "bg-slate-500 dark:bg-slate-600 border-4 border-slate-100 dark:border-slate-950 shadow-lg hover:bg-slate-600 dark:hover:bg-slate-500 active:bg-slate-700",
+    surfaceClass: driverPuckSlate,
     textClass: "text-white dark:text-slate-100",
   };
 }

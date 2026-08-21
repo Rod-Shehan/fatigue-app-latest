@@ -183,13 +183,12 @@ export function DriverHome() {
               </div>
             </div>
 
-            <Link href={continueHref} className="block">
-              <Button
-                className="w-full h-14 text-base font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 shadow-md"
-              >
+            <Link
+              href={continueHref}
+              className="driver-puck driver-puck-emerald flex h-14 w-full items-center justify-center gap-2 rounded-xl text-base font-bold text-white"
+            >
                 {sheetId ? "Log more work" : "Open this week"}
                 <ChevronRight className="w-5 h-5" />
-              </Button>
             </Link>
 
             <DriverRoadsideProduceButton variant="primary" />

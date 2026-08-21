@@ -139,3 +139,132 @@ html.driver-immersive body {
   color: rgb(var(--ck-fg));
   background-color: rgb(var(--ck-midnight));
 }
+
+/* Machined puck — raised cab control. Colour via --puck-from / --puck-to. */
+.driver-puck {
+  --puck-from: #cbd5e1;
+  --puck-to: #64748b;
+  position: relative;
+  isolation: isolate;
+  background-color: var(--puck-to);
+  background-image: linear-gradient(to bottom, var(--puck-from), var(--puck-to));
+  border: 2px solid rgba(255, 255, 255, 0.58);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.4),
+    inset -1px -2px 0 rgba(15, 23, 42, 0.38),
+    0 4px 0 rgb(15 23 42 / 0.42),
+    0 10px 18px rgb(15 23 42 / 0.28);
+  transition:
+    transform 90ms ease,
+    box-shadow 90ms ease,
+    filter 90ms ease,
+    background-image 90ms ease;
+}
+.driver-puck::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.28) 0%, rgb(255 255 255 / 0) 46%);
+}
+.driver-puck > * {
+  position: relative;
+  z-index: 1;
+}
+.driver-puck:active:not(:disabled) {
+  transform: translateY(3px);
+  background-image: linear-gradient(to bottom, var(--puck-to), var(--puck-from));
+  box-shadow:
+    inset 0 3px 8px rgb(15 23 42 / 0.42),
+    inset 0 1px 0 rgb(15 23 42 / 0.28),
+    0 1px 0 rgb(15 23 42 / 0.35);
+}
+.driver-puck:active:not(:disabled)::before {
+  opacity: 0.2;
+}
+
+.driver-puck-shell {
+  position: relative;
+  background-color: #1e293b;
+  background-image: none;
+  border: 2px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.28),
+    inset -1px -2px 0 rgba(15, 23, 42, 0.45),
+    0 4px 0 rgb(15 23 42 / 0.42),
+    0 10px 18px rgb(15 23 42 / 0.3);
+}
+.driver-puck-shell:active {
+  transform: none;
+}
+
+.driver-puck-face {
+  --puck-from: #94a3b8;
+  --puck-to: #334155;
+  position: relative;
+  background-image: linear-gradient(to bottom, var(--puck-from), var(--puck-to));
+  transition: background-image 90ms ease, filter 90ms ease;
+}
+.driver-puck-face::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.22) 0%, rgb(255 255 255 / 0) 50%);
+}
+.driver-puck-face > * {
+  position: relative;
+  z-index: 1;
+}
+.driver-puck-face:active:not(:disabled) {
+  background-image: linear-gradient(to bottom, var(--puck-to), var(--puck-from));
+}
+.driver-puck-face:active:not(:disabled)::before {
+  opacity: 0.15;
+}
+
+.driver-puck-emerald {
+  --puck-from: #34d399;
+  --puck-to: #047857;
+}
+.driver-puck-amber {
+  --puck-from: #fbbf24;
+  --puck-to: #b45309;
+}
+.driver-puck-red {
+  --puck-from: #f87171;
+  --puck-to: #b91c1c;
+}
+.driver-puck-blue {
+  --puck-from: #60a5fa;
+  --puck-to: #1d4ed8;
+}
+.driver-puck-slate {
+  --puck-from: #94a3b8;
+  --puck-to: #334155;
+}
+.driver-puck-lime-emerald {
+  --puck-from: #a3e635;
+  --puck-to: #047857;
+}
+.driver-puck-neutral {
+  --puck-from: #f8fafc;
+  --puck-to: #94a3b8;
+}
+.dark .driver-puck-neutral {
+  --puck-from: #64748b;
+  --puck-to: #1e293b;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .driver-puck,
+  .driver-puck:active:not(:disabled),
+  .driver-puck-face,
+  .driver-puck-face:active:not(:disabled) {
+    transform: none;
+    transition: none;
+  }
+}
