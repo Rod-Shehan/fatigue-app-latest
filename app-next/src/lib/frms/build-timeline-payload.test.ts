@@ -94,6 +94,42 @@ describe("buildFrmsTimelinePayload", () => {
     expect(aligned?.sub_type).toBe("heavy_labor");
   });
 
+  it("infers 7 h main sleep in a 12 h End shift → Work gap, not in the travel buffers", () => {
+    const weekStarting = "2026-08-16";
+    const emptyDay = {
+      work_time: Array(1440).fill(false),
+      breaks: Array(1440).fill(false),
+      non_work: Array(1440).fill(false),
+    };
+    const days = JSON.stringify([
+      {
+        ...emptyDay,
+        events: [{ time: "2026-08-16T18:00:00+08:00", type: "stop" }],
+      },
+      {
+        ...emptyDay,
+        events: [{ time: "2026-08-17T06:00:00+08:00", type: "work" }],
+      },
+      ...Array(5).fill(emptyDay),
+    ]);
+    const weekMap = new Map([[weekStarting, { days }]]);
+    const payload = buildFrmsTimelinePayload({
+      driverName: "Test Driver",
+      jurisdictionCode: "WA_OSH_3132",
+      driverType: "solo",
+      weekStarting,
+      weekMap,
+    });
+    const sunday = getPerthMidnightUtcMs(weekStarting);
+    const afterKnockOff = payload.timeline_blocks.find((b) => b.start_ms === sunday + 18.25 * 60 * 60 * 1000);
+    const sleepCore = payload.timeline_blocks.find((b) => b.start_ms === sunday + 23 * 60 * 60 * 1000);
+    const commuteIn = payload.timeline_blocks.find((b) => b.start_ms === sunday + (24 + 5.75) * 60 * 60 * 1000);
+    expect(afterKnockOff?.is_nap).toBe(false);
+    expect(sleepCore?.is_nap).toBe(true);
+    expect(sleepCore?.sub_type).toBe("nap");
+    expect(commuteIn?.is_nap).toBe(false);
+  });
+
   it("hashFrmsPayload is stable for identical payloads", () => {
     const weekMap = new Map([["2026-05-31", { days: "[]" }]]);
     const a = buildFrmsTimelinePayload({

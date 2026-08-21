@@ -52,11 +52,11 @@ When only single-block diary fields exist, `inferCarryFromDiaryProxies()` uses `
 
 When `FRMS_ENGINE=hybrid`, the chart baseline is **not** this TypeScript sawtooth. The Python engine (`frms-engine`, version `frms-py-2`) splits:
 
-1. **Biological TPMA** — Process S holds flat on awake Rest / non-work; exponential S recovery only on an explicit nap/sleep tag. Process W only after nap → work.
+1. **Biological TPMA** — Process S holds flat on awake Rest (including Rest that painted as non-work at 31+ min). Exponential S recovery on inferred **main sleep** inside End-shift non-work: 30 min travel out, home duties, up to **7 h** sleep, 30 min travel in (12 h knock-off = 4 h home). Process W after sleep/nap → work.
 2. **Task-strain index** — charges on driving and other work; a ~20-minute awake Rest clears about two-thirds of acute strain (the visible sawtooth).
 3. **Fusion** — combined score ≥ biological floor. Acute breaks cannot repay sleep debt.
 
-See `frms-engine/app/pipeline.py` and ADR 0003.
+Inferred sleep is FRMS-tape only — no extra diary row. See `app-next/src/lib/frms/infer-off-duty-sleep.ts` and `frms-engine/app/pipeline.py`.
 
 ## Related
 

@@ -7,6 +7,11 @@ import { stampAlertnessForCalendarDay } from "@/lib/alertness-for-block";
 import { isDriverAlertnessLevel } from "@/lib/driver-alertness";
 import { RISK_BLOCK_MINUTES, alignToBlockStartMs, findNowBlockStartMs } from "@/lib/manager-risk-timeline";
 import { getPerthMidnightUtcMs, getSheetDayDateString } from "@/lib/weeks";
+import {
+  blockOverlapsInferredSleep,
+  inferMainSleepWindowsFromEvents,
+  type FrmsSleepWindow,
+} from "@/lib/frms/infer-off-duty-sleep";
 
 export type FrmsTimelinePayload = {
   schema_version: 1;
@@ -24,7 +29,7 @@ export type FrmsTimelinePayload = {
     is_rest: boolean;
     /** Loading/admin on BREAKS FROM DRIVING — TSI γ 1.2 (or 0.5 if light_duty). */
     is_other_work?: boolean;
-    /** Explicit nap/sleep only. Awake Rest never sets this. */
+    /** Inferred main sleep (End-shift non-work core) or explicit nap tag. Awake Rest never sets this. */
     is_nap?: boolean;
     sub_type?: "awake_rest" | "nap" | "heavy_labor" | "light_duty";
     /** Driver self-report 1–5 from day card for this Perth calendar day. */
@@ -122,7 +127,10 @@ function accumulateFromCoverageDay(
   }
 }
 
-function blockFlags(counts: BlockMinuteCounts): {
+function blockFlags(
+  counts: BlockMinuteCounts,
+  inferredSleep: boolean
+): {
   is_work: boolean;
   is_rest: boolean;
   is_other_work: boolean;
@@ -131,13 +139,38 @@ function blockFlags(counts: BlockMinuteCounts): {
 } {
   const { work, otherWork, break: brk, nonWork, nap } = counts;
   const restish = brk + nonWork + nap;
-  const is_nap = nap > 0 && nap >= work && nap >= otherWork && nap >= brk && nap >= nonWork;
-  const is_other_work =
-    !is_nap && otherWork > 0 && otherWork >= work && otherWork >= restish;
-  const is_work = !is_nap && !is_other_work && work > 0 && work >= restish;
-  const is_rest = !is_work && !is_other_work && (is_nap || brk > 0 || nonWork > 0);
+  const is_other_work = otherWork > 0 && otherWork >= work && otherWork >= restish;
+  const is_work = !is_other_work && work > 0 && work >= restish;
+  const taggedNap = nap > 0 && nap >= work && nap >= otherWork && nap >= brk && nap >= nonWork;
+  const is_nap = taggedNap || (inferredSleep && !is_work && !is_other_work);
+  const is_rest = !is_work && !is_other_work && (is_nap || brk > 0 || nonWork > 0 || inferredSleep);
   const sub_type = is_nap ? "nap" : is_other_work ? "heavy_labor" : is_rest ? "awake_rest" : undefined;
   return { is_work, is_rest, is_other_work, is_nap, ...(sub_type ? { sub_type } : {}) };
+}
+
+function collectDiaryEvents(weekMap: Map<string, { days: string }>): Array<{ time: string; type: string }> {
+  const events: Array<{ time: string; type: string }> = [];
+  const sortedWeeks = Array.from(weekMap.keys()).sort();
+  for (const weekKey of sortedWeeks) {
+    const weekData = weekMap.get(weekKey);
+    if (!weekData) continue;
+    const days = parseSheetDaysJson(weekData.days);
+    for (const raw of days) {
+      const day = raw as DayData;
+      for (const ev of day.events ?? []) {
+        if (ev?.time && ev?.type) events.push({ time: ev.time, type: ev.type });
+      }
+    }
+  }
+  return events;
+}
+
+function applyInferredSleep(
+  flags: ReturnType<typeof blockFlags>,
+  inferredSleep: boolean
+): ReturnType<typeof blockFlags> {
+  if (!inferredSleep || flags.is_work || flags.is_other_work) return flags;
+  return { ...flags, is_nap: true, is_rest: true, sub_type: "nap" };
 }
 
 export function buildFrmsTimelinePayload(input: {
@@ -178,27 +211,37 @@ export function buildFrmsTimelinePayload(input: {
   const horizon_from_ms = alignToBlockStartMs(now - fourteenDaysMs);
   const horizon_to_ms = alignToBlockStartMs(now + sevenDaysMs);
 
+  const sleepWindows: FrmsSleepWindow[] = inferMainSleepWindowsFromEvents(
+    collectDiaryEvents(input.weekMap),
+    horizon_to_ms
+  );
+
   const timeline_blocks: FrmsTimelinePayload["timeline_blocks"] = [];
   for (let t = horizon_from_ms; t <= horizon_to_ms; t += blockMs) {
     const start_ms = alignToBlockStartMs(t);
     const counts = blockCounts.get(start_ms);
     const alertness_level = alertnessByBlock.get(start_ms);
+    const inferredSleep = blockOverlapsInferredSleep(start_ms, blockMs, sleepWindows);
     if (!counts) {
       const elapsedUnlogged = start_ms <= now;
       timeline_blocks.push({
         start_ms,
         is_work: false,
-        is_rest: elapsedUnlogged,
+        is_rest: elapsedUnlogged || inferredSleep,
         is_other_work: false,
-        is_nap: false,
-        ...(elapsedUnlogged ? { sub_type: "awake_rest" as const } : {}),
+        is_nap: inferredSleep,
+        ...(inferredSleep
+          ? { sub_type: "nap" as const }
+          : elapsedUnlogged
+            ? { sub_type: "awake_rest" as const }
+            : {}),
         ...(alertness_level ? { alertness_level } : {}),
       });
       continue;
     }
     timeline_blocks.push({
       start_ms,
-      ...blockFlags(counts),
+      ...applyInferredSleep(blockFlags(counts, inferredSleep), inferredSleep),
       ...(alertness_level ? { alertness_level } : {}),
     });
   }

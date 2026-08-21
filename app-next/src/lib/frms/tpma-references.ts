@@ -44,9 +44,9 @@ export const FRMS_RISK_TIMELINE_CHART_HELP = {
     summary:
       "Three-Process Model (TPMA) biological floor from the driver’s logged diary, plus a fast task-strain overlay so awake Rest shows a downward sawtooth without pretending to repay sleep debt. No cab camera in this curve.",
     factors: [
-      "Process S — homeostatic sleep pressure: rises during work and other work. Awake Rest and non-work hold S flat (no artificial decay). Exponential recovery only on an explicit nap/sleep tag.",
+      "Process S — homeostatic sleep pressure: rises during work and other work. Awake Rest and converted long Rest hold S flat. Main sleep is inferred in End-shift non-work (7 h sleep, 30 min travel each way, remaining home) — not a driver tap.",
       "Process C — two-harmonic circadian alertness (Folkard & Akerstedt): afternoon dip and deep circadian nadir",
-      "Process W — sleep inertia only after nap → work. An awake Rest does not create inertia.",
+      "Process W — sleep inertia after inferred main sleep or a nap tag, once they are back on duty. The last 30 min of an off-duty bout is commute, so inertia has usually worn off before Start driving.",
       "Task-strain index — charges while driving/loading; a 20-minute awake Rest clears about two-thirds of acute strain. This is the visible downward sawtooth on breaks.",
       "Progressive compression — continuous on-duty legs tracked for 5.5 h / 7 h / 10 h coaching thresholds",
       "Driver self-reported alertness (1–5 from Set up day) — subjective impairment bump on all blocks that calendar day",

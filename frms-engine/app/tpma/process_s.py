@@ -1,6 +1,7 @@
 """Process S — homeostatic sleep pressure (frms-py-2).
 
-Awake break / non-work holds S flat. Exponential decay only on nap/sleep.
+Awake break / non-work holds S flat. Exponential decay only on nap/sleep
+(including inferred main sleep from the Next.js FRMS tape after End shift).
 """
 
 from __future__ import annotations
