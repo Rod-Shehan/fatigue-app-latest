@@ -35,6 +35,7 @@ import { ComplianceAlertBar, ComplianceNoticeBar } from "@/components/fatigue/Co
 import { ComplianceQuickDialog } from "@/components/fatigue/ComplianceQuickDialog";
 import type { ComplianceFixRoute } from "@/lib/compliance-fix-routes";
 import SignatureDialog from "@/components/fatigue/SignatureDialog";
+import LogBar from "@/components/fatigue/LogBar";
 import { patchOpenRestNapFrom } from "@/lib/rest-nap";
 import { ShiftPatternEndShiftDialog } from "@/components/fatigue/ShiftPatternEndShiftDialog";
 import { EndShiftCorrectionDialog } from "@/components/fatigue/EndShiftCorrectionDialog";
