@@ -9,7 +9,9 @@
  * - Actioned `break` (Rest) paints as break (while ≤30 min; longer Rest becomes non-work).
  * - `other_work` paints as break from driving and is never converted to non-work.
  *   It is also marked work_time so 168h still counts it.
- * - `stop` (End shift) ends the prior segment; time after it is non-work — never invent break from short gaps.
+ * - `stop` (End shift) ends the prior segment; time after it is non-work until the
+ *   next driver event — including across midnight. Never invent break from short gaps.
+ * - Elapsed minutes with no driver event are always non-work. The timeline is never blank.
  */
 
 import { getTodayLocalDateString } from "@/lib/weeks";

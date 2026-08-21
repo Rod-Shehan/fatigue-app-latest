@@ -85,7 +85,7 @@ export type OpenActivityAtDayEnd = "work" | "break" | "other_work" | "non_work";
 /**
  * Open activity on the calendar day before `days[0]` of a sheet week (e.g. prior
  * week Saturday → this week's Sunday). WeekStarting is a label only; continuity
- * still comes from the last driver-logged type (or End shift ends carry).
+ * still comes from the last driver-logged type. End shift continues as non-work.
  */
 export function resolveOpenActivityBeforeFirstDay(
   prevWeekDays:
@@ -109,8 +109,9 @@ export function resolveOpenActivityBeforeFirstDay(
 }
 
 /**
- * Activity still open at end of this calendar day (for rollover into the next day view).
- * Driven by the last non–End shift event; End shift means nothing carries forward.
+ * Activity still open at end of this calendar-day *descriptor* (for the next bucket's paint).
+ * End shift starts non-work; that non-work continues until the next driver-logged event.
+ * Midnight / weekStarting are labels only — they do not end coverage.
  */
 export function getEffectiveOpenActivityAtDayEnd(
   day: {
@@ -124,7 +125,7 @@ export function getEffectiveOpenActivityAtDayEnd(
 ): OpenActivityAtDayEnd | null {
   const evs = day.events ?? [];
   const lastEv = evs[evs.length - 1];
-  if (lastEv?.type === "stop") return null;
+  if (lastEv?.type === "stop") return "non_work";
   if (
     lastEv?.type === "work" ||
     lastEv?.type === "break" ||
@@ -154,9 +155,10 @@ export function getEffectiveOpenActivityAtDayEnd(
  * Derive work_time, breaks, non_work for all days with rollover.
  *
  * Rolling timeline: calendar day / weekStarting are UI buckets only. An open
- * driver-logged segment (work, break, or non-work — no End shift) continues
- * into the next bucket from 00:00 until the first event on that bucket (or
- * until "now" on today). Do not invent a type change at midnight.
+ * driver-logged segment (work, break, other work, or non-work after End shift)
+ * continues into the next bucket from 00:00 until the first event on that bucket
+ * (or until "now" on today). Do not invent a type change at midnight.
+ * Unlogged elapsed time is always non-work — never leave a blank.
  */
 export function deriveDaysWithRollover<T extends { events?: { time: string; type: string }[] }>(
   days: T[],

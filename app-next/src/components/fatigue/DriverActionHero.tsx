@@ -45,10 +45,26 @@ function HeroSplitHalf({
 }) {
   const chrome = HERO_SPLIT_CHROME[kind];
   const Icon = HERO_SPLIT_ICONS[kind];
+  /** Require pointerdown on this half so a retargeted click from the opener tap cannot log. */
+  const armedRef = React.useRef(false);
   return (
     <button
       type="button"
-      onClick={onClick}
+      onPointerDown={(e) => {
+        if (e.button != null && e.button !== 0) return;
+        armedRef.current = true;
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") armedRef.current = true;
+      }}
+      onPointerCancel={() => {
+        armedRef.current = false;
+      }}
+      onClick={() => {
+        if (!armedRef.current) return;
+        armedRef.current = false;
+        onClick();
+      }}
       disabled={disabled}
       className={cn(
         "relative flex h-1/2 w-full flex-col items-center justify-center font-bold",

@@ -52,6 +52,7 @@ import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@
 import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL } from "@/lib/product-copy";
 import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
 import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
+import { isHeroChooserGhostClick } from "@/lib/hero-chooser-guard";
 import { getEndShiftButtonChrome } from "@/lib/driver-compliance-chrome";
 import { DriverActionHero } from "@/components/fatigue/DriverActionHero";
 import { UpcomingComplianceChip } from "@/components/fatigue/UpcomingComplianceChip";
@@ -233,6 +234,8 @@ export default function LogBar({
   const [restWorkChooserOpen, setRestWorkChooserOpen] = useState(false);
   /** Other work → Continue shift chooser: Start driving / Start Rest (not a logged event). */
   const [otherWorkChooserOpen, setOtherWorkChooserOpen] = useState(false);
+  /** Timestamp when a chooser opened — ignore the opener tap retargeted onto a split half. */
+  const chooserOpenedAtRef = useRef(0);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
   const [workLogEpisodeResume, setWorkLogEpisodeResume] = useState(false);
   /** Sync mirror of pending arm — rapid second tap must see this before React re-renders. */
@@ -302,10 +305,8 @@ export default function LogBar({
   useEffect(() => {
     if (currentType !== "work") setStopDrivingChooserOpen(false);
     if (currentType != null) setStartShiftChooserOpen(false);
-    if (currentType === "break") setRestWorkChooserOpen(true);
-    else setRestWorkChooserOpen(false);
-    if (currentType === OTHER_WORK_EVENT_TYPE) setOtherWorkChooserOpen(true);
-    else setOtherWorkChooserOpen(false);
+    if (currentType !== "break") setRestWorkChooserOpen(false);
+    if (currentType !== OTHER_WORK_EVENT_TYPE) setOtherWorkChooserOpen(false);
   }, [currentType]);
 
   const openSessionTools = useCallback(() => {
@@ -648,6 +649,16 @@ export default function LogBar({
     setWorkLogEpisodeResume(false);
   }, []);
 
+  const openHeroChooser = useCallback((open: () => void) => {
+    chooserOpenedAtRef.current = Date.now();
+    open();
+  }, []);
+
+  const runChooserOption = useCallback((fn: () => void) => {
+    if (isHeroChooserGhostClick(chooserOpenedAtRef.current)) return;
+    fn();
+  }, []);
+
   const armPending = useCallback((type: string, episodeResume: boolean) => {
     pendingArmRef.current = { type, episodeResume };
     setWorkLogEpisodeResume(episodeResume);
@@ -758,7 +769,7 @@ export default function LogBar({
               setWorkWarning(null);
               clearPending();
               setWorkLogEpisodeResume(episodeResume);
-              setStartShiftChooserOpen(true);
+              openHeroChooser(() => setStartShiftChooserOpen(true));
             },
           onCancel: () => setWorkWarning(null),
           });
@@ -766,7 +777,7 @@ export default function LogBar({
         }
       clearPending();
       setWorkLogEpisodeResume(episodeResume);
-      setStartShiftChooserOpen(true);
+      openHeroChooser(() => setStartShiftChooserOpen(true));
     },
     // getInsufficientNonWorkWarning / clearPending close over live state
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional live closure
@@ -777,6 +788,7 @@ export default function LogBar({
       isTwoUp,
       soloEpisodeResume,
       clearPending,
+      openHeroChooser,
     ]
   );
 
@@ -960,14 +972,14 @@ export default function LogBar({
         onConfirm: () => {
           setWorkWarning(null);
           setWorkLogEpisodeResume(episodeResume);
-          setStartShiftChooserOpen(true);
+          openHeroChooser(() => setStartShiftChooserOpen(true));
         },
         onCancel: () => setWorkWarning(null),
       });
       return;
     }
     setWorkLogEpisodeResume(episodeResume);
-    setStartShiftChooserOpen(true);
+    openHeroChooser(() => setStartShiftChooserOpen(true));
   };
 
   const handleStartShift = () => beginStartShift({ episodeResume: false });
@@ -1002,7 +1014,7 @@ export default function LogBar({
     },
     onConfirmIntent: (intent: "work" | "break" | "other_work" | "stop_driving" | "stop") => {
       if (intent === "stop_driving") {
-        setStopDrivingChooserOpen(true);
+        openHeroChooser(() => setStopDrivingChooserOpen(true));
         return;
       }
       if (intent === "work" && currentType === "break") {
@@ -1015,7 +1027,7 @@ export default function LogBar({
           }
           return;
         }
-        setRestWorkChooserOpen(true);
+        openHeroChooser(() => setRestWorkChooserOpen(true));
         return;
       }
       if (intent === "work" && currentType === OTHER_WORK_EVENT_TYPE) {
@@ -1028,7 +1040,7 @@ export default function LogBar({
           }
           return;
         }
-        setOtherWorkChooserOpen(true);
+        openHeroChooser(() => setOtherWorkChooserOpen(true));
         return;
       }
       if (intent === "break" && currentType === OTHER_WORK_EVENT_TYPE && otherWorkChooserOpen) {
@@ -1239,15 +1251,15 @@ export default function LogBar({
             actionLabel={primaryActionLabel}
             onAction={() => {
               if (currentType === "work") {
-                setStopDrivingChooserOpen(true);
+                openHeroChooser(() => setStopDrivingChooserOpen(true));
                 return;
               }
               if (currentType === "break") {
-                setRestWorkChooserOpen(true);
+                openHeroChooser(() => setRestWorkChooserOpen(true));
                 return;
               }
               if (currentType === OTHER_WORK_EVENT_TYPE) {
-                setOtherWorkChooserOpen(true);
+                openHeroChooser(() => setOtherWorkChooserOpen(true));
                 return;
               }
               if (primaryLogType === "work" && currentType === null) {
@@ -1282,8 +1294,9 @@ export default function LogBar({
                     variant: "stop-driving",
                     restLabel: DRIVER_START_REST_LABEL,
                     otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
-                    onStartRest: () => handleLog("break"),
-                    onStartOtherWork: () => handleLog(OTHER_WORK_EVENT_TYPE),
+                    onStartRest: () => runChooserOption(() => handleLog("break")),
+                    onStartOtherWork: () =>
+                      runChooserOption(() => handleLog(OTHER_WORK_EVENT_TYPE)),
                     onCancel: () => {
                       clearPending();
                       setStopDrivingChooserOpen(false);
@@ -1297,9 +1310,13 @@ export default function LogBar({
                       restLabel: DRIVER_START_DRIVING_LABEL,
                       otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
                       onStartRest: () =>
-                        handleLog("work", { episodeResume: workLogEpisodeResume }),
+                        runChooserOption(() =>
+                          handleLog("work", { episodeResume: workLogEpisodeResume })
+                        ),
                       onStartOtherWork: () =>
-                        handleLog(OTHER_WORK_EVENT_TYPE, { episodeResume: workLogEpisodeResume }),
+                        runChooserOption(() =>
+                          handleLog(OTHER_WORK_EVENT_TYPE, { episodeResume: workLogEpisodeResume })
+                        ),
                       onCancel: () => {
                         clearPending();
                         setStartShiftChooserOpen(false);
@@ -1312,8 +1329,9 @@ export default function LogBar({
                         variant: "start-work",
                         restLabel: DRIVER_START_DRIVING_LABEL,
                         otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
-                        onStartRest: () => handleLog("work"),
-                        onStartOtherWork: () => handleLog(OTHER_WORK_EVENT_TYPE),
+                        onStartRest: () => runChooserOption(() => handleLog("work")),
+                        onStartOtherWork: () =>
+                          runChooserOption(() => handleLog(OTHER_WORK_EVENT_TYPE)),
                         onCancel: () => {
                           clearPending();
                           setRestWorkChooserOpen(false);
@@ -1326,8 +1344,8 @@ export default function LogBar({
                           variant: "continue-shift",
                           restLabel: DRIVER_START_DRIVING_LABEL,
                           otherWorkLabel: DRIVER_START_REST_LABEL,
-                          onStartRest: () => handleLog("work"),
-                          onStartOtherWork: () => handleLog("break"),
+                          onStartRest: () => runChooserOption(() => handleLog("work")),
+                          onStartOtherWork: () => runChooserOption(() => handleLog("break")),
                           onCancel: () => {
                             clearPending();
                             setOtherWorkChooserOpen(false);
@@ -1525,7 +1543,7 @@ export default function LogBar({
               <div className="mt-3">
                 <button
                   type="button"
-                  onClick={() => setStopDrivingChooserOpen(true)}
+                  onClick={() => openHeroChooser(() => setStopDrivingChooserOpen(true))}
                   className={driverAmberBtn}
                 >
                   <Pause className="w-4 h-4" />

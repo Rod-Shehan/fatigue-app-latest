@@ -51,12 +51,14 @@ Idle Start shift and Rest Start work both open the same Driving / Other work spl
 | Idle, Start shift chooser open | Split: **Start driving** / **Start Other Work** | — |
 | **Work** | **Stop Driving** | **End shift** |
 | **Work**, chooser open | Split: **Start Rest** / **Start Other Work** | **End shift** |
-| **Rest** | Split: **Start driving** / **Start Other Work** (Cancel → **Start work**) | **End shift** |
-| **Other work** | Split: **Start driving** / **Start Rest** (Cancel → **Continue shift**) | **End shift** |
+| **Rest** | **Start work** | **End shift** |
+| **Rest**, chooser open | Split: **Start driving** / **Start Other Work** | **End shift** |
+| **Other work** | **Continue shift** | **End shift** |
+| **Other work**, chooser open | Split: **Start driving** / **Start Rest** | **End shift** |
 
 The timer under the ring shows how long this stretch has been open, with a small **(Work)** / **(Rest)** / **(Other work)** note so the split is not mistaken for the current state.
 
-The split is a chooser, not a log. First tap of Start shift or Stop Driving opens it (no extra tap-again before the split). On Rest the Driving / Other work split is already open. On Other work the Driving / Rest split is already open. Start driving, Start Rest, and Start Other Work keep the usual tap-again confirm.
+The split is a chooser, not a log. First tap of Start shift, Start work, Continue shift, or Stop Driving only opens it — that tap does not log. Start driving, Start Rest, and Start Other Work keep the usual tap-again confirm. The chosen half is what is recorded, never the opener.
 
 Do not show Rest and Other work as two always-visible taps on Work. Do not add a button named Break.
 

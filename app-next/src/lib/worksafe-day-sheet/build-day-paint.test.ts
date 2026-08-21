@@ -184,7 +184,7 @@ describe("buildWorkSafeDayPaint", () => {
     expect(paint.segments).toEqual([{ track: "non_work", startMin: 0, endMin: MINUTES_PER_DAY }]);
   });
 
-  it("does not invent non_work for coverage gaps when the day already has activity", () => {
+  it("fills coverage gaps on a day with events as non_work (never blank elapsed minutes)", () => {
     const work_time = Array(MINUTES_PER_DAY).fill(false);
     const breaks = Array(MINUTES_PER_DAY).fill(false);
     const non_work = Array(MINUTES_PER_DAY).fill(false);
@@ -197,9 +197,32 @@ describe("buildWorkSafeDayPaint", () => {
       non_work,
       events: [{ time: `${PAST}T01:00:00`, type: "work" }],
     });
-    expect(trackAt(paint, 0, 60).every((t) => t == null)).toBe(true);
+    expect(trackAt(paint, 0, 60).every((t) => t === "non_work")).toBe(true);
     expect(trackAt(paint, 60, 120).every((t) => t === "work")).toBe(true);
+    expect(trackAt(paint, 120, MINUTES_PER_DAY).every((t) => t === "non_work")).toBe(true);
     expect(paint.totalsMinutes.work).toBe(60);
-    expect(paint.totalsMinutes.non_work).toBe(0);
+    expect(paint.totalsMinutes.non_work).toBe(MINUTES_PER_DAY - 60);
+  });
+
+  it("paints truncated End-shift grids as non_work through the rest of the elapsed day", () => {
+    const work_time = Array(MINUTES_PER_DAY).fill(false);
+    const breaks = Array(MINUTES_PER_DAY).fill(false);
+    const non_work = Array(MINUTES_PER_DAY).fill(false);
+    for (let m = 8 * 60; m < 16 * 60; m++) work_time[m] = true;
+    // Persist-as-today leftover: a few minutes of non-work after End shift, then blank.
+    for (let m = 16 * 60; m < 16 * 60 + 5; m++) non_work[m] = true;
+    const paint = buildWorkSafeDayPaint({
+      dateStr: PAST,
+      todayStr: TODAY,
+      work_time,
+      breaks,
+      non_work,
+      events: [
+        { time: `${PAST}T08:00:00`, type: "work" },
+        { time: `${PAST}T16:00:00`, type: "stop" },
+      ],
+    });
+    expect(trackAt(paint, 16 * 60, MINUTES_PER_DAY).every((t) => t === "non_work")).toBe(true);
+    expect(paint.trackByMinute.some((t) => t == null)).toBe(false);
   });
 });

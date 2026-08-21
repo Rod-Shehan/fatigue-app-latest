@@ -1040,7 +1040,7 @@ export function DayCardDetailsDialog({
             disabled={confirming}
             onClick={() => void handleConfirm()}
           >
-            {confirming ? "Saving…" : startWorkAfterSetup ? "Confirm & start shift" : "Confirm"}
+            {confirming ? "Saving…" : "Confirm"}
           </Button>
         </div>
       </DialogContent>

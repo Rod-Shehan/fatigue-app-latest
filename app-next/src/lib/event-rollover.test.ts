@@ -20,7 +20,7 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     expect(t).toBe("non_work");
   });
 
-  it("returns null after End shift", () => {
+  it("returns non_work after End shift so coverage continues until the next event", () => {
     const t = getEffectiveOpenActivityAtDayEnd(
       {
         events: [
@@ -31,7 +31,7 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
       "2026-06-03",
       "2026-06-04"
     );
-    expect(t).toBeNull();
+    expect(t).toBe("non_work");
   });
 
   it("returns other_work so overnight loading is not converted as Rest", () => {
@@ -172,7 +172,32 @@ describe("deriveDaysWithRollover", () => {
     expect((derived[0]!.work_time ?? []).filter(Boolean).length).toBe(MINUTES_PER_DAY);
   });
 
-  it("does not carry across week seam after End shift on prior Saturday", () => {
+  it("continues non-work after End shift across midnight until the next driver event", () => {
+    const days = [
+      {},
+      {},
+      {},
+      {},
+      {
+        events: [
+          { time: "2026-06-04T08:00:00", type: "work" },
+          { time: "2026-06-04T16:00:00", type: "stop" },
+        ],
+      },
+      { events: [] },
+    ];
+    const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-06" });
+    const thu = derived[4]!;
+    const fri = derived[5]!;
+    expect((thu.work_time ?? []).slice(16 * 60).some(Boolean)).toBe(false);
+    expect((thu.non_work ?? []).slice(16 * 60).every(Boolean)).toBe(true);
+    expect((fri.work_time ?? []).some(Boolean)).toBe(false);
+    expect((fri.non_work ?? []).every(Boolean)).toBe(true);
+    expect((thu.non_work ?? [])[MINUTES_PER_DAY - 1]).toBe(true);
+    expect((fri.non_work ?? [])[0]).toBe(true);
+  });
+
+  it("carries non-work from prior week Saturday End shift into Sunday (weekStarting is UI only)", () => {
     const prevWeekDays = [
       {},
       {},
@@ -188,6 +213,14 @@ describe("deriveDaysWithRollover", () => {
       },
     ];
     const openBefore = resolveOpenActivityBeforeFirstDay(prevWeekDays, "2026-05-25", "2026-06-05");
-    expect(openBefore).toBeNull();
+    expect(openBefore).toBe("non_work");
+
+    const thisWeek = [{ events: [] as { time: string; type: string }[] }, {}, {}, {}, {}, {}, {}];
+    const derived = deriveDaysWithRollover(thisWeek, WEEK_START, {
+      todayStr: "2026-06-05",
+      openActivityBeforeFirstDay: openBefore,
+    });
+    expect((derived[0]!.non_work ?? []).filter(Boolean).length).toBe(MINUTES_PER_DAY);
+    expect((derived[0]!.work_time ?? []).some(Boolean)).toBe(false);
   });
 });

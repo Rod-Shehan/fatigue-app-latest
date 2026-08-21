@@ -27,7 +27,9 @@ Calendar day, weekStarting, month, PDF sections, and day cards exist **only** to
 
 They are **not** identifiers that change meaning on the timeline:
 
-- Open **work / break / non-work** continues until the **next driver-logged event** (or End shift stops carry).
+- Open **work / break / other work / non-work** continues until the **next driver-logged event**.
+- **End shift** starts **non-work**; that non-work continues across midnight until the next log. It does not stop the timeline or leave a blank.
+- Unlogged elapsed time is **always non-work**. There is never a blank minute on an elapsed timeline.
 - Driver **input events are the first source of truth**.
 - Filling gaps as a different type at midnight/week-start without a driver event is **wrong**.
 

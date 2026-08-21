@@ -59,6 +59,23 @@ describe("deriveMinuteGridFromEvents", () => {
     expect(grid.work_time.slice(start, end).some(Boolean)).toBe(false);
   });
 
+  it("fills the rest of a past day as non-work after End shift (no blank, no midnight cut)", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T08:00:00`, type: "work" },
+        { time: `${dateStr}T16:00:00`, type: "stop" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    expect(grid.non_work.slice(16 * 60).every(Boolean)).toBe(true);
+    expect(grid.work_time.slice(16 * 60).some(Boolean)).toBe(false);
+    expect(grid.non_work.filter(Boolean).length + grid.work_time.filter(Boolean).length).toBe(
+      MINUTES_PER_DAY
+    );
+  });
+
   it("keeps short actioned break as break (≤30 min)", () => {
     const dateStr = "2099-06-01";
     const grid = deriveMinuteGridFromEvents(

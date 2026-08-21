@@ -23,6 +23,7 @@ import {
 import { checklistMatrixFromDays } from "@/lib/worksafe-day-sheet/trip-checklist";
 import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
 import type { WorkSafeTrack } from "@/lib/worksafe-day-sheet/types";
+import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
@@ -566,11 +567,12 @@ export function renderPdfHtml(opts: {
   const tripSheetOnly = opts.layout === "tripSheetOnly";
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
+  const paintDays = deriveDaysWithRollover(dayList, sheet.week_starting, { todayStr });
   const driverName = (sheet.driver_name || "").trim();
-  const truckRegs = collectWeekTruckRegs(dayList);
+  const truckRegs = collectWeekTruckRegs(paintDays);
   let weekWorkMinutes = 0;
 
-  const dayCards = dayList.map((day, idx) => {
+  const dayCards = paintDays.map((day, idx) => {
     const dayName = DAY_NAMES[idx] ?? `Day ${idx + 1}`;
     const dateLabel = getDateStr(sheet.week_starting, idx);
     const isoDate = (day as { date?: string }).date || getIsoDate(sheet.week_starting, idx);
@@ -1064,7 +1066,8 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
 
   const dayList = (sheet.days || []).slice(0, 7);
   while (dayList.length < 7) dayList.push({});
-  const truckRegs = collectWeekTruckRegs(dayList);
+  const paintDays = deriveDaysWithRollover(dayList, sheet.week_starting, { todayStr });
+  const truckRegs = collectWeekTruckRegs(paintDays);
   let weekWorkMinutes = 0;
 
   // Start Weekly Trip Sheet body on a fresh page when compliance already filled the first page.
@@ -1087,7 +1090,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
   const FOOTER_BUDGET_MM = 40;
   const TILE_BUDGET_MM = 24; // ~20mm tile + half gap after 20% taller lanes
 
-  dayList.forEach((day, idx) => {
+  paintDays.forEach((day, idx) => {
     const isLastDay = idx === dayList.length - 1;
     // Reserve footer space when placing the last day so signature stays on the same page.
     const needMm = TILE_BUDGET_MM + (isLastDay ? FOOTER_BUDGET_MM : 0);
