@@ -5,6 +5,7 @@ import {
   option14Satisfied,
   collectDeclared24hRests,
   collectDeclared24hRestRanges,
+  declared24hRestsFromDbRow,
   countEffective24hPeriods,
   declared24hRestsIncomplete,
   getDeclared24hRestUiFieldCount,
@@ -39,6 +40,30 @@ describe("declared-24h-rests", () => {
         last_24h_rest_3: "2026-07-12",
       })
     ).toEqual(["2026-07-10", "2026-07-12"]);
+  });
+
+  it("declared24hRestsFromDbRow maps Prisma dates to collectable ranges", () => {
+    const fields = declared24hRestsFromDbRow({
+      last24hRest1: "2026-08-12",
+      last24hRest1Start: new Date("2026-08-12T05:00:00.000Z"),
+      last24hRest1End: new Date("2026-08-13T05:00:00.000Z"),
+      last24hRest2: "2026-08-13",
+      last24hRest2Start: new Date("2026-08-13T05:00:00.000Z"),
+      last24hRest2End: new Date("2026-08-14T05:00:00.000Z"),
+      last24hRest3: "2026-08-14",
+      last24hRest3Start: new Date("2026-08-14T05:00:00.000Z"),
+      last24hRest3End: new Date("2026-08-15T05:00:00.000Z"),
+      last24hRest4: "2026-08-15",
+      last24hRest4Start: new Date("2026-08-15T05:00:00.000Z"),
+      last24hRest4End: new Date("2026-08-16T05:00:00.000Z"),
+    });
+    expect(collectDeclared24hRestRanges(fields)).toHaveLength(4);
+    expect(collectDeclared24hRests(fields)).toEqual([
+      "2026-08-12",
+      "2026-08-13",
+      "2026-08-14",
+      "2026-08-15",
+    ]);
   });
 
   it("collectDeclared24hRestRanges keeps valid absolute spans only", () => {

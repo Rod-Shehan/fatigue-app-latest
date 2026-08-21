@@ -14,6 +14,7 @@ import { getRecordRetentionPolicy } from "@/lib/record-retention";
 import { getPreviousWeekSunday, getThisWeekSunday } from "@/lib/weeks";
 import { isFrmsEngineEnabled, resolveFrmsProspectiveRegister } from "@/lib/frms/orchestrator";
 import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
+import { declared24hRestsFromDbRow } from "@/lib/declared-24h-rests";
 
 const WEEK_YMD = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -99,6 +100,7 @@ export async function GET(request: NextRequest) {
         historyDays,
         last24hBreak: sheet.last24hBreak ?? undefined,
         last24hBreakEndMs: last24hBreakEndMsFromIso(sheet.last24hBreakEnd?.toISOString()),
+        declared24hRests: declared24hRestsFromDbRow(sheet),
         weekStarting: sheet.weekStarting,
         prevWeekStarting,
         currentDayIndex,

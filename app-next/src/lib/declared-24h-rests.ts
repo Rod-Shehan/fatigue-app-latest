@@ -316,6 +316,45 @@ export function declared24hRestsFromSheet(sheet: Declared24hRestFields): Declare
   };
 }
 
+function isoOrNull(value: Date | string | null | undefined): string | null {
+  if (value == null || value === "") return null;
+  if (typeof value === "string") return value;
+  return Number.isFinite(value.getTime()) ? value.toISOString() : null;
+}
+
+/** Prisma / DB row → same payload the sheet compliance check already uses. */
+export type Declared24hRestDbRow = {
+  last24hRest1?: string | null;
+  last24hRest2?: string | null;
+  last24hRest3?: string | null;
+  last24hRest4?: string | null;
+  last24hRest1Start?: Date | string | null;
+  last24hRest1End?: Date | string | null;
+  last24hRest2Start?: Date | string | null;
+  last24hRest2End?: Date | string | null;
+  last24hRest3Start?: Date | string | null;
+  last24hRest3End?: Date | string | null;
+  last24hRest4Start?: Date | string | null;
+  last24hRest4End?: Date | string | null;
+};
+
+export function declared24hRestsFromDbRow(row: Declared24hRestDbRow): Declared24hRestFields {
+  return declared24hRestsFromSheet({
+    last_24h_rest_1: row.last24hRest1 ?? null,
+    last_24h_rest_2: row.last24hRest2 ?? null,
+    last_24h_rest_3: row.last24hRest3 ?? null,
+    last_24h_rest_4: row.last24hRest4 ?? null,
+    last_24h_rest_1_start: isoOrNull(row.last24hRest1Start),
+    last_24h_rest_1_end: isoOrNull(row.last24hRest1End),
+    last_24h_rest_2_start: isoOrNull(row.last24hRest2Start),
+    last_24h_rest_2_end: isoOrNull(row.last24hRest2End),
+    last_24h_rest_3_start: isoOrNull(row.last24hRest3Start),
+    last_24h_rest_3_end: isoOrNull(row.last24hRest3End),
+    last_24h_rest_4_start: isoOrNull(row.last24hRest4Start),
+    last_24h_rest_4_end: isoOrNull(row.last24hRest4End),
+  });
+}
+
 /**
  * Soft-reset fields for AMI / legacy: the declared rest with the latest end instant.
  * Calendar last24hBreak is derived from that range start (Perth YMD).

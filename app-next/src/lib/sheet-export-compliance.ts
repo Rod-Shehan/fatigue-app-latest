@@ -4,6 +4,7 @@ import { getComplianceEngine, parseJurisdictionCode, type JurisdictionCode } fro
 import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { loadComplianceWeekContext, parseSheetDaysJson } from "@/lib/compliance-history";
 import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
+import { declared24hRestsFromDbRow } from "@/lib/declared-24h-rests";
 
 /**
  * Same inputs as manager compliance / sheet API — used for PDF roadside summary.
@@ -17,6 +18,18 @@ export async function computeComplianceForSheetExport(
     | "driverType"
     | "last24hBreak"
     | "last24hBreakEnd"
+    | "last24hRest1"
+    | "last24hRest2"
+    | "last24hRest3"
+    | "last24hRest4"
+    | "last24hRest1Start"
+    | "last24hRest1End"
+    | "last24hRest2Start"
+    | "last24hRest2End"
+    | "last24hRest3Start"
+    | "last24hRest3End"
+    | "last24hRest4Start"
+    | "last24hRest4End"
     | "days"
     | "jurisdictionCode"
     | "tenantId"
@@ -54,6 +67,7 @@ export async function computeComplianceForSheetExport(
     historyDays,
     last24hBreak: row.last24hBreak ?? undefined,
     last24hBreakEndMs: last24hBreakEndMsFromIso(row.last24hBreakEnd?.toISOString()),
+    declared24hRests: declared24hRestsFromDbRow(row),
     weekStarting: row.weekStarting,
     prevWeekStarting,
     currentDayIndex,
