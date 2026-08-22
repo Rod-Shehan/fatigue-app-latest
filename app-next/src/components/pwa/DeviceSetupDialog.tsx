@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Download, HardDrive, Shield } from "lucide-react";
+import { CheckCircle2, HardDrive, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ export function DeviceSetupDialog({
   const [agree, setAgree] = useState(false);
   const [working, setWorking] = useState(false);
   const [persistResult, setPersistResult] = useState<string | null>(null);
-  const { canPrompt, installed, ios, installLabel, promptInstall } = useProductPwaInstall();
+  const { canPrompt, installed, ios, installLabel, iconSrc, promptInstall } = useProductPwaInstall();
 
   useEffect(() => {
     if (!open) {
@@ -87,7 +87,7 @@ export function DeviceSetupDialog({
   const installHint = installed
     ? "Installed: opens without browser bars — best for dashboard mounting."
     : ios
-      ? "On iPhone/iPad: Share → Add to Home Screen for fullscreen cab mode."
+      ? "In Safari: Share → Add to Home Screen. The Circadia icon should appear on this phone."
       : canPrompt
         ? `Tap ${installLabel}. The browser will ask you to add this app.`
         : "If Install does not appear, use the browser menu → Install app (or Add to Home Screen).";
@@ -115,7 +115,9 @@ export function DeviceSetupDialog({
               desc="We’ll ask the browser to keep your offline data from being evicted under storage pressure."
             />
             <Row
-              icon={<Download className="w-4 h-4" />}
+              icon={
+                <img src={iconSrc} alt="" width={20} height={20} className="w-5 h-5 rounded-sm bg-[#0A1118]" />
+              }
               title={installLabel}
               desc={installHint}
             />

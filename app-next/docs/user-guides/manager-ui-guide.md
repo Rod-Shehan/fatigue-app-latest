@@ -51,7 +51,7 @@ Layout is **monitor-first**: multi-column grids on wide screens; stacks on phone
 
 ### Install Enterprise
 
-On **enterprise.circadia24.com**, tap **Install Enterprise** on the sign-in page or at the top of Driver Overview when Chrome offers it. That adds Enterprise as an app on this computer. On iPhone or iPad use **Share → Add to Home Screen**. This is the Enterprise product only — it is not the Circadia staff desk.
+On **enterprise.circadia24.com**, tap **Install Enterprise** on the sign-in page or at the top of Driver Overview when Chrome offers it. That adds Enterprise as an app on this computer, with the Circadia icon. On iPhone or iPad, use **Safari** → **Share → Add to Home Screen**. This is the Enterprise product only — it is not the Circadia staff desk.
 
 ### Domain overview cards (top of Driver Overview)
 

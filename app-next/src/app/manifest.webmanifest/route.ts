@@ -38,6 +38,12 @@ export async function GET(request: Request) {
     theme_color: "#0A1118",
     icons: [
       {
+        src: icons.icon180,
+        sizes: "180x180",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
         src: icons.icon192,
         sizes: "192x192",
         type: "image/png",

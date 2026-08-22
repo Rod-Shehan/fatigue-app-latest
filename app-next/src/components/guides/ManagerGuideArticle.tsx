@@ -30,8 +30,9 @@ export function ManagerGuideArticle() {
         <ul className={ulClass}>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{ENTERPRISE_INSTALL_BUTTON_LABEL}</strong> — on
-            enterprise.circadia24.com, tap this on sign-in or at the top of Overview when Chrome offers it. On iPhone or
-            iPad use Share → Add to Home Screen. This is Enterprise only — not the Circadia staff desk.
+            enterprise.circadia24.com, tap this on sign-in or at the top of Overview when Chrome offers it. The Circadia
+            icon is added to this device. On iPhone or iPad use Safari → Share → Add to Home Screen. This is Enterprise
+            only — not the Circadia staff desk.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.PAGE_TITLE}</strong> — weekly fleet

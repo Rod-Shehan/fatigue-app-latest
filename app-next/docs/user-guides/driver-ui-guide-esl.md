@@ -40,7 +40,7 @@ After sign in you see **Drive**.
 | **Log more work / Open this week** (green) | Open this week to log |
 | **Produce 28 day roadside PDF** (amber) | One PDF for a regulator |
 | **Your weeks** | Past and signed records |
-| **Install EWD** / **Set up this device** | Add EWD to this phone, then keep the diary offline |
+| **Install EWD** / **Set up this device** | Add EWD to this phone (Circadia icon on the home screen), then keep the diary offline |
 | ⚙ (top right) | Settings and tools |
 
 **Tip:** Tap **Log more work** each day when you start.

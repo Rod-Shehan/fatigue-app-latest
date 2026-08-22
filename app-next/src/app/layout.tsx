@@ -26,8 +26,11 @@ export async function generateMetadata(): Promise<Metadata> {
       statusBarStyle: "black-translucent",
     },
     icons: {
-      icon: [{ url: icons.icon192, type: "image/png", sizes: "192x192" }],
-      apple: [{ url: icons.icon512, type: "image/png", sizes: "512x512" }],
+      icon: [
+        { url: "/favicon.ico", sizes: "32x32" },
+        { url: icons.icon192, type: "image/png", sizes: "192x192" },
+      ],
+      apple: [{ url: icons.icon180, type: "image/png", sizes: "180x180" }],
     },
   };
 }
@@ -69,8 +72,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="icon" href={icons.icon192} type="image/png" sizes="192x192" />
-        <link rel="apple-touch-icon" href={icons.icon512} sizes="512x512" />
+        <link rel="apple-touch-icon" href={icons.icon180} />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body>
         <Providers>
