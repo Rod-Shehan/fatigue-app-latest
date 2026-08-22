@@ -8,27 +8,40 @@
  */
 
 export const OTHER_WORK_EVENT_TYPE = "other_work";
+/** Two-up: in the passenger seat. Work time; never becomes non-work time. */
+export const PASSENGER_EVENT_TYPE = "passenger";
+/** Two-up: sleep in an appropriate sleeper berth. Non-work time; shift stays open. */
+export const SLEEPER_BERTH_EVENT_TYPE = "sleeper_berth";
 
 /** Driving work only — the 5h work clock. Other work is a break from driving. */
 export function isWorkTimeEventType(type: string): boolean {
   return type === "work";
 }
 
-/** Rest or Other work — WorkSafe BREAKS FROM DRIVING. */
+/** Rest, Other work, or Passenger — WorkSafe BREAKS FROM DRIVING. */
 export function isBreakFromDrivingEventType(type: string): boolean {
-  return type === "break" || type === OTHER_WORK_EVENT_TYPE;
+  return type === "break" || type === OTHER_WORK_EVENT_TYPE || type === PASSENGER_EVENT_TYPE;
 }
 
-/** Shift is open: Work, Rest, or Other work (not End shift / idle). */
+/**
+ * Shift (working period) is open. End shift (`stop`) is the only close.
+ * Sleeper berth is non-work time during the shift, not End shift.
+ */
 export function isOpenShiftEventType(type: string | null | undefined): boolean {
-  return type === "work" || type === "break" || type === OTHER_WORK_EVENT_TYPE;
+  return (
+    type === "work" ||
+    type === "break" ||
+    type === OTHER_WORK_EVENT_TYPE ||
+    type === PASSENGER_EVENT_TYPE ||
+    type === SLEEPER_BERTH_EVENT_TYPE
+  );
 }
 
 /** Day-sheet / AMI paint kind. `stop` does not paint. Unknown types are ignored. */
 export function toCoverageKind(type: string): "work" | "break" | "other_work" | "non_work" | null {
   if (type === "break") return "break";
-  if (type === OTHER_WORK_EVENT_TYPE) return "other_work";
-  if (type === "non_work") return "non_work";
+  if (type === OTHER_WORK_EVENT_TYPE || type === PASSENGER_EVENT_TYPE) return "other_work";
+  if (type === "non_work" || type === SLEEPER_BERTH_EVENT_TYPE) return "non_work";
   if (type === "work") return "work";
   return null;
 }

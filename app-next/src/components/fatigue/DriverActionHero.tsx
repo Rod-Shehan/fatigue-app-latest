@@ -7,13 +7,13 @@ import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
-import { Briefcase, Coffee, Wrench, X } from "lucide-react";
+import { BedDouble, Briefcase, Coffee, User, Wrench, X } from "lucide-react";
 import { HERO_SPLIT_CHROME } from "@/lib/theme";
 
 const UNLOCK_RING_R = 46;
 const UNLOCK_RING_C = 2 * Math.PI * UNLOCK_RING_R;
 
-type HeroSplitKind = "work" | "break" | "other_work";
+type HeroSplitKind = "work" | "break" | "other_work" | "passenger" | "sleeper_berth";
 
 const HERO_SPLIT_ICONS: Record<
   HeroSplitKind,
@@ -22,6 +22,8 @@ const HERO_SPLIT_ICONS: Record<
   work: Briefcase,
   break: Coffee,
   other_work: Wrench,
+  passenger: User,
+  sleeper_berth: BedDouble,
 };
 
 function HeroSplitHalf({
@@ -33,6 +35,8 @@ function HeroSplitHalf({
   disabled,
   compact,
   expanded,
+  fill,
+  className,
 }: {
   kind: HeroSplitKind;
   edge: "top" | "bottom";
@@ -42,6 +46,8 @@ function HeroSplitHalf({
   disabled?: boolean;
   compact?: boolean;
   expanded?: boolean;
+  fill?: boolean;
+  className?: string;
 }) {
   const chrome = HERO_SPLIT_CHROME[kind];
   const Icon = HERO_SPLIT_ICONS[kind];
@@ -67,12 +73,14 @@ function HeroSplitHalf({
       }}
       disabled={disabled}
       className={cn(
-        "relative flex h-1/2 w-full flex-col items-center justify-center font-bold",
+        "relative flex w-full flex-col items-center justify-center font-bold",
+        fill ? "h-full min-h-0" : "h-1/2",
         "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
         "disabled:opacity-60 disabled:pointer-events-none active:brightness-95",
         chrome.half,
         chrome.text,
-        pending && "animate-pulse ring-2 ring-inset ring-white"
+        pending && "animate-pulse ring-2 ring-inset ring-white",
+        className
       )}
       aria-label={pending ? `Tap again to confirm ${label}` : label}
     >
@@ -162,6 +170,15 @@ export interface DriverActionHeroProps {
     onCancel: () => void;
     restPending?: boolean;
     otherWorkPending?: boolean;
+    /** Two-up (3–4 tiles) replaces the vertical two-half split. */
+    tiles?: Array<{
+      kind: HeroSplitKind;
+      label: string;
+      onClick: () => void;
+      pending?: boolean;
+      disabled?: boolean;
+    }>;
+    ariaLabel?: string;
   } | null;
 }
 
@@ -392,23 +409,45 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
     chooserVariant === "start-work" ||
     chooserVariant === "continue-shift";
   const chooserAria =
-    chooserVariant === "start-work"
+    stopDrivingChooser?.ariaLabel ??
+    (chooserVariant === "start-work"
       ? "Start work — choose driving or Other work"
       : chooserVariant === "start-shift"
         ? "Start shift — choose driving or Other work"
         : chooserVariant === "continue-shift"
           ? "Continue shift — choose driving or Rest"
-          : "Stop Driving — choose Rest or Other work";
+          : "Stop Driving — choose Rest or Other work");
   const topKind: HeroSplitKind = workKindSplit ? "work" : "break";
   const bottomKind: HeroSplitKind = chooserVariant === "continue-shift" ? "break" : "other_work";
+  const chooserTiles = stopDrivingChooser?.tiles;
+  const useTileGrid = Boolean(chooserTiles && chooserTiles.length > 2);
 
   const heroControl = stopDrivingChooser ? (
-    <div className={cn("flex flex-col items-center", locked && "opacity-70 saturate-75")}>
+    <div className={cn("flex flex-col items-center", locked && !useTileGrid && "opacity-70 saturate-75")}>
       <div
         className={cn(sizeClass, "relative driver-puck-shell rounded-full")}
         role="group"
         aria-label={chooserAria}
       >
+        {useTileGrid && chooserTiles ? (
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 overflow-hidden rounded-full">
+            {chooserTiles.map((tile, index) => (
+              <HeroSplitHalf
+                key={tile.label + index}
+                kind={tile.kind}
+                edge={index < 2 ? "top" : "bottom"}
+                label={tile.label}
+                pending={tile.pending}
+                onClick={tile.onClick}
+                disabled={tile.disabled}
+                compact={compact}
+                expanded={expanded}
+                fill
+                className={chooserTiles.length === 3 && index === 2 ? "col-span-2" : undefined}
+              />
+            ))}
+          </div>
+        ) : (
         <div className="absolute inset-0 flex flex-col overflow-hidden rounded-full">
         <HeroSplitHalf
           kind={topKind}
@@ -439,6 +478,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           expanded={expanded}
         />
         </div>
+        )}
       </div>
       {elapsedLabel || activityNowLabel ? (
         <div
@@ -471,7 +511,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           ) : null}
         </div>
       ) : null}
-      {!locked ? (
+      {!locked || useTileGrid ? (
         <div className={cn(expanded ? "mt-3" : "mt-2")}>
           {renderAuxPill("chooser-cancel", {
             label: "Cancel",

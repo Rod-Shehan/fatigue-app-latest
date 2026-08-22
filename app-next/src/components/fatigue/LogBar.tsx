@@ -16,6 +16,8 @@ import {
   ChevronDown,
   ChevronUp,
   UserRound,
+  User,
+  BedDouble,
   Pause,
   Wrench,
 } from "lucide-react";
@@ -49,8 +51,14 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL } from "@/lib/product-copy";
-import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
+import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
+import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
+import {
+  twoUpChooserAria,
+  twoUpPassengerTiles,
+  twoUpSleeperBerthTiles,
+  twoUpStopDrivingTiles,
+} from "@/lib/two-up-hero";
 import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
 import { isHeroChooserGhostClick } from "@/lib/hero-chooser-guard";
 import { getEndShiftButtonChrome, getNapQuestionChrome, getOnNapChrome } from "@/lib/driver-compliance-chrome";
@@ -233,6 +241,8 @@ export default function LogBar({
   const [pendingType, setPendingType] = useState<string | null>(null);
   /** Work → Stop Driving chooser (not a logged event). */
   const [stopDrivingChooserOpen, setStopDrivingChooserOpen] = useState(false);
+  const [passengerChooserOpen, setPassengerChooserOpen] = useState(false);
+  const [sleeperChooserOpen, setSleeperChooserOpen] = useState(false);
   /** Idle → Start shift chooser: Start driving / Start Other Work (not a logged event). */
   const [startShiftChooserOpen, setStartShiftChooserOpen] = useState(false);
   /** Rest → Start work chooser: Start driving / Start Other Work (not a logged event). */
@@ -312,6 +322,8 @@ export default function LogBar({
     if (currentType != null) setStartShiftChooserOpen(false);
     if (currentType !== "break") setRestWorkChooserOpen(false);
     if (currentType !== OTHER_WORK_EVENT_TYPE) setOtherWorkChooserOpen(false);
+    if (currentType !== PASSENGER_EVENT_TYPE) setPassengerChooserOpen(false);
+    if (currentType !== SLEEPER_BERTH_EVENT_TYPE) setSleeperChooserOpen(false);
   }, [currentType]);
 
   const openSessionTools = useCallback(() => {
@@ -414,7 +426,7 @@ export default function LogBar({
       return {
       incomplete: !split.complete,
       bankedMinutes: banked,
-      progressLabel: split.complete ? null : `Rest ${banked}/20 min`,
+      progressLabel: split.complete ? null : `${isTwoUp ? "Break" : "Rest"} ${banked}/20 min`,
     };
   }, [isLiveNow, currentType, lastEvent, eventsForDriver, elapsedMinutes]);
 
@@ -430,7 +442,7 @@ export default function LogBar({
     !idleRestBlocked;
   const primaryActionLabel = idlePrimary
     ? idlePrimary.label
-    : resolveDriverHeroPrimaryLabel(currentType);
+    : resolveDriverHeroPrimaryLabel(currentType, { twoUp: isTwoUp });
   const primaryActionPending =
     !isWorkTimeEventType(currentType ?? "") &&
     pendingType === primaryLogType &&
@@ -441,9 +453,13 @@ export default function LogBar({
       ? CircleX
       : currentType === "work"
         ? Pause
-        : primaryLogType === "non_work"
-          ? EVENT_ICONS.non_work
-          : EVENT_ICONS.work;
+        : currentType === PASSENGER_EVENT_TYPE
+          ? User
+          : currentType === SLEEPER_BERTH_EVENT_TYPE
+            ? BedDouble
+            : primaryLogType === "non_work"
+              ? EVENT_ICONS.non_work
+              : EVENT_ICONS.work;
 
   const upcomingComplianceChip = useMemo(
     () =>
@@ -853,7 +869,13 @@ export default function LogBar({
     if (type === currentType) return;
 
     if (type === "work") {
-      if (!startShiftChooserOpen && !restWorkChooserOpen && !otherWorkChooserOpen) {
+      if (
+        !startShiftChooserOpen &&
+        !restWorkChooserOpen &&
+        !otherWorkChooserOpen &&
+        !passengerChooserOpen &&
+        !sleeperChooserOpen
+      ) {
         const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
         if (nonWorkMsg) {
           setWorkWarning({
@@ -875,6 +897,8 @@ export default function LogBar({
         startShiftChooserOpen,
         restWorkChooserOpen,
         otherWorkChooserOpen,
+        passengerChooserOpen,
+        sleeperChooserOpen,
         currentType,
         episodeResume,
         needsShiftStartSetup,
@@ -950,17 +974,25 @@ export default function LogBar({
         type === "stop"
           ? DRIVER_END_SHIFT_LABEL
           : type === "break"
-            ? DRIVER_START_REST_LABEL
-              : type === OTHER_WORK_EVENT_TYPE
+            ? isTwoUp
+              ? DRIVER_BREAK_FROM_DRIVING_LABEL
+              : DRIVER_START_REST_LABEL
+            : type === OTHER_WORK_EVENT_TYPE
               ? DRIVER_START_OTHER_WORK_LABEL
-              : resolveWorkConfirmLabel({
-                  startShiftChooserOpen,
-                  restWorkChooserOpen,
-                  otherWorkChooserOpen,
-                  currentType,
-                  episodeResume,
-                  needsShiftStartSetup,
-                });
+              : type === PASSENGER_EVENT_TYPE
+                ? DRIVER_PASSENGER_LABEL
+                : type === SLEEPER_BERTH_EVENT_TYPE
+                  ? DRIVER_SLEEPER_BERTH_LABEL
+                  : resolveWorkConfirmLabel({
+                      startShiftChooserOpen,
+                      restWorkChooserOpen,
+                      otherWorkChooserOpen,
+                      passengerChooserOpen,
+                      sleeperChooserOpen,
+                      currentType,
+                      episodeResume,
+                      needsShiftStartSetup,
+                    });
       speakVoiceAlert(`Tap ${label} again to confirm.`);
     }
   };
@@ -1082,12 +1114,27 @@ export default function LogBar({
   const showEndShiftDock = shiftSegmentOpen || pendingType === "stop";
   const restNapTagged = isRestNapTagged(lastEvent);
   const showNapDock =
-    Boolean(isLiveNow && onSetRestNap && currentType === "break" && pendingType !== "stop");
+    Boolean(isLiveNow && onSetRestNap && !isTwoUp && currentType === "break" && pendingType !== "stop");
   const heroChooserOpen =
     (stopDrivingChooserOpen && currentType === "work") ||
     (startShiftChooserOpen && currentType === null) ||
     (restWorkChooserOpen && currentType === "break") ||
-    (otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE);
+    (otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE) ||
+    (passengerChooserOpen && currentType === PASSENGER_EVENT_TYPE) ||
+    (sleeperChooserOpen && currentType === SLEEPER_BERTH_EVENT_TYPE);
+  const twoUpHeroUnlockedWhileMoving =
+    isTwoUp &&
+    (currentType === "work" ||
+      currentType === PASSENGER_EVENT_TYPE ||
+      currentType === SLEEPER_BERTH_EVENT_TYPE);
+  const mapTwoUpChooserTiles = (tiles: ReturnType<typeof twoUpStopDrivingTiles>) =>
+    tiles.map((tile) => ({
+      kind: tile.kind,
+      label: tile.label,
+      onClick: () => runChooserOption(() => handleLog(tile.logType)),
+      pending: pendingType === tile.logType,
+      disabled: isMoving && !tile.unlockWhileMoving,
+    }));
 
   useLayoutEffect(() => {
     const el = fixedHeaderRef.current;
@@ -1302,7 +1349,9 @@ export default function LogBar({
             workMinutesUsed={workMinutesUsed}
             totalWindowMinutes={WORK_WINDOW_MIN}
             currentSegment={
-              currentType === "break" || currentType === OTHER_WORK_EVENT_TYPE
+              currentType === "break" ||
+              currentType === OTHER_WORK_EVENT_TYPE ||
+              currentType === PASSENGER_EVENT_TYPE
                 ? "break"
                 : currentType === "work"
                   ? "work"
@@ -1311,9 +1360,11 @@ export default function LogBar({
             complianceLoading={complianceButton?.loading}
             shiftSegmentOpen={shiftSegmentOpen}
             isIdleAtTop={isIdleAtTop}
-            isMoving={isMoving && !primaryActionPending}
+            isMoving={isMoving && !primaryActionPending && !twoUpHeroUnlockedWhileMoving}
             movementUnlockProgress01={
-              isMoving && !primaryActionPending ? gpsUnlockProgress : 1
+              isMoving && !primaryActionPending && !twoUpHeroUnlockedWhileMoving
+                ? gpsUnlockProgress
+                : 1
             }
             actionLabel={primaryActionLabel}
             onAction={() => {
@@ -1329,6 +1380,14 @@ export default function LogBar({
                 openHeroChooser(() => setOtherWorkChooserOpen(true));
                 return;
               }
+              if (currentType === PASSENGER_EVENT_TYPE) {
+                openHeroChooser(() => setPassengerChooserOpen(true));
+                return;
+              }
+              if (currentType === SLEEPER_BERTH_EVENT_TYPE) {
+                openHeroChooser(() => setSleeperChooserOpen(true));
+                return;
+              }
               if (primaryLogType === "work" && currentType === null) {
                 if (showResumeShiftPrimary) handleResumeShift();
                 else handleStartShift();
@@ -1341,7 +1400,7 @@ export default function LogBar({
             elapsedLabel={
               showSessionTimer ? formatElapsedBarDisplay(elapsedMinutes) : null
             }
-            activityNowLabel={resolveHeroActivityNowLabel(currentType)}
+            activityNowLabel={resolveHeroActivityNowLabel(currentType, { twoUp: isTwoUp })}
             breakRestIncomplete={breakRestStatus?.incomplete ?? false}
             breakRestBankedMinutes={
               breakRestStatus?.incomplete ? breakRestStatus.bankedMinutes : null
@@ -1359,7 +1418,7 @@ export default function LogBar({
               stopDrivingChooserOpen && currentType === "work"
                 ? {
                     variant: "stop-driving",
-                    restLabel: DRIVER_START_REST_LABEL,
+                    restLabel: isTwoUp ? DRIVER_BREAK_FROM_DRIVING_LABEL : DRIVER_START_REST_LABEL,
                     otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
                     onStartRest: () => runChooserOption(() => handleLog("break")),
                     onStartOtherWork: () =>
@@ -1370,6 +1429,12 @@ export default function LogBar({
                     },
                     restPending: pendingType === "break",
                     otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
+                    ...(isTwoUp
+                      ? {
+                          tiles: mapTwoUpChooserTiles(twoUpStopDrivingTiles()),
+                          ariaLabel: twoUpChooserAria("work"),
+                        }
+                      : {}),
                   }
                 : startShiftChooserOpen && currentType === null
                   ? {
@@ -1420,7 +1485,40 @@ export default function LogBar({
                           restPending: pendingType === "work",
                           otherWorkPending: pendingType === "break",
                         }
-                      : null
+                      : passengerChooserOpen && currentType === PASSENGER_EVENT_TYPE
+                        ? {
+                            variant: "continue-shift",
+                            restLabel: DRIVER_START_DRIVING_LABEL,
+                            otherWorkLabel: DRIVER_BREAK_FROM_DRIVING_LABEL,
+                            onStartRest: () => runChooserOption(() => handleLog("work")),
+                            onStartOtherWork: () => runChooserOption(() => handleLog("break")),
+                            onCancel: () => {
+                              clearPending();
+                              setPassengerChooserOpen(false);
+                            },
+                            restPending: pendingType === "work",
+                            otherWorkPending: pendingType === "break",
+                            tiles: mapTwoUpChooserTiles(twoUpPassengerTiles()),
+                            ariaLabel: twoUpChooserAria(PASSENGER_EVENT_TYPE),
+                          }
+                        : sleeperChooserOpen && currentType === SLEEPER_BERTH_EVENT_TYPE
+                          ? {
+                              variant: "start-work",
+                              restLabel: DRIVER_START_DRIVING_LABEL,
+                              otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
+                              onStartRest: () => runChooserOption(() => handleLog("work")),
+                              onStartOtherWork: () =>
+                                runChooserOption(() => handleLog(OTHER_WORK_EVENT_TYPE)),
+                              onCancel: () => {
+                                clearPending();
+                                setSleeperChooserOpen(false);
+                              },
+                              restPending: pendingType === "work",
+                              otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
+                              tiles: mapTwoUpChooserTiles(twoUpSleeperBerthTiles()),
+                              ariaLabel: twoUpChooserAria(SLEEPER_BERTH_EVENT_TYPE),
+                            }
+                          : null
             }
             auxiliaryActions={
               sessionDimmed

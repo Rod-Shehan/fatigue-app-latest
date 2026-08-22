@@ -191,9 +191,13 @@ Use **Set up day** (or **Edit day**) when something changes:
 If your sheet is **Two-up**:
 
 - Enter the **relief driver's name** in Set up day (for context).
-- Log **only your own** work, break, and end-shift times on **your** sheet.
-- The relief driver keeps **their own** sheet.
-- Two-up uses different rest rules than solo.
+- Log **only your own** times on **your** sheet. The relief driver keeps **their own** sheet.
+- Two-up does **not** use **Start Rest** or **Taking a nap?**. Sleep on the trip is **Sleeper berth**.
+- On driving, **Stop Driving** opens four choices: **Break from driving**, **Start Other Work**, **Passenger**, or **Sleeper berth**.
+- **Passenger** is still work time — it never becomes non-work. Then tap **Continue shift** to choose **Start driving**, **Break from driving**, or **Sleeper berth**.
+- **Sleeper berth** is non-work time **during the shift** (in the vehicle). It is **not** End shift. Then tap **Start work** to choose **Start driving**, **Start Other Work**, or **Passenger**.
+- **End shift** is only when you go **home or to a motel**. After that, **Start shift** starts a new working period.
+- Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).
 
 ---
 

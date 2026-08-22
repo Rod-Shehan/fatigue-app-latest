@@ -7,8 +7,9 @@
  *
  * Driver-logged events are the paint source of truth:
  * - Actioned `break` (Rest) paints as break (while ≤30 min; longer Rest becomes non-work).
- * - `other_work` paints as break from driving and is never converted to non-work.
- *   It is also marked work_time so 168h still counts it.
+ * - `other_work` and `passenger` paint as break from driving and are never converted to non-work.
+ *   They are also marked work_time so 168h still counts them.
+ * - `sleeper_berth` paints as non-work. It is not End shift (`stop`); the shift stays open.
  * - `stop` (End shift) ends the prior segment; time after it is non-work until the
  *   next driver event — including across midnight. Never invent break from short gaps.
  * - Elapsed minutes with no driver event are always non-work. The timeline is never blank.
@@ -155,8 +156,8 @@ export function deriveMinuteGridFromEvents(
     for (let m = Math.max(0, startMin); m < Math.min(workBreakMaxMinute, endMin); m++) {
       if (ev.type === "work" || treatBreakAsWork) work_time[m] = true;
       else if (ev.type === "break") breaks[m] = true;
-      else if (ev.type === "other_work") otherWork[m] = true;
-      else if (ev.type === "non_work") non_work[m] = true;
+      else if (ev.type === "other_work" || ev.type === "passenger") otherWork[m] = true;
+      else if (ev.type === "non_work" || ev.type === "sleeper_berth") non_work[m] = true;
     }
   }
   for (let m = 0; m < maxMinuteExclusive; m++) {

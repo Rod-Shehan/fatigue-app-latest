@@ -18,6 +18,9 @@ import {
   DRIVER_NAP_QUESTION_LABEL,
   DRIVER_NAP_QUESTION_COMPACT_LABEL,
   DRIVER_ON_NAP_LABEL,
+  DRIVER_BREAK_FROM_DRIVING_LABEL,
+  DRIVER_PASSENGER_LABEL,
+  DRIVER_SLEEPER_BERTH_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
 } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
@@ -348,9 +351,26 @@ export function DriverGuideArticle() {
         <h2 className={h2Class}>8. Two-up drivers</h2>
         <ul className={ulClass}>
           <li>Enter the relief driver&apos;s name in Set up day (for context).</li>
-          <li>Log only your own work, break, and end-shift times on your sheet.</li>
-          <li>The relief driver keeps their own sheet.</li>
-          <li>Two-up uses different rest rules than solo.</li>
+          <li>Log only your own times on your sheet. The relief driver keeps their own sheet.</li>
+          <li>Two-up does not use {DRIVER_START_REST_LABEL} or {DRIVER_NAP_QUESTION_LABEL}. Sleep on the trip is {DRIVER_SLEEPER_BERTH_LABEL}.</li>
+          <li>
+            On driving, {DRIVER_STOP_DRIVING_LABEL} opens four choices: {DRIVER_BREAK_FROM_DRIVING_LABEL},{" "}
+            {DRIVER_START_OTHER_WORK_LABEL}, {DRIVER_PASSENGER_LABEL}, or {DRIVER_SLEEPER_BERTH_LABEL}.
+          </li>
+          <li>
+            {DRIVER_PASSENGER_LABEL} is still work time — it never becomes non-work. Then tap {DRIVER_CONTINUE_SHIFT_LABEL}{" "}
+            to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_BREAK_FROM_DRIVING_LABEL}, or {DRIVER_SLEEPER_BERTH_LABEL}.
+          </li>
+          <li>
+            {DRIVER_SLEEPER_BERTH_LABEL} is non-work time during the shift (in the vehicle). It is not {DRIVER_END_SHIFT_LABEL}.
+            Then tap {DRIVER_START_WORK_LABEL} to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_OTHER_WORK_LABEL}, or{" "}
+            {DRIVER_PASSENGER_LABEL}.
+          </li>
+          <li>
+            {DRIVER_END_SHIFT_LABEL} is only when you go home or to a motel. After that, {DRIVER_START_SHIFT_LABEL} starts a new
+            working period.
+          </li>
+          <li>Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).</li>
         </ul>
       </section>
 

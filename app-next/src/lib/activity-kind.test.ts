@@ -26,4 +26,21 @@ describe("activity-kind", () => {
     expect(isOpenShiftEventType("stop")).toBe(false);
     expect(isOpenShiftEventType(null)).toBe(false);
   });
+
+  it("treats passenger as work time that never becomes non-work, shift still open", () => {
+    expect(isOpenShiftEventType("passenger")).toBe(true);
+    expect(isBreakFromDrivingEventType("passenger")).toBe(true);
+    expect(isWorkTimeEventType("passenger")).toBe(false);
+    expect(toCoverageKind("passenger")).toBe("other_work");
+    expect(toAmiEventType("passenger")).toBe("other_work");
+  });
+
+  it("treats sleeper berth as non-work while the shift stays open", () => {
+    expect(isOpenShiftEventType("sleeper_berth")).toBe(true);
+    expect(isBreakFromDrivingEventType("sleeper_berth")).toBe(false);
+    expect(isWorkTimeEventType("sleeper_berth")).toBe(false);
+    expect(toCoverageKind("sleeper_berth")).toBe("non_work");
+    expect(toAmiEventType("sleeper_berth")).toBe("non_work");
+    expect(isOpenShiftEventType("stop")).toBe(false);
+  });
 });

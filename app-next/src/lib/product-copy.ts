@@ -219,3 +219,10 @@ export const DRIVER_NAP_QUESTION_LABEL = "Taking a nap?";
 export const DRIVER_NAP_QUESTION_COMPACT_LABEL = "Nap?";
 /** Rest-only corner puck after they tap the question. */
 export const DRIVER_ON_NAP_LABEL = "On nap";
+
+/** Two-up Stop Driving tile — short pause from the wheel (EWD: break from driving). */
+export const DRIVER_BREAK_FROM_DRIVING_LABEL = "Break from driving";
+/** Two-up: passenger seat. Work time; never non-work time. */
+export const DRIVER_PASSENGER_LABEL = "Passenger";
+/** Two-up: on-trip sleep in an appropriate sleeper berth. Non-work time; shift stays open. */
+export const DRIVER_SLEEPER_BERTH_LABEL = "Sleeper berth";

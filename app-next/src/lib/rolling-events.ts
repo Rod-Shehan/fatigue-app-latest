@@ -6,7 +6,7 @@
  * Days are only used to know "where" events came from (for display); rules use time only.
  */
 
-import { isOpenShiftEventType } from "@/lib/activity-kind";
+import { isOpenShiftEventType, PASSENGER_EVENT_TYPE } from "@/lib/activity-kind";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 
 export type RollingEvent = {
@@ -215,7 +215,8 @@ type RollingSegmentKind = "work" | "break" | "non_work";
 
 function openSegmentKindAfterEvent(type: string): RollingSegmentKind {
   if (type === "work") return "work";
-  if (type === "break" || type === "other_work") return "break";
+  // Passenger is work time (break from driving) — never non-work. Sleeper berth falls through to non-work.
+  if (type === "break" || type === "other_work" || type === PASSENGER_EVENT_TYPE) return "break";
   return "non_work";
 }
 

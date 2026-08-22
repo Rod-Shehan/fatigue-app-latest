@@ -1,4 +1,9 @@
-import { isWorkTimeEventType, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
+import {
+  isWorkTimeEventType,
+  OTHER_WORK_EVENT_TYPE,
+  PASSENGER_EVENT_TYPE,
+  SLEEPER_BERTH_EVENT_TYPE,
+} from "@/lib/activity-kind";
 import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_OTHER_WORK_LABEL,
@@ -9,12 +14,20 @@ import {
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_WORK_LABEL,
 } from "@/lib/product-copy";
+import { resolveTwoUpActivityNowLabel, resolveTwoUpHeroPrimaryLabel } from "@/lib/two-up-hero";
 
 /**
  * Compact/expanded hero label from the last logged kind.
  * Continue shift is the Other work opener (chooser only). Driving itself is Stop Driving.
  */
-export function resolveDriverHeroPrimaryLabel(currentType: string | null): string {
+export function resolveDriverHeroPrimaryLabel(
+  currentType: string | null,
+  opts?: { twoUp?: boolean }
+): string {
+  if (opts?.twoUp) {
+    const twoUp = resolveTwoUpHeroPrimaryLabel(currentType);
+    if (twoUp) return twoUp;
+  }
   if (isWorkTimeEventType(currentType ?? "")) return DRIVER_STOP_DRIVING_LABEL;
   if (currentType === "break") return DRIVER_START_WORK_LABEL;
   if (currentType === OTHER_WORK_EVENT_TYPE) return DRIVER_CONTINUE_SHIFT_LABEL;
@@ -22,7 +35,14 @@ export function resolveDriverHeroPrimaryLabel(currentType: string | null): strin
 }
 
 /** Small hero note: what the driver is on now (not a button). */
-export function resolveHeroActivityNowLabel(currentType: string | null): string | null {
+export function resolveHeroActivityNowLabel(
+  currentType: string | null,
+  opts?: { twoUp?: boolean }
+): string | null {
+  if (opts?.twoUp) {
+    const twoUp = resolveTwoUpActivityNowLabel(currentType);
+    if (twoUp) return twoUp;
+  }
   if (isWorkTimeEventType(currentType ?? "")) return DRIVER_WORK_LABEL;
   if (currentType === "break") return DRIVER_REST_LABEL;
   if (currentType === OTHER_WORK_EVENT_TYPE) return DRIVER_OTHER_WORK_LABEL;
@@ -34,6 +54,8 @@ export function resolveWorkConfirmLabel(options: {
   startShiftChooserOpen: boolean;
   restWorkChooserOpen: boolean;
   otherWorkChooserOpen?: boolean;
+  passengerChooserOpen?: boolean;
+  sleeperChooserOpen?: boolean;
   currentType: string | null;
   episodeResume: boolean;
   needsShiftStartSetup: boolean;
@@ -42,6 +64,8 @@ export function resolveWorkConfirmLabel(options: {
     startShiftChooserOpen,
     restWorkChooserOpen,
     otherWorkChooserOpen = false,
+    passengerChooserOpen = false,
+    sleeperChooserOpen = false,
     currentType,
     episodeResume,
     needsShiftStartSetup,
@@ -50,8 +74,12 @@ export function resolveWorkConfirmLabel(options: {
     startShiftChooserOpen ||
     restWorkChooserOpen ||
     otherWorkChooserOpen ||
+    passengerChooserOpen ||
+    sleeperChooserOpen ||
     currentType === "break" ||
-    currentType === OTHER_WORK_EVENT_TYPE
+    currentType === OTHER_WORK_EVENT_TYPE ||
+    currentType === PASSENGER_EVENT_TYPE ||
+    currentType === SLEEPER_BERTH_EVENT_TYPE
   ) {
     return DRIVER_START_DRIVING_LABEL;
   }

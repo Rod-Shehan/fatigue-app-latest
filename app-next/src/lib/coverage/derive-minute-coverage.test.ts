@@ -169,6 +169,42 @@ describe("deriveMinuteGridFromEvents", () => {
     expect(grid.work_time.slice(loadStart, loadEnd).every(Boolean)).toBe(true);
     expect(grid.non_work.slice(loadStart, loadEnd).some(Boolean)).toBe(false);
   });
+
+  it("records passenger as break from driving even when longer than 30 min — never non-work", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T17:00:00`, type: "work" },
+        { time: `${dateStr}T18:00:00`, type: "passenger" },
+        { time: `${dateStr}T19:00:00`, type: "work" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const start = 18 * 60;
+    const end = 19 * 60;
+    expect(grid.breaks.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.work_time.slice(start, end).every(Boolean)).toBe(true);
+    expect(grid.non_work.slice(start, end).some(Boolean)).toBe(false);
+  });
+
+  it("records sleeper berth as non-work; End shift is a later stop, not the berth itself", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T17:00:00`, type: "work" },
+        { time: `${dateStr}T18:00:00`, type: "sleeper_berth" },
+        { time: `${dateStr}T22:00:00`, type: "stop" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const berthStart = 18 * 60;
+    const berthEnd = 22 * 60;
+    expect(grid.non_work.slice(berthStart, berthEnd).every(Boolean)).toBe(true);
+    expect(grid.work_time.slice(berthStart, berthEnd).some(Boolean)).toBe(false);
+    expect(grid.breaks.slice(berthStart, berthEnd).some(Boolean)).toBe(false);
+  });
 });
 
 describe("normalizeSheetDaysForApi", () => {

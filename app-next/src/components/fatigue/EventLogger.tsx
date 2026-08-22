@@ -1,21 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin, Wrench } from "lucide-react";
+import { BedDouble, Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin, User, Wrench } from "lucide-react";
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { getTodayLocalDateString, getSheetDayDateString } from "@/lib/weeks";
 import { deriveMinuteGridFromEvents, MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
-import { isBreakFromDrivingEventType } from "@/lib/activity-kind";
+import { isBreakFromDrivingEventType, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
+import { DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 
-const EVENT_CONFIG: Record<ActivityKey, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+const EVENT_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   work: { label: "Work", icon: Briefcase },
   break: { label: "Rest", icon: Coffee },
   other_work: { label: "Other work", icon: Wrench },
+  [PASSENGER_EVENT_TYPE]: { label: DRIVER_PASSENGER_LABEL, icon: User },
+  [SLEEPER_BERTH_EVENT_TYPE]: { label: DRIVER_SLEEPER_BERTH_LABEL, icon: BedDouble },
   non_work: { label: "Non-Work Time", icon: Moon },
   stop: { label: "End shift", icon: Square },
 };
+
+function themeKeyForEvent(type: string): ActivityKey {
+  if (type === PASSENGER_EVENT_TYPE) return "other_work";
+  if (type === SLEEPER_BERTH_EVENT_TYPE) return "non_work";
+  if (type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop") {
+    return type;
+  }
+  return "stop";
+}
 
 const MIN_BREAK_BLOCK_MINUTES = 10;
 
@@ -126,6 +138,8 @@ export function getEffectiveOpenActivityAtDayEnd(
   const evs = day.events ?? [];
   const lastEv = evs[evs.length - 1];
   if (lastEv?.type === "stop") return "non_work";
+  if (lastEv?.type === "passenger") return "other_work";
+  if (lastEv?.type === "sleeper_berth") return "non_work";
   if (
     lastEv?.type === "work" ||
     lastEv?.type === "break" ||
@@ -272,9 +286,9 @@ export default function EventLogger({
     <div className="space-y-2">
       {currentType && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md ${ACTIVITY_THEME[currentType as ActivityKey]?.badge ?? "bg-slate-100 dark:bg-slate-600 dark:text-slate-200"}`}>
-            {React.createElement(EVENT_CONFIG[currentType as ActivityKey]?.icon ?? Square, { className: "w-3 h-3" })}
-            {EVENT_CONFIG[currentType as ActivityKey]?.label ?? currentType}
+          <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-md ${ACTIVITY_THEME[themeKeyForEvent(currentType)]?.badge ?? "bg-slate-100 dark:bg-slate-600 dark:text-slate-200"}`}>
+            {React.createElement(EVENT_CONFIG[currentType]?.icon ?? Square, { className: "w-3 h-3" })}
+            {EVENT_CONFIG[currentType]?.label ?? currentType}
           </span>
           <span className="text-xs font-mono text-slate-400 flex items-center gap-1">
             <Clock className="w-3 h-3" />
@@ -293,9 +307,8 @@ export default function EventLogger({
         {events.map((ev, idx) => {
           const nextEv = events[idx + 1];
           const dur = nextEv ? getDurationMinutes(ev.time, nextEv.time) : (ev.type !== "stop" ? elapsedMinutes : 0);
-          const typeKey = (ev.type in EVENT_CONFIG ? ev.type : "stop") as ActivityKey;
-          const cfg = EVENT_CONFIG[typeKey];
-          const badge = ACTIVITY_THEME[typeKey].badge;
+          const cfg = EVENT_CONFIG[ev.type] ?? EVENT_CONFIG.stop;
+          const badge = ACTIVITY_THEME[themeKeyForEvent(ev.type)].badge;
           return (
             <div key={idx} className="flex items-center gap-2 text-xs group">
               <span className="font-mono text-slate-400 w-10 shrink-0">{formatTime(ev.time)}</span>

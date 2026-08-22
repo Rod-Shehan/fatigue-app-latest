@@ -262,5 +262,34 @@ describe("rolling-events", () => {
       const asOf = ts("2026-06-11T14:00:00"); // 16h non-work since stop
       expect(getTwoUpRolling24hRestStatus(events, asOf)).toBeNull();
     });
+
+    it("does not count passenger time as non-work (never converts)", () => {
+      const events = [
+        { time: "2026-06-09T18:00:00", type: "work" },
+        { time: "2026-06-10T10:00:00", type: "passenger" },
+      ];
+      const asOf = ts("2026-06-10T18:00:00");
+      const status = getTwoUpRolling24hRestStatus(events, asOf);
+      expect(status).not.toBeNull();
+      expect(status!.nonWorkMinutes).toBe(0);
+      expect(status!.nonWorkMinutesShortfall).toBe(7 * 60);
+    });
+
+    it("counts sleeper berth as non-work during an open shift", () => {
+      const met = [
+        { time: "2026-06-09T18:00:00", type: "work" },
+        { time: "2026-06-10T11:00:00", type: "sleeper_berth" },
+      ];
+      expect(getTwoUpRolling24hRestStatus(met, ts("2026-06-10T18:00:00"))).toBeNull();
+
+      const short = [
+        { time: "2026-06-09T18:00:00", type: "work" },
+        { time: "2026-06-10T12:00:00", type: "sleeper_berth" },
+      ];
+      const status = getTwoUpRolling24hRestStatus(short, ts("2026-06-10T18:00:00"));
+      expect(status).not.toBeNull();
+      expect(status!.nonWorkMinutes).toBe(6 * 60);
+      expect(status!.nonWorkMinutesShortfall).toBe(60);
+    });
   });
 });
