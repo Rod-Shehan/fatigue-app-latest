@@ -72,6 +72,7 @@ describe("app-surface", () => {
       expect(isPathAllowedOnSurface("/sw.js", surface)).toBe(true);
       expect(isPathAllowedOnSurface("/offline.html", surface)).toBe(true);
       expect(isPathAllowedOnSurface("/icons/icon-ewd-192.png", surface)).toBe(true);
+      expect(isPathAllowedOnSurface("/apple-touch-icon.png", surface)).toBe(true);
     }
   });
 
