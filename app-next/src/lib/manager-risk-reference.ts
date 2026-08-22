@@ -101,12 +101,6 @@ export const REGULATORY_REQUIREMENTS_REFERENCE: ManagerReferenceLibrary = {
   ],
 };
 
-/** @deprecated Use REGULATORY_REQUIREMENTS_REFERENCE */
-export const FATIGUE_ASSURANCE_REFERENCE = REGULATORY_REQUIREMENTS_REFERENCE;
-
-/** @deprecated Use REGULATORY_REQUIREMENTS_REFERENCE.cards */
-export const MANAGER_REFERENCE_CARDS = REGULATORY_REQUIREMENTS_REFERENCE.cards;
-
 export function referenceCardsForMessage(message: string): ManagerReferenceCard[] {
   const lower = message.toLowerCase();
   const out: ManagerReferenceCard[] = [];

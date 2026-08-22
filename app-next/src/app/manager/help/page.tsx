@@ -21,7 +21,6 @@ export default async function ManagerHelpPage() {
           title={PRODUCT_NAME}
           subtitle="Manager user guide"
           icon={<BookOpen className="w-5 h-5" />}
-          showLobbyLink={false}
         />
         <ManagerSubnav />
         <ManagerGuideArticle />

@@ -26,7 +26,6 @@ This document records a critical juncture: the app moves from TypeScript-only pr
 | Timeline payload | `src/lib/frms/build-timeline-payload.ts` | Sheet weeks → 15-min `timeline_blocks` + SHA256 hash (Phase 1b, prior) |
 | Python client | `src/lib/frms/python-client.ts` | `POST ${FRMS_PYTHON_URL}/v1/risk-profile` with bearer key |
 | Orchestrator | `src/lib/frms/orchestrator.ts` | Cache check, `runFrmsAndPersist`, `enqueueFrmsRecompute`, `resolveFrmsProspectiveRegister` |
-| Serialize | `src/lib/frms/serialize.ts` | BigInt → string for JSON APIs |
 | Internal worker | `src/app/api/internal/frms/recompute/route.ts` | Secured by `FRMS_INTERNAL_SECRET`; loads sheets, calls Python, persists snapshots |
 | Compliance API | `src/app/api/manager/compliance/route.ts` | Hybrid `risk_register` when `FRMS_ENGINE ≠ legacy` |
 | Sheet API | `src/app/api/sheets/[id]/route.ts` | GET: cached register + status; PATCH: enqueue on `days` change |

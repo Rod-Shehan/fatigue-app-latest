@@ -72,13 +72,11 @@
     --ck-midnight: 248 250 252;
     --ck-slate: 241 245 249;
     --ck-cobalt: 0 122 255;
-    --ck-cobalt-alt: 30 136 229;
     --ck-emerald: 16 185 129;
     --ck-red: 239 68 68;
     --ck-steel: 100 116 139;
     --ck-border: 203 213 225;
     --ck-fg: 15 23 42;
-    --ck-fg-muted: 71 85 105;
     --ck-on-accent: 255 255 255;
   }
   .dark {
@@ -99,7 +97,6 @@
     --ck-steel: 148 163 184;
     --ck-border: 42 59 80;
     --ck-fg: 226 232 240;
-    --ck-fg-muted: 148 163 184;
     --ck-on-accent: 255 255 255;
   }
 }

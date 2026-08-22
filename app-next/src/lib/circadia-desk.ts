@@ -32,13 +32,6 @@ export function isLegacyCircadiaDeskHostname(hostname: string): boolean {
   );
 }
 
-/** Staff/dev desk host only. Never send the public marketing site here. */
-export function circadiaDeskPublicUrl(): string | null {
-  const raw = process.env.NEXT_PUBLIC_CIRCADIA_DESK_URL?.trim();
-  if (!raw) return null;
-  return raw.replace(/\/+$/, "");
-}
-
 export function circadiaDeskManifest(opts?: { hostScoped?: boolean }) {
   const icons = pwaIconPathsForSurface("circadia");
   const hostScoped = Boolean(opts?.hostScoped);

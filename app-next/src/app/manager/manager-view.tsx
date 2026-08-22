@@ -1071,7 +1071,6 @@ export function ManagerView() {
           title={MANAGER_EXPERIENCE.PAGE_TITLE}
           subtitle={MANAGER_EXPERIENCE.PAGE_SUBTITLE}
           icon={<Shield className="w-5 h-5" />}
-          showLobbyLink={false}
           actions={
             <Button
               variant="outline"

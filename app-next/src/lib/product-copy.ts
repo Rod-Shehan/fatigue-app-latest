@@ -97,14 +97,6 @@ export const OPENING_DISCLAIMER_COMPACT =
 export const UNSIGNED_WEEKS_GATE_HINT =
   "Unsigned past weeks show as reminders with links to sign. They do not block Start shift or logging on the current week.";
 
-/** Soft reminder on drive home / current week sheet (does not block shift start). */
-export function formatUnsignedPastWeeksReminderMessage(count: number): string {
-  if (count <= 0) return "";
-  return count === 1
-    ? "1 past week still needs your signature. You can keep logging this week — sign when you have a moment."
-    : `${count} past weeks still need your signature. You can keep logging this week — sign when you have a moment.`;
-}
-
 /** Banner when signing a past (archived) week — weekOfLabel e.g. "22 Mar 2026". */
 export function formatSignPastWeekTitle(weekOfLabel: string): string {
   return `Sign week of ${weekOfLabel}`;

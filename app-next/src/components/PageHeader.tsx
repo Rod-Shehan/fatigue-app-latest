@@ -25,8 +25,6 @@ export function PageHeader({
   driverIdentity,
   /** Slim header for sheet + LogBar (mobile-first). Hides driver tile and shrinks title. */
   compact = false,
-  /** @deprecated Lobby link removed — brand icon is always top-left. */
-  showLobbyLink = true,
 }: {
   /** If set, shows a back link. Use /sheets for Your Sheets, /sheets/[id] for current sheet. */
   backHref?: string;
@@ -52,10 +50,8 @@ export function PageHeader({
     isManagerView?: boolean;
   } | null;
   compact?: boolean;
-  showLobbyLink?: boolean;
 }) {
   void _icon;
-  void showLobbyLink;
   const { data: session } = useSession();
   const role = (session?.user as unknown as { role?: string | null } | undefined)?.role ?? null;
   const sessionDisplayName = getDisplayNameFromSession(session ?? null);

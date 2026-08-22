@@ -98,31 +98,3 @@ export function driverAlertnessNeedsBreakWarning(level: DriverAlertnessLevel | n
 export function driverAlertnessMustStop(level: DriverAlertnessLevel | null | undefined): boolean {
   return level === 5;
 }
-
-const TONE_TRIGGER_CLASS: Record<DriverAlertnessTone, string> = {
-  green:
-    "border-emerald-500 bg-emerald-50 text-emerald-950 dark:border-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-100",
-  yellow:
-    "border-amber-400 bg-amber-50 text-amber-950 dark:border-amber-500 dark:bg-amber-950/40 dark:text-amber-100",
-  orange:
-    "border-orange-500 bg-orange-50 text-orange-950 dark:border-orange-500 dark:bg-orange-950/40 dark:text-orange-100",
-  red: "border-red-500 bg-red-50 text-red-950 dark:border-red-500 dark:bg-red-950/40 dark:text-red-100",
-  stop: "border-red-800 bg-red-950 text-red-50 dark:border-red-600 dark:bg-red-950 dark:text-red-50",
-};
-
-const TONE_ITEM_CLASS: Record<DriverAlertnessTone, string> = {
-  green: "focus:bg-emerald-50 dark:focus:bg-emerald-950/50",
-  yellow: "focus:bg-amber-50 dark:focus:bg-amber-950/50",
-  orange: "focus:bg-orange-50 dark:focus:bg-orange-950/50",
-  red: "focus:bg-red-50 dark:focus:bg-red-950/50",
-  stop: "focus:bg-red-950/80 dark:focus:bg-red-950",
-};
-
-export function alertnessTriggerClass(tone: DriverAlertnessTone | null): string {
-  if (!tone) return "";
-  return TONE_TRIGGER_CLASS[tone];
-}
-
-export function alertnessItemClass(tone: DriverAlertnessTone): string {
-  return TONE_ITEM_CLASS[tone];
-}
