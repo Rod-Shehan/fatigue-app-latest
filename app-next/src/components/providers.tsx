@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { OfflineBar } from "@/components/OfflineBar";
 import { OfflineAuthSync } from "@/components/auth/OfflineAuthSync";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { ProductPwaInstallCapture } from "@/components/pwa/ProductPwaInstallCapture";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <SessionProvider>
         <OfflineAuthSync />
+        <ProductPwaInstallCapture />
         <ServiceWorkerRegister />
         <QueryClientProvider client={queryClient}>
           {children}

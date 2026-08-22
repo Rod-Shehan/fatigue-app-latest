@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
+import { ProductInstallPanel } from "@/components/pwa/ProductInstallPanel";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { ManagerReferencePanel } from "@/components/manager/ManagerReferencePanel";
 import { REGULATORY_REQUIREMENTS_REFERENCE } from "@/lib/manager-risk-reference";
@@ -1083,6 +1084,8 @@ export function ManagerView() {
             </Button>
           }
         />
+
+        <ProductInstallPanel className="mb-4" compact />
 
         <ManagerSubnav />
 

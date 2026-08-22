@@ -40,6 +40,7 @@ After sign in you see **Drive**.
 | **Log more work / Open this week** (green) | Open this week to log |
 | **Produce 28 day roadside PDF** (amber) | One PDF for a regulator |
 | **Your weeks** | Past and signed records |
+| **Install EWD** / **Set up this device** | Add EWD to this phone, then keep the diary offline |
 | ⚙ (top right) | Settings and tools |
 
 **Tip:** Tap **Log more work** each day when you start.
@@ -281,7 +282,7 @@ You can also set **Dark mode** and **Voice alerts** in **Settings → This phone
 
 Four coloured sections (same idea as the manager Overview page). Tap a card at the top to jump:
 
-- **1. This phone** — Dark mode, Voice alerts, install the app, backup / restore on this device.
+- **1. This phone** — Dark mode, Voice alerts, **Install EWD** / **Set up this device**, backup / restore on this device.
 - **2. Emails & workshop** — **Checklist PDF email** (your address for Fitness for Work / Prestart / Dimension & Load week packs; defaults to your **sign-in email**) and **Workshop contact** (vehicle faults only — WAHVA). Not the 28-day fatigue roadside PDF.
 - **3. Your record** — weeks that need your signature, This week, Your weeks, Route catalogue, Driver guide (pictures), How your record works.
 - **4. Account** — Messages, Manager sign-in, Change password, Log out.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle2, Download, HardDrive, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,12 @@ import { cn } from "@/lib/utils";
 import {
   isDeviceSetupComplete,
   isStandaloneDisplay,
-  isiOS,
   requestPersistentStorage,
   setDeviceSetupComplete,
 } from "@/lib/device-setup";
 import { writeDeviceSnapshot } from "@/lib/device-backup";
+import { DEVICE_SETUP_BUTTON_LABEL } from "@/lib/product-copy";
+import { useProductPwaInstall } from "@/hooks/use-product-pwa-install";
 
 export function DeviceSetupDialog({
   open,
@@ -23,40 +24,73 @@ export function DeviceSetupDialog({
   onOpenChange: (open: boolean) => void;
   onCompleted?: () => void;
 }) {
-  const alreadySetup = useMemo(() => isDeviceSetupComplete(), []);
+  const [alreadySetup, setAlreadySetup] = useState(false);
   const [agree, setAgree] = useState(false);
   const [working, setWorking] = useState(false);
   const [persistResult, setPersistResult] = useState<string | null>(null);
+  const { canPrompt, installed, ios, installLabel, promptInstall } = useProductPwaInstall();
 
   useEffect(() => {
     if (!open) {
       setAgree(false);
       setWorking(false);
       setPersistResult(null);
-    }
-  }, [open]);
-
-  const inStandalone = isStandaloneDisplay();
-  const ios = isiOS();
-
-  const completeSetup = async () => {
-    if (alreadySetup) {
-      onOpenChange(false);
-      onCompleted?.();
       return;
     }
-    if (!agree) return;
-    setWorking(true);
+    setAlreadySetup(isDeviceSetupComplete());
+  }, [open]);
+
+  const persistIfNeeded = async () => {
+    if (alreadySetup) return true;
+    if (!agree) return false;
     const res = await requestPersistentStorage();
     if (!res.supported) setPersistResult("Storage protection: not supported on this browser.");
     else if (res.persisted) setPersistResult("Storage protection: enabled.");
     else setPersistResult("Storage protection: requested (not guaranteed).");
     setDeviceSetupComplete();
     await writeDeviceSnapshot({ force: true }).catch(() => {});
-    setWorking(false);
+    setAlreadySetup(true);
+    return true;
+  };
+
+  const finish = () => {
     onCompleted?.();
     onOpenChange(false);
   };
+
+  const completeSetup = async () => {
+    if (alreadySetup) {
+      finish();
+      return;
+    }
+    setWorking(true);
+    const ok = await persistIfNeeded();
+    setWorking(false);
+    if (ok) finish();
+  };
+
+  const installApp = async () => {
+    setWorking(true);
+    const ok = await persistIfNeeded();
+    if (!ok) {
+      setWorking(false);
+      return;
+    }
+    if (canPrompt) {
+      await promptInstall();
+    }
+    setWorking(false);
+    onCompleted?.();
+    if (isStandaloneDisplay()) onOpenChange(false);
+  };
+
+  const installHint = installed
+    ? "Installed: opens without browser bars — best for dashboard mounting."
+    : ios
+      ? "On iPhone/iPad: Share → Add to Home Screen for fullscreen cab mode."
+      : canPrompt
+        ? `Tap ${installLabel}. The browser will ask you to add this app.`
+        : "If Install does not appear, use the browser menu → Install app (or Add to Home Screen).";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,14 +116,8 @@ export function DeviceSetupDialog({
             />
             <Row
               icon={<Download className="w-4 h-4" />}
-              title="Install recommended"
-              desc={
-                inStandalone
-                  ? "Installed fullscreen: opens without browser bars — best for dashboard mounting."
-                  : ios
-                    ? "On iPhone/iPad: Share → Add to Home Screen for fullscreen cab mode."
-                    : "On Android: menu → Install app (or Add to Home Screen) for fullscreen."
-              }
+              title={installLabel}
+              desc={installHint}
             />
           </div>
 
@@ -115,18 +143,41 @@ export function DeviceSetupDialog({
             </div>
           )}
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={working}>
               Not now
             </Button>
-            <Button
-              type="button"
-              className={cn("bg-teal-700 hover:bg-teal-800 text-white", alreadySetup && "bg-slate-900 hover:bg-slate-800")}
-              disabled={working || (!alreadySetup && !agree)}
-              onClick={() => void completeSetup()}
-            >
-              {alreadySetup ? "Close" : working ? "Setting up…" : "Set up this device"}
-            </Button>
+            {alreadySetup && !canPrompt ? (
+              <Button
+                type="button"
+                className="bg-slate-900 hover:bg-slate-800 text-white"
+                disabled={working}
+                onClick={() => finish()}
+              >
+                Close
+              </Button>
+            ) : null}
+            {!alreadySetup ? (
+              <Button
+                type="button"
+                variant={canPrompt ? "outline" : "default"}
+                className={cn(!canPrompt && "bg-teal-700 hover:bg-teal-800 text-white")}
+                disabled={working || !agree}
+                onClick={() => void completeSetup()}
+              >
+                {working && !canPrompt ? "Setting up…" : DEVICE_SETUP_BUTTON_LABEL}
+              </Button>
+            ) : null}
+            {canPrompt ? (
+              <Button
+                type="button"
+                className="bg-teal-700 hover:bg-teal-800 text-white"
+                disabled={working || (!alreadySetup && !agree)}
+                onClick={() => void installApp()}
+              >
+                {working ? "Installing…" : installLabel}
+              </Button>
+            ) : null}
           </div>
         </div>
       </DialogContent>
@@ -147,4 +198,3 @@ function Row({ icon, title, desc }: { icon: React.ReactNode; title: string; desc
     </div>
   );
 }
-

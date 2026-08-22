@@ -6,11 +6,14 @@ import { Button } from "@/components/ui/button";
 import { DeviceSetupDialog } from "@/components/pwa/DeviceSetupDialog";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { isDeviceSetupComplete, isStandaloneDisplay } from "@/lib/device-setup";
+import { DEVICE_INSTALL_HELP_LABEL, DEVICE_SETUP_BUTTON_LABEL } from "@/lib/product-copy";
+import { useProductPwaInstall } from "@/hooks/use-product-pwa-install";
 
 export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: boolean }) {
   const [open, setOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [standalone, setStandalone] = useState(false);
+  const { canPrompt, installLabel, promptInstall } = useProductPwaInstall();
 
   useEffect(() => {
     setSetupComplete(isDeviceSetupComplete());
@@ -39,9 +42,15 @@ export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: 
           type="button"
           variant="outline"
           className="w-full font-semibold"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            if (setupComplete && canPrompt) {
+              void promptInstall();
+              return;
+            }
+            setOpen(true);
+          }}
         >
-          {setupComplete ? "How to install" : "Set up this device"}
+          {canPrompt ? installLabel : setupComplete ? DEVICE_INSTALL_HELP_LABEL : DEVICE_SETUP_BUTTON_LABEL}
         </Button>
       </div>
 
