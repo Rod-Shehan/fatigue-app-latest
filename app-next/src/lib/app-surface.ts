@@ -157,10 +157,6 @@ function isPwaShellPath(path: string): boolean {
     path === "/manifest.webmanifest" ||
     path === "/sw.js" ||
     path === "/offline.html" ||
-    path === "/favicon.ico" ||
-    path === "/apple-touch-icon.png" ||
-    path === "/apple-touch-icon-precomposed.png" ||
-    path.startsWith("/apple-touch-icon") ||
     path === "/icons" ||
     path.startsWith("/icons/")
   );

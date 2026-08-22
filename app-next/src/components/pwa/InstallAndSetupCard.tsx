@@ -12,7 +12,7 @@ export function InstallAndSetupCard({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
-  const { canPrompt, installed, installLabel, iconSrc, promptInstall } = useProductPwaInstall();
+  const { canPrompt, installed, installLabel, promptInstall } = useProductPwaInstall();
 
   useEffect(() => {
     setMounted(true);
@@ -41,10 +41,9 @@ export function InstallAndSetupCard({ className }: { className?: string }) {
       <div className={cn(className)}>
         <Button
           type="button"
-          className="w-full bg-teal-700 hover:bg-teal-800 text-white font-semibold gap-3"
+          className="w-full bg-teal-700 hover:bg-teal-800 text-white font-semibold"
           onClick={onClick}
         >
-          <img src={iconSrc} alt="" width={28} height={28} className="w-7 h-7 rounded-md bg-[#0A1118]" />
           {label}
         </Button>
       </div>

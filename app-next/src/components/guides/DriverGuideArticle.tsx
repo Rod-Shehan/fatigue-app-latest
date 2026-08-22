@@ -130,7 +130,7 @@ export function DriverGuideArticle() {
             ["Log more work / Open this week", "Open this week to log"],
             [ROADSIDE_PRODUCE_BUTTON_LABEL, "One PDF for a regulator"],
             ["Your weeks", "Past and signed records"],
-            [`${EWD_INSTALL_BUTTON_LABEL} / ${DEVICE_SETUP_BUTTON_LABEL}`, "Add EWD to this phone (Circadia icon on the home screen), then keep the diary offline"],
+            [`${EWD_INSTALL_BUTTON_LABEL} / ${DEVICE_SETUP_BUTTON_LABEL}`, "Add EWD to this phone, then keep the diary offline"],
             ["Gear (top right)", "Settings and tools"],
           ]}
         />

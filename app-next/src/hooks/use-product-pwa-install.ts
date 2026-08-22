@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { isStandaloneDisplay, isiOS } from "@/lib/device-setup";
-import { pwaIconPathsForSurface } from "@/lib/branding";
 import {
   attachProductPwaInstallListener,
   hasDeferredProductInstallPrompt,
@@ -42,7 +41,6 @@ export function useProductPwaInstall() {
     installed,
     ios,
     installLabel: productInstallButtonLabel(surface),
-    iconSrc: pwaIconPathsForSurface(surface).icon192,
     promptInstall,
   };
 }

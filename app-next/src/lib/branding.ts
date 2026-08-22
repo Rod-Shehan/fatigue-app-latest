@@ -27,7 +27,6 @@ export const TAGLINE_DRIVER = "WA Commercial Driver Fatigue Management";
 export function pwaIconPathsForSurface(surface: "legacy" | "ewd" | "enterprise" | "circadia") {
   const key = surface === "ewd" ? "ewd" : surface === "enterprise" ? "enterprise" : "helper";
   return {
-    icon180: `/icons/icon-${key}-180.png`,
     icon192: `/icons/icon-${key}-192.png`,
     icon512: `/icons/icon-${key}-512.png`,
     icon512Maskable: `/icons/icon-${key}-512-maskable.png`,
