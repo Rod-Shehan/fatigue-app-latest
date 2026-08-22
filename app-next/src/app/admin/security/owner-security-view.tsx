@@ -7,7 +7,6 @@ import { Shield, Loader2, Download, UserPlus, LogOut, Trash2 } from "lucide-reac
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
-import { ProductInstallPanel } from "@/components/pwa/ProductInstallPanel";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
@@ -169,7 +168,6 @@ export function OwnerSecurityView({
             subtitle={`${PRODUCT_NAME} — claim organisation owner access`}
             icon={<Shield className="w-5 h-5" />}
           />
-          <ProductInstallPanel compact />
           <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-5 space-y-4">
             <p className="text-sm text-amber-950 dark:text-amber-100 leading-relaxed">
               No organisation owner exists yet. If you are IT / fleet governance, claim owner access for{" "}
@@ -207,7 +205,6 @@ export function OwnerSecurityView({
           subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
         />
-        <ProductInstallPanel compact />
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">

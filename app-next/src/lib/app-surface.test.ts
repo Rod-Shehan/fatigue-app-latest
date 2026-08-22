@@ -18,17 +18,11 @@ describe("app-surface", () => {
     expect(appSurfaceFromHost("www.circadia24.com")).toBe(null);
   });
 
-  it("lets the product host win over env so each domain keeps its own install", () => {
+  it("prefers env over host except the staff-desk host", () => {
     expect(
       resolveAppSurface({
         envValue: "enterprise",
         host: "ewd.circadia24.com",
-      })
-    ).toBe("ewd");
-    expect(
-      resolveAppSurface({
-        envValue: "legacy",
-        host: "enterprise.circadia24.com",
       })
     ).toBe("enterprise");
     expect(
@@ -37,12 +31,6 @@ describe("app-surface", () => {
         host: "staff-desk.circadia24.com",
       })
     ).toBe("circadia");
-    expect(
-      resolveAppSurface({
-        envValue: "ewd",
-        host: "localhost:3000",
-      })
-    ).toBe("ewd");
   });
 
   it("defaults to legacy", () => {

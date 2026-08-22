@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
-import { ENTERPRISE_INSTALL_BUTTON_LABEL } from "@/lib/product-copy";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -28,11 +27,6 @@ export function ManagerGuideArticle() {
         └── Test desk (checklist PDF email + WAHVA maintenance contact)`}
         </GuideDiagram>
         <ul className={ulClass}>
-          <li>
-            <strong className="text-slate-700 dark:text-slate-200">{ENTERPRISE_INSTALL_BUTTON_LABEL}</strong> — on
-            enterprise.circadia24.com, tap this on sign-in or at the top of Overview when Chrome offers it. On iPhone or
-            iPad use Share → Add to Home Screen. This is Enterprise only — not the Circadia staff desk.
-          </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.PAGE_TITLE}</strong> — weekly fleet
             view, tiers, register, sheet workbench

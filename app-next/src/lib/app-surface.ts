@@ -6,8 +6,8 @@
  * - enterprise — manager/owner + APIs (full fleet functions; no driver lobby)
  * - circadia   — Circadia staff desk (desktop PWA on staff-desk.circadia24.com)
  *
- * Product hosts (ewd. / enterprise. / legacy. / staff-desk.) win over env so
- * each domain keeps its own PWA manifest. Env is for localhost / unknown hosts.
+ * Set APP_SURFACE / NEXT_PUBLIC_APP_SURFACE, or infer from Host
+ * (legacy. / ewd. / enterprise. / staff-desk. subdomains).
  *
  * staff-desk.circadia24.com is Circadia staff only. Random paths go to
  * https://www.circadia24.com. Do not funnel the public site here.
@@ -50,8 +50,7 @@ export function appSurfaceFromHost(host: string | null | undefined): AppSurface 
 
 /**
  * Resolve active surface.
- * Priority: product host (ewd / enterprise / legacy / staff-desk) → env on
- * unknown hosts (localhost, vercel.app) → legacy.
+ * Priority: staff-desk host always wins (same Vercel project) → explicit env → other hosts → legacy.
  */
 export function resolveAppSurface(opts?: {
   envValue?: string | null;
@@ -59,10 +58,11 @@ export function resolveAppSurface(opts?: {
   host?: string | null;
 }): AppSurface {
   const fromHost = appSurfaceFromHost(opts?.host);
-  if (fromHost) return fromHost;
+  if (fromHost === "circadia") return "circadia";
   return (
     normalizeSurface(opts?.envValue) ??
     normalizeSurface(opts?.publicEnvValue) ??
+    fromHost ??
     "legacy"
   );
 }

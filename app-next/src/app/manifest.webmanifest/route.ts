@@ -27,13 +27,12 @@ export async function GET(request: Request) {
   const icons = pwaIconPathsForSurface(surface);
 
   const body = {
-    id: `/?product=${surface}`,
     name,
     short_name: shortName,
     description: `${name} — ${appSurfaceTagline(surface)}`,
     start_url: startUrl,
     scope: "/",
-    display: surface === "enterprise" ? "standalone" : "fullscreen",
+    display: "fullscreen",
     background_color: "#0A1118",
     theme_color: "#0A1118",
     icons: [

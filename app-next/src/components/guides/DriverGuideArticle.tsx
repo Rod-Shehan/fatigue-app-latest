@@ -18,8 +18,6 @@ import {
   DRIVER_NAP_QUESTION_LABEL,
   DRIVER_NAP_QUESTION_COMPACT_LABEL,
   DRIVER_ON_NAP_LABEL,
-  DEVICE_SETUP_BUTTON_LABEL,
-  EWD_INSTALL_BUTTON_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
 } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
@@ -130,7 +128,6 @@ export function DriverGuideArticle() {
             ["Log more work / Open this week", "Open this week to log"],
             [ROADSIDE_PRODUCE_BUTTON_LABEL, "One PDF for a regulator"],
             ["Your weeks", "Past and signed records"],
-            [`${EWD_INSTALL_BUTTON_LABEL} / ${DEVICE_SETUP_BUTTON_LABEL}`, "Add EWD to this phone, then keep the diary offline"],
             ["Gear (top right)", "Settings and tools"],
           ]}
         />
@@ -487,7 +484,7 @@ export function DriverGuideArticle() {
           rows={[
             [
               DRIVER_SETTINGS_SECTIONS.device.overviewTitle,
-              `Dark mode, voice alerts, ${EWD_INSTALL_BUTTON_LABEL} / ${DEVICE_SETUP_BUTTON_LABEL}, backup on this device`,
+              "Dark mode, voice alerts, install the app, backup on this device",
             ],
             [
               DRIVER_SETTINGS_SECTIONS.delivery.overviewTitle,

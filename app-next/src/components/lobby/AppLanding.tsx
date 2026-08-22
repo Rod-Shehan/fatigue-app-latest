@@ -29,7 +29,6 @@ import {
   lobbyBranchesForSurface,
   type AppSurface,
 } from "@/lib/app-surface";
-import { ProductInstallPanel } from "@/components/pwa/ProductInstallPanel";
 
 type BranchConfig = {
   id: LobbyBranch;
@@ -363,9 +362,6 @@ export function AppLanding({ surface }: { surface?: AppSurface }) {
                 {signingOut ? "Signing out…" : "Sign out"}
               </button>
             </div>
-          ) : null}
-          {appSurface !== "circadia" ? (
-            <ProductInstallPanel className="mt-5 text-left max-w-md mx-auto w-full" compact />
           ) : null}
         </div>
 

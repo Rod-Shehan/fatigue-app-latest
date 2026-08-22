@@ -227,14 +227,3 @@ export const DRIVER_NAP_QUESTION_LABEL = "Taking a nap?";
 export const DRIVER_NAP_QUESTION_COMPACT_LABEL = "Nap?";
 /** Rest-only corner puck after they tap the question. */
 export const DRIVER_ON_NAP_LABEL = "On nap";
-
-/** First-run persist / offline consent on the driver device. */
-export const DEVICE_SETUP_BUTTON_LABEL = "Set up this device";
-/** Opens install steps when the browser has no in-app install prompt. */
-export const DEVICE_INSTALL_HELP_LABEL = "How to install";
-/** Chrome/Android in-app install on ewd.circadia24.com — not staff desk. */
-export const EWD_INSTALL_BUTTON_LABEL = "Install EWD";
-/** Chrome/desktop in-app install on enterprise.circadia24.com — not staff desk. */
-export const ENTERPRISE_INSTALL_BUTTON_LABEL = "Install Enterprise";
-/** Combined Helper host install (legacy). */
-export const HELPER_INSTALL_BUTTON_LABEL = "Install Helper";
