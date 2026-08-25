@@ -3,7 +3,7 @@ import { PRODUCT_NAME_EXPORT, TAGLINE_DRIVER } from "@/lib/branding";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 import { halfHourSlotsToRanges, minuteBooleansToRanges } from "@/lib/coverage/grid-to-ranges";
-import { getPerthNowParts } from "@/lib/perth-now";
+import { getPerthNowParts, perthDayEndUtcMs, perthDayStartUtcMs } from "@/lib/perth-now";
 import { sheetHasLegacyDriverEventTags } from "@/lib/sheet-ownership";
 import {
   paintForPdfDay,
@@ -65,17 +65,6 @@ function getDateStr(weekStarting: string | null, dayIndex: number): string {
   const mm = String(date.getMonth() + 1).padStart(2, "0");
   const dd = String(date.getDate()).padStart(2, "0");
   return `${dd}/${mm}/${yy}`;
-}
-
-function perthDayStartUtcMs(ymd: string): number {
-  // Interpret "ymd" as midnight in Australia/Perth (UTC+8), expressed in UTC ms.
-  // Using an explicit offset avoids server timezone differences.
-  const ms = Date.parse(`${ymd}T00:00:00+08:00`);
-  return Number.isFinite(ms) ? ms : Date.parse(`${new Date().toISOString().slice(0, 10)}T00:00:00+08:00`);
-}
-
-function perthDayEndUtcMs(ymd: string): number {
-  return perthDayStartUtcMs(ymd) + 24 * 60 * 60 * 1000 - 1;
 }
 
 function getEffectiveDayEndMinutes(dateStr: string, todayStr: string): number {

@@ -8,6 +8,7 @@
 
 import { getTodayLocalDateString, getSheetDayDateString } from "@/lib/weeks";
 import { deriveMinuteGridFromEvents, MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
+import { perthDayEndUtcMs, perthDayStartUtcMs } from "@/lib/perth-now";
 
 /** Open segment at end of a sheet calendar day — may continue on the rolling timeline until the next event. */
 export type OpenActivityAtDayEnd = "work" | "break" | "other_work" | "non_work";
@@ -113,9 +114,9 @@ export function deriveDaysWithRollover<T extends { events?: { time: string; type
   for (let i = 0; i < days.length; i++) {
     const currentEvents = (result[i].events || []) as { time: string; type: string }[];
     const dateStr = getSheetDayDateString(weekStarting, i);
-    const dayStart = new Date(dateStr + "T00:00:00").getTime();
+    const dayStart = perthDayStartUtcMs(dateStr);
     const isToday = dateStr === todayStr;
-    const dayEnd = new Date(dateStr + "T23:59:59").getTime();
+    const dayEnd = perthDayEndUtcMs(dateStr);
     const now = Date.now();
     const effectiveEnd = isToday ? Math.min(dayEnd, now) : dayEnd;
     const maxMinuteExclusive = isToday

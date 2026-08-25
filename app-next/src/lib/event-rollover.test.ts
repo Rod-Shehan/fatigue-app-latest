@@ -12,7 +12,7 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
   it("returns non_work when last event is non_work (not stop)", () => {
     const t = getEffectiveOpenActivityAtDayEnd(
       {
-        events: [{ time: "2026-06-03T20:00:00", type: "non_work" }],
+        events: [{ time: "2026-06-03T20:00:00+08:00", type: "non_work" }],
       },
       "2026-06-03",
       "2026-06-04"
@@ -24,8 +24,8 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     const t = getEffectiveOpenActivityAtDayEnd(
       {
         events: [
-          { time: "2026-06-03T08:00:00", type: "work" },
-          { time: "2026-06-03T18:00:00", type: "stop" },
+          { time: "2026-06-03T08:00:00+08:00", type: "work" },
+          { time: "2026-06-03T18:00:00+08:00", type: "stop" },
         ],
       },
       "2026-06-03",
@@ -38,8 +38,8 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     const t = getEffectiveOpenActivityAtDayEnd(
       {
         events: [
-          { time: "2026-06-03T08:00:00", type: "work" },
-          { time: "2026-06-03T22:00:00", type: "other_work" },
+          { time: "2026-06-03T08:00:00+08:00", type: "work" },
+          { time: "2026-06-03T22:00:00+08:00", type: "other_work" },
         ],
       },
       "2026-06-03",
@@ -52,8 +52,8 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     const t = getEffectiveOpenActivityAtDayEnd(
       {
         events: [
-          { time: "2026-06-03T08:00:00", type: "work" },
-          { time: "2026-06-03T22:00:00", type: "passenger" },
+          { time: "2026-06-03T08:00:00+08:00", type: "work" },
+          { time: "2026-06-03T22:00:00+08:00", type: "passenger" },
         ],
       },
       "2026-06-03",
@@ -66,8 +66,8 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     const t = getEffectiveOpenActivityAtDayEnd(
       {
         events: [
-          { time: "2026-06-03T08:00:00", type: "work" },
-          { time: "2026-06-03T22:00:00", type: "sleeper_berth" },
+          { time: "2026-06-03T08:00:00+08:00", type: "work" },
+          { time: "2026-06-03T22:00:00+08:00", type: "sleeper_berth" },
         ],
       },
       "2026-06-03",
@@ -83,7 +83,7 @@ describe("deriveDaysWithRollover", () => {
       {},
       {},
       {
-        events: [{ time: "2026-06-03T22:00:00", type: "non_work" }],
+        events: [{ time: "2026-06-03T22:00:00+08:00", type: "non_work" }],
       },
       { events: [] },
     ];
@@ -100,7 +100,7 @@ describe("deriveDaysWithRollover", () => {
       {},
       {},
       {
-        events: [{ time: "2026-06-03T22:00:00", type: "work" }],
+        events: [{ time: "2026-06-03T22:00:00+08:00", type: "work" }],
       },
       { events: [] },
     ];
@@ -114,8 +114,8 @@ describe("deriveDaysWithRollover", () => {
     const days = [
       {},
       {},
-      { events: [{ time: "2026-06-03T23:50:00", type: "break" }] },
-      { events: [{ time: "2026-06-04T00:15:00", type: "work" }] },
+      { events: [{ time: "2026-06-03T23:50:00+08:00", type: "break" }] },
+      { events: [{ time: "2026-06-04T00:15:00+08:00", type: "work" }] },
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
     const wed = derived[3]!;
@@ -128,7 +128,7 @@ describe("deriveDaysWithRollover", () => {
     const days = [
       {},
       {},
-      { events: [{ time: "2026-06-03T22:00:00", type: "other_work" }] },
+      { events: [{ time: "2026-06-03T22:00:00+08:00", type: "other_work" }] },
       { events: [] },
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
@@ -142,7 +142,7 @@ describe("deriveDaysWithRollover", () => {
     const days = [
       {},
       {},
-      { events: [{ time: "2026-06-03T22:00:00", type: "passenger" }] },
+      { events: [{ time: "2026-06-03T22:00:00+08:00", type: "passenger" }] },
       { events: [] },
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
@@ -156,7 +156,7 @@ describe("deriveDaysWithRollover", () => {
     const days = [
       {},
       {},
-      { events: [{ time: "2026-06-03T22:00:00", type: "sleeper_berth" }] },
+      { events: [{ time: "2026-06-03T22:00:00+08:00", type: "sleeper_berth" }] },
       { events: [] },
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
@@ -169,8 +169,8 @@ describe("deriveDaysWithRollover", () => {
     const days = [
       {},
       {},
-      { events: [{ time: "2026-06-03T22:00:00", type: "work" }] },
-      { events: [{ time: "2026-06-04T06:00:00", type: "work" }] },
+      { events: [{ time: "2026-06-03T22:00:00+08:00", type: "work" }] },
+      { events: [{ time: "2026-06-04T06:00:00+08:00", type: "work" }] },
     ];
     const derived = deriveDaysWithRollover(days, WEEK_START, { todayStr: "2026-06-05" });
     const wed = derived[3]!;
@@ -184,7 +184,7 @@ describe("deriveDaysWithRollover", () => {
       [
         {},
         {},
-        { events: [{ time: "2026-06-03T18:00:00", type: "non_work" }] },
+        { events: [{ time: "2026-06-03T18:00:00+08:00", type: "non_work" }] },
         {},
       ],
       WEEK_START,
@@ -214,7 +214,7 @@ describe("deriveDaysWithRollover", () => {
       {},
       {},
       {},
-      { events: [{ time: "2026-05-30T22:00:00", type: "work" }] },
+      { events: [{ time: "2026-05-30T22:00:00+08:00", type: "work" }] },
     ];
     const openBefore = resolveOpenActivityBeforeFirstDay(prevWeekDays, "2026-05-25", "2026-06-05");
     expect(openBefore).toBe("work");
@@ -235,8 +235,8 @@ describe("deriveDaysWithRollover", () => {
       {},
       {
         events: [
-          { time: "2026-06-04T08:00:00", type: "work" },
-          { time: "2026-06-04T16:00:00", type: "stop" },
+          { time: "2026-06-04T08:00:00+08:00", type: "work" },
+          { time: "2026-06-04T16:00:00+08:00", type: "stop" },
         ],
       },
       { events: [] },
@@ -262,8 +262,8 @@ describe("deriveDaysWithRollover", () => {
       {},
       {
         events: [
-          { time: "2026-05-30T08:00:00", type: "work" },
-          { time: "2026-05-30T18:00:00", type: "stop" },
+          { time: "2026-05-30T08:00:00+08:00", type: "work" },
+          { time: "2026-05-30T18:00:00+08:00", type: "stop" },
         ],
       },
     ];
@@ -277,5 +277,34 @@ describe("deriveDaysWithRollover", () => {
     });
     expect((derived[0]!.non_work ?? []).filter(Boolean).length).toBe(MINUTES_PER_DAY);
     expect((derived[0]!.work_time ?? []).some(Boolean)).toBe(false);
+  });
+
+  it("places 18:00 Australia/Perth work at hour 18 on the day grid, not UTC hour 10", () => {
+    const derived = deriveDaysWithRollover(
+      [{ events: [{ time: "2026-08-16T18:00:00+08:00", type: "work" }] }],
+      "2026-08-16",
+      { todayStr: "2026-08-25" }
+    );
+    const sun = derived[0]!;
+    expect(sun.work_time[10 * 60]).toBe(false);
+    expect(sun.work_time[18 * 60]).toBe(true);
+    expect(sun.non_work[10 * 60]).toBe(true);
+  });
+
+  it("does not cut open work at midnight when End shift is the next morning", () => {
+    const derived = deriveDaysWithRollover(
+      [
+        { events: [{ time: "2026-08-16T18:00:00+08:00", type: "work" }] },
+        { events: [{ time: "2026-08-17T06:00:00+08:00", type: "stop" }] },
+      ],
+      "2026-08-16",
+      { todayStr: "2026-08-25" }
+    );
+    const sun = derived[0]!;
+    const mon = derived[1]!;
+    expect(sun.work_time[MINUTES_PER_DAY - 1]).toBe(true);
+    expect(mon.work_time[0]).toBe(true);
+    expect(mon.work_time[6 * 60 - 1]).toBe(true);
+    expect(mon.non_work[0]).toBe(false);
   });
 });

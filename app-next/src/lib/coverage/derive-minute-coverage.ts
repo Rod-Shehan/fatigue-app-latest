@@ -16,6 +16,7 @@
  */
 
 import { getTodayLocalDateString } from "@/lib/weeks";
+import { perthDayEndUtcMs, perthDayStartUtcMs } from "@/lib/perth-now";
 
 export const MINUTES_PER_DAY = 1440;
 
@@ -95,8 +96,8 @@ export function deriveMinuteGridFromEvents(
 
   const isToday = dateStr === todayStr;
   const now = Date.now();
-  const dayStart = options?.dayStart ?? new Date(dateStr + "T00:00:00").getTime();
-  const dayEnd = new Date(dateStr + "T23:59:59").getTime();
+  const dayStart = options?.dayStart ?? perthDayStartUtcMs(dateStr);
+  const dayEnd = perthDayEndUtcMs(dateStr);
   const assumeIdleFromMs = options?.assumeIdleFromMs && options?.isToday ? options.assumeIdleFromMs : undefined;
   const workBreakCap = assumeIdleFromMs != null ? Math.min(now, assumeIdleFromMs) : undefined;
   const effectiveEnd = isToday ? Math.min(dayEnd, now) : dayEnd;

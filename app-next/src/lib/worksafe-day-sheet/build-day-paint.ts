@@ -9,6 +9,7 @@ import {
   normalizeDayCoverageArrays,
   type CarryOverActivity,
 } from "@/lib/coverage/derive-minute-coverage";
+import { perthDayStartUtcMs } from "@/lib/perth-now";
 import type {
   WorkSafeDayPaint,
   WorkSafeDaySegment,
@@ -39,7 +40,7 @@ export type BuildWorkSafeDayPaintInput = {
 function paintedUntilMinuteForDay(dateStr: string, todayStr: string, nowMs: number): number {
   if (dateStr > todayStr) return 0;
   if (dateStr < todayStr) return MINUTES_PER_DAY;
-  const dayStart = new Date(dateStr + "T00:00:00").getTime();
+  const dayStart = perthDayStartUtcMs(dateStr);
   return Math.min(MINUTES_PER_DAY, Math.max(0, Math.ceil((nowMs - dayStart) / 60000)));
 }
 
@@ -106,7 +107,7 @@ function resolveCoverageGrids(input: BuildWorkSafeDayPaintInput, nowMs: number) 
     });
   }
 
-  const dayStart = new Date(input.dateStr + "T00:00:00").getTime();
+  const dayStart = perthDayStartUtcMs(input.dateStr);
   const isToday = input.dateStr === input.todayStr;
   return deriveMinuteGridFromEvents(input.events, input.dateStr, {
     todayStr: input.todayStr,
