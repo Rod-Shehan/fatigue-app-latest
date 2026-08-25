@@ -146,6 +146,7 @@ export default function DayEntry({
   onCrewMetaSync,
   dayTools,
   setupOpenRequest,
+  dimensionLoadOpenRequest,
   startWorkAfterSetup = false,
   onConfirmedStartWorkAfterSetup,
   onDetailsDialogClosed,
@@ -182,6 +183,8 @@ export default function DayEntry({
   dayTools?: DayCardToolsConfig;
   /** Parent bump opens Set up day (e.g. Start shift blocked → Go to today's card). */
   setupOpenRequest?: number;
+  /** Parent bump opens Dimension & Load (Other work Load check / Add load check). */
+  dimensionLoadOpenRequest?: number;
   /** Hero Start/Resume deferred here — Confirm then opens driving / Other work chooser. */
   startWorkAfterSetup?: boolean;
   onConfirmedStartWorkAfterSetup?: (opts?: { skipLog?: boolean }) => void;
@@ -222,6 +225,7 @@ export default function DayEntry({
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
   const lastSetupOpenRequestRef = useRef(0);
+  const lastDimensionLoadOpenRequestRef = useRef(0);
 
   const events = useMemo(() => {
     const base = (dayData.events ?? []).filter((e) => e && typeof e.time === "string" && typeof e.type === "string");
@@ -313,6 +317,16 @@ export default function DayEntry({
     setExpanded(true);
     if (canEditDetails) setDetailsOpen(true);
   }, [setupOpenRequest, canEditDetails]);
+
+  useEffect(() => {
+    if (!dimensionLoadOpenRequest || dimensionLoadOpenRequest <= lastDimensionLoadOpenRequestRef.current)
+      return;
+    lastDimensionLoadOpenRequestRef.current = dimensionLoadOpenRequest;
+    if (canEditDetails) {
+      setToolsOpen(false);
+      setDimensionLoadOpen(true);
+    }
+  }, [dimensionLoadOpenRequest, canEditDetails]);
 
   const handleDetailsOpenChange = useCallback(
     (open: boolean) => {

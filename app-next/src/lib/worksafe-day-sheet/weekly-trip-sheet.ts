@@ -9,8 +9,8 @@ import { formatHoursStatistic } from "@/lib/hours";
 
 export const WTS_CHECKLIST_ROWS = [
   "Confirm Fitness for Work",
-  "Dimension & Load Check List Completed",
   "Daily Vehicle Check List Completed",
+  "Dimension & Load Check List Completed",
 ] as const;
 
 export const WTS_DAY_ABBREVS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;

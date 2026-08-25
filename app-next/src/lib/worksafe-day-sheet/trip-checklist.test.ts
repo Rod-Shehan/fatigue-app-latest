@@ -1,7 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { checklistMatrixFromDays, isTripChecklistTicked } from "./trip-checklist";
+import { checklistMatrixFromDays, isTripChecklistTicked, TRIP_CHECKLIST_KEYS } from "./trip-checklist";
 
 describe("trip checklist", () => {
+  it("lists day forms Fitness for work, Daily vehicle, then Dimension & load", () => {
+    expect([...TRIP_CHECKLIST_KEYS]).toEqual([
+      "fitness_for_work",
+      "daily_vehicle_checklist",
+      "dimension_load_checklist",
+    ]);
+  });
   it("reads only explicit true as ticked", () => {
     expect(isTripChecklistTicked({ fitness_for_work: true }, "fitness_for_work")).toBe(true);
     expect(isTripChecklistTicked({ fitness_for_work: false }, "fitness_for_work")).toBe(false);
@@ -21,8 +28,8 @@ describe("trip checklist", () => {
     const m = checklistMatrixFromDays(days);
     expect(m).toHaveLength(3);
     expect(m[0]).toEqual([false, false, false, true, false, false, false]);
-    expect(m[1][3]).toBe(true);
-    expect(m[2][3]).toBe(false);
+    expect(m[1][3]).toBe(false);
+    expect(m[2][3]).toBe(true);
   });
 
   it("derives matrix ticks from completed checklist records", () => {

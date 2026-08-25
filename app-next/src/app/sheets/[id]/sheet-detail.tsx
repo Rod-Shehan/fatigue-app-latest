@@ -325,6 +325,7 @@ export function SheetDetail({
   const [priorWeekDaysExpanded, setPriorWeekDaysExpanded] = useState(false);
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
   const [todaySetupOpenRequest, setTodaySetupOpenRequest] = useState(0);
+  const [dimensionLoadOpenRequest, setDimensionLoadOpenRequest] = useState(0);
   const [deepLinkEditDayRequest, setDeepLinkEditDayRequest] = useState(0);
   const [deepLinkEditDayIndex, setDeepLinkEditDayIndex] = useState<number | null>(null);
   const deepLinkEditHandledRef = useRef(false);
@@ -2128,6 +2129,8 @@ export function SheetDetail({
           : isCurrent && isTodayCard
             ? todaySetupOpenRequest
             : undefined,
+      dimensionLoadOpenRequest:
+        isCurrent && isTodayCard ? dimensionLoadOpenRequest : undefined,
       startWorkAfterSetup:
         isCurrent && isTodayCard ? pendingStartWorkAfterSetup != null : undefined,
       onConfirmedStartWorkAfterSetup:
@@ -2178,6 +2181,7 @@ export function SheetDetail({
             onSessionDimmedChange={setDriverSessionDimmed}
             onShiftSegmentChange={setShiftSegmentOpen}
             gpsMovementTrailEnabled={gpsMovementTrailEnabled}
+            onOpenDimensionLoad={() => setDimensionLoadOpenRequest((n) => n + 1)}
           />
           {!isManager && (
             <DriverGearDrawer

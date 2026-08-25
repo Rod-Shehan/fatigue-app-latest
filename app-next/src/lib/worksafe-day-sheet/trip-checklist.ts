@@ -10,8 +10,8 @@ import { deriveTripChecklistFields, type DayWithChecklists } from "@/lib/checkli
 
 export const TRIP_CHECKLIST_KEYS = [
   "fitness_for_work",
-  "dimension_load_checklist",
   "daily_vehicle_checklist",
+  "dimension_load_checklist",
 ] as const;
 
 export type TripChecklistKey = (typeof TRIP_CHECKLIST_KEYS)[number];

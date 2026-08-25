@@ -211,6 +211,18 @@ export const DRIVER_STOP_DRIVING_LABEL = "Stop Driving";
 export const DRIVER_START_REST_LABEL = "Start Rest";
 /** Bottom half of the Stop Driving / Start shift / Start work split. */
 export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";
+/** After Other work is logged — open Dimension & Load (timeline stays Other work). */
+export const DRIVER_LOAD_CHECK_LABEL = "Load check";
+/** After Other work is logged — skip the form (tyre, fuel, paperwork). */
+export const DRIVER_NOT_A_LOAD_LABEL = "Not a load";
+/** While still on Other work — another Dimension & Load record for this day. */
+export const DRIVER_ADD_LOAD_CHECK_LABEL = "Add load check";
+
+/** Under the Other work ring: Add load check, or Add load check · N today. */
+export function formatAddLoadCheckLabel(completedToday: number): string {
+  const n = Number.isFinite(completedToday) ? Math.max(0, Math.floor(completedToday)) : 0;
+  return n > 0 ? `${DRIVER_ADD_LOAD_CHECK_LABEL} · ${n} today` : DRIVER_ADD_LOAD_CHECK_LABEL;
+}
 /** Top half of the Start shift / Start work / Continue shift split. Logs driving work. */
 export const DRIVER_START_DRIVING_LABEL = "Start driving";
 /** Rest-only corner puck — question, not a fifth activity. */

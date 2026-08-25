@@ -7,13 +7,13 @@ import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
-import { BedDouble, Briefcase, Coffee, User, Wrench, X } from "lucide-react";
+import { BedDouble, Briefcase, ClipboardList, Coffee, User, Wrench, X } from "lucide-react";
 import { HERO_SPLIT_CHROME } from "@/lib/theme";
 
 const UNLOCK_RING_R = 46;
 const UNLOCK_RING_C = 2 * Math.PI * UNLOCK_RING_R;
 
-type HeroSplitKind = "work" | "break" | "other_work" | "passenger" | "sleeper_berth";
+type HeroSplitKind = "work" | "break" | "other_work" | "passenger" | "sleeper_berth" | "load_check";
 
 const HERO_SPLIT_ICONS: Record<
   HeroSplitKind,
@@ -24,6 +24,7 @@ const HERO_SPLIT_ICONS: Record<
   other_work: Wrench,
   passenger: User,
   sleeper_berth: BedDouble,
+  load_check: ClipboardList,
 };
 
 function HeroSplitHalf({
@@ -162,7 +163,7 @@ export interface DriverActionHeroProps {
   }>;
   /** Work → Stop Driving, idle → Start shift, Rest → Start work, Other work → Continue shift. */
   stopDrivingChooser?: {
-    variant?: "stop-driving" | "start-shift" | "start-work" | "continue-shift";
+    variant?: "stop-driving" | "start-shift" | "start-work" | "continue-shift" | "load-check";
     restLabel: string;
     otherWorkLabel: string;
     onStartRest: () => void;
@@ -416,9 +417,17 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         ? "Start shift — choose driving or Other work"
         : chooserVariant === "continue-shift"
           ? "Continue shift — choose driving or Rest"
-          : "Stop Driving — choose Rest or Other work");
-  const topKind: HeroSplitKind = workKindSplit ? "work" : "break";
-  const bottomKind: HeroSplitKind = chooserVariant === "continue-shift" ? "break" : "other_work";
+          : chooserVariant === "load-check"
+            ? "Other work — load check or not a load"
+            : "Stop Driving — choose Rest or Other work");
+  const topKind: HeroSplitKind =
+    chooserVariant === "load-check" ? "load_check" : workKindSplit ? "work" : "break";
+  const bottomKind: HeroSplitKind =
+    chooserVariant === "load-check"
+      ? "other_work"
+      : chooserVariant === "continue-shift"
+        ? "break"
+        : "other_work";
   const chooserTiles = stopDrivingChooser?.tiles;
   const useTileGrid = Boolean(chooserTiles && chooserTiles.length > 2);
 

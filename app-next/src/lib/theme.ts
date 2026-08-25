@@ -113,4 +113,9 @@ export const HERO_SPLIT_CHROME = {
     text: "text-white",
     pip: "bg-emerald-100",
   },
+  load_check: {
+    half: "driver-puck-face driver-puck-slate",
+    text: "text-slate-50",
+    pip: "bg-blue-200",
+  },
 } as const;

@@ -142,8 +142,11 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_OTHER_WORK_LABEL}</strong> — not
-                driving, still a job (load, forklift, tyre, paperwork, fuel). Shown on breaks from driving. Never
-                becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still work time for 168h.
+                driving, still a job (load, forklift, tyre, paperwork, fuel). After tap-again, the ring asks Load check
+                or Not a load. Load check opens Dimension & Load; you stay on Other work. While still on Other work, Add
+                load check under the ring starts another load form. Daily checks on the day card stay available. Shown on
+                breaks from driving. Never becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still
+                work time for 168h.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Non-work time</strong> — End shift, and Rest of

@@ -51,8 +51,9 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
+import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL, DRIVER_LOAD_CHECK_LABEL, DRIVER_NOT_A_LOAD_LABEL, formatAddLoadCheckLabel } from "@/lib/product-copy";
 import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
+import { listCompletedChecklistsOfType, type ChecklistRecord } from "@/lib/checklist/record";
 import {
   twoUpChooserAria,
   twoUpPassengerTiles,
@@ -150,6 +151,7 @@ type DayData = {
   start_location?: string;
   destination?: string;
   start_kms?: number | null;
+  checklists?: Array<{ type?: string; status?: string }>;
 };
 
 export default function LogBar({
@@ -180,6 +182,7 @@ export default function LogBar({
   priorTimelineSlices,
   /** Enterprise addon — movement lock + segment GPS trail. */
   gpsMovementTrailEnabled = false,
+  onOpenDimensionLoad,
 }: {
   days: DayData[];
   currentDayIndex: number;
@@ -236,6 +239,8 @@ export default function LogBar({
   /** Older record slices before this sheet (chronological). Rules use event timestamps only. */
   priorTimelineSlices?: TimelineSlice[];
   gpsMovementTrailEnabled?: boolean;
+  /** Open Dimension & Load on today's card (same form as Daily checks). */
+  onOpenDimensionLoad?: () => void;
 }) {
   void weekStarting;
   const [pendingType, setPendingType] = useState<string | null>(null);
@@ -249,6 +254,8 @@ export default function LogBar({
   const [restWorkChooserOpen, setRestWorkChooserOpen] = useState(false);
   /** Other work → Continue shift chooser: Start driving / Start Rest (not a logged event). */
   const [otherWorkChooserOpen, setOtherWorkChooserOpen] = useState(false);
+  /** After Other work is logged — Load check / Not a load (not a logged event). */
+  const [loadCheckChooserOpen, setLoadCheckChooserOpen] = useState(false);
   /** Timestamp when a chooser opened — ignore the opener tap retargeted onto a split half. */
   const chooserOpenedAtRef = useRef(0);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
@@ -675,6 +682,15 @@ export default function LogBar({
     open();
   }, []);
 
+  const openLoadCheckFollowOn = useCallback(() => {
+    setStopDrivingChooserOpen(false);
+    setStartShiftChooserOpen(false);
+    setRestWorkChooserOpen(false);
+    setOtherWorkChooserOpen(false);
+    setSleeperChooserOpen(false);
+    openHeroChooser(() => setLoadCheckChooserOpen(true));
+  }, [openHeroChooser]);
+
   const runChooserOption = useCallback((fn: () => void) => {
     if (isHeroChooserGhostClick(chooserOpenedAtRef.current)) return;
     fn();
@@ -691,6 +707,7 @@ export default function LogBar({
   useEffect(() => {
     clearPending();
     setWorkWarning(null);
+    setLoadCheckChooserOpen(false);
   }, [currentDayIndex, clearPending]);
 
   /** Phase 1 voice: work-warning modals (card incomplete, etc.). */
@@ -860,8 +877,13 @@ export default function LogBar({
         }
         return;
       }
+      const enteringOtherWork =
+        type === OTHER_WORK_EVENT_TYPE && currentType !== OTHER_WORK_EVENT_TYPE;
       if (type !== currentType) {
         onLogEvent(currentDayIndex, type);
+      }
+      if (enteringOtherWork) {
+        openLoadCheckFollowOn();
       }
       return;
     }
@@ -965,7 +987,12 @@ export default function LogBar({
         }
         return;
       }
+      const enteringOtherWork =
+        type === OTHER_WORK_EVENT_TYPE && currentType !== OTHER_WORK_EVENT_TYPE;
       onLogEvent(currentDayIndex, type);
+      if (enteringOtherWork) {
+        openLoadCheckFollowOn();
+      }
       return;
     }
     armPending(type, episodeResume);
@@ -1119,9 +1146,20 @@ export default function LogBar({
     (stopDrivingChooserOpen && currentType === "work") ||
     (startShiftChooserOpen && currentType === null) ||
     (restWorkChooserOpen && currentType === "break") ||
+    (loadCheckChooserOpen && currentType === OTHER_WORK_EVENT_TYPE) ||
     (otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE) ||
     (passengerChooserOpen && currentType === PASSENGER_EVENT_TYPE) ||
     (sleeperChooserOpen && currentType === SLEEPER_BERTH_EVENT_TYPE);
+  const dimensionLoadCountToday = listCompletedChecklistsOfType(
+    (currentDayDisplay?.checklists ?? days[currentDayIndex]?.checklists) as
+      | ChecklistRecord[]
+      | undefined,
+    "dimension_load"
+  ).length;
+  const showAddLoadCheck =
+    Boolean(onOpenDimensionLoad) &&
+    currentType === OTHER_WORK_EVENT_TYPE &&
+    !heroChooserOpen;
   const twoUpHeroUnlockedWhileMoving =
     isTwoUp &&
     (currentType === "work" ||
@@ -1162,6 +1200,9 @@ export default function LogBar({
     sessionDimmed,
     primaryActionPending,
     sessionToolsOpen,
+    showAddLoadCheck,
+    dimensionLoadCountToday,
+    heroChooserOpen,
   ]);
 
   useLayoutEffect(() => {
@@ -1377,6 +1418,7 @@ export default function LogBar({
                 return;
               }
               if (currentType === OTHER_WORK_EVENT_TYPE) {
+                setLoadCheckChooserOpen(false);
                 openHeroChooser(() => setOtherWorkChooserOpen(true));
                 return;
               }
@@ -1471,6 +1513,25 @@ export default function LogBar({
                         restPending: pendingType === "work",
                         otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
                       }
+                    : loadCheckChooserOpen && currentType === OTHER_WORK_EVENT_TYPE
+                      ? {
+                          variant: "load-check",
+                          restLabel: DRIVER_LOAD_CHECK_LABEL,
+                          otherWorkLabel: DRIVER_NOT_A_LOAD_LABEL,
+                          onStartRest: () =>
+                            runChooserOption(() => {
+                              setLoadCheckChooserOpen(false);
+                              onOpenDimensionLoad?.();
+                            }),
+                          onStartOtherWork: () =>
+                            runChooserOption(() => setLoadCheckChooserOpen(false)),
+                          onCancel: () => {
+                            clearPending();
+                            setLoadCheckChooserOpen(false);
+                          },
+                          restPending: false,
+                          otherWorkPending: false,
+                        }
                     : otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE
                       ? {
                           variant: "continue-shift",
@@ -1521,14 +1582,28 @@ export default function LogBar({
                           : null
             }
             auxiliaryActions={
-              sessionDimmed
+              showAddLoadCheck || sessionDimmed
                 ? [
-                    {
-                      label: "View diary",
-                      onAction: viewDiary,
-                      icon: ChevronUp,
-                      onDark: true,
-                    },
+                    ...(showAddLoadCheck
+                      ? [
+                          {
+                            label: formatAddLoadCheckLabel(dimensionLoadCountToday),
+                            onAction: onOpenDimensionLoad!,
+                            icon: ClipboardList,
+                            onDark: sessionDimmed,
+                          },
+                        ]
+                      : []),
+                    ...(sessionDimmed
+                      ? [
+                          {
+                            label: "View diary",
+                            onAction: viewDiary,
+                            icon: ChevronUp,
+                            onDark: true,
+                          },
+                        ]
+                      : []),
                   ]
                 : undefined
             }
