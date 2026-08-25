@@ -28,6 +28,14 @@ import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
 
+function padPdfDays<T>(days: Array<T | null | undefined> | undefined): T[] {
+  const list = (Array.isArray(days) ? days : [])
+    .slice(0, 7)
+    .map((d) => (d && typeof d === "object" ? d : ({} as T)));
+  while (list.length < 7) list.push({} as T);
+  return list;
+}
+
 type SegmentType = WorkSafeTrack;
 type TimelineSegment = { startMin: number; endMin: number; type: SegmentType };
 
@@ -365,8 +373,7 @@ function buildShiftLogHtml(opts: {
   const { sheet, todayStr } = opts;
   const primaryName = (sheet.driver_name || "").trim() || "—";
   const secondName = (sheet.second_driver || "").trim();
-  const dayList = (sheet.days || []).slice(0, 7);
-  while (dayList.length < 7) dayList.push({});
+  const dayList = padPdfDays(sheet.days);
   const showLegacyDriverCol = sheetHasLegacyDriverEventTags(sheet);
 
   const metaRows: { label: string; value: string }[] = [
@@ -565,8 +572,7 @@ export function renderPdfHtml(opts: {
 }) {
   const { sheet, todayStr, generatedAtLabel, roadside } = opts;
   const tripSheetOnly = opts.layout === "tripSheetOnly";
-  const dayList = (sheet.days || []).slice(0, 7);
-  while (dayList.length < 7) dayList.push({});
+  const dayList = padPdfDays(sheet.days);
   const paintDays = deriveDaysWithRollover(dayList, sheet.week_starting, { todayStr });
   const driverName = (sheet.driver_name || "").trim();
   const truckRegs = collectWeekTruckRegs(paintDays);
@@ -885,8 +891,7 @@ function renderShiftLogJsPDF(
   const primaryName = (sheet.driver_name || "").trim() || "—";
   const secondName = (sheet.second_driver || "").trim();
   const showLegacyDriverCol = sheetHasLegacyDriverEventTags(sheet);
-  const dayList = (sheet.days || []).slice(0, 7);
-  while (dayList.length < 7) dayList.push({});
+  const dayList = padPdfDays(sheet.days);
 
   for (let idx = 0; idx < 7; idx++) {
     const day = dayList[idx];
@@ -1064,8 +1069,7 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     y = renderRoadsideJsPDF(doc, margin, colW, y, roadsidePayload);
   }
 
-  const dayList = (sheet.days || []).slice(0, 7);
-  while (dayList.length < 7) dayList.push({});
+  const dayList = padPdfDays(sheet.days);
   const paintDays = deriveDaysWithRollover(dayList, sheet.week_starting, { todayStr });
   const truckRegs = collectWeekTruckRegs(paintDays);
   let weekWorkMinutes = 0;

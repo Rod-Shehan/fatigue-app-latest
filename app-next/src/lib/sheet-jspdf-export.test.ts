@@ -39,6 +39,66 @@ describe("sheet PDF layouts", () => {
     expect(html).toContain("CIRCADIA24");
   });
 
+  it("trip-sheet html tolerates a missing day slot", () => {
+    const html = renderPdfHtml({
+      sheet: {
+        ...sheet,
+        days: [{}, null, {}] as unknown as typeof sheet.days,
+      },
+      todayStr: "2026-08-19",
+      generatedAtLabel: "19/08/2026, 7:30:48 pm",
+      layout: "tripSheetOnly",
+    });
+    expect(html).toContain("WEEKLY TRIP SHEET");
+  });
+
+  it("builds a trip-sheet jsPDF for a completed week with checklists and other_work", async () => {
+    const { buildSingleSheetJsPdfBuffer } = await import("@/lib/sheet-jspdf-export");
+    const tinyPng =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const days = Array.from({ length: 7 }, (_, i) => ({
+      date: `2026-08-${String(16 + i).padStart(2, "0")}`,
+      truck_rego: "1TEST",
+      start_location: "Perth",
+      destination: "Site",
+      start_kms: i < 5 ? 1000 : null,
+      end_kms: i < 5 ? 1100 : null,
+      events:
+        i === 4
+          ? [
+              { time: "2026-08-20T06:00:00", type: "work" },
+              { time: "2026-08-20T10:00:00", type: "other_work" },
+              { time: "2026-08-20T12:00:00", type: "stop" },
+            ]
+          : i < 5
+            ? [
+                { time: `2026-08-${String(16 + i).padStart(2, "0")}T06:00:00`, type: "work" },
+                { time: `2026-08-${String(16 + i).padStart(2, "0")}T12:00:00`, type: "stop" },
+              ]
+            : i === 5
+              ? [{ time: "2026-08-21T00:00:00", type: "stop" }]
+              : undefined,
+      checklists:
+        i < 5
+          ? [{ id: `ck-${i}`, type: "ffw", status: "completed", items: [{ code: "a" }] }]
+          : undefined,
+      fitness_for_work: i < 5,
+    }));
+    const buf = await buildSingleSheetJsPdfBuffer({
+      sheet: {
+        ...sheet,
+        status: "completed",
+        signed_at: "2026-08-22T10:00:00.000Z",
+        signature: tinyPng,
+        days,
+      },
+      todayStr: "2026-08-25",
+      generatedAtLabel: "25/08/2026, 2:30:00 pm",
+      layout: "tripSheetOnly",
+    });
+    expect(buf.byteLength).toBeGreaterThan(1000);
+  });
+
   it("week export and roadside trip-sheet-only omit header, compliance, and appendix", () => {
     const html = renderPdfHtml({
       sheet,

@@ -15,6 +15,12 @@ export {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/** Chromium + a full week of events/checklists can exceed the default limit. */
+export const maxDuration = 60;
+
+function asNodePdfBuffer(bytes: ArrayBuffer | Uint8Array): Buffer {
+  return Buffer.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
+}
 
 export async function GET(
   _req: Request,
@@ -82,62 +88,69 @@ export async function GET(
     const todayStr = getPerthNowParts().ymd;
     const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
 
-    try {
-      const [{ default: chromium }, puppeteer] = await Promise.all([
-        import("@sparticuz/chromium"),
-        import("puppeteer-core"),
-      ]);
-
-      const executablePath = await chromium.executablePath();
-      if (!executablePath) throw new Error("Chromium executablePath not available");
-
-      const html = renderPdfHtml({
-        sheet,
-        todayStr,
-        generatedAtLabel,
-        layout: "tripSheetOnly",
-      });
-
-      const browser = await puppeteer.launch({
-        args: chromium.args,
-        executablePath,
-        headless: true,
-      });
-
+    // Vercel: skip Chromium. Loading it first often exhausts the isolate, so the
+    // jsPDF fallback never runs — that is what returns {"error":"Export failed"}
+    // on heavier completed weeks (events + daily checklists + signature).
+    if (!process.env.VERCEL) {
       try {
-        const page = await browser.newPage();
-        try {
-          const maybe = page as unknown as { emulateTimezone?: (tz: string) => Promise<void> };
-          if (typeof maybe.emulateTimezone === "function") {
-            await maybe.emulateTimezone("Australia/Perth");
-          }
-        } catch {
-          /* ignore */
-        }
-        await page.setContent(html, { waitUntil: "load" });
-        const pdfBytes = await page.pdf({
-          format: "A4",
-          printBackground: true,
-          preferCSSPageSize: true,
+        const [{ default: chromium }, puppeteer] = await Promise.all([
+          import("@sparticuz/chromium"),
+          import("puppeteer-core"),
+        ]);
+
+        const executablePath = await chromium.executablePath();
+        if (!executablePath) throw new Error("Chromium executablePath not available");
+
+        const html = renderPdfHtml({
+          sheet,
+          todayStr,
+          generatedAtLabel,
+          layout: "tripSheetOnly",
         });
 
-        const timeStamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(/:/g, "");
-        const safeName = (row.driverName || "unknown").replace(/[\s"\r\n\\]+/g, "-").replace(/[^\w\-.]/g, "") || "sheet";
-        const filename = `fatigue-sheet-${safeName}-${timeStamp}.pdf`;
-        return new NextResponse(Buffer.from(pdfBytes), {
-          status: 200,
-          headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${filename}"`,
-            "Cache-Control": "private, no-store, max-age=0, must-revalidate",
-            Pragma: "no-cache",
-          },
+        const browser = await puppeteer.launch({
+          args: chromium.args,
+          executablePath,
+          headless: true,
         });
-      } finally {
-        await browser.close();
+
+        try {
+          const page = await browser.newPage();
+          try {
+            const maybe = page as unknown as { emulateTimezone?: (tz: string) => Promise<void> };
+            if (typeof maybe.emulateTimezone === "function") {
+              await maybe.emulateTimezone("Australia/Perth");
+            }
+          } catch {
+            /* ignore */
+          }
+          await page.setContent(html, { waitUntil: "load" });
+          const pdfBytes = await page.pdf({
+            format: "A4",
+            printBackground: true,
+            preferCSSPageSize: true,
+          });
+
+          const timeStamp = new Date().toISOString().slice(0, 16).replace("T", "_").replace(/:/g, "");
+          const safeName =
+            (row.driverName || "unknown").replace(/[\s"\r\n\\]+/g, "-").replace(/[^\w\-.]/g, "") ||
+            "sheet";
+          const filename = `fatigue-sheet-${safeName}-${timeStamp}.pdf`;
+          return new NextResponse(Buffer.from(pdfBytes), {
+            status: 200,
+            headers: {
+              "Content-Type": "application/pdf",
+              "Content-Disposition": `attachment; filename="${filename}"`,
+              "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+              Pragma: "no-cache",
+            },
+          });
+        } finally {
+          await browser.close();
+        }
+      } catch (err) {
+        console.error("[sheets/export] chromium failed, using jsPDF", err);
       }
-    } catch {
-      /* jsPDF fallback below */
     }
 
     const pdfBytes = await buildSingleSheetJsPdfBuffer({
@@ -151,7 +164,7 @@ export async function GET(
       .replace(/[\s"\r\n\\]+/g, "-")
       .replace(/[^\w\-.]/g, "") || "sheet";
     const filename = `fatigue-sheet-${safeName}-${timeStamp}.pdf`;
-    return new NextResponse(pdfBytes, {
+    return new NextResponse(asNodePdfBuffer(pdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
@@ -160,7 +173,8 @@ export async function GET(
         Pragma: "no-cache",
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[sheets/export]", err);
     return NextResponse.json({ error: "Export failed" }, { status: 500 });
   }
 }
