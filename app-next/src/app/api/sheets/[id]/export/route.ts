@@ -18,10 +18,6 @@ export const dynamic = "force-dynamic";
 /** Chromium + a full week of events/checklists can exceed the default limit. */
 export const maxDuration = 60;
 
-function asNodePdfBuffer(bytes: ArrayBuffer | Uint8Array): Buffer {
-  return Buffer.from(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes));
-}
-
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -164,7 +160,7 @@ export async function GET(
       .replace(/[\s"\r\n\\]+/g, "-")
       .replace(/[^\w\-.]/g, "") || "sheet";
     const filename = `fatigue-sheet-${safeName}-${timeStamp}.pdf`;
-    return new NextResponse(asNodePdfBuffer(pdfBytes), {
+    return new NextResponse(new Uint8Array(pdfBytes), {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
