@@ -12,21 +12,11 @@ describe("app-surface", () => {
   it("infers surface from subdomain host", () => {
     expect(appSurfaceFromHost("ewd.circadia24.com")).toBe("ewd");
     expect(appSurfaceFromHost("enterprise.circadia24.com")).toBe("enterprise");
-    expect(appSurfaceFromHost("helper.circadia24.com")).toBe("legacy");
+    expect(appSurfaceFromHost("helper.circadia24.com")).toBe(null);
     expect(appSurfaceFromHost("legacy.circadia24.com")).toBe("legacy");
     expect(appSurfaceFromHost("staff-desk.circadia24.com")).toBe("circadia");
     expect(appSurfaceFromHost("admin.circadia24.com")).toBe("circadia");
     expect(appSurfaceFromHost("www.circadia24.com")).toBe(null);
-  });
-
-  it("treats helper env as the Helper (legacy) surface", () => {
-    expect(resolveAppSurface({ envValue: "helper" })).toBe("legacy");
-    expect(
-      resolveAppSurface({
-        envValue: "ewd",
-        host: "helper.circadia24.com",
-      })
-    ).toBe("ewd");
   });
 
   it("prefers env over host except the staff-desk host", () => {

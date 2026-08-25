@@ -7,8 +7,8 @@
  * - circadia   — Circadia staff desk (desktop PWA on staff-desk.circadia24.com)
  *
  * Set APP_SURFACE / NEXT_PUBLIC_APP_SURFACE, or infer from Host
- * (helper. / legacy. / ewd. / enterprise. / staff-desk. subdomains).
- * Helper's named host is helper.circadia24.com; legacy. is an old alias.
+ * (legacy. / ewd. / enterprise. / staff-desk. subdomains).
+ * helper.circadia24.com is the paper Helper app (separate project) — never this surface.
  *
  * staff-desk.circadia24.com is Circadia staff only. Random paths go to
  * https://www.circadia24.com. Do not funnel the public site here.
@@ -26,18 +26,12 @@ export type AppSurface = "legacy" | "ewd" | "enterprise" | "circadia";
 
 export const APP_SURFACE_VALUES: AppSurface[] = ["legacy", "ewd", "enterprise", "circadia"];
 
-/** Named Helper host. Surface id stays `legacy` (combined parked original). */
-export const HELPER_HOST = "helper.circadia24.com";
-/** Previous Helper host name — same surface, not Staff Desk. */
-export const HELPER_LEGACY_HOST = "legacy.circadia24.com";
+/** Combined parked original. Not helper.circadia24.com (paper Helper app). */
+export const LEGACY_COMBINED_HOST = "legacy.circadia24.com";
 
-export function isHelperHostname(hostname: string): boolean {
-  return hostname === HELPER_HOST || hostname === "helper" || hostname.startsWith("helper.");
-}
-
-export function isLegacyHelperHostname(hostname: string): boolean {
+export function isLegacyCombinedHostname(hostname: string): boolean {
   return (
-    hostname === HELPER_LEGACY_HOST ||
+    hostname === LEGACY_COMBINED_HOST ||
     hostname === "legacy" ||
     hostname.startsWith("legacy.")
   );
@@ -47,7 +41,7 @@ export type LobbyBranchId = "driver" | "manager" | "owner";
 
 function normalizeSurface(raw: string | undefined | null): AppSurface | null {
   const v = raw?.trim().toLowerCase();
-  if (v === "legacy" || v === "helper" || v === "v1" || v === "classic") return "legacy";
+  if (v === "legacy" || v === "v1" || v === "classic") return "legacy";
   if (v === "ewd" || v === "driver") return "ewd";
   if (v === "enterprise" || v === "manager") return "enterprise";
   if (v === "circadia" || v === "admin" || v === "staff" || v === "staff-desk") return "circadia";
@@ -60,7 +54,7 @@ export function appSurfaceFromHost(host: string | null | undefined): AppSurface 
   const hostname = hostnameFromHostHeader(host);
   if (!hostname) return null;
   if (isCircadiaDeskHostname(hostname) || isLegacyCircadiaDeskHostname(hostname)) return "circadia";
-  if (isHelperHostname(hostname) || isLegacyHelperHostname(hostname)) return "legacy";
+  if (isLegacyCombinedHostname(hostname)) return "legacy";
   if (hostname === "ewd" || hostname.startsWith("ewd.")) return "ewd";
   if (hostname === "enterprise" || hostname.startsWith("enterprise.")) return "enterprise";
   return null;
@@ -238,8 +232,7 @@ function siblingBaseUrl(surface: AppSurface): string | null {
         ? process.env.NEXT_PUBLIC_ENTERPRISE_APP_URL
         : surface === "circadia"
           ? process.env.NEXT_PUBLIC_CIRCADIA_DESK_URL
-          : process.env.NEXT_PUBLIC_HELPER_APP_URL?.trim() ||
-            process.env.NEXT_PUBLIC_LEGACY_APP_URL;
+          : process.env.NEXT_PUBLIC_LEGACY_APP_URL;
   const trimmed = raw?.trim();
   if (!trimmed) return null;
   return trimmed.replace(/\/+$/, "");

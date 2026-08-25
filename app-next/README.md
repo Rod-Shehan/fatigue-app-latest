@@ -34,7 +34,7 @@ This is the same app converted to **Next.js + TypeScript + Prisma + NextAuth**, 
    ```
    Open [http://localhost:3000](http://localhost:3000). Use the **Driver** or **Manager** lobby card with a seeded or roster email and password (see **docs/AUTH_AND_ROLES.md**).
 
-   **Product surfaces (Helper / EWD / Enterprise):** see [`../docs/architecture/product-surfaces-legacy-ewd-enterprise.md`](../docs/architecture/product-surfaces-legacy-ewd-enterprise.md). Local default is **Helper** (combined app; surface id `legacy`). Named Helper host is `helper.circadia24.com`. To preview EWD-only lobby: `NEXT_PUBLIC_APP_SURFACE=ewd` in `.env.local`.
+   **Product surfaces (Legacy / EWD / Enterprise):** see [`../docs/architecture/product-surfaces-legacy-ewd-enterprise.md`](../docs/architecture/product-surfaces-legacy-ewd-enterprise.md). Local default is **legacy** (combined app). `helper.circadia24.com` is the paper Helper app, not this project. To preview EWD-only lobby: `NEXT_PUBLIC_APP_SURFACE=ewd` in `.env.local`.
 
 ## Stack
 
