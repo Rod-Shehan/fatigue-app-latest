@@ -1,5 +1,5 @@
 import type { DayData } from "@/lib/api";
-import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
+import { getEffectiveOpenActivityAtDayEnd } from "@/lib/event-rollover";
 import { isBreakFromDrivingEventType, isOpenShiftEventType } from "@/lib/activity-kind";
 import { hasRunPlanContent } from "@/lib/route-plan";
 import { getSheetDayDateString } from "@/lib/weeks";

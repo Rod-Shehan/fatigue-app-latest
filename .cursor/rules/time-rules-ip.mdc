@@ -18,7 +18,7 @@ Do **not** invent calendar midnight, day, week, or month cuts in timeline logic.
 This applies to:
 
 - Implementations under `app-next/src/lib/` listed below
-- **Coverage / event→grid derivation** (`EventLogger` rollover helpers, `derive-minute-coverage`)
+- **Coverage / event→grid derivation** (`event-rollover.ts`, `derive-minute-coverage`)
 - **Tests** for those modules (they encode expected rule outcomes)
 - **Duplicated rule logic** in UI (e.g. `LogBar.tsx` break warnings) — treat as rule IP, not casual UI
 - `frms-engine/app/math_engine.py` (TPMA / alertness time model)
@@ -35,7 +35,7 @@ This applies to:
 | `shift-change.ts` | Reg 184E shift-pattern change / 24h gap |
 | `weeks.ts` | Regulatory week labels / “today” (Perth) — **display/regulatory clock only**, not activity boundaries |
 | `coverage/derive-minute-coverage.ts` | Minute coverage that feeds rule engines |
-| `components/fatigue/EventLogger.tsx` | `deriveDaysWithRollover` / open activity carry (driver event continuity) |
+| `event-rollover.ts` | `deriveDaysWithRollover` / open activity carry (driver event continuity). EventLogger re-exports. |
 | `day-route-carry.ts` | Overnight continuation helpers tied to open activity |
 | `compliance-state.ts` | Retrospective compliance snapshots |
 | `compliance-history.ts` | Multi-week lookback for rolling rules |

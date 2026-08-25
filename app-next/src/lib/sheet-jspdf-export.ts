@@ -23,7 +23,7 @@ import {
 import { checklistMatrixFromDays } from "@/lib/worksafe-day-sheet/trip-checklist";
 import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
 import type { WorkSafeTrack } from "@/lib/worksafe-day-sheet/types";
-import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
+import { deriveDaysWithRollover } from "@/lib/event-rollover";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;

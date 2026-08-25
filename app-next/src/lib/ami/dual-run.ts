@@ -3,7 +3,7 @@
  * Does not wire AMI into production. Produces structured comparison rows.
  */
 
-import { deriveDaysWithRollover } from "@/components/fatigue/EventLogger";
+import { deriveDaysWithRollover } from "@/lib/event-rollover";
 import type { ComplianceDayData } from "@/lib/compliance";
 import {
   findWorkWindowStartMs,

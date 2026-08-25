@@ -3,7 +3,7 @@ import {
   deriveDaysWithRollover,
   getEffectiveOpenActivityAtDayEnd,
   resolveOpenActivityBeforeFirstDay,
-} from "@/components/fatigue/EventLogger";
+} from "@/lib/event-rollover";
 import { MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
 
 const WEEK_START = "2026-06-01"; // Sunday … Saturday 2026-06-07
