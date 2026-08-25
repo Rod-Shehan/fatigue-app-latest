@@ -42,7 +42,9 @@ export type Driver = {
   name: string;
   email?: string | null;
   licence_number?: string;
-  /** WA Commercial Driver's Medical expiry (YYYY-MM-DD), optional. */
+  /** Driver licence expiry (YYYY-MM-DD). */
+  licence_expiry?: string | null;
+  /** WA Commercial Driver Medical expiry (YYYY-MM-DD). */
   cvd_medical_expiry?: string | null;
   is_active: boolean;
   has_password?: boolean;
@@ -405,6 +407,7 @@ export const api = {
       name: string;
       email?: string;
       licence_number?: string;
+      licence_expiry?: string | null;
       cvd_medical_expiry?: string | null;
       is_active?: boolean;
       password?: string;
@@ -416,6 +419,7 @@ export const api = {
         name?: string;
         email?: string | null;
         licence_number?: string | null;
+        licence_expiry?: string | null;
         cvd_medical_expiry?: string | null;
         password?: string;
       }
@@ -777,6 +781,9 @@ export const api = {
         method: "PATCH",
         body: patch,
       }),
+    getOrganisation: () => fetchApi<{ legal_name: string }>("/api/admin/organisation"),
+    updateOrganisation: (body: { legal_name: string }) =>
+      fetchApi<{ legal_name: string }>("/api/admin/organisation", { method: "PATCH", body }),
     claimOwner: () => fetchApi<{ ok: boolean }>("/api/admin/claim-owner", { method: "POST" }),
     listUsers: () =>
       fetchApi<{

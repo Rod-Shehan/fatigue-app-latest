@@ -248,7 +248,7 @@ Menu: **Your weeks** (`/sheets`)
 When an officer asks to see your records:
 
 - Tap **Produce 28 day roadside PDF** on **Drive home**, on your **week sheet** (Day tools → Roadside), or in **Settings**.
-- It builds one PDF of your **last 28 calendar days** — **one Weekly Trip Sheet per page** (week ending, driver name, truck reg, fitness/load/vehicle tick boxes from your day cards, seven WorkSafe day sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week signature when signed). It does **not** include the Circadia header, compliance summary, or shift-log appendix.
+- It builds one PDF of your **last 28 calendar days** — **one Weekly Trip Sheet per page** (week ending, operator, driver name with licence number, driver medical expiry, driver license expiry, truck reg, fitness/load/vehicle tick boxes from your day cards, seven WorkSafe day sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your week signature when signed). OPERATOR is the organisation name set by the owner — it is not a field on Drive home. It does **not** include the Circadia header, compliance summary, or shift-log appendix.
 - It works **offline** from saved weeks. Share or show it on your phone.
 
 You must keep signed records for at least **3 years** — this export is for roadside produce only.
@@ -331,7 +331,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Start driving | After Start shift, Start work, or Continue shift — log driving |
 | Start Rest / Start Other Work | After Stop Driving, Start shift, Start work, or Continue shift (Start Rest) |
 | Daily checks | Optional day ticks / forms (fitness, load, vehicle). Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. Each form is a **separate** record (not combined). **Fitness for Work** is filed under your name. **Prestart** is filed under the **vehicle registration** (you are the person who inspected). **Dimension & Load** is one form per load — enter the prime mover and every trailer/dolly on that load; **Add another** for the next load. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files). **Email checklist week packs** sends those PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Prestart asks if you are responsible. Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
-| Weekly Trip Sheet (PDF) | **Export PDF** and each roadside page: week ending, driver, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix |
+| Weekly Trip Sheet (PDF) | **Export PDF** and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix |
 | Start shift / End shift | Begin / finish a shift. Start shift opens driving or Other work |
 | Start work | On Rest — choose driving or Other work |
 | Continue shift | On Other work — choose driving or Rest |

@@ -5,7 +5,7 @@ import { AlertTriangle, Stethoscope } from "lucide-react";
 import { COMMERCIAL_DRIVERS_MEDICAL, daysFromTodayToYmd, getCvdMedicalBannerKind } from "@/lib/cvd-medical";
 
 /**
- * Banner when roster Commercial Driver's Medical date is expired or within 30 days (S7).
+ * Banner when roster Commercial Driver Medical date is expired or within 30 days (S7).
  */
 export function CvdMedicalBanner({
   driverLabel,

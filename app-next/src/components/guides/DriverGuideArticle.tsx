@@ -450,9 +450,10 @@ export function DriverGuideArticle() {
           </li>
           <li>
             It builds one PDF of your last 28 calendar days — one Weekly Trip Sheet page per week (week
-            ending, driver, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
+            ending, operator, driver name with licence number, medical and license expiry, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
             sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your
-            week signature when signed). No Circadia header, compliance summary, or shift-log appendix.
+            week signature when signed). OPERATOR is your organisation name, set by the owner — not a field
+            on Drive home. No Circadia header, compliance summary, or shift-log appendix.
           </li>
           <li>It works offline from saved weeks. Share or show it on your phone.</li>
         </ul>
@@ -574,7 +575,7 @@ export function DriverGuideArticle() {
             ],
             [
               "Weekly Trip Sheet (PDF)",
-              "Export PDF and each roadside page: week ending, driver, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
+              "Export PDF and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
             ],
             [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish a shift. Start shift opens driving or Other work"],
             [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],

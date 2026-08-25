@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { syncDriverLoginUser } from "@/lib/account-password-admin";
 import { prisma } from "@/lib/prisma";
-import { isInvalidCvdMedicalInput, parseCvdMedicalExpiryInput } from "@/lib/cvd-medical";
+import { parseRequiredYmdDate, dateToYmd } from "@/lib/cvd-medical";
 
 function mapDriverRecord(
   d: {
@@ -10,6 +10,7 @@ function mapDriverRecord(
     name: string;
     email: string | null;
     licenceNumber: string | null;
+    licenceExpiry: Date | null;
     cvdMedicalExpiry: Date | null;
     isActive: boolean;
   },
@@ -20,7 +21,8 @@ function mapDriverRecord(
     name: d.name,
     email: d.email,
     licence_number: d.licenceNumber,
-    cvd_medical_expiry: d.cvdMedicalExpiry ? d.cvdMedicalExpiry.toISOString().slice(0, 10) : null,
+    licence_expiry: dateToYmd(d.licenceExpiry),
+    cvd_medical_expiry: dateToYmd(d.cvdMedicalExpiry),
     is_active: d.isActive,
     has_password: !!loginUser?.passwordHash,
     password_set_at: loginUser?.passwordSetAt?.toISOString() ?? null,
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const body = await req.json();
-    const { name, email, licence_number, is_active, password, cvd_medical_expiry } = body;
+    const { name, email, licence_number, licence_expiry, is_active, password, cvd_medical_expiry } = body;
     if (!name || typeof name !== "string") {
       return NextResponse.json({ error: "name required" }, { status: 400 });
     }
@@ -74,17 +76,26 @@ export async function POST(req: Request) {
     if (email != null && normalizedEmail == null) {
       return NextResponse.json({ error: "Valid email required" }, { status: 400 });
     }
-    if (isInvalidCvdMedicalInput(cvd_medical_expiry)) {
-      return NextResponse.json({ error: "cvd_medical_expiry must be YYYY-MM-DD or empty" }, { status: 400 });
+    const licence = typeof licence_number === "string" ? licence_number.trim() : "";
+    if (!licence) {
+      return NextResponse.json({ error: "Licence number is required" }, { status: 400 });
     }
-    const cvd = parseCvdMedicalExpiryInput(cvd_medical_expiry);
+    const cvd = parseRequiredYmdDate(cvd_medical_expiry);
+    if (!cvd) {
+      return NextResponse.json({ error: "Driver medical expiry is required (YYYY-MM-DD)" }, { status: 400 });
+    }
+    const licenceExpiry = parseRequiredYmdDate(licence_expiry);
+    if (!licenceExpiry) {
+      return NextResponse.json({ error: "Driver licence expiry is required (YYYY-MM-DD)" }, { status: 400 });
+    }
 
     const driver = await prisma.driver.create({
       data: {
         name: name.trim(),
         email: normalizedEmail,
-        licenceNumber: licence_number?.trim() ?? null,
-        cvdMedicalExpiry: cvd ?? null,
+        licenceNumber: licence,
+        licenceExpiry,
+        cvdMedicalExpiry: cvd,
         isActive: is_active ?? true,
         tenantId: manager.user.tenantId,
       },

@@ -1,10 +1,10 @@
 /**
- * WA Commercial Driver's Medical certificate reminder helpers (S7).
+ * WA Commercial Driver Medical certificate reminder helpers (S7).
  * Not regulatory advice — managers should confirm requirements with DoT / medical providers.
  */
 
 /** User-facing name (WA Commercial Vehicle Driver certificate). */
-export const COMMERCIAL_DRIVERS_MEDICAL = "Commercial Driver's Medical";
+export const COMMERCIAL_DRIVERS_MEDICAL = "Commercial Driver Medical";
 
 /** YYYY-MM-DD → UTC Date for Prisma; `undefined` = omit field; `null` = clear. */
 export function parseCvdMedicalExpiryInput(input: unknown): Date | null | undefined {
@@ -24,6 +24,16 @@ export function isInvalidCvdMedicalInput(input: unknown): boolean {
   return !/^\d{4}-\d{2}-\d{2}$/.test(t);
 }
 
+/** Required YYYY-MM-DD for roster dates (medical / licence expiry). */
+export function parseRequiredYmdDate(input: unknown): Date | null {
+  const parsed = parseCvdMedicalExpiryInput(input);
+  return parsed instanceof Date ? parsed : null;
+}
+
+export function dateToYmd(d: Date | null | undefined): string | null {
+  return d ? d.toISOString().slice(0, 10) : null;
+}
+
 /** Calendar days from local “today” to the given YYYY-MM-DD (can be negative if past). */
 export function daysFromTodayToYmd(ymd: string): number {
   const [y, m, d] = ymd.split("-").map(Number);
@@ -39,7 +49,7 @@ export type CvdMedicalBannerKind = "none" | "expired" | "soon" | "ok_no_banner";
 const SOON_DAYS = 30;
 
 /**
- * `none` — no date on file (optional hint can be shown separately).
+ * `none` — no date on file.
  * `expired` / `soon` — show prominent banner on sheet.
  * `ok_no_banner` — date is more than SOON_DAYS away; no banner.
  */

@@ -14,6 +14,7 @@ import type { SystemPolicySnapshot } from "@/lib/system-policy";
 import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
 import { ChecklistDeliverySettingsPanel } from "@/components/driver/ChecklistDeliverySettingsPanel";
 import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
+import { OrganisationNamePanel } from "./organisation-name-panel";
 
 const POLICY_KEY = ["admin", "policy"] as const;
 const USERS_KEY = ["admin", "users"] as const;
@@ -205,6 +206,8 @@ export function OwnerSecurityView({
           subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
         />
+
+        <OrganisationNamePanel />
 
         <section className="space-y-3">
           <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">

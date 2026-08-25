@@ -141,7 +141,9 @@ model Driver {
   name           String
   email          String?  @unique
   licenceNumber  String?
-  /** WA Commercial Driver's Medical certificate expiry — optional reminder only (S7). */
+  /** WA driver licence expiry. */
+  licenceExpiry  DateTime?
+  /** WA Commercial Driver Medical certificate expiry (S7). */
   cvdMedicalExpiry DateTime?
   isActive       Boolean  @default(true)
   tenantId       String   @default("tenant_default")

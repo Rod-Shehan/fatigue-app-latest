@@ -28,7 +28,9 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 ### Implied presentation rules
 
 - **Week ending** = `weekStarting` + 6 days (Saturday), labelled as week ending; still store/identify sheets by `weekStarting`.
-- **Driver’s name** = sheet `driverName` (print).
+- **Driver name** = sheet `driverName` plus roster licence number on the same line.
+- **Driver medical expiry** / **Driver license expiry** = roster dates (`Driver.cvdMedicalExpiry`, `Driver.licenceExpiry`) when the sheet name matches the roster.
+- **OPERATOR** = tenant `legalName` (organisation). Owners set it on Owner console; Circadia staff can set it on Staff Desk. Not a driver-typed field.
 - Day rows = current WorkSafe tiles (odo, locations, 3 tracks, totals, weekday + date). Extend tile chrome for **truck reg** (H).
 - HTML (Chromium) and jsPDF paths must both show week signature when D1 applies (fix today’s HTML gap).
 
@@ -67,7 +69,7 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 
 Compare Export PDF to the paper Weekly Trip Sheet blank:
 
-1. Week header: title, week ending (Sat), driver name, truck reg(s)
+1. Week header: title, week ending (Sat), operator, driver name, truck reg(s)
 2. Three checklist rows × SUN–SAT — ticks only where day cards were ticked
 3. Seven WorkSafe day rows (15‑min grid, blank first hour, step line) — not split mid-tile; empty days paint full non-work (0 / 0 / 24)
 4. Footer: OFFICE USE blank, week work-hours total, week signature on the same page as the last day tile(s) when signed

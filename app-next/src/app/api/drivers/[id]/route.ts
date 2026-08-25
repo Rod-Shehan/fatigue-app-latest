@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { syncDriverLoginUser } from "@/lib/account-password-admin";
 import { prisma } from "@/lib/prisma";
-import { isInvalidCvdMedicalInput, parseCvdMedicalExpiryInput } from "@/lib/cvd-medical";
+import { parseRequiredYmdDate, dateToYmd } from "@/lib/cvd-medical";
 
 function mapDriverRecord(
   d: {
@@ -10,6 +10,7 @@ function mapDriverRecord(
     name: string;
     email: string | null;
     licenceNumber: string | null;
+    licenceExpiry: Date | null;
     cvdMedicalExpiry: Date | null;
     isActive: boolean;
   },
@@ -20,7 +21,8 @@ function mapDriverRecord(
     name: d.name,
     email: d.email,
     licence_number: d.licenceNumber,
-    cvd_medical_expiry: d.cvdMedicalExpiry ? d.cvdMedicalExpiry.toISOString().slice(0, 10) : null,
+    licence_expiry: dateToYmd(d.licenceExpiry),
+    cvd_medical_expiry: dateToYmd(d.cvdMedicalExpiry),
     is_active: d.isActive,
     has_password: !!loginUser?.passwordHash,
     password_set_at: loginUser?.passwordSetAt?.toISOString() ?? null,
@@ -36,7 +38,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await req.json();
-    const { is_active, email, name, licence_number, password, cvd_medical_expiry } = body;
+    const { is_active, email, name, licence_number, licence_expiry, password, cvd_medical_expiry } = body;
 
     const normalizedEmail =
       email === undefined
@@ -63,22 +65,33 @@ export async function PATCH(
           ? licence_number.trim() || null
           : null;
     if (licence_number !== undefined && normalizedLicence === null) {
-      return NextResponse.json({ error: "Valid licence number required" }, { status: 400 });
+      return NextResponse.json({ error: "Licence number is required" }, { status: 400 });
     }
 
+    let cvdParsed: Date | undefined;
     if (cvd_medical_expiry !== undefined) {
-      if (isInvalidCvdMedicalInput(cvd_medical_expiry)) {
-        return NextResponse.json({ error: "cvd_medical_expiry must be YYYY-MM-DD or empty" }, { status: 400 });
+      const parsed = parseRequiredYmdDate(cvd_medical_expiry);
+      if (!parsed) {
+        return NextResponse.json({ error: "Driver medical expiry is required (YYYY-MM-DD)" }, { status: 400 });
       }
+      cvdParsed = parsed;
     }
-    const cvdParsed = parseCvdMedicalExpiryInput(cvd_medical_expiry);
+    let licenceExpiryParsed: Date | undefined;
+    if (licence_expiry !== undefined) {
+      const parsed = parseRequiredYmdDate(licence_expiry);
+      if (!parsed) {
+        return NextResponse.json({ error: "Driver licence expiry is required (YYYY-MM-DD)" }, { status: 400 });
+      }
+      licenceExpiryParsed = parsed;
+    }
 
     const data: Parameters<typeof prisma.driver.update>[0]["data"] = {
       ...(is_active !== undefined ? { isActive: is_active } : null),
       ...(normalizedEmail !== undefined ? { email: normalizedEmail } : null),
       ...(trimmedName !== undefined ? { name: trimmedName } : null),
       ...(normalizedLicence !== undefined ? { licenceNumber: normalizedLicence } : null),
-      ...(cvd_medical_expiry !== undefined ? { cvdMedicalExpiry: cvdParsed ?? null } : null),
+      ...(cvdParsed !== undefined ? { cvdMedicalExpiry: cvdParsed } : null),
+      ...(licenceExpiryParsed !== undefined ? { licenceExpiry: licenceExpiryParsed } : null),
     } as Parameters<typeof prisma.driver.update>[0]["data"];
 
     const existing = await prisma.driver.findFirst({

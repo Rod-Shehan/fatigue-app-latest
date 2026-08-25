@@ -41,10 +41,11 @@ flowchart TB
 | **Risk brief** (`/manager`) | Weekly fleet view, tiers, register, workbench |
 | **Event Tracker** | Logged events with location on a map for assurance |
 | **Conversations** | Manager–driver messaging |
-| **Drivers** | Roster, login email, optional Commercial Driver's Medical expiry, passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
+| **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
 | **Rego** | Vehicle registration reference data |
 | **Test desk** | Inject test alerts; set **Checklist PDF email** and **WAHVA maintenance contact** (workshop email for fault reporting) |
+| **Owner console** (`/admin/security`) | Owners: **operator name** (printed as OPERATOR on weekly trip sheet PDFs), lockdown, users, audit |
 | **User guide** (`/manager/help`) | This guide in the app |
 
 Layout is **monitor-first**: multi-column grids on wide screens; stacks on phones.
@@ -152,8 +153,9 @@ Roster maintenance:
 | Field | Notes |
 |-------|--------|
 | Name / email | Login identity |
-| Licence | Optional |
-| Commercial Driver's Medical expiry | Optional WA reminder on matching sheets |
+| Licence number | Required. Printed after the driver name on weekly trip sheet PDFs |
+| Commercial Driver Medical expiry | Required. Printed on weekly trip sheet PDFs; in-app reminders on matching sheets |
+| Driver licence expiry | Required. Same date format as medical. Printed on weekly trip sheet PDFs |
 | Password | Plain text on screen for setup; min 6 characters |
 | Active | Inactive drivers hidden from selection |
 
@@ -172,6 +174,8 @@ When present, a solid sky line into a marker is the driver’s **GPS movement tr
 ---
 
 ## 7b. Checklist PDF email and WAHVA maintenance contact
+
+Owners set the **operator name** (organisation legal name) on **Owner console**. That is the **OPERATOR** line on weekly trip sheet PDFs. It is one name for the fleet — not typed on Drive home.
 
 On **Test desk** (managers), **Owner console → Security** (owners), or **driver Settings → Emails & workshop** (EWD gear → All settings):
 
@@ -214,7 +218,7 @@ See ADR 0003 and the prospective risk reference library on the risk brief.
 2. Review tier counts and **assurance signals**.  
 3. Work the **register** — check-ins for Needs attention / Elevated first.  
 4. Open sheets for unsigned weeks or record gaps; amend only with reason if needed.  
-5. Confirm roster data in **Drivers** (medical expiry, active flag).  
+5. Confirm roster data in **Drivers** (licence number, medical expiry, licence expiry, active flag).  
 6. Use **Conversations** to close the loop; ask drivers to **sign** when records are agreed.
 
 ---
@@ -225,5 +229,5 @@ See ADR 0003 and the prospective risk reference library on the risk brief.
 |-------|----------|
 | Record retention vs rule lookback | `docs/regulatory/record-retention-and-compliance-lookback.md` |
 | Prospective risk ADR | `docs/adr/0003-prospective-risk-engine.md` |
-| Commercial Driver's Medical | `docs/architecture/wa-cvd-medical-s7.md` |
+| Commercial Driver Medical | `docs/architecture/wa-cvd-medical-s7.md` |
 | In-app help | `/manager/help` |

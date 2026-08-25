@@ -36,8 +36,8 @@ export function ManagerGuideArticle() {
             {MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE}
           </li>
           <li>
-            <strong className="text-slate-700 dark:text-slate-200">Drivers</strong> — roster, medical
-            expiry, passwords
+            <strong className="text-slate-700 dark:text-slate-200">Drivers</strong> — roster, licence number,
+            licence expiry, medical expiry, passwords
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Conversations</strong> — message
@@ -47,6 +47,11 @@ export function ManagerGuideArticle() {
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
             email (where FFW / Prestart / Load week packs go — each person sets their own; defaults to sign-in
             email) and workshop / maintenance contact for WAHVA fault reporting (also on driver Settings)
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">Owner console</strong> — owners set the
+            operator name printed as OPERATOR on weekly trip sheet PDFs (one name for the fleet, not on Drive
+            home)
           </li>
         </ul>
       </section>
@@ -150,7 +155,7 @@ export function ManagerGuideArticle() {
           <li>Review tier counts and assurance signals.</li>
           <li>Work the driver register — Needs attention and Elevated first.</li>
           <li>Amend sheets only with a clear reason; ask drivers to sign when agreed.</li>
-          <li>Keep Drivers roster current (medical expiry, active flag).</li>
+          <li>Keep Drivers roster current (licence, medical expiry, licence expiry, active flag).</li>
           <li>Use Conversations to close the loop.</li>
         </ol>
       </section>

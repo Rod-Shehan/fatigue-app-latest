@@ -533,6 +533,9 @@ export function renderPdfHtml(opts: {
     signed_at: string | null;
     signature?: string | null;
     operator_legal_name?: string | null;
+    driver_licence_number?: string | null;
+    driver_medical_expiry?: string | null;
+    driver_licence_expiry?: string | null;
     days: Array<{
       work_time?: boolean[];
       breaks?: boolean[];
@@ -604,6 +607,9 @@ export function renderPdfHtml(opts: {
     signature: sheet.signature ?? null,
     signedAt: sheet.signed_at,
     operatorLegalName: sheet.operator_legal_name ?? null,
+    licenceNumber: sheet.driver_licence_number ?? null,
+    medicalExpiryYmd: sheet.driver_medical_expiry ?? null,
+    licenceExpiryYmd: sheet.driver_licence_expiry ?? null,
     checklistTicks: checklistMatrixFromDays(dayList),
   };
 
@@ -1022,6 +1028,9 @@ export type SheetJsPdfInput = {
     last_24h_rest_3?: string | null;
     last_24h_rest_4?: string | null;
     operator_legal_name?: string | null;
+    driver_licence_number?: string | null;
+    driver_medical_expiry?: string | null;
+    driver_licence_expiry?: string | null;
   };
   roadsidePayload?: RoadsidePdfPayload;
   todayStr: string;
@@ -1077,6 +1086,9 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
     driverName: sheet.driver_name,
     truckRegs,
     operatorLegalName: sheet.operator_legal_name ?? null,
+    licenceNumber: sheet.driver_licence_number ?? null,
+    medicalExpiryYmd: sheet.driver_medical_expiry ?? null,
+    licenceExpiryYmd: sheet.driver_licence_expiry ?? null,
     checklistTicks: checklistMatrixFromDays(dayList),
   });
 

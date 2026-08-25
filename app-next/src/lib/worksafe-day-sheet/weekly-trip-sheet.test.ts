@@ -5,13 +5,22 @@ import {
   renderWeeklyTripSheetFooterHtml,
   renderWeeklyTripSheetHeaderHtml,
   weekEndingDateLabel,
+  ymdToAuDisplay,
+  formatDriverNameWithLicence,
   WTS_CHECKLIST_ROWS,
   WTS_DAY_ABBREVS,
 } from "./weekly-trip-sheet";
 
 describe("weekly trip sheet chrome", () => {
-  it("computes week ending as Saturday from Sunday week start", () => {
+  it("formats week ending as Saturday from Sunday week start", () => {
     expect(weekEndingDateLabel("2026-07-26")).toBe("01/08/2026");
+  });
+
+  it("formats roster dates and name+licence for the title block", () => {
+    expect(ymdToAuDisplay("2026-03-01")).toBe("01/03/2026");
+    expect(ymdToAuDisplay(null)).toBe("—");
+    expect(formatDriverNameWithLicence("Alex Driver", "1LIC99")).toBe("Alex Driver  1LIC99");
+    expect(formatDriverNameWithLicence("Alex Driver", "")).toBe("Alex Driver");
   });
 
   it("collects unique truck regs in first-seen order", () => {
@@ -36,10 +45,18 @@ describe("weekly trip sheet chrome", () => {
       driverName: "Alex Driver",
       truckRegs: ["1ABC123"],
       weekWorkMinutes: 0,
+      licenceNumber: "1LIC99",
+      medicalExpiryYmd: "2026-03-01",
+      licenceExpiryYmd: "2027-06-15",
     });
     expect(html).toContain("WEEKLY TRIP SHEET");
     expect(html).toContain("01/08/2026");
-    expect(html).toContain("Alex Driver");
+    expect(html).toContain("Alex Driver  1LIC99");
+    expect(html).toContain("Driver name:");
+    expect(html).toContain("Driver medical expiry:");
+    expect(html).toContain("01/03/2026");
+    expect(html).toContain("Driver license expiry:");
+    expect(html).toContain("15/06/2027");
     expect(html).toContain("1ABC123");
     for (const row of WTS_CHECKLIST_ROWS) {
       expect(html).toContain(row.replace(/&/g, "&amp;"));

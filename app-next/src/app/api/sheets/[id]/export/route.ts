@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { jurisdictionDisplayLabel, parseJurisdictionCode } from "@/lib/jurisdiction";
 import { getPerthNowParts } from "@/lib/perth-now";
 import { buildSingleSheetJsPdfBuffer, renderPdfHtml } from "@/lib/sheet-jspdf-export";
+import { findRosterPdfIdentity } from "@/lib/roster-driver-pdf";
 
 export { getPerthNowParts } from "@/lib/perth-now";
 export {
@@ -63,6 +64,8 @@ export async function GET(
 
     const jurisdictionLabel = jurisdictionDisplayLabel(parseJurisdictionCode(row.jurisdictionCode));
 
+    const roster = await findRosterPdfIdentity(prisma, row.tenantId, row.driverName);
+
     const sheet = {
       driver_name: row.driverName,
       second_driver: row.secondDriver,
@@ -79,6 +82,9 @@ export async function GET(
       last_24h_rest_3: row.last24hRest3,
       last_24h_rest_4: row.last24hRest4,
       operator_legal_name: row.tenant.legalName,
+      driver_licence_number: roster.licenceNumber,
+      driver_medical_expiry: roster.medicalExpiryYmd,
+      driver_licence_expiry: roster.licenceExpiryYmd,
     };
 
     const todayStr = getPerthNowParts().ymd;

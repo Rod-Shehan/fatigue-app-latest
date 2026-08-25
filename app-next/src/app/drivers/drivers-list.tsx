@@ -27,6 +27,7 @@ export function DriversList() {
   const [newEmail, setNewEmail] = useState("");
   const [newLicence, setNewLicence] = useState("");
   const [newCvdMedical, setNewCvdMedical] = useState("");
+  const [newLicenceExpiry, setNewLicenceExpiry] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -35,6 +36,7 @@ export function DriversList() {
   const [editEmail, setEditEmail] = useState("");
   const [editLicence, setEditLicence] = useState("");
   const [editCvdMedical, setEditCvdMedical] = useState("");
+  const [editLicenceExpiry, setEditLicenceExpiry] = useState("");
   const [editActive, setEditActive] = useState(true);
   const [editPassword, setEditPassword] = useState("");
   const [showOnceOpen, setShowOnceOpen] = useState(false);
@@ -64,6 +66,7 @@ export function DriversList() {
       name: string;
       email?: string;
       licence_number?: string;
+      licence_expiry?: string | null;
       cvd_medical_expiry?: string | null;
       password?: string;
     }) => api.drivers.create({ ...data, is_active: true }),
@@ -73,6 +76,7 @@ export function DriversList() {
       setNewEmail("");
       setNewLicence("");
       setNewCvdMedical("");
+      setNewLicenceExpiry("");
       setNewPassword("");
       if (data.temporary_password && data.email) {
         revealTemporaryPassword(data.email, data.temporary_password, data.name || "this driver");
@@ -90,6 +94,7 @@ export function DriversList() {
       name: string;
       email: string;
       licence_number: string;
+      licence_expiry: string | null;
       cvd_medical_expiry: string | null;
       is_active: boolean;
       password?: string;
@@ -97,7 +102,8 @@ export function DriversList() {
       api.drivers.update(payload.id, {
         name: payload.name,
         email: payload.email,
-        licence_number: payload.licence_number || null,
+        licence_number: payload.licence_number,
+        licence_expiry: payload.licence_expiry,
         cvd_medical_expiry: payload.cvd_medical_expiry,
         is_active: payload.is_active,
         ...(payload.password && payload.password.trim().length > 0 ? { password: payload.password } : null),
@@ -123,12 +129,15 @@ export function DriversList() {
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim() || !newEmail.trim() || !newLicence.trim() || !newCvdMedical.trim() || !newLicenceExpiry.trim()) {
+      return;
+    }
     createMutation.mutate({
       name: newName.trim(),
       email: newEmail.trim() ? newEmail.trim() : undefined,
       licence_number: newLicence.trim(),
-      cvd_medical_expiry: newCvdMedical.trim() ? newCvdMedical.trim() : null,
+      licence_expiry: newLicenceExpiry.trim(),
+      cvd_medical_expiry: newCvdMedical.trim(),
       password: newPassword.trim() ? newPassword : undefined,
     });
   }
@@ -141,6 +150,7 @@ export function DriversList() {
     setEditEmail(d.email ?? "");
     setEditLicence(d.licence_number ?? "");
     setEditCvdMedical(d.cvd_medical_expiry ?? "");
+    setEditLicenceExpiry(d.licence_expiry ?? "");
     setEditActive(!!d.is_active);
     setEditPassword("");
     setEditOpen(true);
@@ -159,7 +169,7 @@ export function DriversList() {
           backLabel="Manager dashboard"
           backText="Overview"
           title={PRODUCT_NAME}
-          subtitle={`Approved drivers — manage the roster and optional WA ${COMMERCIAL_DRIVERS_MEDICAL} expiry dates`}
+          subtitle={`Approved drivers — manage the roster, licence, and WA ${COMMERCIAL_DRIVERS_MEDICAL} expiry dates`}
           icon={<Users className="w-5 h-5" />}
         />
         <form
@@ -191,23 +201,37 @@ export function DriversList() {
           </div>
           <div className="min-w-0 space-y-1.5">
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
-              Licence no. (optional)
+              Licence no. *
             </Label>
             <Input
               value={newLicence}
               onChange={(e) => setNewLicence(e.target.value)}
               className="w-full min-w-0"
+              required
             />
           </div>
           <div className="min-w-0 space-y-1.5">
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
-              WA {COMMERCIAL_DRIVERS_MEDICAL} expiry (optional)
+              WA {COMMERCIAL_DRIVERS_MEDICAL} expiry *
             </Label>
             <Input
               type="date"
               value={newCvdMedical}
               onChange={(e) => setNewCvdMedical(e.target.value)}
               className="w-full min-w-0"
+              required
+            />
+          </div>
+          <div className="min-w-0 space-y-1.5">
+            <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+              Driver licence expiry *
+            </Label>
+            <Input
+              type="date"
+              value={newLicenceExpiry}
+              onChange={(e) => setNewLicenceExpiry(e.target.value)}
+              className="w-full min-w-0"
+              required
             />
           </div>
           <div className="col-span-2 min-w-0 space-y-1.5 max-md:col-span-1">
@@ -229,7 +253,14 @@ export function DriversList() {
           <div className="col-span-3 flex justify-end max-md:col-span-1">
             <Button
               type="submit"
-              disabled={createMutation.isPending || !newName.trim() || !newEmail.trim()}
+              disabled={
+                createMutation.isPending ||
+                !newName.trim() ||
+                !newEmail.trim() ||
+                !newLicence.trim() ||
+                !newCvdMedical.trim() ||
+                !newLicenceExpiry.trim()
+              }
               className="gap-1.5 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 max-md:w-full"
             >
               {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
@@ -262,7 +293,10 @@ export function DriversList() {
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{driver.email}</p>
                 )}
                 {driver.licence_number && (
-                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">{driver.licence_number}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
+                    Lic {driver.licence_number}
+                    {driver.licence_expiry ? ` · exp ${driver.licence_expiry}` : ""}
+                  </p>
                 )}
                 {driver.cvd_medical_expiry && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -341,7 +375,8 @@ export function DriversList() {
                   name: editName.trim(),
                   email: editEmail.trim(),
                   licence_number: editLicence.trim(),
-                  cvd_medical_expiry: editCvdMedical.trim() ? editCvdMedical.trim() : null,
+                  licence_expiry: editLicenceExpiry.trim(),
+                  cvd_medical_expiry: editCvdMedical.trim(),
                   is_active: editActive,
                   password: editPassword.trim() ? editPassword : undefined,
                 });
@@ -356,17 +391,28 @@ export function DriversList() {
                 <Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} type="email" required />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Licence no. (optional)</Label>
-                <Input value={editLicence} onChange={(e) => setEditLicence(e.target.value)} />
+                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">Licence no. *</Label>
+                <Input value={editLicence} onChange={(e) => setEditLicence(e.target.value)} required />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
-                  WA {COMMERCIAL_DRIVERS_MEDICAL} expiry (optional)
+                  WA {COMMERCIAL_DRIVERS_MEDICAL} expiry *
                 </Label>
-                <Input type="date" value={editCvdMedical} onChange={(e) => setEditCvdMedical(e.target.value)} />
+                <Input type="date" value={editCvdMedical} onChange={(e) => setEditCvdMedical(e.target.value)} required />
                 <p className="text-[11px] text-slate-400">
-                  {COMMERCIAL_DRIVERS_MEDICAL} — for in-app reminders only.
+                  {COMMERCIAL_DRIVERS_MEDICAL} — also used for in-app reminders.
                 </p>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
+                  Driver licence expiry *
+                </Label>
+                <Input
+                  type="date"
+                  value={editLicenceExpiry}
+                  onChange={(e) => setEditLicenceExpiry(e.target.value)}
+                  required
+                />
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
@@ -417,7 +463,14 @@ export function DriversList() {
                 <Button
                   type="submit"
                   className="bg-slate-900 hover:bg-slate-800 text-white"
-                  disabled={updateMutation.isPending || !editName.trim() || !editEmail.trim()}
+                  disabled={
+                    updateMutation.isPending ||
+                    !editName.trim() ||
+                    !editEmail.trim() ||
+                    !editLicence.trim() ||
+                    !editCvdMedical.trim() ||
+                    !editLicenceExpiry.trim()
+                  }
                 >
                   {updateMutation.isPending ? "Saving…" : "Save changes"}
                 </Button>

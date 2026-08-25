@@ -79,7 +79,8 @@ Preview deployments may use `NEXTAUTH_ALLOW_DEV_LOGIN` — still **blocked when 
 ## Owner console
 
 - **URL:** `/admin/security` (Owner lobby card).
-- **Title:** Owner console — lockdown, user lists, audit export.
+- **Title:** Owner console — operator name, lockdown, user lists, audit export.
+- **Operator name:** organisation legal name (`Tenant.legalName`), printed as OPERATOR on weekly trip sheet PDFs. Owners PATCH `/api/admin/organisation`. Circadia staff can still edit it on Staff Desk client detail.
 - **First owner:** `OWNER_SEED_EMAIL` + claim flow, or promote via DB/script.
 - **Cleanup:** Delete dev/test users (owners, managers, drivers) from the lists — not yourself or the last owner.
 

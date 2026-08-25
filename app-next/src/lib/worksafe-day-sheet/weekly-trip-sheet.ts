@@ -15,6 +15,23 @@ export const WTS_CHECKLIST_ROWS = [
 
 export const WTS_DAY_ABBREVS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
 
+export const WTS_DRIVER_NAME_LABEL = "Driver name:";
+export const WTS_DRIVER_MEDICAL_LABEL = "Driver medical expiry:";
+export const WTS_DRIVER_LICENSE_LABEL = "Driver license expiry:";
+
+export function ymdToAuDisplay(ymd: string | null | undefined): string {
+  if (!ymd?.trim()) return "—";
+  const [y, m, d] = ymd.trim().split("-");
+  if (!y || !m || !d) return "—";
+  return `${d}/${m}/${y}`;
+}
+
+export function formatDriverNameWithLicence(name: string, licenceNumber?: string | null): string {
+  const n = (name || "").trim() || "—";
+  const lic = (licenceNumber || "").trim();
+  return lic ? `${n}  ${lic}` : n;
+}
+
 export function weekEndingDateLabel(weekStarting: string | null | undefined): string {
   if (!weekStarting?.trim()) return "—";
   const [y, m, d] = weekStarting.split("-").map(Number);
@@ -65,6 +82,9 @@ export type WeeklyTripSheetChromeInput = {
   signedAt?: string | null;
   /** Paying operator legal name (ADR 0005). */
   operatorLegalName?: string | null;
+  licenceNumber?: string | null;
+  medicalExpiryYmd?: string | null;
+  licenceExpiryYmd?: string | null;
   /** Optional 3×7 matrix; missing/false → empty box. */
   checklistTicks?: ChecklistTickMatrix;
 };
@@ -75,7 +95,9 @@ function tickFor(matrix: ChecklistTickMatrix | undefined, row: number, day: numb
 
 export function renderWeeklyTripSheetHeaderHtml(input: WeeklyTripSheetChromeInput): string {
   const ending = weekEndingDateLabel(input.weekStarting);
-  const driver = (input.driverName || "").trim() || "—";
+  const driverLine = formatDriverNameWithLicence(input.driverName, input.licenceNumber);
+  const medical = ymdToAuDisplay(input.medicalExpiryYmd);
+  const licenceExpiry = ymdToAuDisplay(input.licenceExpiryYmd);
   const regs =
     input.truckRegs.length > 0
       ? input.truckRegs.map((r) => escapeHtml(r)).join("<br/>")
@@ -87,7 +109,7 @@ export function renderWeeklyTripSheetHeaderHtml(input: WeeklyTripSheetChromeInpu
       return `<div class="wtsTickCol"><span class="wtsTickDay">${d}</span><span class="wtsTickBox${on ? " on" : ""}">${on ? "✓" : ""}</span></div>`;
     }).join("");
     return `<div class="wtsCheckRow">
-      <div class="wtsCheckLab">${escapeHtml(label)} <span class="wtsCheckHint">(Driver to Tick Box)</span></div>
+      <div class="wtsCheckLab">${escapeHtml(label)}</div>
       <div class="wtsTickGrid">${boxes}</div>
     </div>`;
   }).join("");
@@ -96,9 +118,13 @@ export function renderWeeklyTripSheetHeaderHtml(input: WeeklyTripSheetChromeInpu
   <section class="wtsChrome wtsHeaderBlock" aria-label="Weekly trip sheet header">
     <div class="wtsHead">
       <div class="wtsHeadLeft">
-        <div><span class="wtsLab">WEEK ENDING:</span> <span class="wtsVal mono">${escapeHtml(ending)}</span></div>
-        <div><span class="wtsLab">OPERATOR:</span> <span class="wtsVal">${escapeHtml((input.operatorLegalName || "").trim() || "—")}</span></div>
-        <div><span class="wtsLab">DRIVER'S NAME (PRINT):</span> <span class="wtsVal">${escapeHtml(driver)}</span></div>
+        <div class="wtsMetaLine"><span class="wtsLab">WEEK ENDING:</span> <span class="wtsVal mono">${escapeHtml(ending)}</span></div>
+        <div class="wtsMetaLine"><span class="wtsLab">OPERATOR:</span> <span class="wtsVal">${escapeHtml((input.operatorLegalName || "").trim() || "—")}</span></div>
+        <div class="wtsDriverBlock">
+          <div class="wtsMetaLine"><span class="wtsLab">${WTS_DRIVER_NAME_LABEL}</span> <span class="wtsVal">${escapeHtml(driverLine)}</span></div>
+          <div class="wtsMetaLine"><span class="wtsLab">${WTS_DRIVER_MEDICAL_LABEL}</span> <span class="wtsVal mono">${escapeHtml(medical)}</span></div>
+          <div class="wtsMetaLine"><span class="wtsLab">${WTS_DRIVER_LICENSE_LABEL}</span> <span class="wtsVal mono">${escapeHtml(licenceExpiry)}</span></div>
+        </div>
       </div>
       <div class="wtsTitle">WEEKLY TRIP SHEET</div>
       <div class="wtsHeadRight">
@@ -148,13 +174,14 @@ export const WEEKLY_TRIP_SHEET_PDF_CSS = `
   .wtsHeadLeft { flex: 1.2; min-width: 0; font-size: 9.5px; line-height: 1.45; }
   .wtsHeadRight { flex: 0.9; min-width: 0; font-size: 9px; line-height: 1.35; border-left: 1px solid #d6d3d1; padding-left: 8px; }
   .wtsTitle { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; letter-spacing: 0.04em; border: 1.5px solid #000; padding: 6px 8px; text-align: center; }
+  .wtsMetaLine { margin-bottom: 2px; }
+  .wtsDriverBlock { margin-top: 5px; }
   .wtsLab { font-weight: 700; }
   .wtsVal { font-weight: 600; }
   .wtsCheck { padding: 6px 8px 8px; }
   .wtsCheckRow { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
   .wtsCheckRow:last-child { margin-bottom: 0; }
   .wtsCheckLab { flex: 1; min-width: 0; font-size: 8.5px; font-weight: 600; }
-  .wtsCheckHint { font-weight: 500; color: #57534e; }
   .wtsTickGrid { display: flex; gap: 3px; flex-shrink: 0; }
   .wtsTickCol { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 22px; }
   .wtsTickDay { font-size: 7px; font-weight: 700; }
@@ -183,13 +210,16 @@ export function drawWeeklyTripSheetHeaderJsPdf(
     driverName: string;
     truckRegs: string[];
     operatorLegalName?: string | null;
+    licenceNumber?: string | null;
+    medicalExpiryYmd?: string | null;
+    licenceExpiryYmd?: string | null;
     checklistTicks?: ChecklistTickMatrix;
   }
 ): number {
   const { x, width } = opts;
   let y = opts.y;
   const ink: [number, number, number] = [0, 0, 0];
-  const headH = 22;
+  const headH = 32;
   const checkH = 22;
   const totalH = headH + checkH;
 
@@ -201,35 +231,36 @@ export function drawWeeklyTripSheetHeaderJsPdf(
   const colL = width * 0.34;
   const colC = width * 0.32;
   const colR = width - colL - colC;
+  const leftW = colL - 4;
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(...ink);
-  doc.text("WEEK ENDING:", x + 2, y + 5);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.text(weekEndingDateLabel(opts.weekStarting), x + 28, y + 5);
+  const drawLabeled = (label: string, value: string, rowY: number) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(...ink);
+    doc.text(label, x + 2, rowY);
+    const lw = doc.getTextWidth(label) + 1.2;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    const clipped = doc.splitTextToSize(value, Math.max(8, leftW - lw));
+    doc.text(String(clipped[0] ?? "—"), x + 2 + lw, rowY);
+  };
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("OPERATOR:", x + 2, y + 9);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.text((opts.operatorLegalName || "").trim() || "—", x + 22, y + 9);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.text("DRIVER'S NAME (PRINT):", x + 2, y + 13);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  const driverClipped = doc.splitTextToSize((opts.driverName || "").trim() || "—", colL - 4);
-  doc.text(String(driverClipped[0] ?? "—"), x + 2, y + 15.5);
+  drawLabeled("WEEK ENDING:", weekEndingDateLabel(opts.weekStarting), y + 4.5);
+  drawLabeled("OPERATOR:", (opts.operatorLegalName || "").trim() || "—", y + 9);
+  drawLabeled(
+    WTS_DRIVER_NAME_LABEL,
+    formatDriverNameWithLicence(opts.driverName, opts.licenceNumber),
+    y + 15
+  );
+  drawLabeled(WTS_DRIVER_MEDICAL_LABEL, ymdToAuDisplay(opts.medicalExpiryYmd), y + 20.5);
+  drawLabeled(WTS_DRIVER_LICENSE_LABEL, ymdToAuDisplay(opts.licenceExpiryYmd), y + 26);
 
   doc.setDrawColor(...ink);
   doc.rect(x + colL, y + 2, colC - 2, headH - 4, "S");
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
-  doc.text("WEEKLY TRIP SHEET", x + colL + (colC - 2) / 2, y + 10, { align: "center" });
+  doc.setTextColor(...ink);
+  doc.text("WEEKLY TRIP SHEET", x + colL + (colC - 2) / 2, y + 16, { align: "center" });
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(7);
@@ -238,7 +269,7 @@ export function drawWeeklyTripSheetHeaderJsPdf(
   doc.setFontSize(7.5);
   const regText = opts.truckRegs.length ? opts.truckRegs.join(", ") : "—";
   const regLines = doc.splitTextToSize(regText, colR - 4);
-  doc.text(regLines.slice(0, 3), x + colL + colC, y + 9);
+  doc.text(regLines.slice(0, 4), x + colL + colC, y + 9);
 
   doc.line(x, y + headH, x + width, y + headH);
 
@@ -252,7 +283,7 @@ export function drawWeeklyTripSheetHeaderJsPdf(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6);
     doc.setTextColor(...ink);
-    doc.text(`${label} (tick)`, x + 2, ry + 3.5);
+    doc.text(label, x + 2, ry + 3.5);
     WTS_DAY_ABBREVS.forEach((d, i) => {
       const tx = x + labW + i * tickW;
       if (rowIdx === 0) {

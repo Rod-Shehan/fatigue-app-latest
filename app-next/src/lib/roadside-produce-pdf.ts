@@ -4,6 +4,7 @@ import { formatProduceWindowLabel } from "@/lib/roadside-produce";
 import { ROADSIDE_PDF_DISCLAIMER } from "@/lib/roadside-pdf";
 import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
 import { buildSingleSheetJsPdfBuffer, renderPdfHtml } from "@/lib/sheet-jspdf-export";
+import { findRosterPdfIdentity } from "@/lib/roster-driver-pdf";
 import { WORKSAFE_PDF_DAY_CSS } from "@/lib/worksafe-day-sheet/pdf-render";
 import { WEEKLY_TRIP_SHEET_PDF_CSS } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
 
@@ -132,6 +133,9 @@ export async function buildRoadsideSheetExportInput(
     signed_at: string | null;
     signature: string | null;
     operator_legal_name?: string | null;
+    driver_licence_number?: string | null;
+    driver_medical_expiry?: string | null;
+    driver_licence_expiry?: string | null;
   };
 }> {
   void sheetId;
@@ -141,6 +145,7 @@ export async function buildRoadsideSheetExportInput(
     where: { id: row.tenantId },
     select: { legalName: true },
   });
+  const roster = await findRosterPdfIdentity(prisma, row.tenantId, row.driverName);
 
   return {
     sheet: {
@@ -159,6 +164,9 @@ export async function buildRoadsideSheetExportInput(
       signed_at: row.signedAt?.toISOString() ?? null,
       signature: row.signature,
       operator_legal_name: tenant?.legalName ?? null,
+      driver_licence_number: roster.licenceNumber,
+      driver_medical_expiry: roster.medicalExpiryYmd,
+      driver_licence_expiry: roster.licenceExpiryYmd,
     },
   };
 }
@@ -185,6 +193,9 @@ export async function buildWeekPdfBodyForSheet(
       signed_at: sheet.signed_at,
       signature: sheet.signature,
       operator_legal_name: sheet.operator_legal_name,
+      driver_licence_number: sheet.driver_licence_number,
+      driver_medical_expiry: sheet.driver_medical_expiry,
+      driver_licence_expiry: sheet.driver_licence_expiry,
     },
     todayStr,
     generatedAtLabel,

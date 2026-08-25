@@ -58,7 +58,7 @@ See **MIGRATION.md** in the repo root for the full conversion guide.
 - **Transition checklist:** `docs/architecture/australia-wide-transition.md`  
 - **NHVR provisional pack (optional):** `docs/architecture/nhvr-provisional-pack.md` — set `NEXT_PUBLIC_NHVR_PROVISIONAL_RULES_ENABLED=true` and/or `NHVR_PROVISIONAL_RULES_ENABLED=true` to expose the second **Fatigue rules** option and accept `NHVR_PROVISIONAL` on the API (not a certified EWD).  
 - **Roadside PDF / QR (optional):** `docs/architecture/roadside-pdf-s6.md` — week Export and roadside produce print Weekly Trip Sheet pages only; optional signed `roadside-snapshot` JSON API remains (`ROADSIDE_QR_IN_PDF_ENABLED`, `ROADSIDE_SNAPSHOT_SECRET` or `NEXTAUTH_SECRET`, `NEXT_PUBLIC_APP_URL`).  
-- **WA Commercial Driver's Medical (optional):** `docs/architecture/wa-cvd-medical-s7.md` — roster stores optional certificate expiry; sheets show reminders when the driver name matches the roster.
+- **WA Commercial Driver Medical:** `docs/architecture/wa-cvd-medical-s7.md` — roster stores required certificate expiry; sheets show reminders when the driver name matches the roster. Weekly PDFs print medical and licence expiry from the roster.
 - **User guides:** `docs/user-guides/README.md` — driver UI (simple English, ESL) and manager UI (mid-level English). In-app: `/driver/guide`, `/driver/help`, `/manager/help`.
 
 ## User testing
