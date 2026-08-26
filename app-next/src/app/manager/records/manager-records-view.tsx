@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download, FolderOpen, Loader2, Search } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -223,11 +223,15 @@ export function ManagerRecordsView() {
 
                     {selectedSheet ? (
                       <div className="flex flex-wrap gap-2">
-                        <Button asChild className="bg-teal-700 hover:bg-teal-800 text-white">
-                          <Link href={`/sheets/${selectedSheet.id}`}>
-                            {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK}
-                          </Link>
-                        </Button>
+                        <Link
+                          href={`/sheets/${selectedSheet.id}`}
+                          className={cn(
+                            buttonVariants({ variant: "default" }),
+                            "bg-teal-700 hover:bg-teal-800 text-white"
+                          )}
+                        >
+                          {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK}
+                        </Link>
                         <Button
                           type="button"
                           variant="outline"
