@@ -84,8 +84,9 @@ export const ACTIVITY_THEME: Record<
 /**
  * Hero split chooser — related to time-record hues, not the same solid bars.
  * Work / Rest / Non-work on the day sheet are blue-500 / amber-500 / emerald-500.
- * The split is a lighter disk with a colour pip: driving = work blue, rest = rest amber,
- * other work = quieter slate + blue pip (still on the job — not non-work green).
+ * The split uses the same puck face gradient as the main hero. Driving = work blue,
+ * rest = rest amber, other work = quieter slate (still on the job — not non-work green).
+ * Two-half splits keep a colour pip; the tile-grid hub does not.
  */
 export const HERO_SPLIT_CHROME = {
   work: {

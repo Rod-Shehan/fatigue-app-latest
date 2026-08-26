@@ -27,6 +27,23 @@ const HERO_SPLIT_ICONS: Record<
   load_check: ClipboardList,
 };
 
+type HeroGridSlot = "top" | "top-left" | "top-right" | "bottom-left" | "bottom-right";
+
+function heroGridSlot(index: number, tileCount: number): HeroGridSlot {
+  if (tileCount === 3) {
+    return index === 0 ? "top" : index === 1 ? "bottom-left" : "bottom-right";
+  }
+  return (["top-left", "top-right", "bottom-left", "bottom-right"] as const)[index] ?? "top-left";
+}
+
+const HERO_GRID_SLOT_PAD: Record<HeroGridSlot, string> = {
+  top: "px-10 pt-4 pb-3",
+  "top-left": "pl-5 pr-6 pt-5 pb-3",
+  "top-right": "pr-5 pl-6 pt-5 pb-3",
+  "bottom-left": "pl-6 pr-6 pt-3 pb-7",
+  "bottom-right": "pr-6 pl-6 pt-3 pb-7",
+};
+
 function HeroSplitHalf({
   kind,
   edge,
@@ -37,6 +54,7 @@ function HeroSplitHalf({
   compact,
   expanded,
   fill,
+  gridSlot,
   className,
 }: {
   kind: HeroSplitKind;
@@ -48,12 +66,14 @@ function HeroSplitHalf({
   compact?: boolean;
   expanded?: boolean;
   fill?: boolean;
+  gridSlot?: HeroGridSlot;
   className?: string;
 }) {
   const chrome = HERO_SPLIT_CHROME[kind];
   const Icon = HERO_SPLIT_ICONS[kind];
   /** Require pointerdown on this half so a retargeted click from the opener tap cannot log. */
   const armedRef = React.useRef(false);
+  const quarter = fill && gridSlot != null && gridSlot !== "top";
   return (
     <button
       type="button"
@@ -76,34 +96,49 @@ function HeroSplitHalf({
       className={cn(
         "relative flex w-full flex-col items-center justify-center font-bold",
         fill ? "h-full min-h-0" : "h-1/2",
+        fill && gridSlot ? HERO_GRID_SLOT_PAD[gridSlot] : null,
         "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
         "disabled:opacity-60 disabled:pointer-events-none active:brightness-95",
         chrome.half,
+        fill && "hero-split-tile",
         chrome.text,
         pending && "animate-pulse ring-2 ring-inset ring-white",
         className
       )}
       aria-label={pending ? `Tap again to confirm ${label}` : label}
     >
-      <span
-        className={cn(
-          "absolute left-1/2 -translate-x-1/2 rounded-full",
-          chrome.pip,
-          compact ? "h-0.5 w-5" : "h-1 w-9",
-          edge === "top" ? (compact ? "top-1" : "top-2.5") : compact ? "bottom-1" : "bottom-2.5"
-        )}
-        aria-hidden
-      />
+      {!fill ? (
+        <span
+          className={cn(
+            "absolute left-1/2 -translate-x-1/2 rounded-full",
+            chrome.pip,
+            compact ? "h-0.5 w-5" : "h-1 w-9",
+            edge === "top" ? (compact ? "top-1" : "top-2.5") : compact ? "bottom-1" : "bottom-2.5"
+          )}
+          aria-hidden
+        />
+      ) : null}
       {!compact ? (
         <Icon
-          className={cn("shrink-0 opacity-90", expanded ? "mb-1 h-6 w-6" : "mb-0.5 h-5 w-5")}
+          className={cn(
+            "shrink-0 drop-shadow-sm opacity-95",
+            expanded ? "mb-1 h-6 w-6" : quarter ? "mb-0.5 h-4 w-4" : "mb-0.5 h-5 w-5"
+          )}
           aria-hidden
         />
       ) : null}
       <span
         className={cn(
-          "text-center leading-tight px-2",
-          expanded ? "text-base sm:text-lg" : compact ? "text-[8px] leading-none" : "text-sm sm:text-base"
+          "text-center leading-snug drop-shadow-sm",
+          fill
+            ? quarter
+              ? "max-w-[4.75rem] px-0.5 text-[11px] sm:text-xs"
+              : "px-1 text-sm sm:text-base"
+            : expanded
+              ? "px-2 text-base sm:text-lg"
+              : compact
+                ? "px-2 text-[8px] leading-none"
+                : "px-2 text-sm sm:text-base"
         )}
       >
         {pending ? "Tap again" : label}
@@ -463,6 +498,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
                   compact={compact}
                   expanded={expanded}
                   fill
+                  gridSlot={heroGridSlot(index, chooserTiles.length)}
                   className={threeTile && index === 0 ? "col-span-2" : undefined}
                 />
               );
