@@ -216,6 +216,7 @@ export function ChecklistRecordViewer({
   redoLabel,
   onProducePdf,
   onEmailPdf,
+  periodNoun = "day",
 }: {
   open: boolean;
   onClose: () => void;
@@ -227,6 +228,8 @@ export function ChecklistRecordViewer({
   onProducePdf?: () => void;
   /** Email week pack for this type; return success message for on-screen feedback. */
   onEmailPdf?: () => Promise<string>;
+  /** “this day” vs “this week” in the empty-state line. */
+  periodNoun?: "day" | "week";
 }) {
   const title = TYPE_TITLE[type];
   const list = records.filter((r) => r.type === type && r.status === "completed");
@@ -243,7 +246,7 @@ export function ChecklistRecordViewer({
       title={title}
       subtitle={
         list.length === 0
-          ? "No saved form for this day"
+          ? `No saved form for this ${periodNoun}`
           : list.length === 1
             ? "Saved record (read only)"
             : `${list.length} saved records (read only)`

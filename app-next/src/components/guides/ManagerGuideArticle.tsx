@@ -48,9 +48,10 @@ export function ManagerGuideArticle() {
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_RECORDS}</strong> — every
             roster driver on the left; pick a week by date. Under that week, four separate subjects:{" "}
             {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FATIGUE}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FFW},{" "}
-            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}, and {MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}. Fatigue
-            can be viewed in-app or exported as the Weekly Trip Sheet. Checklist subjects export their own week
-            PDF (types are never combined). For managers and WAHVA auditors reviewing history without hunting
+            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}, and {MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}. Each
+            subject has {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK} (in-app) and {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}.
+            Fatigue opens the week sheet; checklist subjects open that week’s signed forms of that type only
+            (types are never combined). For managers and WAHVA auditors reviewing history without hunting
             through Driver Overview filters.
           </li>
           <li>

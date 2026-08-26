@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { api, type Driver, type FatigueSheet } from "@/lib/api";
 import type { ChecklistRecordType } from "@/lib/checklist";
+import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
@@ -26,6 +27,7 @@ import {
   formatRecordsChecklistCount,
   formatRecordsWeekOption,
   isWeekRecordSigned,
+  listWeekChecklistsOfType,
   sheetsForRosterDriver,
   sortRecordsWeeks,
 } from "@/lib/manager-records";
@@ -62,30 +64,44 @@ function RecordsChecklistSubjectRow({
   title,
   count,
   loading,
+  onView,
   onExport,
 }: {
   title: string;
   count: number;
   loading: boolean;
+  onView: () => void;
   onExport: () => void;
 }) {
   const detail = loading ? "Checking this week…" : formatRecordsChecklistCount(count);
+  const disabled = loading || count < 1;
   return (
     <RecordsSubjectRow
       title={title}
       detail={detail}
       actions={
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          disabled={loading || count < 1}
-          onClick={onExport}
-        >
-          <Download className="h-4 w-4" aria-hidden />
-          {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}
-        </Button>
+        <>
+          <Button
+            type="button"
+            size="sm"
+            className="bg-teal-700 hover:bg-teal-800 text-white"
+            disabled={disabled}
+            onClick={onView}
+          >
+            {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={disabled}
+            onClick={onExport}
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}
+          </Button>
+        </>
       }
     />
   );
@@ -96,6 +112,7 @@ export function ManagerRecordsView() {
   const [query, setQuery] = useState("");
   const [selectedDriverId, setSelectedDriverId] = useState<string | null>(null);
   const [selectedSheetId, setSelectedSheetId] = useState("");
+  const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
 
   const driversQuery = useQuery({
     queryKey: ["drivers"],
@@ -140,6 +157,10 @@ export function ManagerRecordsView() {
       driverSheets.some((s) => s.id === prev) ? prev : defaultRecordsWeekId(driverSheets, thisWeekSunday)
     );
   }, [driverSheets, thisWeekSunday]);
+
+  useEffect(() => {
+    setViewChecklistType(null);
+  }, [selectedSheetId]);
 
   const selectedSheet = driverSheets.find((s) => s.id === selectedSheetId) ?? null;
 
@@ -323,18 +344,21 @@ export function ManagerRecordsView() {
                           title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_FFW}
                           count={checklistCounts.ffw}
                           loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("ffw")}
                           onExport={() => exportChecklistPdf(selectedSheet, "ffw")}
                         />
                         <RecordsChecklistSubjectRow
                           title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}
                           count={checklistCounts.prestart}
                           loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("prestart")}
                           onExport={() => exportChecklistPdf(selectedSheet, "prestart")}
                         />
                         <RecordsChecklistSubjectRow
                           title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}
                           count={checklistCounts.dimension_load}
                           loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("dimension_load")}
                           onExport={() => exportChecklistPdf(selectedSheet, "dimension_load")}
                         />
                       </ul>
@@ -346,6 +370,16 @@ export function ManagerRecordsView() {
           </section>
         </div>
       </div>
+      {viewChecklistType && selectedSheet ? (
+        <ChecklistRecordViewer
+          open
+          type={viewChecklistType}
+          records={listWeekChecklistsOfType(checklistsQuery.data?.days, viewChecklistType)}
+          periodNoun="week"
+          onClose={() => setViewChecklistType(null)}
+          onProducePdf={() => exportChecklistPdf(selectedSheet, viewChecklistType)}
+        />
+      ) : null}
     </div>
   );
 }

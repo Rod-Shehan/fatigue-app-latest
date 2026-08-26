@@ -45,7 +45,7 @@ flowchart TB
 | **Conversations** | Manager–driver messaging |
 | **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
-| **Records** (`/manager/records`) | Roster drivers on the left; pick a **week by date** (previous weeks first). Under that week, four separate subjects: **Fatigue sheet**, **Fitness for work record**, **Prestart record**, **Load checks**. Fatigue: **View week record** opens the sheet; **Export PDF** is the Weekly Trip Sheet. Each checklist type has its own **Export PDF** (disabled when that week has none). Types are never combined. For managers and WAHVA auditors. |
+| **Records** (`/manager/records`) | Roster drivers on the left; pick a **week by date** (previous weeks first). Under that week, four separate subjects: **Fatigue sheet**, **Fitness for work record**, **Prestart record**, **Load checks**. Each has **View week record** and **Export PDF**. Fatigue view opens the sheet; checklist view opens that week’s signed forms of that type only (read only). Export PDF is the Weekly Trip Sheet for fatigue, or that type’s week pack for the others (disabled when that week has none). Types are never combined. For managers and WAHVA auditors. |
 | **Rego** | Vehicle registration reference data |
 | **Test desk** | Inject test alerts; set **Checklist PDF email** and **WAHVA maintenance contact** (workshop email for fault reporting) |
 | **Owner console** (`/admin/security`) | Owners: **operator name** (printed as OPERATOR on weekly trip sheet PDFs), lockdown, users, audit |

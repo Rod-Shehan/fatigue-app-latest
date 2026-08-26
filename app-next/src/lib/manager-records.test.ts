@@ -4,6 +4,7 @@ import {
   defaultRecordsWeekId,
   formatRecordsChecklistCount,
   formatRecordsWeekOption,
+  listWeekChecklistsOfType,
   sheetsForRosterDriver,
   sortRecordsWeeks,
 } from "./manager-records";
@@ -69,6 +70,18 @@ describe("managerSubnavItems", () => {
     expect(ids).toContain("manager-records");
     expect(ids).not.toContain("add-managers");
     expect(ids).not.toContain("security");
+  });
+});
+
+describe("listWeekChecklistsOfType", () => {
+  it("flattens completed records of one type across days", () => {
+    const days = [
+      { checklists: [{ status: "completed", type: "ffw", completedAtUtc: "2026-08-18T01:00:00.000Z" }] },
+      { checklists: [{ status: "completed", type: "ffw", completedAtUtc: "2026-08-19T01:00:00.000Z" }] },
+      { checklists: [{ status: "draft", type: "ffw" }] },
+    ];
+    expect(listWeekChecklistsOfType(days, "ffw")).toHaveLength(2);
+    expect(listWeekChecklistsOfType(days, "prestart")).toHaveLength(0);
   });
 });
 

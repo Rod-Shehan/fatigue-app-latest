@@ -75,19 +75,32 @@ export function defaultRecordsWeekId<T extends { id: string; week_starting: stri
   return current?.id ?? sheets[0]?.id ?? "";
 }
 
+function checklistsOnDay(day: { checklists?: unknown } | null | undefined): ChecklistRecord[] {
+  return Array.isArray(day?.checklists) ? (day.checklists as ChecklistRecord[]) : [];
+}
+
+/** Completed signed forms of one type across a week (oldest → newest). */
+export function listWeekChecklistsOfType(
+  days: Array<{ checklists?: unknown }> | null | undefined,
+  type: ChecklistRecordType
+): ChecklistRecord[] {
+  if (!Array.isArray(days)) return [];
+  const out: ChecklistRecord[] = [];
+  for (const day of days) {
+    out.push(...listCompletedChecklistsOfType(checklistsOnDay(day), type));
+  }
+  return out.sort((a, b) => String(a.completedAtUtc).localeCompare(String(b.completedAtUtc)));
+}
+
 /** Completed signed forms in a week, counted per checklist type (never merged). */
 export function countCompletedChecklistsByType(
   days: Array<{ checklists?: unknown }> | null | undefined
 ): RecordsChecklistCounts {
-  const counts: RecordsChecklistCounts = { ...EMPTY_RECORDS_CHECKLIST_COUNTS };
-  if (!Array.isArray(days)) return counts;
-  for (const day of days) {
-    const list = Array.isArray(day?.checklists) ? (day.checklists as ChecklistRecord[]) : [];
-    counts.ffw += listCompletedChecklistsOfType(list, "ffw").length;
-    counts.prestart += listCompletedChecklistsOfType(list, "prestart").length;
-    counts.dimension_load += listCompletedChecklistsOfType(list, "dimension_load").length;
-  }
-  return counts;
+  return {
+    ffw: listWeekChecklistsOfType(days, "ffw").length,
+    prestart: listWeekChecklistsOfType(days, "prestart").length,
+    dimension_load: listWeekChecklistsOfType(days, "dimension_load").length,
+  };
 }
 
 export function formatRecordsChecklistCount(n: number): string {
