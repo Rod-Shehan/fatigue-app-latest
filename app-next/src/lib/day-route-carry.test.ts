@@ -52,38 +52,14 @@ describe("closePriorDayShiftAfterLastEvent", () => {
 });
 
 describe("getContinuedShiftRoutePrompt", () => {
-  it("prompts when prior day is still open — even if today has no work/break yet", () => {
+  it("never prompts — clock-today route confirm is a midnight cut", () => {
     const days: DayData[] = [
       {},
       {},
       dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
       {},
     ];
-    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-04")).toEqual({
-      previousDayName: "Tuesday",
-    });
-  });
-
-  it("prompts when prior day open and driver logged work today", () => {
-    const days: DayData[] = [
-      {},
-      {},
-      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
-      { events: [{ time: "2026-06-04T06:00:00.000Z", type: "work" }] },
-    ];
-    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-04")).toEqual({
-      previousDayName: "Tuesday",
-    });
-  });
-
-  it("does not prompt on a future day while the previous day still has open work", () => {
-    const days: DayData[] = [
-      {},
-      {},
-      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
-      {},
-    ];
-    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-03")).toBeNull();
+    expect(getContinuedShiftRoutePrompt(days, 3, WEEK_START, "2026-06-04")).toBeNull();
   });
 });
 
@@ -110,7 +86,18 @@ describe("isTrueShiftContinuation", () => {
     expect(isTrueShiftContinuation(days, 3, WEEK_START, "2026-06-04")).toBe(true);
   });
 
-  it("is false when prior day ended with End shift", () => {
+  it("is true across an empty middle descriptor while the last event is still work", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      {},
+      {},
+    ];
+    expect(isTrueShiftContinuation(days, 4, WEEK_START, "2026-06-05")).toBe(true);
+  });
+
+  it("is false when the last prior event is End shift", () => {
     const days: DayData[] = [
       {},
       {},
@@ -156,5 +143,58 @@ describe("getDayWithCarriedOverCardInfo", () => {
     expect(wednesday.start_location).toBe("");
     expect(wednesday.destination).toBe("");
     expect(wednesday.route_label).toBe("Northam loop");
+  });
+
+  it("walks back past an empty descriptor to the open shift's route", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      {},
+      { truck_rego: "", start_location: "", destination: "" },
+    ];
+    const thursday = getDayWithCarriedOverCardInfo(days, 4, WEEK_START, "2026-06-05");
+    expect(thursday.truck_rego).toBe("1ABC123");
+    expect(thursday.start_location).toBe("Perth");
+  });
+
+  it("does not carry route after End shift", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([
+        { time: TUESDAY_WORK, type: "work" },
+        { time: "2026-06-03T22:00:00.000Z", type: "stop" },
+      ]),
+      { truck_rego: "", start_location: "", destination: "" },
+    ];
+    const wednesday = getDayWithCarriedOverCardInfo(days, 3, WEEK_START, "2026-06-04");
+    expect(wednesday.truck_rego).toBe("");
+    expect(wednesday.start_location).toBe("");
+  });
+
+  it("does not copy start or end km onto the later label", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      { truck_rego: "", start_location: "", destination: "" },
+    ];
+    const wednesday = getDayWithCarriedOverCardInfo(days, 3, WEEK_START, "2026-06-04");
+    expect(wednesday.start_kms).toBeUndefined();
+    expect(wednesday.end_kms).toBeUndefined();
+  });
+
+  it("carries onto a later label even when clock-today is an earlier descriptor", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      dayWithOpenWork([{ time: TUESDAY_WORK, type: "work" }]),
+      {},
+      { truck_rego: "", start_location: "", destination: "" },
+    ];
+    const thursday = getDayWithCarriedOverCardInfo(days, 4, WEEK_START, "2026-06-04");
+    expect(thursday.truck_rego).toBe("1ABC123");
+    expect(thursday.start_location).toBe("Perth");
   });
 });

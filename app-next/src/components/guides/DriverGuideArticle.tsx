@@ -74,9 +74,10 @@ export function DriverGuideArticle() {
           <li>
             Same route every day? The app can suggest{" "}
             <strong className="text-slate-700 dark:text-slate-200">rego and run plan</strong> in Set up day from your
-            last trip. They appear on the day sheet and PDF only after you{" "}
-            <strong className="text-slate-700 dark:text-slate-200">Confirm</strong>. Start location and destination
-            only appear under{" "}
+            last trip when you start a shift. They appear on that card and the PDF after you{" "}
+            <strong className="text-slate-700 dark:text-slate-200">Confirm</strong>. Once the shift is open, later day
+            cards show the same truck and run — you do not Confirm again because the clock rolled. Start location and
+            destination only appear under{" "}
             <strong className="text-slate-700 dark:text-slate-200">Enter run plan</strong> (blank when you open that
             option), or from a saved run plan you pick. You always type{" "}
             <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
@@ -262,9 +263,9 @@ export function DriverGuideArticle() {
         </p>
         <p className="mt-3">
           <strong className="text-slate-700 dark:text-slate-200">If your shift runs past midnight:</strong> just keep
-          working. Your open work continues across midnight on the same timeline. There is no separate &quot;end
-          yesterday&quot; step while you are still working — tap End shift only when you actually finish. Day cards are
-          just labels; they do not end your shift.
+          working. Minutes follow the events you tap — there is no day, midnight, or other cut on the timeline. Day
+          cards are labels so you can find a date. They do not start a new shift. Rego and route stay with that open
+          shift until End shift. Tap End shift only when you actually finish.
         </p>
         <p className="mt-3">
           <strong className="text-slate-700 dark:text-slate-200">If you forget End shift:</strong> the app may show a
@@ -276,28 +277,27 @@ export function DriverGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>7. Today&apos;s card — repeat routes</h2>
         <p className="mb-3">
-          Set up day can suggest last-trip values. Rego and locations appear on the WorkSafe sheet and PDF only after
-          you Confirm.
+          Set up day can suggest last-trip values when you <strong>start</strong> a shift. After that,{" "}
+          <strong className="text-slate-700 dark:text-slate-200">rego and route stay with the open shift</strong>{" "}
+          until End shift. Later day cards are labels only — they show the same truck and run. You do not Confirm
+          again when the clock rolls.
         </p>
-        <GuideDiagram title="Today before Confirm">
+        <GuideDiagram title="Same shift, next day card">
           {`┌─────────────────────────────┐
-│  Wednesday                  │
-│  Rego / From / To: blank    │
-│  until Set up day Confirm   │
-│                             │
-│  Start km (required):       │
-│  [ _________ ]  ← you type  │
+│  Wednesday (label only)     │
+│  Rego / From / To: same as  │
+│  the open shift             │
 │                             │
 │  WorkSafe day sheet         │
-│  (15-min tick grid)         │
+│  (minutes from events)      │
 └─────────────────────────────┘`}
         </GuideDiagram>
         <TwoColTable
           rows={[
-            ["Rego (number plate)", "Suggested in Set up day — on sheet/PDF only after Confirm"],
-            ["From / To", "Suggested in Set up day — on sheet/PDF only after Confirm"],
-            ["Run plan (name, hours, distance)", "Suggested if used before — Confirm to save"],
-            ["Start km", "You type this every day — never auto-filled"],
+            ["Rego (number plate)", "Stays with the open shift until End shift"],
+            ["From / To", "Stays with the open shift until End shift"],
+            ["Run plan (name, hours, distance)", "Stays with the open shift until End shift"],
+            ["Start km", "Typed when you start the shift — not again at midnight"],
             ["End km", "You type this at End shift"],
           ]}
         />

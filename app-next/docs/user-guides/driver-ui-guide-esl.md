@@ -12,7 +12,7 @@ Circadia24 keeps your **weekly fatigue record** — an electronic work diary (EW
 
 - You tap buttons when you **work**, **stop driving** (then rest or other work), or **end shift**.
 - Time you do not log is counted as **non-work** (rest / off duty) — like blank time on a paper diary.
-- If you drive the **same route often**, the app can **suggest** rego and run plan in **Set up day** from your last trip. They appear on the day sheet and PDF only after you **Confirm**. **Start location** and **destination** only appear under **Enter run plan** (blank when you open that option), or from a **Saved run plan** you pick. You always type **start km** and **end km** yourself.
+- If you drive the **same route often**, the app can **suggest** rego and run plan in **Set up day** from your last trip when you **start** a shift. They appear on that card and the PDF after you **Confirm**. **Once the shift is open, later day cards show the same rego and route** — you do not Confirm again because the clock rolled. **Start location** and **destination** only appear under **Enter run plan** (blank when you open that option), or from a **Saved run plan** you pick. You always type **start km** and **end km** yourself.
 
 ---
 
@@ -134,7 +134,7 @@ When you tap **End shift**:
 
 **Important:** The app **never** fills in start km or end km. You always read the truck and type them.
 
-**If your shift runs past midnight:** just keep working. Your open work **continues across midnight** on the same timeline. There is **no** separate "end yesterday" step while you are still working — tap **End shift** only when you actually finish. Day cards are just labels; they do not end your shift.
+**If your shift runs past midnight:** just keep working. Minutes follow the events you tap — there is no day, midnight, or other cut on the timeline. Day cards are labels so you can find a date; they do not start a new shift. **Rego and route stay with that open shift** until **End shift**. You do not Set up day again because the clock rolled. Tap **End shift** only when you actually finish.
 
 **If you forget End shift:** the app may show a short reminder (for example after a long stretch with no new log). Use the red **End shift** button, pick the **date and time you actually finished** (not only today's clock), and enter end km.
 
@@ -142,28 +142,24 @@ When you tap **End shift**:
 
 ## 7. Today's card — repeat routes (most days)
 
-Many drivers use the **same rego and route** every day. The app can **suggest** those values in **Set up day** — they do **not** appear on the WorkSafe day sheet or PDF until you **Confirm**.
+Many drivers use the **same rego and route** every day. **Set up day** is for **starting** a shift (or when the truck/run actually changes). After that, **rego and route stay with the open shift** until **End shift**. Later day cards are labels only — they show the same truck and run. You do **not** Confirm again when the clock rolls.
 
-| Field | Suggested in Set up day? | On sheet / PDF without Confirm? |
-|-------|--------------------------|----------------------------------|
-| **Rego** (number plate) | Yes — from last trip or earlier this week | **No** |
-| **From** / **To** | Yes (Enter run plan or Saved run plan) | **No** |
-| **Run plan** (name, hours, distance) | Yes, if you used it before | **No** until Confirm |
-| **Start km** | **No — you type this every day** | Only after you enter it |
-| **End km** | **No — you type this at End shift** | Only after you enter it |
+| Field | When you start a shift | While the shift is still open |
+|-------|------------------------|-------------------------------|
+| **Rego** (number plate) | Set in Set up day | Same on later day cards |
+| **From** / **To** | Set in Set up day | Same on later day cards |
+| **Run plan** (name, hours, distance) | Set in Set up day if you use one | Same on later day cards |
+| **Start km** | You type when you start the shift | Not asked again at midnight |
+| **End km** | — | You type this at End shift |
 
 ```
 ┌─────────────────────────────┐
-│  Wednesday                  │
-│  Rego / From / To: blank    │
-│  until Set up day Confirm   │
-│                             │
-│  Start km (required):       │
-│  [ _________ ]  ← you type  │
+│  Wednesday (label only)     │
+│  Rego / From / To: same as  │
+│  the open shift             │
 │                             │
 │  WorkSafe day sheet         │
-│  (15-min tick grid · work / │
-│   break / non-work)         │
+│  (minutes from events)      │
 └─────────────────────────────┘
 ```
 

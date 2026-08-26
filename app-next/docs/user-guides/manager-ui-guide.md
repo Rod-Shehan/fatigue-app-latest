@@ -164,7 +164,7 @@ Roster maintenance:
 
 Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 
-**Driver day cards:** For repeat runs (e.g. MTS), **Set up day** can suggest **rego, start location, destination, and run plan** from the driver’s last saved trip or earlier this week. Those fields appear on the WorkSafe day sheet and PDF **only after Confirm**. **Odometer (start/end km) is never suggested** — drivers enter km themselves. Expect faster setup; first trip on a new device still needs **Set up day** once.
+**Driver day cards:** For repeat runs (e.g. MTS), **Set up day** can suggest **rego, start location, destination, and run plan** from the driver’s last saved trip when they **start** a shift. Those fields appear on that card and the PDF **after Confirm**. **Once the shift is open, later day cards show the same rego and route** without another Confirm — day names are labels only. **Odometer (start/end km) is never suggested** — drivers enter km themselves. Expect faster setup; first trip on a new device still needs **Set up day** once.
 
 ---
 

@@ -176,13 +176,14 @@ export function formatSignBlockedPastWeekMessage(validationError: string, weekOf
   return validationError;
 }
 
-/** Open work/break continues across the calendar-day card — confirm route on this day's record. */
+/** Open work/break continues until End shift. Day names are labels only — not used. */
 export function formatContinuedShiftRouteBanner(previousDayName: string): string {
-  return `Your shift is still open from ${previousDayName}. Confirm today's route details for this day's record — End shift when you finish.`;
+  void previousDayName;
+  return "";
 }
 
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
-  "Suggested from your open shift — Confirm in Set up day to save on this day's record (and the timesheet/PDF).";
+  "Rego and route stay with the open shift until End shift. Day names are labels only.";
 
 /** First tap when idle / after End shift. Opens Driving / Other work chooser (or Set up day first). */
 export const DRIVER_START_SHIFT_LABEL = "Start shift";

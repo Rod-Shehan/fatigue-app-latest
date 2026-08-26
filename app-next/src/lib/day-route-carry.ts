@@ -1,41 +1,88 @@
 import type { DayData } from "@/lib/api";
-import { getEffectiveOpenActivityAtDayEnd } from "@/lib/event-rollover";
 import { isBreakFromDrivingEventType, isOpenShiftEventType } from "@/lib/activity-kind";
 import { hasRunPlanContent } from "@/lib/route-plan";
-import { getSheetDayDateString } from "@/lib/weeks";
-
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export function todayHasLoggedWorkOrBreak(day: DayData | undefined): boolean {
   return (day?.events ?? []).some((e) => e.type === "work" || isBreakFromDrivingEventType(e.type));
 }
 
-function previousDayEndedWithOpenWorkOrBreak(
+function lastEventBeforeDayIndex(
   days: DayData[],
-  dayIndex: number,
-  weekStarting: string,
-  todayYmd: string
-): boolean {
-  if (dayIndex === 0) return false;
-  const prev = days[dayIndex - 1];
-  if (!prev) return false;
-  const dateStrPrev = getSheetDayDateString(weekStarting, dayIndex - 1);
-  const open = getEffectiveOpenActivityAtDayEnd(prev, dateStrPrev, todayYmd);
-  return isOpenShiftEventType(open);
+  dayIndex: number
+): { time: string; type: string } | null {
+  let best: { time: string; type: string } | null = null;
+  let bestMs = -Infinity;
+  for (let i = 0; i < dayIndex; i++) {
+    for (const event of days[i]?.events ?? []) {
+      const ms = new Date(event.time).getTime();
+      if (!Number.isFinite(ms) || ms < bestMs) continue;
+      bestMs = ms;
+      best = event;
+    }
+  }
+  return best;
+}
+
+function dayHasOpenShiftRoute(day: DayData | undefined): boolean {
+  if (!day) return false;
+  if ((day.truck_rego ?? "").toString().trim() !== "") return true;
+  if ((day.start_location ?? "").toString().trim() !== "") return true;
+  if ((day.destination ?? "").toString().trim() !== "") return true;
+  return hasRunPlanContent(day);
 }
 
 /**
- * Rolling continuation across a calendar-day descriptor: prior bucket still ends open on
- * work/break (no End shift). Day/week labels do not reset the timeline — open activity
- * continues until the next driver-logged event.
+ * Last driver event on an earlier descriptor. The shift is still the same while that
+ * event is work / rest / other work / passenger / sleeper — End shift (`stop`) closes it.
+ * Empty cards in between do not matter. Clock midnight is not consulted.
  */
 export function isTrueShiftContinuation(
   days: DayData[],
   dayIndex: number,
-  weekStarting: string,
-  todayYmd: string
+  _weekStarting?: string,
+  _todayYmd?: string
 ): boolean {
-  return previousDayEndedWithOpenWorkOrBreak(days, dayIndex, weekStarting, todayYmd);
+  if (dayIndex <= 0) return false;
+  const last = lastEventBeforeDayIndex(days, dayIndex);
+  return isOpenShiftEventType(last?.type);
+}
+
+function findOpenShiftRouteSource(days: DayData[], dayIndex: number): DayData | null {
+  if (!isTrueShiftContinuation(days, dayIndex)) return null;
+  for (let i = dayIndex - 1; i >= 0; i--) {
+    const candidate = days[i];
+    if (dayHasOpenShiftRoute(candidate)) return candidate ?? null;
+    if (i === 0 || !isTrueShiftContinuation(days, i)) return candidate ?? null;
+  }
+  return null;
+}
+
+function copyOpenShiftRoute(day: DayData, source: DayData): DayData {
+  const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
+  const hasOwnStartLocation = (day.start_location ?? "").toString().trim() !== "";
+  const hasOwnDestination = (day.destination ?? "").toString().trim() !== "";
+  const dayOwnsRoutePlaces =
+    !!(day.route_preset_id ?? "").toString().trim() || hasRunPlanContent(day);
+  const next: DayData = {
+    ...day,
+    truck_rego: hasOwnRego ? day.truck_rego : (source.truck_rego ?? day.truck_rego ?? ""),
+    start_location:
+      dayOwnsRoutePlaces || hasOwnStartLocation
+        ? day.start_location
+        : (source.start_location ?? day.start_location ?? ""),
+    destination:
+      dayOwnsRoutePlaces || hasOwnDestination
+        ? day.destination
+        : (source.destination ?? day.destination ?? ""),
+  };
+  if (!dayOwnsRoutePlaces && hasRunPlanContent(source)) {
+    next.route_label = source.route_label;
+    next.planned_distance_km = source.planned_distance_km;
+    next.planned_on_duty_hours = source.planned_on_duty_hours;
+    next.route_source = source.route_source;
+    next.route_preset_id = source.route_preset_id;
+  }
+  return next;
 }
 
 /**
@@ -53,54 +100,42 @@ export function getPriorDayUnclosedShiftPrompt(
 }
 
 /**
- * Day card route fields when the previous calendar day still has open work/break
- * (rolling continuation into this descriptor day).
+ * Display/PDF only: rego and route stay on the open shift. Later day-card labels show
+ * the same fields until End shift. Does not persist, and does not invent a midnight cut.
  */
 export function getDayWithCarriedOverCardInfo(
   days: DayData[],
   dayIndex: number,
-  weekStarting: string,
-  todayYmd: string
+  _weekStarting?: string,
+  _todayYmd?: string
 ): DayData {
   const day = days[dayIndex] ?? {};
   if (dayIndex === 0) return day;
-  const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
-  if (sheetDayYmd > todayYmd) return day;
-  if (!isTrueShiftContinuation(days, dayIndex, weekStarting, todayYmd)) return day;
-  const prev = days[dayIndex - 1];
-  const hasOwnRego = (day.truck_rego ?? "").toString().trim() !== "";
-  const hasOwnStartLocation = (day.start_location ?? "").toString().trim() !== "";
-  const hasOwnDestination = (day.destination ?? "").toString().trim() !== "";
-  // A run plan / catalogue preset owns From/To — do not refill from the prior day trip.
-  const dayOwnsRoutePlaces =
-    !!(day.route_preset_id ?? "").toString().trim() || hasRunPlanContent(day);
-  return {
-    ...day,
-    truck_rego: hasOwnRego ? day.truck_rego : (prev?.truck_rego ?? day.truck_rego ?? ""),
-    start_location:
-      dayOwnsRoutePlaces || hasOwnStartLocation
-        ? day.start_location
-        : (prev?.start_location ?? day.start_location ?? ""),
-    destination:
-      dayOwnsRoutePlaces || hasOwnDestination
-        ? day.destination
-        : (prev?.destination ?? day.destination ?? ""),
-  };
+  const source = findOpenShiftRouteSource(days, dayIndex);
+  if (!source) return day;
+  return copyOpenShiftRoute(day, source);
 }
 
-/** Prompt driver to confirm route on this day while an open segment continues from the prior day. */
+/** Apply open-shift rego/route onto every descriptor for PDF / week chrome (not persisted). */
+export function daysWithOpenShiftRoute<T extends DayData>(
+  days: T[],
+  _weekStarting?: string,
+  _todayYmd?: string
+): T[] {
+  return days.map((_, i) => getDayWithCarriedOverCardInfo(days, i) as T);
+}
+
+/**
+ * @deprecated Always null. Requiring a new day’s route confirm because the clock rolled
+ * treats midnight as a shift cut. Rego and route stay on the open shift.
+ */
 export function getContinuedShiftRoutePrompt(
-  days: DayData[],
-  dayIndex: number,
-  weekStarting: string,
-  todayYmd: string
+  _days: DayData[],
+  _dayIndex: number,
+  _weekStarting: string,
+  _todayYmd: string
 ): { previousDayName: string } | null {
-  const day = days[dayIndex] ?? {};
-  const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
-  if (sheetDayYmd !== todayYmd) return null;
-  if (!isTrueShiftContinuation(days, dayIndex, weekStarting, todayYmd)) return null;
-  if (day.route_confirmed) return null;
-  return { previousDayName: DAY_NAMES[dayIndex - 1] ?? "previous day" };
+  return null;
 }
 
 /** One minute after the last logged segment — preserves rest continuity (not calendar midnight). */

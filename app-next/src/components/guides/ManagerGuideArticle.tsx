@@ -153,8 +153,9 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>What drivers see (repeat routes)</h2>
         <p>
-          Set up day can suggest rego, from, to, and run plan from their last trip. Those appear on the timesheet/PDF
-          only after Confirm. They always enter start km and
+          Set up day can suggest rego, from, to, and run plan from their last trip when they start a shift. Those appear
+          on that card and the PDF after Confirm. Once the shift is open, later day cards show the same truck and run
+          without another Confirm — day names are labels only. They always enter start km and
           end km on the odometer. Coaching: check the card matches the real run, then start km, then Work.
         </p>
       </section>

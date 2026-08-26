@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { isShiftStartSetupComplete } from "@/lib/shift-start-gate";
 import { isOpenShiftEventType } from "@/lib/activity-kind";
 import { saveDriverRouteDefaults, inferRouteCarryMode, seedRouteSetupFormDefaults, loadDriverRouteDefaults } from "@/lib/driver-route-defaults";
+import { getDayWithCarriedOverCardInfo, isTrueShiftContinuation } from "@/lib/day-route-carry";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowRight, ChevronDown, MoreVertical } from "lucide-react";
 import Link from "next/link";
@@ -34,13 +35,10 @@ import { api } from "@/lib/api";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
-  CONTINUED_SHIFT_ROUTE_CARD_NOTE,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_TITLE,
-  formatContinuedShiftRouteBanner,
 } from "@/lib/product-copy";
 import {
-  driverAmberBtn,
   driverCard,
   driverCardBtn,
   driverCardDefault,
@@ -127,7 +125,7 @@ function StatBlock({
 export default function DayEntry({
   dayIndex,
   dayData,
-  continuedShiftRoute = null,
+  continuedShiftRoute: _continuedShiftRoute = null,
   onUpdate,
   weekStart,
   regos = [],
@@ -157,7 +155,7 @@ export default function DayEntry({
 }: {
   dayIndex: number;
   dayData: DayData;
-  /** When set, open work/break continues from the prior day — prompt to confirm route on this card. */
+  /** Unused. Clock-today route confirm is a midnight cut; always null from the parent. */
   continuedShiftRoute?: { previousDayName: string } | null;
   onUpdate: (idx: number, d: DayData | ((prev: DayData) => DayData)) => void | Promise<void>;
   weekStart: string;
@@ -342,32 +340,45 @@ export default function DayEntry({
     return seedRouteSetupFormDefaults(daysForSeed, dayIndex, weekStart, todayYmd, stored);
   }, [allDays, dayData, dayIndex, weekStart, todayYmd, driverUserKey]);
 
-  const runPlanSummary = formatRunPlanSummary(dayData);
-  const usesRunPlan = inferRouteCarryMode(dayData) === "run_plan" && hasRunPlanContent(dayData);
+  const daysForRoute = useMemo(
+    () => (allDays.length > 0 ? allDays : [dayData]) as DayData[],
+    [allDays, dayData]
+  );
+  const routeDisplayDay = useMemo(
+    () => getDayWithCarriedOverCardInfo(daysForRoute, dayIndex, weekStart, todayYmd),
+    [daysForRoute, dayIndex, weekStart, todayYmd]
+  );
+  const shiftContinuation = isTrueShiftContinuation(daysForRoute, dayIndex, weekStart, todayYmd);
+
+  const runPlanSummary = formatRunPlanSummary(routeDisplayDay);
+  const usesRunPlan = inferRouteCarryMode(routeDisplayDay) === "run_plan" && hasRunPlanContent(routeDisplayDay);
   const showManualFromTo = !usesRunPlan;
 
   const hasRouteDetails = usesRunPlan
-    ? hasRunPlanContent(dayData) ||
-      (dayData.truck_rego ?? "").trim() !== "" ||
-      (dayData.start_location ?? "").trim() !== "" ||
+    ? hasRunPlanContent(routeDisplayDay) ||
+      (routeDisplayDay.truck_rego ?? "").trim() !== "" ||
+      (routeDisplayDay.start_location ?? "").trim() !== "" ||
       dayData.start_kms != null
-    : (dayData.start_location ?? "").trim() !== "" ||
-      (dayData.destination ?? "").trim() !== "" ||
-      (dayData.truck_rego ?? "").trim() !== "" ||
+    : (routeDisplayDay.start_location ?? "").trim() !== "" ||
+      (routeDisplayDay.destination ?? "").trim() !== "" ||
+      (routeDisplayDay.truck_rego ?? "").trim() !== "" ||
       dayData.start_kms != null;
 
-  const detailsComplete = usesRunPlan
-    ? (dayData.truck_rego ?? "").trim() !== "" &&
-      dayData.start_kms != null &&
-      !Number.isNaN(Number(dayData.start_kms))
-    : (dayData.truck_rego ?? "").trim() !== "" &&
-      dayData.start_kms != null &&
-      !Number.isNaN(Number(dayData.start_kms));
+  const detailsComplete = shiftContinuation
+    ? hasRouteDetails
+    : usesRunPlan
+      ? (routeDisplayDay.truck_rego ?? "").trim() !== "" &&
+        dayData.start_kms != null &&
+        !Number.isNaN(Number(dayData.start_kms))
+      : (routeDisplayDay.truck_rego ?? "").trim() !== "" &&
+        dayData.start_kms != null &&
+        !Number.isNaN(Number(dayData.start_kms));
 
   const showInlineStartKm =
     isToday &&
     canEditDetails &&
-    (dayData.truck_rego ?? "").trim() !== "" &&
+    !shiftContinuation &&
+    (routeDisplayDay.truck_rego ?? "").trim() !== "" &&
     !detailsComplete;
 
   const showRunPlanSection = usesRunPlan && isFuture && !!runPlanSummary;
@@ -569,25 +580,6 @@ export default function DayEntry({
         />
       )}
 
-      {continuedShiftRoute && canEditDetails && (
-        <div
-          className="mb-3 rounded-lg border border-amber-400 bg-amber-50 dark:bg-amber-950/50 dark:border-amber-600 px-3 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
-          role="status"
-        >
-          <p className="text-sm font-medium text-amber-950 dark:text-amber-100 flex-1 min-w-0">
-            {formatContinuedShiftRouteBanner(continuedShiftRoute.previousDayName)}
-          </p>
-          <Button
-            type="button"
-            size="sm"
-            className={cn(driverAmberBtn, "w-auto shrink-0 px-4")}
-            onClick={() => setDetailsOpen(true)}
-          >
-            Confirm route & times
-          </Button>
-        </div>
-      )}
-
       <div
         className={cn(
           driverPanel,
@@ -598,15 +590,12 @@ export default function DayEntry({
       >
         {!hasRouteDetails ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {readOnly ? "No route details recorded." : "Route and vehicle not set — use Set up day before Start shift."}
+            {readOnly
+              ? "No route details recorded."
+              : "Route and vehicle not set — use Set up day before Start shift."}
           </p>
         ) : (
           <>
-            {continuedShiftRoute && (
-              <p className="text-xs text-amber-800 dark:text-amber-200 mb-2 leading-snug">
-                {CONTINUED_SHIFT_ROUTE_CARD_NOTE}
-              </p>
-            )}
             {showRunPlanInCard ? (
               <div className="mb-3 min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -617,14 +606,14 @@ export default function DayEntry({
             ) : null}
             {showManualFromTo ? (
               <div className="flex items-center gap-2 min-w-0 mb-3">
-                <StatBlock label="From" value={(dayData.start_location || "").trim() || "—"} emphasis />
+                <StatBlock label="From" value={(routeDisplayDay.start_location || "").trim() || "—"} emphasis />
                 <ArrowRight className="w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500" aria-hidden />
-                <StatBlock label="To" value={(dayData.destination || "").trim() || "—"} emphasis />
+                <StatBlock label="To" value={(routeDisplayDay.destination || "").trim() || "—"} emphasis />
               </div>
             ) : null}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
               <StatBlock label="Crew" value={formatDayCrewLabel(dayCrew)} />
-              <StatBlock label="Rego" value={(dayData.truck_rego || "").trim() || "—"} mono />
+              <StatBlock label="Rego" value={(routeDisplayDay.truck_rego || "").trim() || "—"} mono />
               <StatBlock label="Pattern" value={formatShiftLabel(dayData.shift_label)} />
               <StatBlock label="Start km" value={formatKm(dayData.start_kms)} mono />
               <StatBlock label="End km" value={formatKm(dayData.end_kms)} mono />
@@ -661,8 +650,7 @@ export default function DayEntry({
               }}
             />
             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-              Enter start km, then tap Work. Rego and route only appear on this sheet after you Confirm them in Set up
-              day.
+              Enter start km, then tap Work. Rego and route stay with this open shift.
             </p>
           </div>
         )}
@@ -714,7 +702,18 @@ export default function DayEntry({
       )}
 
       <WorkSafeDaySheet
-        dayData={{ ...dayData, date: getISODate() }}
+        dayData={{
+          ...dayData,
+          date: getISODate(),
+          truck_rego: routeDisplayDay.truck_rego,
+          start_location: routeDisplayDay.start_location,
+          destination: routeDisplayDay.destination,
+          route_label: routeDisplayDay.route_label,
+          planned_distance_km: routeDisplayDay.planned_distance_km,
+          planned_on_duty_hours: routeDisplayDay.planned_on_duty_hours,
+          route_source: routeDisplayDay.route_source,
+          route_preset_id: routeDisplayDay.route_preset_id,
+        }}
         regulatoryTodayYmd={todayYmd}
         dayLabel={DAY_NAMES[dayIndex]}
         driverName={driverName}
@@ -866,7 +865,7 @@ export default function DayEntry({
           readOnly={readOnly}
           showShiftPatternEducation={showShiftPatternEducation}
           patternWorkMinutes={patternWorkMinutes}
-          continuedFromPreviousDay={continuedShiftRoute?.previousDayName}
+          continuedFromPreviousDay={shiftContinuation ? "open shift" : undefined}
           activityBeforeDay={
             activityBeforeDay ??
             (dayIndex > 0 && allDays[dayIndex - 1]

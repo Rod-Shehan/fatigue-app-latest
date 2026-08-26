@@ -86,7 +86,7 @@ export type DayData = {
   end_kms?: number | null;
   /** Day (A) / Night (B) — for Reg 184E(4) shift-pattern change after 5+ work days. */
   shift_label?: "A" | "B" | "";
-  /** Driver confirmed route/vehicle for this calendar day (required after overnight carry from previous day). */
+  /** True after Set up day / Edit day Confirm on this card. Not a midnight or new-day gate. */
   route_confirmed?: boolean;
   work_time?: boolean[];
   breaks?: boolean[];

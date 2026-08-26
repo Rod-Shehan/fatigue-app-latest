@@ -27,7 +27,7 @@ import {
   formatRoutePresetOption,
   validateRoutePresetCreateInput,
 } from "@/lib/route-preset";
-import { ROUTE_CATALOGUE_EMPTY_HINT, ROUTE_CATALOGUE_LOAD_ERROR_HINT, DRIVER_START_DRIVING_LABEL, DRIVER_START_OTHER_WORK_LABEL } from "@/lib/product-copy";
+import { ROUTE_CATALOGUE_EMPTY_HINT, ROUTE_CATALOGUE_LOAD_ERROR_HINT, DRIVER_START_DRIVING_LABEL, DRIVER_START_OTHER_WORK_LABEL, CONTINUED_SHIFT_ROUTE_CARD_NOTE } from "@/lib/product-copy";
 import { Loader2 } from "lucide-react";
 import {
   SHIFT_PATTERN_FIELD_HELP,
@@ -621,9 +621,8 @@ export function DayCardDetailsDialog({
         )}
 
         {continuedFromPreviousDay && (
-          <p className="text-sm leading-snug text-amber-900 dark:text-amber-100 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-            <span className="font-semibold">Continued shift:</span> values below may be carried from {continuedFromPreviousDay}.
-            Check and confirm they are correct for this day.
+          <p className="text-sm leading-snug text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+            <span className="font-semibold">Open shift:</span> {CONTINUED_SHIFT_ROUTE_CARD_NOTE}
           </p>
         )}
 

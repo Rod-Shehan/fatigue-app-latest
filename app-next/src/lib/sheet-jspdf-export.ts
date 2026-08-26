@@ -24,6 +24,7 @@ import { checklistMatrixFromDays } from "@/lib/worksafe-day-sheet/trip-checklist
 import { sanitizePdfPlainText } from "@/lib/pdf-plain-text";
 import type { WorkSafeTrack } from "@/lib/worksafe-day-sheet/types";
 import { deriveDaysWithRollover } from "@/lib/event-rollover";
+import { daysWithOpenShiftRoute } from "@/lib/day-route-carry";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const TOTAL_MIN = 24 * 60;
@@ -565,7 +566,8 @@ export function renderPdfHtml(opts: {
   const { sheet, todayStr, generatedAtLabel, roadside } = opts;
   const tripSheetOnly = opts.layout === "tripSheetOnly";
   const dayList = padPdfDays(sheet.days);
-  const paintDays = deriveDaysWithRollover(dayList, sheet.week_starting, { todayStr });
+  const dayListWithRoute = daysWithOpenShiftRoute(dayList, sheet.week_starting, todayStr);
+  const paintDays = deriveDaysWithRollover(dayListWithRoute, sheet.week_starting, { todayStr });
   const driverName = (sheet.driver_name || "").trim();
   const truckRegs = collectWeekTruckRegs(paintDays);
   let weekWorkMinutes = 0;
@@ -1068,7 +1070,8 @@ export async function buildSingleSheetJsPdfBuffer(input: SheetJsPdfInput): Promi
   }
 
   const dayList = padPdfDays(sheet.days);
-  const paintDays = deriveDaysWithRollover(dayList, sheet.week_starting, { todayStr });
+  const dayListWithRoute = daysWithOpenShiftRoute(dayList, sheet.week_starting, todayStr);
+  const paintDays = deriveDaysWithRollover(dayListWithRoute, sheet.week_starting, { todayStr });
   const truckRegs = collectWeekTruckRegs(paintDays);
   let weekWorkMinutes = 0;
 

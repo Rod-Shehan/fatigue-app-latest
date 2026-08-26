@@ -207,4 +207,25 @@ describe("driver-route-defaults", () => {
     expect(seeded.truck_rego).toBe("2XYZ");
     expect(seeded.start_location).toBeUndefined();
   });
+
+  it("seedRouteSetupFormDefaults keeps the open shift route, not stored last-trip defaults", () => {
+    const weekStarting = "2026-06-01";
+    const todayYmd = "2026-06-04";
+    const days: DayData[] = Array.from({ length: 7 }, () => ({}));
+    days[2] = {
+      truck_rego: "1ABC123",
+      start_location: "Perth",
+      destination: "Kalgoorlie",
+      events: [{ time: "2026-06-03T18:30:00.000Z", type: "work" }],
+    };
+    const seeded = seedRouteSetupFormDefaults(days, 3, weekStarting, todayYmd, {
+      truck_rego: "9ZZZ",
+      start_location: "Bunbury",
+      destination: "Albany",
+      carry_mode: "manual",
+    });
+    expect(seeded.truck_rego).toBe("1ABC123");
+    expect(seeded.start_location).toBe("Perth");
+    expect(seeded.destination).toBe("Kalgoorlie");
+  });
 });

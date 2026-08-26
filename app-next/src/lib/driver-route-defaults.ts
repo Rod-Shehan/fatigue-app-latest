@@ -1,5 +1,5 @@
 import type { DayData } from "@/lib/api";
-import { getDayWithCarriedOverCardInfo } from "@/lib/day-route-carry";
+import { getDayWithCarriedOverCardInfo, isTrueShiftContinuation } from "@/lib/day-route-carry";
 import { hasRunPlanContent, type RouteSource } from "@/lib/route-plan";
 import { getSheetDayDateString } from "@/lib/weeks";
 
@@ -257,8 +257,7 @@ export function dayNeedsRouteAutofill(day: DayData, defaults?: DriverRouteDefaul
 
 /**
  * Form-seed only: suggest prior-trip / stored defaults into a day object for Set up day.
- * Do not use for day-card display, WorkSafe sheet, PDF, or silent persist — those must
- * show only fields the driver has confirmed onto that day.
+ * Day-card display and PDF use getDayWithCarriedOverCardInfo (open-shift route) without a new Confirm.
  */
 export function seedRouteSetupFormDefaults<T extends DayData>(
   days: T[],
@@ -272,6 +271,8 @@ export function seedRouteSetupFormDefaults<T extends DayData>(
   if (day.route_confirmed) return day;
 
   const carried = getDayWithCarriedOverCardInfo(days, dayIndex, weekStarting, todayYmd) as T;
+  // Open shift already has a route — do not overlay last-trip defaults because a label changed.
+  if (isTrueShiftContinuation(days, dayIndex, weekStarting, todayYmd)) return carried;
   const sheetDayYmd = getSheetDayDateString(weekStarting, dayIndex);
   if (sheetDayYmd < todayYmd) return carried;
 

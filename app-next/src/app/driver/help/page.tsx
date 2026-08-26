@@ -114,8 +114,9 @@ export default async function DriverHelpPage() {
             </h2>
             <ul className="list-disc pl-5 space-y-1.5">
               <li>
-                <strong className="text-slate-700 dark:text-slate-200">Repeat routes</strong> — rego, from, to, and run
-                plan usually fill from your last trip when you open this week. You still enter{" "}
+                <strong className="text-slate-700 dark:text-slate-200">Repeat routes</strong> — when you start a shift,
+                Set up day can suggest rego, from, to, and run plan from your last trip (Confirm to put them on that
+                card). Once the shift is open, later day cards show the same truck and run. You still enter{" "}
                 <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
                 <strong className="text-slate-700 dark:text-slate-200">end km</strong> yourself.
               </li>
