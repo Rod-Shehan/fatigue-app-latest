@@ -19,7 +19,7 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 export const CHECKLIST_PDF_BUTTON_LABEL = "Produce checklist PDFs";
 
 export const CHECKLIST_PDF_DISCLAIMER =
-  "This Circadia24 checklist pack is generated from signed form records of one type for one driver week. It is not a fatigue work diary and is not part of the 28-day roadside fatigue PDF. Different checklist types are kept separate (different regs / audit call-ups). Confirm with your policies and applicable CoR / WHS duties.";
+  "This Circadia24 checklist pack is generated from signed form records for one week.";
 
 export const CHECKLIST_PDF_TYPE_TITLE: Record<ChecklistRecordType, string> = {
   ffw: "Fitness for Work",
