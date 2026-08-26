@@ -196,6 +196,19 @@ export const MANAGER_SUBNAV_OWNER: NavLinkEntry[] = [
     title: "Managers",
     href: "/manager/add-managers",
   },
+];
+
+/** All managers — week PDFs for audit / WAHVA. Sits to the right of Managers for owners. */
+export const MANAGER_SUBNAV_RECORDS: NavLinkEntry[] = [
+  {
+    id: "manager-records",
+    surface: "manager-subnav",
+    title: "Records",
+    href: "/manager/records",
+  },
+];
+
+export const MANAGER_SUBNAV_SECURITY: NavLinkEntry[] = [
   {
     id: "security",
     surface: "manager-subnav",
@@ -203,6 +216,17 @@ export const MANAGER_SUBNAV_OWNER: NavLinkEntry[] = [
     href: "/admin/security",
   },
 ];
+
+/** Header order: workspace, fleet, Managers (owner), Records, Security (owner). */
+export function managerSubnavItems(isOwner: boolean): NavLinkEntry[] {
+  return [
+    ...MANAGER_SUBNAV_WORKSPACE,
+    ...MANAGER_SUBNAV_FLEET,
+    ...(isOwner ? MANAGER_SUBNAV_OWNER : []),
+    ...MANAGER_SUBNAV_RECORDS,
+    ...(isOwner ? MANAGER_SUBNAV_SECURITY : []),
+  ];
+}
 
 export const MANAGER_DOMAIN_ANCHOR_LINKS: NavLinkEntry[] = [
   {
@@ -236,6 +260,8 @@ export const ALL_NAVIGATION_LINKS: NavLinkEntry[] = [
   ...MANAGER_SUBNAV_WORKSPACE,
   ...MANAGER_SUBNAV_FLEET,
   ...MANAGER_SUBNAV_OWNER,
+  ...MANAGER_SUBNAV_RECORDS,
+  ...MANAGER_SUBNAV_SECURITY,
   ...MANAGER_DOMAIN_ANCHOR_LINKS,
 ];
 

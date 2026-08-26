@@ -11,6 +11,8 @@ import { Menu, X } from "lucide-react";
 import {
   MANAGER_SUBNAV_FLEET,
   MANAGER_SUBNAV_OWNER,
+  MANAGER_SUBNAV_RECORDS,
+  MANAGER_SUBNAV_SECURITY,
   MANAGER_SUBNAV_WORKSPACE,
 } from "@/lib/navigation/navigation-links";
 
@@ -24,6 +26,8 @@ function currentPageLabel(pathname: string): string {
     ...MANAGER_SUBNAV_WORKSPACE,
     ...MANAGER_SUBNAV_FLEET,
     ...MANAGER_SUBNAV_OWNER,
+    ...MANAGER_SUBNAV_RECORDS,
+    ...MANAGER_SUBNAV_SECURITY,
   ];
   for (const item of groups) {
     if (isActive(pathname, item.href, item.exact)) {
@@ -36,6 +40,7 @@ function currentPageLabel(pathname: string): string {
       if (item.id === "routes") return MANAGER_EXPERIENCE.NAV_ROUTES;
       if (item.id === "manager-guide") return MANAGER_EXPERIENCE.NAV_GUIDE;
       if (item.id === "add-managers") return MANAGER_EXPERIENCE.NAV_MANAGERS;
+      if (item.id === "manager-records") return MANAGER_EXPERIENCE.NAV_RECORDS;
       if (item.id === "security") return "Security";
     }
   }

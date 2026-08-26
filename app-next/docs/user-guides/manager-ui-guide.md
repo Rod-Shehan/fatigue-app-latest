@@ -29,11 +29,13 @@ flowchart TB
   subgraph team [Team and fleet]
     DRV[Approved Drivers /drivers]
     MGR[Add managers]
+    REC[Records]
     REG[Rego admin]
   end
   RB --> MAP
   RB --> MSG
   RB --> DRV
+  RB --> REC
 ```
 
 | Route | Function |
@@ -43,6 +45,7 @@ flowchart TB
 | **Conversations** | Manager–driver messaging |
 | **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
+| **Records** (`/manager/records`) | Roster drivers on the left; dropdown of that driver’s week records (previous weeks first). **View week record** opens the sheet; **Export PDF** prints the Weekly Trip Sheet PDF. For managers and WAHVA auditors reviewing history. |
 | **Rego** | Vehicle registration reference data |
 | **Test desk** | Inject test alerts; set **Checklist PDF email** and **WAHVA maintenance contact** (workshop email for fault reporting) |
 | **Owner console** (`/admin/security`) | Owners: **operator name** (printed as OPERATOR on weekly trip sheet PDFs), lockdown, users, audit |

@@ -6,15 +6,11 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
-import {
-  MANAGER_SUBNAV_FLEET,
-  MANAGER_SUBNAV_OWNER,
-  MANAGER_SUBNAV_WORKSPACE,
-  type NavLinkEntry,
-} from "@/lib/navigation/navigation-links";
+import { managerSubnavItems, type NavLinkEntry } from "@/lib/navigation/navigation-links";
 import { isOwnerRole } from "@/lib/roles";
 import {
   BookOpen,
+  FolderOpen,
   LayoutDashboard,
   Map as MapIcon,
   MapPin,
@@ -37,6 +33,7 @@ const SUBNAV_ICONS: Record<string, LucideIcon> = {
   routes: MapPin,
   "manager-guide": BookOpen,
   "add-managers": UserPlus,
+  "manager-records": FolderOpen,
   security: Shield,
 };
 
@@ -50,6 +47,7 @@ const SUBNAV_LABELS: Record<string, string> = {
   routes: MANAGER_EXPERIENCE.NAV_ROUTES,
   "manager-guide": MANAGER_EXPERIENCE.NAV_GUIDE,
   "add-managers": MANAGER_EXPERIENCE.NAV_MANAGERS,
+  "manager-records": MANAGER_EXPERIENCE.NAV_RECORDS,
   security: "Security",
 };
 
@@ -118,14 +116,7 @@ export function ManagerNavPanel({
   const role = (session?.user as { role?: string | null } | undefined)?.role;
   const isOwner = isOwnerRole(role);
 
-  const items = useMemo(
-    () => [
-      ...MANAGER_SUBNAV_WORKSPACE,
-      ...MANAGER_SUBNAV_FLEET,
-      ...(isOwner ? MANAGER_SUBNAV_OWNER : []),
-    ],
-    [isOwner]
-  );
+  const items = useMemo(() => managerSubnavItems(isOwner), [isOwner]);
 
   if (fill && !dense) {
     return (

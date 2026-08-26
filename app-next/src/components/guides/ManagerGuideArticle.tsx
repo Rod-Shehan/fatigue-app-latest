@@ -23,6 +23,7 @@ export function ManagerGuideArticle() {
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
+        ├── Records (week PDFs)
         ├── Rego (vehicles)
         └── Test desk (checklist PDF email + WAHVA maintenance contact)`}
         </GuideDiagram>
@@ -42,6 +43,12 @@ export function ManagerGuideArticle() {
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Conversations</strong> — message
             drivers
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_RECORDS}</strong> — every
+            roster driver on the left; pick a previous week and open that week record or print the week PDF (same
+            Export PDF as on the sheet). For managers and WAHVA auditors reviewing history without hunting through
+            Driver Overview filters.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
