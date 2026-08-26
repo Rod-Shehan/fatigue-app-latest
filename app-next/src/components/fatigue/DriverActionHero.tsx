@@ -96,7 +96,7 @@ function HeroSplitHalf({
       className={cn(
         "relative flex w-full flex-col items-center justify-center font-bold",
         fill ? "h-full min-h-0" : "h-1/2",
-        fill && gridSlot ? HERO_GRID_SLOT_PAD[gridSlot] : null,
+        fill && gridSlot ? HERO_GRID_SLOT_PAD[gridSlot] : undefined,
         "touch-manipulation select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-inset",
         "disabled:opacity-60 disabled:pointer-events-none active:brightness-95",
         chrome.half,
