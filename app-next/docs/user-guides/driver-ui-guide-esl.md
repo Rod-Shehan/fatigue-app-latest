@@ -54,12 +54,12 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 |--------|------------------------------|
 | **Start shift** | Opens Set up day if details are missing, then Start driving or Start Other Work. Does not log by itself |
 | **Start work** | On Rest: choose Start driving or Start Other Work (loading). Does not log by itself |
-| **Start driving** | Top of the Start shift / Start work / Continue shift split. Starts driving on the timeline |
-| **Continue shift** | On Other work: choose Start driving or Start Rest. Does not log by itself |
+| **Start driving** | Top of Start shift / Start work, or on the Other work hub. Starts driving on the timeline |
 | **Stop Driving** | You have stopped driving. Still on shift. Not End shift. Opens the split. |
-| **Start Rest** | Sit still — eat, drink, nap. 31 minutes or more becomes non-work. Top of Stop Driving, or bottom of Continue shift |
+| **Start Rest** | Sit still — eat, drink, nap. 31 minutes or more becomes non-work. Top of Stop Driving, or on the Other work hub |
 | **Taking a nap?** | Bottom-left, only while on Rest. Not in the hero. Tap once if you are napping — still Rest on the record. Compact: **Nap?**. After tap: **On nap** (tap again to clear). |
-| **Start Other Work** | Bottom of Start shift / Start work / Stop Driving. Not driving, still a job — load, forklift, tyre, paperwork, fuel. After tap-again, choose **Load check** or **Not a load** |
+| **Start Other Work** | Bottom of Start shift / Start work / Stop Driving. Not driving, still a job — load, forklift, tyre, paperwork, fuel. Then three tiles stay on the ring |
+| **Load check** | On Other work, always on the ring. Opens Dimension & Load. You stay on Other work. Same after a reload. If it is not a load, stay on Other work until you drive or rest |
 | **End shift** | You finish work — enter finish time and end km |
 
 ```
@@ -69,10 +69,9 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 │   then split:               │
 │ [ Start driving ]           │
 │ [ Start Other Work ]        │
-│ [ Continue shift ]          │
-│   then split:               │
-│ [ Start driving ]           │
-│ [ Start Rest ]              │
+│ On Other work (three tiles):│
+│ [ Start driving ] [ Start Rest ]
+│ [        Load check            ] │
 │ [ Stop Driving ]            │
 │   then split:               │
 │ [ Start Rest ]              │
@@ -94,15 +93,15 @@ flowchart LR
   D -->|Start work| W[Chooser]
   W -->|Start driving| B
   W -->|Start Other Work| E
-  E -->|Continue shift| O[Chooser]
-  O -->|Start driving| B
-  O -->|Start Rest| D
+  E -->|Start driving| B
+  E -->|Start Rest| D
+  E -->|Load check| E
   B -->|End shift + end km| A
   D -->|End shift + end km| A
   E -->|End shift + end km| A
 ```
 
-**Simple rule:** Tap the button that matches **what you are doing now**. The timer under the ring has a small note — **(Work)**, **(Rest)**, or **(Other work)** — so Start Rest is not confused with Other work. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start driving, Start Rest, Start Other Work, End shift). **Start shift**, **Start work**, **Continue shift**, and **Stop Driving** only open a split — they do not log until you pick a kind.
+**Simple rule:** Tap the button that matches **what you are doing now**. The timer under the ring has a small note — **(Work)**, **(Rest)**, or **(Other work)** — so Start Rest is not confused with Other work. Then **tap again within a few seconds** when the button pulses — that second tap is what records the event (Start driving, Start Rest, Start Other Work, End shift). **Start shift**, **Start work**, and **Stop Driving** only open a split — they do not log until you pick a kind. On **Other work**, the three tiles stay on the ring (including after a reload).
 
 While you are on **Rest**, a corner control asks **Taking a nap?** It is not in the hero split. Tap it only if you are napping — the record stays Rest. It then shows **On nap**. Tap again to clear.
 
@@ -165,7 +164,7 @@ Many drivers use the **same rego and route** every day. **Set up day** is for **
 
           Under the route fields, the day card shows a **WorkSafe WA day sheet** like the paper log: truck reg, odometer and locations across the top, then three rows (**WORK TIME**, **BREAKS FROM DRIVING**, **NON WORK TIME**) with a **15-minute tick grid** (blank first hour, then 1.00–23.00), weekday and date in the corner, and a thin **step line** showing what you logged (same rules as section 5). Days with **no events** show a full **non-work** line (totals Work 0 / Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
 
-**Normal day:** open the week → tap **Start shift** → if day setup is needed, complete Set up day and **Confirm**, then choose **Start driving** or **Start Other Work** on the ring → or if setup is already done, the same split opens (tap again to confirm the kind). After **Start Other Work** is logged, the ring asks **Load check** or **Not a load**. Load check opens Dimension & Load; you stay on Other work. While still on Other work, **Add load check** under the ring starts another load form. **Daily checks** on the day card stay available (Fitness for work, Daily vehicle checklist, Dimension & load) for depot / already-loaded work. Forms are optional in trial — do **not** block Start shift.
+**Normal day:** open the week → tap **Start shift** → if day setup is needed, complete Set up day and **Confirm**, then choose **Start driving** or **Start Other Work** on the ring → or if setup is already done, the same split opens (tap again to confirm the kind). After **Start Other Work** is logged, the ring keeps three tiles: **Start driving**, **Start Rest**, and **Load check** — same after a reload. Load check opens Dimension & Load; you stay on Other work. Tap Load check again for another load. If it is not a load, stay on Other work until you drive or rest. **Daily checks** on the day card stay available (Fitness for work, Daily vehicle checklist, Dimension & load) for depot / already-loaded work. Forms are optional in trial — do **not** block Start shift.
 
 ### Set up day / Edit day
 
@@ -305,10 +304,10 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 1. Sign in (or stay signed in)
 2. **Log more work**
 3. Check rego, from, and to on today's card
-4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). Daily checks order is **Fitness for work**, **Daily vehicle checklist**, then **Dimension & load**. After **Start Other Work** is logged, choose **Load check** or **Not a load**; while still on Other work use **Add load check** under the ring for another load. After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. Prestart is filed under the **vehicle registration**. Dimension & Load is **one form per load** (prime + trailers/dollies on that load). **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
+4. Optionally tick **Daily checks**, or open signed **Fitness for Work** / **Prestart** / **Dimension & Load** forms (optional in trial — do not block Start shift). Daily checks order is **Fitness for work**, **Daily vehicle checklist**, then **Dimension & load**. After **Start Other Work** is logged, the ring keeps three tiles (**Start driving**, **Start Rest**, **Load check**); tap **Load check** again for another load. After a form is saved, use **View** to read it, or **Redo** / **Add another** for a new signed record. Prestart is filed under the **vehicle registration**. Dimension & Load is **one form per load** (prime + trailers/dollies on that load). **Produce checklist PDFs** downloads a **week pack per type** (FFW, Prestart, Load as separate files) — not the 28-day fatigue roadside PDF, and types are not combined (different regs). **Email checklist week packs** sends those separate PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Dimension & Load can be completed more than once per day; loader CoR is separate from the driver (present sign, pending, or photo gap — no proxy).
 5. Type **start km**
 6. Tap **Start shift** when you begin, then **Start driving** or **Start Other Work**
-7. Tap **Stop Driving**, then **Start Rest** or **Start Other Work**. From Rest, tap **Start work** then driving or Other work. After Other work is logged, choose **Load check** or **Not a load**. From Other work, tap **Continue shift** then **Start driving** or **Start Rest** (or **Add load check** under the ring for another load)
+7. Tap **Stop Driving**, then **Start Rest** or **Start Other Work**. From Rest, tap **Start work** then driving or Other work. On Other work the three tiles stay on the ring: **Start driving**, **Start Rest**, **Load check** (same after a reload). Tap **Load check** again for another load
 8. Tap **End shift** when finished — enter finish time and end km
 9. When the **week has ended** — **Sign**
 
@@ -324,15 +323,14 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Other work | Not driving, still a job (load, forklift, tyre, paperwork, fuel). Break from driving; never non-work |
 | Non-work | Off the job / End shift / sleep |
 | Stop Driving | On Work: opens Start Rest / Start Other Work. Not End shift. |
-| Start driving | After Start shift, Start work, or Continue shift — log driving |
-| Start Rest / Start Other Work | After Stop Driving, Start shift, Start work, or Continue shift (Start Rest) |
-| Load check / Not a load | After Start Other Work is logged. Load check opens Dimension & Load. Not a load skips the form. You stay on Other work. |
-| Add load check | Under the ring while still on Other work — another Dimension & Load for this day |
-| Daily checks | Optional day ticks / forms in this order: **Fitness for work**, **Daily vehicle checklist**, **Dimension & load**. Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. Each form is a **separate** record (not combined). **Fitness for Work** is filed under your name. **Prestart** is filed under the **vehicle registration** (you are the person who inspected). **Dimension & Load** is one form per load — enter the prime mover and every trailer/dolly on that load. Open from **Load check** after Other work, **Add load check** while still on Other work, or Daily checks. **Add another** for the next load. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files). **Email checklist week packs** sends those PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Prestart asks if you are responsible. Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
+| Start driving | After Start shift, Start work, or on the Other work hub — log driving |
+| Start Rest / Start Other Work | After Stop Driving, Start shift, Start work, or on the Other work hub (Start Rest) |
+| Load check | On Other work, always on the ring (same after a reload). Opens Dimension & Load. You stay on Other work. Tap Load check again for another load. If it is not a load, stay on Other work until you drive or rest |
+| Daily checks | Optional day ticks / forms in this order: **Fitness for work**, **Daily vehicle checklist**, **Dimension & load**. Signed Fitness for Work, Prestart, and Dimension & Load forms are optional in trial and do not block Start shift. Each form is a **separate** record (not combined). **Fitness for Work** is filed under your name. **Prestart** is filed under the **vehicle registration** (you are the person who inspected). **Dimension & Load** is one form per load — enter the prime mover and every trailer/dolly on that load. Open from **Load check** on the Other work hub or Daily checks. **Add another** for the next load. **View** opens a saved form (read only); **Redo** / **Add another** starts a new signed form. **Produce checklist PDFs** downloads a week pack **per type** (separate files). **Email checklist week packs** sends those PDFs to **your** address in **Settings → Emails & workshop → Checklist PDF email** (defaults to your sign-in email). Prestart asks if you are responsible. Dimension & Load asks if you also loaded and how loader CoR is recorded (present / pending / photos) |
 | Weekly Trip Sheet (PDF) | **Export PDF** and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks (from each day card), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix |
 | Start shift / End shift | Begin / finish a shift. Start shift opens driving or Other work |
 | Start work | On Rest — choose driving or Other work |
-| Continue shift | On Other work — choose driving or Rest |
+| Continue shift | Two-up Passenger — choose driving, break from driving, or sleeper berth |
 | Week | Sunday–Saturday slice of your record |
 | Sign | You attest the week is correct |
 | Rego | Number plate |

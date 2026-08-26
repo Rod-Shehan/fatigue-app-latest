@@ -161,7 +161,7 @@ export interface DriverActionHeroProps {
     onDark?: boolean;
     chrome?: { surfaceClass: string; textClass: string };
   }>;
-  /** Work → Stop Driving, idle → Start shift, Rest → Start work, Other work → Continue shift. */
+  /** Work → Stop Driving, idle → Start shift, Rest → Start work, Other work → three-tile hub. */
   stopDrivingChooser?: {
     variant?: "stop-driving" | "start-shift" | "start-work" | "continue-shift" | "load-check";
     restLabel: string;
@@ -180,13 +180,15 @@ export interface DriverActionHeroProps {
       disabled?: boolean;
     }>;
     ariaLabel?: string;
+    /** Persistent hub (Other work 3-tile) — no Cancel back to a single opener. */
+    hideCancel?: boolean;
   } | null;
 }
 
 /**
- * Expanded round primary action — Start shift / Start work / Continue shift / Stop Driving.
+ * Expanded round primary action — Start shift / Start work / Stop Driving.
  * After Start shift or Start work: vertical split Start driving / Start Other Work.
- * After Continue shift: vertical split Start driving / Start Rest.
+ * On Other work: three-tile hub (Start driving / Start Rest / Load check).
  * After Stop Driving: vertical split Start Rest / Start Other Work.
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
@@ -520,7 +522,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
           ) : null}
         </div>
       ) : null}
-      {!locked || useTileGrid ? (
+      {(!locked || useTileGrid) && !stopDrivingChooser.hideCancel ? (
         <div className={cn(expanded ? "mt-3" : "mt-2")}>
           {renderAuxPill("chooser-cancel", {
             label: "Cancel",

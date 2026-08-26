@@ -22,8 +22,6 @@ import {
   DRIVER_PASSENGER_LABEL,
   DRIVER_SLEEPER_BERTH_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
-  DRIVER_NOT_A_LOAD_LABEL,
-  DRIVER_ADD_LOAD_CHECK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
 } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
@@ -153,10 +151,9 @@ export function DriverGuideArticle() {
 │   then split:               │
 │ [ ${DRIVER_START_DRIVING_LABEL} ]            │
 │ [ ${DRIVER_START_OTHER_WORK_LABEL} ]        │
-│ [ ${DRIVER_CONTINUE_SHIFT_LABEL} ]          │
-│   then split:               │
-│ [ ${DRIVER_START_DRIVING_LABEL} ]            │
-│ [ ${DRIVER_START_REST_LABEL} ]              │
+│ On Other work (three tiles):│
+│ [ ${DRIVER_START_DRIVING_LABEL} ] [ ${DRIVER_START_REST_LABEL} ]
+│ [        ${DRIVER_LOAD_CHECK_LABEL}            ] │
 │ [ ${DRIVER_STOP_DRIVING_LABEL} ]             │
 │   then split:               │
 │ [ ${DRIVER_START_REST_LABEL} ]              │
@@ -168,15 +165,12 @@ export function DriverGuideArticle() {
           rows={[
             [DRIVER_START_SHIFT_LABEL, "Opens Set up day if details are missing, then Start driving or Start Other Work. Does not log by itself."],
             [DRIVER_START_WORK_LABEL, "On Rest: choose Start driving or Start Other Work (loading). Does not log by itself."],
-            [DRIVER_START_DRIVING_LABEL, "Top of the Start shift / Start work / Continue shift split. Starts driving on the timeline"],
-            [DRIVER_CONTINUE_SHIFT_LABEL, "On Other work: choose Start driving or Start Rest. Does not log by itself."],
+            [DRIVER_START_DRIVING_LABEL, "Top of Start shift / Start work, or on the Other work hub. Starts driving on the timeline"],
             [DRIVER_STOP_DRIVING_LABEL, "You have stopped driving. Still on shift. Not End shift."],
             [DRIVER_START_REST_LABEL, "Sit still — eat, drink, nap. 31 minutes or more becomes non-work"],
             [DRIVER_NAP_QUESTION_LABEL, `Bottom-left, only on Rest. Not in the hero. Tap once if you are napping — still Rest on the record. Compact: ${DRIVER_NAP_QUESTION_COMPACT_LABEL}. After tap: ${DRIVER_ON_NAP_LABEL} (tap again to clear).`],
-            [DRIVER_START_OTHER_WORK_LABEL, "Not driving, still a job — load, forklift, tyre, paperwork, fuel. After tap-again, choose Load check or Not a load."],
-            [DRIVER_LOAD_CHECK_LABEL, "After Other work is logged. Opens Dimension & Load. You stay on Other work."],
-            [DRIVER_NOT_A_LOAD_LABEL, "After Other work is logged. Skip the form (tyre, fuel, paperwork)."],
-            [DRIVER_ADD_LOAD_CHECK_LABEL, "Under the ring while still on Other work. Another Dimension & Load for this day."],
+            [DRIVER_START_OTHER_WORK_LABEL, "Not driving, still a job — load, forklift, tyre, paperwork, fuel. Then three tiles stay on the ring."],
+            [DRIVER_LOAD_CHECK_LABEL, "On Other work, always on the ring. Opens Dimension & Load. You stay on Other work. Tap again for another load. If it is not a load, stay on Other work until you drive or rest."],
             [DRIVER_END_SHIFT_LABEL, "You finish work — enter finish time and end km"],
           ]}
         />
@@ -190,7 +184,7 @@ export function DriverGuideArticle() {
        │                           │
        │         Rest ──► ${DRIVER_START_WORK_LABEL} ──► driving or Other work
        │                           │
-       │         Other work ──► ${DRIVER_CONTINUE_SHIFT_LABEL} ──► driving or Rest
+       │         Other work ──► three tiles (driving, Rest, Load check)
        │                           │
        │◄──── ${DRIVER_START_DRIVING_LABEL} (from Rest or Other work) ──┘
        │
@@ -212,7 +206,7 @@ export function DriverGuideArticle() {
           Then tap again within a few seconds when the button pulses — that second tap is what records the event (
           {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL},{" "}
           {DRIVER_START_OTHER_WORK_LABEL}, {DRIVER_END_SHIFT_LABEL}). {DRIVER_START_SHIFT_LABEL},{" "}
-          {DRIVER_START_WORK_LABEL}, {DRIVER_CONTINUE_SHIFT_LABEL}, and {DRIVER_STOP_DRIVING_LABEL} only open a split — they do not log until you pick
+          {DRIVER_START_WORK_LABEL} and {DRIVER_STOP_DRIVING_LABEL} only open a split — they do not log until you pick
           a kind.
         </p>
         <p className="mt-2">
@@ -312,9 +306,10 @@ export function DriverGuideArticle() {
           Normal day: open the week → tap {DRIVER_START_SHIFT_LABEL}. If day details are missing, Set up day opens —
           Confirm then choose {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring. If setup is
           already done, the same split opens (tap again to confirm the kind). After {DRIVER_START_OTHER_WORK_LABEL}{" "}
-          is logged, the ring asks {DRIVER_LOAD_CHECK_LABEL} or {DRIVER_NOT_A_LOAD_LABEL}. Load check opens Dimension
-          & Load; you stay on Other work. While still on Other work, {DRIVER_ADD_LOAD_CHECK_LABEL} under the ring
-          starts another load form. Daily checks (Fitness for work, Daily vehicle checklist, Dimension & load) stay
+          is logged, the ring keeps three tiles: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL},{" "}
+          {DRIVER_LOAD_CHECK_LABEL} — same after a reload. Load check opens Dimension
+          & Load; you stay on Other work. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. If it is not a load, stay
+          on Other work until you drive or rest. Daily checks (Fitness for work, Daily vehicle checklist, Dimension & load) stay
           available on the day card for depot / already-loaded work. Forms are optional in trial — do not block Start
           shift.
         </p>
@@ -555,9 +550,9 @@ export function DriverGuideArticle() {
           <li>
             Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
             in trial — do not block Start shift). Daily checks order is Fitness for work, Daily vehicle checklist, then
-            Dimension & load. After {DRIVER_START_OTHER_WORK_LABEL} is logged, choose {DRIVER_LOAD_CHECK_LABEL} or{" "}
-            {DRIVER_NOT_A_LOAD_LABEL}; while still on Other work use {DRIVER_ADD_LOAD_CHECK_LABEL} under the ring for
-            another load. After a form is saved, use View to read it, or Redo / Add another for a
+            Dimension & load. After {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including{" "}
+            {DRIVER_LOAD_CHECK_LABEL} (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL}{" "}
+            again for another load. After a form is saved, use View to read it, or Redo / Add another for a
             new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) downloads a week pack per checklist type
             (FFW / Prestart / Load as separate files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL}{" "}
             sends those PDFs to your address in Settings → {DRIVER_SETTINGS_SECTIONS.delivery.title} →{" "}
@@ -567,7 +562,7 @@ export function DriverGuideArticle() {
             load. Loader CoR stays separate (present sign, pending, or photo gap — no proxy).
           </li>
           <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted, then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL})</li>
-          <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. From Rest, tap {DRIVER_START_WORK_LABEL} then driving or Other work. After Other work is logged, choose {DRIVER_LOAD_CHECK_LABEL} or {DRIVER_NOT_A_LOAD_LABEL}. From Other work, tap {DRIVER_CONTINUE_SHIFT_LABEL} then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_REST_LABEL} (or {DRIVER_ADD_LOAD_CHECK_LABEL} under the ring for another load)</li>
+          <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. From Rest, tap {DRIVER_START_WORK_LABEL} then driving or Other work. On Other work the three tiles stay on the ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL}. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load</li>
           <li>Tap End shift when finished — enter finish time and end km</li>
           <li>When the week has ended — Sign</li>
         </ol>
@@ -592,8 +587,8 @@ export function DriverGuideArticle() {
             ],
             [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish a shift. Start shift opens driving or Other work"],
             [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],
-            [DRIVER_START_DRIVING_LABEL, "After Start shift, Start work, or Continue shift — log driving"],
-            [DRIVER_CONTINUE_SHIFT_LABEL, "On Other work — choose driving or Rest"],
+            [DRIVER_START_DRIVING_LABEL, "After Start shift, Start work, or on the Other work hub — log driving"],
+            [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, break from driving, or sleeper berth"],
             [
               "Fitness for Work",
               "Signed form filed under your name. Optional in trial. Separate PDF from Prestart and Load",
@@ -604,7 +599,7 @@ export function DriverGuideArticle() {
             ],
             [
               "Dimension & Load",
-              "One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check after Other work, Add load check while still on Other work, or Daily checks. Add another for the next load. Loader CoR is separate (no proxy)",
+              "One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check on the Other work hub, or Daily checks. Add another for the next load. Loader CoR is separate (no proxy)",
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

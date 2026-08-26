@@ -5,10 +5,13 @@ import {
   SLEEPER_BERTH_EVENT_TYPE,
 } from "@/lib/activity-kind";
 import {
+  DRIVER_BREAK_FROM_DRIVING_LABEL,
   DRIVER_CONTINUE_SHIFT_LABEL,
+  DRIVER_LOAD_CHECK_LABEL,
   DRIVER_OTHER_WORK_LABEL,
   DRIVER_REST_LABEL,
   DRIVER_START_DRIVING_LABEL,
+  DRIVER_START_REST_LABEL,
   DRIVER_START_SHIFT_LABEL,
   DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
@@ -16,9 +19,32 @@ import {
 } from "@/lib/product-copy";
 import { resolveTwoUpActivityNowLabel, resolveTwoUpHeroPrimaryLabel } from "@/lib/two-up-hero";
 
+/** Three Other work hub tiles — always shown while that kind is open (survives reload). */
+export type OtherWorkHeroTile = {
+  id: string;
+  kind: "work" | "break" | "load_check";
+  label: string;
+  /** `work` / `break` log after tap-again. Load check is not stored. */
+  logType: "work" | "break" | null;
+};
+
+export function otherWorkHeroTiles(opts?: { twoUp?: boolean }): OtherWorkHeroTile[] {
+  return [
+    { id: "drive", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
+    {
+      id: "rest",
+      kind: "break",
+      label: opts?.twoUp ? DRIVER_BREAK_FROM_DRIVING_LABEL : DRIVER_START_REST_LABEL,
+      logType: "break",
+    },
+    { id: "load", kind: "load_check", label: DRIVER_LOAD_CHECK_LABEL, logType: null },
+  ];
+}
+
 /**
  * Compact/expanded hero label from the last logged kind.
- * Continue shift is the Other work opener (chooser only). Driving itself is Stop Driving.
+ * Other work uses the three-tile hub (this string is unused while that hub is showing).
+ * Driving itself is Stop Driving.
  */
 export function resolveDriverHeroPrimaryLabel(
   currentType: string | null,

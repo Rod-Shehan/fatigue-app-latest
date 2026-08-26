@@ -3,17 +3,20 @@ import { OTHER_WORK_EVENT_TYPE, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE }
 import {
   DRIVER_BREAK_FROM_DRIVING_LABEL,
   DRIVER_CONTINUE_SHIFT_LABEL,
+  DRIVER_LOAD_CHECK_LABEL,
   DRIVER_OTHER_WORK_LABEL,
   DRIVER_PASSENGER_LABEL,
   DRIVER_REST_LABEL,
   DRIVER_SLEEPER_BERTH_LABEL,
   DRIVER_START_DRIVING_LABEL,
+  DRIVER_START_REST_LABEL,
   DRIVER_START_SHIFT_LABEL,
   DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_WORK_LABEL,
 } from "./product-copy";
 import {
+  otherWorkHeroTiles,
   resolveDriverHeroPrimaryLabel,
   resolveHeroActivityNowLabel,
   resolveWorkConfirmLabel,
@@ -28,7 +31,7 @@ describe("resolveDriverHeroPrimaryLabel", () => {
     expect(resolveDriverHeroPrimaryLabel("break")).toBe(DRIVER_START_WORK_LABEL);
   });
 
-  it("shows Continue shift only on Other work", () => {
+  it("shows Continue shift only on Other work (unused while the three-tile hub is showing)", () => {
     expect(resolveDriverHeroPrimaryLabel(OTHER_WORK_EVENT_TYPE)).toBe(DRIVER_CONTINUE_SHIFT_LABEL);
   });
 
@@ -123,5 +126,25 @@ describe("resolveHeroActivityNowLabel", () => {
       DRIVER_SLEEPER_BERTH_LABEL
     );
     expect(resolveHeroActivityNowLabel("break", { twoUp: true })).toBe(DRIVER_BREAK_FROM_DRIVING_LABEL);
+  });
+});
+
+describe("otherWorkHeroTiles", () => {
+  it("keeps driving, rest, and load check on one hub", () => {
+    const tiles = otherWorkHeroTiles();
+    expect(tiles.map((t) => t.label)).toEqual([
+      DRIVER_START_DRIVING_LABEL,
+      DRIVER_START_REST_LABEL,
+      DRIVER_LOAD_CHECK_LABEL,
+    ]);
+    expect(tiles.map((t) => t.logType)).toEqual(["work", "break", null]);
+  });
+
+  it("uses Break from driving on the rest tile when two-up", () => {
+    expect(otherWorkHeroTiles({ twoUp: true }).map((t) => t.label)).toEqual([
+      DRIVER_START_DRIVING_LABEL,
+      DRIVER_BREAK_FROM_DRIVING_LABEL,
+      DRIVER_LOAD_CHECK_LABEL,
+    ]);
   });
 });

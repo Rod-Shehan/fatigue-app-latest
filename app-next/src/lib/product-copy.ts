@@ -187,7 +187,7 @@ export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
 
 /** First tap when idle / after End shift. Opens Driving / Other work chooser (or Set up day first). */
 export const DRIVER_START_SHIFT_LABEL = "Start shift";
-/** On Other work: opens Driving / Rest chooser. Does not log by itself. */
+/** Two-up Passenger: opens driving / break / sleeper. Does not log by itself. */
 export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";
 /** From Rest: opens Driving / Other work chooser. Does not log by itself. */
 export const DRIVER_START_WORK_LABEL = "Start work";
@@ -208,23 +208,20 @@ export const DRIVER_NON_WORK_LABEL = "Non-work";
 export const DRIVER_END_SHIFT_LABEL = "End shift";
 /** On Work: opens Rest / Other work chooser. Not stored. Not End shift. */
 export const DRIVER_STOP_DRIVING_LABEL = "Stop Driving";
-/** Top half of the Stop Driving split, or bottom of the Continue shift split. */
+/** Top half of the Stop Driving split, or on the Other work hub. */
 export const DRIVER_START_REST_LABEL = "Start Rest";
 /** Bottom half of the Stop Driving / Start shift / Start work split. */
 export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";
-/** After Other work is logged — open Dimension & Load (timeline stays Other work). */
+/** On the Other work hub — open Dimension & Load (timeline stays Other work). */
 export const DRIVER_LOAD_CHECK_LABEL = "Load check";
-/** After Other work is logged — skip the form (tyre, fuel, paperwork). */
-export const DRIVER_NOT_A_LOAD_LABEL = "Not a load";
-/** While still on Other work — another Dimension & Load record for this day. */
+/** Kept for tests / Daily checks copy. The Other work hub uses Load check, not this label. */
 export const DRIVER_ADD_LOAD_CHECK_LABEL = "Add load check";
 
-/** Under the Other work ring: Add load check, or Add load check · N today. */
 export function formatAddLoadCheckLabel(completedToday: number): string {
   const n = Number.isFinite(completedToday) ? Math.max(0, Math.floor(completedToday)) : 0;
   return n > 0 ? `${DRIVER_ADD_LOAD_CHECK_LABEL} · ${n} today` : DRIVER_ADD_LOAD_CHECK_LABEL;
 }
-/** Top half of the Start shift / Start work / Continue shift split. Logs driving work. */
+/** Top of Start shift / Start work, or on the Other work hub. Logs driving work. */
 export const DRIVER_START_DRIVING_LABEL = "Start driving";
 /** Rest-only corner puck — question, not a fifth activity. */
 export const DRIVER_NAP_QUESTION_LABEL = "Taking a nap?";

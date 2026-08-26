@@ -29,5 +29,9 @@ describe("getDriverHomeShiftStatus", () => {
     const s = getDriverHomeShiftStatus(days, 4, week, today, now);
     expect(s.activity).toBe("other_work");
     expect(s.headline).toContain("On other work");
+    expect(s.detail).toMatch(/Start driving/);
+    expect(s.detail).toMatch(/Start Rest/);
+    expect(s.detail).toMatch(/Load check/);
+    expect(s.detail).not.toMatch(/Not a load/);
   });
 });

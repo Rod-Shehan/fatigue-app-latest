@@ -3,7 +3,6 @@ import { DriverAccessGate } from "@/components/auth/DriverAccessGate";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 import {
-  DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_HELP_RECORDS_SIGNING_BULLETS,
   DRIVER_START_SHIFT_LABEL,
   DRIVER_START_WORK_LABEL,
@@ -17,6 +16,7 @@ import {
   DRIVER_OTHER_WORK_LABEL,
   DRIVER_NAP_QUESTION_LABEL,
   DRIVER_ON_NAP_LABEL,
+  DRIVER_LOAD_CHECK_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
   SHEET_ATTESTATION_WORKFLOW,
@@ -122,15 +122,16 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">
-                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_START_WORK_LABEL} / {DRIVER_CONTINUE_SHIFT_LABEL} /{" "}
+                  {DRIVER_START_SHIFT_LABEL} / {DRIVER_START_WORK_LABEL} /{" "}
                   {DRIVER_STOP_DRIVING_LABEL} / {DRIVER_END_SHIFT_LABEL}
                 </strong>{" "}
                 — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} opens a split:{" "}
                 {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} (Set up day first if details are
                 missing — Confirm does not start driving by itself). On Rest, {DRIVER_START_WORK_LABEL} opens the same
                 split (driving or Other work / loading). {DRIVER_STOP_DRIVING_LABEL}{" "}
-                opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. On Other work,{" "}
-                {DRIVER_CONTINUE_SHIFT_LABEL} opens a split: {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_REST_LABEL}.
+                opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. On Other work, three tiles
+                stay on the ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL}{" "}
+                (same after a reload).
                 A small note under the timer shows {DRIVER_WORK_LABEL}, {DRIVER_REST_LABEL}, or{" "}
                 {DRIVER_OTHER_WORK_LABEL}. {DRIVER_END_SHIFT_LABEL} is off the
                 job.
@@ -143,9 +144,11 @@ export default async function DriverHelpPage() {
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">{DRIVER_START_OTHER_WORK_LABEL}</strong> — not
-                driving, still a job (load, forklift, tyre, paperwork, fuel). After tap-again, the ring asks Load check
-                or Not a load. Load check opens Dimension & Load; you stay on Other work. While still on Other work, Add
-                load check under the ring starts another load form. Daily checks on the day card stay available. Shown on
+                driving, still a job (load, forklift, tyre, paperwork, fuel). After tap-again, three tiles stay on the
+                ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL} (same after a
+                reload). {DRIVER_LOAD_CHECK_LABEL} opens Dimension & Load; you stay on Other work. Tap it again for
+                another load. If it is not a load, stay on Other work until you drive or rest. Daily checks on the day
+                card stay available. Shown on
                 breaks from driving. Never becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still
                 work time for 168h.
               </li>

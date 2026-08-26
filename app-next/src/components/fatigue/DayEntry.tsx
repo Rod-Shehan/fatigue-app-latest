@@ -181,7 +181,7 @@ export default function DayEntry({
   dayTools?: DayCardToolsConfig;
   /** Parent bump opens Set up day (e.g. Start shift blocked → Go to today's card). */
   setupOpenRequest?: number;
-  /** Parent bump opens Dimension & Load (Other work Load check / Add load check). */
+  /** Parent bump opens Dimension & Load (Other work Load check tile, or Daily checks). */
   dimensionLoadOpenRequest?: number;
   /** Hero Start/Resume deferred here — Confirm then opens driving / Other work chooser. */
   startWorkAfterSetup?: boolean;

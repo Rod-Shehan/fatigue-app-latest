@@ -51,16 +51,15 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_CONTINUE_SHIFT_LABEL, DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL, DRIVER_LOAD_CHECK_LABEL, DRIVER_NOT_A_LOAD_LABEL, formatAddLoadCheckLabel } from "@/lib/product-copy";
+import { DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL, DRIVER_LOAD_CHECK_LABEL } from "@/lib/product-copy";
 import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
-import { listCompletedChecklistsOfType, type ChecklistRecord } from "@/lib/checklist/record";
 import {
   twoUpChooserAria,
   twoUpPassengerTiles,
   twoUpSleeperBerthTiles,
   twoUpStopDrivingTiles,
 } from "@/lib/two-up-hero";
-import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel } from "@/lib/driver-hero-primary";
+import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel, otherWorkHeroTiles } from "@/lib/driver-hero-primary";
 import { isHeroChooserGhostClick } from "@/lib/hero-chooser-guard";
 import { getEndShiftButtonChrome, getNapQuestionChrome, getOnNapChrome } from "@/lib/driver-compliance-chrome";
 import { isRestNapTagged } from "@/lib/rest-nap";
@@ -252,10 +251,6 @@ export default function LogBar({
   const [startShiftChooserOpen, setStartShiftChooserOpen] = useState(false);
   /** Rest → Start work chooser: Start driving / Start Other Work (not a logged event). */
   const [restWorkChooserOpen, setRestWorkChooserOpen] = useState(false);
-  /** Other work → Continue shift chooser: Start driving / Start Rest (not a logged event). */
-  const [otherWorkChooserOpen, setOtherWorkChooserOpen] = useState(false);
-  /** After Other work is logged — Load check / Not a load (not a logged event). */
-  const [loadCheckChooserOpen, setLoadCheckChooserOpen] = useState(false);
   /** Timestamp when a chooser opened — ignore the opener tap retargeted onto a split half. */
   const chooserOpenedAtRef = useRef(0);
   /** When both Start shift and Resume shift are offered, tracks which work path is confirming. */
@@ -328,7 +323,6 @@ export default function LogBar({
     if (currentType !== "work") setStopDrivingChooserOpen(false);
     if (currentType != null) setStartShiftChooserOpen(false);
     if (currentType !== "break") setRestWorkChooserOpen(false);
-    if (currentType !== OTHER_WORK_EVENT_TYPE) setOtherWorkChooserOpen(false);
     if (currentType !== PASSENGER_EVENT_TYPE) setPassengerChooserOpen(false);
     if (currentType !== SLEEPER_BERTH_EVENT_TYPE) setSleeperChooserOpen(false);
   }, [currentType]);
@@ -682,14 +676,11 @@ export default function LogBar({
     open();
   }, []);
 
-  const openLoadCheckFollowOn = useCallback(() => {
-    setStopDrivingChooserOpen(false);
-    setStartShiftChooserOpen(false);
-    setRestWorkChooserOpen(false);
-    setOtherWorkChooserOpen(false);
-    setSleeperChooserOpen(false);
-    openHeroChooser(() => setLoadCheckChooserOpen(true));
-  }, [openHeroChooser]);
+  useEffect(() => {
+    if (currentType === OTHER_WORK_EVENT_TYPE) {
+      chooserOpenedAtRef.current = Date.now();
+    }
+  }, [currentType]);
 
   const runChooserOption = useCallback((fn: () => void) => {
     if (isHeroChooserGhostClick(chooserOpenedAtRef.current)) return;
@@ -707,7 +698,6 @@ export default function LogBar({
   useEffect(() => {
     clearPending();
     setWorkWarning(null);
-    setLoadCheckChooserOpen(false);
   }, [currentDayIndex, clearPending]);
 
   /** Phase 1 voice: work-warning modals (card incomplete, etc.). */
@@ -883,7 +873,7 @@ export default function LogBar({
         onLogEvent(currentDayIndex, type);
       }
       if (enteringOtherWork) {
-        openLoadCheckFollowOn();
+        chooserOpenedAtRef.current = Date.now();
       }
       return;
     }
@@ -892,33 +882,32 @@ export default function LogBar({
 
     if (type === "work") {
       if (
+        !isOpenShiftEventType(currentType) &&
         !startShiftChooserOpen &&
         !restWorkChooserOpen &&
-        !otherWorkChooserOpen &&
         !passengerChooserOpen &&
         !sleeperChooserOpen
       ) {
         const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
-        if (nonWorkMsg) {
-          setWorkWarning({
-            message: nonWorkMsg,
+      if (nonWorkMsg) {
+        setWorkWarning({
+          message: nonWorkMsg,
             confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
             subtext: `Tap ${DRIVER_START_SHIFT_LABEL} again within a few seconds to confirm.`,
-            onConfirm: () => {
-              setWorkWarning(null);
+          onConfirm: () => {
+            setWorkWarning(null);
               armPending("work", episodeResume);
               if (voiceAlertsEnabled) {
                 speakVoiceAlert(`Tap ${DRIVER_START_SHIFT_LABEL} again to confirm.`);
               }
-            },
-          });
-          return;
-        }
+          },
+        });
+        return;
+      }
       }
       const workConfirmLabel = resolveWorkConfirmLabel({
         startShiftChooserOpen,
         restWorkChooserOpen,
-        otherWorkChooserOpen,
         passengerChooserOpen,
         sleeperChooserOpen,
         currentType,
@@ -963,21 +952,21 @@ export default function LogBar({
     if (type === OTHER_WORK_EVENT_TYPE && currentType === null && !startShiftChooserOpen) {
       const nonWorkMsg = getInsufficientNonWorkWarning(Boolean(showResumeShiftPrimary));
       if (nonWorkMsg) {
-        setWorkWarning({
+          setWorkWarning({
           message: nonWorkMsg,
           confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
           subtext: `Tap ${DRIVER_START_OTHER_WORK_LABEL} again within a few seconds to confirm.`,
-          onConfirm: () => {
-            setWorkWarning(null);
+            onConfirm: () => {
+              setWorkWarning(null);
             armPending(OTHER_WORK_EVENT_TYPE, false);
             if (voiceAlertsEnabled) {
               speakVoiceAlert(`Tap ${DRIVER_START_OTHER_WORK_LABEL} again to confirm.`);
             }
           },
-        });
-        return;
+          });
+          return;
+        }
       }
-    }
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
       if (showShiftStartSetupBlock(type, { episodeResume })) return;
@@ -991,7 +980,7 @@ export default function LogBar({
         type === OTHER_WORK_EVENT_TYPE && currentType !== OTHER_WORK_EVENT_TYPE;
       onLogEvent(currentDayIndex, type);
       if (enteringOtherWork) {
-        openLoadCheckFollowOn();
+        chooserOpenedAtRef.current = Date.now();
       }
       return;
     }
@@ -1013,7 +1002,6 @@ export default function LogBar({
                   : resolveWorkConfirmLabel({
                       startShiftChooserOpen,
                       restWorkChooserOpen,
-                      otherWorkChooserOpen,
                       passengerChooserOpen,
                       sleeperChooserOpen,
                       currentType,
@@ -1061,16 +1049,14 @@ export default function LogBar({
       work:
         startShiftChooserOpen ||
         restWorkChooserOpen ||
-        otherWorkChooserOpen ||
-        currentType === "break"
+        currentType === "break" ||
+        currentType === OTHER_WORK_EVENT_TYPE
           ? DRIVER_START_DRIVING_LABEL
           : currentType === null
             ? DRIVER_START_SHIFT_LABEL
-            : currentType === OTHER_WORK_EVENT_TYPE
-              ? DRIVER_CONTINUE_SHIFT_LABEL
-              : isWorkTimeEventType(currentType ?? "")
-                ? DRIVER_STOP_DRIVING_LABEL
-                : DRIVER_START_WORK_LABEL,
+            : isWorkTimeEventType(currentType ?? "")
+              ? DRIVER_STOP_DRIVING_LABEL
+              : DRIVER_START_WORK_LABEL,
       break: DRIVER_START_REST_LABEL,
       other_work: DRIVER_START_OTHER_WORK_LABEL,
       stop_driving: DRIVER_STOP_DRIVING_LABEL,
@@ -1095,19 +1081,15 @@ export default function LogBar({
         return;
       }
       if (intent === "work" && currentType === OTHER_WORK_EVENT_TYPE) {
-        if (otherWorkChooserOpen) {
-          voiceFinalizeNextLogRef.current = true;
-          try {
-            handleLog("work");
-          } finally {
-            voiceFinalizeNextLogRef.current = false;
-          }
-          return;
+        voiceFinalizeNextLogRef.current = true;
+        try {
+          handleLog("work");
+        } finally {
+          voiceFinalizeNextLogRef.current = false;
         }
-        openHeroChooser(() => setOtherWorkChooserOpen(true));
         return;
       }
-      if (intent === "break" && currentType === OTHER_WORK_EVENT_TYPE && otherWorkChooserOpen) {
+      if (intent === "break" && currentType === OTHER_WORK_EVENT_TYPE) {
         voiceFinalizeNextLogRef.current = true;
         try {
           handleLog("break");
@@ -1142,24 +1124,14 @@ export default function LogBar({
   const restNapTagged = isRestNapTagged(lastEvent);
   const showNapDock =
     Boolean(isLiveNow && onSetRestNap && !isTwoUp && currentType === "break" && pendingType !== "stop");
+  const otherWorkHubOpen = Boolean(isLiveNow && currentType === OTHER_WORK_EVENT_TYPE);
   const heroChooserOpen =
     (stopDrivingChooserOpen && currentType === "work") ||
     (startShiftChooserOpen && currentType === null) ||
     (restWorkChooserOpen && currentType === "break") ||
-    (loadCheckChooserOpen && currentType === OTHER_WORK_EVENT_TYPE) ||
-    (otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE) ||
+    otherWorkHubOpen ||
     (passengerChooserOpen && currentType === PASSENGER_EVENT_TYPE) ||
     (sleeperChooserOpen && currentType === SLEEPER_BERTH_EVENT_TYPE);
-  const dimensionLoadCountToday = listCompletedChecklistsOfType(
-    (currentDayDisplay?.checklists ?? days[currentDayIndex]?.checklists) as
-      | ChecklistRecord[]
-      | undefined,
-    "dimension_load"
-  ).length;
-  const showAddLoadCheck =
-    Boolean(onOpenDimensionLoad) &&
-    currentType === OTHER_WORK_EVENT_TYPE &&
-    !heroChooserOpen;
   const twoUpHeroUnlockedWhileMoving =
     isTwoUp &&
     (currentType === "work" ||
@@ -1200,8 +1172,6 @@ export default function LogBar({
     sessionDimmed,
     primaryActionPending,
     sessionToolsOpen,
-    showAddLoadCheck,
-    dimensionLoadCountToday,
     heroChooserOpen,
   ]);
 
@@ -1289,8 +1259,8 @@ export default function LogBar({
       ? DRIVER_NAP_QUESTION_COMPACT_LABEL
       : DRIVER_NAP_QUESTION_LABEL;
   const napButton = showNapDock ? (
-    <div
-      className={cn(
+            <div
+              className={cn(
         "inline-flex shrink-0 rounded-full transition-all duration-500 ease-out",
         endShiftTrimPaddingClass(primaryHeroExpanded, primaryBarCompact, false),
         napChrome.trimClass,
@@ -1301,7 +1271,7 @@ export default function LogBar({
         type="button"
         onClick={() => onSetRestNap?.(!restNapTagged)}
         disabled={isMoving}
-        className={cn(
+                      className={cn(
           "flex flex-col items-center justify-center rounded-full font-bold",
           "touch-manipulation select-none",
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
@@ -1322,12 +1292,12 @@ export default function LogBar({
       >
         {!primaryBarCompact && restNapTagged ? (
           <Moon
-            className={cn(
+                        className={cn(
               "shrink-0",
               endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact, false)
-            )}
-            aria-hidden
-          />
+                        )}
+                        aria-hidden
+                      />
         ) : null}
         <span
           className={cn(
@@ -1346,7 +1316,7 @@ export default function LogBar({
       {logBarBanner ? (
         <div
           role="status"
-              className={cn(
+                        className={cn(
             "px-3 py-2 text-sm",
             isIdleAtTop || (sessionDimmed && shiftSegmentOpen)
               ? "text-center text-white/80 px-0 py-0"
@@ -1369,8 +1339,8 @@ export default function LogBar({
           </p>
         ) : null}
         <div className="flex w-full flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:gap-3 shrink-0 min-w-0">
-          <div
-                        className={cn(
+                        <div
+                          className={cn(
               "flex w-full flex-col items-center gap-2.5 min-w-0",
               sessionDimmed ? "max-w-md" : "sm:items-center"
             )}
@@ -1415,11 +1385,6 @@ export default function LogBar({
               }
               if (currentType === "break") {
                 openHeroChooser(() => setRestWorkChooserOpen(true));
-                return;
-              }
-              if (currentType === OTHER_WORK_EVENT_TYPE) {
-                setLoadCheckChooserOpen(false);
-                openHeroChooser(() => setOtherWorkChooserOpen(true));
                 return;
               }
               if (currentType === PASSENGER_EVENT_TYPE) {
@@ -1513,38 +1478,34 @@ export default function LogBar({
                         restPending: pendingType === "work",
                         otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
                       }
-                    : loadCheckChooserOpen && currentType === OTHER_WORK_EVENT_TYPE
-                      ? {
-                          variant: "load-check",
-                          restLabel: DRIVER_LOAD_CHECK_LABEL,
-                          otherWorkLabel: DRIVER_NOT_A_LOAD_LABEL,
-                          onStartRest: () =>
-                            runChooserOption(() => {
-                              setLoadCheckChooserOpen(false);
-                              onOpenDimensionLoad?.();
-                            }),
-                          onStartOtherWork: () =>
-                            runChooserOption(() => setLoadCheckChooserOpen(false)),
-                          onCancel: () => {
-                            clearPending();
-                            setLoadCheckChooserOpen(false);
-                          },
-                          restPending: false,
-                          otherWorkPending: false,
-                        }
-                    : otherWorkChooserOpen && currentType === OTHER_WORK_EVENT_TYPE
+                    : otherWorkHubOpen
                       ? {
                           variant: "continue-shift",
                           restLabel: DRIVER_START_DRIVING_LABEL,
                           otherWorkLabel: DRIVER_START_REST_LABEL,
                           onStartRest: () => runChooserOption(() => handleLog("work")),
                           onStartOtherWork: () => runChooserOption(() => handleLog("break")),
-                          onCancel: () => {
-                            clearPending();
-                            setOtherWorkChooserOpen(false);
-                          },
+                          onCancel: () => {},
+                          hideCancel: true,
                           restPending: pendingType === "work",
                           otherWorkPending: pendingType === "break",
+                          ariaLabel: `On Other work — ${DRIVER_START_DRIVING_LABEL}, ${
+                            isTwoUp ? DRIVER_BREAK_FROM_DRIVING_LABEL : DRIVER_START_REST_LABEL
+                          }, or ${DRIVER_LOAD_CHECK_LABEL}`,
+                          tiles: otherWorkHeroTiles({ twoUp: isTwoUp }).map((tile) => ({
+                            kind: tile.kind,
+                            label: tile.label,
+                            onClick: () =>
+                              runChooserOption(() => {
+                                if (tile.logType) {
+                                  handleLog(tile.logType);
+                                  return;
+                                }
+                                if (tile.id === "load") onOpenDimensionLoad?.();
+                              }),
+                            pending: tile.logType != null && pendingType === tile.logType,
+                            disabled: isMoving || (tile.id === "load" && !onOpenDimensionLoad),
+                          })),
                         }
                       : passengerChooserOpen && currentType === PASSENGER_EVENT_TYPE
                         ? {
@@ -1582,33 +1543,19 @@ export default function LogBar({
                           : null
             }
             auxiliaryActions={
-              showAddLoadCheck || sessionDimmed
+              sessionDimmed
                 ? [
-                    ...(showAddLoadCheck
-                      ? [
-                          {
-                            label: formatAddLoadCheckLabel(dimensionLoadCountToday),
-                            onAction: onOpenDimensionLoad!,
-                            icon: ClipboardList,
-                            onDark: sessionDimmed,
-                          },
-                        ]
-                      : []),
-                    ...(sessionDimmed
-                      ? [
-                          {
-                            label: "View diary",
-                            onAction: viewDiary,
-                            icon: ChevronUp,
-                            onDark: true,
-                          },
-                        ]
-                      : []),
+                    {
+                      label: "View diary",
+                      onAction: viewDiary,
+                      icon: ChevronUp,
+                      onDark: true,
+                    },
                   ]
                 : undefined
             }
-          />
-          </div>
+                        />
+                      </div>
         </div>
       </div>
     </div>
@@ -1666,11 +1613,11 @@ export default function LogBar({
               {(complianceButton?.hasViolations || complianceButton?.hasWarnings) && (
                 <span
                   className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-black/40"
-                  aria-hidden
-                />
-              )}
+                      aria-hidden
+                    />
+                )}
             </button>
-          </div>
+              </div>
         )}
                 <div
                   className={cn(
@@ -1724,12 +1671,12 @@ export default function LogBar({
               "flex w-full shrink-0 items-center justify-end gap-2 border-t border-black/10 pt-2 md:w-auto md:self-center md:border-t-0 md:pt-0 md:justify-start",
               hideSecondaryToolbar && "hidden"
             )}
-          >
+      >
             {sheetViewMode && isLiveNow && !hideSecondaryToolbar && (
-              <button
-                type="button"
+            <button
+              type="button"
                 onClick={restoreFocusHero}
-                className={cn(
+              className={cn(
                   touchHeaderBtn,
                   "shrink-0 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 )}
@@ -1743,7 +1690,7 @@ export default function LogBar({
               <button
                 type="button"
                 onClick={openSessionTools}
-                className={cn(
+                  className={cn(
                   touchHeaderBtn,
                   "relative shrink-0 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-600 bg-white/90 dark:bg-slate-900/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                 )}
@@ -1756,10 +1703,10 @@ export default function LogBar({
                 {(complianceButton?.hasViolations || complianceButton?.hasWarnings) && (
                   <span
                     className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-amber-400 ring-2 ring-white dark:ring-slate-900"
-                    aria-hidden
-                  />
-                )}
-              </button>
+                  aria-hidden
+                />
+              )}
+            </button>
             )}
           </div>
         </div>
@@ -1781,14 +1728,14 @@ export default function LogBar({
             </div>
             {forgottenActionReminder.variant === "break-due" && (
               <div className="mt-3">
-                <button
-                  type="button"
+              <button
+                type="button"
                   onClick={() => openHeroChooser(() => setStopDrivingChooserOpen(true))}
                   className={driverAmberBtn}
                 >
                   <Pause className="w-4 h-4" />
                   {DRIVER_STOP_DRIVING_LABEL}
-                </button>
+              </button>
               </div>
             )}
             {/* break-complete / break-long: message only — Resume work is the hero action. */}
@@ -1821,7 +1768,7 @@ export default function LogBar({
                 >
                     {workWarning.setupRecordLabel}
                 </button>
-                ) : null}
+            ) : null}
                   <button
                     type="button"
                   onClick={() => workWarning.onConfirm()}
@@ -1829,8 +1776,8 @@ export default function LogBar({
                   >
                   {workWarning.confirmLabel}
                   </button>
-              </div>
-            </div>
+          </div>
+        </div>
               </div>
             )}
       </div>
@@ -1844,8 +1791,8 @@ export default function LogBar({
             aria-labelledby="driver-focus-tools-title"
             id="driver-focus-tools-sheet"
           >
-                <button
-                  type="button"
+            <button
+              type="button"
               className="absolute inset-0 w-full h-full cursor-default border-0 bg-black/50 p-0"
               aria-label="Dismiss options"
               onPointerDown={(e) => {
@@ -1862,9 +1809,9 @@ export default function LogBar({
                       Options
                     </h2>
                     <p className="text-xs text-white/60 mt-1">Compliance, voice, and display</p>
-              </div>
-                <button
-                  type="button"
+                  </div>
+                  <button
+                    type="button"
                     className="shrink-0 rounded-xl p-2 hover:bg-white/10 text-white/80"
                     onPointerDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
@@ -1874,7 +1821,7 @@ export default function LogBar({
                     aria-label="Close"
                   >
                     <X className="h-7 w-7" />
-                </button>
+                  </button>
                 </div>
                 {complianceButton && (
                 <button
@@ -1926,9 +1873,9 @@ export default function LogBar({
                     iconClassName={touchSheetIcon}
                   />
                   <ThemeToggle className={touchSheetBtn} iconClassName={touchSheetIcon} />
+                </div>
               </div>
             </div>
-          </div>
           </div>,
           document.body
         )}
@@ -1941,8 +1888,8 @@ export default function LogBar({
           )}
         >
           <div className="pointer-events-auto">{napButton}</div>
-        </div>
-      )}
+              </div>
+            )}
       {showEndShiftDock && (
         <div
           ref={fixedEndShiftRef}
@@ -1953,8 +1900,8 @@ export default function LogBar({
           )}
         >
           <div className="pointer-events-auto">{endShiftButton}</div>
-      </div>
-      )}
+          </div>
+        )}
     </>
   );
 }
