@@ -188,7 +188,7 @@ export interface DriverActionHeroProps {
 /**
  * Expanded round primary action — Start shift / Start work / Stop Driving.
  * After Start shift or Start work: vertical split Start driving / Start Other Work.
- * On Other work: three-tile hub (Start driving / Start Rest / Load check).
+ * On Other work: three-tile hub (Start driving across the top, Start Rest / Load check below).
  * After Stop Driving: vertical split Start Rest / Start Other Work.
  */
 export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
@@ -442,21 +442,31 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
       >
         {useTileGrid && chooserTiles ? (
           <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 overflow-hidden rounded-full">
-            {chooserTiles.map((tile, index) => (
-              <HeroSplitHalf
-                key={tile.label + index}
-                kind={tile.kind}
-                edge={index < 2 ? "top" : "bottom"}
-                label={tile.label}
-                pending={tile.pending}
-                onClick={tile.onClick}
-                disabled={tile.disabled}
-                compact={compact}
-                expanded={expanded}
-                fill
-                className={chooserTiles.length === 3 && index === 2 ? "col-span-2" : undefined}
-              />
-            ))}
+            {chooserTiles.map((tile, index) => {
+              const threeTile = chooserTiles.length === 3;
+              const edge: "top" | "bottom" = threeTile
+                ? index === 0
+                  ? "top"
+                  : "bottom"
+                : index < 2
+                  ? "top"
+                  : "bottom";
+              return (
+                <HeroSplitHalf
+                  key={tile.label + index}
+                  kind={tile.kind}
+                  edge={edge}
+                  label={tile.label}
+                  pending={tile.pending}
+                  onClick={tile.onClick}
+                  disabled={tile.disabled}
+                  compact={compact}
+                  expanded={expanded}
+                  fill
+                  className={threeTile && index === 0 ? "col-span-2" : undefined}
+                />
+              );
+            })}
           </div>
         ) : (
         <div className="absolute inset-0 flex flex-col overflow-hidden rounded-full">

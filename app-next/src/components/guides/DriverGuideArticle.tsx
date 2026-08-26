@@ -152,8 +152,8 @@ export function DriverGuideArticle() {
 │ [ ${DRIVER_START_DRIVING_LABEL} ]            │
 │ [ ${DRIVER_START_OTHER_WORK_LABEL} ]        │
 │ On Other work (three tiles):│
-│ [ ${DRIVER_START_DRIVING_LABEL} ] [ ${DRIVER_START_REST_LABEL} ]
-│ [        ${DRIVER_LOAD_CHECK_LABEL}            ] │
+│ [        ${DRIVER_START_DRIVING_LABEL}            ]
+│ [ ${DRIVER_START_REST_LABEL} ] [ ${DRIVER_LOAD_CHECK_LABEL} ] │
 │ [ ${DRIVER_STOP_DRIVING_LABEL} ]             │
 │   then split:               │
 │ [ ${DRIVER_START_REST_LABEL} ]              │

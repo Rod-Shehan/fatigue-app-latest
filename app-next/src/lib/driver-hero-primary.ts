@@ -19,7 +19,7 @@ import {
 } from "@/lib/product-copy";
 import { resolveTwoUpActivityNowLabel, resolveTwoUpHeroPrimaryLabel } from "@/lib/two-up-hero";
 
-/** Three Other work hub tiles — always shown while that kind is open (survives reload). */
+/** Three Other work hub tiles — Start driving spans the top; Rest and Load check sit below. */
 export type OtherWorkHeroTile = {
   id: string;
   kind: "work" | "break" | "load_check";

@@ -70,8 +70,8 @@ At the top of **this week** you see big buttons. The buttons change to match wha
 │ [ Start driving ]           │
 │ [ Start Other Work ]        │
 │ On Other work (three tiles):│
-│ [ Start driving ] [ Start Rest ]
-│ [        Load check            ] │
+│ [        Start driving            ]
+│ [ Start Rest ] [ Load check ] │
 │ [ Stop Driving ]            │
 │   then split:               │
 │ [ Start Rest ]              │
