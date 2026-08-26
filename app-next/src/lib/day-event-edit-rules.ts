@@ -2,8 +2,9 @@
  * Edit-day event sequence rules — block illogical diary corrections.
  *
  * Rolling timeline still applies: open work may continue overnight without a
- * same-day closer. Breaks must sit inside a work bout (not inside non-work).
- * End shift must close work/break. These are entry-shape rules, not Reg 184E
+ * same-day closer. Rest must sit inside a work bout (not after End shift / non-work).
+ * Other work may start a new shift from idle — same as Start shift → Start Other Work.
+ * End shift must close work/rest/other work. These are entry-shape rules, not Reg 184E
  * threshold changes.
  */
 
@@ -130,7 +131,7 @@ export function validateDayEventEdits(
       continue;
     }
 
-    if (ev.type === "break" || ev.type === "other_work") {
+    if (ev.type === "break") {
       if (!inWorkBout(prior)) {
         const from =
           prior === "non_work"
@@ -138,11 +139,10 @@ export function validateDayEventEdits(
             : prior === "stop"
               ? "End shift"
               : "the start of the day (no open work)";
-        const kind = ev.type === "other_work" ? "Other work" : "Rest";
         issues.push({
           eventIndex: oi,
           code: "break_without_work",
-          message: `${kind} needs work before it — you can’t start ${kind.toLowerCase()} from ${from}. Add or keep Work first.`,
+          message: `Rest needs work before it — you can’t start rest from ${from}. Add or keep Work first.`,
         });
       }
     }

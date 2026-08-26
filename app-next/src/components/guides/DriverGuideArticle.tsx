@@ -343,8 +343,9 @@ export function DriverGuideArticle() {
             work, Rest, and Other work. If End shift is on that day after work the same day, end km is required
             on the same card. Overnight finish (End shift only on this card): leave end km blank when
             it is already on the previous day, then enter start km to begin the next shift. Rest only
-            during a work bout (not in the middle of non-work). Don&apos;t leave a break open — resume
-            work, go to non-work, or End shift. Open work overnight is fine.
+            during a work bout (not after End shift or in the middle of non-work). Don&apos;t leave Rest
+            open — resume work, Other work, non-work, or End shift. Other work can start the next shift
+            after End shift (loading) — you do not need Work first. Open work overnight is fine.
           </li>
           <li>
             Sunday / week seam: Saturday is on the previous week sheet. On Sunday&apos;s card, tap{" "}

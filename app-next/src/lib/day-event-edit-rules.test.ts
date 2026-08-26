@@ -113,6 +113,35 @@ describe("day-event-edit-rules", () => {
     expect(issues).toEqual([]);
   });
 
+  it("allows other_work after End shift (new shift starting with loading)", () => {
+    const issues = validateDayEventEdits(
+      [
+        { time: t("02:36"), type: "stop" },
+        { time: t("18:06"), type: "other_work" },
+      ],
+      { activityBeforeDay: "work" }
+    );
+    expect(issues).toEqual([]);
+  });
+
+  it("allows other_work as the first event of a new shift", () => {
+    const issues = validateDayEventEdits([{ time: t("18:06"), type: "other_work" }], {
+      activityBeforeDay: null,
+    });
+    expect(issues).toEqual([]);
+  });
+
+  it("allows other_work after non-work", () => {
+    const issues = validateDayEventEdits(
+      [
+        { time: t("08:00"), type: "non_work" },
+        { time: t("18:00"), type: "other_work" },
+      ],
+      { activityBeforeDay: null }
+    );
+    expect(issues).toEqual([]);
+  });
+
   it("allows End shift after other_work", () => {
     const issues = validateDayEventEdits(
       [
