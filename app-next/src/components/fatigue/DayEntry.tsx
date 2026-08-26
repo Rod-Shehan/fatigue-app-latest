@@ -708,11 +708,6 @@ export default function DayEntry({
           truck_rego: routeDisplayDay.truck_rego,
           start_location: routeDisplayDay.start_location,
           destination: routeDisplayDay.destination,
-          route_label: routeDisplayDay.route_label,
-          planned_distance_km: routeDisplayDay.planned_distance_km,
-          planned_on_duty_hours: routeDisplayDay.planned_on_duty_hours,
-          route_source: routeDisplayDay.route_source,
-          route_preset_id: routeDisplayDay.route_preset_id,
         }}
         regulatoryTodayYmd={todayYmd}
         dayLabel={DAY_NAMES[dayIndex]}
