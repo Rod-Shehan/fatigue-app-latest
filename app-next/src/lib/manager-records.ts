@@ -1,5 +1,18 @@
+import {
+  listCompletedChecklistsOfType,
+  type ChecklistRecord,
+  type ChecklistRecordType,
+} from "@/lib/checklist";
 import { weekEndingDateLabel } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
 import { isPastRegulatoryWeek, normalizeWeekDateString } from "@/lib/weeks";
+
+export type RecordsChecklistCounts = Record<ChecklistRecordType, number>;
+
+export const EMPTY_RECORDS_CHECKLIST_COUNTS: RecordsChecklistCounts = {
+  ffw: 0,
+  prestart: 0,
+  dimension_load: 0,
+};
 
 export function normalizeRosterName(name: string | null | undefined): string {
   return (name ?? "").trim().toLowerCase();
@@ -60,4 +73,25 @@ export function defaultRecordsWeekId<T extends { id: string; week_starting: stri
     (s) => normalizeWeekDateString(s.week_starting) === normalizeWeekDateString(thisWeekSunday)
   );
   return current?.id ?? sheets[0]?.id ?? "";
+}
+
+/** Completed signed forms in a week, counted per checklist type (never merged). */
+export function countCompletedChecklistsByType(
+  days: Array<{ checklists?: unknown }> | null | undefined
+): RecordsChecklistCounts {
+  const counts: RecordsChecklistCounts = { ...EMPTY_RECORDS_CHECKLIST_COUNTS };
+  if (!Array.isArray(days)) return counts;
+  for (const day of days) {
+    const list = Array.isArray(day?.checklists) ? (day.checklists as ChecklistRecord[]) : [];
+    counts.ffw += listCompletedChecklistsOfType(list, "ffw").length;
+    counts.prestart += listCompletedChecklistsOfType(list, "prestart").length;
+    counts.dimension_load += listCompletedChecklistsOfType(list, "dimension_load").length;
+  }
+  return counts;
+}
+
+export function formatRecordsChecklistCount(n: number): string {
+  if (n <= 0) return "No records this week";
+  if (n === 1) return "1 record";
+  return `${n} records`;
 }

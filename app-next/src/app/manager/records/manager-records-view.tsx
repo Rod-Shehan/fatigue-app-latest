@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Download, FolderOpen, Loader2, Search } from "lucide-react";
@@ -17,10 +17,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { api, type Driver, type FatigueSheet } from "@/lib/api";
+import type { ChecklistRecordType } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
+  countCompletedChecklistsByType,
   defaultRecordsWeekId,
+  formatRecordsChecklistCount,
   formatRecordsWeekOption,
   isWeekRecordSigned,
   sheetsForRosterDriver,
@@ -33,6 +36,59 @@ function sortRosterDrivers(drivers: Driver[]): Driver[] {
     if (a.is_active !== b.is_active) return a.is_active ? -1 : 1;
     return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
   });
+}
+
+function RecordsSubjectRow({
+  title,
+  detail,
+  actions,
+}: {
+  title: string;
+  detail: string;
+  actions: ReactNode;
+}) {
+  return (
+    <li className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="font-medium text-slate-900 dark:text-slate-50">{title}</p>
+        <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{detail}</p>
+      </div>
+      <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+    </li>
+  );
+}
+
+function RecordsChecklistSubjectRow({
+  title,
+  count,
+  loading,
+  onExport,
+}: {
+  title: string;
+  count: number;
+  loading: boolean;
+  onExport: () => void;
+}) {
+  const detail = loading ? "Checking this week…" : formatRecordsChecklistCount(count);
+  return (
+    <RecordsSubjectRow
+      title={title}
+      detail={detail}
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={loading || count < 1}
+          onClick={onExport}
+        >
+          <Download className="h-4 w-4" aria-hidden />
+          {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}
+        </Button>
+      }
+    />
+  );
 }
 
 export function ManagerRecordsView() {
@@ -87,8 +143,22 @@ export function ManagerRecordsView() {
 
   const selectedSheet = driverSheets.find((s) => s.id === selectedSheetId) ?? null;
 
-  function exportPdf(sheet: FatigueSheet) {
+  const checklistsQuery = useQuery({
+    queryKey: ["sheets", selectedSheetId, "checklists"],
+    queryFn: () => api.sheets.listChecklists(selectedSheetId!),
+    enabled: Boolean(selectedSheetId),
+  });
+  const checklistCounts = useMemo(
+    () => countCompletedChecklistsByType(checklistsQuery.data?.days),
+    [checklistsQuery.data]
+  );
+
+  function exportFatiguePdf(sheet: FatigueSheet) {
     window.open(api.sheets.exportPdfUrl(sheet.id), "_blank", "noopener,noreferrer");
+  }
+
+  function exportChecklistPdf(sheet: FatigueSheet, type: ChecklistRecordType) {
+    window.open(api.sheets.checklistPdfUrl(sheet.id, type), "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -185,8 +255,7 @@ export function ManagerRecordsView() {
                     {selectedDriver.name}
                   </h2>
                   <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                    Previous weeks first. Export PDF is the same Weekly Trip Sheet as on the week
-                    record.
+                    {MANAGER_EXPERIENCE.RECORDS_SUBJECTS_HINT}
                   </p>
                 </div>
 
@@ -222,26 +291,53 @@ export function ManagerRecordsView() {
                     </div>
 
                     {selectedSheet ? (
-                      <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/sheets/${selectedSheet.id}`}
-                          className={cn(
-                            buttonVariants({ variant: "default" }),
-                            "bg-teal-700 hover:bg-teal-800 text-white"
-                          )}
-                        >
-                          {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK}
-                        </Link>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="gap-2"
-                          onClick={() => exportPdf(selectedSheet)}
-                        >
-                          <Download className="h-4 w-4" aria-hidden />
-                          {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}
-                        </Button>
-                      </div>
+                      <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 dark:divide-slate-800 dark:border-slate-700">
+                        <RecordsSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_FATIGUE}
+                          detail={MANAGER_EXPERIENCE.RECORDS_FATIGUE_DETAIL}
+                          actions={
+                            <>
+                              <Link
+                                href={`/sheets/${selectedSheet.id}`}
+                                className={cn(
+                                  buttonVariants({ variant: "default", size: "sm" }),
+                                  "bg-teal-700 hover:bg-teal-800 text-white"
+                                )}
+                              >
+                                {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK}
+                              </Link>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="gap-2"
+                                onClick={() => exportFatiguePdf(selectedSheet)}
+                              >
+                                <Download className="h-4 w-4" aria-hidden />
+                                {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}
+                              </Button>
+                            </>
+                          }
+                        />
+                        <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_FFW}
+                          count={checklistCounts.ffw}
+                          loading={checklistsQuery.isLoading}
+                          onExport={() => exportChecklistPdf(selectedSheet, "ffw")}
+                        />
+                        <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}
+                          count={checklistCounts.prestart}
+                          loading={checklistsQuery.isLoading}
+                          onExport={() => exportChecklistPdf(selectedSheet, "prestart")}
+                        />
+                        <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}
+                          count={checklistCounts.dimension_load}
+                          loading={checklistsQuery.isLoading}
+                          onExport={() => exportChecklistPdf(selectedSheet, "dimension_load")}
+                        />
+                      </ul>
                     ) : null}
                   </>
                 )}

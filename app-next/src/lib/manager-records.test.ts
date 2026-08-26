@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  countCompletedChecklistsByType,
   defaultRecordsWeekId,
+  formatRecordsChecklistCount,
   formatRecordsWeekOption,
   sheetsForRosterDriver,
   sortRecordsWeeks,
@@ -67,5 +69,37 @@ describe("managerSubnavItems", () => {
     expect(ids).toContain("manager-records");
     expect(ids).not.toContain("add-managers");
     expect(ids).not.toContain("security");
+  });
+});
+
+describe("countCompletedChecklistsByType", () => {
+  it("counts completed records per type and ignores drafts", () => {
+    const days = [
+      {
+        checklists: [
+          { status: "completed", type: "ffw" },
+          { status: "completed", type: "dimension_load" },
+        ],
+      },
+      {
+        checklists: [
+          { status: "completed", type: "dimension_load" },
+          { status: "draft", type: "prestart" },
+        ],
+      },
+    ];
+    expect(countCompletedChecklistsByType(days)).toEqual({
+      ffw: 1,
+      prestart: 0,
+      dimension_load: 2,
+    });
+  });
+});
+
+describe("formatRecordsChecklistCount", () => {
+  it("labels empty, one, and many", () => {
+    expect(formatRecordsChecklistCount(0)).toBe("No records this week");
+    expect(formatRecordsChecklistCount(1)).toBe("1 record");
+    expect(formatRecordsChecklistCount(3)).toBe("3 records");
   });
 });

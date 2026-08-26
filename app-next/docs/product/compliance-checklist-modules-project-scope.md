@@ -152,10 +152,10 @@ During the current trial term, checklists are a **capability preview**:
 - [ ] Customer packing choice (per shift / day / week / fortnight / month) — deferred
 - [ ] Off-Neon photo store (R2 / SharePoint) — **parked** (see `docs/architecture/checklist-photo-r2-parked.md`)
 
-### Phase 7 — Polish + QA — NOT STARTED
+### Phase 7 — Polish + QA — IN PROGRESS
 
 - [ ] Touch / geo / two-up polish  
-- [ ] Manager history + Enterprise produce  
+- [x] Manager history produce — **Records** tab: driver → week date → separate Fatigue / FFW / Prestart / Load PDFs  
 - [ ] Manuals + visual QA  
 - [ ] Customer gate opt-in  
 - [ ] Optional paid photo retain / Blob / SharePoint  
@@ -202,6 +202,7 @@ During the current trial term, checklists are a **capability preview**:
 ## Next action
 
 **Phase 6 remaining (narrow):** packing choice (per shift / day / week / …) and R2/photo offload stay parked. Checklist PDF → email is live: each user sets **Settings → Checklist PDF email** (defaults to sign-in email); send needs `RESEND_API_KEY` + `EMAIL_FROM`. Hide or replace with an org inbox later per client. Later: Circadia-designed packing vs client-specified forms + delivery.  
+**Manager Records** (`/manager/records`): driver → week date → four separate subjects (Fatigue sheet, Fitness for work, Prestart, Load checks).  
 **Records inbox / forced weekly fatigue PDF** (separate from checklist packs): [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md).
 
 ---
