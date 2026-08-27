@@ -204,8 +204,8 @@ export const MANAGER_EXPERIENCE = {
     LIMIT_168H: "Over 168h work",
     APPROACHING_168H: "Approaching 168h",
     REST_7H: "7h rest short",
-    REST_14D: "14-day rest blocks",
-    REST_48H: "48h rest needed",
+    REST_14D: "14-day or 28-day rest",
+    REST_48H: "48h or 7-day rest",
   },
 
   TIMELINE_TITLE: "Individual risk",

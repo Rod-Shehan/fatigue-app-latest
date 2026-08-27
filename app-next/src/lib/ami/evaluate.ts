@@ -31,7 +31,12 @@ import {
   AMI_TWO_UP_24H_WINDOW,
   AMI_WORK_WINDOW,
 } from "./constants";
-import { countFullNonWorkPeriods } from "@/lib/declared-24h-rests";
+import {
+  countFullNonWorkPeriods,
+  option14Satisfied,
+  option28Satisfied,
+} from "@/lib/declared-24h-rests";
+import { getTodayYmdInTimeZone } from "@/lib/weeks";
 import { eventTimeMs, lastAmiEventAt, paintAmiTape, segmentsFromTape, sortAmiEvents } from "./paint";
 import { reclassifyAmiTape } from "./reclassify";
 import type { AmiEvent, AmiKind, AmiTape } from "./types";
@@ -563,6 +568,37 @@ export function evaluateSolo14dLongRests(
     longRestCount,
     ok: longRestCount >= AMI_14D_LONG_REST_COUNT,
   };
+}
+
+export type AmiSolo184E2bResult = {
+  /** Reg 184E(2)(b)(i): ≥2×24h non-work in any 14-day period. */
+  option14Ok: boolean;
+  /** Reg 184E(2)(b)(ii): ≥4×24h in 28 days and ≤144h work in any 14 days inside that 28. */
+  option28Ok: boolean;
+  /** Either option satisfies the subsection. */
+  ok: boolean;
+};
+
+/**
+ * Solo Reg 184E(2)(b) either/or on one rolling tape (unlogged minutes are non-work).
+ * Pass a tape of up to 28 days ending at as-of. Option (ii) is false until 28 days exist.
+ */
+export function evaluateSolo184E2bRestOptions(
+  tape: AmiTape,
+  options?: {
+    timelineStartYmd?: string;
+    declaredYmdds?: readonly string[];
+  }
+): AmiSolo184E2bResult {
+  const nonWork = tape.kinds.map((k) => k === "non_work");
+  const work = tape.kinds.map((k) => k === "work" || k === "other_work");
+  const startYmd =
+    options?.timelineStartYmd?.trim() ||
+    getTodayYmdInTimeZone("Australia/Perth", new Date(tape.originMs));
+  const declared = [...(options?.declaredYmdds ?? [])];
+  const option14Ok = option14Satisfied(nonWork, startYmd, declared);
+  const option28Ok = option28Satisfied(nonWork, work, startYmd, declared);
+  return { option14Ok, option28Ok, ok: option14Ok || option28Ok };
 }
 
 // —— Two-up ——

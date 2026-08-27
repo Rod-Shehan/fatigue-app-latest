@@ -38,6 +38,8 @@ export const REGULATORY_REQUIREMENTS_REFERENCE: ManagerReferenceLibrary = {
       bullets: [
         "Reg 184E(1)(a): Min 20 min of breaks for every 5h of work (maximum 5h continuous work block).",
         "Reg 184E(1)(b): Max 168h work in any 14-day period (48h continuous non-work resets app segments).",
+        "Solo 184E(2)(b): ≥2×24h non-work in any 14 days, or the 28-day alternative (4×24h and ≤144h work in any 14 days inside that 28).",
+        "Two-up 184E(3): always ≥7h non-work in any 24h (may be moving); then either ≥7h continuous stationary non-work in 48h, or the 7-day package (48h non-work including 24h, no piece under 7h).",
         "Solo Drivers: Min 7h continuous non-work in 24h; min 27h non-work in 72h.",
         "Source mapping: docs/regulatory/wa-commercial-vehicle-hours.md in this product.",
       ],

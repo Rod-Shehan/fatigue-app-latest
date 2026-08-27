@@ -46,7 +46,8 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
   - Code: `checkSoloRules()` (14‑day 24h break count)
 
 - **Reg 184E(2)(b)(ii)**: Alternative **28‑day** pattern (4×24h) with additional cap (≤144h work in any 14‑day inside the 28‑day period).
-  - **App**: **not currently implemented** (requires ≥28 days of data + explicit “pattern selection” policy).
+  - **App**: evaluated as an **OR** with (i). Passes when the rolling tape (or declarations) shows **≥4×24h** non-work in 28 days **and** no 14-day window inside that 28 days exceeds **144h work**. Not used until 28 days of timeline exist. Does **not** replace the universal 168h cap in (1)(b).
+  - Code: `option28Satisfied()` in `declared-24h-rests.ts`; live EWD via `evaluateSolo184E2bRestOptions()` in `ami/evaluate.ts` + `runWaComplianceChecks()`.
 
 ### Two‑Up driving (with relief driver) — additional requirements (Reg 184E(3))
 
@@ -59,13 +60,10 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
   - **(ii)** In any **7‑day period** — **≥48 hours non‑work** (not moving), including **≥24 consecutive hours**, and **does not include any non‑work period <7 consecutive hours**.
 
   - **App** (current approach):
-    - Evaluates the **7‑day option** structural requirements:
-      - warns if **<48h** non‑work
-      - warns if missing **≥24h continuous** non‑work
-      - warns if any non‑work block is **<7h**
-    - If the 7‑day option is **not met**, enforces the **48‑hour option** as a **violation** when a rolling 48h window with work/break data has **no ≥7h non‑work block**.
-    - “Not spent in a moving vehicle” is supported by an **evidence warning** heuristic (GPS change during breaks), but the app does not yet have a definitive “moving vehicle” classifier for non‑work.
-  - Code: `checkTwoUpRules()` + `checkRestBreakMovingVehicle()`
+    - **184E(3)(a)** is always required (rolling 24h ≥7h non-work).
+    - **184E(3)(b)** is an **OR**: the **7-day option** (rolling 7×24h: ≥48h non-work, ≥24h consecutive, no piece under 7h) **or** the **48-hour option** (≥7h continuous non-work in any rolling 48h). Meeting either satisfies (b); the unused option is not raised.
+    - “Not spent in a moving vehicle” for the 48h option is supported by a GPS evidence heuristic on the legacy path; AMI scores continuous non-work on the tape (sleeper berth is non-work).
+  - Code: `evaluateTwoUp24hRest` / `evaluateTwoUp48hOption` / `evaluateTwoUp7dOption` in `ami/evaluate.ts` via `runWaComplianceChecks()`.
 
 ### Shiftwork ≥5 consecutive days (Reg 184E(4))
 

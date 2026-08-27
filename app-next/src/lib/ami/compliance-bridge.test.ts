@@ -156,4 +156,160 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     expect(five?.message.toLowerCase()).not.toContain("ami");
     expect(five?.message).not.toBe("More than 5h work without valid break");
   });
+
+  it("solo 28-day alternative satisfies 184E(2)(b) on the live AMI path", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const addDays = (ymd: string, n: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    const perthIso = (ymd: string, hour: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
+    };
+    const restDay = (): ComplianceDayData => ({
+      work_time: Array(1440).fill(false),
+      breaks: Array(1440).fill(false),
+      non_work: Array(1440).fill(true),
+      events: [],
+    });
+    const workDay = (ymd: string, workHours: number): ComplianceDayData => {
+      const work = Array(1440).fill(false);
+      const nw = Array(1440).fill(false);
+      for (let i = 8 * 60; i < (8 + workHours) * 60; i++) work[i] = true;
+      for (let i = 0; i < 8 * 60; i++) nw[i] = true;
+      for (let i = (8 + workHours) * 60; i < 1440; i++) nw[i] = true;
+      return {
+        work_time: work,
+        breaks: Array(1440).fill(false),
+        non_work: nw,
+        events: [
+          { type: "work", time: perthIso(ymd, 8) },
+          { type: "stop", time: perthIso(ymd, 8 + workHours) },
+        ],
+      };
+    };
+
+    const historyStart = addDays(weekStarting, -21);
+    const historyDays = Array.from({ length: 21 }, (_, idx) => {
+      const ymd = addDays(historyStart, idx);
+      if (idx === 0 || idx === 6 || idx === 12) return restDay();
+      return workDay(ymd, 10);
+    });
+    const days = emptyWeek();
+    for (let i = 0; i < 6; i++) days[i] = workDay(addDays(weekStarting, i), 10);
+    days[6] = restDay();
+
+    const asOf = {
+      weekStarting,
+      historyDays,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 24 * 60,
+    } as const;
+
+    const results = runWaComplianceChecks(days, { driverType: "solo", ...asOf });
+    expect(results.some((r) => r.message.includes("2×24h"))).toBe(false);
+  });
+
+  it("28-day alternative still fails on the live AMI path when 144h work is exceeded", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const addDays = (ymd: string, n: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    const perthIso = (ymd: string, hour: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
+    };
+    const restDay = (): ComplianceDayData => ({
+      work_time: Array(1440).fill(false),
+      breaks: Array(1440).fill(false),
+      non_work: Array(1440).fill(true),
+      events: [],
+    });
+    const workDay = (ymd: string, workHours: number): ComplianceDayData => {
+      const work = Array(1440).fill(false);
+      const nw = Array(1440).fill(false);
+      for (let i = 8 * 60; i < (8 + workHours) * 60; i++) work[i] = true;
+      for (let i = 0; i < 8 * 60; i++) nw[i] = true;
+      for (let i = (8 + workHours) * 60; i < 1440; i++) nw[i] = true;
+      return {
+        work_time: work,
+        breaks: Array(1440).fill(false),
+        non_work: nw,
+        events: [
+          { type: "work", time: perthIso(ymd, 8) },
+          { type: "stop", time: perthIso(ymd, 8 + workHours) },
+        ],
+      };
+    };
+
+    const historyStart = addDays(weekStarting, -21);
+    const historyDays = Array.from({ length: 21 }, (_, idx) => {
+      const ymd = addDays(historyStart, idx);
+      if (idx === 0 || idx === 6 || idx === 12) return restDay();
+      return workDay(ymd, 12);
+    });
+    const days = emptyWeek();
+    for (let i = 0; i < 6; i++) days[i] = workDay(addDays(weekStarting, i), 12);
+    days[6] = restDay();
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "solo",
+      weekStarting,
+      historyDays,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 24 * 60,
+    });
+    expect(results.some((r) => r.message.includes("28-day alternative"))).toBe(true);
+  });
+
+  it("two-up 48h option satisfies 184E(3)(b) on the live AMI path when 7-day structure fails", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const addDays = (ymd: string, n: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    const perthIso = (ymd: string, hour: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
+    };
+    const days = emptyWeek();
+    for (let i = 0; i < 7; i++) {
+      const ymd = addDays(weekStarting, i);
+      const work = Array(1440).fill(false);
+      const nw = Array(1440).fill(false);
+      for (let m = 8 * 60; m < 18 * 60; m++) work[m] = true;
+      for (let m = 0; m < 8 * 60; m++) nw[m] = true;
+      for (let m = 18 * 60; m < 1440; m++) nw[m] = true;
+      days[i] = {
+        work_time: work,
+        breaks: Array(1440).fill(false),
+        non_work: nw,
+        events: [
+          { type: "work", time: perthIso(ymd, 8) },
+          { type: "stop", time: perthIso(ymd, 18) },
+        ],
+      };
+    }
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "two_up",
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    });
+    expect(results.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      false
+    );
+  });
 });

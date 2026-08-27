@@ -42,6 +42,10 @@ export const AMI_168H_RESET_NON_WORK = 2880; // 48h
 /** Solo 14-day long rests — Reg 184E(2)(b)(i) */
 export const AMI_14D_LONG_REST_BLOCK = 1440; // 24h
 export const AMI_14D_LONG_REST_COUNT = 2;
+/** Solo 28-day alternative — Reg 184E(2)(b)(ii) */
+export const AMI_28D_WINDOW = AMI_14D_WINDOW * 2;
+export const AMI_28D_LONG_REST_COUNT = 4;
+export const AMI_28D_MAX_14D_WORK = 144 * 60;
 
 /** Two-up 48h / 7-day — Reg 184E(3)(b) */
 export const AMI_48H_WINDOW = 2880;

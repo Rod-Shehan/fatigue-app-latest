@@ -344,9 +344,11 @@ export default function CompliancePanel({
         {isTwoUp ? (
           <ul className="space-y-1 text-[11px] text-slate-500 dark:text-slate-400">
             <li>• 20 min rest per 5h work (2×10 min or 1×20 min; breaks under 10 min count as work)</li>
-            <li>• ≥7 hrs non-work in any rolling 24 hrs (can be in moving vehicle)</li>
-            <li>• ≥1 block of ≥7 continuous hrs non-work in any rolling 48 hrs (not in moving vehicle)</li>
-            <li>• ≥48 hrs non-work per 7 days (incl. ≥24 continuous hrs)</li>
+            <li>• Always: ≥7 hrs non-work in any rolling 24 hrs (can be in a moving vehicle)</li>
+            <li>
+              • Then either: ≥7 continuous hrs non-work in any rolling 48 hrs (not in a moving vehicle), or ≥48 hrs
+              non-work in 7 days including ≥24 continuous hrs and no non-work period under 7h
+            </li>
             <li>• Max 168 hrs work in any 14-day period (rolling; resets after ≥48h continuous non-work)</li>
           </ul>
         ) : (
@@ -355,6 +357,10 @@ export default function CompliancePanel({
             <li>• ≥7 continuous hrs non-work time required</li>
             <li>• Two periods of non-work time (each longer than 7h) cannot be separated by more than 17h of work and break combined (24h non-work resets)</li>
             <li>• ≥27 hrs non-work in any rolling 72 hrs (incl. 3× ≥7hr blocks; 24h non-work resets)</li>
+            <li>
+              • ≥2×24h continuous non-work in any 14-day period, or the 28-day alternative (4×24h and ≤144h work in any
+              14 days inside that 28)
+            </li>
             <li>
               • After {SHIFT_PATTERN_STREAK_HOURS}h+ on the same shift pattern (5×24h rolling), changing pattern (Day A ↔ Night B) needs ≥
               {SHIFT_CHANGE_MIN_GAP_HOURS}h off between End shift and next Work on the timeline (not at midnight)

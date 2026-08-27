@@ -193,6 +193,8 @@ If your sheet is **Two-up**:
 - **Sleeper berth** is non-work time **during the shift** (in the vehicle). It is **not** End shift. Then tap **Start work** to choose **Start driving**, **Start Other Work**, or **Passenger**.
 - **End shift** is only when you go **home or to a motel**. After that, **Start shift** starts a new working period.
 - Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).
+- Always: at least **7 hours non-work in any 24 hours** (sleeper berth counts).
+- Then **either** a **7-hour continuous** rest **not** in a moving vehicle in any **48 hours**, **or** **48 hours non-work in 7 days** that includes one **24-hour** block and **no** rest shorter than 7 hours. You do not need both.
 
 ---
 

@@ -51,7 +51,10 @@ export function briefLabelFromComplianceMessage(message: string): string | null 
     return "7h rest not met if you start work";
   }
   if (m.includes("2×24h") || m.includes("2x24h") || m.includes("28-day alternative")) {
-    return "14-day rest blocks needed";
+    return "14-day or 28-day rest option needed";
+  }
+  if (m.includes("7-day option") && m.includes("48h")) {
+    return "48h or 7-day rest option needed";
   }
   if (m.includes("48 hrs") || m.includes("48hrs") || m.includes("rolling 48")) {
     return "48h stationary rest needed";

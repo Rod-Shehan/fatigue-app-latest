@@ -57,12 +57,20 @@ describe("upcoming-compliance-chip", () => {
     expect(chip.tone).toBe("caution");
   });
 
-  it("briefLabelFromComplianceMessage handles 14-day rest", () => {
+  it("briefLabelFromComplianceMessage names both 14-day and 28-day rest options", () => {
     expect(
       briefLabelFromComplianceMessage(
         "Need ≥2×24h continuous non-work in any 14-day period (or meet 28-day alternative"
       )
-    ).toMatch(/14-day rest/);
+    ).toBe("14-day or 28-day rest option needed");
+  });
+
+  it("briefLabelFromComplianceMessage names both two-up 48h and 7-day options", () => {
+    expect(
+      briefLabelFromComplianceMessage(
+        "Need ≥7h continuous non-work in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h non-work including ≥24h, no period under 7h)"
+      )
+    ).toBe("48h or 7-day rest option needed");
   });
 
   it("shows the 5h violation wording, not a generic review-first line", () => {

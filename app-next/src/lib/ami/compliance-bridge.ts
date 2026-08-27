@@ -6,7 +6,6 @@
 import type { ComplianceCheckResult, ComplianceDayData } from "@/lib/compliance";
 import { runComplianceChecks } from "@/lib/compliance";
 import {
-  collectDeclared24hRestRanges,
   collectDeclared24hRests,
   timelineStartYmdFromPriorDays,
 } from "@/lib/declared-24h-rests";
@@ -15,15 +14,17 @@ import { toAmiEventType } from "@/lib/activity-kind";
 import { getPerthMidnightUtcMs, getSheetDayDateString } from "@/lib/weeks";
 import {
   AMI_14D_WINDOW,
+  AMI_28D_WINDOW,
   AMI_72H_EVAL_LOOKBACK,
   AMI_72H_WINDOW,
+  AMI_7D_MIN_TOTAL_NON_WORK,
   AMI_PATTERN_CHANGE_REST,
 } from "./constants";
 import {
   buildEvalTape,
   evaluate168hWork,
   evaluateFiveHourBreakRule,
-  evaluateSolo14dLongRests,
+  evaluateSolo184E2bRestOptions,
   evaluateSolo72h,
   evaluateTwoUp24hRest,
   evaluateTwoUp48hOption,
@@ -150,22 +151,40 @@ function buildAmiOwnedResults(
       });
     }
     const t7 = evaluateTwoUp7dOption(buildEvalTape(events, asOf, 7 * 24 * 60));
-    if (!t7.structureOk && t7.totalNonWork > 0 && t7.totalNonWork < 2880) {
-      out.push({
-        type: "warning",
-        iconKey: "TrendingUp",
-        day: "7-day",
-        message: `Need ≥48 hrs non-work in any 7-day period (current: ${Math.round(t7.totalNonWork / 60)}h) — Two-Up`,
-      });
-    }
     const t48 = evaluateTwoUp48hOption(buildEvalTape(events, asOf, 48 * 60));
-    if (!t7.structureOk && !t48.hasQualBlock) {
+    const twoUpBOk = t7.structureOk || t48.hasQualBlock;
+    if (!twoUpBOk) {
       out.push({
         type: "violation",
         iconKey: "Moon",
         day: "AMI",
-        message: "Need ≥7h continuous non-work in any rolling 48h (Two-Up 48h option)",
+        message:
+          "Need ≥7h continuous non-work in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h non-work including ≥24h, no period under 7h)",
       });
+      if (t7.totalNonWork > 0 && t7.totalNonWork < AMI_7D_MIN_TOTAL_NON_WORK) {
+        out.push({
+          type: "warning",
+          iconKey: "TrendingUp",
+          day: "7-day",
+          message: `Need ≥48 hrs non-work in any 7-day period (current: ${Math.round(t7.totalNonWork / 60)}h) — Two-Up`,
+        });
+      }
+      if (t7.totalNonWork >= AMI_7D_MIN_TOTAL_NON_WORK && !t7.has24hBlock) {
+        out.push({
+          type: "warning",
+          iconKey: "Moon",
+          day: "7-day",
+          message: `48hrs non-work must include ≥24 continuous hrs — Two-Up`,
+        });
+      }
+      if (t7.totalNonWork >= AMI_7D_MIN_TOTAL_NON_WORK && t7.hasSubMinPiece) {
+        out.push({
+          type: "warning",
+          iconKey: "Moon",
+          day: "7-day",
+          message: "Non-work time must not include a period of less than 7 consecutive hours — Two-Up",
+        });
+      }
     }
   } else {
     const solo72 = evaluateSolo72h(buildEvalTape(events, asOf, AMI_72H_EVAL_LOOKBACK), {
@@ -195,14 +214,20 @@ function buildAmiOwnedResults(
       });
     }
 
-    const rests = evaluateSolo14dLongRests(
-      buildEvalTape(events, asOf, AMI_14D_WINDOW, { recordStartMs }),
+    const priorDayCount =
+      ((options.historyDays as unknown[] | null | undefined)?.length ?? 0) +
+      ((options.prevWeekDays as unknown[] | null | undefined)?.length ?? 0);
+    const timelineStartYmd = options.weekStarting
+      ? timelineStartYmdFromPriorDays(options.weekStarting, priorDayCount)
+      : undefined;
+    const restOpts = evaluateSolo184E2bRestOptions(
+      buildEvalTape(events, asOf, AMI_28D_WINDOW, { recordStartMs }),
       {
-        declaredRanges: collectDeclared24hRestRanges(options.declared24hRests),
+        timelineStartYmd,
         declaredYmdds: collectDeclared24hRests(options.declared24hRests),
       }
     );
-    if (!rests.ok) {
+    if (!restOpts.ok) {
       out.push({
         type: "violation",
         iconKey: "Moon",
