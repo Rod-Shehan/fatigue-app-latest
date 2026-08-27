@@ -1,17 +1,31 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Briefcase, Coffee, Moon, Square, MapPin, Wrench } from "lucide-react";
+import { Briefcase, Coffee, Moon, Square, MapPin, Wrench, BedDouble, User, ParkingCircle } from "lucide-react";
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { getSheetDayDateString, getTodayLocalDateString } from "@/lib/weeks";
+import { PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
+import { DRIVER_PARKED_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
 
-const EVENT_CONFIG: Record<ActivityKey, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
+const EVENT_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ className?: string }> }> = {
   work: { label: "Work", icon: Briefcase },
   break: { label: "Rest", icon: Coffee },
   other_work: { label: "Other work", icon: Wrench },
+  [PASSENGER_EVENT_TYPE]: { label: DRIVER_PASSENGER_LABEL, icon: User },
+  [SLEEPER_BERTH_EVENT_TYPE]: { label: DRIVER_SLEEPER_BERTH_LABEL, icon: BedDouble },
+  [STATIONARY_REST_EVENT_TYPE]: { label: DRIVER_PARKED_LABEL, icon: ParkingCircle },
   non_work: { label: "Non-Work Time", icon: Moon },
   stop: { label: "End shift", icon: Square },
 };
+
+function themeKeyForEvent(type: string): ActivityKey {
+  if (type === PASSENGER_EVENT_TYPE) return "other_work";
+  if (type === SLEEPER_BERTH_EVENT_TYPE || type === STATIONARY_REST_EVENT_TYPE) return "non_work";
+  if (type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop") {
+    return type;
+  }
+  return "stop";
+}
 
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MIN_BREAK_BLOCK_MINUTES = 10;
@@ -39,7 +53,7 @@ type TableRow = {
   dayLabel: string;
   dateLabel: string;
   time: string;
-  type: ActivityKey;
+  type: string;
   duration: number;
   isOngoing: boolean;
   hasLocation: boolean;
@@ -75,7 +89,7 @@ export default function ShiftLogView({
     events.forEach((ev, idx) => {
       const nextEv = events[idx + 1];
       const dur = nextEv ? getDurationMinutes(ev.time, nextEv.time) : (ev.type !== "stop" && isToday ? elapsedMinutes : 0);
-      const typeKey = (ev.type in EVENT_CONFIG ? ev.type : "stop") as ActivityKey;
+      const typeKey = ev.type in EVENT_CONFIG ? ev.type : "stop";
       const isOngoing = !nextEv && !!currentType && isToday;
       rows.push({
         dayIndex,
@@ -111,7 +125,7 @@ export default function ShiftLogView({
             {hasAnyEvents ? (
               rows.map((r, i) => {
                 const cfg = EVENT_CONFIG[r.type];
-                const badge = ACTIVITY_THEME[r.type].badge;
+                const badge = ACTIVITY_THEME[themeKeyForEvent(r.type)].badge;
                 return (
                   <tr key={i} className={`border-b border-slate-100 dark:border-slate-700 last:border-0 ${r.isOngoing ? "bg-slate-50/70 dark:bg-slate-800/70" : ""}`}>
                     <td className="py-1.5 px-2 font-medium text-slate-600 dark:text-slate-300">{r.dayLabel}</td>

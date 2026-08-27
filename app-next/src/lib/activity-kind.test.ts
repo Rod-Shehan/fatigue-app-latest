@@ -43,4 +43,12 @@ describe("activity-kind", () => {
     expect(toAmiEventType("sleeper_berth")).toBe("non_work");
     expect(isOpenShiftEventType("stop")).toBe(false);
   });
+
+  it("treats Parked as non-work while the shift stays open", () => {
+    expect(isOpenShiftEventType("stationary_rest")).toBe(true);
+    expect(isBreakFromDrivingEventType("stationary_rest")).toBe(false);
+    expect(isWorkTimeEventType("stationary_rest")).toBe(false);
+    expect(toCoverageKind("stationary_rest")).toBe("non_work");
+    expect(toAmiEventType("stationary_rest")).toBe("non_work");
+  });
 });

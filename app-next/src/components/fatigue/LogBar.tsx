@@ -18,6 +18,7 @@ import {
   UserRound,
   User,
   BedDouble,
+  ParkingCircle,
   Pause,
   Wrench,
 } from "lucide-react";
@@ -51,10 +52,11 @@ import {
   getRemainingBreakMinutesForDisplay,
 } from "@/lib/five-hour-break-rule";
 import { resolveIdlePrimaryLogAction, resolveTwoUpIdlePrimaryLogAction } from "@/lib/primary-log-action";
-import { DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL, DRIVER_LOAD_CHECK_LABEL } from "@/lib/product-copy";
-import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
+import { DRIVER_START_SHIFT_LABEL, DRIVER_START_WORK_LABEL, DRIVER_STOP_DRIVING_LABEL, DRIVER_START_REST_LABEL, DRIVER_START_OTHER_WORK_LABEL, DRIVER_START_DRIVING_LABEL, DRIVER_END_SHIFT_LABEL, DRIVER_NAP_QUESTION_LABEL, DRIVER_NAP_QUESTION_COMPACT_LABEL, DRIVER_ON_NAP_LABEL, DRIVER_BREAK_FROM_DRIVING_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL, DRIVER_PARKED_LABEL, DRIVER_PARKED_GPS_REQUIRED, DRIVER_PARKED_MOVING_LOCKED, DRIVER_LOAD_CHECK_LABEL } from "@/lib/product-copy";
+import { isOpenShiftEventType, isWorkTimeEventType, OTHER_WORK_EVENT_TYPE, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
 import {
   twoUpChooserAria,
+  twoUpParkedTiles,
   twoUpPassengerTiles,
   twoUpSleeperBerthTiles,
   twoUpStopDrivingTiles,
@@ -94,7 +96,8 @@ import {
   isDriverLogConfirmMatch,
   type DriverLogConfirmArm,
 } from "@/lib/driver-log-confirm";
-import { getGeoMovementState, subscribeGeoMovement } from "@/lib/geo-history-1m";
+import { getGeoMovementState, snapshotHistory1m, subscribeGeoMovement } from "@/lib/geo-history-1m";
+import { resolveEventGpsFix } from "@/lib/geo";
 import {
   requestDriverImmersive,
   syncDriverImmersiveClass,
@@ -192,7 +195,7 @@ export default function LogBar({
   currentDayIndex: number;
   weekStarting: string;
   /** Log a new event on this driver's sheet. */
-  onLogEvent: (dayIndex: number, type: string) => void;
+  onLogEvent: (dayIndex: number, type: string, geo?: { lat: number; lng: number; accuracy?: number }) => void;
   /** When provided, End shift opens the correction dialog (end time + end km). */
   onEndShiftRequest?: (dayIndex: number) => void;
   /** Rest-only nap qualifier. Diary stays Rest. */
@@ -252,6 +255,8 @@ export default function LogBar({
   const [stopDrivingChooserOpen, setStopDrivingChooserOpen] = useState(false);
   const [passengerChooserOpen, setPassengerChooserOpen] = useState(false);
   const [sleeperChooserOpen, setSleeperChooserOpen] = useState(false);
+  const [parkedChooserOpen, setParkedChooserOpen] = useState(false);
+  const [parkedGpsPending, setParkedGpsPending] = useState(false);
   /** Idle → Start shift chooser: Start driving / Start Other Work (not a logged event). */
   const [startShiftChooserOpen, setStartShiftChooserOpen] = useState(false);
   /** Rest → Start work chooser: Start driving / Start Other Work (not a logged event). */
@@ -330,6 +335,7 @@ export default function LogBar({
     if (currentType !== "break") setRestWorkChooserOpen(false);
     if (currentType !== PASSENGER_EVENT_TYPE) setPassengerChooserOpen(false);
     if (currentType !== SLEEPER_BERTH_EVENT_TYPE) setSleeperChooserOpen(false);
+    if (currentType !== STATIONARY_REST_EVENT_TYPE) setParkedChooserOpen(false);
   }, [currentType]);
 
   const openSessionTools = useCallback(() => {
@@ -463,7 +469,9 @@ export default function LogBar({
           ? User
           : currentType === SLEEPER_BERTH_EVENT_TYPE
             ? BedDouble
-            : primaryLogType === "non_work"
+            : currentType === STATIONARY_REST_EVENT_TYPE
+              ? ParkingCircle
+              : primaryLogType === "non_work"
               ? EVENT_ICONS.non_work
               : EVENT_ICONS.work;
 
@@ -851,6 +859,35 @@ export default function LogBar({
     };
   }, [isLiveNow]);
 
+  const confirmParkedThenLog = useCallback(async () => {
+    if (isMoving) {
+      window.alert(DRIVER_PARKED_MOVING_LOCKED);
+      return;
+    }
+    setParkedGpsPending(true);
+    try {
+      const crumb = gpsMovementTrailEnabled
+        ? snapshotHistory1m().at(-1) ?? null
+        : null;
+      const fix = await resolveEventGpsFix(crumb);
+      if (!fix) {
+        window.alert(DRIVER_PARKED_GPS_REQUIRED);
+        return;
+      }
+      onLogEvent(currentDayIndex, STATIONARY_REST_EVENT_TYPE, fix);
+    } finally {
+      setParkedGpsPending(false);
+    }
+  }, [isMoving, gpsMovementTrailEnabled, onLogEvent, currentDayIndex]);
+
+  const logChosenEvent = (type: string) => {
+    if (type === STATIONARY_REST_EVENT_TYPE) {
+      void confirmParkedThenLog();
+      return;
+    }
+    onLogEvent(currentDayIndex, type);
+  };
+
   const handleLog = (type: string, options?: { episodeResume?: boolean }) => {
     const episodeResume = type === "work" && options?.episodeResume === true;
     const confirming = isDriverLogConfirmMatch(pendingArmRef.current, type, episodeResume);
@@ -881,7 +918,7 @@ export default function LogBar({
       const enteringOtherWork =
         type === OTHER_WORK_EVENT_TYPE && currentType !== OTHER_WORK_EVENT_TYPE;
       if (type !== currentType) {
-        onLogEvent(currentDayIndex, type);
+        logChosenEvent(type);
       }
       if (enteringOtherWork) {
         chooserOpenedAtRef.current = Date.now();
@@ -897,7 +934,8 @@ export default function LogBar({
         !startShiftChooserOpen &&
         !restWorkChooserOpen &&
         !passengerChooserOpen &&
-        !sleeperChooserOpen
+        !sleeperChooserOpen &&
+        !parkedChooserOpen
       ) {
         const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
       if (nonWorkMsg) {
@@ -921,6 +959,7 @@ export default function LogBar({
         restWorkChooserOpen,
         passengerChooserOpen,
         sleeperChooserOpen,
+        parkedChooserOpen,
         currentType,
         episodeResume,
         needsShiftStartSetup,
@@ -989,7 +1028,7 @@ export default function LogBar({
       }
       const enteringOtherWork =
         type === OTHER_WORK_EVENT_TYPE && currentType !== OTHER_WORK_EVENT_TYPE;
-      onLogEvent(currentDayIndex, type);
+      logChosenEvent(type);
       if (enteringOtherWork) {
         chooserOpenedAtRef.current = Date.now();
       }
@@ -1010,11 +1049,14 @@ export default function LogBar({
                 ? DRIVER_PASSENGER_LABEL
                 : type === SLEEPER_BERTH_EVENT_TYPE
                   ? DRIVER_SLEEPER_BERTH_LABEL
-                  : resolveWorkConfirmLabel({
+                  : type === STATIONARY_REST_EVENT_TYPE
+                    ? DRIVER_PARKED_LABEL
+                    : resolveWorkConfirmLabel({
                       startShiftChooserOpen,
                       restWorkChooserOpen,
                       passengerChooserOpen,
                       sleeperChooserOpen,
+                      parkedChooserOpen,
                       currentType,
                       episodeResume,
                       needsShiftStartSetup,
@@ -1132,6 +1174,14 @@ export default function LogBar({
   };
 
   const showEndShiftDock = shiftSegmentOpen || pendingType === "stop";
+  const showParkedDock =
+    Boolean(
+      isLiveNow &&
+        isTwoUp &&
+        shiftSegmentOpen &&
+        currentType !== STATIONARY_REST_EVENT_TYPE &&
+        pendingType !== "stop"
+    );
   const restNapTagged = isRestNapTagged(lastEvent);
   const showNapDock =
     Boolean(isLiveNow && onSetRestNap && !isTwoUp && currentType === "break" && pendingType !== "stop");
@@ -1142,7 +1192,8 @@ export default function LogBar({
     (restWorkChooserOpen && currentType === "break") ||
     otherWorkHubOpen ||
     (passengerChooserOpen && currentType === PASSENGER_EVENT_TYPE) ||
-    (sleeperChooserOpen && currentType === SLEEPER_BERTH_EVENT_TYPE);
+    (sleeperChooserOpen && currentType === SLEEPER_BERTH_EVENT_TYPE) ||
+    (parkedChooserOpen && currentType === STATIONARY_REST_EVENT_TYPE);
   const twoUpHeroUnlockedWhileMoving =
     isTwoUp &&
     (currentType === "work" ||
@@ -1153,8 +1204,10 @@ export default function LogBar({
       kind: tile.kind,
       label: tile.label,
       onClick: () => runChooserOption(() => handleLog(tile.logType)),
-      pending: pendingType === tile.logType,
-      disabled: isMoving && !tile.unlockWhileMoving,
+      pending: pendingType === tile.logType || (tile.logType === STATIONARY_REST_EVENT_TYPE && parkedGpsPending),
+      disabled:
+        (isMoving && !tile.unlockWhileMoving) ||
+        (tile.logType === STATIONARY_REST_EVENT_TYPE && parkedGpsPending),
     }));
 
   useLayoutEffect(() => {
@@ -1322,6 +1375,70 @@ export default function LogBar({
     </div>
   ) : null;
 
+  const parkedChrome = getOnNapChrome();
+  const parkedPending = pendingType === STATIONARY_REST_EVENT_TYPE || parkedGpsPending;
+  const parkedButton = showParkedDock ? (
+    <div
+      className={cn(
+        "inline-flex shrink-0 rounded-full transition-all duration-500 ease-out",
+        endShiftTrimPaddingClass(primaryHeroExpanded, primaryBarCompact, parkedPending),
+        parkedChrome.trimClass,
+        parkedPending && "ring-2 ring-white ring-offset-2 ring-offset-slate-950 animate-pulse"
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => handleLog(STATIONARY_REST_EVENT_TYPE)}
+        disabled={(isMoving && !parkedPending) || parkedGpsPending}
+        className={cn(
+          "flex flex-col items-center justify-center rounded-full font-bold",
+          "touch-manipulation select-none",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950",
+          "disabled:opacity-50 disabled:pointer-events-none",
+          "gap-0.5 px-1",
+          endShiftButtonSizeClass(primaryHeroExpanded, primaryBarCompact, parkedPending),
+          parkedChrome.surfaceClass,
+          parkedChrome.textClass
+        )}
+        aria-label={
+          isMoving && !parkedPending
+            ? DRIVER_PARKED_MOVING_LOCKED
+            : parkedGpsPending
+              ? "Getting GPS for Parked"
+              : parkedPending
+                ? "Tap again to confirm Parked"
+                : DRIVER_PARKED_LABEL
+        }
+      >
+        {parkedGpsPending ? (
+          <Loader2
+            className={cn(
+              "shrink-0 animate-spin",
+              endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact, parkedPending)
+            )}
+            aria-hidden
+          />
+        ) : (
+          <ParkingCircle
+            className={cn(
+              "shrink-0",
+              endShiftIconSizeClass(primaryHeroExpanded, primaryBarCompact, parkedPending)
+            )}
+            aria-hidden
+          />
+        )}
+        <span
+          className={cn(
+            "text-center leading-tight",
+            primaryHeroExpanded ? "text-[10px] sm:text-xs" : "text-[8px] sm:text-[9px]"
+          )}
+        >
+          {parkedGpsPending ? "GPS…" : parkedPending ? "Parked?" : DRIVER_PARKED_LABEL}
+        </span>
+      </button>
+    </div>
+  ) : null;
+
   const barContent = (
     <div className={cn("space-y-2", isIdleAtTop && "space-y-4")}>
       {logBarBanner ? (
@@ -1404,6 +1521,10 @@ export default function LogBar({
               }
               if (currentType === SLEEPER_BERTH_EVENT_TYPE) {
                 openHeroChooser(() => setSleeperChooserOpen(true));
+                return;
+              }
+              if (currentType === STATIONARY_REST_EVENT_TYPE) {
+                openHeroChooser(() => setParkedChooserOpen(true));
                 return;
               }
               if (primaryLogType === "work" && currentType === null) {
@@ -1551,6 +1672,23 @@ export default function LogBar({
                               tiles: mapTwoUpChooserTiles(twoUpSleeperBerthTiles()),
                               ariaLabel: twoUpChooserAria(SLEEPER_BERTH_EVENT_TYPE),
                             }
+                          : parkedChooserOpen && currentType === STATIONARY_REST_EVENT_TYPE
+                            ? {
+                                variant: "start-work",
+                                restLabel: DRIVER_START_DRIVING_LABEL,
+                                otherWorkLabel: DRIVER_START_OTHER_WORK_LABEL,
+                                onStartRest: () => runChooserOption(() => handleLog("work")),
+                                onStartOtherWork: () =>
+                                  runChooserOption(() => handleLog(OTHER_WORK_EVENT_TYPE)),
+                                onCancel: () => {
+                                  clearPending();
+                                  setParkedChooserOpen(false);
+                                },
+                                restPending: pendingType === "work",
+                                otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
+                                tiles: mapTwoUpChooserTiles(twoUpParkedTiles()),
+                                ariaLabel: twoUpChooserAria(STATIONARY_REST_EVENT_TYPE),
+                              }
                           : null
             }
             auxiliaryActions={
@@ -1889,6 +2027,17 @@ export default function LogBar({
           <div className="pointer-events-auto">{napButton}</div>
               </div>
             )}
+      {showParkedDock && (
+        <div
+          className={cn(
+            "fixed z-[55] flex pointer-events-none",
+            "left-[max(0.75rem,env(safe-area-inset-left))]",
+            "bottom-[max(0.75rem,env(safe-area-inset-bottom))]"
+          )}
+        >
+          <div className="pointer-events-auto">{parkedButton}</div>
+        </div>
+      )}
       {showEndShiftDock && (
         <div
           ref={fixedEndShiftRef}

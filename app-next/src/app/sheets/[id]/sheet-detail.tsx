@@ -127,7 +127,7 @@ import { concatenateTimelineSlices, getSheetOwnerEventsInOrder } from "@/lib/rol
 import { getWorkLogBlockReason } from "@/lib/shift-start-gate";
 import { resolveDayCrew } from "@/lib/day-crew";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
-import { getCurrentPosition, BEST_EFFORT_OPTIONS } from "@/lib/geo";
+import { getCurrentPosition, BEST_EFFORT_OPTIONS, resolveEventGpsFix } from "@/lib/geo";
 import {
   clearHistory1mSegment,
   snapshotHistory1m,
@@ -152,7 +152,8 @@ import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { isFleetManagerRole } from "@/lib/roles";
 import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { cn } from "@/lib/utils";
-import { formatPastWeekArchiveSubtitle } from "@/lib/product-copy";
+import { formatPastWeekArchiveSubtitle, DRIVER_PARKED_GPS_REQUIRED } from "@/lib/product-copy";
+import { STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 
 const EMPTY_DAY = (): DayData => ({
@@ -1593,12 +1594,17 @@ export function SheetDetail({
   const handleEndShiftRequest = handleOpenEndShiftCorrection;
 
   const handleLogEvent = useCallback(
-    (dayIndex: number, type: string) => {
+    (dayIndex: number, type: string, geo?: { lat: number; lng: number; accuracy?: number }) => {
     if (driverContentLocked) return;
 
     // End shift must go through EndShiftCorrectionDialog (finish time + end km).
     if (type === "stop") {
       handleEndShiftRequest(dayIndex);
+      return;
+    }
+
+    if (type === STATIONARY_REST_EVENT_TYPE && !geo) {
+      window.alert(DRIVER_PARKED_GPS_REQUIRED);
       return;
     }
 
@@ -1621,7 +1627,13 @@ export function SheetDetail({
       const newDays = [...prev.days];
       const day = newDays[dayIndex];
       const events = day.events || [];
-      const newEvent = { time: new Date().toISOString(), type };
+      const newEvent = {
+        time: new Date().toISOString(),
+        type,
+        ...(geo
+          ? { lat: geo.lat, lng: geo.lng, accuracy: geo.accuracy }
+          : {}),
+      };
       const newEvents = [...events, newEvent];
       newDays[dayIndex] = { ...day, events: newEvents };
       const withGrids = deriveDaysWithRollover(newDays, prev.week_starting, {
@@ -1641,6 +1653,25 @@ export function SheetDetail({
     // used to clear crumbs after a failed/slow pin fix and never persist them).
     const history_1m = gpsMovementTrailEnabled ? snapshotHistory1m() : [];
     if (gpsMovementTrailEnabled) clearHistory1mSegment();
+    if (geo) {
+      if (history_1m.length > 0) {
+        setSheetData((prev) => {
+          const newDays = [...prev.days];
+          const day = newDays[dayIndex];
+          const events = [...(day.events || [])];
+          const last = events[events.length - 1];
+          if (last) {
+            events[events.length - 1] = { ...last, history_1m };
+          }
+          newDays[dayIndex] = { ...day, events };
+          const next = { ...prev, days: newDays };
+          sheetDataRef.current = next;
+          return next;
+        });
+        void parkDeviceAndScheduleSave().catch(() => {});
+      }
+      return;
+    }
     getCurrentPosition(BEST_EFFORT_OPTIONS)
       .then((loc) => {
         const lastCrumb = history_1m[history_1m.length - 1];
@@ -1778,6 +1809,9 @@ export function SheetDetail({
       setEndShiftError(validation.message ?? "Invalid km.");
       return;
     }
+    const history_1m = gpsMovementTrailEnabled ? snapshotHistory1m() : [];
+    if (gpsMovementTrailEnabled) clearHistory1mSegment();
+    const fix = await resolveEventGpsFix(history_1m.at(-1) ?? null);
     const markRouteOn = routeConfirmDayAfterPriorEndShift(dayIndex, currentDayIndex);
     let daysAfterEndShift: DayData[] | null = null;
     let orphanNoteRemoved: OrphanFollowOnRemoval[] = [];
@@ -1785,6 +1819,10 @@ export function SheetDetail({
       let corrected = applyStopAtCorrectedTime(prev.days, dayIndex, stopTimeIso, endKmsParsed, {
         markRouteConfirmedOnDayIndex: markRouteOn,
         endKmsDayIndex,
+        ...(fix
+          ? { lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy }
+          : {}),
+        ...(history_1m.length > 0 ? { history_1m } : {}),
       });
       const pruned = pruneOrphanFollowOnEventsAfterStop(corrected, stopTimeIso);
       corrected = pruned.days;
@@ -1818,39 +1856,6 @@ export function SheetDetail({
     if (daysAfterEndShift && shouldEducateAfterEndShift(daysAfterEndShift, dayIndex)) {
       setShiftPatternPrompt({ dayIndex });
     }
-    const history_1m = gpsMovementTrailEnabled ? snapshotHistory1m() : [];
-    if (gpsMovementTrailEnabled) clearHistory1mSegment();
-    getCurrentPosition(BEST_EFFORT_OPTIONS)
-      .then((loc) => {
-        const lastCrumb = history_1m[history_1m.length - 1];
-        const fix =
-          loc ??
-          (lastCrumb
-            ? { lat: lastCrumb.lat, lng: lastCrumb.lng, accuracy: 0 }
-            : null);
-        if (!fix) return;
-        setSheetData((prev) => {
-          const newDays = [...prev.days];
-          const d = newDays[dayIndex];
-          const events = [...(d.events || [])];
-          const last = events[events.length - 1];
-          if (last) {
-            events[events.length - 1] = {
-              ...last,
-              lat: fix.lat,
-              lng: fix.lng,
-              accuracy: fix.accuracy,
-              ...(history_1m.length > 0 ? { history_1m } : {}),
-            };
-          }
-          newDays[dayIndex] = { ...d, events };
-          const next = { ...prev, days: newDays };
-          sheetDataRef.current = next;
-          return next;
-        });
-        void parkDeviceAndScheduleSave().catch(() => {});
-      })
-      .catch(() => {});
   }, [endShiftDialog, endShiftEndKms, endShiftStopHhmm, sheetId, currentDayIndex, gpsMovementTrailEnabled, parkDeviceAndScheduleSave, pruneOrphansOnFollowingWeekSheet]);
 
   const handleShiftPatternSave = useCallback(

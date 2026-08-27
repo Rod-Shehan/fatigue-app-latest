@@ -27,8 +27,6 @@ import {
   evaluateSolo184E2bRestOptions,
   evaluateSolo72h,
   evaluateTwoUp24hRest,
-  evaluateTwoUp48hOption,
-  evaluateTwoUp7dOption,
 } from "./evaluate";
 import {
   fiveHourViolationDayAttribution,
@@ -37,6 +35,11 @@ import {
 import { isAmiComplianceEngineEnabled } from "./flag";
 import { tapeMinuteToMs } from "./paint";
 import type { AmiEvent } from "./types";
+import {
+  evaluateTwoUp48hStationaryOption,
+  evaluateTwoUp7dStationaryOption,
+  type StationaryGeoEvent,
+} from "@/lib/two-up-stationary";
 
 type RunOpts = Parameters<typeof runComplianceChecks>[1];
 
@@ -55,6 +58,7 @@ const AMI_OWNED_MESSAGE_MARKERS = [
   "48hrs non-work must include ≥24 continuous hrs",
   "Non-work time must not include a period of less than 7 consecutive hours — Two-Up",
   "Need ≥7h continuous non-work in any rolling 48h",
+  "Need ≥7h continuous GPS-proven Parked or End shift",
 ];
 
 function isAmiOwnedResult(r: ComplianceCheckResult): boolean {
@@ -77,6 +81,25 @@ function collectAmiEvents(
       type: toAmiEventType(e.type),
     }))
     .filter((e): e is { time: string; type: AmiEvent["type"] } => e.type != null);
+}
+
+function collectStationaryGeoEvents(
+  days: ComplianceDayData[],
+  options: RunOpts
+): StationaryGeoEvent[] {
+  const slices: ComplianceDayData[] = [
+    ...((options.historyDays as ComplianceDayData[] | null | undefined) ?? []),
+    ...((options.prevWeekDays as ComplianceDayData[] | null | undefined) ?? []),
+    ...days,
+  ];
+  return getEventsInTimeOrder(slices)
+    .filter((e) => e.driver !== "second")
+    .map((e) => ({
+      time: e.time,
+      type: e.type,
+      lat: e.lat,
+      lng: e.lng,
+    }));
 }
 
 function resolveAsOfMs(options: RunOpts): number {
@@ -150,8 +173,9 @@ function buildAmiOwnedResults(
         message: "Need ≥7h non-work in any rolling 24h period (Two-Up)",
       });
     }
-    const t7 = evaluateTwoUp7dOption(buildEvalTape(events, asOf, 7 * 24 * 60));
-    const t48 = evaluateTwoUp48hOption(buildEvalTape(events, asOf, 48 * 60));
+    const geoEvents = collectStationaryGeoEvents(days, options);
+    const t7 = evaluateTwoUp7dStationaryOption(geoEvents, asOf, recordStartMs);
+    const t48 = evaluateTwoUp48hStationaryOption(geoEvents, asOf, recordStartMs);
     const twoUpBOk = t7.structureOk || t48.hasQualBlock;
     if (!twoUpBOk) {
       out.push({
@@ -159,7 +183,7 @@ function buildAmiOwnedResults(
         iconKey: "Moon",
         day: "AMI",
         message:
-          "Need ≥7h continuous non-work in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h non-work including ≥24h, no period under 7h)",
+          "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)",
       });
       if (t7.totalNonWork > 0 && t7.totalNonWork < AMI_7D_MIN_TOTAL_NON_WORK) {
         out.push({

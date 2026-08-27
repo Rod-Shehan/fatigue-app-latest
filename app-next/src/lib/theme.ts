@@ -114,6 +114,11 @@ export const HERO_SPLIT_CHROME = {
     text: "text-white",
     pip: "bg-emerald-100",
   },
+  parked: {
+    half: "driver-puck-face driver-puck-slate",
+    text: "text-slate-50",
+    pip: "bg-cyan-200",
+  },
   load_check: {
     half: "driver-puck-face driver-puck-slate",
     text: "text-slate-50",

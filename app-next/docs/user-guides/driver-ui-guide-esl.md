@@ -189,12 +189,13 @@ If your sheet is **Two-up**:
 - Log **only your own** times on **your** sheet. The relief driver keeps **their own** sheet.
 - Two-up does **not** use **Start Rest** or **Taking a nap?**. Sleep on the trip is **Sleeper berth**.
 - On driving, **Stop Driving** opens four choices: **Break from driving**, **Start Other Work**, **Passenger**, or **Sleeper berth**.
-- **Passenger** is still work time — it never becomes non-work. Then tap **Continue shift** to choose **Start driving**, **Break from driving**, or **Sleeper berth**.
-- **Sleeper berth** is non-work time **during the shift** (in the vehicle). It is **not** End shift. Then tap **Start work** to choose **Start driving**, **Start Other Work**, or **Passenger**.
-- **End shift** is only when you go **home or to a motel**. After that, **Start shift** starts a new working period.
+- **Passenger** is still work time — it never becomes non-work. Then tap **Continue shift** to choose **Start driving**, **Break from driving**, **Sleeper berth**, or **Parked**.
+- **Sleeper berth** is non-work time **during the shift** (in the vehicle). It is **not** End shift. Then tap **Start work** to choose **Start driving**, **Start Other Work**, **Passenger**, or **Parked**.
+- **Parked** is the bottom-left button while the shift is open (also on Passenger / Sleeper berth). The vehicle must be **still**, and the app needs a **GPS fix**. That is how the record proves you were not in a moving vehicle. Sleeping in the berth while travelling is **Sleeper berth**, not Parked.
+- **End shift** is only when you go **home or to a motel**. After that, **Start shift** starts a new working period. End shift also stores GPS when it can — that pin is what proves the 48-hour / 7-day stationary option.
 - Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).
 - Always: at least **7 hours non-work in any 24 hours** (sleeper berth counts).
-- Then **either** a **7-hour continuous** rest **not** in a moving vehicle in any **48 hours**, **or** **48 hours non-work in 7 days** that includes one **24-hour** block and **no** rest shorter than 7 hours. You do not need both.
+- Then **either** a **7-hour continuous** rest **not** in a moving vehicle in any **48 hours**, **or** **48 hours non-work in 7 days** that includes one **24-hour** block and **no** rest shorter than 7 hours. You do not need both. Only **Parked** (GPS) and **End shift** (GPS) count for that “not moving” part. Sleeper berth does not.
 
 ---
 

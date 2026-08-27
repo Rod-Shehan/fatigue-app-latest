@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { BedDouble, Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin, User, Wrench } from "lucide-react";
+import { BedDouble, Briefcase, Coffee, Moon, Square, Clock, AlertTriangle, CheckCircle2, Trash2, MapPin, User, Wrench, ParkingCircle } from "lucide-react";
 
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 import { getSheetDayDateString } from "@/lib/weeks";
 import { deriveMinuteGridFromEvents, MINUTES_PER_DAY } from "@/lib/coverage/derive-minute-coverage";
-import { isBreakFromDrivingEventType, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
-import { DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
+import { isBreakFromDrivingEventType, PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
+import { DRIVER_PARKED_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 import type { OpenActivityAtDayEnd } from "@/lib/event-rollover";
 
@@ -24,13 +24,14 @@ const EVENT_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ 
   other_work: { label: "Other work", icon: Wrench },
   [PASSENGER_EVENT_TYPE]: { label: DRIVER_PASSENGER_LABEL, icon: User },
   [SLEEPER_BERTH_EVENT_TYPE]: { label: DRIVER_SLEEPER_BERTH_LABEL, icon: BedDouble },
+  [STATIONARY_REST_EVENT_TYPE]: { label: DRIVER_PARKED_LABEL, icon: ParkingCircle },
   non_work: { label: "Non-Work Time", icon: Moon },
   stop: { label: "End shift", icon: Square },
 };
 
 function themeKeyForEvent(type: string): ActivityKey {
   if (type === PASSENGER_EVENT_TYPE) return "other_work";
-  if (type === SLEEPER_BERTH_EVENT_TYPE) return "non_work";
+  if (type === SLEEPER_BERTH_EVENT_TYPE || type === STATIONARY_REST_EVENT_TYPE) return "non_work";
   if (type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop") {
     return type;
   }

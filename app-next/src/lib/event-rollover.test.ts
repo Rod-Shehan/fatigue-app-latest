@@ -75,6 +75,20 @@ describe("getEffectiveOpenActivityAtDayEnd", () => {
     );
     expect(t).toBe("non_work");
   });
+
+  it("carries Parked as non-work; shift stayed open (not End shift)", () => {
+    const t = getEffectiveOpenActivityAtDayEnd(
+      {
+        events: [
+          { time: "2026-06-03T08:00:00+08:00", type: "work" },
+          { time: "2026-06-03T22:00:00+08:00", type: "stationary_rest" },
+        ],
+      },
+      "2026-06-03",
+      "2026-06-04"
+    );
+    expect(t).toBe("non_work");
+  });
 });
 
 describe("deriveDaysWithRollover", () => {

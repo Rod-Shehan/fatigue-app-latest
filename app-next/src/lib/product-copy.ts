@@ -257,3 +257,9 @@ export const DRIVER_BREAK_FROM_DRIVING_LABEL = "Break from driving";
 export const DRIVER_PASSENGER_LABEL = "Passenger";
 /** Two-up: on-trip sleep in an appropriate sleeper berth. Non-work time; shift stays open. */
 export const DRIVER_SLEEPER_BERTH_LABEL = "Sleeper berth";
+/** Two-up: vehicle not moving. Non-work; shift stays open. GPS must confirm still. */
+export const DRIVER_PARKED_LABEL = "Parked";
+export const DRIVER_PARKED_GPS_REQUIRED =
+  "Parked needs a GPS fix so the record can show the vehicle was not moving. Enable location and try again.";
+export const DRIVER_PARKED_MOVING_LOCKED =
+  "Parked is locked while the vehicle is moving. Use Sleeper berth if you are still travelling.";

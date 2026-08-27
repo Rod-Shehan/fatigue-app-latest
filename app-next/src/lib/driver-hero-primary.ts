@@ -3,6 +3,7 @@ import {
   OTHER_WORK_EVENT_TYPE,
   PASSENGER_EVENT_TYPE,
   SLEEPER_BERTH_EVENT_TYPE,
+  STATIONARY_REST_EVENT_TYPE,
 } from "@/lib/activity-kind";
 import {
   DRIVER_BREAK_FROM_DRIVING_LABEL,
@@ -82,6 +83,7 @@ export function resolveWorkConfirmLabel(options: {
   otherWorkChooserOpen?: boolean;
   passengerChooserOpen?: boolean;
   sleeperChooserOpen?: boolean;
+  parkedChooserOpen?: boolean;
   currentType: string | null;
   episodeResume: boolean;
   needsShiftStartSetup: boolean;
@@ -92,6 +94,7 @@ export function resolveWorkConfirmLabel(options: {
     otherWorkChooserOpen = false,
     passengerChooserOpen = false,
     sleeperChooserOpen = false,
+    parkedChooserOpen = false,
     currentType,
     episodeResume,
     needsShiftStartSetup,
@@ -102,10 +105,12 @@ export function resolveWorkConfirmLabel(options: {
     otherWorkChooserOpen ||
     passengerChooserOpen ||
     sleeperChooserOpen ||
+    parkedChooserOpen ||
     currentType === "break" ||
     currentType === OTHER_WORK_EVENT_TYPE ||
     currentType === PASSENGER_EVENT_TYPE ||
-    currentType === SLEEPER_BERTH_EVENT_TYPE
+    currentType === SLEEPER_BERTH_EVENT_TYPE ||
+    currentType === STATIONARY_REST_EVENT_TYPE
   ) {
     return DRIVER_START_DRIVING_LABEL;
   }

@@ -42,6 +42,22 @@ These are taps, not extra states. **Stop Driving**, **Start shift**, and **Start
 
 **End shift** stays in the dock, never inside the split. Stop Driving = still on the job, not driving. End shift = off the job.
 
+## Two-up extras
+
+Two-up keeps the same Work / Other work / End shift words. It does **not** use **Start Rest** or **Taking a nap?**. Extra states:
+
+| What the driver is doing | Driver word | How they get there |
+|--------------------------|-------------|--------------------|
+| Passenger seat | **Passenger** | Stop Driving → Passenger (unlocked while moving) |
+| Sleep in an appropriate sleeper berth | **Sleeper berth** | Stop Driving → Sleeper berth (unlocked while moving). Non-work; shift stays open. Counts for 7h in 24h. Does **not** prove 48h / 7-day stationary rest. |
+| Vehicle not moving | **Parked** | Bottom-left dock (or from Passenger / Sleeper berth). GPS required. Non-work; shift stays open. This is the on-shift proof for 184E(3)(b). |
+
+| Phrase | Role |
+|--------|------|
+| **Parked** | Two-up dock (and Passenger / Sleeper choosers). Logs `stationary_rest` only after a GPS fix while still. Locked while moving — use Sleeper berth then. |
+
+**End shift** with a GPS pin also proves 184E(3)(b) (vehicle stopped at finish). Sleeper berth does not.
+
 ## Taps (locked)
 
 Idle Start shift and Rest Start work both open the same Driving / Other work split. Other work keeps three tiles on the ring (driving, Rest, Load check) until they pick driving or Rest — same after a reload. Confirm in Set up day does **not** auto-log driving.

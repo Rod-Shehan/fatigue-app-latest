@@ -59,6 +59,7 @@ export function getEffectiveOpenActivityAtDayEnd(
   if (lastEv?.type === "stop") return "non_work";
   if (lastEv?.type === "passenger") return "other_work";
   if (lastEv?.type === "sleeper_berth") return "non_work";
+  if (lastEv?.type === "stationary_rest") return "non_work";
   if (
     lastEv?.type === "work" ||
     lastEv?.type === "break" ||

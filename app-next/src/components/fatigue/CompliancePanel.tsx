@@ -346,8 +346,8 @@ export default function CompliancePanel({
             <li>• 20 min rest per 5h work (2×10 min or 1×20 min; breaks under 10 min count as work)</li>
             <li>• Always: ≥7 hrs non-work in any rolling 24 hrs (can be in a moving vehicle)</li>
             <li>
-              • Then either: ≥7 continuous hrs non-work in any rolling 48 hrs (not in a moving vehicle), or ≥48 hrs
-              non-work in 7 days including ≥24 continuous hrs and no non-work period under 7h
+              • Then either: ≥7 continuous hrs GPS-proven Parked or End shift in any rolling 48 hrs, or ≥48 hrs
+              GPS-proven Parked/End shift in 7 days including ≥24 continuous hrs and no period under 7h (sleeper berth counts for 24h only)
             </li>
             <li>• Max 168 hrs work in any 14-day period (rolling; resets after ≥48h continuous non-work)</li>
           </ul>

@@ -61,9 +61,9 @@ All checks are implemented in `src/lib/compliance.ts` and executed via `runCompl
 
   - **App** (current approach):
     - **184E(3)(a)** is always required (rolling 24h ≥7h non-work).
-    - **184E(3)(b)** is an **OR**: the **7-day option** (rolling 7×24h: ≥48h non-work, ≥24h consecutive, no piece under 7h) **or** the **48-hour option** (≥7h continuous non-work in any rolling 48h). Meeting either satisfies (b); the unused option is not raised.
-    - “Not spent in a moving vehicle” for the 48h option is supported by a GPS evidence heuristic on the legacy path; AMI scores continuous non-work on the tape (sleeper berth is non-work).
-  - Code: `evaluateTwoUp24hRest` / `evaluateTwoUp48hOption` / `evaluateTwoUp7dOption` in `ami/evaluate.ts` via `runWaComplianceChecks()`.
+    - **184E(3)(b)** is an **OR**: the **7-day option** (rolling 7×24h: ≥48h GPS-proven stationary non-work, ≥24h consecutive, no piece under 7h) **or** the **48-hour option** (≥7h continuous GPS-proven stationary non-work in any rolling 48h). Meeting either satisfies (b); the unused option is not raised.
+    - “Not spent in a moving vehicle” is proven only by **Parked** (`stationary_rest`) or **End shift** (`stop`) **with a GPS pin on that event**. **Sleeper berth** counts for 184E(3)(a) (7h in 24h, moving allowed) and does **not** credit (3)(b). Missing GPS = not proven.
+  - Code: `evaluateTwoUp24hRest` (tape, all non-work) plus `evaluateTwoUp48hStationaryOption` / `evaluateTwoUp7dStationaryOption` in `two-up-stationary.ts` via `runWaComplianceChecks()`.
 
 ### Shiftwork ≥5 consecutive days (Reg 184E(4))
 

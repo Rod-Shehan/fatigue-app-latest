@@ -10,6 +10,7 @@
  * - `other_work` and `passenger` paint as break from driving and are never converted to non-work.
  *   They are also marked work_time so 168h still counts them.
  * - `sleeper_berth` paints as non-work. It is not End shift (`stop`); the shift stays open.
+ * - `stationary_rest` (Parked) paints as non-work. Shift stays open. 184E(3)(b) needs GPS on the event.
  * - `stop` (End shift) ends the prior segment; time after it is non-work until the
  *   next driver event — including across midnight. Never invent break from short gaps.
  * - Elapsed minutes with no driver event are always non-work. The timeline is never blank.
@@ -158,7 +159,9 @@ export function deriveMinuteGridFromEvents(
       if (ev.type === "work" || treatBreakAsWork) work_time[m] = true;
       else if (ev.type === "break") breaks[m] = true;
       else if (ev.type === "other_work" || ev.type === "passenger") otherWork[m] = true;
-      else if (ev.type === "non_work" || ev.type === "sleeper_berth") non_work[m] = true;
+      else if (ev.type === "non_work" || ev.type === "sleeper_berth" || ev.type === "stationary_rest") {
+        non_work[m] = true;
+      }
     }
   }
   for (let m = 0; m < maxMinuteExclusive; m++) {

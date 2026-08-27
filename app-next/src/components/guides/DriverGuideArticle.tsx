@@ -21,6 +21,7 @@ import {
   DRIVER_BREAK_FROM_DRIVING_LABEL,
   DRIVER_PASSENGER_LABEL,
   DRIVER_SLEEPER_BERTH_LABEL,
+  DRIVER_PARKED_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
   DRIVER_REST_WINDOW_HEADLINE,
@@ -368,22 +369,29 @@ export function DriverGuideArticle() {
           </li>
           <li>
             {DRIVER_PASSENGER_LABEL} is still work time — it never becomes non-work. Then tap {DRIVER_CONTINUE_SHIFT_LABEL}{" "}
-            to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_BREAK_FROM_DRIVING_LABEL}, or {DRIVER_SLEEPER_BERTH_LABEL}.
+            to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_BREAK_FROM_DRIVING_LABEL}, {DRIVER_SLEEPER_BERTH_LABEL}, or{" "}
+            {DRIVER_PARKED_LABEL}.
           </li>
           <li>
             {DRIVER_SLEEPER_BERTH_LABEL} is non-work time during the shift (in the vehicle). It is not {DRIVER_END_SHIFT_LABEL}.
-            Then tap {DRIVER_START_WORK_LABEL} to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_OTHER_WORK_LABEL}, or{" "}
-            {DRIVER_PASSENGER_LABEL}.
+            Then tap {DRIVER_START_WORK_LABEL} to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_OTHER_WORK_LABEL},{" "}
+            {DRIVER_PASSENGER_LABEL}, or {DRIVER_PARKED_LABEL}.
+          </li>
+          <li>
+            {DRIVER_PARKED_LABEL} is the bottom-left button while the shift is open. The vehicle must be still, and the app
+            needs a GPS fix. That is how the record proves you were not in a moving vehicle. Sleeping in the berth while
+            travelling is {DRIVER_SLEEPER_BERTH_LABEL}, not {DRIVER_PARKED_LABEL}.
           </li>
           <li>
             {DRIVER_END_SHIFT_LABEL} is only when you go home or to a motel. After that, {DRIVER_START_SHIFT_LABEL} starts a new
-            working period.
+            working period. End shift also stores GPS when it can — that pin is what proves the 48-hour / 7-day stationary option.
           </li>
           <li>Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).</li>
           <li>Always: at least 7 hours non-work in any 24 hours (sleeper berth counts).</li>
           <li>
             Then either a 7-hour continuous rest not in a moving vehicle in any 48 hours, or 48 hours non-work in 7 days
-            that includes one 24-hour block and no rest shorter than 7 hours. You do not need both.
+            that includes one 24-hour block and no rest shorter than 7 hours. You do not need both. Only {DRIVER_PARKED_LABEL}{" "}
+            (GPS) and {DRIVER_END_SHIFT_LABEL} (GPS) count for that “not moving” part. {DRIVER_SLEEPER_BERTH_LABEL} does not.
           </li>
         </ul>
       </section>
@@ -593,6 +601,8 @@ export function DriverGuideArticle() {
             [DRIVER_NAP_QUESTION_LABEL, `Only on Rest, bottom-left. Not a new activity. After tap: ${DRIVER_ON_NAP_LABEL}`],
             [DRIVER_OTHER_WORK_LABEL, "Not driving, still a job (load, forklift, tyre, paperwork, fuel). Break from driving; never non-work"],
             ["Non-work", "Off the job / End shift / sleep"],
+            [DRIVER_PARKED_LABEL, "Two-up — vehicle still. GPS required. Proves 48h / 7-day stationary non-work"],
+            [DRIVER_SLEEPER_BERTH_LABEL, "Two-up — sleep in the berth. Non-work in 24h; not 48h / 7-day stationary proof"],
             [
               "WorkSafe day sheet",
               `Truck reg / odometer / locations + ${WORKSAFE_TRACK_LABELS.work} / ${WORKSAFE_TRACK_LABELS.break} / ${WORKSAFE_TRACK_LABELS.non_work} as a 15-minute tick grid (day card + PDF); empty days = Work 0 / Break 0 / Non-work 24`,
@@ -604,7 +614,7 @@ export function DriverGuideArticle() {
             [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish a shift. Start shift opens driving or Other work"],
             [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],
             [DRIVER_START_DRIVING_LABEL, "After Start shift, Start work, or on the Other work hub — log driving"],
-            [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, break from driving, or sleeper berth"],
+              [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, break from driving, sleeper berth, or Parked"],
             [
               "Fitness for Work",
               "Signed form filed under your name. Optional in trial. Separate PDF from Prestart and Load",

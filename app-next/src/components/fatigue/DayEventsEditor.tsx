@@ -21,6 +21,8 @@ import {
   validateDayEventEdits,
   type PriorOpenActivity,
 } from "@/lib/day-event-edit-rules";
+import { PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
+import { DRIVER_PARKED_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
 
 export type DayEventDraft = {
   time: string;
@@ -80,6 +82,20 @@ function defaultTimeForNewEvent(dayYmd: string, existing: DayEventDraft[]): stri
 
 function isActivityKey(type: string): type is ActivityKey {
   return (EDITABLE_DAY_EVENT_TYPES as string[]).includes(type);
+}
+
+const TWO_UP_LOGGED_TYPES = [
+  PASSENGER_EVENT_TYPE,
+  SLEEPER_BERTH_EVENT_TYPE,
+  STATIONARY_REST_EVENT_TYPE,
+] as const;
+
+function eventTypeLabel(type: string): string {
+  if (type === PASSENGER_EVENT_TYPE) return DRIVER_PASSENGER_LABEL;
+  if (type === SLEEPER_BERTH_EVENT_TYPE) return DRIVER_SLEEPER_BERTH_LABEL;
+  if (type === STATIONARY_REST_EVENT_TYPE) return DRIVER_PARKED_LABEL;
+  if (isActivityKey(type)) return TYPE_LABELS[type];
+  return type;
 }
 
 export function normalizeDayEvents(events: DayEventDraft[]): DayEventDraft[] {
@@ -169,7 +185,7 @@ export function DayEventsEditor({
                 className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
               >
                 <span className="font-mono tabular-nums w-14 shrink-0">{isoToHHMM(ev.time)}</span>
-                <span className="font-medium">{TYPE_LABELS[isActivityKey(ev.type) ? ev.type : "stop"] ?? ev.type}</span>
+                <span className="font-medium">{eventTypeLabel(ev.type)}</span>
                 {ev.driver ? <span className="text-xs text-slate-500">({ev.driver})</span> : null}
               </li>
             ))}
@@ -201,7 +217,12 @@ export function DayEventsEditor({
                 .map((ev, i) => ({ ev, i }))
                 .sort((a, b) => new Date(a.ev.time).getTime() - new Date(b.ev.time).getTime())
                 .map(({ ev, i: eventIndex }) => {
-                  const typeKey: ActivityKey = isActivityKey(ev.type) ? ev.type : "work";
+                  const rowTypes = TWO_UP_LOGGED_TYPES.includes(
+                    ev.type as (typeof TWO_UP_LOGGED_TYPES)[number]
+                  )
+                    ? [ev.type, ...selectableTypes]
+                    : selectableTypes;
+                  const typeKey = ev.type;
                   const bad = issueIndexes.has(eventIndex);
                   return (
                     <div
@@ -213,14 +234,13 @@ export function DayEventsEditor({
                     >
                       <Select
                         value={
-                          selectableTypes.includes(typeKey)
+                          rowTypes.includes(typeKey)
                             ? typeKey
                             : selectableTypes[0] ?? "work"
                         }
                         onValueChange={(v) => {
-                          const nextType = v as ActivityKey;
-                          const patch: Partial<DayEventDraft> = { type: nextType };
-                          if (nextType !== "work") patch.driver = undefined;
+                          const patch: Partial<DayEventDraft> = { type: v };
+                          if (v !== "work") patch.driver = undefined;
                           updateAt(eventIndex, patch);
                         }}
                       >
@@ -228,9 +248,9 @@ export function DayEventsEditor({
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {selectableTypes.map((t) => (
+                          {rowTypes.map((t) => (
                             <SelectItem key={t} value={t} className="text-sm font-medium">
-                              {TYPE_LABELS[t]}
+                              {eventTypeLabel(t)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -243,14 +263,14 @@ export function DayEventsEditor({
                           updateAt(eventIndex, { time: hhmmToIsoOnDate(sheetDayYmd, hhmm) });
                         }}
                         className="h-11 w-28 text-base font-mono flex-1 min-w-[6.5rem]"
-                        aria-label={`Time for ${TYPE_LABELS[typeKey]}`}
+                        aria-label={`Time for ${eventTypeLabel(typeKey)}`}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         className="h-11 px-2 shrink-0 text-red-600 dark:text-red-400"
-                        aria-label={`Remove ${TYPE_LABELS[typeKey]}`}
+                        aria-label={`Remove ${eventTypeLabel(typeKey)}`}
                         onClick={() => onChange(events.filter((_, j) => j !== eventIndex))}
                       >
                         <Trash2 className="w-4 h-4" />

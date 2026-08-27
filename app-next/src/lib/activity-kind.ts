@@ -12,6 +12,8 @@ export const OTHER_WORK_EVENT_TYPE = "other_work";
 export const PASSENGER_EVENT_TYPE = "passenger";
 /** Two-up: sleep in an appropriate sleeper berth. Non-work time; shift stays open. */
 export const SLEEPER_BERTH_EVENT_TYPE = "sleeper_berth";
+/** Two-up: vehicle not moving. Non-work; shift stays open. 184E(3)(b) needs GPS on the event. */
+export const STATIONARY_REST_EVENT_TYPE = "stationary_rest";
 
 /** Driving work only — the 5h work clock. Other work is a break from driving. */
 export function isWorkTimeEventType(type: string): boolean {
@@ -33,7 +35,8 @@ export function isOpenShiftEventType(type: string | null | undefined): boolean {
     type === "break" ||
     type === OTHER_WORK_EVENT_TYPE ||
     type === PASSENGER_EVENT_TYPE ||
-    type === SLEEPER_BERTH_EVENT_TYPE
+    type === SLEEPER_BERTH_EVENT_TYPE ||
+    type === STATIONARY_REST_EVENT_TYPE
   );
 }
 
@@ -41,7 +44,9 @@ export function isOpenShiftEventType(type: string | null | undefined): boolean {
 export function toCoverageKind(type: string): "work" | "break" | "other_work" | "non_work" | null {
   if (type === "break") return "break";
   if (type === OTHER_WORK_EVENT_TYPE || type === PASSENGER_EVENT_TYPE) return "other_work";
-  if (type === "non_work" || type === SLEEPER_BERTH_EVENT_TYPE) return "non_work";
+  if (type === "non_work" || type === SLEEPER_BERTH_EVENT_TYPE || type === STATIONARY_REST_EVENT_TYPE) {
+    return "non_work";
+  }
   if (type === "work") return "work";
   return null;
 }

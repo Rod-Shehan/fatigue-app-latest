@@ -38,6 +38,33 @@ export const BEST_EFFORT_OPTIONS = {
   highAccuracy: false,
 } as const;
 
+/** Two-up Parked / End shift: wait longer for a pin that can prove stationary non-work. */
+export const STATIONARY_GPS_OPTIONS = {
+  timeout: 8000,
+  maxAge: 4000,
+  highAccuracy: true,
+} as const;
+
+export function geoFromTrailCrumb(
+  crumb?: { lat: number; lng: number } | null
+): GeoPosition | null {
+  if (!crumb || !Number.isFinite(crumb.lat) || !Number.isFinite(crumb.lng)) return null;
+  return { lat: crumb.lat, lng: crumb.lng, accuracy: 0 };
+}
+
+/** Live GPS, else last trail crumb. Null if neither is available. */
+export async function resolveEventGpsFix(
+  fallbackCrumb?: { lat: number; lng: number } | null,
+  options: {
+    timeout?: number;
+    maxAge?: number;
+    highAccuracy?: boolean;
+  } = STATIONARY_GPS_OPTIONS
+): Promise<GeoPosition | null> {
+  const loc = await getCurrentPosition(options);
+  return loc ?? geoFromTrailCrumb(fallbackCrumb);
+}
+
 export function isGeoAvailable(): boolean {
   return typeof navigator !== "undefined" && "geolocation" in navigator;
 }

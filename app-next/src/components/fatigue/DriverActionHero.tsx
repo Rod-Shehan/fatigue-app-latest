@@ -7,13 +7,20 @@ import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
 import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
-import { BedDouble, Briefcase, ClipboardList, Coffee, User, Wrench, X } from "lucide-react";
+import { BedDouble, Briefcase, ClipboardList, Coffee, ParkingCircle, User, Wrench, X } from "lucide-react";
 import { HERO_SPLIT_CHROME } from "@/lib/theme";
 
 const UNLOCK_RING_R = 46;
 const UNLOCK_RING_C = 2 * Math.PI * UNLOCK_RING_R;
 
-type HeroSplitKind = "work" | "break" | "other_work" | "passenger" | "sleeper_berth" | "load_check";
+type HeroSplitKind =
+  | "work"
+  | "break"
+  | "other_work"
+  | "passenger"
+  | "sleeper_berth"
+  | "parked"
+  | "load_check";
 
 const HERO_SPLIT_ICONS: Record<
   HeroSplitKind,
@@ -24,6 +31,7 @@ const HERO_SPLIT_ICONS: Record<
   other_work: Wrench,
   passenger: User,
   sleeper_berth: BedDouble,
+  parked: ParkingCircle,
   load_check: ClipboardList,
 };
 

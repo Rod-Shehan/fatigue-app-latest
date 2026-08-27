@@ -1,4 +1,5 @@
 import type { DayData } from "@/lib/api";
+import { isOpenShiftEventType } from "@/lib/activity-kind";
 import {
   getEventsInTimeOrder,
   getLastRollingEventAt,
@@ -12,7 +13,7 @@ export type CorrectEndShiftValidation =
   | { valid: true }
   | { valid: false; message: string };
 
-const OPEN_SEGMENT_TYPES = new Set(["work", "break", "other_work"]);
+/** Open shift on the rolling timeline (includes two-up passenger / sleeper / Parked). */
 
 /**
  * @deprecated Prefer {@link timelineHasOpenWorkOrBreak}. Calendar-day last-event
@@ -21,7 +22,7 @@ const OPEN_SEGMENT_TYPES = new Set(["work", "break", "other_work"]);
 export function dayHasOpenWorkOrBreakSegment(day: DayData | undefined): boolean {
   const events = day?.events ?? [];
   const last = events[events.length - 1];
-  return !!last && OPEN_SEGMENT_TYPES.has(last.type);
+  return !!last && isOpenShiftEventType(last.type);
 }
 
 /** Rolling timeline has an open work/break segment at asOfMs (End shift may close it). */
@@ -46,7 +47,7 @@ export function findOpenWorkOrBreakOnTimeline(
     ordered.map(({ time, type }) => ({ time, type })),
     asOfMs
   );
-  if (!last || !OPEN_SEGMENT_TYPES.has(last.type)) return null;
+  if (!last || !isOpenShiftEventType(last.type)) return null;
   const match = [...ordered].reverse().find((ev) => ev.time === last.time && ev.type === last.type);
   return match ?? null;
 }
@@ -108,7 +109,7 @@ export function validateCorrectEndShiftTime(
     (() => {
       const events = day?.events ?? [];
       const last = events[events.length - 1];
-      return last && OPEN_SEGMENT_TYPES.has(last.type) ? last.time : null;
+      return last && isOpenShiftEventType(last.type) ? last.time : null;
     })();
 
   if (!lastOpenIso) {
@@ -154,6 +155,11 @@ export type ApplyStopAtCorrectedTimeOptions = {
    * Defaults to the stop's dayIndex.
    */
   endKmsDayIndex?: number;
+  /** GPS pin at End shift — required for two-up 184E(3)(b) credit. */
+  lat?: number;
+  lng?: number;
+  accuracy?: number;
+  history_1m?: Array<{ lat: number; lng: number; t: string }>;
 };
 
 /**
@@ -172,7 +178,14 @@ export function applyStopAtCorrectedTime(
   const events = [...(d.events ?? [])];
   if (events[events.length - 1]?.type === "stop") return days;
 
-  events.push({ time: stopTimeIso, type: "stop" });
+  const stopEvent: NonNullable<DayData["events"]>[number] = { time: stopTimeIso, type: "stop" };
+  if (typeof options?.lat === "number" && Number.isFinite(options.lat)) stopEvent.lat = options.lat;
+  if (typeof options?.lng === "number" && Number.isFinite(options.lng)) stopEvent.lng = options.lng;
+  if (typeof options?.accuracy === "number" && Number.isFinite(options.accuracy)) {
+    stopEvent.accuracy = options.accuracy;
+  }
+  if (options?.history_1m && options.history_1m.length > 0) stopEvent.history_1m = options.history_1m;
+  events.push(stopEvent);
   const { assume_idle_from: _drop, ...rest } = d;
   const next = [...days];
   const kmIdx =

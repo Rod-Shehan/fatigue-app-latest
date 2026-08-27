@@ -205,6 +205,23 @@ describe("deriveMinuteGridFromEvents", () => {
     expect(grid.work_time.slice(berthStart, berthEnd).some(Boolean)).toBe(false);
     expect(grid.breaks.slice(berthStart, berthEnd).some(Boolean)).toBe(false);
   });
+
+  it("records Parked as non-work; shift stays open", () => {
+    const dateStr = "2099-06-01";
+    const grid = deriveMinuteGridFromEvents(
+      [
+        { time: `${dateStr}T17:00:00`, type: "work" },
+        { time: `${dateStr}T18:00:00`, type: "stationary_rest" },
+        { time: `${dateStr}T22:00:00`, type: "stop" },
+      ],
+      dateStr,
+      { isToday: false, todayStr: "2099-12-31" }
+    );
+    const parkedStart = 18 * 60;
+    const parkedEnd = 22 * 60;
+    expect(grid.non_work.slice(parkedStart, parkedEnd).every(Boolean)).toBe(true);
+    expect(grid.work_time.slice(parkedStart, parkedEnd).some(Boolean)).toBe(false);
+  });
 });
 
 describe("normalizeSheetDaysForApi", () => {

@@ -15,7 +15,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE } from "@/lib/activity-kind";
+import { PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
 import {
   AMI_14D_WINDOW,
   AMI_28D_WINDOW,
@@ -36,6 +36,7 @@ import {
   evaluateTwoUp7dOption,
 } from "@/lib/ami/evaluate";
 import type { AmiEvent } from "@/lib/ami/types";
+import { evaluateTwoUp48hStationaryOption } from "@/lib/two-up-stationary";
 
 const H = 3600_000;
 const MIN = 60_000;
@@ -258,6 +259,21 @@ describe("WA EWD core suite (Circadia engines)", () => {
       );
       expect(t7.structureOk).toBe(false);
       expect(t48.hasQualBlock).toBe(true);
+    });
+
+    it("7h GPS Parked meets 48h option; 7h sleeper berth does not (live stationary path)", () => {
+      const gps = { lat: -31.95, lng: 115.86 };
+      const parked = [
+        { time: iso(BASE), type: "work" },
+        { time: iso(BASE + hours(10)), type: STATIONARY_REST_EVENT_TYPE, ...gps },
+      ];
+      const sleeper = [
+        { time: iso(BASE), type: "work" },
+        { time: iso(BASE + hours(10)), type: SLEEPER_BERTH_EVENT_TYPE, ...gps },
+      ];
+      const asOf = BASE + hours(17);
+      expect(evaluateTwoUp48hStationaryOption(parked, asOf, BASE).hasQualBlock).toBe(true);
+      expect(evaluateTwoUp48hStationaryOption(sleeper, asOf, BASE).hasQualBlock).toBe(false);
     });
   });
 });

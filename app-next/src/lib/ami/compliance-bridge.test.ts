@@ -297,10 +297,93 @@ describe("AMI Phase 3 flag + WA bridge", () => {
         non_work: nw,
         events: [
           { type: "work", time: perthIso(ymd, 8) },
-          { type: "stop", time: perthIso(ymd, 18) },
+          { type: "stop", time: perthIso(ymd, 18), lat: -31.95, lng: 115.86 },
         ],
       };
     }
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "two_up",
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    });
+    expect(results.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      false
+    );
+  });
+
+  it("two-up sleeper berth does not satisfy 184E(3)(b) on the live path (needs GPS Parked or End shift)", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const addDays = (ymd: string, n: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    const perthIso = (ymd: string, hour: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
+    };
+    const days = emptyWeek();
+    for (let i = 0; i < 7; i++) {
+      const ymd = addDays(weekStarting, i);
+      const work = Array(1440).fill(false);
+      const nw = Array(1440).fill(false);
+      for (let m = 8 * 60; m < 18 * 60; m++) work[m] = true;
+      for (let m = 0; m < 8 * 60; m++) nw[m] = true;
+      for (let m = 18 * 60; m < 1440; m++) nw[m] = true;
+      days[i] = {
+        work_time: work,
+        breaks: Array(1440).fill(false),
+        non_work: nw,
+        events: [
+          { type: "work", time: perthIso(ymd, 8) },
+          { type: "sleeper_berth", time: perthIso(ymd, 18), lat: -31.95, lng: 115.86 },
+        ],
+      };
+    }
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "two_up",
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    });
+    expect(results.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      true
+    );
+  });
+
+  it("two-up GPS Parked meets 184E(3)(b) 48h option on the live path", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const addDays = (ymd: string, n: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+    };
+    const perthIso = (ymd: string, hour: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
+    };
+    const ymd = addDays(weekStarting, 6);
+    const days = emptyWeek();
+    const work = Array(1440).fill(false);
+    const nw = Array(1440).fill(false);
+    for (let m = 8 * 60; m < 10 * 60; m++) work[m] = true;
+    for (let m = 10 * 60; m < 18 * 60; m++) nw[m] = true;
+    days[6] = {
+      work_time: work,
+      breaks: Array(1440).fill(false),
+      non_work: nw,
+      events: [
+        { type: "work", time: perthIso(ymd, 8) },
+        { type: "stationary_rest", time: perthIso(ymd, 10), lat: -31.95, lng: 115.86 },
+      ],
+    };
 
     const results = runWaComplianceChecks(days, {
       driverType: "two_up",

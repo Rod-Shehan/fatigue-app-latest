@@ -16,10 +16,19 @@ export type RollingEvent = {
   driver?: "primary" | "second";
   /** Rest qualifier — FRMS only. Not a diary activity. */
   napFrom?: string;
+  lat?: number;
+  lng?: number;
 };
 
 export type TimelineSlice = {
-  events?: { time: string; type: string; driver?: "primary" | "second"; napFrom?: string }[];
+  events?: {
+    time: string;
+    type: string;
+    driver?: "primary" | "second";
+    napFrom?: string;
+    lat?: number;
+    lng?: number;
+  }[];
 };
 
 export type RollingEventPoint = { time: string; type: string };
@@ -39,6 +48,8 @@ export function getEventsInTimeOrder(days: TimelineSlice[]): RollingEvent[] {
       const row: RollingEvent = { time: ev.time, type: ev.type, dayIndex };
       if (ev.driver) row.driver = ev.driver;
       if (ev.napFrom) row.napFrom = ev.napFrom;
+      if (typeof ev.lat === "number" && Number.isFinite(ev.lat)) row.lat = ev.lat;
+      if (typeof ev.lng === "number" && Number.isFinite(ev.lng)) row.lng = ev.lng;
       return row;
     })
   );

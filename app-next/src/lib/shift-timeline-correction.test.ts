@@ -61,6 +61,16 @@ describe("timelineHasOpenWorkOrBreak / findOpenWorkOrBreakOnTimeline", () => {
     expect(timelineHasOpenWorkOrBreak(days, asOf)).toBe(false);
     expect(findOpenWorkOrBreakOnTimeline(days, asOf)).toBeNull();
   });
+
+  it("finds open Parked as an open shift to End shift", () => {
+    const days: DayData[] = [
+      { events: [{ time: "2026-06-16T14:00:00.000Z", type: "work" }] },
+      { events: [{ time: "2026-06-16T20:00:00.000Z", type: "stationary_rest" }] },
+    ];
+    const asOf = Date.parse("2026-06-17T02:00:00.000Z");
+    expect(timelineHasOpenWorkOrBreak(days, asOf)).toBe(true);
+    expect(findOpenWorkOrBreakOnTimeline(days, asOf)?.type).toBe("stationary_rest");
+  });
 });
 
 describe("validateCorrectEndShiftTime", () => {
