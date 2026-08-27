@@ -33,10 +33,9 @@ import {
   evaluateSolo72h,
   evaluateTwoUp24hRest,
   evaluateTwoUp48hOption,
-  evaluateTwoUp7dOption,
 } from "@/lib/ami/evaluate";
 import type { AmiEvent } from "@/lib/ami/types";
-import { evaluateTwoUp48hStationaryOption } from "@/lib/two-up-stationary";
+import { evaluateTwoUp48hStationaryOption, evaluateTwoUp7dStationaryOption } from "@/lib/two-up-stationary";
 
 const H = 3600_000;
 const MIN = 60_000;
@@ -245,20 +244,30 @@ describe("WA EWD core suite (Circadia engines)", () => {
       expect(countKind(tape.kinds, "work", 0)).toBe(0);
     });
 
-    it("7h continuous stop meets 48h option when 7-day structure fails", () => {
+    it("7h GPS End shift meets 48h option when 7-day structure fails (live scoring)", () => {
+      const gps = { lat: -31.95, lng: 115.86 };
+      const events = [
+        { time: iso(BASE), type: "work" },
+        { time: iso(BASE + hours(10)), type: "stop", ...gps },
+      ];
+      const asOf = BASE + hours(17);
+      const t7 = evaluateTwoUp7dStationaryOption(events, asOf, BASE);
+      const t48 = evaluateTwoUp48hStationaryOption(events, asOf, BASE);
+      expect(t7.structureOk).toBe(false);
+      expect(t48.hasQualBlock).toBe(true);
+    });
+
+    it("End shift without GPS does not meet 48h option on the live path (tape still credits any non-work)", () => {
       const events = [
         { time: iso(BASE), type: "work" },
         { time: iso(BASE + hours(10)), type: "stop" },
       ];
       const asOf = BASE + hours(17);
-      const t7 = evaluateTwoUp7dOption(
-        buildEvalTape(asAmi(events), asOf, 7 * 24 * 60, { recordStartMs: BASE })
-      );
-      const t48 = evaluateTwoUp48hOption(
+      expect(evaluateTwoUp48hStationaryOption(events, asOf, BASE).hasQualBlock).toBe(false);
+      const t48Tape = evaluateTwoUp48hOption(
         buildEvalTape(asAmi(events), asOf, 48 * 60, { recordStartMs: BASE })
       );
-      expect(t7.structureOk).toBe(false);
-      expect(t48.hasQualBlock).toBe(true);
+      expect(t48Tape.hasQualBlock).toBe(true);
     });
 
     it("7h GPS Parked meets 48h option; 7h sleeper berth does not (live stationary path)", () => {

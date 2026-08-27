@@ -144,6 +144,10 @@ export function evaluateTwoUp48hStationaryOption(
   return { hasQualBlock };
 }
 
+/** Combined 184E(3)(b) fail copy — AMI overlay and AMI kill-switch share this. */
+export const TWO_UP_184E3B_FAIL_MESSAGE =
+  "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)";
+
 export function evaluateTwoUp7dStationaryOption(
   events: StationaryGeoEvent[],
   asOfMs: number,
@@ -167,4 +171,55 @@ export function evaluateTwoUp7dStationaryOption(
   const structureOk =
     totalNonWork >= AMI_7D_MIN_TOTAL_NON_WORK && has24hBlock && !hasSubMinPiece;
   return { totalNonWork, has24hBlock, hasSubMinPiece, structureOk };
+}
+
+export function scoreTwoUp184E3b(
+  events: StationaryGeoEvent[],
+  asOfMs: number,
+  recordStartMs?: number
+): {
+  t7: ReturnType<typeof evaluateTwoUp7dStationaryOption>;
+  t48: ReturnType<typeof evaluateTwoUp48hStationaryOption>;
+  ok: boolean;
+} {
+  const t7 = evaluateTwoUp7dStationaryOption(events, asOfMs, recordStartMs);
+  const t48 = evaluateTwoUp48hStationaryOption(events, asOfMs, recordStartMs);
+  return { t7, t48, ok: t7.structureOk || t48.hasQualBlock };
+}
+
+/** Extra 7-day structure warnings — only when the combined (3)(b) OR has already failed. */
+export function twoUp184E3bStructureWarnings(
+  t7: ReturnType<typeof evaluateTwoUp7dStationaryOption>
+): Array<{ type: "warning"; iconKey: "TrendingUp" | "Moon"; day: "7-day"; message: string }> {
+  const out: Array<{
+    type: "warning";
+    iconKey: "TrendingUp" | "Moon";
+    day: "7-day";
+    message: string;
+  }> = [];
+  if (t7.totalNonWork > 0 && t7.totalNonWork < AMI_7D_MIN_TOTAL_NON_WORK) {
+    out.push({
+      type: "warning",
+      iconKey: "TrendingUp",
+      day: "7-day",
+      message: `Need ≥48 hrs non-work in any 7-day period (current: ${Math.round(t7.totalNonWork / 60)}h) — Two-Up`,
+    });
+  }
+  if (t7.totalNonWork >= AMI_7D_MIN_TOTAL_NON_WORK && !t7.has24hBlock) {
+    out.push({
+      type: "warning",
+      iconKey: "Moon",
+      day: "7-day",
+      message: "48hrs non-work must include ≥24 continuous hrs — Two-Up",
+    });
+  }
+  if (t7.totalNonWork >= AMI_7D_MIN_TOTAL_NON_WORK && t7.hasSubMinPiece) {
+    out.push({
+      type: "warning",
+      iconKey: "Moon",
+      day: "7-day",
+      message: "Non-work time must not include a period of less than 7 consecutive hours — Two-Up",
+    });
+  }
+  return out;
 }

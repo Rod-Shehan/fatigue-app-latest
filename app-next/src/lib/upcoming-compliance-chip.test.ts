@@ -71,6 +71,11 @@ describe("upcoming-compliance-chip", () => {
         "Need ≥7h continuous non-work in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h non-work including ≥24h, no period under 7h)"
       )
     ).toBe("48h or 7-day rest option needed");
+    expect(
+      briefLabelFromComplianceMessage(
+        "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)"
+      )
+    ).toBe("48h or 7-day rest option needed");
   });
 
   it("shows the 5h violation wording, not a generic review-first line", () => {

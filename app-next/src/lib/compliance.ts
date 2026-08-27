@@ -20,6 +20,12 @@ import { isBreakFromDrivingEventType, isWorkTimeEventType } from "@/lib/activity
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
+  scoreTwoUp184E3b,
+  TWO_UP_184E3B_FAIL_MESSAGE,
+  twoUp184E3bStructureWarnings,
+  type StationaryGeoEvent,
+} from "@/lib/two-up-stationary";
+import {
   option14Satisfied,
   option28Satisfied,
   timelineStartYmdFromPriorDays,
@@ -186,10 +192,8 @@ function segmentsSplitBy24hNonWork(
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MINUTES_24H = 24 * 60;
-const MINUTES_48H = 48 * 60;
 const MINUTES_72H = 72 * 60;
 const MIN_NON_WORK_HRS_24H = 7;
-const MIN_7H_BLOCK_MINUTES = 7 * 60;
 
 /**
  * Flat minute arrays across days for rolling window checks.
@@ -655,11 +659,73 @@ function checkSoloRules(
   checkSolo24hNonWorkRollingAudit(nonWorkAll, workAll, results, { timelineStartYmd, declared });
 }
 
+function resolveTwoUpAsOfMs(options?: {
+  weekStarting?: string;
+  currentDayIndex?: number;
+  slotOffsetWithinToday?: number;
+}): number {
+  const weekStarting = options?.weekStarting;
+  const currentDayIndex = options?.currentDayIndex;
+  const slotOffsetWithinToday = options?.slotOffsetWithinToday;
+  if (
+    weekStarting &&
+    currentDayIndex != null &&
+    currentDayIndex >= 0 &&
+    currentDayIndex <= 6 &&
+    slotOffsetWithinToday != null
+  ) {
+    const ymd = getSheetDayDateString(weekStarting, currentDayIndex);
+    const start = getPerthMidnightUtcMs(ymd);
+    return start + Math.min(MINUTES_PER_DAY, Math.max(0, slotOffsetWithinToday)) * 60_000;
+  }
+  return Date.now();
+}
+
+function resolveTwoUpRecordStartMs(options?: {
+  weekStarting?: string;
+  historyDays?: ComplianceDayData[] | null;
+  prevWeekDays?: ComplianceDayData[] | null;
+}): number | undefined {
+  const weekStarting = options?.weekStarting;
+  if (!weekStarting) return undefined;
+  const priorDayCount =
+    (options?.historyDays?.length ?? 0) + (options?.prevWeekDays?.length ?? 0);
+  const startYmd = timelineStartYmdFromPriorDays(weekStarting, priorDayCount);
+  const ms = getPerthMidnightUtcMs(startYmd);
+  return Number.isFinite(ms) ? ms : undefined;
+}
+
+function collectTwoUpStationaryGeoEvents(
+  historyDays: ComplianceDayData[] | null | undefined,
+  prevWeekDays: ComplianceDayData[] | null | undefined,
+  currentDays: ComplianceDayData[]
+): StationaryGeoEvent[] {
+  const slices: ComplianceDayData[] = [
+    ...(historyDays ?? []),
+    ...(prevWeekDays ?? []),
+    ...currentDays,
+  ];
+  return getEventsInTimeOrder(slices)
+    .filter((e) => e.driver !== "second")
+    .map((e) => ({
+      time: e.time,
+      type: e.type,
+      lat: e.lat,
+      lng: e.lng,
+    }));
+}
+
 function checkTwoUpRules(
   days: ComplianceDayData[],
   results: ComplianceCheckResult[],
   prevCount: number,
-  evidence?: { movingDuringBreakCount?: number }
+  options?: {
+    weekStarting?: string;
+    currentDayIndex?: number;
+    slotOffsetWithinToday?: number;
+    historyDays?: ComplianceDayData[] | null;
+    prevWeekDays?: ComplianceDayData[] | null;
+  }
 ) {
   const nonWork = flatSlots(days, "non_work");
   const work = flatSlots(days, "work_time");
@@ -690,81 +756,24 @@ function checkTwoUpRules(
     }
   }
 
+  // Reg 184E(3)(b): GPS-proven Parked / End shift only (same evaluators as AMI overlay).
   const currentDays = days.slice(prevCount);
-  const totalWeekNonWork = currentDays.reduce((sum, d) => sum + getHours(d.non_work), 0);
-  const allSlots = currentDays.flatMap((d) => d.non_work || Array(MINUTES_PER_DAY).fill(false));
-  const longestBlock = findLongestContinuousBlock(allSlots);
-  const hasAnyWork = currentDays.some(dayHasWork);
-
-  // Reg 184E(3)(b)(ii): 7-day option
-  const nonWorkBlocksUnder7 = (() => {
-    const arr = normalizeCoverageFieldToMinutes(allSlots);
-    let current = 0;
-    for (let i = 0; i < arr.length; i++) {
-      if (arr[i]) current++;
-      else {
-        if (current > 0 && current < MIN_7H_BLOCK_MINUTES) return true;
-        current = 0;
-      }
-    }
-    if (current > 0 && current < MIN_7H_BLOCK_MINUTES) return true;
-    return false;
-  })();
-
-  const meetsTwoUp7DayOption =
-    hasAnyWork &&
-    totalWeekNonWork >= 48 &&
-    longestBlock >= 24 &&
-    !nonWorkBlocksUnder7;
-
-  if (hasAnyWork && totalWeekNonWork > 0 && totalWeekNonWork < 48) {
+  const asOf = resolveTwoUpAsOfMs(options);
+  const recordStartMs = resolveTwoUpRecordStartMs(options);
+  const geoEvents = collectTwoUpStationaryGeoEvents(
+    options?.historyDays,
+    options?.prevWeekDays,
+    currentDays
+  );
+  const scored = scoreTwoUp184E3b(geoEvents, asOf, recordStartMs);
+  if (!scored.ok) {
     results.push({
-      type: "warning",
-      iconKey: "TrendingUp",
-      day: "7-day",
-      message: `Need ≥48 hrs non-work in any 7-day period (current: ${totalWeekNonWork}h) — Two-Up`,
-    });
-  }
-  if (hasAnyWork && totalWeekNonWork >= 48 && longestBlock < 24) {
-    results.push({
-      type: "warning",
+      type: "violation",
       iconKey: "Moon",
-      day: "7-day",
-      message: `48hrs non-work must include ≥24 continuous hrs (longest: ${longestBlock}h) — Two-Up`,
+      day: "Two-Up",
+      message: TWO_UP_184E3B_FAIL_MESSAGE,
     });
-  }
-  if (hasAnyWork && totalWeekNonWork >= 48 && nonWorkBlocksUnder7) {
-    results.push({
-      type: "warning",
-      iconKey: "Moon",
-      day: "7-day",
-      message: "Non-work time must not include a period of less than 7 consecutive hours — Two-Up",
-    });
-  }
-
-  // Reg 184E(3)(b)(i): 48-hour option applies only if not meeting the 7-day option.
-  if (!meetsTwoUp7DayOption && nonWork.length >= MINUTES_48H) {
-    for (let start = 0; start <= nonWork.length - MINUTES_48H; start++) {
-      const window = nonWork.slice(start, start + MINUTES_48H);
-      const sevenHrBlocks = countContinuousBlocksOfAtLeast(window, 7);
-      const hasData = window.some((_, i) => work[start + i] || breaks[start + i]);
-      if (!hasData) continue;
-      if (sevenHrBlocks < 1) {
-        const movingCount = evidence?.movingDuringBreakCount ?? 0;
-        results.push({
-          // We cannot fail purely due to missing/insufficient evidence.
-          // Escalate to violation only when we have positive movement evidence during rest.
-          type: movingCount > 0 ? "violation" : "warning",
-          iconKey: "Moon",
-          day: getLabel(start + MINUTES_48H - 1),
-          message:
-            movingCount > 0
-              ? "Need ≥1 period of ≥7 continuous hours non-work NOT spent in a moving vehicle in any rolling 48h period (Two-Up) — movement evidence detected"
-              : "Need ≥1 period of ≥7 continuous hours non-work NOT spent in a moving vehicle in any rolling 48h period (Two-Up) — enable location to prove stationary non-work",
-        });
-        break;
-      }
-    }
+    results.push(...twoUp184E3bStructureWarnings(scored.t7));
   }
 }
 
@@ -1008,10 +1017,16 @@ export function runComplianceChecks(
   const prevCount = Math.min(3, prevDays.length);
 
   if (driverType === "two_up") {
-    const movingDuringBreakCount = checkRestBreakMovingVehicle(extendedDays, results, {
+    checkRestBreakMovingVehicle(extendedDays, results, {
       prevCount,
     });
-    checkTwoUpRules(extendedDays, results, prevCount, { movingDuringBreakCount });
+    checkTwoUpRules(extendedDays, results, prevCount, {
+      weekStarting,
+      currentDayIndex,
+      slotOffsetWithinToday,
+      historyDays: (historyDays || []).map((d) => normalizeDayCoverageArrays(d)),
+      prevWeekDays: prevDays.length ? prevDays : null,
+    });
   } else {
     checkSoloRules(extendedDays, results, prevCount, {
       weekStarting,

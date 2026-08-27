@@ -2,8 +2,12 @@ import { describe, expect, it, afterEach } from "vitest";
 import { getComplianceEngine } from "@/lib/jurisdiction/compliance-engine";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction/types";
 import { runComplianceChecks, type ComplianceDayData } from "@/lib/compliance";
+import { scoreTwoUp184E3b } from "@/lib/two-up-stationary";
+import { getPerthMidnightUtcMs } from "@/lib/weeks";
 import { isAmiComplianceEngineEnabled } from "./flag";
 import { runWaComplianceChecks } from "./compliance-bridge";
+
+const GPS = { lat: -31.95, lng: 115.86 };
 
 const emptyWeek = (): ComplianceDayData[] =>
   Array.from({ length: 7 }, () => ({
@@ -12,6 +16,41 @@ const emptyWeek = (): ComplianceDayData[] =>
     non_work: Array(1440).fill(false),
     events: [],
   }));
+
+const addDaysYmd = (ymd: string, n: number) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+};
+
+const perthIso = (ymd: string, hour: number) => {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
+};
+
+/** Nightly 10h work / 14h End shift week (two-up 48h option when GPS is on the stop). */
+function twoUpNightlyStopWeek(weekStarting: string, withGps: boolean): ComplianceDayData[] {
+  const days = emptyWeek();
+  for (let i = 0; i < 7; i++) {
+    const ymd = addDaysYmd(weekStarting, i);
+    const work = Array(1440).fill(false);
+    const nw = Array(1440).fill(false);
+    for (let m = 8 * 60; m < 18 * 60; m++) work[m] = true;
+    for (let m = 0; m < 8 * 60; m++) nw[m] = true;
+    for (let m = 18 * 60; m < 1440; m++) nw[m] = true;
+    days[i] = {
+      work_time: work,
+      breaks: Array(1440).fill(false),
+      non_work: nw,
+      events: [
+        { type: "work", time: perthIso(ymd, 8) },
+        withGps
+          ? { type: "stop", time: perthIso(ymd, 18), ...GPS }
+          : { type: "stop", time: perthIso(ymd, 18) },
+      ],
+    };
+  }
+  return days;
+}
 
 describe("AMI Phase 3 flag + WA bridge", () => {
   const prev = process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
@@ -394,5 +433,97 @@ describe("AMI Phase 3 flag + WA bridge", () => {
     expect(results.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
       false
     );
+  });
+
+  it("two-up End shift without GPS does not satisfy 184E(3)(b) on the live path", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const results = runWaComplianceChecks(twoUpNightlyStopWeek(weekStarting, false), {
+      driverType: "two_up",
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    });
+    expect(results.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      true
+    );
+    expect(results.some((r) => r.message.includes("GPS-proven Parked or End shift"))).toBe(true);
+  });
+
+  it("two-up 7-day GPS option passes 184E(3)(b) when last 48h has no 7h GPS block", () => {
+    delete process.env.AMI_COMPLIANCE_ENGINE_ENABLED;
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const sun = addDaysYmd(weekStarting, 0);
+    const tue = addDaysYmd(weekStarting, 2);
+    const fri = addDaysYmd(weekStarting, 5);
+    const sat = addDaysYmd(weekStarting, 6);
+    const days = emptyWeek();
+    days[0] = {
+      ...days[0],
+      events: [{ type: "stop", time: perthIso(sun, 0), ...GPS }],
+    };
+    days[2] = {
+      ...days[2],
+      events: [{ type: "work", time: perthIso(tue, 0) }],
+    };
+    days[5] = {
+      ...days[5],
+      events: [{ type: "sleeper_berth", time: perthIso(fri, 18) }],
+    };
+
+    const asOfMs = getPerthMidnightUtcMs(sat) + 18 * 60 * 60_000;
+    const recordStartMs = getPerthMidnightUtcMs(weekStarting);
+    const scored = scoreTwoUp184E3b(
+      [
+        { type: "stop", time: perthIso(sun, 0), ...GPS },
+        { type: "work", time: perthIso(tue, 0) },
+        { type: "sleeper_berth", time: perthIso(fri, 18) },
+      ],
+      asOfMs,
+      recordStartMs
+    );
+    expect(scored.t48.hasQualBlock).toBe(false);
+    expect(scored.t7.structureOk).toBe(true);
+    expect(scored.ok).toBe(true);
+
+    const results = runWaComplianceChecks(days, {
+      driverType: "two_up",
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    });
+    expect(results.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      false
+    );
+  });
+
+  it("kill-switch: GPS End shift meets 184E(3)(b); sleeper berth does not", () => {
+    process.env.AMI_COMPLIANCE_ENGINE_ENABLED = "false";
+    delete process.env.NEXT_PUBLIC_AMI_COMPLIANCE_ENGINE_ENABLED;
+
+    const weekStarting = "2026-07-19";
+    const asOf = {
+      driverType: "two_up" as const,
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    };
+    const gpsStop = runWaComplianceChecks(twoUpNightlyStopWeek(weekStarting, true), asOf);
+    expect(gpsStop.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      false
+    );
+
+    const sleeperDays = twoUpNightlyStopWeek(weekStarting, true);
+    for (const day of sleeperDays) {
+      day.events = (day.events ?? []).map((e) =>
+        e.type === "stop" ? { ...e, type: "sleeper_berth" } : e
+      );
+    }
+    const sleeper = runWaComplianceChecks(sleeperDays, asOf);
+    expect(sleeper.some((r) => r.message.includes("GPS-proven Parked or End shift"))).toBe(true);
   });
 });

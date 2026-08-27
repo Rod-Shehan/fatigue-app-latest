@@ -176,9 +176,8 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(v).toBeDefined();
   });
 
-  it("two-up 48h stationary requirement: warning when no movement evidence (cannot prove)", () => {
+  it("two-up 184E(3)(b): no GPS-proven Parked or End shift is a violation", () => {
     const days = emptyWeek();
-    // Any work in window, but no non_work at all -> triggers 48h option.
     for (let i = 0; i < 2; i++) {
       days[i] = {
         ...dayWorkOnly(6),
@@ -188,32 +187,57 @@ describe("compliance scenarios — what the logic produces", () => {
       };
     }
     const results = runComplianceChecks(days, { driverType: "two_up" });
-    const w = results.find((r) => r.message.includes("NOT spent in a moving vehicle") && r.type === "warning");
-    expect(w).toBeDefined();
+    const v = results.find(
+      (r) => r.message.includes("GPS-proven Parked or End shift") && r.type === "violation"
+    );
+    expect(v).toBeDefined();
   });
 
-  it("two-up 48h stationary requirement: violation when movement evidence detected during break", () => {
-    const days = emptyWeek();
-    days[0] = {
-      ...dayWorkOnly(6),
-      non_work: Array(MINUTES_PER_DAY).fill(false),
-      breaks: Array(MINUTES_PER_DAY).fill(false),
-      events: [] as ComplianceDayData["events"],
+  it("two-up 184E(3)(b): GPS End shift meets 48h option; End shift without GPS fails", () => {
+    const weekStarting = "2026-07-19";
+    const addDays = (ymd: string, n: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
     };
-    days[1] = {
-      ...dayWorkOnly(6),
-      non_work: Array(MINUTES_PER_DAY).fill(false),
-      breaks: Array(MINUTES_PER_DAY).fill(false),
-      events: [] as ComplianceDayData["events"],
+    const perthIso = (ymd: string, hour: number) => {
+      const [y, m, d] = ymd.split("-").map(Number);
+      return new Date(Date.UTC(y, m - 1, d, hour - 8, 0, 0)).toISOString();
     };
-    // Inject a break->work with large GPS movement to create positive evidence.
-    days[0].events = [
-      { time: "2026-01-01T00:00:00.000Z", type: "break", lat: -31.95, lng: 115.86, accuracy: 10 },
-      { time: "2026-01-01T01:00:00.000Z", type: "work", lat: -31.50, lng: 115.86, accuracy: 10 },
-    ];
-    const results = runComplianceChecks(days, { driverType: "two_up" });
-    const v = results.find((r) => r.message.includes("movement evidence detected") && r.type === "violation");
-    expect(v).toBeDefined();
+    const makeWeek = (withGps: boolean): ComplianceDayData[] => {
+      const days = emptyWeek();
+      for (let i = 0; i < 7; i++) {
+        const ymd = addDays(weekStarting, i);
+        const work = Array(MINUTES_PER_DAY).fill(false);
+        const nw = Array(MINUTES_PER_DAY).fill(false);
+        for (let m = 8 * 60; m < 18 * 60; m++) work[m] = true;
+        for (let m = 0; m < 8 * 60; m++) nw[m] = true;
+        for (let m = 18 * 60; m < 1440; m++) nw[m] = true;
+        days[i] = {
+          work_time: work,
+          breaks: Array(MINUTES_PER_DAY).fill(false),
+          non_work: nw,
+          events: [
+            { type: "work", time: perthIso(ymd, 8) },
+            withGps
+              ? { type: "stop", time: perthIso(ymd, 18), lat: -31.95, lng: 115.86 }
+              : { type: "stop", time: perthIso(ymd, 18) },
+          ],
+        };
+      }
+      return days;
+    };
+    const asOf = {
+      driverType: "two_up" as const,
+      weekStarting,
+      currentDayIndex: 6,
+      slotOffsetWithinToday: 18 * 60,
+    };
+    const pass = runComplianceChecks(makeWeek(true), asOf);
+    expect(pass.some((r) => r.message.includes("48h option") || r.message.includes("7-day option"))).toBe(
+      false
+    );
+    const fail = runComplianceChecks(makeWeek(false), asOf);
+    expect(fail.some((r) => r.message.includes("GPS-proven Parked or End shift"))).toBe(true);
   });
 
   it("shift change (A↔B) after 120h+ same pattern: requires 24h between stop and next work", () => {
