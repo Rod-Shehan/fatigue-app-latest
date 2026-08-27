@@ -109,6 +109,7 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>{MANAGER_EXPERIENCE.REGISTER_TITLE}</h2>
         <p>{MANAGER_EXPERIENCE.REGISTER_SUBTITLE}</p>
+        <p className="mt-2">{MANAGER_EXPERIENCE.REGISTER_CHIP_HINT}</p>
         <p className="mt-2">{MANAGER_EXPERIENCE.TAB_IDENTIFY_HELP}</p>
         <p className="mt-2 text-slate-500 dark:text-slate-400">
           On the {MANAGER_EXPERIENCE.PAGE_TITLE} page, open section <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong>{" "}
@@ -165,7 +166,7 @@ export function ManagerGuideArticle() {
         <ol className="list-decimal pl-5 space-y-1">
           <li>Open {MANAGER_EXPERIENCE.PAGE_TITLE} for the current work week.</li>
           <li>Review tier counts and assurance signals.</li>
-          <li>Work the driver register — Needs attention and Elevated first.</li>
+          <li>Work the driver register — rose and amber chips first; the chip text is the issue to open.</li>
           <li>Amend sheets only with a clear reason; ask drivers to sign when agreed.</li>
           <li>Keep Drivers roster current (licence, medical expiry, licence expiry, active flag).</li>
           <li>Use Conversations to close the loop.</li>

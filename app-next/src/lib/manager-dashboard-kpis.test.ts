@@ -10,6 +10,7 @@ function row(tier: DriverRegisterRow["tier"], driver = "Alex"): DriverRegisterRo
     sheetId: `sheet-${driver}`,
     driver,
     tier,
+    chipLabel: "Needs attention",
     topSignal: "—",
     badges: [],
   };

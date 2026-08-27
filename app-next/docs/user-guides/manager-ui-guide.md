@@ -113,7 +113,7 @@ Use these when coaching staff or explaining why a signal appeared.
 
 ## 4. Driver exposure register
 
-One row per driver for the selected week. **Driver names are bold** for fast scanning; tier chips use solid colour fills (rose / amber / sky / emerald) so severity stands out at a glance. Columns include tier, top signal, compliance lines, and prospective risk lines where run plans exist.
+One row per driver for the selected week. **Driver names are bold** for fast scanning. The coloured chip **names the leading issue** (for example **Break overdue**, **17h episode**, **Week not signed**) — rose / amber / sky / emerald still show urgency (attention, elevated, monitor, steady). The line under the name adds the time or rule detail. Hover the chip for the same detail.
 
 **Practice:**
 

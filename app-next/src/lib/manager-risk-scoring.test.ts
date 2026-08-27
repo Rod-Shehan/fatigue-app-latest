@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { ManagerComplianceItem } from "@/lib/api";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import {
   buildDriverRegister,
+  chipLabelFromComplianceMessage,
   fatigueExposureWarnings,
+  indexNearTermByDriver,
   isHousekeepingComplianceWarning,
   tierForComplianceItem,
 } from "@/lib/manager-risk-scoring";
@@ -102,9 +105,10 @@ describe("manager-risk-scoring tiers", () => {
       [item({ results: [] })],
       "2026-06-01",
       [{ id: "s1", driver_name: "Rod Shehan", week_starting: "2026-06-01" } as never],
-      new Set()
+      new Map()
     );
     expect(rows[0]!.tier).toBe("monitor");
+    expect(rows[0]!.chipLabel).toBe(MANAGER_EXPERIENCE.REGISTER_CHIP.UNSIGNED);
     expect(rows[0]!.topSignal).toBe("Week not yet signed by driver");
   });
 
@@ -124,9 +128,10 @@ describe("manager-risk-scoring tiers", () => {
       ],
       "2026-06-01",
       [{ id: "s1", driver_name: "Rod Shehan", week_starting: "2026-06-01", signature: "x" } as never],
-      new Set()
+      new Map()
     );
     expect(rows[0]!.tier).toBe("elevated");
+    expect(rows[0]!.chipLabel).toBe(MANAGER_EXPERIENCE.REGISTER_CHIP.BREAK_RULE);
     expect(rows[0]!.topSignal).toContain("5h work");
   });
 });
@@ -143,5 +148,89 @@ describe("isHousekeepingComplianceWarning", () => {
       })
     ).toBe(true);
     expect(fatigueExposureWarnings([])).toHaveLength(0);
+  });
+});
+
+describe("register alert chips", () => {
+  it("names a live break-overdue signal instead of Needs attention", () => {
+    const rows = buildDriverRegister(
+      [item({ results: [] })],
+      "2026-06-01",
+      [{ id: "s1", driver_name: "Rod Shehan", week_starting: "2026-06-01", signature: "x" } as never],
+      new Map([
+        [
+          "Rod Shehan",
+          { kind: "break_overdue", detail: "Break overdue (was due by 09:40)" },
+        ],
+      ])
+    );
+    expect(rows[0]!.tier).toBe("attention");
+    expect(rows[0]!.chipLabel).toBe(MANAGER_EXPERIENCE.REGISTER_CHIP.BREAK_OVERDUE);
+    expect(rows[0]!.topSignal).toBe("Break overdue (was due by 09:40)");
+  });
+
+  it("names an open rest window instead of Needs attention", () => {
+    expect(
+      buildDriverRegister(
+        [item({ results: [] })],
+        "2026-06-01",
+        [{ id: "s1", driver_name: "Rod Shehan", week_starting: "2026-06-01", signature: "x" } as never],
+        new Map([
+          [
+            "Rod Shehan",
+            { kind: "insufficient_nonwork", detail: "Recovery in progress: 4.2h since End shift" },
+          ],
+        ])
+      )[0]
+    ).toMatchObject({
+      chipLabel: MANAGER_EXPERIENCE.REGISTER_CHIP.RECOVERY_WINDOW,
+      topSignal: "Recovery in progress: 4.2h since End shift",
+    });
+  });
+
+  it("names a 168h breach on the chip", () => {
+    const rows = buildDriverRegister(
+      [
+        item({
+          results: [
+            {
+              type: "violation",
+              iconKey: "Clock",
+              day: "7-day",
+              message: "Work exceeds 168 hours in a rolling 14-day window",
+            },
+          ],
+        }),
+      ],
+      "2026-06-01",
+      [{ id: "s1", driver_name: "Rod Shehan", week_starting: "2026-06-01", signature: "x" } as never],
+      new Map()
+    );
+    expect(rows[0]!.tier).toBe("attention");
+    expect(rows[0]!.chipLabel).toBe(MANAGER_EXPERIENCE.REGISTER_CHIP.LIMIT_168H);
+    expect(rows[0]!.topSignal).toContain("168");
+  });
+
+  it("picks break overdue over a long open shift for the same driver", () => {
+    const indexed = indexNearTermByDriver([
+      { driver: "Jaydin", kind: "no_stop_long", detail: "No End shift logged for 12h+" },
+      { driver: "Jaydin", kind: "break_overdue", detail: "Break overdue (was due by 10:15)" },
+    ]);
+    expect(indexed.get("Jaydin")).toEqual({
+      kind: "break_overdue",
+      detail: "Break overdue (was due by 10:15)",
+    });
+  });
+
+  it("maps common engine messages to short chips", () => {
+    expect(chipLabelFromComplianceMessage("17h between rest blocks at risk")).toBe(
+      MANAGER_EXPERIENCE.REGISTER_CHIP.EPISODE_17H
+    );
+    expect(chipLabelFromComplianceMessage("rolling 72h non-work short")).toBe(
+      MANAGER_EXPERIENCE.REGISTER_CHIP.WINDOW_72H
+    );
+    expect(chipLabelFromComplianceMessage("Approaching 168h — 8h left")).toBe(
+      MANAGER_EXPERIENCE.REGISTER_CHIP.APPROACHING_168H
+    );
   });
 });

@@ -42,10 +42,11 @@ export function ManagerDriverRegister({ rows, loading }: { rows: DriverRegisterR
                     {row.driver}
                   </Link>
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-full ${tierStyle.chip}`}
+                    className={`inline-flex max-w-[16rem] items-center gap-1.5 rounded-full text-left leading-snug ${tierStyle.chip}`}
+                    title={row.topSignal}
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${tierStyle.dot}`} aria-hidden />
-                    {tierStyle.label}
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${tierStyle.dot}`} aria-hidden />
+                    {row.chipLabel}
                   </span>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-slate-600 dark:text-slate-400">{row.topSignal}</p>

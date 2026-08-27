@@ -176,7 +176,37 @@ export const MANAGER_EXPERIENCE = {
     "No elevated near-term exposure for your current week and day filters.",
 
   REGISTER_TITLE: "Driver exposure register",
-  REGISTER_SUBTITLE: "One row per driver for the selected work week — tier is a composite, not a single rule.",
+  REGISTER_SUBTITLE:
+    "One row per driver for the selected work week. The chip names the leading issue; colour shows how urgent it is.",
+  REGISTER_CHIP_HINT:
+    "Rose / amber / sky still mean attention, elevated, and monitor. The words on the chip say what to look at (break overdue, 17h episode, unsigned week), and the line under the name adds the time or rule detail.",
+
+  /** Short register-chip labels — one leading issue, not a generic “needs attention”. */
+  REGISTER_CHIP: {
+    BREAK_OVERDUE: "Break overdue",
+    BREAK_DUE: "Break due soon",
+    SHIFT_NOT_ENDED: "Shift not ended",
+    RECOVERY_WINDOW: "Rest window open",
+    MOVEMENT_REST: "Movement during rest",
+    SHIFT_CHANGE: "Shift change under 24h",
+    SHIFT_CHANGE_TIME: "Shift-change time missing",
+    SHIFT_CHANGE_SETUP: "Shift-change setup",
+    UNSIGNED: "Week not signed",
+    THIN_GPS: "Thin location evidence",
+    RECORD_GAP: "Record gap",
+    ODOMETER_GPS: "Odometer vs GPS",
+    RUN_PLAN_WATCH: "Run plan to watch",
+    PLANNED_RUN: "Planned run risk",
+    HOURS_BREACH: "Hours rule breach",
+    BREAK_RULE: "20 min rest due",
+    WINDOW_72H: "72h rest gap",
+    EPISODE_17H: "17h episode",
+    LIMIT_168H: "Over 168h work",
+    APPROACHING_168H: "Approaching 168h",
+    REST_7H: "7h rest short",
+    REST_14D: "14-day rest blocks",
+    REST_48H: "48h rest needed",
+  },
 
   TIMELINE_TITLE: "Individual risk",
   TIMELINE_PICK_DRIVER:
@@ -257,25 +287,25 @@ export const MANAGER_TIER_STYLES: Record<
   attention: {
     label: MANAGER_EXPERIENCE.TIER_ATTENTION,
     chip:
-      "bg-rose-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-rose-600 dark:text-white",
+      "bg-rose-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-rose-600 dark:text-white",
     dot: "bg-white/90",
   },
   elevated: {
     label: MANAGER_EXPERIENCE.TIER_ELEVATED,
     chip:
-      "bg-amber-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-amber-500 dark:text-amber-950",
+      "bg-amber-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-amber-500 dark:text-amber-950",
     dot: "bg-white/90",
   },
   monitor: {
     label: MANAGER_EXPERIENCE.TIER_MONITOR,
     chip:
-      "bg-sky-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-sky-600 dark:text-white",
+      "bg-sky-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-sky-600 dark:text-white",
     dot: "bg-white/90",
   },
   clear: {
     label: MANAGER_EXPERIENCE.TIER_CLEAR,
     chip:
-      "bg-emerald-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-emerald-600 dark:text-white",
+      "bg-emerald-600 px-2.5 py-1 text-[10px] font-semibold text-white dark:bg-emerald-600 dark:text-white",
     dot: "bg-white/90",
   },
 };

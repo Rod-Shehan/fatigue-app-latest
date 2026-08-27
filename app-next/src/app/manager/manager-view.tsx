@@ -47,6 +47,7 @@ import {
 import {
   buildDriverRegister,
   buildGlanceBadges,
+  indexNearTermByDriver,
   type RiskLineKind,
 } from "@/lib/manager-risk-scoring";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -625,10 +626,8 @@ export function ManagerView() {
   }, [sheets, activeWeekStarting, activeDayIndex]);
 
   /** Live timeline signals only (break due, missing end shift, recovery window) — not weekly compliance/risk register. */
-  const riskDriverNames = useMemo(
-    () => new Set(riskLines.map((r) => r.driver)),
-    [riskLines]
-  );
+  const nearTermByDriver = useMemo(() => indexNearTermByDriver(riskLines), [riskLines]);
+  const riskDriverNames = useMemo(() => new Set(nearTermByDriver.keys()), [nearTermByDriver]);
 
   const driverRegister = useMemo(
     () =>
@@ -636,9 +635,9 @@ export function ManagerView() {
         managerCompliance?.items,
         weekForSnapshot,
         sheets,
-        riskDriverNames
+        nearTermByDriver
       ),
-    [managerCompliance, weekForSnapshot, sheets, riskDriverNames]
+    [managerCompliance, weekForSnapshot, sheets, nearTermByDriver]
   );
 
   const riskRegisterFiltered = useMemo(() => {
