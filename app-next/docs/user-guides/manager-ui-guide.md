@@ -132,7 +132,7 @@ Choose **work week** and **day**, then:
 ### Tab: Identify risk
 
 Filters: needs attention, record gaps, unsigned weeks, next 24 hours.  
-Leading indicators from live events (break timing, long work blocks) — reach out to **understand**, not to accuse.
+Leading indicators from live events (break timing, long work blocks, recovery windows) on the **rolling** timeline — reach out to **understand**, not to accuse. The driver EWD names the same three issues when they can act (rest due in the last 2 hours, rest window after End shift, shift still open after 7 hours).
 
 ### Tab: Records & amendments
 

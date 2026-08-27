@@ -1,6 +1,8 @@
 import type { ComplianceCheckResult } from "@/lib/compliance";
 import type { Rolling168hMetrics } from "@/lib/rolling-168h-metrics";
 import { MAX_WORK_HOURS_14D } from "@/lib/rolling-168h-metrics";
+import { formatHoursMinutes, type DriverNearTermChipLine } from "@/lib/near-term-exposure";
+import { formatDriverRestRequiredBeforeWork } from "@/lib/product-copy";
 
 export type UpcomingComplianceTone = "clear" | "caution" | "attention";
 
@@ -25,11 +27,9 @@ function uniqueLines(lines: string[]): string[] {
   return out;
 }
 
-function formatRestRemaining(minutes: number): string {
-  const m = Math.max(0, Math.floor(minutes));
-  const h = Math.floor(m / 60);
-  const mm = m % 60;
-  return h > 0 ? `${h}h ${mm}m` : `${mm}m`;
+function strongerTone(a: UpcomingComplianceTone, b: UpcomingComplianceTone): UpcomingComplianceTone {
+  const rank: Record<UpcomingComplianceTone, number> = { clear: 0, caution: 1, attention: 2 };
+  return rank[b] > rank[a] ? b : a;
 }
 
 /** Map a compliance engine message to a short chip label. */
@@ -101,6 +101,8 @@ export function resolveUpcomingComplianceChip(input: {
   idleRestRemainingMinutes?: number | null;
   /** When on work, break countdown is on the hero — omit duplicate break-only cues unless critical. */
   onWorkSegment?: boolean;
+  /** Named live cues (rest due, rest window, shift still open). */
+  nearTermLines?: DriverNearTermChipLine[];
 }): UpcomingComplianceChipModel {
   const lines: string[] = [];
   let tone: UpcomingComplianceTone = "clear";
@@ -111,8 +113,13 @@ export function resolveUpcomingComplianceChip(input: {
     /non-work|7h|17h|72|48|168|14-day|5h work|20 min/i.test(r.message)
   );
 
+  for (const near of input.nearTermLines ?? []) {
+    lines.push(near.line);
+    tone = strongerTone(tone, near.tone);
+  }
+
   if (input.idleRestBlocked && input.idleRestRemainingMinutes != null) {
-    lines.push(`Rest required before work — ${formatRestRemaining(input.idleRestRemainingMinutes)} left`);
+    lines.push(formatDriverRestRequiredBeforeWork(formatHoursMinutes(input.idleRestRemainingMinutes)));
     tone = "attention";
   }
 

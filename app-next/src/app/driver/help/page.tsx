@@ -175,6 +175,12 @@ export default async function DriverHelpPage() {
                 changing day ↔ night (A↔B) needs at least <strong>{SHIFT_CHANGE_MIN_GAP_HOURS} hours</strong> off between
                 End shift and your next Work on your timeline.
               </li>
+              <li>
+                <strong className="text-slate-700 dark:text-slate-200">Upcoming on the log bar</strong> — names rest due
+                by a time (inside the last 2 hours of the 5h window, or overdue), rest remaining after End shift until 7
+                hours, or an open shift if you may have forgotten End shift. Drive home shows the rest window after End
+                shift. The ring countdown still turns amber at 45 minutes and red at 15 minutes.
+              </li>
             </ul>
           </section>
 

@@ -4,10 +4,17 @@ import {
   DRIVER_START_REST_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
   DRIVER_END_SHIFT_LABEL,
+  DRIVER_REST_WINDOW_HEADLINE,
+  formatDriverRestWindowHomeDetail,
 } from "@/lib/product-copy";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getSheetDayDateString } from "@/lib/weeks";
 import type { DayData } from "@/lib/api";
+import {
+  detectNearTermSignals,
+  DRIVER_NEAR_TERM_OPTS,
+  formatHoursMinutes,
+} from "@/lib/near-term-exposure";
 
 export type DriverShiftActivity = "idle" | "work" | "break" | "other_work" | "stopped";
 
@@ -52,7 +59,17 @@ export function getDriverHomeShiftStatus(
     };
   }
 
-  if (last.type === "stop") {
+  if (last.type === "stop" || last.type === "non_work") {
+    const restWindow = detectNearTermSignals(events, nowMs, DRIVER_NEAR_TERM_OPTS).find(
+      (s) => s.kind === "insufficient_nonwork"
+    );
+    if (restWindow?.remainingRestMinutes != null) {
+      return {
+        activity: "stopped",
+        headline: DRIVER_REST_WINDOW_HEADLINE,
+        detail: formatDriverRestWindowHomeDetail(formatHoursMinutes(restWindow.remainingRestMinutes)),
+      };
+    }
     return {
       activity: "stopped",
       headline: "Previous shift ended",

@@ -72,6 +72,11 @@ import {
   shouldShowUpcomingComplianceChip,
 } from "@/lib/upcoming-compliance-chip";
 import {
+  detectNearTermSignals,
+  DRIVER_NEAR_TERM_OPTS,
+  driverChipLinesFromSignals,
+} from "@/lib/near-term-exposure";
+import {
   complianceIssueInputsFromMessages,
   isComplianceFixActionable,
   resolvePrimaryComplianceFixRoute,
@@ -224,7 +229,7 @@ export default function LogBar({
   /** Primary driver display name — shown so the live sheet is clearly theirs (and for manager cross-check). */
   driverName?: string | null;
   /** Reminder banner content (e.g. forgot end shift). Rendered prominently inside fixed header. */
-  forgottenActionReminder?: { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null;
+  forgottenActionReminder?: { message: string; variant: "break-complete" | "break-long" } | null;
   isLiveNow?: boolean;
   complianceButton?: {
     onClick: () => void;
@@ -462,29 +467,35 @@ export default function LogBar({
               ? EVENT_ICONS.non_work
               : EVENT_ICONS.work;
 
-  const upcomingComplianceChip = useMemo(
-    () =>
-      resolveUpcomingComplianceChip({
-        prospectiveWorkWarnings: (workRelevantComplianceMessages ?? []).filter(
-          (m) => !prospectiveRouteHint || m !== prospectiveRouteHint
-        ),
-        prospectiveRouteHint,
-        complianceResults: complianceCheckResults,
-        rolling168h: rolling168hMetrics,
-        idleRestBlocked,
-        idleRestRemainingMinutes,
-        onWorkSegment: currentType === "work",
-      }),
-    [
-      workRelevantComplianceMessages,
+  const upcomingComplianceChip = useMemo(() => {
+    const nowMs = Date.now();
+    const nearTermSignals = detectNearTermSignals(eventsForDriver, nowMs, DRIVER_NEAR_TERM_OPTS);
+    const nearTermLines = driverChipLinesFromSignals(nearTermSignals, nowMs, {
+      omitRestWindow: idleRestBlocked,
+    });
+    return resolveUpcomingComplianceChip({
+      prospectiveWorkWarnings: (workRelevantComplianceMessages ?? []).filter(
+        (m) => !prospectiveRouteHint || m !== prospectiveRouteHint
+      ),
       prospectiveRouteHint,
-      complianceCheckResults,
-      rolling168hMetrics,
+      complianceResults: complianceCheckResults,
+      rolling168h: rolling168hMetrics,
       idleRestBlocked,
       idleRestRemainingMinutes,
-      currentType,
-    ]
-  );
+      onWorkSegment: currentType === "work",
+      nearTermLines,
+    });
+  }, [
+    workRelevantComplianceMessages,
+    prospectiveRouteHint,
+    complianceCheckResults,
+    rolling168hMetrics,
+    idleRestBlocked,
+    idleRestRemainingMinutes,
+    currentType,
+    eventsForDriver,
+    tick,
+  ]);
 
   const showUpcomingComplianceChip = shouldShowUpcomingComplianceChip({
     isLiveNow: Boolean(isLiveNow),
@@ -1726,18 +1737,6 @@ export default function LogBar({
               <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" aria-hidden />
               <p className="flex-1 font-medium min-w-0">{forgottenActionReminder.message}</p>
             </div>
-            {forgottenActionReminder.variant === "break-due" && (
-              <div className="mt-3">
-              <button
-                type="button"
-                  onClick={() => openHeroChooser(() => setStopDrivingChooserOpen(true))}
-                  className={driverAmberBtn}
-                >
-                  <Pause className="w-4 h-4" />
-                  {DRIVER_STOP_DRIVING_LABEL}
-              </button>
-              </div>
-            )}
             {/* break-complete / break-long: message only — Resume work is the hero action. */}
           </div>
         )}

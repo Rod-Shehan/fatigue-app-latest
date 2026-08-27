@@ -82,8 +82,11 @@ import {
   toYMD,
 } from "@/app/manager/manager-month-calendar";
 import type { ManagerComplianceItem } from "@/lib/api";
-import { getEventsInTimeOrder, getLastShiftEndTime, getNonWorkHoursSinceLastShiftEnd } from "@/lib/rolling-events";
-import { getBreakDueByTime } from "@/lib/five-hour-break-rule";
+import {
+  detectNearTermSignals,
+  MANAGER_NEAR_TERM_OPTS,
+  managerDetailForSignal,
+} from "@/lib/near-term-exposure";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -116,10 +119,6 @@ type RiskLine = {
   kind: RiskLineKind;
   detail: string;
 };
-
-function formatTimeHm(ms: number): string {
-  return new Date(ms).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false });
-}
 
 function assuranceLinesForWeek(
   items: ManagerComplianceItem[] | undefined,
@@ -555,67 +554,29 @@ export function ManagerView() {
 
   const riskLines = useMemo(() => {
     const nowMs = Date.now();
-    const horizonMs = nowMs + 24 * 3600 * 1000;
     if (!activeWeekStarting) return [] as RiskLine[];
 
     const out: RiskLine[] = [];
     for (const s of sheets) {
       if (s.week_starting !== activeWeekStarting) continue;
       const driver = (s.driver_name || "—").trim() || "—";
-      const day = Array.isArray(s.days) ? (s.days[activeDayIndex] as DayData | undefined) : undefined;
-      const events = Array.isArray(day?.events) ? (day!.events as { time: string; type: string }[]) : [];
-      if (!events.length) continue;
-
-      const last = events[events.length - 1];
-      const lastMs = new Date(last.time).getTime();
-      const elapsedHrs = (nowMs - lastMs) / 3600000;
-
-      // 1) Break due / overdue when working (prevention-focused, tied to 5h rule).
-      const dueBy = getBreakDueByTime(events, nowMs);
-      if (dueBy != null && dueBy <= horizonMs) {
-        const overdue = dueBy <= nowMs;
+      const days = Array.isArray(s.days)
+        ? (s.days as {
+            events?: { time: string; type: string; driver?: "primary" | "second" }[];
+          }[])
+        : [];
+      const events = getSheetOwnerEventsInOrder(days);
+      const signals = detectNearTermSignals(events, nowMs, MANAGER_NEAR_TERM_OPTS);
+      for (const signal of signals) {
         out.push({
           sheetId: s.id,
           driver,
-          kind: overdue ? "break_overdue" : "break_due",
-          detail: overdue
-            ? `Break overdue (was due by ${formatTimeHm(dueBy)})`
-            : `Break due by ${formatTimeHm(dueBy)}`,
-        });
-      }
-
-      // 2) No stop logged for a long time (likely missing End shift).
-      if ((last.type === "work" || last.type === "break" || last.type === "other_work") && elapsedHrs >= 12) {
-        out.push({
-          sheetId: s.id,
-          driver,
-          kind: "no_stop_long",
-          detail: `No End shift logged for ${Math.floor(elapsedHrs)}h+ (last: ${last.type})`,
-        });
-      }
-
-      // 3) If the last event is a stop and it was recent, driver may still be inside 7h recovery window.
-      const rolling = getEventsInTimeOrder(
-        Array.isArray(s.days)
-          ? (s.days as {
-              events?: { time: string; type: string; driver?: "primary" | "second" }[];
-            }[])
-          : []
-      );
-      const lastStopMs = getLastShiftEndTime(rolling, nowMs + 1);
-      const nonWorkHours = getNonWorkHoursSinceLastShiftEnd(rolling, nowMs);
-      if ((last.type === "stop" || last.type === "non_work") && lastStopMs != null && nonWorkHours != null && nonWorkHours < 7) {
-        const safeAt = lastStopMs + 7 * 3600 * 1000;
-        out.push({
-          sheetId: s.id,
-          driver,
-          kind: "insufficient_nonwork",
-          detail: `Recovery in progress: ${nonWorkHours.toFixed(1)}h since End shift (7h target by ${formatTimeHm(safeAt)})`,
+          kind: signal.kind,
+          detail: managerDetailForSignal(signal),
         });
       }
     }
 
-    // De-dupe by driver+kind (keep earliest).
     const seen = new Set<string>();
     return out.filter((r) => {
       const k = `${r.driver}:${r.kind}`;
@@ -623,7 +584,7 @@ export function ManagerView() {
       seen.add(k);
       return true;
     });
-  }, [sheets, activeWeekStarting, activeDayIndex]);
+  }, [sheets, activeWeekStarting]);
 
   /** Live timeline signals only (break due, missing end shift, recovery window) — not weekly compliance/risk register. */
   const nearTermByDriver = useMemo(() => indexNearTermByDriver(riskLines), [riskLines]);

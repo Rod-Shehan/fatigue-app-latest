@@ -96,7 +96,7 @@ import {
   PREMATURE_ATTESTATION_REOPEN,
   sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
-import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, DRIVER_STOP_DRIVING_LABEL, sheetEditDayHref } from "@/lib/product-copy";
+import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, sheetEditDayHref } from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import { DayEntryWeekGroup } from "@/components/fatigue/DayEntryWeekGroup";
 import { dayIndexRangeLabels, summarizeDayIndices } from "@/lib/day-entry-week-summary";
@@ -179,10 +179,7 @@ function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
   return Math.max(0, Math.min(6, diffDays));
 }
 
-/** Reminder when driver may have forgotten to log work / break / end shift. */
-const WORK_BREAK_DUE_MIN = 5 * 60;
-/** If still in work and no log updates for this long, prompt to end shift. Tied to 5h break due + buffer. */
-const WORK_NO_LOG_CHECK_IN_MIN = 7 * 60;
+/** Reminder when a live rest has finished or run long — rest-due / open-shift live on the Upcoming chip. */
 const BREAK_COMPLETE_MIN = 20;
 const BREAK_LONG_MIN = 60;
 
@@ -195,37 +192,20 @@ function getForgottenActionReminder(
   currentDayIndex: number,
   weekStarting: string,
   todayYmd: string
-): { message: string; variant: "break-due" | "end-shift" | "break-complete" | "break-long" } | null {
-  // Only show “you might have forgotten…” prompts on the *current* regulatory day for the *current* week.
+): { message: string; variant: "break-complete" | "break-long" } | null {
+  // Only show rest-complete / rest-long prompts on the current regulatory day.
   if (!weekStarting) return null;
   const sheetDayYmd = getSheetDayDateString(weekStarting, currentDayIndex);
   if (sheetDayYmd !== todayYmd) return null;
 
-  const day = days[currentDayIndex];
-  const events = day?.events ?? [];
-  const last = events[events.length - 1];
-  if (!last || last.type === "stop") return null;
+  const rolling = getSheetOwnerEventsInOrder(days);
+  const last = rolling[rolling.length - 1];
+  if (!last || last.type !== "break") return null;
   const elapsedMin = Math.floor((Date.now() - new Date(last.time).getTime()) / 60000);
-  if (last.type === "work") {
-    // This is an inactivity-style prompt: time since the last logged event while still in "work".
-    if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
-      return { message: "No log updates for 7+ hours.", variant: "end-shift" };
-    if (elapsedMin >= WORK_BREAK_DUE_MIN)
-      return { message: `Time for your 20 min rest — tap ${DRIVER_STOP_DRIVING_LABEL}.`, variant: "break-due" };
-    return null;
-  }
-  if (last.type === "other_work") {
-    if (elapsedMin >= WORK_NO_LOG_CHECK_IN_MIN)
-      return { message: "No log updates for 7+ hours.", variant: "end-shift" };
-    return null;
-  }
-  if (last.type === "break") {
-    if (elapsedMin >= BREAK_LONG_MIN)
-      return { message: "You've been on break for over an hour.", variant: "break-long" };
-    if (elapsedMin >= BREAK_COMPLETE_MIN)
-      return { message: "Break complete.", variant: "break-complete" };
-    return null;
-  }
+  if (elapsedMin >= BREAK_LONG_MIN)
+    return { message: "You've been on break for over an hour.", variant: "break-long" };
+  if (elapsedMin >= BREAK_COMPLETE_MIN)
+    return { message: "Break complete.", variant: "break-complete" };
   return null;
 }
 

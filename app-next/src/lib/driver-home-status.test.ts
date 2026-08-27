@@ -34,4 +34,14 @@ describe("getDriverHomeShiftStatus", () => {
     expect(s.detail).toMatch(/Load check/);
     expect(s.detail).not.toMatch(/Not a load/);
   });
+
+  it("names the rest window after End shift until 7h", () => {
+    const start = new Date(`${today}T08:00:00`).toISOString();
+    const stop = new Date(`${today}T12:00:00`).toISOString();
+    const days = [{ events: [{ time: start, type: "work" }, { time: stop, type: "stop" }] }] as DayData[];
+    const now = new Date(`${today}T14:00:00`).getTime();
+    const s = getDriverHomeShiftStatus(days, 4, week, today, now);
+    expect(s.headline).toBe("Rest window open");
+    expect(s.detail).toMatch(/before you can start work/);
+  });
 });

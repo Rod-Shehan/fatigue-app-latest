@@ -112,4 +112,14 @@ describe("upcoming-compliance-chip", () => {
       })
     ).toBe(true);
   });
+
+  it("names a live rest-due cue on the chip", () => {
+    const chip = resolveUpcomingComplianceChip({
+      prospectiveWorkWarnings: [],
+      complianceResults: [],
+      nearTermLines: [{ line: "Rest due by 14:20 — plan a stop", tone: "caution" }],
+    });
+    expect(chip.tone).toBe("caution");
+    expect(chip.lines[0]).toBe("Rest due by 14:20 — plan a stop");
+  });
 });

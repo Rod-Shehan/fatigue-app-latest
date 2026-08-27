@@ -206,6 +206,27 @@ export const DRIVER_OTHER_WORK_LABEL = "Other work";
 export const DRIVER_NON_WORK_LABEL = "Non-work";
 /** End of the on-duty stretch. Starts non-work. */
 export const DRIVER_END_SHIFT_LABEL = "End shift";
+
+/** Live near-term cues on Drive home / Upcoming chip — same kinds as enterprise, driver wording. */
+export const DRIVER_REST_WINDOW_HEADLINE = "Rest window open";
+export function formatDriverRestWindowHomeDetail(remainingLabel: string): string {
+  return `${remainingLabel} before you can start work`;
+}
+export function formatDriverRestDuePlanStop(timeHm: string): string {
+  return `Rest due by ${timeHm} — plan a stop`;
+}
+export function formatDriverRestDueSoon(timeHm: string): string {
+  return `Rest due soon — 20 min by ${timeHm}`;
+}
+export function formatDriverRestOverdue(timeHm: string): string {
+  return `Rest overdue — was due ${timeHm}. Stop when safe`;
+}
+export function formatDriverShiftStillOpen(): string {
+  return `Shift still open — ${DRIVER_END_SHIFT_LABEL} if you have finished`;
+}
+export function formatDriverRestRequiredBeforeWork(remainingLabel: string): string {
+  return `Rest required before work — ${remainingLabel} left`;
+}
 /** On Work: opens Rest / Other work chooser. Not stored. Not End shift. */
 export const DRIVER_STOP_DRIVING_LABEL = "Stop Driving";
 /** Top half of the Stop Driving split, or on the Other work hub. */

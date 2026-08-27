@@ -135,7 +135,7 @@ When you tap **End shift**:
 
 **If your shift runs past midnight:** just keep working. Minutes follow the events you tap — there is no day, midnight, or other cut on the timeline. Day cards are labels so you can find a date; they do not start a new shift. **Rego and route stay with that open shift** until **End shift**. You do not Set up day again because the clock rolled. Tap **End shift** only when you actually finish.
 
-**If you forget End shift:** the app may show a short reminder (for example after a long stretch with no new log). Use the red **End shift** button, pick the **date and time you actually finished** (not only today's clock), and enter end km.
+**If you forget End shift:** after about **7 hours** with the shift still open, the **Upcoming** notice on the log bar says **Shift still open** — tap **End shift** if you have finished. Pick the **date and time you actually finished** (not only today's clock), and enter end km. The notice follows the rolling timeline, so it still appears after midnight.
 
 ---
 
@@ -256,6 +256,7 @@ On the week sheet:
 
 - **Day tools** (clipboard icon) — week summary, last 24-hour break, **Compliance**, **Roadside**, records to sign, and Settings.
 - **Compliance** — if a rule is not met, an amber banner on the week (and a red/amber notice on the log bar) shows the same wording as the office check, including which day and what was short. Tap it for the full snapshot.
+- **Upcoming** (above the ring on the live log bar) also names **what to do now**: rest due by a time (when the 5h window is inside the next 2 hours, or overdue), **Rest window open** after End shift until 7 hours, or **Shift still open** if you may have forgotten End shift. The countdown on the ring still turns amber at 45 minutes and red at 15 minutes.
 - **Shift log** — a list of every event on your record (in the app). It is **not** in Export PDF or the 28-day roadside PDF.
 - **Export PDF** — this week's Weekly Trip Sheet only (same page as each roadside week). No Circadia header, compliance summary, or shift-log appendix.
 

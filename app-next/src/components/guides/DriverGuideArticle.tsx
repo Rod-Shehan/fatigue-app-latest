@@ -23,6 +23,8 @@ import {
   DRIVER_SLEEPER_BERTH_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
+  DRIVER_REST_WINDOW_HEADLINE,
+  formatDriverShiftStillOpen,
 } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 import {
@@ -262,9 +264,11 @@ export function DriverGuideArticle() {
           shift until End shift. Tap End shift only when you actually finish.
         </p>
         <p className="mt-3">
-          <strong className="text-slate-700 dark:text-slate-200">If you forget End shift:</strong> the app may show a
-          reminder (for example after a long stretch with no new log). Use the red End shift button, pick the date and
-          time you actually finished (not only today&apos;s clock), and enter end km.
+          <strong className="text-slate-700 dark:text-slate-200">If you forget End shift:</strong> after about 7
+          hours with the shift still open, the Upcoming notice on the log bar says{" "}
+          <strong className="text-slate-700 dark:text-slate-200">{formatDriverShiftStillOpen()}</strong>. Tap End
+          shift, pick the date and time you actually finished (not only today&apos;s clock), and enter end km. The
+          notice follows the rolling timeline, so it still appears after midnight.
         </p>
       </section>
 
@@ -478,6 +482,13 @@ export function DriverGuideArticle() {
             <strong className="text-slate-700 dark:text-slate-200">Compliance</strong> — if a rule is not met, an amber
             banner on the week (and a red/amber notice on the log bar) shows the same wording as the office check, including
             which day and what was short. Tap it for the full snapshot.
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">Upcoming</strong> (above the ring on the live log bar)
+            names what to do now: rest due by a time when the 5h window is inside the next 2 hours (or overdue);{" "}
+            <strong className="text-slate-700 dark:text-slate-200">{DRIVER_REST_WINDOW_HEADLINE}</strong> after End
+            shift until 7 hours (also on Drive home); or {formatDriverShiftStillOpen()}. The countdown on the ring
+            still turns amber at 45 minutes and red at 15 minutes.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Shift log</strong> — a list of every event on your
