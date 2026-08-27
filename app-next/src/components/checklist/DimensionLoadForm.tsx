@@ -345,7 +345,7 @@ export function DimensionLoadForm({
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Load weight</span>
+              <span className="text-xs text-ck-steel">Load weight (kg)</span>
               <input
                 value={loadWeight}
                 onChange={(e) => setLoadWeight(e.target.value)}
