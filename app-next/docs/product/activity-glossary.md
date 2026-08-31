@@ -96,7 +96,7 @@ Do not show Rest and Other work as two always-visible taps on Work. Do not add a
 
 ### Reminders and voice
 
-The 5h reminder opens the same Stop Driving split. Voice: start shift (opens Driving / Other work chooser), start work (from Rest, same split), continue shift / start driving (from Other work, driving), start rest (from Other work, Rest), stop driving, start other work.
+The 5h reminder opens the same Stop Driving split. Voice uses the same button words: start shift, start work, start driving, continue shift, start rest, start other work, stop driving, load check, taking a nap / nap, passenger, sleeper berth, parked, end shift.
 
 ## Do not say
 

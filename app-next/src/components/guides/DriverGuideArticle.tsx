@@ -521,7 +521,14 @@ export function DriverGuideArticle() {
         <p>Tap the gear on the log bar (full or compact hero) for:</p>
         <ul className={`${ulClass} mt-1`}>
           <li>Compliance — open the compliance snapshot details.</li>
-          <li>Voice commands — log by speaking (where supported).</li>
+          <li>
+            Voice commands — log by speaking the same words as the buttons (where supported):{" "}
+            {DRIVER_START_SHIFT_LABEL}, {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_WORK_LABEL},{" "}
+            {DRIVER_START_REST_LABEL}, {DRIVER_START_OTHER_WORK_LABEL}, {DRIVER_STOP_DRIVING_LABEL},{" "}
+            {DRIVER_LOAD_CHECK_LABEL}, {DRIVER_NAP_QUESTION_LABEL}, {DRIVER_PASSENGER_LABEL},{" "}
+            {DRIVER_SLEEPER_BERTH_LABEL}, {DRIVER_PARKED_LABEL}, {DRIVER_END_SHIFT_LABEL}. Say the
+            phrase, then yes to confirm.
+          </li>
           <li>Voice alerts — spoken reminders while logging.</li>
           <li>Dark mode — easier on the eyes at night.</li>
         </ul>

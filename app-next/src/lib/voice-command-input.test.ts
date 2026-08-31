@@ -16,6 +16,22 @@ describe("matchStrictVoiceIntent", () => {
     expect(matchStrictVoiceIntent("finish my shift")?.intent).toBe("stop");
   });
 
+  it("matches hero button words as exact phrases", () => {
+    expect(matchStrictVoiceIntent("start driving")?.intent).toBe("start_driving");
+    expect(matchStrictVoiceIntent("start work")?.intent).toBe("start_work");
+    expect(matchStrictVoiceIntent("load check")?.intent).toBe("load_check");
+    expect(matchStrictVoiceIntent("Taking a nap?")?.intent).toBe("nap");
+    expect(matchStrictVoiceIntent("nap")?.intent).toBe("nap");
+    expect(matchStrictVoiceIntent("passenger")?.intent).toBe("passenger");
+    expect(matchStrictVoiceIntent("sleeper berth")?.intent).toBe("sleeper_berth");
+    expect(matchStrictVoiceIntent("parked")?.intent).toBe("parked");
+  });
+
+  it("does not treat start work as start other work", () => {
+    expect(matchStrictVoiceIntent("start work")?.intent).toBe("start_work");
+    expect(matchStrictVoiceIntent("start other work")?.intent).toBe("other_work");
+  });
+
   it("rejects ambiguous one-word commands", () => {
     expect(matchStrictVoiceIntent("work")).toBeNull();
     expect(matchStrictVoiceIntent("break")).toBeNull();

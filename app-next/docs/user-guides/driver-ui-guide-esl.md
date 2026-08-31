@@ -270,7 +270,7 @@ On the week sheet:
 Tap the **gear** on the log bar (full or compact hero) for:
 
 - **Compliance** — open the compliance snapshot details
-- **Voice commands** — log by speaking (where supported).
+- **Voice commands** — log by speaking the same words as the buttons (where supported): **Start shift**, **Start driving**, **Start work**, **Start Rest**, **Start Other Work**, **Stop Driving**, **Load check**, **Taking a nap**, **Passenger**, **Sleeper berth**, **Parked**, **End shift**. Say the phrase, then **yes** to confirm.
 - **Voice alerts** — spoken reminders while logging.
 - **Dark mode** — easier on the eyes at night.
 

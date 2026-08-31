@@ -4,7 +4,51 @@
  * Recognition uses the browser Web Speech API (Chrome/Android; Safari/iOS varies).
  */
 
-export type VoiceIntent = "work" | "break" | "other_work" | "stop_driving" | "stop";
+import {
+  DRIVER_CONTINUE_SHIFT_LABEL,
+  DRIVER_END_SHIFT_LABEL,
+  DRIVER_LOAD_CHECK_LABEL,
+  DRIVER_NAP_QUESTION_COMPACT_LABEL,
+  DRIVER_NAP_QUESTION_LABEL,
+  DRIVER_PARKED_LABEL,
+  DRIVER_PASSENGER_LABEL,
+  DRIVER_SLEEPER_BERTH_LABEL,
+  DRIVER_START_DRIVING_LABEL,
+  DRIVER_START_OTHER_WORK_LABEL,
+  DRIVER_START_REST_LABEL,
+  DRIVER_START_SHIFT_LABEL,
+  DRIVER_START_WORK_LABEL,
+  DRIVER_STOP_DRIVING_LABEL,
+} from "@/lib/product-copy";
+
+export type VoiceIntent =
+  | "work"
+  | "start_driving"
+  | "start_work"
+  | "break"
+  | "other_work"
+  | "stop_driving"
+  | "stop"
+  | "load_check"
+  | "nap"
+  | "passenger"
+  | "sleeper_berth"
+  | "parked";
+
+const VOICE_INTENTS: readonly VoiceIntent[] = [
+  "start_driving",
+  "start_work",
+  "work",
+  "break",
+  "other_work",
+  "stop_driving",
+  "stop",
+  "load_check",
+  "nap",
+  "passenger",
+  "sleeper_berth",
+  "parked",
+];
 
 /** Normalise transcript for exact phrase matching only (strict). */
 export function normalizeVoiceTranscript(raw: string): string {
@@ -16,25 +60,53 @@ export function normalizeVoiceTranscript(raw: string): string {
     .trim();
 }
 
+function phraseFromLabel(label: string): string {
+  return normalizeVoiceTranscript(label);
+}
+
 /**
  * Allowed phrases → intent. Matching is exact on the normalised string
- * (optional trailing " now" allowed). Phrases are short, natural things a
- * driver would say — easier for STT and less ambiguous than single words.
+ * (optional trailing " now" allowed). Hero button words plus a few short aliases.
  */
 const PHRASES: Record<VoiceIntent, readonly string[]> = {
-  work: ["start shift", "start my shift", "begin shift", "continue shift", "log work"],
-  break: ["start rest", "take a rest", "take a break", "start break", "log break"],
-  other_work: ["start other work", "other work", "log other work"],
-  stop_driving: ["stop driving"],
-  stop: ["end shift", "end my shift", "finish shift", "finish my shift", "stop shift"],
-} as const;
+  work: [
+    phraseFromLabel(DRIVER_START_SHIFT_LABEL),
+    "start my shift",
+    "begin shift",
+    phraseFromLabel(DRIVER_CONTINUE_SHIFT_LABEL),
+    "log work",
+  ],
+  start_driving: [phraseFromLabel(DRIVER_START_DRIVING_LABEL)],
+  start_work: [phraseFromLabel(DRIVER_START_WORK_LABEL)],
+  break: [
+    phraseFromLabel(DRIVER_START_REST_LABEL),
+    "take a rest",
+    "take a break",
+    "start break",
+    "log break",
+  ],
+  other_work: [phraseFromLabel(DRIVER_START_OTHER_WORK_LABEL), "other work", "log other work"],
+  stop_driving: [phraseFromLabel(DRIVER_STOP_DRIVING_LABEL)],
+  stop: [
+    phraseFromLabel(DRIVER_END_SHIFT_LABEL),
+    "end my shift",
+    "finish shift",
+    "finish my shift",
+    "stop shift",
+  ],
+  load_check: [phraseFromLabel(DRIVER_LOAD_CHECK_LABEL)],
+  nap: [phraseFromLabel(DRIVER_NAP_QUESTION_LABEL), phraseFromLabel(DRIVER_NAP_QUESTION_COMPACT_LABEL)],
+  passenger: [phraseFromLabel(DRIVER_PASSENGER_LABEL)],
+  sleeper_berth: [phraseFromLabel(DRIVER_SLEEPER_BERTH_LABEL)],
+  parked: [phraseFromLabel(DRIVER_PARKED_LABEL)],
+};
 
 export function matchStrictVoiceIntent(transcript: string): { intent: VoiceIntent; matchedPhrase: string } | null {
   const n = normalizeVoiceTranscript(transcript);
   if (!n) return null;
   const variants = [n, n.replace(/ now$/, "").trim()].filter((x, i, a) => a.indexOf(x) === i);
   for (const candidate of variants) {
-    for (const intent of ["work", "break", "other_work", "stop_driving", "stop"] as const) {
+    for (const intent of VOICE_INTENTS) {
       for (const phrase of PHRASES[intent]) {
         if (candidate === phrase || candidate === `${phrase} now`) {
           return { intent, matchedPhrase: phrase };
@@ -122,4 +194,4 @@ export function isVoiceCommandInputSupported(): boolean {
 
 /** Short hint for UI when recognition is unavailable or user needs examples. */
 export const VOICE_COMMAND_HINT =
-  'Say a command phrase, e.g. "start shift", "stop driving", "start rest", or "end shift".';
+  'Say a button phrase, e.g. "start driving", "start rest", "load check", or "end shift".';

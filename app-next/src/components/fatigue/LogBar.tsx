@@ -1116,8 +1116,90 @@ export default function LogBar({
       other_work: DRIVER_START_OTHER_WORK_LABEL,
       stop_driving: DRIVER_STOP_DRIVING_LABEL,
       stop: EVENT_LABELS.stop,
+      start_driving: DRIVER_START_DRIVING_LABEL,
+      start_work: DRIVER_START_WORK_LABEL,
+      load_check: DRIVER_LOAD_CHECK_LABEL,
+      nap: DRIVER_NAP_QUESTION_LABEL,
+      passenger: DRIVER_PASSENGER_LABEL,
+      sleeper_berth: DRIVER_SLEEPER_BERTH_LABEL,
+      parked: DRIVER_PARKED_LABEL,
     },
-    onConfirmIntent: (intent: "work" | "break" | "other_work" | "stop_driving" | "stop") => {
+    onConfirmIntent: (intent) => {
+      const logNow = (type: string, options?: { episodeResume?: boolean }) => {
+        voiceFinalizeNextLogRef.current = true;
+        try {
+          handleLog(type, options);
+        } finally {
+          voiceFinalizeNextLogRef.current = false;
+        }
+      };
+      if (intent === "start_driving") {
+        logNow("work", {
+          episodeResume: currentType === null && showResumeShiftPrimary,
+        });
+        return;
+      }
+      if (intent === "start_work") {
+        if (currentType === "break") {
+          if (restWorkChooserOpen) {
+            logNow("work");
+            return;
+          }
+          openHeroChooser(() => setRestWorkChooserOpen(true));
+          return;
+        }
+        if (currentType === SLEEPER_BERTH_EVENT_TYPE) {
+          openHeroChooser(() => setSleeperChooserOpen(true));
+          return;
+        }
+        if (currentType === null) {
+          beginStartShift({ episodeResume: showResumeShiftPrimary });
+          return;
+        }
+        return;
+      }
+      if (intent === "load_check") {
+        if (currentType !== OTHER_WORK_EVENT_TYPE || !onOpenDimensionLoad) {
+          window.alert(`${DRIVER_LOAD_CHECK_LABEL} is on Other work.`);
+          return;
+        }
+        onOpenDimensionLoad();
+        return;
+      }
+      if (intent === "nap") {
+        const napAvailable =
+          Boolean(isLiveNow && onSetRestNap && !isTwoUp && currentType === "break" && pendingType !== "stop");
+        if (!napAvailable || !onSetRestNap) {
+          window.alert(`${DRIVER_NAP_QUESTION_LABEL} is on Rest.`);
+          return;
+        }
+        onSetRestNap(!isRestNapTagged(lastEvent));
+        return;
+      }
+      if (intent === "passenger") {
+        if (!isTwoUp) {
+          window.alert(`${DRIVER_PASSENGER_LABEL} is for Two-up.`);
+          return;
+        }
+        logNow(PASSENGER_EVENT_TYPE);
+        return;
+      }
+      if (intent === "sleeper_berth") {
+        if (!isTwoUp) {
+          window.alert(`${DRIVER_SLEEPER_BERTH_LABEL} is for Two-up.`);
+          return;
+        }
+        logNow(SLEEPER_BERTH_EVENT_TYPE);
+        return;
+      }
+      if (intent === "parked") {
+        if (!isTwoUp) {
+          window.alert(`${DRIVER_PARKED_LABEL} is for Two-up.`);
+          return;
+        }
+        logNow(STATIONARY_REST_EVENT_TYPE);
+        return;
+      }
       if (intent === "stop_driving") {
         openHeroChooser(() => setStopDrivingChooserOpen(true));
         return;
