@@ -60,6 +60,7 @@ import {
   END_SHIFT_NO_OPEN_MESSAGE,
   findOpenShiftEpisodeStart,
   findOpenWorkOrBreakOnTimeline,
+  resolveOpenShiftMetadata,
   routeConfirmDayAfterPriorEndShift,
   timelineHasOpenWorkOrBreak,
   validateCorrectEndShiftTime,
@@ -1509,16 +1510,16 @@ export function SheetDetail({
       }
 
       const openSeg = findOpenWorkOrBreakOnTimeline(days, asOfMs);
-      // Prefer km/route from the open segment's card; fall back to the card the
-      // driver tapped End shift from (usually the current day label).
       const openDayIndex = openSeg?.dayIndex ?? dayIndex;
-      const day = days[openDayIndex] ?? days[dayIndex];
-      const startKms = day?.start_kms ?? days[dayIndex]?.start_kms;
-      if (startKms == null || (typeof startKms === "number" && Number.isNaN(startKms))) {
+      const episodeStart = findOpenShiftEpisodeStart(days, asOfMs) ?? openSeg;
+      const shiftMeta = resolveOpenShiftMetadata(days, episodeStart?.dayIndex ?? null, openDayIndex);
+      const day = days[shiftMeta.metadataDayIndex] ?? days[openDayIndex] ?? days[dayIndex];
+      const startKms = shiftMeta.startKms;
+      if (startKms == null) {
         window.alert("Please enter start km for this shift before ending.");
         return;
       }
-      const rego = (day?.truck_rego ?? days[dayIndex]?.truck_rego ?? "").trim();
+      const rego = shiftMeta.truckRego || (day?.truck_rego ?? days[dayIndex]?.truck_rego ?? "").trim();
       let serverMaxEndKms: number | null = null;
       if (rego) {
         try {
@@ -1531,7 +1532,7 @@ export function SheetDetail({
           // Offline: validate with local data only when confirming
         }
       }
-      const kmDayIndex = day?.start_kms != null ? openDayIndex : dayIndex;
+      const kmDayIndex = shiftMeta.metadataDayIndex;
       const minAllowed = getMinAllowedStartKms(days, kmDayIndex, rego, serverMaxEndKms);
       if (minAllowed != null && startKms < minAllowed) {
         window.alert(
@@ -1545,7 +1546,6 @@ export function SheetDetail({
       // event — finish-date min is the open shift's starting Work day card.
       const todayStr = getRegulatoryTodayYmd(prev.jurisdiction_code);
       const lastOpenIso = openSeg?.time ?? null;
-      const episodeStart = findOpenShiftEpisodeStart(days, asOfMs) ?? openSeg;
       const finishOpts =
         openSeg != null && episodeStart != null
           ? resolveEndShiftFinishDayOptions({
@@ -1779,8 +1779,10 @@ export function SheetDetail({
       setEndShiftError(timeCheck.message);
       return;
     }
-    const startKms = openDay?.start_kms ?? day?.start_kms ?? null;
-    const rego = (openDay?.truck_rego ?? day?.truck_rego ?? "").trim();
+    const episodeStart = findOpenShiftEpisodeStart(days, Date.now());
+    const shiftMeta = resolveOpenShiftMetadata(days, episodeStart?.dayIndex ?? null, openDayIndex);
+    const startKms = shiftMeta.startKms ?? openDay?.start_kms ?? day?.start_kms ?? null;
+    const rego = shiftMeta.truckRego || (openDay?.truck_rego ?? day?.truck_rego ?? "").trim();
     let serverMaxEndKms: number | null = null;
     if (rego) {
       try {
@@ -1793,15 +1795,12 @@ export function SheetDetail({
         // Offline or error: validate with local data only
       }
     }
-    // End km on the shift-start card (episode Work), not the last break card —
-    // overnight finish often leaves only the stop on the next calendar day.
-    const episodeStart = findOpenShiftEpisodeStart(days, Date.now());
-    const endKmsDayIndex = episodeStart?.dayIndex ?? openDayIndex;
+    const endKmsDayIndex = shiftMeta.metadataDayIndex;
     const validation = validateDayKms(
       days,
       endKmsDayIndex,
       rego,
-      (days[endKmsDayIndex] ?? openDay)?.start_kms ?? startKms,
+      startKms,
       endKmsParsed,
       serverMaxEndKms
     );

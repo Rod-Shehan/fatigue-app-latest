@@ -101,6 +101,29 @@ describe("validateEndKmsRequiredForStop", () => {
     ).toBe(END_SHIFT_END_KM_REQUIRED_MESSAGE);
   });
 
+  it("covers a continuing shift that logged rest and drive before End shift on the next label", () => {
+    const sheetDays = [
+      {
+        start_kms: 700681,
+        end_kms: 701482,
+        events: [
+          { time: "2026-08-28T11:41:00.000Z", type: "other_work" },
+          { time: "2026-08-28T13:06:00.000Z", type: "work" },
+        ],
+      },
+      {
+        events: [
+          { time: "2026-08-28T18:00:00.000Z", type: "break" },
+          { time: "2026-08-28T18:20:00.000Z", type: "work" },
+          { time: "2026-08-28T22:35:00.000Z", type: "stop" },
+        ],
+      },
+    ];
+    expect(
+      validateEndKmsRequiredForStop(sheetDays[1]!.events, null, { sheetDays, dayIndex: 1 })
+    ).toBeNull();
+  });
+
   it("overnightStopCoveredByPriorEndKm matches validate helper", () => {
     const sheetDays = [{ end_kms: 754481 }, { end_kms: null }];
     expect(

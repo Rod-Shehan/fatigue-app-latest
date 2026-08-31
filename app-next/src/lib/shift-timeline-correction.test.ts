@@ -6,6 +6,7 @@ import {
   END_SHIFT_ALREADY_ENDED_MESSAGE,
   findOpenShiftEpisodeStart,
   findOpenWorkOrBreakOnTimeline,
+  resolveOpenShiftMetadata,
   routeConfirmDayAfterPriorEndShift,
   timelineHasOpenWorkOrBreak,
   validateCorrectEndShiftTime,
@@ -151,6 +152,52 @@ describe("routeConfirmDayAfterPriorEndShift", () => {
 
   it("returns undefined when ending on today", () => {
     expect(routeConfirmDayAfterPriorEndShift(3, 3)).toBeUndefined();
+  });
+});
+
+describe("resolveOpenShiftMetadata", () => {
+  it("uses the shift's start km when later events sit on the next label", () => {
+    const days: DayData[] = [
+      {},
+      {},
+      {},
+      {},
+      {},
+      {
+        truck_rego: "1HSX204",
+        start_kms: 700681,
+        events: [
+          { time: "2026-08-28T11:41:00.000Z", type: "other_work" },
+          { time: "2026-08-28T13:06:00.000Z", type: "work" },
+        ],
+      },
+      {
+        truck_rego: "1HSX204",
+        events: [
+          { time: "2026-08-28T18:00:00.000Z", type: "break" },
+          { time: "2026-08-28T18:20:00.000Z", type: "work" },
+        ],
+      },
+    ];
+    const asOf = Date.parse("2026-08-28T22:00:00.000Z");
+    const episode = findOpenShiftEpisodeStart(days, asOf);
+    const last = findOpenWorkOrBreakOnTimeline(days, asOf);
+    expect(episode?.dayIndex).toBe(5);
+    expect(last?.dayIndex).toBe(6);
+    const meta = resolveOpenShiftMetadata(days, episode?.dayIndex ?? null, last?.dayIndex ?? 6);
+    expect(meta.startKms).toBe(700681);
+    expect(meta.metadataDayIndex).toBe(5);
+    expect(meta.truckRego).toBe("1HSX204");
+  });
+
+  it("is missing only when the shift has no start km at all", () => {
+    const days: DayData[] = [
+      { events: [{ time: "2026-08-28T13:06:00.000Z", type: "work" }] },
+      { events: [{ time: "2026-08-28T18:00:00.000Z", type: "break" }] },
+    ];
+    const meta = resolveOpenShiftMetadata(days, 0, 1);
+    expect(meta.startKms).toBeNull();
+    expect(meta.metadataDayIndex).toBe(0);
   });
 });
 

@@ -341,8 +341,10 @@ export function DriverGuideArticle() {
             Work / break / non-work / End shift time corrections — when the day already has events (Edit
             day), you get the full list. On a new shift with no events yet, Set up day only offers Add
             work, Rest, and Other work. If End shift is on that day after work the same day, end km is required
-            on the same card. Overnight finish (End shift only on this card): leave end km blank when
-            it is already on the previous day, then enter start km to begin the next shift. Rest only
+            on the same card. One shift has one start km (when you start) and one end km (when you End
+            shift). Rest or drive after midnight is still that shift — do not enter start km again.
+            Overnight finish: leave end km blank on the finish label when it is already on the
+            shift-start card, then enter start km only when you begin the next shift. Rest only
             during a work bout (not after End shift or in the middle of non-work). Don&apos;t leave Rest
             open — resume work, Other work, non-work, or End shift. Other work can start the next shift
             after End shift (loading) — you do not need Work first. Open work overnight is fine.

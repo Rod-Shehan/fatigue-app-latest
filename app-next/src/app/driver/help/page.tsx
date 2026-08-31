@@ -116,9 +116,10 @@ export default async function DriverHelpPage() {
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">Repeat routes</strong> — when you start a shift,
                 Set up day can suggest rego, from, to, and run plan from your last trip (Confirm to put them on that
-                card). Once the shift is open, later day cards show the same truck and run. You still enter{" "}
-                <strong className="text-slate-700 dark:text-slate-200">start km</strong> and{" "}
-                <strong className="text-slate-700 dark:text-slate-200">end km</strong> yourself.
+                card). Once the shift is open, later day cards show the same truck and run. Enter{" "}
+                <strong className="text-slate-700 dark:text-slate-200">start km</strong> when the shift starts and{" "}
+                <strong className="text-slate-700 dark:text-slate-200">end km</strong> when you End shift — not again
+                if you are still on that shift.
               </li>
               <li>
                 <strong className="text-slate-700 dark:text-slate-200">

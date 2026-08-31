@@ -116,6 +116,31 @@ describe("getSheetKmIssues", () => {
     expect(issues.some((i) => i.code === "missing_end")).toBe(true);
   });
 
+  it("does not require a second start km on the next label of the same shift", () => {
+    const days = [
+      {
+        truck_rego: "1HSX204",
+        start_kms: 700681,
+        end_kms: 701482,
+        events: [
+          { time: "2026-08-28T11:41:00.000Z", type: "other_work" },
+          { time: "2026-08-28T13:06:00.000Z", type: "work" },
+        ],
+      },
+      {
+        truck_rego: "1HSX204",
+        events: [
+          { time: "2026-08-28T18:00:00.000Z", type: "break" },
+          { time: "2026-08-28T18:20:00.000Z", type: "work" },
+          { time: "2026-08-28T22:35:00.000Z", type: "stop" },
+        ],
+      },
+    ];
+    expect(dayRequiresKmEntry(days[1]!, days, 1)).toBe(false);
+    expect(getSheetKmIssues(days).filter((i) => i.dayIndex === 1)).toHaveLength(0);
+    expect(validateSheetKms(days)).toBeNull();
+  });
+
   it("skips start/end on overnight finish-only card when prior day holds end km", () => {
     const issues = getSheetKmIssues([
       {

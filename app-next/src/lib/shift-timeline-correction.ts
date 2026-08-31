@@ -83,6 +83,42 @@ export function findOpenShiftEpisodeStart(
   return open;
 }
 
+export type OpenShiftMetadata = {
+  /** Card that stores this shift's start km and rego. */
+  metadataDayIndex: number;
+  startKms: number | null;
+  truckRego: string;
+};
+
+function finiteShiftKm(value: number | null | undefined): number | null {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  return Number(value);
+}
+
+/**
+ * Start km and rego belong to the open shift, not the day card of the last event.
+ * One shift → one start km. Later rest/drive on the next label does not start a new reading.
+ */
+export function resolveOpenShiftMetadata(
+  days: Array<{ start_kms?: number | null; truck_rego?: string | null }>,
+  episodeStartDayIndex: number | null,
+  fallbackDayIndex: number
+): OpenShiftMetadata {
+  const home = episodeStartDayIndex ?? fallbackDayIndex;
+  let startKms = finiteShiftKm(days[home]?.start_kms);
+  if (startKms == null) {
+    for (let i = home + 1; i < days.length; i++) {
+      startKms = finiteShiftKm(days[i]?.start_kms);
+      if (startKms != null) break;
+    }
+  }
+  return {
+    metadataDayIndex: home,
+    startKms,
+    truckRego: (days[home]?.truck_rego ?? "").trim(),
+  };
+}
+
 export const END_SHIFT_ALREADY_ENDED_MESSAGE =
   "Your shift already ended on the record. Tap Start shift when you begin work again.";
 

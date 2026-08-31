@@ -3,6 +3,7 @@
  * Ensures start_kms and end_kms are never lower than any previous saved entry for that rego.
  */
 
+import { isTrueShiftContinuation } from "@/lib/day-route-carry";
 import {
   hasWorkOrBreakAfterLastStop,
   overnightStopCoveredByPriorEndKm,
@@ -40,12 +41,29 @@ function serverMaxForRego(
 }
 
 /**
- * Only days with driving activity (or km already entered) need start/end km at sign-off.
- * Skips empty days that only inherited rego on the card without a shift.
+ * Only the shift-start card needs start/end km. Later labels on the same open
+ * shift (rest/drive after midnight) do not get a second set.
+ * A new shift after End shift on that label still needs its own km.
  */
-export function dayRequiresKmEntry(day: DayKmContext): boolean {
+export function dayRequiresKmEntry(
+  day: DayKmContext,
+  sheetDays?: DayKmContext[],
+  dayIndex?: number
+): boolean {
   const rego = (day.truck_rego ?? "").trim();
   if (!rego) return false;
+  if (hasWorkOrBreakAfterLastStop(day.events)) {
+    return true;
+  }
+  if (
+    sheetDays &&
+    dayIndex != null &&
+    isTrueShiftContinuation(sheetDays, dayIndex) &&
+    day.start_kms == null &&
+    day.end_kms == null
+  ) {
+    return false;
+  }
   if (day.start_kms != null || day.end_kms != null) return true;
   const events = day.events ?? [];
   if (events.some((e) => e.type === "work" || e.type === "stop" || e.type === "break" || e.type === "non_work")) {
@@ -69,7 +87,7 @@ export function getLocalMaxEndKmsForRego(
   for (let i = 0; i < dayIndex && i < days.length; i++) {
     const d = days[i];
     if (!sameRego(d.truck_rego, rego)) continue;
-    if (!dayRequiresKmEntry(d)) continue;
+    if (!dayRequiresKmEntry(d, days, i)) continue;
     const end = d.end_kms;
     if (end != null && typeof end === "number" && !Number.isNaN(end)) {
       if (max === null || end > max) max = end;
@@ -89,7 +107,7 @@ export function getImmediatePriorSameRegoEndKms(
   for (let i = dayIndex - 1; i >= 0; i--) {
     const d = days[i];
     if (!sameRego(d.truck_rego, rego)) continue;
-    if (!dayRequiresKmEntry(d)) continue;
+    if (!dayRequiresKmEntry(d, days, i)) continue;
     const end = d.end_kms;
     if (end != null && typeof end === "number" && !Number.isNaN(end)) {
       return end;
@@ -140,7 +158,7 @@ export function findPriorSameRegoEndWithLabel(
   for (let i = dayIndex - 1; i >= 0; i--) {
     const d = days[i];
     if (!sameRego(d.truck_rego, rego)) continue;
-    if (!dayRequiresKmEntry(d)) continue;
+    if (!dayRequiresKmEntry(d, days, i)) continue;
     const end = d.end_kms;
     if (end != null && typeof end === "number" && !Number.isNaN(end)) {
       return { endKms: end, dayLabel: DAY_LABELS[i] ?? `Day ${i + 1}` };
@@ -269,7 +287,7 @@ export function validateSheetKms(days: DayKmContext[], options?: ValidateSheetKm
   const serverMaxByRego = options?.serverMaxByRego;
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
-    if (!dayRequiresKmEntry(d)) continue;
+    if (!dayRequiresKmEntry(d, days, i)) continue;
     const rego = (d.truck_rego ?? "").trim();
     const startKms = d.start_kms;
     const endKms = d.end_kms;
@@ -319,7 +337,7 @@ export function getSheetKmIssues(
 
   for (let i = 0; i < days.length; i++) {
     const d = days[i];
-    if (!dayRequiresKmEntry(d)) continue;
+    if (!dayRequiresKmEntry(d, days, i)) continue;
     const rego = (d.truck_rego ?? "").trim();
     const label = DAY_LABELS[i] ?? `Day ${i + 1}`;
     const serverMax = serverMaxForRego(serverMaxByRego, rego);
@@ -411,7 +429,7 @@ export function chainRegoKmsAcrossSheet<T extends DayKmContext>(
   for (let i = 0; i < next.length; i++) {
     const d = next[i]!;
     const rego = (d.truck_rego ?? "").trim();
-    if (!rego || !dayRequiresKmEntry(d)) continue;
+    if (!rego || !dayRequiresKmEntry(d, next, i)) continue;
 
     const key = regoKey(rego);
     const serverFloor = serverMaxForRego(serverMaxByRego, rego);
@@ -444,8 +462,9 @@ export function chainRegoKmsAcrossSheet<T extends DayKmContext>(
 export function collectRegosNeedingKm(days: DayKmContext[]): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const d of days) {
-    if (!dayRequiresKmEntry(d)) continue;
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i]!;
+    if (!dayRequiresKmEntry(d, days, i)) continue;
     const rego = (d.truck_rego ?? "").trim();
     const key = regoKey(rego);
     if (!key || seen.has(key)) continue;

@@ -1,11 +1,11 @@
+import { isTrueShiftContinuation } from "@/lib/day-route-carry";
+
 /**
  * End km must accompany any End shift (stop) on the record.
  * Live End shift uses EndShiftCorrectionDialog; Edit day must require the same field.
  *
- * Overnight close: stop may sit on the finish calendar day while end km is stored on
- * the open-shift start day (driver habit: end km on Monday, same reading as Tuesday start).
- * The finish card can then hold only the stop (and later a new shift) without its own end km
- * until that new shift ends.
+ * One shift, one end km. The stop may sit on a later day label; end km stays on the
+ * card that holds the shift's start km. A new shift after that stop needs its own km.
  */
 
 export const END_SHIFT_END_KM_REQUIRED_MESSAGE =
@@ -17,9 +17,15 @@ export function dayEventsIncludeStop(
   return (events ?? []).some((e) => e.type === "stop");
 }
 
+export type DayEventForStopKm = { type: string; time?: string };
+
 export type EndKmsForStopOptions = {
   /** Full week cards — used to accept overnight km on the prior day. */
-  sheetDays?: { end_kms?: number | null; start_kms?: number | null }[];
+  sheetDays?: {
+    end_kms?: number | null;
+    start_kms?: number | null;
+    events?: DayEventForStopKm[];
+  }[];
   dayIndex?: number;
   /** @deprecated Unused — overnight cover uses prior-day end km + event order. */
   dayStartKms?: number | null;
@@ -34,8 +40,6 @@ function eventTimeMs(time: string): number {
   const ms = new Date(time).getTime();
   return Number.isFinite(ms) ? ms : NaN;
 }
-
-export type DayEventForStopKm = { type: string; time?: string };
 
 /**
  * True when work/break was logged on this card before the last End shift —
@@ -79,8 +83,9 @@ export function hasWorkOrBreakAfterLastStop(
 }
 
 /**
- * Overnight finish residue: End shift on this card, no work/break before that stop,
- * and the previous card already holds end km for the closed shift.
+ * Stop on this label, end km already on the shift's start card.
+ * Rest/drive on this label before the stop is still the same shift.
+ * A new shift on this card (work after this stop) is not covered.
  */
 export function overnightStopCoveredByPriorEndKm(
   events: DayEventForStopKm[] | null | undefined,
@@ -89,12 +94,16 @@ export function overnightStopCoveredByPriorEndKm(
 ): boolean {
   if (!dayEventsIncludeStop(events)) return false;
   if (finiteKm(endKms) != null) return true;
-  if (hasWorkOrBreakBeforeLastStop(events)) return false;
 
   const days = options?.sheetDays;
   const idx = options?.dayIndex;
   if (!days || idx == null || idx <= 0) return false;
-  return finiteKm(days[idx - 1]?.end_kms) != null;
+  if (finiteKm(days[idx - 1]?.end_kms) == null) return false;
+
+  if (hasWorkOrBreakBeforeLastStop(events) && !isTrueShiftContinuation(days, idx)) {
+    return false;
+  }
+  return true;
 }
 
 /**

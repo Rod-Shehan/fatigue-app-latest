@@ -7,17 +7,17 @@ export function todayHasLoggedWorkOrBreak(day: DayData | undefined): boolean {
 }
 
 function lastEventBeforeDayIndex(
-  days: DayData[],
+  days: Array<{ events?: { time?: string; type: string }[] }>,
   dayIndex: number
 ): { time: string; type: string } | null {
   let best: { time: string; type: string } | null = null;
   let bestMs = -Infinity;
   for (let i = 0; i < dayIndex; i++) {
     for (const event of days[i]?.events ?? []) {
-      const ms = new Date(event.time).getTime();
+      const ms = new Date(event.time ?? "").getTime();
       if (!Number.isFinite(ms) || ms < bestMs) continue;
       bestMs = ms;
-      best = event;
+      best = { time: event.time ?? "", type: event.type };
     }
   }
   return best;
@@ -37,7 +37,7 @@ function dayHasOpenShiftRoute(day: DayData | undefined): boolean {
  * Empty cards in between do not matter. Clock midnight is not consulted.
  */
 export function isTrueShiftContinuation(
-  days: DayData[],
+  days: Array<{ events?: { time?: string; type: string }[] }>,
   dayIndex: number,
   _weekStarting?: string,
   _todayYmd?: string
