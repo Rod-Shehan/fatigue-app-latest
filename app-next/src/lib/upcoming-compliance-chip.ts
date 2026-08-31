@@ -27,6 +27,12 @@ function uniqueLines(lines: string[]): string[] {
   return out;
 }
 
+/** Hero already shows 5h break-due colour/countdown. Do not repeat it on the banner. */
+function isFiveHourBreakReminderLine(line: string): boolean {
+  const l = line.toLowerCase();
+  return l.startsWith("rest overdue") || l.startsWith("rest due by ") || l.startsWith("rest due soon");
+}
+
 function strongerTone(a: UpcomingComplianceTone, b: UpcomingComplianceTone): UpcomingComplianceTone {
   const rank: Record<UpcomingComplianceTone, number> = { clear: 0, caution: 1, attention: 2 };
   return rank[b] > rank[a] ? b : a;
@@ -102,9 +108,9 @@ export function resolveUpcomingComplianceChip(input: {
   rolling168h?: Rolling168hMetrics | null;
   idleRestBlocked?: boolean;
   idleRestRemainingMinutes?: number | null;
-  /** When on work, break countdown is on the hero — omit duplicate break-only cues unless critical. */
+  /** Unused: 5h break reminder is the hero only. Kept so LogBar can keep passing the flag. */
   onWorkSegment?: boolean;
-  /** Named live cues (rest due, rest window, shift still open). */
+  /** Live cues other than 5h rest-due (rest window, shift still open). */
   nearTermLines?: DriverNearTermChipLine[];
 }): UpcomingComplianceChipModel {
   const lines: string[] = [];
@@ -117,6 +123,7 @@ export function resolveUpcomingComplianceChip(input: {
   );
 
   for (const near of input.nearTermLines ?? []) {
+    if (isFiveHourBreakReminderLine(near.line)) continue;
     lines.push(near.line);
     tone = strongerTone(tone, near.tone);
   }

@@ -132,7 +132,7 @@ Choose **work week** and **day**, then:
 ### Tab: Identify risk
 
 Filters: needs attention, record gaps, unsigned weeks, next 24 hours.  
-Leading indicators from live events (break timing, long work blocks, recovery windows) on the **rolling** timeline — reach out to **understand**, not to accuse. The driver EWD names the same three issues when they can act (rest due in the last 2 hours, rest window after End shift, shift still open after 7 hours).
+Leading indicators from live events (break timing, long work blocks, recovery windows) on the **rolling** timeline — reach out to **understand**, not to accuse. The driver EWD shows the 5-hour break reminder on the ring countdown only (amber at 45 minutes left, red at 15). Upcoming on the log bar names rest window after End shift, shift still open after 7 hours, and **compliance issues after a breach** — it does not repeat the break reminder.
 
 ### Tab: Records & amendments
 

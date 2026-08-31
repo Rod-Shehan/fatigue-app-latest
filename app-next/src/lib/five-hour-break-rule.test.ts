@@ -117,6 +117,19 @@ describe("five-hour-break-rule", () => {
     const dueBy = getBreakDueByTime(events, nowMs);
     expect(dueBy).not.toBeNull();
     expect(dueBy!).toBeLessThan(nowMs);
+    expect(dueBy).toBe(t0 + work300);
+  });
+
+  it("Jaydin Fri 21:06: rest is due at 02:06 (300 min), not 01:46 (280 min)", () => {
+    const start = Date.parse("2026-08-28T13:06:00.000Z"); // 21:06 Perth
+    const iso = (ms: number) => new Date(ms).toISOString();
+    const events = [{ time: iso(start), type: "work" }];
+    const at0200 = Date.parse("2026-08-28T18:00:00.000Z"); // 02:00 Perth — he stopped
+    const dueBy = getBreakDueByTime(events, at0200);
+    expect(dueBy).toBe(start + 300 * 60 * 1000); // 02:06 Perth
+    expect(dueBy!).toBeGreaterThan(at0200);
+    const at0146 = Date.parse("2026-08-28T17:46:00.000Z");
+    expect(getBreakDueByTime(events, at0146)!).toBeGreaterThan(at0146);
   });
 
   it("counts other_work as break-from-driving rest, not 5h work minutes", () => {

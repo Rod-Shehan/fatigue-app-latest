@@ -44,6 +44,26 @@ describe("detectNearTermSignals", () => {
     expect(lines[0]?.line).toMatch(/Rest overdue/);
   });
 
+  it("omitBreakReminder drops rest-due lines used by the Upcoming banner", () => {
+    const events = [{ time: iso(t0), type: "work" }];
+    const nowMs = t0 + h(5) + m(10);
+    const driver = detectNearTermSignals(events, nowMs, DRIVER_NEAR_TERM_OPTS);
+    expect(driver.some((s) => s.kind === "break_overdue")).toBe(true);
+    const lines = driverChipLinesFromSignals(driver, nowMs, { omitBreakReminder: true });
+    expect(lines.some((l) => /Rest overdue|Rest due/i.test(l.line))).toBe(false);
+  });
+
+  it("does not call rest overdue at 4h 54m (Jaydin stopped at 02:00; due is 02:06)", () => {
+    const start = Date.parse("2026-08-28T13:06:00.000Z");
+    const events = [{ time: iso(start), type: "work" }];
+    const at0200 = Date.parse("2026-08-28T18:00:00.000Z");
+    const driver = detectNearTermSignals(events, at0200, DRIVER_NEAR_TERM_OPTS);
+    expect(driver.some((s) => s.kind === "break_overdue")).toBe(false);
+    expect(driver.some((s) => s.kind === "break_due")).toBe(true);
+    const due = driver.find((s) => s.kind === "break_due")!.dueByMs!;
+    expect(due).toBe(start + 300 * 60 * 1000);
+  });
+
   it("flags an open shift at 7h for the driver and 12h for the manager", () => {
     const events = [{ time: iso(t0), type: "work" }];
     const at8h = t0 + h(8);

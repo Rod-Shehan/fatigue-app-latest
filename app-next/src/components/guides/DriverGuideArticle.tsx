@@ -498,10 +498,10 @@ export function DriverGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Upcoming</strong> (above the ring on the live log bar)
-            names what to do now: rest due by a time when the 5h window is inside the next 2 hours (or overdue);{" "}
+            names compliance issues after a breach, plus{" "}
             <strong className="text-slate-700 dark:text-slate-200">{DRIVER_REST_WINDOW_HEADLINE}</strong> after End
-            shift until 7 hours (also on Drive home); or {formatDriverShiftStillOpen()}. The countdown on the ring
-            still turns amber at 45 minutes and red at 15 minutes.
+            shift until 7 hours (also on Drive home), or {formatDriverShiftStillOpen()}. The 5-hour break reminder is
+            the ring countdown only — amber at 45 minutes left, red at 15 minutes. It is not repeated as a banner.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Shift log</strong> — a list of every event on your

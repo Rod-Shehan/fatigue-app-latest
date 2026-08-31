@@ -145,11 +145,17 @@ export type DriverNearTermChipLine = {
 export function driverChipLinesFromSignals(
   signals: NearTermSignal[],
   nowMs: number,
-  opts?: { omitRestWindow?: boolean }
+  opts?: { omitRestWindow?: boolean; omitBreakReminder?: boolean }
 ): DriverNearTermChipLine[] {
   const lines: DriverNearTermChipLine[] = [];
   for (const signal of signals) {
     if (signal.kind === "insufficient_nonwork" && opts?.omitRestWindow) continue;
+    if (
+      opts?.omitBreakReminder &&
+      (signal.kind === "break_due" || signal.kind === "break_overdue")
+    ) {
+      continue;
+    }
     const mapped = driverLineForSignal(signal, nowMs);
     if (mapped) lines.push(mapped);
   }

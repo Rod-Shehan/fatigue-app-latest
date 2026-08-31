@@ -180,7 +180,7 @@ function getCurrentDayIndex(weekStarting: string, todayYmd: string): number {
   return Math.max(0, Math.min(6, diffDays));
 }
 
-/** Reminder when a live rest has finished or run long — rest-due / open-shift live on the Upcoming chip. */
+/** Reminder when a live rest has finished or run long. Open-shift lives on the Upcoming chip; 5h due is the hero. */
 const BREAK_COMPLETE_MIN = 20;
 const BREAK_LONG_MIN = 60;
 

@@ -207,7 +207,7 @@ export const DRIVER_NON_WORK_LABEL = "Non-work";
 /** End of the on-duty stretch. Starts non-work. */
 export const DRIVER_END_SHIFT_LABEL = "End shift";
 
-/** Live near-term cues on Drive home / Upcoming chip — same kinds as enterprise, driver wording. */
+/** Live near-term cues. Rest-due strings are mapped for tests/manager; the driver Upcoming banner omits them. */
 export const DRIVER_REST_WINDOW_HEADLINE = "Rest window open";
 export function formatDriverRestWindowHomeDetail(remainingLabel: string): string {
   return `${remainingLabel} before you can start work`;

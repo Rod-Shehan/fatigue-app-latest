@@ -305,7 +305,9 @@ export function findWallClockMsAtWorkMinutes(
 }
 
 /**
- * When the last event is work: wall-clock ms when a break should start (or was due).
+ * When the last event is work: wall-clock ms when a 20 min rest is due.
+ * Due after **300 work minutes** (5h driving). Do not pull due time forward by the
+ * remaining rest (that made 5h look like 4h40 — Jaydin Fri 21:06 → “due 01:46”).
  * Returns null when not in work or rest is already satisfied in the current work period.
  */
 export function getBreakDueByTime(events: TimelineEvent[], nowMs: number): number | null {
@@ -318,12 +320,10 @@ export function getBreakDueByTime(events: TimelineEvent[], nowMs: number): numbe
 
   const { periodStartMs, workMins } = period;
   const slots = getRestSlotsForBreakRange(events, periodStartMs, nowMs);
-  const minutesBeforeDue = getMinutesBeforeDueFromSlots(slots);
 
   if (qualifyingRestComplete(slots) && workMins < WORK_WINDOW_MIN) return null;
 
-  const workThreshold = WORK_WINDOW_MIN - minutesBeforeDue;
-  return findWallClockMsAtWorkMinutes(events, periodStartMs, workThreshold);
+  return findWallClockMsAtWorkMinutes(events, periodStartMs, WORK_WINDOW_MIN);
 }
 
 /** Minutes left to satisfy the rest rule if continuing this break (rough display). */

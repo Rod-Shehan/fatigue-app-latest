@@ -126,13 +126,28 @@ describe("upcoming-compliance-chip", () => {
     ).toBe(true);
   });
 
-  it("names a live rest-due cue on the chip", () => {
+  it("does not put the 5h rest-due reminder on the chip (hero colour/countdown only)", () => {
     const chip = resolveUpcomingComplianceChip({
       prospectiveWorkWarnings: [],
       complianceResults: [],
-      nearTermLines: [{ line: "Rest due by 14:20 — plan a stop", tone: "caution" }],
+      nearTermLines: [
+        { line: "Rest due by 14:20 — plan a stop", tone: "caution" },
+        { line: "Rest overdue — was due 01:46. Stop when safe", tone: "attention" },
+      ],
     });
-    expect(chip.tone).toBe("caution");
-    expect(chip.lines[0]).toBe("Rest due by 14:20 — plan a stop");
+    expect(chip.lines.some((l) => /rest due|rest overdue/i.test(l))).toBe(false);
+    expect(chip.tone).toBe("clear");
+  });
+
+  it("still names shift-still-open on the chip", () => {
+    const chip = resolveUpcomingComplianceChip({
+      prospectiveWorkWarnings: [],
+      complianceResults: [],
+      nearTermLines: [
+        { line: "Shift still open — End shift if you have finished", tone: "attention" },
+      ],
+    });
+    expect(chip.tone).toBe("attention");
+    expect(chip.lines[0]).toMatch(/Shift still open/);
   });
 });

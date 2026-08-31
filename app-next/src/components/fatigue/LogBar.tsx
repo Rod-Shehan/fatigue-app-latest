@@ -480,6 +480,8 @@ export default function LogBar({
     const nearTermSignals = detectNearTermSignals(eventsForDriver, nowMs, DRIVER_NEAR_TERM_OPTS);
     const nearTermLines = driverChipLinesFromSignals(nearTermSignals, nowMs, {
       omitRestWindow: idleRestBlocked,
+      /** 5h break reminder is the hero colour/countdown only — not a second banner. */
+      omitBreakReminder: true,
     });
     return resolveUpcomingComplianceChip({
       prospectiveWorkWarnings: (workRelevantComplianceMessages ?? []).filter(
