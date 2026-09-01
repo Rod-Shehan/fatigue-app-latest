@@ -26,6 +26,7 @@ import { type ActivityKey } from "@/lib/theme";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { VoiceAlertsToggle } from "@/components/VoiceAlertsToggle";
 import { VoiceCommandControl } from "@/components/VoiceCommandControl";
+import { type VoiceIntent } from "@/lib/voice-command-input";
 import { getVoiceAlertsEnabled, speakVoiceAlert } from "@/lib/voice-alerts";
 import {
   concatenateTimelineSlices,
@@ -1124,7 +1125,7 @@ export default function LogBar({
       sleeper_berth: DRIVER_SLEEPER_BERTH_LABEL,
       parked: DRIVER_PARKED_LABEL,
     },
-    onConfirmIntent: (intent) => {
+    onConfirmIntent: (intent: VoiceIntent) => {
       const logNow = (type: string, options?: { episodeResume?: boolean }) => {
         voiceFinalizeNextLogRef.current = true;
         try {
