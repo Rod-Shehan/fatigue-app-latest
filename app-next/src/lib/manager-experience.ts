@@ -209,6 +209,10 @@ export const MANAGER_EXPERIENCE = {
   },
 
   TIMELINE_TITLE: "Individual risk",
+  TIMELINE_LANE_DUTY_BEFORE_NOW: "recorded, before now",
+  TIMELINE_LANE_PROJECTED: "Projected risk (after now, striped)",
+  TIMELINE_LANE_PROJECTED_HINT:
+    "Stripes after NOW are a risk forecast, not Work, Break, or Non-work.",
   TIMELINE_PICK_DRIVER:
     "Click a fleet row or change Chart driver in Scope.",
   TIMELINE_AUTO_HINT: "Highest current risk",

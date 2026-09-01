@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildShiftLaneCells,
   dominantKindFromMinuteGrids,
+  PROJECTED_RISK_LANE_COLORS,
+  projectedRiskLaneBackgroundImage,
+  projectedRiskLaneColor,
   recordedKindForBlock,
+  shiftLaneColor,
+  shiftLaneProjectedTitle,
 } from "@/lib/manager-risk-shift-lane";
+import { ACTIVITY_THEME } from "@/lib/theme";
 import { findNowBlockStartMs, RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
 
 const BLOCK_MS = RISK_BLOCK_MINUTES * 60 * 1000;
@@ -181,5 +187,23 @@ describe("manager-risk-shift-lane", () => {
       }
     );
     expect(cells[0].breakDue).toBe(true);
+  });
+
+  it("paints projected risk in slate/violet/purple, not duty colours", () => {
+    const duty = [ACTIVITY_THEME.work.hex, ACTIVITY_THEME.break.hex, ACTIVITY_THEME.non_work.hex];
+    expect(duty).not.toContain(projectedRiskLaneColor(20));
+    expect(duty).not.toContain(projectedRiskLaneColor(50));
+    expect(duty).not.toContain(projectedRiskLaneColor(80));
+    expect(projectedRiskLaneColor(20)).toBe(PROJECTED_RISK_LANE_COLORS.low);
+    expect(projectedRiskLaneColor(50)).toBe(PROJECTED_RISK_LANE_COLORS.mid);
+    expect(projectedRiskLaneColor(80)).toBe(PROJECTED_RISK_LANE_COLORS.high);
+    expect(shiftLaneColor("break", true, false, 50)).toBe(PROJECTED_RISK_LANE_COLORS.mid);
+  });
+
+  it("stripes projected cells and never names them Break in the hover", () => {
+    expect(projectedRiskLaneBackgroundImage(50)).toContain("repeating-linear-gradient");
+    const title = shiftLaneProjectedTitle(52, "18:45", null);
+    expect(title).toBe("Projected risk 52% · 18:45");
+    expect(title).not.toMatch(/Break|Work|Non-work/i);
   });
 });

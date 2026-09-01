@@ -114,7 +114,9 @@ export function ManagerGuideArticle() {
         <p className="mt-2 text-slate-500 dark:text-slate-400">
           On the {MANAGER_EXPERIENCE.PAGE_TITLE} page, open section <strong>{MANAGER_EXPERIENCE.SECTION_RISK_TITLE}</strong>{" "}
           for timeline charts and live exposure — separate from{" "}
-          <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong>.
+          <strong>{MANAGER_EXPERIENCE.SECTION_COMPLIANCE_TITLE}</strong>.{" "}
+          On {MANAGER_EXPERIENCE.TIMELINE_TITLE}, solid Work / Break / Non-work colours are{" "}
+          {MANAGER_EXPERIENCE.TIMELINE_LANE_DUTY_BEFORE_NOW}. {MANAGER_EXPERIENCE.TIMELINE_LANE_PROJECTED_HINT}
         </p>
       </section>
 

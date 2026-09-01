@@ -3,14 +3,17 @@
 import { useMemo } from "react";
 import {
   buildShiftLaneCells,
+  projectedRiskLaneBackgroundImage,
   shiftLaneColor,
   shiftLaneLabel,
+  shiftLaneProjectedTitle,
   type ShiftLaneDayCoverage,
   type TimelineEvent,
 } from "@/lib/manager-risk-shift-lane";
 import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import type { RiskTimelineBlock } from "@/lib/manager-risk-timeline";
 import { RISK_BLOCK_MINUTES } from "@/lib/manager-risk-timeline";
+import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { ACTIVITY_THEME } from "@/lib/theme";
 
 /** Match Recharts YAxis width in ManagerRiskTimelineDashboard. */
@@ -85,22 +88,26 @@ export function ManagerRiskShiftLane({
             key={cell.blockStartMs}
             className="min-w-0 flex-1"
             title={
-              cell.generated && cell.riskPct != null
-                ? `Projected risk ${cell.riskPct}% · ${shiftLaneLabel(cell.kind, cell.breakDue)}${
-                    cell.planLabel ? ` · ${cell.planLabel}` : ""
-                  } · ${blocks[i]?.label ?? ""}`
+              cell.generated
+                ? shiftLaneProjectedTitle(cell.riskPct, blocks[i]?.label ?? "", cell.planLabel)
                 : cell.planLabel
                   ? `Recorded · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${cell.planLabel} · ${blocks[i]?.label ?? ""}`
-                  : `${cell.generated ? "Projected" : "Recorded"} · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${blocks[i]?.label ?? ""}`
+                  : `Recorded · ${shiftLaneLabel(cell.kind, cell.breakDue)} · ${blocks[i]?.label ?? ""}`
             }
-            style={{
-              backgroundColor: shiftLaneColor(
-                cell.kind,
-                cell.generated,
-                cell.breakDue,
-                cell.riskPct
-              ),
-            }}
+            style={
+              cell.generated
+                ? {
+                    backgroundImage: projectedRiskLaneBackgroundImage(cell.riskPct ?? 0),
+                  }
+                : {
+                    backgroundColor: shiftLaneColor(
+                      cell.kind,
+                      false,
+                      cell.breakDue,
+                      cell.riskPct
+                    ),
+                  }
+            }
           />
         ))}
         {breakDueWidth != null && breakDueLeft != null ? (
@@ -112,7 +119,7 @@ export function ManagerRiskShiftLane({
         ) : null}
         {nowIndex >= 0 ? (
           <div
-            className="pointer-events-none absolute top-0 bottom-0 z-10 w-px bg-teal-500 dark:bg-teal-400"
+            className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 bg-teal-500 dark:bg-teal-400"
             style={{ left: `${((nowIndex + 0.5) / cells.length) * 100}%` }}
             aria-hidden
           />
@@ -134,19 +141,28 @@ export function ManagerRiskShiftLane({
           <span className="h-2 w-3 rounded-sm" style={{ backgroundColor: ACTIVITY_THEME.non_work.hex }} aria-hidden />
           Non-work
         </span>
+        <span className="text-slate-400 dark:text-slate-500">
+          ({MANAGER_EXPERIENCE.TIMELINE_LANE_DUTY_BEFORE_NOW})
+        </span>
         <span className="inline-flex items-center gap-1">
           <span
             className="h-2 w-3 rounded-sm border border-amber-500/50 bg-amber-500/35"
             aria-hidden
           />
-          Break due (before now)
+          Break due
         </span>
-        <span className="inline-flex items-center gap-1">
+        <span
+          className="inline-flex items-center gap-1"
+          title={MANAGER_EXPERIENCE.TIMELINE_LANE_PROJECTED_HINT}
+        >
           <span
-            className="h-2 w-3 rounded-sm bg-gradient-to-r from-emerald-500 via-amber-500 to-red-600"
+            className="h-2 w-5 rounded-sm border border-violet-800/40"
+            style={{
+              backgroundImage: projectedRiskLaneBackgroundImage(55),
+            }}
             aria-hidden
           />
-          Projected risk (after now)
+          {MANAGER_EXPERIENCE.TIMELINE_LANE_PROJECTED}
         </span>
       </div>
     </div>

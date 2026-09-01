@@ -1,6 +1,7 @@
 /**
  * Shift lane cells aligned to 15-minute risk timeline blocks.
- * Before now: duty from logged events. After now: TPMA risk % per block (duty in tooltip).
+ * Before now: duty from logged events (Work / Break / Non-work).
+ * After now: striped projected TPMA risk — never painted as duty colours.
  */
 
 import type { ShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
@@ -11,7 +12,7 @@ import {
 } from "@/lib/manager-shift-lane-plans";
 import {
   RISK_BLOCK_MINUTES,
-  riskPercentToColor,
+  RISK_COLOR_THRESHOLDS,
   type RiskTimelineBlock,
   findNowBlockStartMs,
 } from "@/lib/manager-risk-timeline";
@@ -21,6 +22,35 @@ import {
 import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
 
 const BLOCK_MS = RISK_BLOCK_MINUTES * 60 * 1000;
+
+/** After-now lane only. Slate / violet / purple — not Work blue, Break amber, or Non-work teal. */
+export const PROJECTED_RISK_LANE_COLORS = {
+  low: "#64748b",
+  mid: "#7c3aed",
+  high: "#4c1d95",
+} as const;
+
+export function projectedRiskLaneColor(pct: number): string {
+  if (pct >= RISK_COLOR_THRESHOLDS.red) return PROJECTED_RISK_LANE_COLORS.high;
+  if (pct >= RISK_COLOR_THRESHOLDS.amber) return PROJECTED_RISK_LANE_COLORS.mid;
+  return PROJECTED_RISK_LANE_COLORS.low;
+}
+
+export function projectedRiskLaneBackgroundImage(pct: number): string {
+  const color = projectedRiskLaneColor(pct);
+  return `repeating-linear-gradient(-45deg, ${color} 0px, ${color} 3px, rgba(255,255,255,0.38) 3px, rgba(255,255,255,0.38) 6px)`;
+}
+
+export function shiftLaneProjectedTitle(
+  riskPct: number | undefined,
+  timeLabel: string,
+  planLabel?: string | null
+): string {
+  const risk = riskPct != null ? `Projected risk ${riskPct}%` : "Projected risk";
+  const plan = planLabel?.trim() ? ` · ${planLabel.trim()}` : "";
+  const time = timeLabel ? ` · ${timeLabel}` : "";
+  return `${risk}${plan}${time}`;
+}
 
 export type ShiftLaneKind = "work" | "break" | "non_work" | "idle";
 
@@ -210,7 +240,7 @@ export function shiftLaneColor(
   if (breakDue) return ACTIVITY_THEME.break.hex;
 
   if (generated && riskPct != null) {
-    return riskPercentToColor(riskPct);
+    return projectedRiskLaneColor(riskPct);
   }
 
   if (kind === "idle") {

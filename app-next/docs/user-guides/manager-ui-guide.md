@@ -100,6 +100,8 @@ Shows **compliance rule outcomes** on weekly sheets for the selected week and th
 
 The fleet heatmap uses a **fluid grid** of 15-minute blocks: it grows with the panel on wide screens and scrolls horizontally only when the window is too narrow (no whole-page sideways scroll). The driver column stays fixed while you pan the timeline. **← →** buttons appear when more timeline is off-screen; you can also swipe on touch devices or use the keyboard when the timeline is focused. On load, the view centres on **right now**.
 
+**Individual risk** (the chart for one driver) has a colour bar under the line. **Solid** Work / Break / Non-work colours are recorded duty **before now**. **Stripes** after now are a fatigue-risk forecast (grey to purple). They are not a planned Break. Hover a striped block for the risk percent.
+
 ### Reference libraries (collapsible)
 
 Two card libraries open from the risk brief:
