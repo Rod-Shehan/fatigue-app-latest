@@ -61,3 +61,13 @@ export function endShiftConfirmLabelSizeClass(expanded: boolean, compact: boolea
   if (compact) return "text-[9px] leading-none";
   return "text-xs sm:text-sm";
 }
+
+/**
+ * Circadia family — compliance countdown + elapsed clocks (hero / under-puck).
+ * Same scale as Circadia24-NHVR-EWD `heroTimerSizeClass`.
+ */
+export function heroTimerSizeClass(expanded: boolean, compact = false): string {
+  if (compact) return "text-[10px]";
+  if (expanded) return "text-3xl sm:text-4xl";
+  return "text-xl sm:text-2xl";
+}

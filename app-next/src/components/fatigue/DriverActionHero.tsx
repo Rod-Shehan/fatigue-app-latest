@@ -6,7 +6,7 @@ import { getActionRingTintClass, getResumeShiftButtonChrome } from "@/lib/driver
 import { resolveDriverActionState } from "@/lib/driver-action-state";
 import { DriverActionHeroRing } from "@/components/fatigue/DriverActionHeroRing";
 import { cn } from "@/lib/utils";
-import { driverActionSizeClass, endShiftButtonSizeClass } from "@/lib/driver-action-sizes";
+import { driverActionSizeClass, endShiftButtonSizeClass, heroTimerSizeClass } from "@/lib/driver-action-sizes";
 import { BedDouble, Briefcase, ClipboardList, Coffee, ParkingCircle, User, Wrench, X } from "lucide-react";
 import { HERO_SPLIT_CHROME } from "@/lib/theme";
 
@@ -545,25 +545,50 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
         </div>
         )}
       </div>
-      {elapsedLabel || activityNowLabel ? (
+      {/* Match main-hero countdown size when the puck is a 2/3 split. */}
+      {showWorkCountdown || elapsedLabel || activityNowLabel ? (
         <div
           className={cn(
             "flex flex-col items-center gap-0.5",
-            expanded ? "mt-2" : "mt-1.5"
+            expanded ? "mt-2 gap-1" : "mt-1.5"
           )}
         >
-          {elapsedLabel ? (
+          {showWorkCountdown ? (
+            <>
+              <span
+                className={cn(
+                  "font-black tabular-nums tracking-tight leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]",
+                  heroTimerSizeClass(expanded, compact)
+                )}
+                aria-live="polite"
+              >
+                {action.countdown}
+              </span>
+              <span
+                className={cn(
+                  "uppercase tracking-[0.14em] font-semibold opacity-90 leading-tight text-white/90",
+                  expanded ? "text-[0.6rem]" : "text-[0.55rem]"
+                )}
+              >
+                {action.statusLabel}
+              </span>
+            </>
+          ) : null}
+          {elapsedLabel && !showWorkCountdown ? (
             <span
               className={cn(
                 "font-mono font-extrabold tabular-nums leading-none",
-                expanded ? "text-lg sm:text-xl text-white" : "text-base sm:text-lg text-slate-900 dark:text-slate-100"
+                heroTimerSizeClass(expanded, compact),
+                expanded
+                  ? "text-white"
+                  : "text-slate-900 dark:text-slate-100"
               )}
               aria-live="polite"
             >
               {elapsedLabel}
             </span>
           ) : null}
-          {activityNowLabel ? (
+          {activityNowLabel && !showWorkCountdown ? (
             <span
               className={cn(
                 activityNowNoteClass,
@@ -666,7 +691,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               <span
                 className={cn(
                   "font-black tabular-nums tracking-tight leading-none",
-                  expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
+                  heroTimerSizeClass(expanded, compact),
                   action.chrome.onColoredSurface &&
                     "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                 )}
@@ -706,7 +731,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
               <span
                 className={cn(
                   "font-black tabular-nums tracking-tight leading-none",
-                  expanded ? "text-3xl sm:text-4xl" : compact ? "text-[10px]" : "text-xl sm:text-2xl",
+                  heroTimerSizeClass(expanded, compact),
                   "text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                 )}
                 aria-live="polite"
@@ -738,7 +763,7 @@ export const DriverActionHero: React.FC<DriverActionHeroProps> = ({
             <span
               className={cn(
                 "font-mono font-extrabold tabular-nums leading-none",
-                expanded ? "text-lg sm:text-xl" : compact ? "text-[9px]" : "text-base sm:text-lg",
+                heroTimerSizeClass(expanded, compact),
                 action.chrome.onColoredSurface
                   ? "drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
                   : "text-slate-900 dark:text-slate-100"
