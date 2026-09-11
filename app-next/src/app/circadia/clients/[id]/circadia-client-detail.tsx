@@ -10,6 +10,7 @@ import {
   ENTITLEMENT_LABELS,
   type ClientEntitlements,
 } from "@/lib/tenant";
+import { CIRCADIA_DRIVE_GMAIL } from "@/lib/pdf-drop/mailbox";
 
 type TenantDetail = {
   id: string;
@@ -36,6 +37,8 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
   const [legalName, setLegalName] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(null);
   const [inbox, setInbox] = useState<string | null>(null);
+  const [dropWeek, setDropWeek] = useState("");
+  const [dropMessage, setDropMessage] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   const detailQuery = useQuery({
@@ -47,6 +50,55 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
       if (!json.tenant) throw new Error("Client not found");
       return json.tenant;
     },
+  });
+
+  const dropQuery = useQuery({
+    queryKey: ["circadia", "tenant", clientId, "pdf-drop"],
+    enabled: Boolean(detailQuery.data),
+    queryFn: async () => {
+      const res = await fetch(`/api/admin/tenants/${clientId}/pdf-drop`);
+      const json = (await res.json()) as {
+        drop?: {
+          provider: string;
+          configured: boolean;
+          folderPath: string;
+          shareEmail: string | null;
+          mailbox: string;
+          missing: string[];
+        };
+        error?: string;
+      };
+      if (!res.ok) throw new Error(json.error || "Failed to load PDF drop");
+      if (!json.drop) throw new Error("PDF drop status missing");
+      return json.drop;
+    },
+  });
+
+  const dropMutation = useMutation({
+    mutationFn: async (body: Record<string, unknown>) => {
+      const res = await fetch(`/api/admin/tenants/${clientId}/pdf-drop`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = (await res.json()) as { error?: string; detail?: string; dropped?: number; skippedUnsigned?: number };
+      if (!res.ok) throw new Error(json.error || "PDF drop failed");
+      return json;
+    },
+    onSuccess: (json) => {
+      setFormError(null);
+      if (typeof json.dropped === "number") {
+        setDropMessage(
+          `Dropped ${json.dropped} signed week PDF${json.dropped === 1 ? "" : "s"}${
+            json.skippedUnsigned ? ` (${json.skippedUnsigned} unsigned skipped)` : ""
+          }.`
+        );
+      } else {
+        setDropMessage(json.detail || "Invite sent.");
+      }
+      void queryClient.invalidateQueries({ queryKey: ["circadia", "tenant", clientId, "pdf-drop"] });
+    },
+    onError: (err) => setFormError(err instanceof Error ? err.message : "Failed"),
   });
 
   const tenant = detailQuery.data;
@@ -72,6 +124,7 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
       setInbox(null);
       void queryClient.invalidateQueries({ queryKey: detailKey });
       void queryClient.invalidateQueries({ queryKey: ["circadia", "tenants"] });
+      void queryClient.invalidateQueries({ queryKey: ["circadia", "tenant", clientId, "pdf-drop"] });
     },
     onError: (err) => setFormError(err instanceof Error ? err.message : "Failed"),
   });
@@ -83,7 +136,7 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
           backLabel="Circadia client manager"
           backText="Clients"
           title={tenant?.legal_name ?? "Client"}
-          subtitle="Identity, pause, filing inbox, product pack"
+          subtitle="Identity, pause, filing inbox, Google Drive PDF drop, product pack"
           icon={<Building2 className="w-5 h-5" />}
         />
 
@@ -177,6 +230,73 @@ export function CircadiaClientDetail({ clientId }: { clientId: string }) {
               >
                 Save inbox
               </Button>
+            </section>
+
+            <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
+              <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                PDF drop
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                PDFs land in {CIRCADIA_DRIVE_GMAIL} My Drive, in a folder named after this client.
+                You invite their filing inbox. They open Shared with me, see a normal folder of
+                files, and copy them out. This is a transfer dock, not their archive.
+              </p>
+              {dropQuery.isLoading ? (
+                <p className="text-sm text-slate-500">Checking Google Drive…</p>
+              ) : dropQuery.isError ? (
+                <p className="text-sm text-red-600">{dropQuery.error.message}</p>
+              ) : dropQuery.data ? (
+                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                  <p>
+                    Provider: <strong>{dropQuery.data.provider}</strong>
+                    {dropQuery.data.configured ? " — ready" : " — not ready"}
+                  </p>
+                  <p>
+                    Drive mailbox: <strong>{dropQuery.data.mailbox}</strong>
+                  </p>
+                  <p>
+                    Folder: <code className="text-xs">{dropQuery.data.folderPath}</code>
+                  </p>
+                  {dropQuery.data.missing.length > 0 ? (
+                    <p className="text-amber-700 dark:text-amber-300">
+                      Missing: {dropQuery.data.missing.join(", ")}
+                    </p>
+                  ) : null}
+                  {!dropQuery.data.shareEmail ? (
+                    <p className="text-amber-700 dark:text-amber-300">
+                      Save a filing inbox email above before inviting.
+                    </p>
+                  ) : (
+                    <p>Invite goes to {dropQuery.data.shareEmail}.</p>
+                  )}
+                </div>
+              ) : null}
+              <Button
+                type="button"
+                disabled={dropMutation.isPending || !dropQuery.data?.configured || !dropQuery.data.shareEmail}
+                onClick={() => dropMutation.mutate({ action: "invite" })}
+              >
+                Invite inbox to this folder
+              </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <label className="block text-xs text-slate-500 dark:text-slate-400 flex-1">
+                  Week starting (YYYY-MM-DD)
+                  <input
+                    className="mt-1 w-full rounded-md border border-slate-300 dark:border-slate-600 bg-transparent px-3 py-2 text-sm"
+                    type="date"
+                    value={dropWeek}
+                    onChange={(e) => setDropWeek(e.target.value)}
+                  />
+                </label>
+                <Button
+                  type="button"
+                  disabled={dropMutation.isPending || !dropQuery.data?.configured || !dropWeek}
+                  onClick={() => dropMutation.mutate({ action: "drop_week", week_starting: dropWeek })}
+                >
+                  Drop signed week PDFs
+                </Button>
+              </div>
+              {dropMessage ? <p className="text-sm text-emerald-700 dark:text-emerald-300">{dropMessage}</p> : null}
             </section>
 
             <section className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">

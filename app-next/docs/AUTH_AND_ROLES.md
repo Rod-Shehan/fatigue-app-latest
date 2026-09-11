@@ -14,7 +14,7 @@ How sign-in works on **Circadia24** (`app-next`). Use this as the source of trut
 
 Managers **cannot** create other managers. Owners **cannot** delete their own account or the last owner.
 
-**Multi-client:** every user belongs to one `Tenant`. Managers and owners only see drivers, sheets, and users in their own client. Circadia staff listed in `CIRCADIA_PLATFORM_ADMIN_EMAILS` (or `User.platformAdmin`) open the **Circadia staff desk** desktop PWA at **https://staff-desk.circadia24.com** — it is not linked from the product lobby or the fleet Owner console (`/admin` on Enterprise). A paused client cannot sign in (Circadia staff still can). Existing data backfills to `tenant_default`.
+**Multi-client:** every user belongs to one `Tenant`. Managers and owners only see drivers, sheets, and users in their own client. Circadia staff listed in `CIRCADIA_PLATFORM_ADMIN_EMAILS` (or `User.platformAdmin`) open the **Circadia staff desk** desktop PWA at **https://staff-desk.circadia24.com** — it is not linked from the product lobby or the fleet Owner console (`/admin` on Enterprise). On a client page, staff can invite the filing inbox to that client’s **Google Drive PDF drop** and put signed week PDFs there (a transfer dock — they see a normal folder of files). Dropbox can be added later. A paused client cannot sign in (Circadia staff still can). Existing data backfills to `tenant_default`.
 
 ---
 

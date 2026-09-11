@@ -22,7 +22,8 @@
     "db:seed": "prisma db seed",
     "db:seed-fleet-routes": "npx tsx scripts/seed-fleet-routes.ts",
     "db:studio": "prisma studio",
-    "tenant:provision": "npx tsx scripts/provision-tenant.ts"
+    "tenant:provision": "npx tsx scripts/provision-tenant.ts",
+    "pdf-drop:google-connect": "npx tsx scripts/google-drive-connect.ts"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

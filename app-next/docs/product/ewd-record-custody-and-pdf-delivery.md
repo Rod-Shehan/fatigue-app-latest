@@ -33,6 +33,8 @@
 
 > Circadia retains the electronic work diary for at least three years. Circadia must deliver a PDF copy of each attested week to the customer’s records address. The customer must keep that copy. Neither delivery nor storage by Circadia transfers the customer’s record-keeping duty. The PDF is a printable reproduction of the electronic record, not a replacement for it.
 
+**PDF drop (2026-09-11):** files live in **circadia24@gmail.com** My Drive. That folder is shared with the filing inbox as a **middleware transfer dock**. The client opens a normal folder of PDFs and files them however they want. It is not their archive, not Circadia SoR, and not the same as forced email. Dropbox can use the same dock later. OneDrive is parked. See [pdf-drop.md](../architecture/pdf-drop.md).
+
 ---
 
 ## 2. What the record is
