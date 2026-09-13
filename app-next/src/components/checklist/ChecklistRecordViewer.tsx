@@ -338,8 +338,8 @@ export function ChecklistRecordViewer({
             </button>
           </div>
           <p className="text-center text-[10px] text-ck-steel leading-snug">
-            Week pack for this form type only — separate from other checklist types and from the
-            28-day fatigue roadside PDF.
+            One sheet per signed log, dated week ending. This form type only — not the 28-day
+            fatigue roadside PDF.
           </p>
         </div>
       }

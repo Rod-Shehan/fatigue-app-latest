@@ -490,8 +490,8 @@ export const api = {
       return `${base}/api/sheets/${id}/checklists/export?${sp.toString()}`;
     },
     /**
-     * Email week pack PDF(s) to the signed-in user’s address (Settings, else login email).
-     * Omit type → one attachment per type that has records. Never merges types.
+     * Email checklist PDFs to the signed-in user’s address (Settings, else login email).
+     * One attachment per signed log, dated week ending. Never merges types.
      */
     emailChecklistPdf: (
       id: string,

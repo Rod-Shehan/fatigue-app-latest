@@ -3,18 +3,18 @@
  * Stored on User.checklistDeliveryEmail. Empty = that user’s login email.
  * Later: hide this for clients that should use an org inbox instead.
  *
- * Packing: one PDF = one checklist type for one driver week. Types not merged.
- * Fatigue roadside PDF is never included.
+ * Packing: one PDF = one signed log. Date on the file is week ending.
+ * Types not merged. Fatigue roadside PDF is never included.
  */
 
 import { isValidMaintenanceEmail } from "@/lib/maintenance-contact";
 
-export const CHECKLIST_EMAIL_BUTTON_LABEL = "Email checklist week packs";
+export const CHECKLIST_EMAIL_BUTTON_LABEL = "Email checklist PDFs";
 
 export const CHECKLIST_EMAIL_SETTINGS_LABEL = "Checklist PDF email";
 
 export const CHECKLIST_EMAIL_SETTINGS_HINT =
-  "Your address for Fitness for Work, Prestart, and Dimension & Load week packs. Defaults to your sign-in email. Each person sets their own. Separate PDF per type. Not the 28-day fatigue roadside PDF. Not the workshop fault address.";
+  "Your address for Fitness for Work, pre-departure, Load check, and Hook up PDFs. Defaults to your sign-in email. Each person sets their own. One PDF per signed log, dated week ending. Not the 28-day fatigue roadside PDF. Not the workshop fault address.";
 
 export const CHECKLIST_EMAIL_MISSING_MESSAGE =
   "Set the checklist PDF email in Settings, or add a sign-in email.";

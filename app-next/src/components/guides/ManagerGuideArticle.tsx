@@ -58,8 +58,9 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
-            email (where FFW / vehicle / trailer / forklift pre-departure / Load week packs go — each person sets their own; defaults to sign-in
-            email) and workshop / maintenance contact for WAHVA fault reporting (also on driver Settings)
+            email (where FFW / vehicle / trailer / forklift / load / hook-up PDFs go — one sheet per signed
+            log, dated week ending; each person sets their own; defaults to sign-in email) and workshop /
+            maintenance contact for WAHVA fault reporting (also on driver Settings)
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Owner console</strong> — owners set the

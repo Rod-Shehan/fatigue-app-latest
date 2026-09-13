@@ -97,12 +97,18 @@ export {
   CHECKLIST_PDF_BUTTON_LABEL,
   CHECKLIST_PDF_DISCLAIMER,
   CHECKLIST_PDF_TYPES,
+  CHECKLIST_PDF_TYPE_FILE_SLUG,
   CHECKLIST_PDF_TYPE_TITLE,
   buildChecklistPackJsPdfBuffer,
   checklistPdfFilename,
+  checklistPdfIdentity,
+  checklistPdfWeekEndingFileToken,
+  checklistPdfWeekEndingLabel,
   collectChecklistPdfDays,
+  flattenChecklistPdfRecords,
+  uniqueChecklistPdfFilename,
 } from "./checklist-pdf";
-export type { ChecklistPdfDayBundle } from "./checklist-pdf";
+export type { ChecklistPdfDayBundle, ChecklistPdfIdentity } from "./checklist-pdf";
 export {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_EMAIL_MISSING_MESSAGE,

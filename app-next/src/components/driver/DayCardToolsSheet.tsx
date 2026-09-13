@@ -96,7 +96,7 @@ export function DayCardToolsSheet({
   hookupFormCompleted?: boolean;
   /** Dedicated checklist PDF for this day (not fatigue roadside). */
   onProduceChecklistPdf?: () => void;
-  /** Email week packs; return a short success message for on-sheet feedback. */
+  /** Email checklist PDFs; return a short success message for on-sheet feedback. */
   onEmailChecklistPdf?: () => Promise<string>;
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
@@ -581,7 +581,7 @@ export function DayCardToolsSheet({
                     <span className="flex-1 text-left">
                       <span className="block font-semibold">Produce checklist PDFs</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        Week pack per type (FFW / Prestart / Load / Hook up) — not the fatigue roadside PDF
+                        One sheet per signed log, dated week ending — not the fatigue roadside PDF
                       </span>
                     </span>
                     <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

@@ -594,9 +594,9 @@ export function DriverGuideArticle() {
             {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
             (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. After a form is saved, use
             View to read it, or Redo / Add another for a new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day
-            tools) downloads a week pack per checklist type (FFW / {PRESTART_FORM_TITLE} /{" "}
-            {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / Load / {HOOKUP_FORM_TITLE} as separate
-            files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL} sends those PDFs to your address in
+            tools) downloads one sheet per signed log (FFW named by driver; vehicle / load by vehicle
+            rego; {HOOKUP_FORM_TITLE} by driver and rego). The date on every file is week ending — not
+            signed time. Types stay separate files. {CHECKLIST_EMAIL_BUTTON_LABEL} sends those PDFs to your address in
             Settings → {DRIVER_SETTINGS_SECTIONS.delivery.title} → {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to
             your sign-in email). Two-up drivers who are not responsible for the vehicle{" "}
             {PRESTART_FORM_TITLE.toLowerCase()} can record that on the {PRESTART_FORM_TITLE} form instead of inventing

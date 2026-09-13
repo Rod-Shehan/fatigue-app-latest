@@ -1,10 +1,12 @@
 /**
- * Dedicated checklist PDF (Phase 6 / H2) — separate from fatigue 28-day roadside.
- * System of record remains day JSON (Q1); this is an on-demand view.
+ * Dedicated checklist PDF — separate from fatigue 28-day roadside.
+ * Filing date is always week ending (same as the Weekly Trip Sheet).
+ * One completed log = one sheet. Identity is driver and/or vehicle, not signed-at.
  */
 
-import { PRODUCT_NAME_EXPORT } from "@/lib/branding";
+import { weekEndingDateLabel } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
 import { getSheetDayDateString } from "@/lib/weeks";
+import { headerString } from "./audit-identity";
 import { checklistFaultMobilityLabel } from "./item-types";
 import {
   isChecklistRecordType,
@@ -20,7 +22,7 @@ const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frid
 export const CHECKLIST_PDF_BUTTON_LABEL = "Produce checklist PDFs";
 
 export const CHECKLIST_PDF_DISCLAIMER =
-  "This Circadia24 checklist pack is generated from signed form records for one week.";
+  "Each sheet is one signed log. The record date is week ending — not the time signed and not when this file was produced.";
 
 export const CHECKLIST_PDF_TYPE_TITLE: Record<ChecklistRecordType, string> = {
   ffw: "Fitness for Work",
@@ -38,6 +40,15 @@ const LOADER_PATH_LABEL: Record<string, string> = {
   pending: "Loader pending — CoR not yet obtained",
   not_obtained: "Loader CoR not obtained — photo evidence at capture",
   self_as_loader: "Driver also loaded — dual signatures",
+};
+
+export const CHECKLIST_PDF_TYPE_FILE_SLUG: Record<ChecklistRecordType, string> = {
+  ffw: "Fitness-for-Work",
+  prestart: "Vehicle-pre-departure",
+  prestart_trailer: "Trailer-pre-departure",
+  prestart_forklift: "Forklift-pre-departure",
+  dimension_load: "Load-check",
+  hookup: "Hook-up",
 };
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -61,10 +72,82 @@ function itemValueLabel(value: string): string {
   }
 }
 
-function completedWhen(record: ChecklistRecord): string {
-  const driver = record.signatures.find((s) => s.role === "driver");
-  if (driver?.signedAtAwst) return `${driver.signedAtAwst} (AWST)`;
-  return record.completedAtUtc;
+function safeFilePart(raw: string, fallback: string): string {
+  const cleaned = raw
+    .trim()
+    .replace(/[^\w]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return cleaned.slice(0, 40) || fallback;
+}
+
+/** Same Saturday label as the Weekly Trip Sheet (`dd/mm/yyyy`). */
+export function checklistPdfWeekEndingLabel(weekStarting: string): string {
+  return weekEndingDateLabel(weekStarting);
+}
+
+/** Week ending for filenames (`dd-mm-yyyy`). */
+export function checklistPdfWeekEndingFileToken(weekStarting: string): string {
+  return checklistPdfWeekEndingLabel(weekStarting).replace(/\//g, "-");
+}
+
+export type ChecklistPdfIdentity = {
+  driver: string;
+  vehicle: string;
+  /** Filename stem after the form title (no week-ending suffix). */
+  fileStem: string;
+  /** Header line under the form title. */
+  titleLine: string;
+};
+
+/**
+ * How the sheet is named for filing.
+ * FFW: driver. Vehicle / load: vehicle rego. Hook-up: driver and rego.
+ */
+export function checklistPdfIdentity(
+  record: ChecklistRecord,
+  sheetDriverName?: string | null
+): ChecklistPdfIdentity {
+  const driver =
+    headerString(record.header, "driver_name") || (sheetDriverName || "").trim() || "driver";
+  const vehicle =
+    headerString(record.header, "vehicle_rego") ||
+    headerString(record.header, "truck_rego") ||
+    headerString(record.header, "audit_vehicle") ||
+    "";
+  const trailer = headerString(record.header, "trailer_rego");
+
+  if (record.type === "ffw") {
+    return {
+      driver,
+      vehicle: "",
+      fileStem: safeFilePart(driver, "driver"),
+      titleLine: `Driver: ${driver}`,
+    };
+  }
+
+  if (record.type === "hookup") {
+    const rego = [vehicle, trailer].filter(Boolean).join("-") || "vehicle";
+    return {
+      driver,
+      vehicle: rego,
+      fileStem: `${safeFilePart(driver, "driver")}_${safeFilePart(rego, "vehicle")}`,
+      titleLine: `Driver: ${driver}  ·  Vehicle: ${rego}`,
+    };
+  }
+
+  const plant = vehicle || "vehicle";
+  const plantLabel =
+    record.type === "prestart_trailer"
+      ? "Trailer"
+      : record.type === "prestart_forklift"
+        ? "Forklift"
+        : "Vehicle";
+  return {
+    driver,
+    vehicle: plant,
+    fileStem: safeFilePart(plant, "vehicle"),
+    titleLine: `${plantLabel}: ${plant}`,
+  };
 }
 
 export type ChecklistPdfDayBundle = {
@@ -77,9 +160,7 @@ export type ChecklistPdfDayBundle = {
 export function collectChecklistPdfDays(opts: {
   weekStarting: string;
   days: Array<{ checklists?: ChecklistRecord[] | null } | null | undefined>;
-  /** Required — one pack = one checklist type (different regs / audit call-ups). */
   type: ChecklistRecordType;
-  /** Optional day filter (0–6). Default = whole week for that type. */
   dayIndex?: number | null;
 }): ChecklistPdfDayBundle[] {
   if (!isChecklistRecordType(opts.type)) return [];
@@ -101,30 +182,54 @@ export function collectChecklistPdfDays(opts: {
   return out;
 }
 
+export function flattenChecklistPdfRecords(days: ChecklistPdfDayBundle[]): ChecklistRecord[] {
+  return days.flatMap((day) => day.records);
+}
+
+function sharedFileStem(
+  records: ChecklistRecord[] | null | undefined,
+  type: ChecklistRecordType,
+  driverName?: string | null
+): string | null {
+  const list = records ?? [];
+  if (!list.length) {
+    return type === "ffw" ? safeFilePart(driverName || "", "driver") : null;
+  }
+  const stems = [...new Set(list.map((r) => checklistPdfIdentity(r, driverName).fileStem))];
+  return stems.length === 1 ? stems[0]! : null;
+}
+
 export function checklistPdfFilename(opts: {
-  driverName: string;
   weekStarting: string;
   type: ChecklistRecordType;
-  dayIndex?: number | null;
+  driverName?: string | null;
+  record?: ChecklistRecord | null;
+  records?: ChecklistRecord[] | null;
 }): string {
-  const safeName = (opts.driverName || "driver").replace(/[^\w\-]+/g, "_").slice(0, 40);
-  const typeSlug =
-    opts.type === "dimension_load"
-      ? "dimension-load"
-      : opts.type === "prestart"
-        ? "prestart"
-        : opts.type === "prestart_trailer"
-          ? "prestart-trailer"
-          : opts.type === "prestart_forklift"
-            ? "prestart-forklift"
-            : opts.type === "hookup"
-              ? "hookup"
-              : "ffw";
-  const scope =
-    opts.dayIndex != null && Number.isInteger(opts.dayIndex)
-      ? `day${opts.dayIndex}`
-      : "week";
-  return `checklist-${typeSlug}-${safeName}-${opts.weekStarting}-${scope}.pdf`;
+  const ending = checklistPdfWeekEndingFileToken(opts.weekStarting);
+  const slug = CHECKLIST_PDF_TYPE_FILE_SLUG[opts.type];
+  const stem = opts.record
+    ? checklistPdfIdentity(opts.record, opts.driverName).fileStem
+    : sharedFileStem(opts.records, opts.type, opts.driverName);
+  if (stem) return `${slug}_${stem}_week-ending-${ending}.pdf`;
+  return `${slug}_week-ending-${ending}.pdf`;
+}
+
+export function uniqueChecklistPdfFilename(base: string, used: Set<string>): string {
+  if (!used.has(base)) {
+    used.add(base);
+    return base;
+  }
+  const suffix = ".pdf";
+  const root = base.endsWith(suffix) ? base.slice(0, -suffix.length) : base;
+  let n = 2;
+  let next = `${root}-${n}${suffix}`;
+  while (used.has(next)) {
+    n += 1;
+    next = `${root}-${n}${suffix}`;
+  }
+  used.add(next);
+  return next;
 }
 
 export const CHECKLIST_PDF_TYPES: ChecklistRecordType[] = [
@@ -144,15 +249,12 @@ function dataUrlToJsPdfFormat(dataUrl: string): { format: "PNG" | "JPEG"; data: 
 }
 
 /**
- * Build a multi-page checklist pack PDF (jsPDF).
- * Includes photos when still present on the record (legacy / until Q1 offload).
+ * One completed log per A4 sheet. Header date is week ending only.
  */
 export async function buildChecklistPackJsPdfBuffer(input: {
   driverName: string;
   weekStarting: string;
   days: ChecklistPdfDayBundle[];
-  generatedAtLabel: string;
-  /** One type per pack — shown in header. */
   type: ChecklistRecordType;
 }): Promise<ArrayBuffer> {
   const { jsPDF } = await import("jspdf");
@@ -164,6 +266,8 @@ export async function buildChecklistPackJsPdfBuffer(input: {
   const [rr, rg, rb] = hexToRgb(CHECKLIST_BRAND.red);
   const [er, eg, eb] = hexToRgb(CHECKLIST_BRAND.emerald);
   const typeTitle = TYPE_TITLE[input.type];
+  const weekEnding = checklistPdfWeekEndingLabel(input.weekStarting);
+  const records = flattenChecklistPdfRecords(input.days);
 
   let y = 0;
 
@@ -173,201 +277,177 @@ export async function buildChecklistPackJsPdfBuffer(input: {
     y = 16;
   };
 
-  const drawHeader = (subtitle: string) => {
+  const drawSheetHeader = (identityLine: string) => {
     doc.setFillColor(mr, mg, mb);
-    doc.rect(0, 0, pageW, 22, "F");
+    doc.rect(0, 0, pageW, 26, "F");
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.text(`${PRODUCT_NAME_EXPORT} — ${typeTitle}`, margin, 10);
+    doc.setFontSize(13);
+    doc.text(typeTitle, margin, 10);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`WEEK ENDING: ${weekEnding}`, pageW - margin, 10, { align: "right" });
     doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text(identityLine, margin, 17);
     doc.setFontSize(8);
-    doc.text(subtitle, margin, 16);
-    doc.text(input.generatedAtLabel, pageW - margin, 16, { align: "right" });
-    y = 28;
+    doc.text("Record date is week ending — not signed time, not file produced time", margin, 22);
+    y = 32;
   };
 
-  drawHeader(
-    `Driver: ${input.driverName || "—"}  ·  Week starting ${input.weekStarting}  ·  Not a fatigue roadside PDF`
-  );
-
-  doc.setTextColor(30, 41, 59);
-  doc.setFontSize(9);
-  const disc = doc.splitTextToSize(CHECKLIST_PDF_DISCLAIMER, colW);
-  doc.text(disc, margin, y);
-  y += disc.length * 4 + 6;
-
-  if (!input.days.length) {
+  if (!records.length) {
+    drawSheetHeader(`Driver: ${input.driverName || "—"}`);
+    doc.setTextColor(30, 41, 59);
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
     doc.text("No completed checklist records for this selection.", margin, y);
     return doc.output("arraybuffer");
   }
 
-  for (const day of input.days) {
-    ensureSpace(20);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(12);
-    doc.setTextColor(mr, mg, mb);
-    doc.text(`${day.dayName}  ${day.dateLabel}`, margin, y);
-    y += 7;
-    doc.setDrawColor(42, 59, 80);
-    doc.setLineWidth(0.3);
-    doc.line(margin, y, margin + colW, y);
-    y += 5;
+  records.forEach((record, index) => {
+    if (index > 0) doc.addPage();
+    const identity = checklistPdfIdentity(record, input.driverName);
+    drawSheetHeader(identity.titleLine);
 
-    for (const record of day.records) {
-      ensureSpace(28);
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(8);
+    const disc = doc.splitTextToSize(CHECKLIST_PDF_DISCLAIMER, colW);
+    doc.text(disc, margin, y);
+    y += disc.length * 4 + 5;
+
+    if (isPrestartRecordType(record.type) && record.prestartResponsible === false) {
+      ensureSpace(14);
       doc.setTextColor(30, 41, 59);
-      doc.text(TYPE_TITLE[record.type], margin, y);
-      y += 5;
+      doc.setFont("helvetica", "bold");
+      doc.text("Not responsible for prestart", margin, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      const reason = doc.splitTextToSize(record.prestartSkipReason || "—", colW);
+      doc.text(reason, margin, y);
+      y += reason.length * 3.5 + 3;
+    }
+
+    if (record.loaderPath) {
+      ensureSpace(10);
+      doc.setTextColor(30, 41, 59);
+      const pathLabel = LOADER_PATH_LABEL[record.loaderPath] ?? record.loaderPath;
+      const pending = record.loaderPath === "pending" || record.loaderPath === "not_obtained";
+      if (pending) doc.setTextColor(rr, rg, rb);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text(`Loader CoR: ${pathLabel}`, margin, y);
+      y += 4;
+      if (record.loaderName) {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 41, 59);
+        doc.text(`Loader name: ${record.loaderName}`, margin, y);
+        y += 4;
+      }
+    }
+
+    const headerEntries = Object.entries(record.header ?? {}).filter(
+      ([, v]) => v != null && String(v).trim() !== ""
+    );
+    if (headerEntries.length) {
+      ensureSpace(8 + headerEntries.length * 4);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Completed ${completedWhen(record)}`, margin, y);
-      y += 5;
-
-      if (isPrestartRecordType(record.type) && record.prestartResponsible === false) {
-        ensureSpace(14);
-        doc.setTextColor(30, 41, 59);
-        doc.setFont("helvetica", "bold");
-        doc.text("Not responsible for prestart", margin, y);
-        y += 4;
-        doc.setFont("helvetica", "normal");
-        const reason = doc.splitTextToSize(record.prestartSkipReason || "—", colW);
-        doc.text(reason, margin, y);
-        y += reason.length * 3.5 + 3;
+      doc.setTextColor(30, 41, 59);
+      for (const [k, v] of headerEntries) {
+        doc.text(`${k.replace(/_/g, " ")}: ${String(v)}`, margin, y);
+        y += 3.8;
       }
-
-      if (record.loaderPath) {
-        ensureSpace(10);
-        doc.setTextColor(30, 41, 59);
-        const pathLabel = LOADER_PATH_LABEL[record.loaderPath] ?? record.loaderPath;
-        const pending = record.loaderPath === "pending" || record.loaderPath === "not_obtained";
-        if (pending) doc.setTextColor(rr, rg, rb);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text(`Loader CoR: ${pathLabel}`, margin, y);
-        y += 4;
-        if (record.loaderName) {
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(30, 41, 59);
-          doc.text(`Loader name: ${record.loaderName}`, margin, y);
-          y += 4;
-        }
-      }
-
-      const headerEntries = Object.entries(record.header ?? {}).filter(
-        ([, v]) => v != null && String(v).trim() !== ""
-      );
-      if (headerEntries.length) {
-        ensureSpace(8 + headerEntries.length * 4);
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(8);
-        doc.setTextColor(30, 41, 59);
-        for (const [k, v] of headerEntries) {
-          doc.text(`${k.replace(/_/g, " ")}: ${String(v)}`, margin, y);
-          y += 3.8;
-        }
-        y += 2;
-      }
-
-      for (const item of record.items) {
-        ensureSpace(10);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(30, 41, 59);
-        const label = item.label || item.code;
-        const lines = doc.splitTextToSize(label, colW - 28);
-        doc.text(lines, margin, y);
-        const valueY = y;
-        if (item.value === "fail") doc.setTextColor(rr, rg, rb);
-        else if (item.value === "pass" || item.value === "acknowledged") doc.setTextColor(er, eg, eb);
-        else doc.setTextColor(100, 116, 139);
-        doc.setFont("helvetica", "bold");
-        doc.text(itemValueLabel(item.value), margin + colW, valueY, { align: "right" });
-        y += lines.length * 3.5 + 1;
-
-        if (item.kind === "pass_fail" && item.value === "fail" && item.defect) {
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(30, 41, 59);
-          const desc = doc.splitTextToSize(item.defect.description || "—", colW - 4);
-          doc.text(desc, margin + 2, y);
-          y += desc.length * 3.5;
-          const mob = checklistFaultMobilityLabel(item.defect.mobilityStatus);
-          if (mob) {
-            doc.setTextColor(100, 116, 139);
-            doc.text(mob, margin + 2, y);
-            y += 3.5;
-          }
-          for (const photo of item.defect.photoDataUrls ?? []) {
-            const parsed = dataUrlToJsPdfFormat(photo);
-            if (!parsed) continue;
-            ensureSpace(28);
-            try {
-              doc.addImage(parsed.data, parsed.format, margin + 2, y, 24, 24);
-              y += 26;
-            } catch {
-              /* skip bad image */
-            }
-          }
-        }
-      }
-
-      if (record.actionedFaultText) {
-        ensureSpace(12);
-        doc.setTextColor(rr, rg, rb);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.text("Actioned fault", margin, y);
-        y += 4;
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(30, 41, 59);
-        const t = doc.splitTextToSize(record.actionedFaultText, colW);
-        doc.text(t, margin, y);
-        y += t.length * 3.5 + 2;
-      }
-
-      for (const photo of record.evidencePhotoDataUrls ?? []) {
-        const parsed = dataUrlToJsPdfFormat(photo);
-        if (!parsed) continue;
-        ensureSpace(28);
-        try {
-          doc.addImage(parsed.data, parsed.format, margin, y, 28, 28);
-          y += 30;
-        } catch {
-          /* skip */
-        }
-      }
-
-      for (const sig of record.signatures) {
-        ensureSpace(32);
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(8);
-        doc.setTextColor(30, 41, 59);
-        doc.text(
-          `${sig.role === "loader" ? "As loader" : "As driver"}${sig.signedAtAwst ? ` · ${sig.signedAtAwst}` : ""}`,
-          margin,
-          y
-        );
-        y += 3;
-        const parsed = dataUrlToJsPdfFormat(sig.pngDataUrl);
-        if (parsed) {
-          try {
-            doc.addImage(parsed.data, parsed.format, margin, y, 60, 18);
-            y += 20;
-          } catch {
-            y += 4;
-          }
-        } else {
-          y += 4;
-        }
-      }
-
-      y += 6;
+      y += 2;
     }
-  }
+
+    for (const item of record.items) {
+      ensureSpace(10);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30, 41, 59);
+      const label = item.label || item.code;
+      const lines = doc.splitTextToSize(label, colW - 28);
+      doc.text(lines, margin, y);
+      const valueY = y;
+      if (item.value === "fail") doc.setTextColor(rr, rg, rb);
+      else if (item.value === "pass" || item.value === "acknowledged") doc.setTextColor(er, eg, eb);
+      else doc.setTextColor(100, 116, 139);
+      doc.setFont("helvetica", "bold");
+      doc.text(itemValueLabel(item.value), margin + colW, valueY, { align: "right" });
+      y += lines.length * 3.5 + 1;
+
+      if (item.kind === "pass_fail" && item.value === "fail" && item.defect) {
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(30, 41, 59);
+        const desc = doc.splitTextToSize(item.defect.description || "—", colW - 4);
+        doc.text(desc, margin + 2, y);
+        y += desc.length * 3.5;
+        const mob = checklistFaultMobilityLabel(item.defect.mobilityStatus);
+        if (mob) {
+          doc.setTextColor(100, 116, 139);
+          doc.text(mob, margin + 2, y);
+          y += 3.5;
+        }
+        for (const photo of item.defect.photoDataUrls ?? []) {
+          const parsed = dataUrlToJsPdfFormat(photo);
+          if (!parsed) continue;
+          ensureSpace(28);
+          try {
+            doc.addImage(parsed.data, parsed.format, margin + 2, y, 24, 24);
+            y += 26;
+          } catch {
+            /* skip bad image */
+          }
+        }
+      }
+    }
+
+    if (record.actionedFaultText) {
+      ensureSpace(12);
+      doc.setTextColor(rr, rg, rb);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text("Actioned fault", margin, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(30, 41, 59);
+      const t = doc.splitTextToSize(record.actionedFaultText, colW);
+      doc.text(t, margin, y);
+      y += t.length * 3.5 + 2;
+    }
+
+    for (const photo of record.evidencePhotoDataUrls ?? []) {
+      const parsed = dataUrlToJsPdfFormat(photo);
+      if (!parsed) continue;
+      ensureSpace(28);
+      try {
+        doc.addImage(parsed.data, parsed.format, margin, y, 28, 28);
+        y += 30;
+      } catch {
+        /* skip */
+      }
+    }
+
+    for (const sig of record.signatures) {
+      ensureSpace(32);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(30, 41, 59);
+      doc.text(sig.role === "loader" ? "As loader" : "As driver", margin, y);
+      y += 3;
+      const parsed = dataUrlToJsPdfFormat(sig.pngDataUrl);
+      if (parsed) {
+        try {
+          doc.addImage(parsed.data, parsed.format, margin, y, 60, 18);
+          y += 20;
+        } catch {
+          y += 4;
+        }
+      } else {
+        y += 4;
+      }
+    }
+  });
 
   return doc.output("arraybuffer");
 }

@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { collectChecklistPdfDays } from "./checklist-pdf";
+import {
+  checklistPdfFilename,
+  checklistPdfIdentity,
+  checklistPdfWeekEndingFileToken,
+  collectChecklistPdfDays,
+  uniqueChecklistPdfFilename,
+} from "./checklist-pdf";
 import { CHECKLIST_SCHEMA_VERSION, type ChecklistRecord } from "./record";
 
 function sample(type: ChecklistRecord["type"], id: string): ChecklistRecord {
@@ -102,5 +108,72 @@ describe("collectChecklistPdfDays", () => {
       collectChecklistPdfDays({ weekStarting: "2026-07-26", type: "hookup", days: source })[0]!
         .records.map((r) => r.type)
     ).toEqual(["hookup"]);
+  });
+});
+
+describe("checklist PDF filing name", () => {
+  const weekStarting = "2026-07-26";
+
+  it("uses week ending, not week starting or signed time", () => {
+    expect(checklistPdfWeekEndingFileToken(weekStarting)).toBe("01-08-2026");
+    const name = checklistPdfFilename({
+      weekStarting,
+      type: "ffw",
+      driverName: "Jaydin Ireland",
+      record: sample("ffw", "1"),
+    });
+    expect(name).toBe("Fitness-for-Work_Jaydin-Ireland_week-ending-01-08-2026.pdf");
+    expect(name).not.toContain("2026-07-26");
+    expect(name).not.toContain("10:00");
+  });
+
+  it("names Fitness for Work per driver", () => {
+    const record = sample("ffw", "1");
+    record.header = { driver_name: "Jaydin Ireland" };
+    expect(checklistPdfIdentity(record).titleLine).toBe("Driver: Jaydin Ireland");
+    expect(
+      checklistPdfFilename({ weekStarting, type: "ffw", record })
+    ).toBe("Fitness-for-Work_Jaydin-Ireland_week-ending-01-08-2026.pdf");
+  });
+
+  it("names vehicle and load checks per vehicle rego", () => {
+    const vehicle = sample("prestart", "v");
+    vehicle.header = { vehicle_rego: "1ABC123", driver_name: "Jaydin" };
+    expect(checklistPdfIdentity(vehicle).titleLine).toBe("Vehicle: 1ABC123");
+    expect(
+      checklistPdfFilename({ weekStarting, type: "prestart", record: vehicle })
+    ).toBe("Vehicle-pre-departure_1ABC123_week-ending-01-08-2026.pdf");
+
+    const load = sample("dimension_load", "l");
+    load.header = { truck_rego: "PRIME1", trailer_rego: "TRL9" };
+    expect(checklistPdfIdentity(load).fileStem).toBe("PRIME1");
+    expect(
+      checklistPdfFilename({ weekStarting, type: "dimension_load", record: load })
+    ).toBe("Load-check_PRIME1_week-ending-01-08-2026.pdf");
+  });
+
+  it("names hook-up per driver and rego", () => {
+    const hook = sample("hookup", "h");
+    hook.header = { driver_name: "Jaydin Ireland", truck_rego: "PRIME1", trailer_rego: "TRL9" };
+    expect(checklistPdfIdentity(hook).titleLine).toBe(
+      "Driver: Jaydin Ireland  ·  Vehicle: PRIME1-TRL9"
+    );
+    expect(
+      checklistPdfFilename({ weekStarting, type: "hookup", record: hook })
+    ).toBe("Hook-up_Jaydin-Ireland_PRIME1-TRL9_week-ending-01-08-2026.pdf");
+  });
+
+  it("suffixes a second log with the same filing name", () => {
+    const used = new Set<string>();
+    const a = uniqueChecklistPdfFilename(
+      "Fitness-for-Work_Jaydin-Ireland_week-ending-01-08-2026.pdf",
+      used
+    );
+    const b = uniqueChecklistPdfFilename(
+      "Fitness-for-Work_Jaydin-Ireland_week-ending-01-08-2026.pdf",
+      used
+    );
+    expect(a).toBe("Fitness-for-Work_Jaydin-Ireland_week-ending-01-08-2026.pdf");
+    expect(b).toBe("Fitness-for-Work_Jaydin-Ireland_week-ending-01-08-2026-2.pdf");
   });
 });

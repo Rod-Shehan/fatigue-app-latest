@@ -307,7 +307,7 @@ export default function DayEntry({
   const produceDayChecklistPdf = useCallback(() => {
     if (!dayTools?.sheetId) return;
     setToolsOpen(false);
-    // Week packs — one download per type that has records on this sheet
+    // One download per type that has records — each log is its own sheet, dated week ending.
     for (const type of [
       "ffw",
       "prestart",
@@ -330,7 +330,7 @@ export default function DayEntry({
     const dest = res.to;
     if (!dest) throw new Error("No delivery address on the send.");
     if (!n) return `Sent to ${dest}.`;
-    return `Sent ${n} PDF${n === 1 ? "" : "s"} to ${dest} (one file per form type).`;
+    return `Sent ${n} PDF${n === 1 ? "" : "s"} to ${dest} (one file per signed log).`;
   }, [dayTools?.sheetId]);
 
   const saveFfwRecord = useCallback(
@@ -913,7 +913,7 @@ export default function DayEntry({
                     type: viewChecklistType,
                   });
                   if (!res.to) throw new Error("No delivery address on the send.");
-                  return `Week pack emailed to ${res.to}.`;
+                  return `Checklist PDFs emailed to ${res.to}.`;
                 }
               : undefined
           }

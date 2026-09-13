@@ -17,8 +17,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET — dedicated checklist PDF: one type for one driver week (default).
- * Query: type=ffw|prestart|dimension_load (required)
+ * GET — dedicated checklist PDF: one type, one sheet per signed log, dated week ending.
+ * Query: type=ffw|prestart|… (required)
  *        dayIndex=0..6 optional (omit = whole week for that type)
  * Never part of fatigue roadside produce (H2). Types are not combined (different regs).
  */
@@ -84,13 +84,10 @@ export async function GET(
       );
     }
 
-    const generatedAtLabel = new Date().toLocaleString("en-AU", { timeZone: "Australia/Perth" });
-
     const pdfBytes = await buildChecklistPackJsPdfBuffer({
       driverName: row.driverName,
       weekStarting: row.weekStarting,
       days: bundles,
-      generatedAtLabel,
       type,
     });
 
@@ -98,7 +95,7 @@ export async function GET(
       driverName: row.driverName,
       weekStarting: row.weekStarting,
       type,
-      dayIndex,
+      records: bundles.flatMap((b) => b.records),
     });
 
     return new NextResponse(pdfBytes, {
