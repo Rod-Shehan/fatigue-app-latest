@@ -6,6 +6,7 @@ import {
   CHECKLIST_SCHEMA_VERSION,
   emptyPassFailItem,
   isPassFailItemComplete,
+  LOAD_FORM_TITLE,
   LOAD_SCHEMA_STUB,
   lastLoadCombinationFromRecords,
   newChecklistRecordId,
@@ -98,7 +99,10 @@ export function DimensionLoadForm({
   const loaderPath = resolveLoaderPath(selfLoad, knowLoader);
 
   const allItemsComplete = useMemo(
-    () => LOAD_SCHEMA_STUB.every((i) => isPassFailItemComplete(items[i.code]!)),
+    () =>
+      LOAD_SCHEMA_STUB.every((i) =>
+        isPassFailItemComplete(items[i.code]!, { naAllowed: i.naAllowed === true })
+      ),
     [items]
   );
 
@@ -145,7 +149,7 @@ export function DimensionLoadForm({
       return;
     }
     if (!allItemsComplete) {
-      setError("Complete every load check (Yes, No with notes, or N/A).");
+      setError("Complete every load check (OK, or Fault with description).");
       return;
     }
     if (needsLoaderName && !loaderName.trim()) {
@@ -236,7 +240,7 @@ export function DimensionLoadForm({
     <ChecklistModalShell
       open={open}
       onClose={handleClose}
-      title="Dimension & Load"
+      title={LOAD_FORM_TITLE}
       subtitle="Optional — does not block leaving load or Start shift"
       footer={
         <div className="space-y-2">
@@ -247,7 +251,7 @@ export function DimensionLoadForm({
             onClick={() => void handleSave()}
             className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Save Dimension & Load"}
+            {saving ? "Saving…" : `Save ${LOAD_FORM_TITLE}`}
           </button>
         </div>
       }
@@ -256,8 +260,10 @@ export function DimensionLoadForm({
         <p className="text-xs text-ck-steel leading-relaxed">
           Optional during the trial. One form = one load. Use Add another for the next load on this
           shift. This check is for the <strong className="text-ck-fg">loaded combination</strong>{" "}
-          (trailer or dolly when used) — not only the prime mover. A driver cannot sign for the
-          loader — use present sign, pending, or photo gap.
+          (trailer or dolly when used) — not only the prime mover. Mark{" "}
+          <strong className="text-ck-fg">N/A</strong> only on Permits or Dunnage / friction when
+          they do not apply to this load. A driver cannot sign for the loader — use present sign,
+          pending, or photo gap.
         </p>
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
@@ -468,6 +474,13 @@ export function DimensionLoadForm({
               <ChecklistItemControl
                 key={item.code}
                 label={item.label}
+                notes={item.notes}
+                naAllowed={item.naAllowed === true}
+                passLabel="OK"
+                failLabel="FAULT"
+                defectCardTitle="Fault"
+                defectDescriptionLabel="Fault description (required)"
+                defectDescriptionPlaceholder="Describe the fault"
                 state={items[item.code]!}
                 onChange={(next) => setItems((s) => ({ ...s, [item.code]: next }))}
               />

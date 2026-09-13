@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checklistAuditIdentity,
   formatLoadCombinationLine,
+  lastHookupFromRecords,
   lastLoadCombinationFromRecords,
   loadAuditVehicleRego,
   serializeLoadCombinationHeader,
@@ -92,6 +93,38 @@ describe("checklist audit identity", () => {
     expect(header.audit_vehicle).toBe("A1");
     expect(header.combination).toBe("Prime PRIME1 + Trailer A1 + Trailer B2 + Dolly D3");
     expect(formatLoadCombinationLine({ truckRego: "PRIME1", units: [] })).toBe("Prime PRIME1");
+  });
+
+  it("Hook up is keyed by truck + trailer", () => {
+    const id = checklistAuditIdentity({
+      id: "1",
+      type: "hookup",
+      schemaVersion: 1,
+      status: "completed",
+      completedAtUtc: "x",
+      items: [],
+      signatures: [sig],
+      header: { truck_rego: "PRIME1", trailer_rego: "TRL9", driver_name: "Jaydin Ireland" },
+    });
+    expect(id.primaryLabel).toBe("Combination");
+    expect(id.primaryValue).toBe("PRIME1 + TRL9");
+    expect(id.secondaryValue).toBe("Jaydin Ireland");
+  });
+
+  it("prefills the next hook-up from the last record that day", () => {
+    const last = lastHookupFromRecords([
+      {
+        id: "ck_hook_1",
+        type: "hookup",
+        schemaVersion: CHECKLIST_SCHEMA_VERSION,
+        status: "completed",
+        completedAtUtc: "2026-08-20T02:00:00.000Z",
+        items: [],
+        signatures: [sig],
+        header: { truck_rego: "T1", trailer_rego: "X9" },
+      },
+    ]);
+    expect(last).toEqual({ truckRego: "T1", trailerRego: "X9" });
   });
 
   it("prefills the next load check from the last record that day", () => {

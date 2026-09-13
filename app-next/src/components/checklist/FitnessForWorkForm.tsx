@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import {
   CHECKLIST_SCHEMA_VERSION,
   emptyAcknowledgeItem,
-  FFW_SCHEMA_STUB,
+  FFW_DECLARATION_PREAMBLE,
+  FFW_FORM_TITLE,
+  FFW_HANDOFF_NOTE,
+  buildFfwSchema,
   isAcknowledgeItemComplete,
   newChecklistRecordId,
   validateCompletedChecklistRecord,
@@ -16,9 +19,11 @@ import { ChecklistAcknowledgeItem } from "./ChecklistAcknowledgeItem";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
-function initAckMap(): Record<string, ChecklistAcknowledgeItemState> {
+function initAckMap(
+  schema: ReturnType<typeof buildFfwSchema>
+): Record<string, ChecklistAcknowledgeItemState> {
   const m: Record<string, ChecklistAcknowledgeItemState> = {};
-  for (const item of FFW_SCHEMA_STUB) m[item.code] = emptyAcknowledgeItem();
+  for (const item of schema) m[item.code] = emptyAcknowledgeItem();
   return m;
 }
 
@@ -29,25 +34,29 @@ export function FitnessForWorkForm({
   open,
   onClose,
   driverName,
+  companyName,
   onCompleted,
 }: {
   open: boolean;
   onClose: () => void;
   driverName?: string | null;
+  /** Organisation legal name — replaces the paper’s company / management wording. */
+  companyName?: string | null;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
-  const [items, setItems] = useState(initAckMap);
+  const schema = useMemo(() => buildFfwSchema(companyName), [companyName]);
+  const [items, setItems] = useState(() => initAckMap(schema));
   const [signature, setSignature] = useState<ChecklistSignatureCapture | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const allAcked = useMemo(
-    () => FFW_SCHEMA_STUB.every((i) => isAcknowledgeItemComplete(items[i.code]!)),
-    [items]
+    () => schema.every((i) => isAcknowledgeItemComplete(items[i.code]!)),
+    [items, schema]
   );
 
   const reset = () => {
-    setItems(initAckMap());
+    setItems(initAckMap(schema));
     setSignature(null);
     setError(null);
     setSaving(false);
@@ -75,9 +84,9 @@ export function FitnessForWorkForm({
       schemaVersion: CHECKLIST_SCHEMA_VERSION,
       status: "completed" as const,
       completedAtUtc: new Date().toISOString(),
-      items: FFW_SCHEMA_STUB.map((item) => ({
+      items: schema.map((item) => ({
         code: item.code,
-        label: item.label,
+        label: [item.label, ...(item.notes ?? [])].join(" "),
         kind: "acknowledge" as const,
         value: items[item.code]!.value,
       })),
@@ -108,7 +117,7 @@ export function FitnessForWorkForm({
     <ChecklistModalShell
       open={open}
       onClose={handleClose}
-      title="Fitness for Work"
+      title={FFW_FORM_TITLE}
       subtitle="Optional — does not block Start shift"
       footer={
         <div className="space-y-2">
@@ -119,20 +128,23 @@ export function FitnessForWorkForm({
             onClick={() => void handleSave()}
             className="flex w-full min-h-[48px] items-center justify-center rounded-xl bg-ck-cobalt text-sm font-bold text-ck-on-accent disabled:opacity-40"
           >
-            {saving ? "Saving…" : "Save Fitness for Work"}
+            {saving ? "Saving…" : `Save ${FFW_FORM_TITLE}`}
           </button>
         </div>
       }
     >
       <div className="space-y-2 pb-2">
+        <p className="text-xs text-ck-steel leading-relaxed">{FFW_HANDOFF_NOTE}</p>
+        <p className="text-xs font-semibold text-ck-fg leading-relaxed">{FFW_DECLARATION_PREAMBLE}</p>
         <p className="text-xs text-ck-steel leading-relaxed">
-          Acknowledge each point, then sign. This is optional during the trial. Completing it ticks
-          Fitness for work on the week PDF.
+          Acknowledge each point, then sign. Optional during the trial. Completing it ticks Fitness
+          for work on the week PDF.
         </p>
-        {FFW_SCHEMA_STUB.map((item) => (
+        {schema.map((item, index) => (
           <ChecklistAcknowledgeItem
             key={item.code}
-            label={item.label}
+            label={`${index + 1}. ${item.label}`}
+            notes={item.notes}
             state={items[item.code]!}
             onChange={(next) => setItems((s) => ({ ...s, [item.code]: next }))}
           />

@@ -17,6 +17,9 @@ export function ChecklistItemControl({
   onChange,
   notes,
   className,
+  naAllowed = false,
+  /** Display label for the pass segment (Load check uses OK). */
+  passLabel = "PASS",
   /** Display label for the fail segment (Prestart uses FAULT). */
   failLabel = "FAIL",
   defectCardTitle = "Defect",
@@ -29,14 +32,19 @@ export function ChecklistItemControl({
   /** Optional prompt bullets under the heading (not separately scored). */
   notes?: string[];
   className?: string;
+  /** Offer N/A only when the item does not apply to every plant type. */
+  naAllowed?: boolean;
+  passLabel?: string;
   failLabel?: string;
   defectCardTitle?: string;
   defectDescriptionLabel?: string;
   defectDescriptionPlaceholder?: string;
 }) {
-  const segments = DEFAULT_SEGMENTS.map((seg) =>
-    seg.value === "fail" ? { ...seg, label: failLabel } : seg
-  );
+  const segments = DEFAULT_SEGMENTS.filter((seg) => seg.value !== "na" || naAllowed).map((seg) => {
+    if (seg.value === "fail") return { ...seg, label: failLabel };
+    if (seg.value === "pass") return { ...seg, label: passLabel };
+    return seg;
+  });
 
   return (
     <div className={cn("rounded-lg border border-ck-border bg-ck-slate/80 p-3", className)}>
@@ -60,7 +68,11 @@ export function ChecklistItemControl({
           ))}
         </ul>
       ) : null}
-      <div className="mt-2 grid grid-cols-3 gap-2" role="group" aria-label={`${label} result`}>
+      <div
+        className={cn("mt-2 grid gap-2", naAllowed ? "grid-cols-3" : "grid-cols-2")}
+        role="group"
+        aria-label={`${label} result`}
+      >
         {segments.map((seg) => {
           const active = state.value === seg.value;
           return (

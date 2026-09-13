@@ -6,6 +6,7 @@ import {
   CHECKLIST_PDF_BUTTON_LABEL,
   checklistAuditIdentity,
   checklistFaultMobilityLabel,
+  isPrestartRecordType,
   type ChecklistRecord,
   type ChecklistRecordType,
 } from "@/lib/checklist";
@@ -14,8 +15,11 @@ import { cn } from "@/lib/utils";
 
 const TYPE_TITLE: Record<ChecklistRecordType, string> = {
   ffw: "Fitness for Work",
-  prestart: "Prestart inspection",
-  dimension_load: "Dimension & Load",
+  prestart: "Vehicle pre-departure",
+  prestart_trailer: "Trailer pre-departure",
+  prestart_forklift: "Forklift pre-departure",
+  dimension_load: "Load check",
+  hookup: "Hook up",
 };
 
 const LOADER_PATH_LABEL: Record<string, string> = {
@@ -87,7 +91,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
         </dl>
       ) : null}
 
-      {record.type === "prestart" && record.prestartResponsible === false ? (
+      {isPrestartRecordType(record.type) && record.prestartResponsible === false ? (
         <div className="rounded-lg border border-ck-border bg-ck-midnight/60 p-2 text-sm text-ck-fg">
           <p className="font-semibold">Not responsible for prestart</p>
           <p className="mt-1 text-ck-steel">{record.prestartSkipReason || "—"}</p>
@@ -321,7 +325,8 @@ export function ChecklistRecordViewer({
                 }}
                 className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
               >
-                {redoLabel ?? (type === "dimension_load" ? "Add another" : "Complete again")}
+                {redoLabel ??
+                  (type === "dimension_load" || type === "hookup" ? "Add another" : "Complete again")}
               </button>
             ) : null}
             <button

@@ -13,6 +13,7 @@ export type {
 export {
   CHECKLIST_FAULT_MOBILITY_OPTIONS,
   checklistFaultMobilityLabel,
+  checklistItemAllowsNa,
   emptyAcknowledgeItem,
   emptyDefect,
   emptyPassFailItem,
@@ -35,11 +36,31 @@ export {
   formatSignedAtAwst,
   formatSignedAtUtc,
 } from "./signature-meta";
-export { FFW_SCHEMA_STUB, LOAD_SCHEMA_STUB, PRESTART_SCHEMA_STUB } from "./schema-stubs";
+export {
+  FFW_DECLARATION_PREAMBLE,
+  FFW_FORM_TITLE,
+  FFW_HANDOFF_NOTE,
+  FFW_SCHEMA_STUB,
+  buildFfwSchema,
+  FORKLIFT_PRESTART_FORM_TITLE,
+  FORKLIFT_PRESTART_SCHEMA,
+  HOOKUP_FORM_TITLE,
+  HOOKUP_SCHEMA,
+  HOOKUP_SOURCE_NOTE,
+  LOAD_FORM_TITLE,
+  LOAD_SCHEMA_STUB,
+  PRESTART_FORM_TITLE,
+  PRESTART_SCHEMA_STUB,
+  TRAILER_PRESTART_FORM_TITLE,
+  TRAILER_PRESTART_SCHEMA,
+  prestartPlantConfig,
+} from "./schema-stubs";
+export type { PrestartPlant } from "./schema-stubs";
 export type { LoadCombinationUnit, LoadCombinationUnitRole } from "./audit-identity";
 export {
   checklistAuditIdentity,
   formatLoadCombinationLine,
+  lastHookupFromRecords,
   lastLoadCombinationFromRecords,
   loadAuditVehicleRego,
   serializeLoadCombinationHeader,
@@ -51,6 +72,7 @@ export type {
   ChecklistRecordItem,
   ChecklistRecordSignature,
   ChecklistRecordType,
+  PrestartRecordType,
   ChecklistValidationError,
 } from "./record";
 export {
@@ -58,7 +80,10 @@ export {
   CHECKLIST_MAX_PHOTO_DATA_URL_CHARS,
   CHECKLIST_MAX_PHOTOS_PER_DEFECT,
   CHECKLIST_MAX_SIGNATURE_DATA_URL_CHARS,
+  CHECKLIST_RECORD_TYPES,
   CHECKLIST_SCHEMA_VERSION,
+  PRESTART_RECORD_TYPES,
+  isPrestartRecordType,
   dataUrlWithinLimit,
   hasCompletedChecklistOfType,
   hasCompletedResponsiblePrestart,

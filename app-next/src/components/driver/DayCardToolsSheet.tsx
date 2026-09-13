@@ -21,6 +21,9 @@ import { api } from "@/lib/api";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_EMAIL_MISSING_MESSAGE,
+  FORKLIFT_PRESTART_FORM_TITLE,
+  HOOKUP_FORM_TITLE,
+  TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
 
 export function DayCardToolsSheet({
@@ -41,9 +44,18 @@ export function DayCardToolsSheet({
   onOpenPrestart,
   onViewPrestart,
   prestartFormCompleted = false,
+  onOpenTrailerPrestart,
+  onViewTrailerPrestart,
+  trailerPrestartCompleted = false,
+  onOpenForkliftPrestart,
+  onViewForkliftPrestart,
+  forkliftPrestartCompleted = false,
   onOpenDimensionLoad,
   onViewDimensionLoad,
   dimensionLoadFormCompleted = false,
+  onOpenHookup,
+  onViewHookup,
+  hookupFormCompleted = false,
   onProduceChecklistPdf,
   onEmailChecklistPdf,
   last24hUnset,
@@ -69,10 +81,19 @@ export function DayCardToolsSheet({
   onOpenPrestart?: () => void;
   onViewPrestart?: () => void;
   prestartFormCompleted?: boolean;
+  onOpenTrailerPrestart?: () => void;
+  onViewTrailerPrestart?: () => void;
+  trailerPrestartCompleted?: boolean;
+  onOpenForkliftPrestart?: () => void;
+  onViewForkliftPrestart?: () => void;
+  forkliftPrestartCompleted?: boolean;
   /** Optional trial Dimension & Load — multi-load; never blocks leaving load. */
   onOpenDimensionLoad?: () => void;
   onViewDimensionLoad?: () => void;
   dimensionLoadFormCompleted?: boolean;
+  onOpenHookup?: () => void;
+  onViewHookup?: () => void;
+  hookupFormCompleted?: boolean;
   /** Dedicated checklist PDF for this day (not fatigue roadside). */
   onProduceChecklistPdf?: () => void;
   /** Email week packs; return a short success message for on-sheet feedback. */
@@ -248,8 +269,14 @@ export function DayCardToolsSheet({
             onViewFfw ||
             onOpenPrestart ||
             onViewPrestart ||
+            onOpenTrailerPrestart ||
+            onViewTrailerPrestart ||
+            onOpenForkliftPrestart ||
+            onViewForkliftPrestart ||
             onOpenDimensionLoad ||
-            onViewDimensionLoad ? (
+            onViewDimensionLoad ||
+            onOpenHookup ||
+            onViewHookup ? (
               <div className="space-y-1">
                 {onOpenFfw || onViewFfw ? (
                   <div className="space-y-1">
@@ -310,7 +337,7 @@ export function DayCardToolsSheet({
                       >
                         <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
                         <span className="flex-1 text-left">
-                          <span className="block font-semibold">View Prestart</span>
+                          <span className="block font-semibold">View vehicle pre-departure</span>
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             Read saved inspection or not-responsible note
                           </span>
@@ -330,12 +357,104 @@ export function DayCardToolsSheet({
                         <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
                         <span className="flex-1 text-left">
                           <span className="block font-semibold">
-                            {prestartFormCompleted ? "Redo Prestart" : "Prestart inspection"}
+                            {prestartFormCompleted ? "Redo vehicle pre-departure" : "Vehicle pre-departure"}
                           </span>
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             {prestartFormCompleted
-                              ? "Complete a new signed prestart for this day"
+                              ? "Complete a new signed vehicle check for this day"
                               : "Optional vehicle check — two-up can mark not responsible"}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+                {onOpenTrailerPrestart || onViewTrailerPrestart ? (
+                  <div className="space-y-1">
+                    {onViewTrailerPrestart && trailerPrestartCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewTrailerPrestart();
+                        }}
+                      >
+                        <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View {TRAILER_PRESTART_FORM_TITLE}</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved trailer inspection
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenTrailerPrestart ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenTrailerPrestart();
+                        }}
+                      >
+                        <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {trailerPrestartCompleted
+                              ? `Redo ${TRAILER_PRESTART_FORM_TITLE}`
+                              : TRAILER_PRESTART_FORM_TITLE}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Optional trailer check — not on the week PDF
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
+                {onOpenForkliftPrestart || onViewForkliftPrestart ? (
+                  <div className="space-y-1">
+                    {onViewForkliftPrestart && forkliftPrestartCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewForkliftPrestart();
+                        }}
+                      >
+                        <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View {FORKLIFT_PRESTART_FORM_TITLE}</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved forklift inspection
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenForkliftPrestart ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenForkliftPrestart();
+                        }}
+                      >
+                        <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {forkliftPrestartCompleted
+                              ? `Redo ${FORKLIFT_PRESTART_FORM_TITLE}`
+                              : FORKLIFT_PRESTART_FORM_TITLE}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Optional forklift check — not on the week PDF
                           </span>
                         </span>
                         <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
@@ -391,6 +510,52 @@ export function DayCardToolsSheet({
                     ) : null}
                   </div>
                 ) : null}
+                {onOpenHookup || onViewHookup ? (
+                  <div className="space-y-1">
+                    {onViewHookup && hookupFormCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewHookup();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View {HOOKUP_FORM_TITLE}</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved hook-up check(s) for this day
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenHookup ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenHookup();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {hookupFormCompleted ? `Add ${HOOKUP_FORM_TITLE}` : HOOKUP_FORM_TITLE}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            {hookupFormCompleted
+                              ? "Add another coupling check"
+                              : "Optional fifth-wheel coupling check — not on the week PDF"}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400 px-1">
@@ -416,7 +581,7 @@ export function DayCardToolsSheet({
                     <span className="flex-1 text-left">
                       <span className="block font-semibold">Produce checklist PDFs</span>
                       <span className="block text-xs text-slate-500 dark:text-slate-400">
-                        Week pack per type (FFW / Prestart / Load) — not the fatigue roadside PDF
+                        Week pack per type (FFW / Prestart / Load / Hook up) — not the fatigue roadside PDF
                       </span>
                     </span>
                     <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

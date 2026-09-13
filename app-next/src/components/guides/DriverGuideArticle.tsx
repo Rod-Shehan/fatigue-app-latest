@@ -32,6 +32,11 @@ import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_EMAIL_SETTINGS_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
+  FORKLIFT_PRESTART_FORM_TITLE,
+  HOOKUP_FORM_TITLE,
+  LOAD_FORM_TITLE,
+  PRESTART_FORM_TITLE,
+  TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
 import { DRIVER_SETTINGS_SECTIONS } from "@/lib/driver-settings-sections";
 
@@ -173,7 +178,7 @@ export function DriverGuideArticle() {
             [DRIVER_START_REST_LABEL, "Sit still — eat, drink, nap. 31 minutes or more becomes non-work"],
             [DRIVER_NAP_QUESTION_LABEL, `Bottom-left, only on Rest. Not in the hero. Tap once if you are napping — still Rest on the record. Compact: ${DRIVER_NAP_QUESTION_COMPACT_LABEL}. After tap: ${DRIVER_ON_NAP_LABEL} (tap again to clear).`],
             [DRIVER_START_OTHER_WORK_LABEL, "Not driving, still a job — load, forklift, tyre, paperwork, fuel. Then three tiles stay on the ring."],
-            [DRIVER_LOAD_CHECK_LABEL, "On Other work, always on the ring. Opens Dimension & Load. You stay on Other work. Tap again for another load. If it is not a load, stay on Other work until you drive or rest."],
+            [DRIVER_LOAD_CHECK_LABEL, `On Other work, always on the ring. Opens ${LOAD_FORM_TITLE}. You stay on Other work. Tap again for another load. If it is not a load, stay on Other work until you drive or rest.`],
             [DRIVER_END_SHIFT_LABEL, "You finish work — enter finish time and end km"],
           ]}
         />
@@ -314,9 +319,9 @@ export function DriverGuideArticle() {
           is logged, the ring keeps three tiles: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL},{" "}
           {DRIVER_LOAD_CHECK_LABEL} — same after a reload. Load check opens Dimension
           & Load; you stay on Other work. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. If it is not a load, stay
-          on Other work until you drive or rest. Daily checks (Fitness for work, Daily vehicle checklist, Dimension & load) stay
-          available on the day card for depot / already-loaded work. Forms are optional in trial — do not block Start
-          shift.
+          on Other work until you drive or rest. Daily checks (Fitness for work, Daily vehicle checklist, Dimension &
+          load, plus trailer / forklift / {HOOKUP_FORM_TITLE}) stay available on the day card for depot /
+          already-loaded work. Forms are optional in trial — do not block Start shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
         <p>Use Set up day (or Edit day) when something changes:</p>
@@ -581,18 +586,24 @@ export function DriverGuideArticle() {
           <li>Log more work</li>
           <li>Check rego and run setup on today&apos;s card</li>
           <li>
-            Optionally tick Daily checks, or open signed Fitness for Work / Prestart / Dimension & Load forms (optional
-            in trial — do not block Start shift). Daily checks order is Fitness for work, Daily vehicle checklist, then
-            Dimension & load. After {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including{" "}
-            {DRIVER_LOAD_CHECK_LABEL} (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL}{" "}
-            again for another load. After a form is saved, use View to read it, or Redo / Add another for a
-            new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day tools) downloads a week pack per checklist type
-            (FFW / Prestart / Load as separate files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL}{" "}
-            sends those PDFs to your address in Settings → {DRIVER_SETTINGS_SECTIONS.delivery.title} →{" "}
-            {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to your sign-in email). Two-up drivers who are not responsible for the vehicle prestart can record
-            that on the Prestart form instead of inventing answers. Prestart is filed under the vehicle registration.
-            Dimension & Load is one form per load (prime + every trailer/dolly on that load); Add another for the next
-            load. Loader CoR stays separate (present sign, pending, or photo gap — no proxy).
+            Optionally tick Daily checks, or open signed Fitness for Work / {PRESTART_FORM_TITLE} /{" "}
+            {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / {LOAD_FORM_TITLE} / {HOOKUP_FORM_TITLE}{" "}
+            forms (optional in trial — do not block Start shift). Those three pre-departure forms stay separate — do
+            not combine them. Daily checks ticks (Fitness for work, Daily vehicle checklist, Dimension & load) show
+            on the week PDF. Trailer, forklift, and hook-up forms stay in the EWD only. After{" "}
+            {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
+            (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. After a form is saved, use
+            View to read it, or Redo / Add another for a new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day
+            tools) downloads a week pack per checklist type (FFW / {PRESTART_FORM_TITLE} /{" "}
+            {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / Load / {HOOKUP_FORM_TITLE} as separate
+            files — not combined; different regs). {CHECKLIST_EMAIL_BUTTON_LABEL} sends those PDFs to your address in
+            Settings → {DRIVER_SETTINGS_SECTIONS.delivery.title} → {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to
+            your sign-in email). Two-up drivers who are not responsible for the vehicle{" "}
+            {PRESTART_FORM_TITLE.toLowerCase()} can record that on the {PRESTART_FORM_TITLE} form instead of inventing
+            answers. {PRESTART_FORM_TITLE} is filed under the vehicle registration. {LOAD_FORM_TITLE} is one form per
+            load (prime + every trailer/dolly on that load); Add another for the next load. Loader CoR stays separate
+            (present sign, pending, or photo gap — no proxy). {HOOKUP_FORM_TITLE} is one signed form per coupling
+            (ATA fifth-wheel steps). Paper Initial is your signature. Add another for the next hook-up.
           </li>
           <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted, then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL})</li>
           <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. From Rest, tap {DRIVER_START_WORK_LABEL} then driving or Other work. On Other work the three tiles stay on the ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL}. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load</li>
@@ -626,15 +637,27 @@ export function DriverGuideArticle() {
               [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, break from driving, sleeper berth, or Parked"],
             [
               "Fitness for Work",
-              "Signed form filed under your name. Optional in trial. Separate PDF from Prestart and Load",
+              `Ten-point WAHVA declaration, signed under your name. Optional in trial. Ticks Fitness for work on the week PDF. Separate from ${PRESTART_FORM_TITLE}, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${LOAD_FORM_TITLE}, and ${HOOKUP_FORM_TITLE}`,
             ],
             [
-              "Prestart",
-              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial",
+              PRESTART_FORM_TITLE,
+              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial. Separate from trailer and forklift forms",
             ],
             [
-              "Dimension & Load",
-              "One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check on the Other work hub, or Daily checks. Add another for the next load. Loader CoR is separate (no proxy)",
+              TRAILER_PRESTART_FORM_TITLE,
+              "Trailer inspection filed under the trailer registration. Optional in trial. Not shown as a week PDF tick",
+            ],
+            [
+              FORKLIFT_PRESTART_FORM_TITLE,
+              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. Not shown as a week PDF tick",
+            ],
+            [
+              LOAD_FORM_TITLE,
+              "Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check on the Other work hub, or Daily checks. Add another for the next load. Loader CoR is separate (no proxy)",
+            ],
+            [
+              HOOKUP_FORM_TITLE,
+              "WAHVA hook-up day row (Hookup process, Turntable, Reverse, Alignment, Trailer height, Reverse under trailer, Tug test, Check gap, Turntable lock, Check gap, Legs raised, Tug test). Detail from the ATA fifth-wheel coupling guide. Paper Initial is your signature. One signed form per coupling. N/A only on Turntable when that setup does not apply. Not a week-PDF tick. Add another for the next hook-up",
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

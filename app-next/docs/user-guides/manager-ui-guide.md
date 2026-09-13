@@ -45,7 +45,7 @@ flowchart TB
 | **Conversations** | Manager–driver messaging |
 | **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
-| **Records** (`/manager/records`) | Roster drivers on the left; pick a **week by date** (previous weeks first). Under that week, four separate subjects: **Fatigue sheet**, **Fitness for work record**, **Prestart record**, **Load checks**. Each has **View week record** and **Export PDF**. Fatigue view opens the sheet; checklist view opens that week’s signed forms of that type only (read only). Export PDF is the Weekly Trip Sheet for fatigue, or that type’s week pack for the others (disabled when that week has none). Types are never combined. For managers and WAHVA auditors. |
+| **Records** (`/manager/records`) | Roster drivers on the left; pick a **week by date** (previous weeks first). Under that week, separate subjects: **Fatigue sheet**, **Fitness for work record**, **Vehicle pre-departure**, **Trailer pre-departure**, **Forklift pre-departure**, **Load checks**, **Hook ups**. Each has **View week record** and **Export PDF**. Fatigue view opens the sheet; checklist view opens that week’s signed forms of that type only (read only). Export PDF is the Weekly Trip Sheet for fatigue, or that type’s week pack for the others (disabled when that week has none). Types are never combined. For managers and WAHVA auditors. |
 | **Rego** | Vehicle registration reference data |
 | **Test desk** | Inject test alerts; set **Checklist PDF email** and **WAHVA maintenance contact** (workshop email for fault reporting) |
 | **Owner console** (`/admin/security`) | Owners: **operator name** (printed as OPERATOR on weekly trip sheet PDFs), lockdown, users, audit |
@@ -184,8 +184,8 @@ Owners set the **operator name** (organisation legal name) on **Owner console**.
 
 On **Test desk** (managers), **Owner console → Security** (owners), or **driver Settings → Emails & workshop** (EWD gear → All settings):
 
-- **Checklist PDF email** — each signed-in person sets where Fitness for Work / Prestart / Dimension & Load **week packs** go (**Email checklist week packs** on the day card). Defaults to that person’s sign-in email. Not a shared organisation inbox (that can come later per client). Not the 28-day fatigue roadside PDF. Sending also needs server mail (`RESEND_API_KEY` + `EMAIL_FROM`).
-- **Workshop / maintenance contact** (name, company, email, phone) — destination for vehicle fault reports required for WAHVA accreditation. Automatic email of prestart defects is not enabled yet — the contact is stored so the reporting pathway can use it next. This is a **different** address from checklist PDF email.
+- **Checklist PDF email** — each signed-in person sets where Fitness for Work / Vehicle / Trailer / Forklift pre-departure / Dimension & Load **week packs** go (**Email checklist week packs** on the day card). Defaults to that person’s sign-in email. Not a shared organisation inbox (that can come later per client). Not the 28-day fatigue roadside PDF. Sending also needs server mail (`RESEND_API_KEY` + `EMAIL_FROM`).
+- **Workshop / maintenance contact** (name, company, email, phone) — destination for vehicle fault reports required for WAHVA accreditation. Automatic email of vehicle / trailer / forklift pre-departure defects uses this contact when a Fault is saved. This is a **different** address from checklist PDF email.
 
 ---
 

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { checklistItemAllowsNa } from "./item-types";
 import {
   buildPrestartActionedFaultDraft,
   isAcknowledgeItemComplete,
@@ -68,6 +69,14 @@ describe("setPassFailValue / defect", () => {
     expect(isPassFailItemComplete(setPassFailValue(emptyPassFailItem(), "pass"))).toBe(true);
     expect(isPassFailItemComplete(setPassFailValue(emptyPassFailItem(), "na"))).toBe(true);
     expect(isPassFailItemComplete(emptyPassFailItem())).toBe(false);
+  });
+
+  it("rejects N/A when the item is mandatory", () => {
+    const na = setPassFailValue(emptyPassFailItem(), "na");
+    expect(isPassFailItemComplete(na, { naAllowed: false })).toBe(false);
+    expect(isPassFailItemComplete(na, { naAllowed: true })).toBe(true);
+    expect(checklistItemAllowsNa(undefined)).toBe(false);
+    expect(checklistItemAllowsNa(true)).toBe(true);
   });
 });
 

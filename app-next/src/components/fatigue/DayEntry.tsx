@@ -23,6 +23,7 @@ import { DayTripChecklist } from "./DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
 import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
+import { HookupForm } from "@/components/checklist/HookupForm";
 import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
@@ -213,12 +214,17 @@ export default function DayEntry({
 
   const { data: session } = useSession();
   const driverUserKey = (session?.user as { email?: string | null } | undefined)?.email?.trim() ?? "";
+  const companyName =
+    (session?.user as { tenantLegalName?: string | null } | undefined)?.tenantLegalName ?? null;
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
+  const [trailerPrestartOpen, setTrailerPrestartOpen] = useState(false);
+  const [forkliftPrestartOpen, setForkliftPrestartOpen] = useState(false);
   const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
+  const [hookupOpen, setHookupOpen] = useState(false);
   const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
@@ -236,12 +242,26 @@ export default function DayEntry({
   const canEditDetails = !readOnly;
   const ffwFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "ffw");
   const prestartFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "prestart");
+  const trailerPrestartCompleted = hasCompletedChecklistOfType(
+    dayData.checklists,
+    "prestart_trailer"
+  );
+  const forkliftPrestartCompleted = hasCompletedChecklistOfType(
+    dayData.checklists,
+    "prestart_forklift"
+  );
   const dimensionLoadFormCompleted = hasCompletedChecklistOfType(
     dayData.checklists,
     "dimension_load"
   );
+  const hookupFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "hookup");
   const hasAnyChecklistRecord =
-    ffwFormCompleted || prestartFormCompleted || dimensionLoadFormCompleted;
+    ffwFormCompleted ||
+    prestartFormCompleted ||
+    trailerPrestartCompleted ||
+    forkliftPrestartCompleted ||
+    dimensionLoadFormCompleted ||
+    hookupFormCompleted;
 
   const openFfwForm = useCallback(() => {
     if (!canEditDetails) return;
@@ -255,10 +275,28 @@ export default function DayEntry({
     setPrestartOpen(true);
   }, [canEditDetails]);
 
+  const openTrailerPrestartForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setTrailerPrestartOpen(true);
+  }, [canEditDetails]);
+
+  const openForkliftPrestartForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setForkliftPrestartOpen(true);
+  }, [canEditDetails]);
+
   const openDimensionLoadForm = useCallback(() => {
     if (!canEditDetails) return;
     setToolsOpen(false);
     setDimensionLoadOpen(true);
+  }, [canEditDetails]);
+
+  const openHookupForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setHookupOpen(true);
   }, [canEditDetails]);
 
   const openViewChecklist = useCallback((type: ChecklistRecordType) => {
@@ -270,7 +308,14 @@ export default function DayEntry({
     if (!dayTools?.sheetId) return;
     setToolsOpen(false);
     // Week packs — one download per type that has records on this sheet
-    for (const type of ["ffw", "prestart", "dimension_load"] as const) {
+    for (const type of [
+      "ffw",
+      "prestart",
+      "prestart_trailer",
+      "prestart_forklift",
+      "dimension_load",
+      "hookup",
+    ] as const) {
       if (!hasCompletedChecklistOfType(dayData.checklists, type)) continue;
       window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, type), "_blank");
     }
@@ -559,11 +604,24 @@ export default function DayEntry({
           prestartFormCompleted={prestartFormCompleted}
           onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
           onViewPrestart={prestartFormCompleted ? () => openViewChecklist("prestart") : undefined}
+          trailerPrestartCompleted={trailerPrestartCompleted}
+          onOpenTrailerPrestart={canEditDetails ? openTrailerPrestartForm : undefined}
+          onViewTrailerPrestart={
+            trailerPrestartCompleted ? () => openViewChecklist("prestart_trailer") : undefined
+          }
+          forkliftPrestartCompleted={forkliftPrestartCompleted}
+          onOpenForkliftPrestart={canEditDetails ? openForkliftPrestartForm : undefined}
+          onViewForkliftPrestart={
+            forkliftPrestartCompleted ? () => openViewChecklist("prestart_forklift") : undefined
+          }
           dimensionLoadFormCompleted={dimensionLoadFormCompleted}
           onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
           onViewDimensionLoad={
             dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
           }
+          hookupFormCompleted={hookupFormCompleted}
+          onOpenHookup={canEditDetails ? openHookupForm : undefined}
+          onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
           value={{
             fitness_for_work: dayData.fitness_for_work,
             dimension_load_checklist: dayData.dimension_load_checklist,
@@ -734,11 +792,24 @@ export default function DayEntry({
           onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
           onViewPrestart={prestartFormCompleted ? () => openViewChecklist("prestart") : undefined}
           prestartFormCompleted={prestartFormCompleted}
+          onOpenTrailerPrestart={canEditDetails ? openTrailerPrestartForm : undefined}
+          onViewTrailerPrestart={
+            trailerPrestartCompleted ? () => openViewChecklist("prestart_trailer") : undefined
+          }
+          trailerPrestartCompleted={trailerPrestartCompleted}
+          onOpenForkliftPrestart={canEditDetails ? openForkliftPrestartForm : undefined}
+          onViewForkliftPrestart={
+            forkliftPrestartCompleted ? () => openViewChecklist("prestart_forklift") : undefined
+          }
+          forkliftPrestartCompleted={forkliftPrestartCompleted}
           onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
           onViewDimensionLoad={
             dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
           }
           dimensionLoadFormCompleted={dimensionLoadFormCompleted}
+          onOpenHookup={canEditDetails ? openHookupForm : undefined}
+          onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
+          hookupFormCompleted={hookupFormCompleted}
           onProduceChecklistPdf={
             dayTools && hasAnyChecklistRecord ? produceDayChecklistPdf : undefined
           }
@@ -755,14 +826,34 @@ export default function DayEntry({
         open={ffwOpen}
         onClose={() => setFfwOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
+        companyName={companyName}
         onCompleted={saveFfwRecord}
       />
 
       <PrestartForm
         open={prestartOpen}
         onClose={() => setPrestartOpen(false)}
+        plant="vehicle"
         driverName={dayTools?.driverName ?? driverName}
         vehicleRego={dayData.truck_rego}
+        sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
+        onCompleted={savePrestartRecord}
+      />
+
+      <PrestartForm
+        open={trailerPrestartOpen}
+        onClose={() => setTrailerPrestartOpen(false)}
+        plant="trailer"
+        driverName={dayTools?.driverName ?? driverName}
+        sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
+        onCompleted={savePrestartRecord}
+      />
+
+      <PrestartForm
+        open={forkliftPrestartOpen}
+        onClose={() => setForkliftPrestartOpen(false)}
+        plant="forklift"
+        driverName={dayTools?.driverName ?? driverName}
         sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
         onCompleted={savePrestartRecord}
       />
@@ -773,6 +864,15 @@ export default function DayEntry({
         driverName={dayTools?.driverName ?? driverName}
         truckRego={dayData.truck_rego}
         previousLoadRecords={listCompletedChecklistsOfType(dayData.checklists, "dimension_load")}
+        onCompleted={saveDimensionLoadRecord}
+      />
+
+      <HookupForm
+        open={hookupOpen}
+        onClose={() => setHookupOpen(false)}
+        driverName={dayTools?.driverName ?? driverName}
+        truckRego={dayData.truck_rego}
+        previousHookupRecords={listCompletedChecklistsOfType(dayData.checklists, "hookup")}
         onCompleted={saveDimensionLoadRecord}
       />
 
@@ -789,6 +889,9 @@ export default function DayEntry({
                   setViewChecklistType(null);
                   if (t === "ffw") setFfwOpen(true);
                   else if (t === "prestart") setPrestartOpen(true);
+                  else if (t === "prestart_trailer") setTrailerPrestartOpen(true);
+                  else if (t === "prestart_forklift") setForkliftPrestartOpen(true);
+                  else if (t === "hookup") setHookupOpen(true);
                   else setDimensionLoadOpen(true);
                 }
               : undefined

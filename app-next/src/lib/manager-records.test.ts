@@ -104,7 +104,10 @@ describe("countCompletedChecklistsByType", () => {
     expect(countCompletedChecklistsByType(days)).toEqual({
       ffw: 1,
       prestart: 0,
+      prestart_trailer: 0,
+      prestart_forklift: 0,
       dimension_load: 2,
+      hookup: 0,
     });
   });
 });

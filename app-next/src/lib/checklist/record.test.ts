@@ -252,6 +252,36 @@ describe("deriveTripChecklistFields", () => {
     expect(deriveTripChecklistFields({ checklists: [skipped] }).daily_vehicle_checklist).toBe(false);
   });
 
+  it("does not tick week-PDF fields from a hook-up form", () => {
+    const hookup = sampleFfw({
+      type: "hookup",
+      items: [{ code: "hook_process", kind: "pass_fail", value: "pass" }],
+    });
+    expect(deriveTripChecklistFields({ checklists: [hookup] })).toMatchObject({
+      daily_vehicle_checklist: false,
+      fitness_for_work: false,
+      dimension_load_checklist: false,
+    });
+  });
+
+  it("does not tick Daily vehicle checklist from trailer or forklift forms", () => {
+    const trailer = sampleFfw({
+      type: "prestart_trailer",
+      prestartResponsible: true,
+      items: [{ code: "trl_tyres", kind: "pass_fail", value: "pass" }],
+    });
+    const forklift = sampleFfw({
+      type: "prestart_forklift",
+      prestartResponsible: true,
+      items: [{ code: "fl_tyres", kind: "pass_fail", value: "pass" }],
+    });
+    expect(deriveTripChecklistFields({ checklists: [trailer, forklift] })).toMatchObject({
+      daily_vehicle_checklist: false,
+      fitness_for_work: false,
+      dimension_load_checklist: false,
+    });
+  });
+
   it("preserves legacy boolean when no completed record of that type", () => {
     const ticks = deriveTripChecklistFields({
       fitness_for_work: true,

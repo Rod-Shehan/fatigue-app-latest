@@ -61,4 +61,46 @@ describe("collectChecklistPdfDays", () => {
     expect(days[0]!.records).toHaveLength(1);
     expect(days[0]!.records[0]!.type).toBe("prestart");
   });
+
+  it("keeps vehicle, trailer, and forklift pre-departure in separate packs", () => {
+    const source = [
+      {
+        checklists: [
+          sample("prestart", "v"),
+          sample("prestart_trailer", "t"),
+          sample("prestart_forklift", "f"),
+        ],
+      },
+    ];
+    expect(
+      collectChecklistPdfDays({ weekStarting: "2026-07-26", type: "prestart", days: source })[0]!
+        .records.map((r) => r.type)
+    ).toEqual(["prestart"]);
+    expect(
+      collectChecklistPdfDays({
+        weekStarting: "2026-07-26",
+        type: "prestart_trailer",
+        days: source,
+      })[0]!.records.map((r) => r.type)
+    ).toEqual(["prestart_trailer"]);
+    expect(
+      collectChecklistPdfDays({
+        weekStarting: "2026-07-26",
+        type: "prestart_forklift",
+        days: source,
+      })[0]!.records.map((r) => r.type)
+    ).toEqual(["prestart_forklift"]);
+  });
+
+  it("keeps hook-up in its own pack", () => {
+    const source = [
+      {
+        checklists: [sample("prestart", "v"), sample("hookup", "h"), sample("dimension_load", "l")],
+      },
+    ];
+    expect(
+      collectChecklistPdfDays({ weekStarting: "2026-07-26", type: "hookup", days: source })[0]!
+        .records.map((r) => r.type)
+    ).toEqual(["hookup"]);
+  });
 });

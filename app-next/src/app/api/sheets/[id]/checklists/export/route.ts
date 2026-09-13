@@ -49,7 +49,10 @@ export async function GET(
     const typeRaw = url.searchParams.get("type");
     if (!isChecklistRecordType(typeRaw)) {
       return NextResponse.json(
-        { error: "type is required: ffw | prestart | dimension_load" },
+        {
+          error:
+            "type is required: ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup",
+        },
         { status: 400 }
       );
     }

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,7 @@ import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
 import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
+import { HookupForm } from "@/components/checklist/HookupForm";
 import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
@@ -169,6 +171,9 @@ export function DayCardDetailsDialog({
    */
   activityBeforeDay?: PriorOpenActivity;
 }) {
+  const { data: session } = useSession();
+  const companyName =
+    (session?.user as { tenantLegalName?: string | null } | undefined)?.tenantLegalName ?? null;
   const [draft, setDraft] = useState<DayCardFields>(initial);
   const [draftEvents, setDraftEvents] = useState<DayEventDraft[]>(initialEvents);
   const [eventsVariant, setEventsVariant] = useState<DayEventsEditorVariant>("new_shift");
@@ -185,16 +190,28 @@ export function DayCardDetailsDialog({
   const [confirming, setConfirming] = useState(false);
   const [ffwOpen, setFfwOpen] = useState(false);
   const [prestartOpen, setPrestartOpen] = useState(false);
+  const [trailerPrestartOpen, setTrailerPrestartOpen] = useState(false);
+  const [forkliftPrestartOpen, setForkliftPrestartOpen] = useState(false);
   const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
+  const [hookupOpen, setHookupOpen] = useState(false);
   const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const ffwFormCompleted = hasCompletedChecklistOfType(draft.checklists, "ffw");
   const prestartFormCompleted = hasCompletedChecklistOfType(draft.checklists, "prestart");
+  const trailerPrestartCompleted = hasCompletedChecklistOfType(
+    draft.checklists,
+    "prestart_trailer"
+  );
+  const forkliftPrestartCompleted = hasCompletedChecklistOfType(
+    draft.checklists,
+    "prestart_forklift"
+  );
   const dimensionLoadFormCompleted = hasCompletedChecklistOfType(
     draft.checklists,
     "dimension_load"
   );
+  const hookupFormCompleted = hasCompletedChecklistOfType(draft.checklists, "hookup");
 
   const activityBeforeDay = useMemo((): PriorOpenActivity => {
     if (activityBeforeDayProp != null) return activityBeforeDayProp;
@@ -653,6 +670,16 @@ export function DayCardDetailsDialog({
             prestartFormCompleted={prestartFormCompleted}
             onOpenPrestart={readOnly ? undefined : () => setPrestartOpen(true)}
             onViewPrestart={prestartFormCompleted ? () => setViewChecklistType("prestart") : undefined}
+            trailerPrestartCompleted={trailerPrestartCompleted}
+            onOpenTrailerPrestart={readOnly ? undefined : () => setTrailerPrestartOpen(true)}
+            onViewTrailerPrestart={
+              trailerPrestartCompleted ? () => setViewChecklistType("prestart_trailer") : undefined
+            }
+            forkliftPrestartCompleted={forkliftPrestartCompleted}
+            onOpenForkliftPrestart={readOnly ? undefined : () => setForkliftPrestartOpen(true)}
+            onViewForkliftPrestart={
+              forkliftPrestartCompleted ? () => setViewChecklistType("prestart_forklift") : undefined
+            }
             dimensionLoadFormCompleted={dimensionLoadFormCompleted}
             onOpenDimensionLoad={readOnly ? undefined : () => setDimensionLoadOpen(true)}
             onViewDimensionLoad={
@@ -660,6 +687,9 @@ export function DayCardDetailsDialog({
                 ? () => setViewChecklistType("dimension_load")
                 : undefined
             }
+            hookupFormCompleted={hookupFormCompleted}
+            onOpenHookup={readOnly ? undefined : () => setHookupOpen(true)}
+            onViewHookup={hookupFormCompleted ? () => setViewChecklistType("hookup") : undefined}
             value={{
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
@@ -679,6 +709,7 @@ export function DayCardDetailsDialog({
             open={ffwOpen}
             onClose={() => setFfwOpen(false)}
             driverName={driverName}
+            companyName={companyName}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -688,8 +719,33 @@ export function DayCardDetailsDialog({
           <PrestartForm
             open={prestartOpen}
             onClose={() => setPrestartOpen(false)}
+            plant="vehicle"
             driverName={driverName}
             vehicleRego={draft.truck_rego}
+            sheetDayLabel={`${dayTitle} ${dateLabel}`}
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
+          />
+
+          <PrestartForm
+            open={trailerPrestartOpen}
+            onClose={() => setTrailerPrestartOpen(false)}
+            plant="trailer"
+            driverName={driverName}
+            sheetDayLabel={`${dayTitle} ${dateLabel}`}
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
+          />
+
+          <PrestartForm
+            open={forkliftPrestartOpen}
+            onClose={() => setForkliftPrestartOpen(false)}
+            plant="forklift"
+            driverName={driverName}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
@@ -703,6 +759,18 @@ export function DayCardDetailsDialog({
             driverName={driverName}
             truckRego={draft.truck_rego}
             previousLoadRecords={listCompletedChecklistsOfType(draft.checklists, "dimension_load")}
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
+          />
+
+          <HookupForm
+            open={hookupOpen}
+            onClose={() => setHookupOpen(false)}
+            driverName={driverName}
+            truckRego={draft.truck_rego}
+            previousHookupRecords={listCompletedChecklistsOfType(draft.checklists, "hookup")}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -723,6 +791,9 @@ export function DayCardDetailsDialog({
                       setViewChecklistType(null);
                       if (t === "ffw") setFfwOpen(true);
                       else if (t === "prestart") setPrestartOpen(true);
+                      else if (t === "prestart_trailer") setTrailerPrestartOpen(true);
+                      else if (t === "prestart_forklift") setForkliftPrestartOpen(true);
+                      else if (t === "hookup") setHookupOpen(true);
                       else setDimensionLoadOpen(true);
                     }
               }

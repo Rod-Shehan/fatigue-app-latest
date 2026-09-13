@@ -7,11 +7,13 @@ import { toggleAcknowledge } from "@/lib/checklist";
 
 export function ChecklistAcknowledgeItem({
   label,
+  notes,
   state,
   onChange,
   className,
 }: {
   label: string;
+  notes?: string[];
   state: ChecklistAcknowledgeItemState;
   onChange: (next: ChecklistAcknowledgeItemState) => void;
   className?: string;
@@ -38,7 +40,16 @@ export function ChecklistAcknowledgeItem({
       >
         {on ? <Check className="h-4 w-4" strokeWidth={3} /> : null}
       </span>
-      <span className="text-sm font-medium text-ck-fg leading-snug">{label}</span>
+      <span className="min-w-0 space-y-1">
+        <span className="block text-sm font-medium text-ck-fg leading-snug">{label}</span>
+        {notes?.length
+          ? notes.map((note) => (
+              <span key={note} className="block text-xs leading-snug text-ck-steel">
+                {note}
+              </span>
+            ))
+          : null}
+      </span>
     </button>
   );
 }

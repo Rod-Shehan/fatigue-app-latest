@@ -8,8 +8,9 @@ import {
   isPassFailItemComplete,
   isPassFailItemUnsafe,
   newChecklistRecordId,
-  PRESTART_SCHEMA_STUB,
+  prestartPlantConfig,
   validateCompletedChecklistRecord,
+  type PrestartPlant,
   type ChecklistPassFailItemState,
   type ChecklistRecord,
   type ChecklistSignatureCapture,
@@ -19,9 +20,11 @@ import { ChecklistItemControl } from "./ChecklistItemControl";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
-function initPassFailMap(): Record<string, ChecklistPassFailItemState> {
+function initPassFailMap(
+  schema: ReturnType<typeof prestartPlantConfig>["schema"]
+): Record<string, ChecklistPassFailItemState> {
   const m: Record<string, ChecklistPassFailItemState> = {};
-  for (const group of PRESTART_SCHEMA_STUB) m[group.code] = emptyPassFailItem();
+  for (const group of schema) m[group.code] = emptyPassFailItem();
   return m;
 }
 
@@ -37,6 +40,7 @@ export function PrestartForm({
   driverName,
   vehicleRego,
   sheetDayLabel,
+  plant = "vehicle",
   onCompleted,
 }: {
   open: boolean;
@@ -46,12 +50,17 @@ export function PrestartForm({
   vehicleRego?: string | null;
   /** Optional day label for the workshop email subject. */
   sheetDayLabel?: string | null;
+  /** Separate WAHVA form: vehicle, trailer, or forklift — never combined. */
+  plant?: PrestartPlant;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
+  const plantCfg = prestartPlantConfig(plant);
+  const schema = plantCfg.schema;
+  const title = plantCfg.title;
   const [vehicle, setVehicle] = useState("");
   const [responsibility, setResponsibility] = useState<Responsibility>("unset");
   const [skipReason, setSkipReason] = useState("");
-  const [items, setItems] = useState(initPassFailMap);
+  const [items, setItems] = useState(() => initPassFailMap(schema));
   const [actionedFaultText, setActionedFaultText] = useState("");
   const [faultTextEdited, setFaultTextEdited] = useState(false);
   const [signature, setSignature] = useState<ChecklistSignatureCapture | null>(null);
@@ -62,23 +71,26 @@ export function PrestartForm({
   const faultFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
   const allItemsComplete = useMemo(
-    () => PRESTART_SCHEMA_STUB.every((g) => isPassFailItemComplete(items[g.code]!)),
-    [items]
+    () =>
+      schema.every((g) =>
+        isPassFailItemComplete(items[g.code]!, { naAllowed: g.naAllowed === true })
+      ),
+    [items, schema]
   );
 
   const hasUnsafe = useMemo(
-    () => PRESTART_SCHEMA_STUB.some((g) => isPassFailItemUnsafe(items[g.code]!)),
-    [items]
+    () => schema.some((g) => isPassFailItemUnsafe(items[g.code]!)),
+    [items, schema]
   );
 
   const hasFault = useMemo(
-    () => PRESTART_SCHEMA_STUB.some((g) => items[g.code]?.value === "fail"),
-    [items]
+    () => schema.some((g) => items[g.code]?.value === "fail"),
+    [items, schema]
   );
 
   const faultDraft = useMemo(
-    () => buildPrestartActionedFaultDraft(items, PRESTART_SCHEMA_STUB),
-    [items]
+    () => buildPrestartActionedFaultDraft(items, schema),
+    [items, schema]
   );
 
   useEffect(() => {
@@ -109,7 +121,7 @@ export function PrestartForm({
     setResponsibility("unset");
     setSkipReason("");
     setVehicle("");
-    setItems(initPassFailMap());
+    setItems(initPassFailMap(schema));
     setActionedFaultText("");
     setFaultTextEdited(false);
     setSignature(null);
@@ -133,7 +145,7 @@ export function PrestartForm({
     setError(null);
     setEmailNote(null);
     if (responsibility === "unset") {
-      setError("Say whether you are responsible for this prestart.");
+      setError(`Say whether you are responsible for this ${title.toLowerCase()}.`);
       return;
     }
     if (!signature) {
@@ -142,7 +154,7 @@ export function PrestartForm({
     }
 
     if (responsibility === "yes" && !vehicle.trim()) {
-      setError("Enter the vehicle registration this prestart is for.");
+      setError(`Enter the ${plantCfg.noun} registration this ${title.toLowerCase()} is for.`);
       return;
     }
 
@@ -158,7 +170,7 @@ export function PrestartForm({
       }
       const draft = {
         id: newChecklistRecordId(),
-        type: "prestart" as const,
+        type: plantCfg.type,
         schemaVersion: CHECKLIST_SCHEMA_VERSION,
         status: "completed" as const,
         completedAtUtc: new Date().toISOString(),
@@ -188,7 +200,7 @@ export function PrestartForm({
     }
 
     if (!allItemsComplete) {
-      setError("Complete every inspection item (Pass, Fault with description + vehicle status, or N/A).");
+      setError("Complete every inspection item (Pass, or Fault with description + vehicle status).");
       return;
     }
     if (hasFault && !actionedFaultText.trim()) {
@@ -199,11 +211,11 @@ export function PrestartForm({
 
     const draft = {
       id: newChecklistRecordId(),
-      type: "prestart" as const,
+      type: plantCfg.type,
       schemaVersion: CHECKLIST_SCHEMA_VERSION,
       status: "completed" as const,
       completedAtUtc: new Date().toISOString(),
-      items: PRESTART_SCHEMA_STUB.map((group) => {
+      items: schema.map((group) => {
         const state = items[group.code]!;
         return {
           code: group.code,
@@ -269,7 +281,7 @@ export function PrestartForm({
     <ChecklistModalShell
       open={open}
       onClose={handleClose}
-      title="Prestart inspection"
+      title={title}
       subtitle="Optional — does not block Start shift"
       footer={
         <div className="space-y-2">
@@ -311,8 +323,8 @@ export function PrestartForm({
                 : responsibility === "no"
                   ? "Save — not responsible"
                   : hasFault
-                    ? "Save Prestart & email fault"
-                    : "Save Prestart"}
+                    ? `Save ${title} & email fault`
+                    : `Save ${title}`}
             </button>
           )}
         </div>
@@ -324,23 +336,25 @@ export function PrestartForm({
           <strong className="text-ck-fg">vehicle registration</strong> (maintenance / WAHVA). Your
           name is stored as the person who did it. If you are responsible, complete the checks and
           sign. Mark <strong className="text-ck-fg">Fault</strong> where needed — then fill the
-          actioned fault text above the signature so workshop can be emailed.
+          actioned fault text above the signature so workshop can be emailed. Use{" "}
+          <strong className="text-ck-fg">N/A</strong> only on items that do not apply to this{" "}
+          {plantCfg.noun} (for example fittings that are not on this unit).
         </p>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold text-ck-steel">Vehicle registration (required)</span>
+          <span className="text-xs font-semibold text-ck-steel">{plantCfg.regoLabel}</span>
           <input
             value={vehicle}
             onChange={(e) => setVehicle(e.target.value)}
             autoCapitalize="characters"
             className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
-            placeholder="The truck or plant you inspected"
+            placeholder={plantCfg.regoPlaceholder}
           />
         </label>
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
           <h3 className="text-sm font-bold text-ck-steel">
-            Are you responsible for doing the prestart?
+            Are you responsible for doing the {title.toLowerCase()}?
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -398,22 +412,33 @@ export function PrestartForm({
 
         {responsibility === "yes" ? (
           <div className="space-y-3">
-            {PRESTART_SCHEMA_STUB.map((group) => (
-              <ChecklistItemControl
-                key={group.code}
-                label={group.label}
-                notes={group.notes}
-                failLabel="FAULT"
-                defectCardTitle="Fault"
-                defectDescriptionLabel="Fault description (required)"
-                defectDescriptionPlaceholder="Describe the fault"
-                state={items[group.code]!}
-                onChange={(next) => {
-                  setItems((s) => ({ ...s, [group.code]: next }));
-                  setFaultTextEdited(false);
-                }}
-              />
-            ))}
+            {schema.map((group, index) => {
+              const prev = schema[index - 1];
+              const showSection = Boolean(group.section && group.section !== prev?.section);
+              return (
+                <div key={group.code} className="space-y-2">
+                  {showSection ? (
+                    <h3 className="pt-1 text-xs font-bold uppercase tracking-wider text-ck-steel">
+                      {group.section}
+                    </h3>
+                  ) : null}
+                  <ChecklistItemControl
+                    label={group.label}
+                    notes={group.notes}
+                    naAllowed={group.naAllowed === true}
+                    failLabel="FAULT"
+                    defectCardTitle="Fault"
+                    defectDescriptionLabel="Fault description (required)"
+                    defectDescriptionPlaceholder="Describe the fault"
+                    state={items[group.code]!}
+                    onChange={(next) => {
+                      setItems((s) => ({ ...s, [group.code]: next }));
+                      setFaultTextEdited(false);
+                    }}
+                  />
+                </div>
+              );
+            })}
 
             {hasFault ? (
               <section className="space-y-2 rounded-xl border border-ck-red/50 bg-ck-midnight/60 p-3">

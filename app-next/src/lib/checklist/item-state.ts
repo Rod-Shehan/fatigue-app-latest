@@ -48,13 +48,19 @@ export function updateDefect(
 }
 
 /** Fault requires description + driveability choice. */
-export function isPassFailItemComplete(state: ChecklistPassFailItemState): boolean {
+export function isPassFailItemComplete(
+  state: ChecklistPassFailItemState,
+  opts?: { naAllowed?: boolean }
+): boolean {
   if (state.value === "unselected") return false;
   if (state.value === "fail") {
     const d = state.defect ? normalizeDefect(state.defect) : null;
     return Boolean(d?.description?.trim() && d.mobilityStatus);
   }
-  return state.value === "pass" || state.value === "na";
+  if (state.value === "na") {
+    return opts === undefined || opts.naAllowed === true;
+  }
+  return state.value === "pass";
 }
 
 /** Unroadworthy / cannot be moved. */

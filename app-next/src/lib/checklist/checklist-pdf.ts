@@ -8,6 +8,7 @@ import { getSheetDayDateString } from "@/lib/weeks";
 import { checklistFaultMobilityLabel } from "./item-types";
 import {
   isChecklistRecordType,
+  isPrestartRecordType,
   listCompletedChecklistsOfType,
   type ChecklistRecord,
   type ChecklistRecordType,
@@ -23,8 +24,11 @@ export const CHECKLIST_PDF_DISCLAIMER =
 
 export const CHECKLIST_PDF_TYPE_TITLE: Record<ChecklistRecordType, string> = {
   ffw: "Fitness for Work",
-  prestart: "Prestart inspection",
-  dimension_load: "Dimension & Load",
+  prestart: "Vehicle pre-departure",
+  prestart_trailer: "Trailer pre-departure",
+  prestart_forklift: "Forklift pre-departure",
+  dimension_load: "Load check",
+  hookup: "Hook up",
 };
 
 const TYPE_TITLE = CHECKLIST_PDF_TYPE_TITLE;
@@ -105,7 +109,17 @@ export function checklistPdfFilename(opts: {
 }): string {
   const safeName = (opts.driverName || "driver").replace(/[^\w\-]+/g, "_").slice(0, 40);
   const typeSlug =
-    opts.type === "dimension_load" ? "dimension-load" : opts.type === "prestart" ? "prestart" : "ffw";
+    opts.type === "dimension_load"
+      ? "dimension-load"
+      : opts.type === "prestart"
+        ? "prestart"
+        : opts.type === "prestart_trailer"
+          ? "prestart-trailer"
+          : opts.type === "prestart_forklift"
+            ? "prestart-forklift"
+            : opts.type === "hookup"
+              ? "hookup"
+              : "ffw";
   const scope =
     opts.dayIndex != null && Number.isInteger(opts.dayIndex)
       ? `day${opts.dayIndex}`
@@ -113,7 +127,14 @@ export function checklistPdfFilename(opts: {
   return `checklist-${typeSlug}-${safeName}-${opts.weekStarting}-${scope}.pdf`;
 }
 
-export const CHECKLIST_PDF_TYPES: ChecklistRecordType[] = ["ffw", "prestart", "dimension_load"];
+export const CHECKLIST_PDF_TYPES: ChecklistRecordType[] = [
+  "ffw",
+  "prestart",
+  "prestart_trailer",
+  "prestart_forklift",
+  "dimension_load",
+  "hookup",
+];
 
 function dataUrlToJsPdfFormat(dataUrl: string): { format: "PNG" | "JPEG"; data: string } | null {
   const m = /^data:image\/(png|jpeg|jpg);base64,(.+)$/i.exec(dataUrl);
@@ -207,7 +228,7 @@ export async function buildChecklistPackJsPdfBuffer(input: {
       doc.text(`Completed ${completedWhen(record)}`, margin, y);
       y += 5;
 
-      if (record.type === "prestart" && record.prestartResponsible === false) {
+      if (isPrestartRecordType(record.type) && record.prestartResponsible === false) {
         ensureSpace(14);
         doc.setTextColor(30, 41, 59);
         doc.setFont("helvetica", "bold");

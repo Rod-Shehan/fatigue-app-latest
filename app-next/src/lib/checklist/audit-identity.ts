@@ -104,6 +104,18 @@ export function serializeLoadCombinationHeader(opts: {
   return header;
 }
 
+export function lastHookupFromRecords(
+  records: ChecklistRecord[] | undefined | null
+): { truckRego: string; trailerRego: string } | null {
+  const hooks = (records ?? []).filter((r) => r.type === "hookup");
+  const last = hooks[hooks.length - 1];
+  if (!last) return null;
+  const truckRego = headerString(last.header, "truck_rego");
+  const trailerRego = headerString(last.header, "trailer_rego");
+  if (!truckRego && !trailerRego) return null;
+  return { truckRego, trailerRego };
+}
+
 export function lastLoadCombinationFromRecords(
   records: ChecklistRecord[] | undefined | null
 ): { truckRego: string; units: LoadCombinationUnit[] } | null {
@@ -135,16 +147,37 @@ export function checklistAuditIdentity(record: ChecklistRecord): {
       summary: driver || "Fitness for Work",
     };
   }
-  if (record.type === "prestart") {
+  if (record.type === "hookup") {
+    const combination =
+      headerString(record.header, "combination") ||
+      [headerString(record.header, "truck_rego"), headerString(record.header, "trailer_rego")]
+        .filter(Boolean)
+        .join(" + ");
+    return {
+      type: "hookup",
+      primaryLabel: "Combination",
+      primaryValue: combination || "—",
+      secondaryLabel: "Driver",
+      secondaryValue: driver,
+      summary: combination || driver || "Hook up",
+    };
+  }
+  if (record.type === "prestart" || record.type === "prestart_trailer" || record.type === "prestart_forklift") {
     const vehicle =
       headerString(record.header, "vehicle_rego") || headerString(record.header, "truck_rego");
+    const plantLabel =
+      record.type === "prestart_trailer"
+        ? "Trailer"
+        : record.type === "prestart_forklift"
+          ? "Forklift"
+          : "Vehicle";
     return {
-      type: "prestart",
-      primaryLabel: "Vehicle",
+      type: record.type,
+      primaryLabel: plantLabel,
       primaryValue: vehicle || "—",
       secondaryLabel: "Driver",
       secondaryValue: driver,
-      summary: vehicle ? `Vehicle ${vehicle}` : driver || "Prestart",
+      summary: vehicle ? `${plantLabel} ${vehicle}` : driver || plantLabel,
     };
   }
   const combination = headerString(record.header, "combination");

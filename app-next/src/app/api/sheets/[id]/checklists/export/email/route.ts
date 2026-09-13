@@ -65,7 +65,10 @@ export async function POST(
       if (body.type != null && body.type !== "") {
         if (!isChecklistRecordType(body.type)) {
           return NextResponse.json(
-            { error: "type must be ffw | prestart | dimension_load" },
+            {
+              error:
+                "type must be ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup",
+            },
             { status: 400 }
           );
         }

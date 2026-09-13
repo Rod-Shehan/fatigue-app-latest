@@ -11,7 +11,10 @@ export type RecordsChecklistCounts = Record<ChecklistRecordType, number>;
 export const EMPTY_RECORDS_CHECKLIST_COUNTS: RecordsChecklistCounts = {
   ffw: 0,
   prestart: 0,
+  prestart_trailer: 0,
+  prestart_forklift: 0,
   dimension_load: 0,
+  hookup: 0,
 };
 
 export function normalizeRosterName(name: string | null | undefined): string {
@@ -99,7 +102,10 @@ export function countCompletedChecklistsByType(
   return {
     ffw: listWeekChecklistsOfType(days, "ffw").length,
     prestart: listWeekChecklistsOfType(days, "prestart").length,
+    prestart_trailer: listWeekChecklistsOfType(days, "prestart_trailer").length,
+    prestart_forklift: listWeekChecklistsOfType(days, "prestart_forklift").length,
     dimension_load: listWeekChecklistsOfType(days, "dimension_load").length,
+    hookup: listWeekChecklistsOfType(days, "hookup").length,
   };
 }
 

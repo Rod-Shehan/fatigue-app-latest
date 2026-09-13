@@ -1,84 +1,712 @@
 /**
- * Schema stubs for Phase 1 demo only — final legal copy reviewed in later phases.
+ * WAHVA-accepted form copy. Pre-departure is three separate forms (vehicle, trailer,
+ * forklift). FFW is the 10-point declaration. Load check is the six-column day row.
+ * N/A is reserved for items that do not apply to every unit of that plant type.
  */
 
 import type { ChecklistSchemaGroup, ChecklistSchemaItem } from "./item-types";
 
-export const FFW_SCHEMA_STUB: ChecklistSchemaItem[] = [
-  { code: "ffw_01", label: "I understand confidential reporting of fitness concerns is available." },
-  { code: "ffw_02", label: "I am physically well enough to drive; no unmanaged injury or illness." },
-  { code: "ffw_03", label: "Prescribed medications are reported and medical letters are held where required." },
-  { code: "ffw_04", label: "I am not under the influence of illicit drugs or alcohol." },
-  { code: "ffw_05", label: "I consent to random drug and alcohol testing as required by company policy." },
-  { code: "ffw_06", label: "I have had sufficient quality sleep and can report fatigue without penalty." },
-  { code: "ffw_07", label: "I have no unreported secondary employment that affects safe driving." },
-  { code: "ffw_08", label: "My stress levels do not impair safe vehicle operation." },
-  { code: "ffw_09", label: "I have adequate food and water provisions for this shift." },
-  { code: "ffw_10", label: "I agree to report external workplace issues that affect fitness for work." },
-];
+/** Driver-facing name — vehicle form. Persist type stays `prestart`. */
+export const PRESTART_FORM_TITLE = "Vehicle pre-departure";
+export const TRAILER_PRESTART_FORM_TITLE = "Trailer pre-departure";
+export const FORKLIFT_PRESTART_FORM_TITLE = "Forklift pre-departure";
 
+export type PrestartPlant = "vehicle" | "trailer" | "forklift";
+
+/** Driver-facing name — WAHVA declaration. Persist type stays `ffw`. */
+export const FFW_FORM_TITLE = "Fitness for Work";
+
+export const FFW_DECLARATION_PREAMBLE =
+  "By signing this form, I acknowledge all information contained in this declaration is true and correct to the best of my knowledge.";
+
+export const FFW_HANDOFF_NOTE =
+  "Your vehicle must not leave its parking area for the shift until this form has been completed, then handed to the responsible person onsite at your location, or handed to the office at the end of your trip only if you start in a remote location.";
+
+function ffwCompanyTerms(companyName?: string | null): { company: string; management: string } {
+  const name = companyName?.trim();
+  return {
+    company: name || "the company",
+    management: name ? `${name} management` : "management",
+  };
+}
+
+/** Ten WAHVA Fitness for Work points, paper order (1|2, 3|4 …). All mandatory. */
+export function buildFfwSchema(companyName?: string | null): ChecklistSchemaItem[] {
+  const { company, management } = ffwCompanyTerms(companyName);
+  return [
+    {
+      code: "ffw_01",
+      label: "I agree to report any fitness for work issues I may be having.",
+      notes: [`I understand that any report to ${management} remains confidential.`],
+    },
+    {
+      code: "ffw_02",
+      label: "I am physically well.",
+      notes: ["I do not have an illness or injury that may affect my fitness for work."],
+    },
+    {
+      code: "ffw_03",
+      label: `I have reported all prescribed medications to ${company}.`,
+      notes: [
+        "If you have been prescribed any medications by a doctor and require a letter to drive a heavy vehicle, you must provide a copy of the prescription and doctor's letter to " +
+          management +
+          ".",
+        `Drivers must always keep a copy of both documents with them while driving ${company} vehicles.`,
+      ],
+    },
+    {
+      code: "ffw_04",
+      label: "I am not under the influence of illicit drugs or alcohol.",
+      notes: [
+        `I agree to notify ${management} that I am not fit for work before my rostered shift starts if I am affected by illicit drugs or alcohol.`,
+        "I agree that if I have not complied with this requirement, my employment may be terminated.",
+      ],
+    },
+    {
+      code: "ffw_05",
+      label: "I agree to random Drug and Alcohol testing.",
+      notes: [
+        `I understand that ${company} has a drug and alcohol policy and testing program to ensure driver fitness for work remains at a high standard.`,
+        "I agree that if I do not comply with a request for a sample to be tested, my employment may be terminated.",
+      ],
+    },
+    {
+      code: "ffw_06",
+      label: "I have had enough quality sleep.",
+      notes: [
+        `If I am not fully rested, I will let ${management} know, so alternative arrangements can be made.`,
+        "I understand I will not be penalized for reporting any fatigue issues before my shift starts.",
+      ],
+    },
+    {
+      code: "ffw_07",
+      label: "I have not worked a second job.",
+      notes: [
+        `If I am working in any job outside of ${company}, I agree to report this to ${management} so any extra work I am doing can be risk assessed for my fitness for work.`,
+        "I agree that if I have not complied with this requirement, my employment may be terminated.",
+      ],
+    },
+    {
+      code: "ffw_08",
+      label: "I am not stressed.",
+      notes: [
+        "I am not under stress so it may affect my ability to perform my work safely.",
+        `Please discuss any issues outside of work that may be affecting you with ${management}.`,
+        `${management} may make alternative working arrangements or provide other assistance if necessary.`,
+      ],
+    },
+    {
+      code: "ffw_09",
+      label: "I have enough food and water for the shift.",
+      notes: [
+        "I understand that having adequate food and water promotes good health and alertness during my shift.",
+        "I agree to report any issues with facilities at any workplace.",
+      ],
+    },
+    {
+      code: "ffw_10",
+      label: `I will report any issues outside ${company} operations that affect my fitness for work.`,
+      notes: [
+        `If I experience any issues outside of ${company} operations or control while working, I agree to report this to ${management} as soon as I can, so ${company} can deal with the situation.`,
+      ],
+    },
+  ];
+}
+
+export const FFW_SCHEMA_STUB: ChecklistSchemaItem[] = buildFfwSchema();
+
+/**
+ * One Pre-departure list from WAHVA truck + van forms.
+ * N/A only on items that are not on every vehicle type.
+ */
 export const PRESTART_SCHEMA_STUB: ChecklistSchemaGroup[] = [
   {
-    code: "wheels",
-    label: "Wheels & tyres",
-    notes: ["Tyre and tread depth", "Wheel nut security", "Hub integrity"],
+    code: "ext_posture",
+    section: "External",
+    label: "Vehicle posture",
+    notes: ["Is the vehicle level, all axles level?"],
   },
   {
-    code: "vision",
-    label: "Vision & glass",
-    notes: ["Windscreen integrity", "Mirrors secure and clean", "Wipers and washers"],
+    code: "ext_leaks",
+    section: "External",
+    label: "Fluid leaks",
+    notes: ["Are there any fluid leaks under the vehicle?"],
   },
   {
-    code: "lights",
-    label: "Lights & reflectors",
-    notes: ["Headlights", "Clearance lights", "Indicators", "Brake lights", "Lenses / reflectors"],
+    code: "ext_breakdown",
+    section: "External",
+    label: "Breakdown equipment",
+    notes: ["Jack, wheel brace, and relevant tools in place", "Breakdown triangles if carried"],
   },
   {
-    code: "suspension",
-    label: "Suspension & chassis",
+    code: "ext_suspension",
+    section: "External",
+    label: "Suspension and chassis",
+    notes: ["Is there any obvious damage or wear, broken parts?"],
+  },
+  {
+    code: "ext_tyres",
+    section: "External",
+    label: "Tyres and wheels",
+    notes: ["Tread depth and inflation good, wheel condition good?"],
+  },
+  {
+    code: "ext_hubs",
+    section: "External",
+    label: "Hubs and wheel nuts",
+    notes: ["Wheel nuts in place, indicators, check for hub leaks?"],
+  },
+  {
+    code: "ext_air_tanks",
+    section: "External",
+    label: "Air tanks",
+    naAllowed: true,
+    notes: ["All air tanks checked / drained if applicable?"],
+  },
+  {
+    code: "ext_grabs",
+    section: "External",
+    label: "Grab handles and steps",
+    notes: ["Are grab handles and steps secure and clean?"],
+  },
+  {
+    code: "ext_turntable",
+    section: "External",
+    label: "Turntable / Ringfeder / pintle hook",
+    naAllowed: true,
     notes: [
-      "Posture / tilt",
-      "Frame / body panels",
-      "Turntable / fifth-wheel security",
-      "Signs / plates",
+      "Turntable greased, handle secure, no cracks or damage?",
+      "Ringfeder (if fitted) secure, no damage, handle free?",
+      "Pintle hook no damage or cracks?",
     ],
   },
   {
-    code: "brakes",
-    label: "Brakes & air",
-    notes: ["Air leaks", "Air tank drain", "Gauges"],
+    code: "ext_mudguards",
+    section: "External",
+    label: "Mudguards / flaps",
+    notes: ["Are mud flaps and guards in good condition and secure?"],
   },
   {
-    code: "engine",
-    label: "Engine & fluids",
-    notes: ["Belts / pulleys", "Oil / coolant / air / hydraulic leaks"],
+    code: "ext_lights",
+    section: "External",
+    label: "Vehicle lighting",
+    notes: ["Stop, tail, clearance, indicators, headlights, reflectors?"],
   },
   {
-    code: "safety",
-    label: "Safety gear",
-    notes: ["First aid kit", "Fire extinguisher", "Warning triangles", "Jack and wheel brace"],
+    code: "ext_body",
+    section: "External",
+    label: "Body condition",
+    notes: ["Note any panel damage, loose parts, scratches, dents?"],
+  },
+  {
+    code: "ext_mirrors",
+    section: "External",
+    label: "Mirrors",
+    notes: ["Mirrors are secure, no damage to housing or glass?"],
+  },
+  {
+    code: "ext_glass",
+    section: "External",
+    label: "Windscreen and windows",
+    notes: ["All windows clean, no cracks or chips in driver's view?"],
+  },
+  {
+    code: "ext_plates",
+    section: "External",
+    label: "Licence plates",
+    notes: ["Licence plates in place, secure, matching set front and back?"],
+  },
+  {
+    code: "ext_extinguisher",
+    section: "External",
+    label: "External fire extinguisher",
+    naAllowed: true,
+    notes: ["If fitted, check secure, tagged, in date, gauge in the green?"],
+  },
+  {
+    code: "ext_curtains",
+    section: "External",
+    label: "Curtains, buckles, tensioners",
+    naAllowed: true,
+    notes: ["Curtains, straps, and buckles secure, no damage, function well?"],
+  },
+  {
+    code: "ext_fuel_caps",
+    section: "External",
+    label: "Fuel / AdBlue caps",
+    naAllowed: true,
+    notes: ["Secure, not leaking, locked if lockable?"],
+  },
+  {
+    code: "cab_seat",
+    section: "In cab / from driver seat",
+    label: "Seat and seatbelt",
+    notes: [
+      "Seat moves freely, all functions working",
+      "Seat and belt in good condition, no holes or fraying, belt retracts correctly?",
+    ],
+  },
+  {
+    code: "cab_extinguisher",
+    section: "In cab / from driver seat",
+    label: "Fire extinguisher",
+    notes: ["Secure, gauge in the green?"],
+  },
+  {
+    code: "cab_firstaid",
+    section: "In cab / from driver seat",
+    label: "First aid kit",
+    notes: ["Available and accessible in emergency?"],
+  },
+  {
+    code: "cab_dash",
+    section: "In cab / from driver seat",
+    label: "Dash warning lights",
+    notes: [
+      "Warning lights go out, engine lights, instruments",
+      "No warnings or alarms stay on after start?",
+    ],
+  },
+  {
+    code: "cab_wipers",
+    section: "In cab / from driver seat",
+    label: "Wipers and washers",
+    notes: ["Function correctly, fluid in reservoir?"],
+  },
+  {
+    code: "cab_horn",
+    section: "In cab / from driver seat",
+    label: "Horn, reverse alarms",
+    notes: ["Check function, switch for reverse alarm functions?"],
+  },
+  {
+    code: "cab_controls",
+    section: "In cab / from driver seat",
+    label: "Driver control functions",
+    notes: ["Steering, handbrake, foot brake", "Air gauges reading full if fitted"],
+  },
+  {
+    code: "cab_cabin",
+    section: "In cab / from driver seat",
+    label: "Cabin condition",
+    notes: ["Clean, no loose items in footwell, demister functions?"],
+  },
+  {
+    code: "cab_service",
+    section: "In cab / from driver seat",
+    label: "Service and maintenance",
+    notes: ["Service sticker is in date, check date and kms when due?"],
   },
 ];
 
+/**
+ * Trailer Pre-departure — own form, WAHVA trailer paper order.
+ * N/A only on items that do not apply to every trailer.
+ */
+export const TRAILER_PRESTART_SCHEMA: ChecklistSchemaGroup[] = [
+  {
+    code: "trl_posture",
+    section: "External",
+    label: "Vehicle posture",
+    notes: ["Trailer is level, all axles level?"],
+  },
+  {
+    code: "trl_air_elec",
+    section: "External",
+    label: "Air and electrical fittings",
+    notes: ["Are air line fittings secure, electrical plug undamaged and secure?"],
+  },
+  {
+    code: "trl_kingpin",
+    section: "External",
+    label: "Kingpin",
+    naAllowed: true,
+    notes: ["Clear of debris, undamaged, secure?"],
+  },
+  {
+    code: "trl_legs",
+    section: "External",
+    label: "Legs",
+    naAllowed: true,
+    notes: ["Support legs straight, undamaged and operational?"],
+  },
+  {
+    code: "trl_curtains",
+    section: "External",
+    label: "Curtains and straps",
+    naAllowed: true,
+    notes: ["Curtains and securing straps and buckles checked, in place and undamaged?"],
+  },
+  {
+    code: "trl_restraint",
+    section: "External",
+    label: "Load restraint",
+    naAllowed: true,
+    notes: [
+      "All load restraint systems in place, straps not frayed, hooks, buckles and ratchets undamaged, gates have support cables in place, undamaged?",
+    ],
+  },
+  {
+    code: "trl_suspension",
+    section: "External",
+    label: "Suspension and chassis",
+    notes: ["Any obvious damage or wear, broken parts?"],
+  },
+  {
+    code: "trl_rear_doors",
+    section: "External",
+    label: "Rear doors",
+    naAllowed: true,
+    notes: ["Secure, undamaged hinges or locks?"],
+  },
+  {
+    code: "trl_tyres",
+    section: "External",
+    label: "Tyres and wheels",
+    notes: ["Tread depth and inflation good, wheel condition good?"],
+  },
+  {
+    code: "trl_hubs",
+    section: "External",
+    label: "Hubs and wheel nuts",
+    notes: ["Wheel nuts in place, indicators, check for hub leaks?"],
+  },
+  {
+    code: "trl_ringfeder",
+    section: "External",
+    label: "Ringfeder",
+    naAllowed: true,
+    notes: ["If fitted and used: Ringfeder secure, no damage, handle moves easily?"],
+  },
+  {
+    code: "trl_mudguards",
+    section: "External",
+    label: "Mudguards / flaps",
+    notes: ["Are mud flaps and guards in good condition and secure?"],
+  },
+  {
+    code: "trl_body",
+    section: "External",
+    label: "Body condition",
+    notes: ["Note any panel damage, loose parts, scratches, dents?"],
+  },
+  {
+    code: "trl_plates",
+    section: "External",
+    label: "Licence plate",
+    notes: ["Licence plate in place and secure?"],
+  },
+  {
+    code: "trl_extinguisher",
+    section: "External",
+    label: "External fire extinguisher",
+    naAllowed: true,
+    notes: ["If fitted, check secure, tagged, in date, gauge in the green?"],
+  },
+  {
+    code: "trl_lights",
+    section: "External",
+    label: "Trailer lighting",
+    notes: ["Stop, tail, clearance, indicators, headlights, reflectors?"],
+  },
+  {
+    code: "trl_air_brakes",
+    section: "External",
+    label: "Air line and brake function",
+    notes: ["No air line leaks, brakes function?"],
+  },
+];
+
+/**
+ * Forklift Pre-departure — own form, WAHVA forklift paper order.
+ * N/A only on items that do not apply to every forklift.
+ */
+export const FORKLIFT_PRESTART_SCHEMA: ChecklistSchemaGroup[] = [
+  {
+    code: "fl_tyres",
+    section: "External",
+    label: "Tyres",
+    notes: ["Check each tyre for wear or damage, and pressure (if applicable)"],
+  },
+  {
+    code: "fl_fluids",
+    section: "External",
+    label: "Fluid levels",
+    naAllowed: true,
+    notes: ["Check oil levels (hydraulic and engine), battery fluid, fuel and coolant levels"],
+  },
+  {
+    code: "fl_seat",
+    section: "External",
+    label: "Seat and seatbelt",
+    notes: ["Check the condition and adjustment and that the seat attachment point is secure"],
+  },
+  {
+    code: "fl_warning",
+    section: "External",
+    label: "Warning devices",
+    notes: [
+      "Check horn is operational",
+      "Check all other fitted devices, such as lights, reversing beeper and flashing beacon, are operational",
+    ],
+  },
+  {
+    code: "fl_capacity",
+    section: "External",
+    label: "Capacity",
+    notes: [
+      "Check that the load capacity data plate is fitted, legible and correct",
+      "Confirm that the forklift has sufficient capacity and reach for the load being lifted",
+    ],
+  },
+  {
+    code: "fl_mast",
+    section: "External",
+    label: "Mast",
+    notes: ["Check for signs of damage", "Check lift chains and guides for wear"],
+  },
+  {
+    code: "fl_hydraulics",
+    section: "External",
+    label: "Hydraulic cylinders and hoses",
+    notes: ["Check for any leaks, cracks, deterioration, and fray in hoses"],
+  },
+  {
+    code: "fl_tines",
+    section: "External",
+    label: "Tines",
+    notes: ["Check for excessive wear, damage, bends, modifications, cracks or repairs"],
+  },
+  {
+    code: "fl_guarding",
+    section: "External",
+    label: "Guarding",
+    notes: ["Check that all guards are in place"],
+  },
+  {
+    code: "fl_attachments",
+    section: "External",
+    label: "Attachments",
+    naAllowed: true,
+    notes: [
+      "Check any attachments for wear, damage and for correct function",
+      "Attachments should be annotated on the load capacity data plate",
+    ],
+  },
+  {
+    code: "fl_controls",
+    section: "Checks after starting",
+    label: "Control operation",
+    notes: ["Check that all pedals and controls operate correctly (including steering)"],
+  },
+  {
+    code: "fl_brakes",
+    section: "Checks after starting",
+    label: "Brakes",
+    notes: ["Check that the brakes (including parking brake) operate correctly"],
+  },
+  {
+    code: "fl_extinguisher",
+    section: "Checks after starting",
+    label: "Fire extinguisher",
+    naAllowed: true,
+    notes: ["If fitted, is in date and gauge in the green"],
+  },
+  {
+    code: "fl_dash",
+    section: "Checks after starting",
+    label: "Dash warning lights",
+    notes: ["No warning lights stay lit after the engine has run for a short time"],
+  },
+  {
+    code: "fl_service",
+    section: "Checks after starting",
+    label: "Service and maintenance",
+    notes: [
+      "Check for service due — hours or sticker",
+      "If none, report as item found",
+    ],
+  },
+];
+
+export function prestartPlantConfig(plant: PrestartPlant): {
+  type: "prestart" | "prestart_trailer" | "prestart_forklift";
+  title: string;
+  schema: ChecklistSchemaGroup[];
+  noun: string;
+  regoLabel: string;
+  regoPlaceholder: string;
+} {
+  if (plant === "trailer") {
+    return {
+      type: "prestart_trailer",
+      title: TRAILER_PRESTART_FORM_TITLE,
+      schema: TRAILER_PRESTART_SCHEMA,
+      noun: "trailer",
+      regoLabel: "Trailer registration (required)",
+      regoPlaceholder: "The trailer you inspected",
+    };
+  }
+  if (plant === "forklift") {
+    return {
+      type: "prestart_forklift",
+      title: FORKLIFT_PRESTART_FORM_TITLE,
+      schema: FORKLIFT_PRESTART_SCHEMA,
+      noun: "forklift",
+      regoLabel: "Forklift registration or plant ID (required)",
+      regoPlaceholder: "The forklift you inspected",
+    };
+  }
+  return {
+    type: "prestart",
+    title: PRESTART_FORM_TITLE,
+    schema: PRESTART_SCHEMA_STUB,
+    noun: "vehicle",
+    regoLabel: "Vehicle registration (required)",
+    regoPlaceholder: "The truck or van you inspected",
+  };
+}
+
+/** Driver-facing name — day-row load check. Persist type stays `dimension_load`. */
+export const LOAD_FORM_TITLE = "Load check";
+
+/**
+ * Day-row load check (WAHVA Dimension & Loading columns).
+ * N/A only on Permits and Dunnage / friction — not every load uses those.
+ */
 export const LOAD_SCHEMA_STUB: ChecklistSchemaItem[] = [
   {
+    code: "load_permits",
+    label: "Permits",
+    naAllowed: true,
+    notes: [
+      "Notice or permit attached if this load needs one",
+      "Route authorized under the notice or permit (RAV Network check)",
+    ],
+  },
+  {
     code: "load_dimensions",
-    label: "Vehicle within regulated dimensions (or notice/permit attached)",
+    label: "Dimensions",
+    notes: ["Vehicle and load within regulated dimensions, or as allowed by the notice or permit"],
   },
   {
-    code: "load_route",
-    label: "Route authorized under notice/permit (RAV Network check)",
+    code: "load_security",
+    label: "Load security",
+    notes: [
+      "Load properly secured",
+      "Restraint equipment load-rated and in good condition",
+    ],
   },
   {
-    code: "load_secured",
-    label: "Load properly secured; restraint equipment load-rated and in good condition",
+    code: "load_stability",
+    label: "Stability / rollover risk",
+    notes: ["Load positioning and centre of gravity preserve vehicle stability"],
   },
   {
-    code: "load_cog",
-    label: "Load positioning & centre of gravity preserves vehicle stability",
+    code: "load_suitability",
+    label: "Vehicle suitability",
+    notes: ["Vehicle and combination suitable for this load (mass, body type, ratings)"],
   },
   {
     code: "load_dunnage",
-    label: "Dunnage chosen, positioned, and restrained correctly",
+    label: "Dunnage / friction",
+    naAllowed: true,
+    notes: [
+      "Dunnage chosen, positioned, and restrained correctly",
+      "Friction adequate for this load",
+    ],
+  },
+];
+
+/** Driver-facing name. Persist type is `hookup`. Not a week-PDF tick. */
+export const HOOKUP_FORM_TITLE = "Hook up";
+
+export const HOOKUP_SOURCE_NOTE =
+  "Steps follow the Australian Trucking Association fifth-wheel coupling guide. Initial on the paper row is your signature here.";
+
+/**
+ * Hook-up day-row headers, in paper order. Detail from ATA TAP coupling procedure.
+ * N/A only on Turntable (ball-race / block), which is not on every fifth-wheel setup.
+ * Paper “Initial?” is the driver signature, not a scored item.
+ */
+export const HOOKUP_SCHEMA: ChecklistSchemaItem[] = [
+  {
+    code: "hook_process",
+    label: "Hookup process",
+    notes: [
+      "One person only — do not split the job",
+      "No distractions. If interrupted, go back to the last confirmed step",
+      "Fifth-wheel jaws unlocked (open) before you reverse",
+    ],
+  },
+  {
+    code: "hook_turntable",
+    label: "Turntable",
+    naAllowed: true,
+    notes: [
+      "If the trailer has a skid-plate locking block, the fifth wheel must be on a turntable (ball-race). Do not couple a block to a fixed fifth wheel",
+      "If there is no block and the fifth wheel is on a turntable, lock the turntable with the two locking pins",
+    ],
+  },
+  {
+    code: "hook_reverse",
+    label: "Reverse",
+    notes: [
+      "Reverse into position, aligned in front of the trailer",
+      "Stop before the fifth wheel goes under the skid plate",
+      "Apply the park brake before you exit",
+    ],
+  },
+  {
+    code: "hook_alignment",
+    label: "Alignment",
+    notes: ["Couple in a straight line", "Fifth wheel and trailer set for height, tilt, and alignment"],
+  },
+  {
+    code: "hook_height",
+    label: "Trailer height",
+    notes: ["Exit and check the height between the trailer skid plate and the fifth wheel is suitable"],
+  },
+  {
+    code: "hook_under",
+    label: "Reverse under trailer",
+    notes: [
+      "Reverse slowly under the trailer until the fifth wheel engages the kingpin",
+      "Expect a distinct double mechanical sound as the locks engage",
+    ],
+  },
+  {
+    code: "hook_tug_1",
+    label: "Tug test",
+    notes: ["Complete a tug test — at least twice, or as company procedure"],
+  },
+  {
+    code: "hook_gap_1",
+    label: "Check gap",
+    notes: ["No gap between the top of the fifth wheel and the trailer skid plate"],
+  },
+  {
+    code: "hook_lock",
+    label: "Turntable lock",
+    notes: [
+      "Fifth-wheel handle fully locked (closed), safety latch down if fitted",
+      "Jaws fully locked around the kingpin",
+      "Secondary lock / safety chain connected if fitted",
+    ],
+  },
+  {
+    code: "hook_gap_2",
+    label: "Check gap",
+    notes: ["Walk-round visual: skid plate still hard on the fifth wheel — no gap"],
+  },
+  {
+    code: "hook_legs",
+    label: "Legs raised",
+    notes: ["Fully retract landing legs and stow the handle", "Landing legs in high gear so they cannot creep down"],
+  },
+  {
+    code: "hook_tug_2",
+    label: "Tug test",
+    notes: ["Final tug test before moving off, where possible and as company procedure"],
   },
 ];

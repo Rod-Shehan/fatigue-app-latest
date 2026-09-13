@@ -113,10 +113,11 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
         }
       >
         <div className="space-y-2">
-          {FFW_SCHEMA_STUB.map((item) => (
+          {FFW_SCHEMA_STUB.map((item, index) => (
             <ChecklistAcknowledgeItem
               key={item.code}
-              label={item.label}
+              label={`${index + 1}. ${item.label}`}
+              notes={item.notes}
               state={ffw[item.code]!}
               onChange={(next) => setFfw((s) => ({ ...s, [item.code]: next }))}
             />
@@ -133,7 +134,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
         open={open === "prestart"}
         onClose={() => setOpen(null)}
         title="Prestart inspection"
-        subtitle="Pass / Fail / N/A · demo stub"
+        subtitle="Pass / Fault · demo stub"
         footer={
           <p className="text-center text-xs text-ck-steel">
             {prestartDone && sig ? "Demo complete (not saved)" : "Complete items + signature"}
@@ -146,6 +147,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
               key={group.code}
               label={group.label}
               notes={group.notes}
+              naAllowed={group.naAllowed === true}
               failLabel="FAULT"
               defectCardTitle="Fault"
               defectDescriptionLabel="Fault description (required)"
@@ -165,7 +167,7 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
       <ChecklistModalShell
         open={open === "load"}
         onClose={() => setOpen(null)}
-        title="Dimension & Load"
+        title="Load check"
         subtitle="Driver check · demo stub (loader CoR paths in Phase 5)"
         footer={
           <p className="text-center text-xs text-ck-steel">
@@ -178,6 +180,10 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
             <ChecklistItemControl
               key={item.code}
               label={item.label}
+              notes={item.notes}
+              naAllowed={item.naAllowed === true}
+              passLabel="OK"
+              failLabel="FAULT"
               state={load[item.code]!}
               onChange={(next) => setLoad((s) => ({ ...s, [item.code]: next }))}
             />

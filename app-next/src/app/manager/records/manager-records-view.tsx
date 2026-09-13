@@ -355,11 +355,32 @@ export function ManagerRecordsView() {
                           onExport={() => exportChecklistPdf(selectedSheet, "prestart")}
                         />
                         <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_TRAILER}
+                          count={checklistCounts.prestart_trailer}
+                          loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("prestart_trailer")}
+                          onExport={() => exportChecklistPdf(selectedSheet, "prestart_trailer")}
+                        />
+                        <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_FORKLIFT}
+                          count={checklistCounts.prestart_forklift}
+                          loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("prestart_forklift")}
+                          onExport={() => exportChecklistPdf(selectedSheet, "prestart_forklift")}
+                        />
+                        <RecordsChecklistSubjectRow
                           title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}
                           count={checklistCounts.dimension_load}
                           loading={checklistsQuery.isLoading}
                           onView={() => setViewChecklistType("dimension_load")}
                           onExport={() => exportChecklistPdf(selectedSheet, "dimension_load")}
+                        />
+                        <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_HOOKUP}
+                          count={checklistCounts.hookup}
+                          loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("hookup")}
+                          onExport={() => exportChecklistPdf(selectedSheet, "hookup")}
                         />
                       </ul>
                     ) : null}

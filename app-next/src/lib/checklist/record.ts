@@ -14,7 +14,28 @@ import type { ChecklistPassFailItemState, ChecklistAcknowledgeItemState } from "
 
 export const CHECKLIST_SCHEMA_VERSION = 1;
 
-export type ChecklistRecordType = "ffw" | "prestart" | "dimension_load";
+export const CHECKLIST_RECORD_TYPES = [
+  "ffw",
+  "prestart",
+  "prestart_trailer",
+  "prestart_forklift",
+  "dimension_load",
+  "hookup",
+] as const;
+
+export type ChecklistRecordType = (typeof CHECKLIST_RECORD_TYPES)[number];
+
+export const PRESTART_RECORD_TYPES = [
+  "prestart",
+  "prestart_trailer",
+  "prestart_forklift",
+] as const;
+
+export type PrestartRecordType = (typeof PRESTART_RECORD_TYPES)[number];
+
+export function isPrestartRecordType(v: unknown): v is PrestartRecordType {
+  return v === "prestart" || v === "prestart_trailer" || v === "prestart_forklift";
+}
 
 export type ChecklistLoaderPath =
   | "present"
@@ -79,7 +100,14 @@ export function newChecklistRecordId(): string {
 }
 
 export function isChecklistRecordType(v: unknown): v is ChecklistRecordType {
-  return v === "ffw" || v === "prestart" || v === "dimension_load";
+  return (
+    v === "ffw" ||
+    v === "prestart" ||
+    v === "prestart_trailer" ||
+    v === "prestart_forklift" ||
+    v === "dimension_load" ||
+    v === "hookup"
+  );
 }
 
 export function dataUrlWithinLimit(dataUrl: string, maxChars: number): boolean {
@@ -116,7 +144,11 @@ export function validateCompletedChecklistRecord(
     errors.push({ code: "id", message: "id is required" });
   }
   if (!isChecklistRecordType(r.type)) {
-    errors.push({ code: "type", message: "type must be ffw | prestart | dimension_load" });
+    errors.push({
+      code: "type",
+      message:
+        "type must be ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup",
+    });
   }
   if (r.status !== "completed") {
     errors.push({ code: "status", message: "Only completed records can be persisted in Phase 2" });
@@ -125,7 +157,7 @@ export function validateCompletedChecklistRecord(
     errors.push({ code: "completedAtUtc", message: "completedAtUtc is required" });
   }
   const prestartNotResponsible =
-    r.type === "prestart" && r.prestartResponsible === false;
+    isPrestartRecordType(r.type) && r.prestartResponsible === false;
   if (prestartNotResponsible) {
     if (typeof r.prestartSkipReason !== "string" || !String(r.prestartSkipReason).trim()) {
       errors.push({
@@ -258,7 +290,7 @@ export function validateCompletedChecklistRecord(
     }
   }
 
-  if (r.type === "prestart" && r.prestartResponsible !== false && Array.isArray(r.items)) {
+  if (isPrestartRecordType(r.type) && r.prestartResponsible !== false && Array.isArray(r.items)) {
     const hasFault = (r.items as ChecklistRecordItem[]).some(
       (item) => item?.kind === "pass_fail" && item.value === "fail"
     );

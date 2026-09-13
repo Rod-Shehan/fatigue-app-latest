@@ -60,17 +60,32 @@ export type ChecklistSignatureCapture = {
 export type ChecklistSchemaItem = {
   code: string;
   label: string;
+  /** Extra paper wording under the lead sentence (FFW declaration detail). */
+  notes?: string[];
+  /**
+   * True only when the item does not apply to every plant type (e.g. ramps, turntables).
+   * Omitted / false = mandatory; N/A is not offered.
+   */
+  naAllowed?: boolean;
 };
 
 /**
- * Prestart-style group: the group itself is Pass / Fail / N/A;
+ * Prestart-style group: the group itself is Pass / Fail (N/A only if `naAllowed`).
  * `notes` are checklist prompts under the heading (not separately scored).
  */
 export type ChecklistSchemaGroup = {
   code: string;
   label: string;
   notes: string[];
+  naAllowed?: boolean;
+  /** Paper heading (External / In cab). */
+  section?: string;
 };
+
+/** N/A is offered only when the schema says the item is not universal. */
+export function checklistItemAllowsNa(naAllowed?: boolean): boolean {
+  return naAllowed === true;
+}
 
 export function emptyDefect(): ChecklistDefect {
   return { description: "", photoDataUrls: [], mobilityStatus: null };

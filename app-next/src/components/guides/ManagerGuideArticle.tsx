@@ -23,7 +23,7 @@ export function ManagerGuideArticle() {
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
-        ├── Records (week: fatigue / FFW / prestart / load)
+        ├── Records (week: fatigue / FFW / vehicle / trailer / forklift pre-departure / load)
         ├── Rego (vehicles)
         └── Test desk (checklist PDF email + WAHVA maintenance contact)`}
         </GuideDiagram>
@@ -46,9 +46,11 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_RECORDS}</strong> — every
-            roster driver on the left; pick a week by date. Under that week, four separate subjects:{" "}
+            roster driver on the left; pick a week by date. Under that week, separate subjects:{" "}
             {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FATIGUE}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FFW},{" "}
-            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}, and {MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}. Each
+            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_TRAILER},{" "}
+            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FORKLIFT}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}, and{" "}
+            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_HOOKUP}. Each
             subject has {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK} (in-app) and {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}.
             Fatigue opens the week sheet; checklist subjects open that week’s signed forms of that type only
             (types are never combined). For managers and WAHVA auditors reviewing history without hunting
@@ -56,7 +58,7 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
-            email (where FFW / Prestart / Load week packs go — each person sets their own; defaults to sign-in
+            email (where FFW / vehicle / trailer / forklift pre-departure / Load week packs go — each person sets their own; defaults to sign-in
             email) and workshop / maintenance contact for WAHVA fault reporting (also on driver Settings)
           </li>
           <li>

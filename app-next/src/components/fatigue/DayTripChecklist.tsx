@@ -9,6 +9,12 @@ import {
   type DayTripChecklistFields,
   type TripChecklistKey,
 } from "@/lib/worksafe-day-sheet/trip-checklist";
+import {
+  FORKLIFT_PRESTART_FORM_TITLE,
+  HOOKUP_FORM_TITLE,
+  PRESTART_FORM_TITLE,
+  TRAILER_PRESTART_FORM_TITLE,
+} from "@/lib/checklist";
 
 type Props = {
   value: DayTripChecklistFields;
@@ -26,27 +32,101 @@ type Props = {
   /** Phase 4 — open voluntary Prestart form (optional; no Start-shift gate). */
   onOpenPrestart?: () => void;
   onViewPrestart?: () => void;
-  /** True when any completed prestart record exists (inspection or not-responsible note). */
+  /** True when any completed vehicle prestart record exists (inspection or not-responsible note). */
   prestartFormCompleted?: boolean;
+  onOpenTrailerPrestart?: () => void;
+  onViewTrailerPrestart?: () => void;
+  trailerPrestartCompleted?: boolean;
+  onOpenForkliftPrestart?: () => void;
+  onViewForkliftPrestart?: () => void;
+  forkliftPrestartCompleted?: boolean;
   /** Phase 5 — open voluntary Dimension & Load form (optional; multi-load; no post-load gate). */
   onOpenDimensionLoad?: () => void;
   onViewDimensionLoad?: () => void;
   /** True when ≥1 completed dimension_load record exists for this day. */
   dimensionLoadFormCompleted?: boolean;
+  onOpenHookup?: () => void;
+  onViewHookup?: () => void;
+  hookupFormCompleted?: boolean;
 };
+
+function PlantFormRow({
+  title,
+  completed,
+  readOnly,
+  variant,
+  onView,
+  onOpen,
+  completedOpenLabel = "Redo",
+}: {
+  title: string;
+  completed: boolean;
+  readOnly: boolean;
+  variant: "card" | "dialog";
+  onView?: () => void;
+  onOpen?: () => void;
+  completedOpenLabel?: string;
+}) {
+  if (!onView && !onOpen) return null;
+  return (
+    <li>
+      <div className="flex min-h-11 items-center gap-3 rounded-md px-1 py-1.5">
+        <span
+          className={cn(
+            "min-w-0 flex-1 font-medium text-slate-800 dark:text-slate-100",
+            variant === "card" ? "text-sm" : "text-base"
+          )}
+        >
+          {title}
+          {completed ? (
+            <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+              Form saved
+            </span>
+          ) : null}
+        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {completed && onView ? (
+            <button
+              type="button"
+              onClick={onView}
+              className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:border-slate-600 dark:text-slate-100"
+            >
+              View
+            </button>
+          ) : null}
+          {onOpen && !readOnly ? (
+            <button
+              type="button"
+              onClick={onOpen}
+              className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:border-slate-600 dark:text-slate-100"
+            >
+              {completed ? completedOpenLabel : "Open form"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
+}
 
 function checklistSummary(
   value: DayTripChecklistFields,
   ffwFormCompleted: boolean,
   prestartFormCompleted: boolean,
-  dimensionLoadFormCompleted: boolean
+  trailerPrestartCompleted: boolean,
+  forkliftPrestartCompleted: boolean,
+  dimensionLoadFormCompleted: boolean,
+  hookupFormCompleted: boolean
 ): string {
   const done = TRIP_CHECKLIST_KEYS.filter((k) => value[k] === true).length;
   const total = TRIP_CHECKLIST_KEYS.length;
   const forms: string[] = [];
   if (ffwFormCompleted) forms.push("FFW");
-  if (prestartFormCompleted) forms.push("Prestart");
+  if (prestartFormCompleted) forms.push(PRESTART_FORM_TITLE);
+  if (trailerPrestartCompleted) forms.push(TRAILER_PRESTART_FORM_TITLE);
+  if (forkliftPrestartCompleted) forms.push(FORKLIFT_PRESTART_FORM_TITLE);
   if (dimensionLoadFormCompleted) forms.push("Load");
+  if (hookupFormCompleted) forms.push(HOOKUP_FORM_TITLE);
   const tickPart = `${done}/${total} ticked`;
   if (forms.length === 0) return tickPart;
   return `${tickPart} · ${forms.join(", ")} saved`;
@@ -64,9 +144,18 @@ export function DayTripChecklist({
   onOpenPrestart,
   onViewPrestart,
   prestartFormCompleted = false,
+  onOpenTrailerPrestart,
+  onViewTrailerPrestart,
+  trailerPrestartCompleted = false,
+  onOpenForkliftPrestart,
+  onViewForkliftPrestart,
+  forkliftPrestartCompleted = false,
   onOpenDimensionLoad,
   onViewDimensionLoad,
   dimensionLoadFormCompleted = false,
+  onOpenHookup,
+  onViewHookup,
+  hookupFormCompleted = false,
 }: Props) {
   const collapsible = variant === "card";
   const [expanded, setExpanded] = useState(!collapsible);
@@ -80,14 +169,23 @@ export function DayTripChecklist({
       onViewFfw ||
       onOpenPrestart ||
       onViewPrestart ||
+      onOpenTrailerPrestart ||
+      onViewTrailerPrestart ||
+      onOpenForkliftPrestart ||
+      onViewForkliftPrestart ||
       onOpenDimensionLoad ||
-      onViewDimensionLoad
+      onViewDimensionLoad ||
+      onOpenHookup ||
+      onViewHookup
   );
   const summary = checklistSummary(
     value,
     ffwFormCompleted,
     prestartFormCompleted,
-    dimensionLoadFormCompleted
+    trailerPrestartCompleted,
+    forkliftPrestartCompleted,
+    dimensionLoadFormCompleted,
+    hookupFormCompleted
   );
 
   return (
@@ -133,8 +231,9 @@ export function DayTripChecklist({
               collapsible && "mt-1"
             )}
           >
-            Optional in trial. Tick when done, or open signed Fitness for Work / Prestart / Dimension &
-            Load forms. Shows on the week PDF when completed.
+            Optional in trial. Tick when done, or open signed Fitness for Work / vehicle, trailer, or
+            forklift pre-departure / Dimension & Load / Hook up forms. Daily ticks show on the week
+            PDF. Trailer, forklift, and hook-up forms stay in the EWD only.
           </p>
           <ul className="space-y-1">
             {TRIP_CHECKLIST_KEYS.map((key) => {
@@ -261,6 +360,40 @@ export function DayTripChecklist({
               );
             })}
           </ul>
+          {(onOpenTrailerPrestart ||
+            onViewTrailerPrestart ||
+            onOpenForkliftPrestart ||
+            onViewForkliftPrestart ||
+            onOpenHookup ||
+            onViewHookup) && (
+            <ul className="mt-2 space-y-1 border-t border-slate-200 pt-2 dark:border-slate-700">
+              <PlantFormRow
+                title={TRAILER_PRESTART_FORM_TITLE}
+                completed={trailerPrestartCompleted}
+                readOnly={readOnly}
+                variant={variant}
+                onView={onViewTrailerPrestart}
+                onOpen={onOpenTrailerPrestart}
+              />
+              <PlantFormRow
+                title={FORKLIFT_PRESTART_FORM_TITLE}
+                completed={forkliftPrestartCompleted}
+                readOnly={readOnly}
+                variant={variant}
+                onView={onViewForkliftPrestart}
+                onOpen={onOpenForkliftPrestart}
+              />
+              <PlantFormRow
+                title={HOOKUP_FORM_TITLE}
+                completed={hookupFormCompleted}
+                readOnly={readOnly}
+                variant={variant}
+                onView={onViewHookup}
+                onOpen={onOpenHookup}
+                completedOpenLabel="Add another"
+              />
+            </ul>
+          )}
         </>
       ) : null}
     </fieldset>
