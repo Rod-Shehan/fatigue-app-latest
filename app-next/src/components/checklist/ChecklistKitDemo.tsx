@@ -48,10 +48,13 @@ export function ChecklistKitDemo({ backHref = "/manager/alerts" }: { backHref?: 
     [ffw]
   );
   const prestartDone = useMemo(
-    () => Object.values(prestart).every(isPassFailItemComplete),
+    () => Object.values(prestart).every((state) => isPassFailItemComplete(state)),
     [prestart]
   );
-  const loadDone = useMemo(() => Object.values(load).every(isPassFailItemComplete), [load]);
+  const loadDone = useMemo(
+    () => Object.values(load).every((state) => isPassFailItemComplete(state)),
+    [load]
+  );
 
   const openDemo = (kind: DemoKind) => {
     setSig(null);
