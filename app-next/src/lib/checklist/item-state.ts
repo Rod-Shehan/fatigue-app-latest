@@ -47,13 +47,14 @@ export function updateDefect(
   };
 }
 
-/** Fault requires description + driveability choice. */
+/** Fault requires description + driveability choice, unless `defectRequired` is false. */
 export function isPassFailItemComplete(
   state: ChecklistPassFailItemState,
-  opts?: { naAllowed?: boolean }
+  opts?: { naAllowed?: boolean; defectRequired?: boolean }
 ): boolean {
   if (state.value === "unselected") return false;
   if (state.value === "fail") {
+    if (opts?.defectRequired === false) return true;
     const d = state.defect ? normalizeDefect(state.defect) : null;
     return Boolean(d?.description?.trim() && d.mobilityStatus);
   }

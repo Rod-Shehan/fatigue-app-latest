@@ -29,10 +29,10 @@ const LOADER_PATH_LABEL: Record<string, string> = {
   self_as_loader: "Driver also loaded — dual signatures",
 };
 
-function itemValueLabel(value: string): string {
+function itemValueLabel(value: string, type?: ChecklistRecordType): string {
   switch (value) {
     case "pass":
-      return "Pass";
+      return type === "hookup" ? "Completed" : "Pass";
     case "fail":
       return "Fault";
     case "na":
@@ -58,8 +58,9 @@ function formatCompletedWhen(record: ChecklistRecord): string {
 
 function RecordBody({ record, index, total }: { record: ChecklistRecord; index: number; total: number }) {
   const identity = checklistAuditIdentity(record);
+  const observations = String(record.header?.faults_and_observations ?? "").trim();
   const headerEntries = Object.entries(record.header ?? {}).filter(
-    ([, v]) => v != null && String(v).trim() !== ""
+    ([k, v]) => k !== "faults_and_observations" && v != null && String(v).trim() !== ""
   );
 
   return (
@@ -131,7 +132,7 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
                         : "text-ck-steel"
                   }`}
                 >
-                  {itemValueLabel(item.value)}
+                  {itemValueLabel(item.value, record.type)}
                 </span>
               </div>
               {item.kind === "pass_fail" && item.value === "fail" && item.defect ? (
@@ -158,6 +159,15 @@ function RecordBody({ record, index, total }: { record: ChecklistRecord; index: 
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {observations ? (
+        <div className="rounded-lg border border-ck-border bg-ck-midnight/60 p-2 text-sm">
+          <p className="text-xs font-bold uppercase tracking-wide text-ck-steel">
+            Faults and observations
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-ck-fg">{observations}</p>
+        </div>
       ) : null}
 
       {record.actionedFaultText ? (

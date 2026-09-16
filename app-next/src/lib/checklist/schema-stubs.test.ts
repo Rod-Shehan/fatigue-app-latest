@@ -150,25 +150,43 @@ describe("LOAD_SCHEMA_STUB (WAHVA load-check day row)", () => {
   });
 });
 
-describe("HOOKUP_SCHEMA (WAHVA hook-up day row + ATA)", () => {
-  it("lists the twelve paper columns in order (Initial is the signature)", () => {
+describe("HOOKUP_SCHEMA (MTS hookup checklist)", () => {
+  it("lists the fourteen paper steps in order", () => {
     expect(HOOKUP_SCHEMA.map((i) => i.code)).toEqual([
-      "hook_process",
-      "hook_turntable",
-      "hook_reverse",
-      "hook_alignment",
-      "hook_height",
-      "hook_under",
-      "hook_tug_1",
-      "hook_gap_1",
-      "hook_lock",
-      "hook_gap_2",
-      "hook_legs",
-      "hook_tug_2",
+      "hook_01",
+      "hook_02",
+      "hook_03",
+      "hook_04",
+      "hook_05",
+      "hook_06",
+      "hook_07",
+      "hook_08",
+      "hook_09",
+      "hook_10",
+      "hook_11",
+      "hook_12",
+      "hook_13",
+      "hook_14",
     ]);
   });
 
-  it("offers N/A only on Turntable (not every fifth-wheel setup)", () => {
-    expectNaOnly(HOOKUP_SCHEMA, ["hook_turntable"]);
+  it("uses the paper step wording and does not offer N/A", () => {
+    expect(HOOKUP_SCHEMA.map((i) => i.label)).toEqual([
+      "1. Checked turntable greased and jaws are open / handle is locked open. Air lines are clear of the turntable and deck.",
+      "2. Reversed back to the trailer and stop short of.",
+      "3. Applied handbrake and get out of truck.",
+      "4. Checked the trailer alignment and turntable height before attempting to hook up. With airbags at neutral height, turntable must be at the same level as a trailer skid plate.",
+      "5. Lowered the airbags (or raise trailer legs).",
+      "6. Reversed under the trailer and stopped short of the kingpin.",
+      "7. Raised airbags / wind up trailer legs to remove any gap between the turntable and the trailer.",
+      "8. Applied handbrake and get out of truck.",
+      "9. CRITICAL - Checked there is no gap between the turntable and the trailer.",
+      "10. Reversed back under the trailer until locked then complete first tug test.",
+      "11. Applied handbrake and get out of truck.",
+      "12. CRITICAL - Checked there is no gap between the turntable and the trailer, handle and jaws are locked closed.",
+      "13. Raised the trailer legs, stowed the leg handle, connected the leads and air lines.",
+      "14. I have completed a second tug test.",
+    ]);
+    expectNaOnly(HOOKUP_SCHEMA, []);
   });
 });

@@ -602,8 +602,8 @@ export function DriverGuideArticle() {
             {PRESTART_FORM_TITLE.toLowerCase()} can record that on the {PRESTART_FORM_TITLE} form instead of inventing
             answers. {PRESTART_FORM_TITLE} is filed under the vehicle registration. {LOAD_FORM_TITLE} is one form per
             load (prime + every trailer/dolly on that load); Add another for the next load. Loader CoR stays separate
-            (present sign, pending, or photo gap — no proxy). {HOOKUP_FORM_TITLE} is one signed form per coupling
-            (ATA fifth-wheel steps). Paper Initial is your signature. Add another for the next hook-up.
+            (present sign, pending, or photo gap — no proxy).             {HOOKUP_FORM_TITLE} is one signed tick sheet per coupling
+            (14 paper steps). Training covers the procedure. Add another for the next hook-up.
           </li>
           <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted, then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL})</li>
           <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. From Rest, tap {DRIVER_START_WORK_LABEL} then driving or Other work. On Other work the three tiles stay on the ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL}. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load</li>
@@ -657,7 +657,7 @@ export function DriverGuideArticle() {
             ],
             [
               HOOKUP_FORM_TITLE,
-              "WAHVA hook-up day row (Hookup process, Turntable, Reverse, Alignment, Trailer height, Reverse under trailer, Tug test, Check gap, Turntable lock, Check gap, Legs raised, Tug test). Detail from the ATA fifth-wheel coupling guide. Paper Initial is your signature. One signed form per coupling. N/A only on Turntable when that setup does not apply. Not a week-PDF tick. Add another for the next hook-up",
+              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. Not a week-PDF tick. Add another for the next hook-up",
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

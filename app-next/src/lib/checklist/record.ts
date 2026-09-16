@@ -114,7 +114,7 @@ export function dataUrlWithinLimit(dataUrl: string, maxChars: number): boolean {
   return typeof dataUrl === "string" && dataUrl.startsWith("data:") && dataUrl.length <= maxChars;
 }
 
-function itemComplete(item: ChecklistRecordItem): boolean {
+function itemComplete(item: ChecklistRecordItem, defectRequired = true): boolean {
   if (item.kind === "acknowledge") {
     return isAcknowledgeItemComplete({ value: item.value } as ChecklistAcknowledgeItemState);
   }
@@ -122,7 +122,10 @@ function itemComplete(item: ChecklistRecordItem): boolean {
     value: item.value,
     defect: item.defect ?? null,
   };
-  return isPassFailItemComplete(state);
+  return isPassFailItemComplete(
+    state,
+    defectRequired ? undefined : { defectRequired: false }
+  );
 }
 
 export type ChecklistValidationError = { code: string; message: string };
@@ -180,7 +183,7 @@ export function validateCompletedChecklistRecord(
         errors.push({ code: "items", message: "Each item needs a code" });
         break;
       }
-      if (!itemComplete(item)) {
+      if (!itemComplete(item, r.type !== "hookup")) {
         errors.push({
           code: "items",
           message: `Item ${item.code} is incomplete (Fail needs defect text; acknowledge must be checked)`,

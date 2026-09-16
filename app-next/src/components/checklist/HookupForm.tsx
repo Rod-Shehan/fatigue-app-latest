@@ -5,17 +5,22 @@ import {
   CHECKLIST_SCHEMA_VERSION,
   emptyPassFailItem,
   HOOKUP_FORM_TITLE,
+  HOOKUP_OBSERVATIONS_LABEL,
+  HOOKUP_PROCEDURE_NOTE,
   HOOKUP_SCHEMA,
-  HOOKUP_SOURCE_NOTE,
+  HOOKUP_SIGN_NOTE,
   isPassFailItemComplete,
   lastHookupFromRecords,
   newChecklistRecordId,
+  setPassFailValue,
   validateCompletedChecklistRecord,
+  type ChecklistItemValue,
   type ChecklistPassFailItemState,
   type ChecklistRecord,
+  type ChecklistSchemaItem,
   type ChecklistSignatureCapture,
 } from "@/lib/checklist";
-import { ChecklistItemControl } from "./ChecklistItemControl";
+import { cn } from "@/lib/utils";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
@@ -25,9 +30,51 @@ function initPassFailMap(): Record<string, ChecklistPassFailItemState> {
   return m;
 }
 
+const HOOKUP_SEGMENTS: { value: ChecklistItemValue; label: string; activeClass: string }[] = [
+  { value: "pass", label: "COMPLETED", activeClass: "bg-ck-emerald text-ck-on-accent border-ck-emerald" },
+  { value: "fail", label: "FAULT", activeClass: "bg-ck-red text-ck-on-accent border-ck-red" },
+];
+
+function HookupStepRow({
+  item,
+  state,
+  onChange,
+}: {
+  item: ChecklistSchemaItem;
+  state: ChecklistPassFailItemState;
+  onChange: (next: ChecklistPassFailItemState) => void;
+}) {
+  return (
+    <div className="flex items-start gap-2 border-b border-ck-border py-2 last:border-0">
+      <p className="min-w-0 flex-1 text-sm leading-snug text-ck-fg">{item.label}</p>
+      <div className="grid w-[9.75rem] shrink-0 grid-cols-2 gap-1" role="group" aria-label={item.label}>
+        {HOOKUP_SEGMENTS.map((seg) => {
+          const active = state.value === seg.value;
+          return (
+            <button
+              key={seg.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(setPassFailValue(state, seg.value))}
+              className={cn(
+                "min-h-[36px] rounded-md border px-1 text-[10px] font-bold leading-tight tracking-wide",
+                active
+                  ? seg.activeClass
+                  : "border-ck-border bg-ck-midnight/40 text-ck-steel"
+              )}
+            >
+              {seg.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Voluntary hook-up check. Multi-complete allowed. Not a week-PDF tick.
- * Paper “Initial?” is the driver signature.
+ * Paper driver sign is the signature.
  */
 export function HookupForm({
   open,
@@ -48,6 +95,7 @@ export function HookupForm({
 }) {
   const [truck, setTruck] = useState("");
   const [trailer, setTrailer] = useState("");
+  const [observations, setObservations] = useState("");
   const [items, setItems] = useState(initPassFailMap);
   const [signature, setSignature] = useState<ChecklistSignatureCapture | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +104,7 @@ export function HookupForm({
   const allItemsComplete = useMemo(
     () =>
       HOOKUP_SCHEMA.every((item) =>
-        isPassFailItemComplete(items[item.code]!, { naAllowed: item.naAllowed === true })
+        isPassFailItemComplete(items[item.code]!, { defectRequired: false })
       ),
     [items]
   );
@@ -74,6 +122,7 @@ export function HookupForm({
   const reset = () => {
     setTruck("");
     setTrailer("");
+    setObservations("");
     setItems(initPassFailMap());
     setSignature(null);
     setError(null);
@@ -92,11 +141,11 @@ export function HookupForm({
       return;
     }
     if (!allItemsComplete) {
-      setError("Mark every step before saving. Fault needs a short description.");
+      setError("Mark every step before saving.");
       return;
     }
     if (!signature) {
-      setError("Confirm your initial before saving.");
+      setError("Sign before saving.");
       return;
     }
 
@@ -110,10 +159,10 @@ export function HookupForm({
       completedAtUtc: new Date().toISOString(),
       items: HOOKUP_SCHEMA.map((item) => ({
         code: item.code,
-        label: [item.label, ...(item.notes ?? [])].join(" — "),
+        label: item.label,
         kind: "pass_fail" as const,
         value: items[item.code]!.value,
-        defect: items[item.code]!.defect ?? null,
+        defect: null,
       })),
       signatures: [{ ...signature, role: "driver" as const }],
       header: {
@@ -121,6 +170,7 @@ export function HookupForm({
         truck_rego: truckKey,
         trailer_rego: trailerKey,
         combination: `${truckKey} + ${trailerKey}`,
+        faults_and_observations: observations.trim() || undefined,
       },
     };
 
@@ -161,14 +211,14 @@ export function HookupForm({
         </div>
       }
     >
-      <div className="space-y-4 pb-2">
-        <p className="text-xs text-ck-steel leading-relaxed">{HOOKUP_SOURCE_NOTE}</p>
+      <div className="space-y-3 pb-2">
+        <p className="text-xs text-ck-steel leading-relaxed">{HOOKUP_PROCEDURE_NOTE}</p>
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
-          <h3 className="text-sm font-bold text-ck-steel">This hook-up</h3>
+          <h3 className="text-sm font-bold text-ck-steel">Vehicle details</h3>
           <div className="grid grid-cols-2 gap-2">
             <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Truck</span>
+              <span className="text-xs text-ck-steel">Vehicle rego</span>
               <input
                 value={truck}
                 onChange={(e) => setTruck(e.target.value)}
@@ -177,7 +227,7 @@ export function HookupForm({
               />
             </label>
             <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Trailer</span>
+              <span className="text-xs text-ck-steel">Trailer rego</span>
               <input
                 value={trailer}
                 onChange={(e) => setTrailer(e.target.value)}
@@ -193,24 +243,34 @@ export function HookupForm({
           ) : null}
         </section>
 
-        {HOOKUP_SCHEMA.map((item) => (
-          <ChecklistItemControl
-            key={item.code}
-            label={item.label}
-            notes={item.notes}
-            naAllowed={item.naAllowed === true}
-            passLabel="OK"
-            failLabel="FAULT"
-            defectCardTitle="Fault"
-            defectDescriptionLabel="Fault description (required)"
-            defectDescriptionPlaceholder="Describe the fault"
-            state={items[item.code]!}
-            onChange={(next) => setItems((s) => ({ ...s, [item.code]: next }))}
+        <section className="rounded-xl border border-ck-border bg-ck-slate px-3">
+          {HOOKUP_SCHEMA.map((item) => (
+            <HookupStepRow
+              key={item.code}
+              item={item}
+              state={items[item.code]!}
+              onChange={(next) => setItems((s) => ({ ...s, [item.code]: next }))}
+            />
+          ))}
+        </section>
+
+        <label className="block space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wide text-ck-steel">
+            {HOOKUP_OBSERVATIONS_LABEL}
+          </span>
+          <textarea
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            rows={3}
+            placeholder="Write any faults or observations"
+            className="w-full rounded-lg border border-ck-border bg-ck-midnight px-3 py-2 text-sm text-ck-fg"
           />
-        ))}
+        </label>
+
+        <p className="text-xs text-ck-steel leading-relaxed">{HOOKUP_SIGN_NOTE}</p>
 
         <ChecklistSignaturePanel
-          title="Initial"
+          title="Driver sign"
           roleLabel="As driver"
           onConfirmed={setSignature}
         />

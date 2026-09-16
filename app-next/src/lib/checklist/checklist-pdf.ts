@@ -57,10 +57,10 @@ function hexToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function itemValueLabel(value: string): string {
+function itemValueLabel(value: string, type?: ChecklistRecordType): string {
   switch (value) {
     case "pass":
-      return "Pass";
+      return type === "hookup" ? "Completed" : "Pass";
     case "fail":
       return "Fault";
     case "na":
@@ -345,8 +345,10 @@ export async function buildChecklistPackJsPdfBuffer(input: {
       }
     }
 
+    const observations = String(record.header?.faults_and_observations ?? "").trim();
     const headerEntries = Object.entries(record.header ?? {}).filter(
-      ([, v]) => v != null && String(v).trim() !== ""
+      ([k, v]) =>
+        k !== "faults_and_observations" && v != null && String(v).trim() !== ""
     );
     if (headerEntries.length) {
       ensureSpace(8 + headerEntries.length * 4);
@@ -354,8 +356,10 @@ export async function buildChecklistPackJsPdfBuffer(input: {
       doc.setFontSize(8);
       doc.setTextColor(30, 41, 59);
       for (const [k, v] of headerEntries) {
-        doc.text(`${k.replace(/_/g, " ")}: ${String(v)}`, margin, y);
-        y += 3.8;
+        const line = doc.splitTextToSize(`${k.replace(/_/g, " ")}: ${String(v)}`, colW);
+        ensureSpace(line.length * 3.8);
+        doc.text(line, margin, y);
+        y += line.length * 3.8;
       }
       y += 2;
     }
@@ -373,7 +377,7 @@ export async function buildChecklistPackJsPdfBuffer(input: {
       else if (item.value === "pass" || item.value === "acknowledged") doc.setTextColor(er, eg, eb);
       else doc.setTextColor(100, 116, 139);
       doc.setFont("helvetica", "bold");
-      doc.text(itemValueLabel(item.value), margin + colW, valueY, { align: "right" });
+      doc.text(itemValueLabel(item.value, record.type), margin + colW, valueY, { align: "right" });
       y += lines.length * 3.5 + 1;
 
       if (item.kind === "pass_fail" && item.value === "fail" && item.defect) {
@@ -400,6 +404,19 @@ export async function buildChecklistPackJsPdfBuffer(input: {
           }
         }
       }
+    }
+
+    if (observations) {
+      ensureSpace(12);
+      doc.setTextColor(30, 41, 59);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.text("Faults and observations", margin, y);
+      y += 4;
+      doc.setFont("helvetica", "normal");
+      const obs = doc.splitTextToSize(observations, colW);
+      doc.text(obs, margin, y);
+      y += obs.length * 3.5 + 2;
     }
 
     if (record.actionedFaultText) {

@@ -621,92 +621,80 @@ export const LOAD_SCHEMA_STUB: ChecklistSchemaItem[] = [
 /** Driver-facing name. Persist type is `hookup`. Not a week-PDF tick. */
 export const HOOKUP_FORM_TITLE = "Hook up";
 
-export const HOOKUP_SOURCE_NOTE =
-  "Steps follow the Australian Trucking Association fifth-wheel coupling guide. Initial on the paper row is your signature here.";
+export const HOOKUP_PROCEDURE_NOTE =
+  "Hookup procedure — must be completed in the following order.";
+
+export const HOOKUP_SIGN_NOTE =
+  "Driver to sign this checklist for each hookup and return to your supervisor before leaving the hookup location.";
+
+export const HOOKUP_OBSERVATIONS_LABEL = "Faults and observations";
 
 /**
- * Hook-up day-row headers, in paper order. Detail from ATA TAP coupling procedure.
- * N/A only on Turntable (ball-race / block), which is not on every fifth-wheel setup.
- * Paper “Initial?” is the driver signature, not a scored item.
+ * MTS Hookup Checklist Rev 1 June 2025 — 14 ticks, paper order.
+ * A subset of hook-up training; the procedure is taught elsewhere.
+ * COMPLETED / FAULT only. No N/A. Faults go in the observations box.
+ * Driver sign is the signature, not a 15th item.
  */
 export const HOOKUP_SCHEMA: ChecklistSchemaItem[] = [
   {
-    code: "hook_process",
-    label: "Hookup process",
-    notes: [
-      "One person only — do not split the job",
-      "No distractions. If interrupted, go back to the last confirmed step",
-      "Fifth-wheel jaws unlocked (open) before you reverse",
-    ],
+    code: "hook_01",
+    label:
+      "1. Checked turntable greased and jaws are open / handle is locked open. Air lines are clear of the turntable and deck.",
   },
   {
-    code: "hook_turntable",
-    label: "Turntable",
-    naAllowed: true,
-    notes: [
-      "If the trailer has a skid-plate locking block, the fifth wheel must be on a turntable (ball-race). Do not couple a block to a fixed fifth wheel",
-      "If there is no block and the fifth wheel is on a turntable, lock the turntable with the two locking pins",
-    ],
+    code: "hook_02",
+    label: "2. Reversed back to the trailer and stop short of.",
   },
   {
-    code: "hook_reverse",
-    label: "Reverse",
-    notes: [
-      "Reverse into position, aligned in front of the trailer",
-      "Stop before the fifth wheel goes under the skid plate",
-      "Apply the park brake before you exit",
-    ],
+    code: "hook_03",
+    label: "3. Applied handbrake and get out of truck.",
   },
   {
-    code: "hook_alignment",
-    label: "Alignment",
-    notes: ["Couple in a straight line", "Fifth wheel and trailer set for height, tilt, and alignment"],
+    code: "hook_04",
+    label:
+      "4. Checked the trailer alignment and turntable height before attempting to hook up. With airbags at neutral height, turntable must be at the same level as a trailer skid plate.",
   },
   {
-    code: "hook_height",
-    label: "Trailer height",
-    notes: ["Exit and check the height between the trailer skid plate and the fifth wheel is suitable"],
+    code: "hook_05",
+    label: "5. Lowered the airbags (or raise trailer legs).",
   },
   {
-    code: "hook_under",
-    label: "Reverse under trailer",
-    notes: [
-      "Reverse slowly under the trailer until the fifth wheel engages the kingpin",
-      "Expect a distinct double mechanical sound as the locks engage",
-    ],
+    code: "hook_06",
+    label: "6. Reversed under the trailer and stopped short of the kingpin.",
   },
   {
-    code: "hook_tug_1",
-    label: "Tug test",
-    notes: ["Complete a tug test — at least twice, or as company procedure"],
+    code: "hook_07",
+    label:
+      "7. Raised airbags / wind up trailer legs to remove any gap between the turntable and the trailer.",
   },
   {
-    code: "hook_gap_1",
-    label: "Check gap",
-    notes: ["No gap between the top of the fifth wheel and the trailer skid plate"],
+    code: "hook_08",
+    label: "8. Applied handbrake and get out of truck.",
   },
   {
-    code: "hook_lock",
-    label: "Turntable lock",
-    notes: [
-      "Fifth-wheel handle fully locked (closed), safety latch down if fitted",
-      "Jaws fully locked around the kingpin",
-      "Secondary lock / safety chain connected if fitted",
-    ],
+    code: "hook_09",
+    label: "9. CRITICAL - Checked there is no gap between the turntable and the trailer.",
   },
   {
-    code: "hook_gap_2",
-    label: "Check gap",
-    notes: ["Walk-round visual: skid plate still hard on the fifth wheel — no gap"],
+    code: "hook_10",
+    label: "10. Reversed back under the trailer until locked then complete first tug test.",
   },
   {
-    code: "hook_legs",
-    label: "Legs raised",
-    notes: ["Fully retract landing legs and stow the handle", "Landing legs in high gear so they cannot creep down"],
+    code: "hook_11",
+    label: "11. Applied handbrake and get out of truck.",
   },
   {
-    code: "hook_tug_2",
-    label: "Tug test",
-    notes: ["Final tug test before moving off, where possible and as company procedure"],
+    code: "hook_12",
+    label:
+      "12. CRITICAL - Checked there is no gap between the turntable and the trailer, handle and jaws are locked closed.",
+  },
+  {
+    code: "hook_13",
+    label:
+      "13. Raised the trailer legs, stowed the leg handle, connected the leads and air lines.",
+  },
+  {
+    code: "hook_14",
+    label: "14. I have completed a second tug test.",
   },
 ];

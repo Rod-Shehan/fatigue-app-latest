@@ -37,6 +37,11 @@ describe("setPassFailValue / defect", () => {
     expect(setPassFailValue(withText, "pass").defect).toBeNull();
   });
 
+  it("treats Fault as complete without a defect card when not required", () => {
+    const failed = setPassFailValue(emptyPassFailItem(), "fail");
+    expect(isPassFailItemComplete(failed, { defectRequired: false })).toBe(true);
+  });
+
   it("requires description and mobility for Fault complete", () => {
     const failed = setPassFailValue(emptyPassFailItem(), "fail");
     expect(isPassFailItemComplete(failed)).toBe(false);
