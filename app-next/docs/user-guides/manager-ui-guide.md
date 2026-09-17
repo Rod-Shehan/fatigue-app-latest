@@ -115,7 +115,7 @@ Use these when coaching staff or explaining why a signal appeared.
 
 ## 4. Driver exposure register
 
-One row per driver for the selected week. **Driver names are bold** for fast scanning. The coloured chip **names the leading issue** (for example **Break overdue**, **17h episode**, **Week not signed**) — rose / amber / sky / emerald still show urgency (attention, elevated, monitor, steady). The line under the name adds the time or rule detail. Hover the chip for the same detail.
+One row per driver for the selected week. **Driver names are bold** for fast scanning. The coloured chip **names the leading issue** (for example **Break overdue**, **Recovery in progress**, **17h episode**, **Week not signed**) — rose / amber / sky / emerald still show urgency (attention, elevated, monitor, steady). **Recovery in progress** is the 7h rest clock after End shift — not a breach. The line under the name adds the time or rule detail. Hover the chip for the same detail.
 
 **Practice:**
 

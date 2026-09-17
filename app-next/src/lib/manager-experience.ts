@@ -182,14 +182,14 @@ export const MANAGER_EXPERIENCE = {
   REGISTER_SUBTITLE:
     "One row per driver for the selected work week. The chip names the leading issue; colour shows how urgent it is.",
   REGISTER_CHIP_HINT:
-    "Rose / amber / sky still mean attention, elevated, and monitor. The words on the chip say what to look at (break overdue, 17h episode, unsigned week), and the line under the name adds the time or rule detail.",
+    "Rose / amber / sky still mean attention, elevated, and monitor. The words on the chip say what to look at (break overdue, recovery in progress, 17h episode, unsigned week), and the line under the name adds the time or rule detail.",
 
   /** Short register-chip labels — one leading issue, not a generic “needs attention”. */
   REGISTER_CHIP: {
     BREAK_OVERDUE: "Break overdue",
     BREAK_DUE: "Break due soon",
     SHIFT_NOT_ENDED: "Shift not ended",
-    RECOVERY_WINDOW: "Rest window open",
+    RECOVERY_WINDOW: "Recovery in progress",
     MOVEMENT_REST: "Movement during rest",
     SHIFT_CHANGE: "Shift change under 24h",
     SHIFT_CHANGE_TIME: "Shift-change time missing",
