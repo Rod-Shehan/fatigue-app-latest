@@ -185,8 +185,12 @@ export function formatContinuedShiftRouteBanner(previousDayName: string): string
 export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
   "Rego and route stay with the open shift until End shift. Day names are labels only.";
 
-/** First tap when idle / after End shift. Opens Driving / Other work chooser (or Set up day first). */
+/** First tap when idle / after End shift. Opens Driving / Other work chooser (Set up day and Fitness for Work first if needed). */
 export const DRIVER_START_SHIFT_LABEL = "Start shift";
+/** Shown on Fitness for Work until a signed record exists for the day. */
+export const FFW_REQUIRED_BEFORE_START_LABEL = "Required before Start shift";
+export const FFW_START_SHIFT_BLOCK_MESSAGE =
+  "Complete Fitness for Work before starting your shift.";
 /** Two-up Passenger: opens driving / break / sleeper. Does not log by itself. */
 export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";
 /** From Rest: opens Driving / Other work chooser. Does not log by itself. */

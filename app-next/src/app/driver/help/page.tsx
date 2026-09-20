@@ -5,6 +5,7 @@ import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 import {
   DRIVER_HELP_RECORDS_SIGNING_BULLETS,
   DRIVER_START_SHIFT_LABEL,
+  FFW_REQUIRED_BEFORE_START_LABEL,
   DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_START_REST_LABEL,
@@ -128,9 +129,10 @@ export default async function DriverHelpPage() {
                   {DRIVER_START_SHIFT_LABEL} / {DRIVER_START_WORK_LABEL} /{" "}
                   {DRIVER_STOP_DRIVING_LABEL} / {DRIVER_END_SHIFT_LABEL}
                 </strong>{" "}
-                — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} opens a split:{" "}
-                {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} (Set up day first if details are
-                missing — Confirm does not start driving by itself). On Rest, {DRIVER_START_WORK_LABEL} opens the same
+                — tap when your activity changes. {DRIVER_START_SHIFT_LABEL} needs Fitness for Work signed for
+                this day ({FFW_REQUIRED_BEFORE_START_LABEL}), then opens a split: {DRIVER_START_DRIVING_LABEL} or{" "}
+                {DRIVER_START_OTHER_WORK_LABEL} (Set up day first if details are missing — Confirm does not start
+                driving by itself). On Rest, {DRIVER_START_WORK_LABEL} opens the same
                 split (driving or Other work / loading). {DRIVER_STOP_DRIVING_LABEL}{" "}
                 opens a split: {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. On Other work, three tiles
                 stay on the ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL}{" "}
@@ -151,8 +153,8 @@ export default async function DriverHelpPage() {
                 ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL} (same after a
                 reload). {DRIVER_LOAD_CHECK_LABEL} opens {LOAD_FORM_TITLE}; you stay on Other work. Tap it again for
                 another load. If it is not a load, stay on Other work until you drive or rest.{" "}
-                {DRIVER_FORMS_SECTION_LABEL} on the day card stay available (including {HOOKUP_FORM_TITLE} and{" "}
-                {FAULT_REPORT_FORM_TITLE}). Shown on
+                {DRIVER_FORMS_SECTION_LABEL} on the day card: Fitness for Work is required; other forms
+                (including {HOOKUP_FORM_TITLE} and {FAULT_REPORT_FORM_TITLE}) stay optional. Shown on
                 breaks from driving. Never becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still
                 work time for 168h.
               </li>

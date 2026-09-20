@@ -126,6 +126,7 @@ import {
 import type { TimelineSlice } from "@/lib/rolling-events";
 import { concatenateTimelineSlices, getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getWorkLogBlockReason } from "@/lib/shift-start-gate";
+import { getFfwStartShiftBlockReason } from "@/lib/checklist";
 import { resolveDayCrew } from "@/lib/day-crew";
 import { buildRiskRegisterFromWeek } from "@/lib/risk-register";
 import { getCurrentPosition, BEST_EFFORT_OPTIONS, resolveEventGpsFix } from "@/lib/geo";
@@ -154,7 +155,7 @@ import { isFleetManagerRole } from "@/lib/roles";
 import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { cn } from "@/lib/utils";
 import { formatPastWeekArchiveSubtitle, DRIVER_PARKED_GPS_REQUIRED } from "@/lib/product-copy";
-import { STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
+import { STATIONARY_REST_EVENT_TYPE, OTHER_WORK_EVENT_TYPE } from "@/lib/activity-kind";
 import { useUnsignedPastWeeks } from "@/hooks/use-unsigned-past-weeks";
 
 const EMPTY_DAY = (): DayData => ({
@@ -308,6 +309,7 @@ export function SheetDetail({
   const [futureWeekDaysExpanded, setFutureWeekDaysExpanded] = useState(false);
   const [todaySetupOpenRequest, setTodaySetupOpenRequest] = useState(0);
   const [dimensionLoadOpenRequest, setDimensionLoadOpenRequest] = useState(0);
+  const [ffwOpenRequest, setFfwOpenRequest] = useState(0);
   const [deepLinkEditDayRequest, setDeepLinkEditDayRequest] = useState(0);
   const [deepLinkEditDayIndex, setDeepLinkEditDayIndex] = useState<number | null>(null);
   const deepLinkEditHandledRef = useRef(false);
@@ -1031,6 +1033,7 @@ export function SheetDetail({
   const handleStartShiftBlocked = useCallback(
     (opts?: {
       openSetup?: boolean;
+      openFfw?: boolean;
       dayIndex?: number;
       startWorkAfterSetup?: boolean;
       episodeResume?: boolean;
@@ -1045,6 +1048,9 @@ export function SheetDetail({
       }
       if (opts?.openSetup) {
         setTodaySetupOpenRequest((n) => n + 1);
+      }
+      if (opts?.openFfw) {
+        setFfwOpenRequest((n) => n + 1);
       }
     },
     [scrollToCurrentDayCard, scrollToDayCard]
@@ -1608,12 +1614,14 @@ export function SheetDetail({
       return;
     }
 
-    if (type === "work") {
+    if (type === "work" || type === OTHER_WORK_EVENT_TYPE) {
       const prev = sheetDataRef.current;
       const timeline = concatenateTimelineSlices(priorTimelineSlices, prev.days);
       const driverEvents = getSheetOwnerEventsInOrder(timeline);
       const dayFields = prev.days[dayIndex] ?? {};
-      const blockReason = getWorkLogBlockReason(driverEvents, dayFields);
+      const blockReason =
+        getWorkLogBlockReason(driverEvents, dayFields) ??
+        getFfwStartShiftBlockReason(driverEvents, dayFields.checklists);
       if (blockReason) {
         window.alert(blockReason);
         if (dayIndex === currentDayIndex) {
@@ -2115,6 +2123,7 @@ export function SheetDetail({
             : undefined,
       dimensionLoadOpenRequest:
         isCurrent && isTodayCard ? dimensionLoadOpenRequest : undefined,
+      ffwOpenRequest: isCurrent && isTodayCard ? ffwOpenRequest : undefined,
       startWorkAfterSetup:
         isCurrent && isTodayCard ? pendingStartWorkAfterSetup != null : undefined,
       onConfirmedStartWorkAfterSetup:

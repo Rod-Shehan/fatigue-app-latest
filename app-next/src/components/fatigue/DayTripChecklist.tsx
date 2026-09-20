@@ -246,9 +246,10 @@ export function DayTripChecklist({
               collapsible && "mt-1"
             )}
           >
-            Optional in trial. Tick when done, or open a signed form. Fitness for work, Daily vehicle
-            checklist, and Dimension & load ticks show on the week PDF. Trailer, forklift, hook-up,
-            and {FAULT_REPORT_FORM_TITLE} stay in the EWD only.
+            Fitness for Work is required before Start shift. Other forms are optional — use the ones
+            that match this shift. Fitness for work, Daily vehicle checklist, and Dimension & load
+            ticks show on the week PDF. Trailer, forklift, hook-up, and {FAULT_REPORT_FORM_TITLE} stay
+            in the EWD only.
           </p>
           <ul className="space-y-1">
             {TRIP_CHECKLIST_KEYS.map((key) => {
@@ -287,6 +288,11 @@ export function DayTripChecklist({
                         )}
                       >
                         {TRIP_CHECKLIST_UI_LABELS[key]}
+                        {isFfw && !ffwFormCompleted && !readOnly ? (
+                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                            Required
+                          </span>
+                        ) : null}
                         {isFfw && ffwFormCompleted ? (
                           <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                             Form saved

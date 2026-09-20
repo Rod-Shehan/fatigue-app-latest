@@ -43,6 +43,7 @@ import {
   getShiftStartSetupMissing,
   workLogRequiresShiftStartSetup,
 } from "@/lib/shift-start-gate";
+import { getFfwStartShiftBlockReason } from "@/lib/checklist";
 import {
   computeWorkPeriodAtEnd,
   WORK_WINDOW_MIN,
@@ -209,9 +210,10 @@ export default function LogBar({
   prospectiveRouteHint?: string | null;
   /** Rolling 14-day / 168h headroom for the chip. */
   rolling168hMetrics?: Rolling168hMetrics | null;
-  /** When Start shift is blocked, parent scrolls to the target day card and may open Set up day. */
+  /** When Start shift is blocked, parent scrolls to the target day card and may open Set up day or FFW. */
   onStartShiftBlocked?: (opts?: {
     openSetup?: boolean;
+    openFfw?: boolean;
     dayIndex?: number;
     /** Hero Start/Resume was the event — after Set up day Confirm, finalize work on the timeline. */
     startWorkAfterSetup?: boolean;
@@ -806,6 +808,25 @@ export default function LogBar({
     [dayForCardFields, eventsForDriver, onStartShiftBlocked, currentDayIndex]
   );
 
+  const showFfwStartShiftBlock = useCallback(
+    (type: string, options?: { episodeResume?: boolean }): boolean => {
+      if (type !== "work" && type !== OTHER_WORK_EVENT_TYPE) return false;
+      const reason = getFfwStartShiftBlockReason(
+        eventsForDriver,
+        dayForCardFields?.checklists
+      );
+      if (!reason) return false;
+      onStartShiftBlocked?.({
+        openFfw: true,
+        dayIndex: currentDayIndex,
+        startWorkAfterSetup: true,
+        episodeResume: options?.episodeResume === true,
+      });
+      return true;
+    },
+    [dayForCardFields, eventsForDriver, onStartShiftBlocked, currentDayIndex]
+  );
+
   const finalizeStartWorkOnTimeline = useCallback(
     (episodeResume: boolean) => {
       // Setup was just confirmed — open Driving / Other work chooser (do not log driving).
@@ -909,6 +930,7 @@ export default function LogBar({
     }
 
     if (showShiftStartSetupBlock(type, { episodeResume })) return;
+    if (showFfwStartShiftBlock(type, { episodeResume })) return;
 
     if (confirming) {
       clearPending();
@@ -1023,6 +1045,7 @@ export default function LogBar({
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
       if (showShiftStartSetupBlock(type, { episodeResume })) return;
+      if (showFfwStartShiftBlock(type, { episodeResume })) return;
       if (type === "stop") {
         if (onEndShiftRequest) {
         onEndShiftRequest(currentDayIndex);
@@ -1071,6 +1094,7 @@ export default function LogBar({
   const beginStartShift = (opts?: { episodeResume?: boolean }) => {
     const episodeResume = opts?.episodeResume === true;
     if (showShiftStartSetupBlock("work", { episodeResume })) return;
+    if (showFfwStartShiftBlock("work", { episodeResume })) return;
     const nonWorkMsg = getInsufficientNonWorkWarning(episodeResume);
     if (nonWorkMsg) {
       setWorkWarning({

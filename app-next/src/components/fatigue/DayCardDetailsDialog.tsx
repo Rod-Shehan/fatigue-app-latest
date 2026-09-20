@@ -649,7 +649,8 @@ export function DayCardDetailsDialog({
         {startWorkAfterSetup ? (
           <p className="text-sm leading-snug text-teal-900 dark:text-teal-100 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2">
             <span className="font-semibold">Starting your shift:</span> fill the fields below and tap Confirm. Then
-            choose {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring.
+            choose {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring. Fitness
+            for Work is required before Start shift if it is not already signed for this day.
           </p>
         ) : null}
 

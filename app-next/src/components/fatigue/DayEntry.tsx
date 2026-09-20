@@ -147,6 +147,7 @@ export default function DayEntry({
   dayTools,
   setupOpenRequest,
   dimensionLoadOpenRequest,
+  ffwOpenRequest,
   startWorkAfterSetup = false,
   onConfirmedStartWorkAfterSetup,
   onDetailsDialogClosed,
@@ -185,6 +186,8 @@ export default function DayEntry({
   setupOpenRequest?: number;
   /** Parent bump opens Dimension & Load (Other work Load check tile, or Forms). */
   dimensionLoadOpenRequest?: number;
+  /** Parent bump opens Fitness for Work (Start shift required). */
+  ffwOpenRequest?: number;
   /** Hero Start/Resume deferred here — Confirm then opens driving / Other work chooser. */
   startWorkAfterSetup?: boolean;
   onConfirmedStartWorkAfterSetup?: (opts?: { skipLog?: boolean }) => void;
@@ -232,6 +235,7 @@ export default function DayEntry({
   const [expanded, setExpanded] = useState(isToday);
   const lastSetupOpenRequestRef = useRef(0);
   const lastDimensionLoadOpenRequestRef = useRef(0);
+  const lastFfwOpenRequestRef = useRef(0);
 
   const events = useMemo(() => {
     const base = (dayData.events ?? []).filter((e) => e && typeof e.time === "string" && typeof e.type === "string");
@@ -347,8 +351,18 @@ export default function DayEntry({
   const saveFfwRecord = useCallback(
     async (record: ChecklistRecord) => {
       await Promise.resolve(onUpdate(dayIndex, (prev) => appendChecklistToDay(prev, record)));
+      if (startWorkAfterSetup && isToday && isShiftStartSetupComplete(dayData)) {
+        onConfirmedStartWorkAfterSetup?.();
+      }
     },
-    [dayIndex, onUpdate]
+    [
+      dayIndex,
+      onUpdate,
+      startWorkAfterSetup,
+      isToday,
+      dayData,
+      onConfirmedStartWorkAfterSetup,
+    ]
   );
 
   const savePrestartRecord = useCallback(
@@ -381,6 +395,15 @@ export default function DayEntry({
       setDimensionLoadOpen(true);
     }
   }, [dimensionLoadOpenRequest, canEditDetails]);
+
+  useEffect(() => {
+    if (!ffwOpenRequest || ffwOpenRequest <= lastFfwOpenRequestRef.current) return;
+    lastFfwOpenRequestRef.current = ffwOpenRequest;
+    if (canEditDetails) {
+      setToolsOpen(false);
+      setFfwOpen(true);
+    }
+  }, [ffwOpenRequest, canEditDetails]);
 
   const handleDetailsOpenChange = useCallback(
     (open: boolean) => {
@@ -846,7 +869,12 @@ export default function DayEntry({
 
       <FitnessForWorkForm
         open={ffwOpen}
-        onClose={() => setFfwOpen(false)}
+        onClose={() => {
+          setFfwOpen(false);
+          if (startWorkAfterSetup && !ffwFormCompleted) {
+            onConfirmedStartWorkAfterSetup?.({ skipLog: true });
+          }
+        }}
         driverName={dayTools?.driverName ?? driverName}
         companyName={companyName}
         onCompleted={saveFfwRecord}
@@ -1042,6 +1070,10 @@ export default function DayEntry({
             }
             if (driverUserKey) saveDriverRouteDefaults(driverUserKey, merged);
             if (startWorkAfterSetup && isToday && isShiftStartSetupComplete(merged)) {
+              if (!hasCompletedChecklistOfType(merged.checklists, "ffw")) {
+                setFfwOpen(true);
+                return;
+              }
               const last = [...(updatedEvents ?? [])].at(-1);
               const alreadyOnShift = isOpenShiftEventType(last?.type);
               onConfirmedStartWorkAfterSetup?.(alreadyOnShift ? { skipLog: true } : undefined);

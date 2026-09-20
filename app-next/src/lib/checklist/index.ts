@@ -153,5 +153,8 @@ export {
 } from "./derive-trip-ticks";
 export {
   CHECKLIST_SHEET_GATES_ENABLED,
+  FFW_START_SHIFT_GATE_ENABLED,
   checklistSheetGatesEnabled,
+  ffwStartShiftGateEnabled,
+  getFfwStartShiftBlockReason,
 } from "./gates-policy";

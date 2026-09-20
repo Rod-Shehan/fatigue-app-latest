@@ -15,6 +15,7 @@ import {
   type ChecklistRecord,
   type ChecklistSignatureCapture,
 } from "@/lib/checklist";
+import { FFW_REQUIRED_BEFORE_START_LABEL } from "@/lib/product-copy";
 import { ChecklistAcknowledgeItem } from "./ChecklistAcknowledgeItem";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
@@ -28,7 +29,7 @@ function initAckMap(
 }
 
 /**
- * Voluntary Fitness for Work form (Phase 3). Does not gate Start shift.
+ * Fitness for Work declaration. Required before Start shift.
  */
 export function FitnessForWorkForm({
   open,
@@ -118,7 +119,7 @@ export function FitnessForWorkForm({
       open={open}
       onClose={handleClose}
       title={FFW_FORM_TITLE}
-      subtitle="Optional — does not block Start shift"
+      subtitle={FFW_REQUIRED_BEFORE_START_LABEL}
       footer={
         <div className="space-y-2">
           {error ? <p className="text-center text-xs text-ck-red">{error}</p> : null}
@@ -137,7 +138,7 @@ export function FitnessForWorkForm({
         <p className="text-xs text-ck-steel leading-relaxed">{FFW_HANDOFF_NOTE}</p>
         <p className="text-xs font-semibold text-ck-fg leading-relaxed">{FFW_DECLARATION_PREAMBLE}</p>
         <p className="text-xs text-ck-steel leading-relaxed">
-          Acknowledge each point, then sign. Optional during the trial. Completing it ticks Fitness
+          Acknowledge each point, then sign. Required before Start shift. Completing it ticks Fitness
           for work on the week PDF.
         </p>
         {schema.map((item, index) => (

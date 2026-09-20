@@ -26,7 +26,7 @@ import {
   HOOKUP_FORM_TITLE,
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
-import { DRIVER_FORMS_SECTION_LABEL } from "@/lib/product-copy";
+import { DRIVER_FORMS_SECTION_LABEL, FFW_REQUIRED_BEFORE_START_LABEL } from "@/lib/product-copy";
 
 export function DayCardToolsSheet({
   open,
@@ -78,7 +78,7 @@ export function DayCardToolsSheet({
   unsignedPastWeeksCount?: number;
   onOpenGear: () => void;
   onOpenDaySetup?: () => void;
-  /** Optional trial FFW form — never blocks Start shift. */
+  /** Fitness for Work — required before Start shift. */
   onOpenFfw?: () => void;
   onViewFfw?: () => void;
   ffwFormCompleted?: boolean;
@@ -326,7 +326,7 @@ export function DayCardToolsSheet({
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             {ffwFormCompleted
                               ? "Complete a new signed form for this day"
-                              : "Optional signed form — does not block Start shift"}
+                              : FFW_REQUIRED_BEFORE_START_LABEL}
                           </span>
                         </span>
                         <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

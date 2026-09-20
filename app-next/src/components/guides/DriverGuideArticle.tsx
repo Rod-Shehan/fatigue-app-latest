@@ -6,6 +6,7 @@ import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
 import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_START_SHIFT_LABEL,
+  FFW_REQUIRED_BEFORE_START_LABEL,
   DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_START_REST_LABEL,
@@ -315,16 +316,17 @@ export function DriverGuideArticle() {
           Break 0 / Non-work 24) — no blank unfinished rows. On a phone you can scroll the sheet sideways.
         </p>
         <p className="mt-3">
-          Normal day: open the week → tap {DRIVER_START_SHIFT_LABEL}. If day details are missing, Set up day opens —
-          Confirm then choose {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring. If setup is
-          already done, the same split opens (tap again to confirm the kind). After {DRIVER_START_OTHER_WORK_LABEL}{" "}
+          Normal day: open the week → tap {DRIVER_START_SHIFT_LABEL}. If day details are missing, Set up day
+          opens — Confirm, then complete Fitness for Work if it is not signed for this day, then choose{" "}
+          {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL} on the ring. If setup and Fitness for
+          Work are already done, the same split opens (tap again to confirm the kind). After {DRIVER_START_OTHER_WORK_LABEL}{" "}
           is logged, the ring keeps three tiles: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL},{" "}
           {DRIVER_LOAD_CHECK_LABEL} — same after a reload. Load check opens Dimension
           & Load; you stay on Other work. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. If it is not a load, stay
-          on Other work until you drive or rest. {DRIVER_FORMS_SECTION_LABEL} (Fitness for work, Daily vehicle
-          checklist, Dimension & load, plus trailer / forklift / {HOOKUP_FORM_TITLE} / {FAULT_REPORT_FORM_TITLE})
-          stay available on the day card for depot / already-loaded work. Forms are optional in trial — do not
-          block Start shift.
+          on Other work until you drive or rest. {DRIVER_FORMS_SECTION_LABEL}: Fitness for Work is{" "}
+          {FFW_REQUIRED_BEFORE_START_LABEL.toLowerCase()}. Other forms (Daily vehicle checklist, Dimension &
+          load, plus trailer / forklift / {HOOKUP_FORM_TITLE} / {FAULT_REPORT_FORM_TITLE}) stay optional — use
+          the ones that match this shift. They do not block Start shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
         <p>Use Set up day (or Edit day) when something changes:</p>
@@ -589,10 +591,11 @@ export function DriverGuideArticle() {
           <li>Log more work</li>
           <li>Check rego and run setup on today&apos;s card</li>
           <li>
-            Optionally tick {DRIVER_FORMS_SECTION_LABEL}, or open signed Fitness for Work / {PRESTART_FORM_TITLE} /{" "}
+            Complete signed Fitness for Work before {DRIVER_START_SHIFT_LABEL} ({FFW_REQUIRED_BEFORE_START_LABEL}
+            ). Other {DRIVER_FORMS_SECTION_LABEL} are optional — open {PRESTART_FORM_TITLE} /{" "}
             {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / {LOAD_FORM_TITLE} / {HOOKUP_FORM_TITLE} /{" "}
-            {FAULT_REPORT_FORM_TITLE} (optional in trial — do not block Start shift). Those three pre-departure
-            forms stay separate — do not combine them. Week-PDF ticks (Fitness for work, Daily vehicle checklist,
+            {FAULT_REPORT_FORM_TITLE} when they match this shift (they do not block Start shift). Those three
+            pre-departure forms stay separate — do not combine them. Week-PDF ticks (Fitness for work, Daily vehicle checklist,
             Dimension & load) show on the week PDF. Trailer, forklift, hook-up, and Fault report stay in the EWD
             only. After{" "}
             {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
@@ -638,13 +641,13 @@ export function DriverGuideArticle() {
               "Weekly Trip Sheet (PDF)",
               "Export PDF and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
             ],
-            [DRIVER_START_SHIFT_LABEL + " / End shift", "Begin / finish a shift. Start shift opens driving or Other work"],
+            [DRIVER_START_SHIFT_LABEL + " / End shift", `Begin / finish a shift. Start shift needs Fitness for Work signed for this day, then opens driving or Other work`],
             [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],
             [DRIVER_START_DRIVING_LABEL, "After Start shift, Start work, or on the Other work hub — log driving"],
               [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, break from driving, sleeper berth, or Parked"],
             [
               "Fitness for Work",
-              `Ten-point WAHVA declaration, signed under your name. Optional in trial. Ticks Fitness for work on the week PDF. Separate from ${PRESTART_FORM_TITLE}, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${LOAD_FORM_TITLE}, ${HOOKUP_FORM_TITLE}, and ${FAULT_REPORT_FORM_TITLE}`,
+              `Ten-point WAHVA declaration, signed under your name. ${FFW_REQUIRED_BEFORE_START_LABEL}. Ticks Fitness for work on the week PDF. Separate from ${PRESTART_FORM_TITLE}, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${LOAD_FORM_TITLE}, ${HOOKUP_FORM_TITLE}, and ${FAULT_REPORT_FORM_TITLE}`,
             ],
             [
               PRESTART_FORM_TITLE,
