@@ -4,6 +4,13 @@ import { useState } from "react";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
+  FAULT_REPORT_FORM_TITLE,
+  FFW_FORM_TITLE,
+  FORKLIFT_PRESTART_FORM_TITLE,
+  HOOKUP_FORM_TITLE,
+  LOAD_FORM_TITLE,
+  PRESTART_FORM_TITLE,
+  TRAILER_PRESTART_FORM_TITLE,
   checklistAuditIdentity,
   checklistFaultMobilityLabel,
   isPrestartRecordType,
@@ -14,13 +21,13 @@ import { ChecklistModalShell } from "./ChecklistModalShell";
 import { cn } from "@/lib/utils";
 
 const TYPE_TITLE: Record<ChecklistRecordType, string> = {
-  ffw: "Fitness for Work",
-  prestart: "Vehicle pre-departure",
-  prestart_trailer: "Trailer pre-departure",
-  prestart_forklift: "Forklift pre-departure",
-  dimension_load: "Load check",
-  hookup: "Hook up",
-  fault_report: "Fault report",
+  ffw: FFW_FORM_TITLE,
+  prestart: PRESTART_FORM_TITLE,
+  prestart_trailer: TRAILER_PRESTART_FORM_TITLE,
+  prestart_forklift: FORKLIFT_PRESTART_FORM_TITLE,
+  dimension_load: LOAD_FORM_TITLE,
+  hookup: HOOKUP_FORM_TITLE,
+  fault_report: FAULT_REPORT_FORM_TITLE,
 };
 
 const LOADER_PATH_LABEL: Record<string, string> = {

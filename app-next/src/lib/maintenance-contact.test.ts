@@ -7,6 +7,7 @@ import {
   buildMaintenanceMailtoHref,
   isValidMaintenanceEmail,
   maintenanceContactEmailReady,
+  maintenanceContactRecipientEmails,
   normalizeMaintenanceContactPatch,
 } from "./maintenance-contact";
 import { outboundEmailConfigured } from "./email/outbound";
@@ -32,11 +33,10 @@ describe("maintenance contact", () => {
     });
   });
 
-  it("rejects bad emails in patch", () => {
-    const patch = normalizeMaintenanceContactPatch({
-      maintenanceContactEmail: "nope",
+  it("rejects a bad spare email", () => {
+    expect(normalizeMaintenanceContactPatch({ maintenanceSpareEmail1: "nope" })).toEqual({
+      error: "Spare email 1 is not a valid email address",
     });
-    expect(patch).toEqual({ error: "maintenanceContactEmail is not a valid email address" });
   });
 
   it("builds mailto when email ready", () => {
@@ -46,15 +46,30 @@ describe("maintenance contact", () => {
         company: "Workshop Co",
         email: "shop@example.com",
         phone: null,
+        spareEmail1: null,
+        spareEmail2: null,
       },
       subject: "Prestart fault",
       body: "Tyres failed",
     });
     expect(href).toContain("mailto:shop@example.com");
     expect(href).toContain("subject=Prestart");
-    expect(maintenanceContactEmailReady({ name: null, company: null, email: "shop@example.com", phone: null })).toBe(
+    expect(maintenanceContactEmailReady({ name: null, company: null, email: "shop@example.com", phone: null, spareEmail1: null, spareEmail2: null })).toBe(
       true
     );
+  });
+
+  it("collects workshop plus unique spare emails", () => {
+    expect(
+      maintenanceContactRecipientEmails({
+        name: null,
+        company: null,
+        email: "workshop@fleet.example",
+        phone: null,
+        spareEmail1: "office@fleet.example",
+        spareEmail2: "WORKSHOP@fleet.example",
+      })
+    ).toEqual(["workshop@fleet.example", "office@fleet.example"]);
   });
 });
 

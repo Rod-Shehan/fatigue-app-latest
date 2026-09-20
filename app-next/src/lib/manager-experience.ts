@@ -7,6 +7,12 @@
  * `.cursor/rules/responsive-priority.mdc`.
  */
 
+import {
+  FORKLIFT_PRESTART_FORM_TITLE,
+  PRESTART_FORM_TITLE,
+  TRAILER_PRESTART_FORM_TITLE,
+} from "@/lib/checklist/schema-stubs";
+
 /** Shared content width for manager desk pages (matches Driver Overview /manager). */
 export const MANAGER_PAGE_SHELL = "mx-auto max-w-6xl px-4 py-8 md:py-12" as const;
 
@@ -98,7 +104,7 @@ export const MANAGER_EXPERIENCE = {
   NAV_MANAGERS: "Managers",
   NAV_RECORDS: "Records",
   RECORDS_PAGE_SUBTITLE:
-    "Pick a driver, then a week. Fatigue, fitness for work, vehicle / trailer / forklift pre-departure, load checks, hook-ups, and fault reports stay separate under that week.",
+    "Pick a driver, then a week. Fatigue, fitness for work, prime mover / rigid, trailer, and forklift prestarts, load checks, hook-ups, and fault reports stay separate under that week.",
   RECORDS_WEEK_LABEL: "Week",
   RECORDS_VIEW_WEEK: "View week record",
   RECORDS_EXPORT_PDF: "Export PDF",
@@ -106,9 +112,9 @@ export const MANAGER_EXPERIENCE = {
     "Previous weeks first. Each subject is its own file — they may be called up or audited separately.",
   RECORDS_SUBJECT_FATIGUE: "Fatigue sheet",
   RECORDS_SUBJECT_FFW: "Fitness for work record",
-  RECORDS_SUBJECT_PRESTART: "Vehicle pre-departure",
-  RECORDS_SUBJECT_TRAILER: "Trailer pre-departure",
-  RECORDS_SUBJECT_FORKLIFT: "Forklift pre-departure",
+  RECORDS_SUBJECT_PRESTART: PRESTART_FORM_TITLE,
+  RECORDS_SUBJECT_TRAILER: TRAILER_PRESTART_FORM_TITLE,
+  RECORDS_SUBJECT_FORKLIFT: FORKLIFT_PRESTART_FORM_TITLE,
   RECORDS_SUBJECT_LOAD: "Load checks",
   RECORDS_SUBJECT_HOOKUP: "Hook ups",
   RECORDS_SUBJECT_FAULT: "Fault reports",

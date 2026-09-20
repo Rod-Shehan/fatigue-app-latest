@@ -10,6 +10,8 @@ export type MaintenanceContact = {
   company: string | null;
   email: string | null;
   phone: string | null;
+  spareEmail1: string | null;
+  spareEmail2: string | null;
 };
 
 export const EMPTY_MAINTENANCE_CONTACT: MaintenanceContact = {
@@ -17,6 +19,8 @@ export const EMPTY_MAINTENANCE_CONTACT: MaintenanceContact = {
   company: null,
   email: null,
   phone: null,
+  spareEmail1: null,
+  spareEmail2: null,
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,6 +35,8 @@ export function maintenanceContactFromPolicy(policy: SystemPolicySnapshot): Main
     company: policy.maintenanceContactCompany,
     email: policy.maintenanceContactEmail,
     phone: policy.maintenanceContactPhone,
+    spareEmail1: policy.maintenanceSpareEmail1,
+    spareEmail2: policy.maintenanceSpareEmail2,
   };
 }
 
@@ -42,6 +48,19 @@ export async function getMaintenanceContact(): Promise<MaintenanceContact> {
 /** True when a usable report destination email is configured. */
 export function maintenanceContactEmailReady(contact: MaintenanceContact): boolean {
   return Boolean(contact.email && isValidMaintenanceEmail(contact.email));
+}
+
+/** Workshop plus spare addresses — unique, valid, workshop first. */
+export function maintenanceContactRecipientEmails(contact: MaintenanceContact): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of [contact.email, contact.spareEmail1, contact.spareEmail2]) {
+    const email = raw?.trim().toLowerCase();
+    if (!email || !isValidMaintenanceEmail(email) || seen.has(email)) continue;
+    seen.add(email);
+    out.push(email);
+  }
+  return out;
 }
 
 /**
@@ -70,6 +89,8 @@ export function normalizeMaintenanceContactPatch(
   maintenanceContactCompany: string | null;
   maintenanceContactEmail: string | null;
   maintenanceContactPhone: string | null;
+  maintenanceSpareEmail1: string | null;
+  maintenanceSpareEmail2: string | null;
 }> | { error: string } {
   const out: Record<string, string | null> = {};
   const keys = [
@@ -77,6 +98,8 @@ export function normalizeMaintenanceContactPatch(
     "maintenanceContactCompany",
     "maintenanceContactEmail",
     "maintenanceContactPhone",
+    "maintenanceSpareEmail1",
+    "maintenanceSpareEmail2",
   ] as const;
 
   for (const key of keys) {
@@ -96,6 +119,16 @@ export function normalizeMaintenanceContactPatch(
   if ("maintenanceContactEmail" in out && out.maintenanceContactEmail) {
     if (!isValidMaintenanceEmail(out.maintenanceContactEmail)) {
       return { error: "maintenanceContactEmail is not a valid email address" };
+    }
+  }
+  if ("maintenanceSpareEmail1" in out && out.maintenanceSpareEmail1) {
+    if (!isValidMaintenanceEmail(out.maintenanceSpareEmail1)) {
+      return { error: "Spare email 1 is not a valid email address" };
+    }
+  }
+  if ("maintenanceSpareEmail2" in out && out.maintenanceSpareEmail2) {
+    if (!isValidMaintenanceEmail(out.maintenanceSpareEmail2)) {
+      return { error: "Spare email 2 is not a valid email address" };
     }
   }
 

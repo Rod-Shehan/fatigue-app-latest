@@ -97,7 +97,7 @@ export async function sendOutboundEmail(msg: OutboundEmailMessage): Promise<Outb
  * Builds a standard subject/body and sends to the org maintenance contact when ready.
  */
 export async function sendMaintenanceFaultReportEmail(input: {
-  toEmail: string;
+  toEmail: string | string[];
   contactName?: string | null;
   contactCompany?: string | null;
   subject: string;

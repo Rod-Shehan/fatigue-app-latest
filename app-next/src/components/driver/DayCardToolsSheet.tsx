@@ -21,9 +21,12 @@ import { api } from "@/lib/api";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_EMAIL_MISSING_MESSAGE,
+  checklistPackRecipientEmails,
+  formatChecklistPackToLabel,
   FAULT_REPORT_FORM_TITLE,
   FORKLIFT_PRESTART_FORM_TITLE,
   HOOKUP_FORM_TITLE,
+  PRESTART_FORM_TITLE,
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
 import { DRIVER_FORMS_SECTION_LABEL, FFW_REQUIRED_BEFORE_START_LABEL } from "@/lib/product-copy";
@@ -116,7 +119,7 @@ export function DayCardToolsSheet({
     tone: "ok" | "err";
     text: string;
   } | null>(null);
-  const [deliveryEmail, setDeliveryEmail] = useState<string | null>(null);
+  const [deliveryEmails, setDeliveryEmails] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,12 +127,12 @@ export function DayCardToolsSheet({
     setEmailFeedback(null);
     let cancelled = false;
     api.settings
-      .getChecklistDelivery()
+      .getChecklistPack()
       .then((d) => {
-        if (!cancelled) setDeliveryEmail(d.email);
+        if (!cancelled) setDeliveryEmails(checklistPackRecipientEmails(d.pack));
       })
       .catch(() => {
-        if (!cancelled) setDeliveryEmail(null);
+        if (!cancelled) setDeliveryEmails([]);
       });
     return () => {
       cancelled = true;
@@ -347,7 +350,7 @@ export function DayCardToolsSheet({
                       >
                         <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
                         <span className="flex-1 text-left">
-                          <span className="block font-semibold">View vehicle pre-departure</span>
+                          <span className="block font-semibold">View {PRESTART_FORM_TITLE}</span>
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             Read saved inspection or not-responsible note
                           </span>
@@ -367,7 +370,7 @@ export function DayCardToolsSheet({
                         <ClipboardList className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
                         <span className="flex-1 text-left">
                           <span className="block font-semibold">
-                            {prestartFormCompleted ? "Redo vehicle pre-departure" : "Vehicle pre-departure"}
+                            {prestartFormCompleted ? `Redo ${PRESTART_FORM_TITLE}` : PRESTART_FORM_TITLE}
                           </span>
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             {prestartFormCompleted
@@ -688,8 +691,8 @@ export function DayCardToolsSheet({
                           {emailBusy ? "Sending…" : CHECKLIST_EMAIL_BUTTON_LABEL}
                         </span>
                         <span className="block text-xs text-slate-500 dark:text-slate-400">
-                          {deliveryEmail
-                            ? `Separate PDF per type to ${deliveryEmail}`
+                          {deliveryEmails.length
+                            ? `Separate PDF per type to ${formatChecklistPackToLabel(deliveryEmails)}`
                             : CHECKLIST_EMAIL_MISSING_MESSAGE}
                         </span>
                       </span>

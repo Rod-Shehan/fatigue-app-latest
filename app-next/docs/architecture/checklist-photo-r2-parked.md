@@ -2,7 +2,7 @@
 
 **Status:** Parked 2026-08-01 (owner).
 
-**Interim:** email completed checklist PDF packs to the signed-in user’s **Settings → Checklist PDF email** (defaults to their sign-in email). Neon still keeps structured checklist JSON (answers, signatures, timestamps). Photos may remain as data URLs in day JSON until a real object store ships.
+**Interim:** email completed checklist PDF packs to the fleet **Checklist PDF pack emails** on Enterprise Owner console. Neon still keeps structured checklist JSON (answers, signatures, timestamps). Photos may remain as data URLs in day JSON until a real object store ships.
 
 **Later:**
 - Per-client email distribution (customer delivery)

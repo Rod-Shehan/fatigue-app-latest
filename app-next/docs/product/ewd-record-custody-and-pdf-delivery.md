@@ -150,14 +150,14 @@ Owner position for counsel to confirm: photographs are **not a legal requirement
 - Circadia becomes the record keeper.  
 - The PDF replaces JSON.  
 - Roadside 28-day packs are auto-emailed.  
-- Circadia’s Gmail holding inbox is the customer destination (retired for checklist packs — destination is the **signed-in user’s** **Settings → Checklist PDF email**, else their login email).
+- Circadia’s Gmail holding inbox is the customer destination (retired for checklist packs — destination is the fleet **Checklist PDF pack emails** on Enterprise Owner console).
 
 ### Address book (do not overload login email)
 
 | Slot | Where | Used for |
 |------|--------|----------|
 | **Operator records inbox** | `Tenant.recordsInbox` | Forced weekly fatigue PDF later (not checklist packs) |
-| **Per-user checklist PDF email** | `User.checklistDeliveryEmail`, else login email — EWD **Settings → Checklist PDF email** | Checklist week packs now. Hide later for clients that should use an org inbox. |
+| **Fleet checklist PDF pack emails** | `SystemPolicy.checklistPackEmail` + two spares — Enterprise Owner console | Checklist week packs. Not per signed-in user. |
 | **Optional driver copy** | Roster `recordsEmail` or opt-in login email | That driver’s own week / FFW — **not** the fleet. *Open — §8.* |
 | **Workshop / WAHVA** | Existing `maintenanceContactEmail` | Prestart **defects** only — not fatigue weeks, not FFW |
 

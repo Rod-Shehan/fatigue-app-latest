@@ -13,7 +13,7 @@ const CONTACT_KEY = ["settings", "maintenance-contact"] as const;
 
 /**
  * Org workshop / maintenance contact for WAHVA defect reporting.
- * Shown on EWD Settings (drivers) and manager/owner consoles.
+ * Enterprise Owner console only — not client manager Test desk, not EWD Settings.
  */
 export function MaintenanceContactSettingsPanel({
   title = "Workshop contact",
@@ -37,6 +37,8 @@ export function MaintenanceContactSettingsPanel({
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
+  const [spareEmail1, setSpareEmail1] = useState("");
+  const [spareEmail2, setSpareEmail2] = useState("");
   const [phone, setPhone] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -47,6 +49,8 @@ export function MaintenanceContactSettingsPanel({
     setName(c.name ?? "");
     setCompany(c.company ?? "");
     setEmail(c.email ?? "");
+    setSpareEmail1(c.spareEmail1 ?? "");
+    setSpareEmail2(c.spareEmail2 ?? "");
     setPhone(c.phone ?? "");
   }, [query.data?.contact]);
 
@@ -57,6 +61,8 @@ export function MaintenanceContactSettingsPanel({
         maintenanceContactCompany: company,
         maintenanceContactEmail: email,
         maintenanceContactPhone: phone,
+        maintenanceSpareEmail1: spareEmail1,
+        maintenanceSpareEmail2: spareEmail2,
       }),
     onSuccess: () => {
       setFormError(null);
@@ -80,8 +86,8 @@ export function MaintenanceContactSettingsPanel({
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             Who should receive vehicle fault reports (WAHVA — defects must be reported for repair). Name,
-            company, and email for your workshop or maintenance contact. Automatic email from Prestart is
-            not enabled yet — this stores the destination for the reporting pathway.
+            company, workshop email, and two spare addresses. Immediate prestart fault emails go to every
+            filled address. Set here on Enterprise (Owner console) — not on the client manager desk.
           </p>
         </>
       )}
@@ -97,8 +103,8 @@ export function MaintenanceContactSettingsPanel({
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
                 Who should receive vehicle fault reports (WAHVA — defects must be reported for repair). Name,
-                company, and email for your workshop or maintenance contact. Automatic email from Prestart is
-                not enabled yet — this stores the destination for the reporting pathway.
+                company, workshop email, and two spare addresses. Immediate prestart fault emails go to every
+                filled address. Set here on Enterprise (Owner console) — not on the client manager desk.
               </p>
             </>
           ) : null}
@@ -148,6 +154,38 @@ export function MaintenanceContactSettingsPanel({
                 placeholder="workshop@example.com"
                 autoComplete="email"
                 required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="maint-spare-email-1"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
+                Spare email 1
+              </Label>
+              <Input
+                id="maint-spare-email-1"
+                type="email"
+                value={spareEmail1}
+                onChange={(e) => setSpareEmail1(e.target.value)}
+                placeholder="Optional extra inbox"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="maint-spare-email-2"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
+                Spare email 2
+              </Label>
+              <Input
+                id="maint-spare-email-2"
+                type="email"
+                value={spareEmail2}
+                onChange={(e) => setSpareEmail2(e.target.value)}
+                placeholder="Optional extra inbox"
+                autoComplete="off"
               />
             </div>
             <div className="space-y-1.5">

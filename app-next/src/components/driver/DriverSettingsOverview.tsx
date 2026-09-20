@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FileText, Mail, Smartphone, UserRound } from "lucide-react";
+import { FileText, Smartphone, UserRound } from "lucide-react";
 import { DRIVER_SETTINGS_SECTIONS } from "@/lib/driver-settings-sections";
 import { DRIVER_SETTINGS_ANCHOR_LINKS } from "@/lib/navigation/navigation-links";
 
@@ -14,13 +14,6 @@ const META = {
     className:
       "border-sky-300/90 bg-sky-50/50 ring-sky-200/50 hover:border-sky-400 hover:bg-sky-100/50 dark:border-sky-600/60 dark:bg-sky-950/30 dark:ring-sky-500/20 dark:hover:bg-sky-950/50",
     iconClass: "text-sky-700 dark:text-sky-400",
-  },
-  "emails-workshop": {
-    blurb: DRIVER_SETTINGS_SECTIONS.delivery.subtitle,
-    icon: Mail,
-    className:
-      "border-emerald-300/90 bg-emerald-50/50 ring-emerald-200/50 hover:border-emerald-400 hover:bg-emerald-100/50 dark:border-emerald-600/55 dark:bg-emerald-950/30 dark:ring-emerald-500/20 dark:hover:bg-emerald-950/50",
-    iconClass: "text-emerald-800 dark:text-emerald-400",
   },
   "your-record": {
     blurb: DRIVER_SETTINGS_SECTIONS.record.subtitle,

@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import { getManagerSession } from "@/lib/auth";
-import { ChecklistDeliverySettingsPanel } from "@/components/driver/ChecklistDeliverySettingsPanel";
 import { TestDeskPanel } from "@/components/manager/TestDeskPanel";
-import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
 
 export const metadata = {
   title: "Test desk · Circadia Manager",
@@ -14,8 +12,6 @@ export default async function ManagerTestDeskPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-8">
-      <ChecklistDeliverySettingsPanel showOutboundStatus />
-      <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" showOutboundStatus />
       <TestDeskPanel backHref="/manager/alerts" backLabel="Live alerts" />
     </div>
   );

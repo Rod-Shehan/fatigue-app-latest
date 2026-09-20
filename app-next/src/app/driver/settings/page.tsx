@@ -17,8 +17,6 @@ import { DriverSettingsRecordsSection } from "./driver-settings-records";
 import { DriverSettingsChangePassword } from "./driver-settings-change-password";
 import { DriverSettingsSignOut } from "./driver-settings-sign-out";
 import { DriverSettingsDeviceSection } from "@/components/pwa/DriverSettingsDeviceSection";
-import { ChecklistDeliverySettingsPanel } from "@/components/driver/ChecklistDeliverySettingsPanel";
-import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
 import {
   DRIVER_SETTINGS_CONNECT_LINKS,
   DRIVER_SETTINGS_HELP_LINKS,
@@ -80,7 +78,6 @@ export default async function DriverSettingsPage({
           : "Back";
 
   const device = DRIVER_SETTINGS_SECTIONS.device;
-  const delivery = DRIVER_SETTINGS_SECTIONS.delivery;
   const record = DRIVER_SETTINGS_SECTIONS.record;
   const account = DRIVER_SETTINGS_SECTIONS.account;
 
@@ -107,17 +104,6 @@ export default async function DriverSettingsPage({
         >
           <DriverSettingsOptions />
           <DriverSettingsDeviceSection hideHeading />
-        </DriverSettingsSection>
-
-        <DriverSettingsSection
-          id={delivery.id}
-          variant="delivery"
-          eyebrow={delivery.eyebrow}
-          title={delivery.title}
-          subtitle={delivery.subtitle}
-        >
-          <ChecklistDeliverySettingsPanel hideHeading />
-          <MaintenanceContactSettingsPanel title="Workshop contact" hideHeading />
         </DriverSettingsSection>
 
         <DriverSettingsSection

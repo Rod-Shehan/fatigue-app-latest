@@ -16,6 +16,15 @@ import {
   type ChecklistRecordType,
 } from "./record";
 import { CHECKLIST_BRAND } from "./tokens";
+import {
+  FFW_FORM_TITLE,
+  FORKLIFT_PRESTART_FORM_TITLE,
+  HOOKUP_FORM_TITLE,
+  LOAD_FORM_TITLE,
+  PRESTART_FORM_TITLE,
+  TRAILER_PRESTART_FORM_TITLE,
+} from "./schema-stubs";
+import { FAULT_REPORT_FORM_TITLE } from "./fault-report";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -25,13 +34,13 @@ export const CHECKLIST_PDF_DISCLAIMER =
   "Each sheet is one signed log. The record date is week ending — not the time signed and not when this file was produced.";
 
 export const CHECKLIST_PDF_TYPE_TITLE: Record<ChecklistRecordType, string> = {
-  ffw: "Fitness for Work",
-  prestart: "Vehicle pre-departure",
-  prestart_trailer: "Trailer pre-departure",
-  prestart_forklift: "Forklift pre-departure",
-  dimension_load: "Load check",
-  hookup: "Hook up",
-  fault_report: "Fault report",
+  ffw: FFW_FORM_TITLE,
+  prestart: PRESTART_FORM_TITLE,
+  prestart_trailer: TRAILER_PRESTART_FORM_TITLE,
+  prestart_forklift: FORKLIFT_PRESTART_FORM_TITLE,
+  dimension_load: LOAD_FORM_TITLE,
+  hookup: HOOKUP_FORM_TITLE,
+  fault_report: FAULT_REPORT_FORM_TITLE,
 };
 
 const TYPE_TITLE = CHECKLIST_PDF_TYPE_TITLE;
@@ -43,14 +52,18 @@ const LOADER_PATH_LABEL: Record<string, string> = {
   self_as_loader: "Driver also loaded — dual signatures",
 };
 
+function pdfTypeFileSlug(title: string): string {
+  return title.trim().replace(/[^\w]+/g, "-").replace(/^-|-$/g, "");
+}
+
 export const CHECKLIST_PDF_TYPE_FILE_SLUG: Record<ChecklistRecordType, string> = {
-  ffw: "Fitness-for-Work",
-  prestart: "Vehicle-pre-departure",
-  prestart_trailer: "Trailer-pre-departure",
-  prestart_forklift: "Forklift-pre-departure",
-  dimension_load: "Load-check",
-  hookup: "Hook-up",
-  fault_report: "Fault-report",
+  ffw: pdfTypeFileSlug(FFW_FORM_TITLE),
+  prestart: pdfTypeFileSlug(PRESTART_FORM_TITLE),
+  prestart_trailer: pdfTypeFileSlug(TRAILER_PRESTART_FORM_TITLE),
+  prestart_forklift: pdfTypeFileSlug(FORKLIFT_PRESTART_FORM_TITLE),
+  dimension_load: pdfTypeFileSlug(LOAD_FORM_TITLE),
+  hookup: pdfTypeFileSlug(HOOKUP_FORM_TITLE),
+  fault_report: pdfTypeFileSlug(FAULT_REPORT_FORM_TITLE),
 };
 
 function hexToRgb(hex: string): [number, number, number] {

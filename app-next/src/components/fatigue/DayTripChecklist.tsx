@@ -4,10 +4,10 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  TRIP_CHECKLIST_KEYS,
+  FORMS_CHECKLIST_KEYS,
   TRIP_CHECKLIST_UI_LABELS,
   type DayTripChecklistFields,
-  type TripChecklistKey,
+  type FormsChecklistKey,
 } from "@/lib/worksafe-day-sheet/trip-checklist";
 import {
   FAULT_REPORT_FORM_TITLE,
@@ -114,6 +114,80 @@ function PlantFormRow({
   );
 }
 
+function formTickRow(
+  key: FormsChecklistKey,
+  opts: {
+    ffwFormCompleted: boolean;
+    prestartFormCompleted: boolean;
+    trailerPrestartCompleted: boolean;
+    forkliftPrestartCompleted: boolean;
+    dimensionLoadFormCompleted: boolean;
+    hookupFormCompleted: boolean;
+    onViewFfw?: () => void;
+    onOpenFfw?: () => void;
+    onViewPrestart?: () => void;
+    onOpenPrestart?: () => void;
+    onViewTrailerPrestart?: () => void;
+    onOpenTrailerPrestart?: () => void;
+    onViewForkliftPrestart?: () => void;
+    onOpenForkliftPrestart?: () => void;
+    onViewDimensionLoad?: () => void;
+    onOpenDimensionLoad?: () => void;
+    onViewHookup?: () => void;
+    onOpenHookup?: () => void;
+  }
+): {
+  completed: boolean;
+  onView?: () => void;
+  onOpen?: () => void;
+  completedOpenLabel: string;
+} {
+  switch (key) {
+    case "fitness_for_work":
+      return {
+        completed: opts.ffwFormCompleted,
+        onView: opts.onViewFfw,
+        onOpen: opts.onOpenFfw,
+        completedOpenLabel: "Redo",
+      };
+    case "daily_vehicle_checklist":
+      return {
+        completed: opts.prestartFormCompleted,
+        onView: opts.onViewPrestart,
+        onOpen: opts.onOpenPrestart,
+        completedOpenLabel: "Redo",
+      };
+    case "dimension_load_checklist":
+      return {
+        completed: opts.dimensionLoadFormCompleted,
+        onView: opts.onViewDimensionLoad,
+        onOpen: opts.onOpenDimensionLoad,
+        completedOpenLabel: "Add another",
+      };
+    case "trailer_prestart_checklist":
+      return {
+        completed: opts.trailerPrestartCompleted,
+        onView: opts.onViewTrailerPrestart,
+        onOpen: opts.onOpenTrailerPrestart,
+        completedOpenLabel: "Redo",
+      };
+    case "forklift_prestart_checklist":
+      return {
+        completed: opts.forkliftPrestartCompleted,
+        onView: opts.onViewForkliftPrestart,
+        onOpen: opts.onOpenForkliftPrestart,
+        completedOpenLabel: "Redo",
+      };
+    case "hookup_checklist":
+      return {
+        completed: opts.hookupFormCompleted,
+        onView: opts.onViewHookup,
+        onOpen: opts.onOpenHookup,
+        completedOpenLabel: "Add another",
+      };
+  }
+}
+
 function checklistSummary(
   value: DayTripChecklistFields,
   ffwFormCompleted: boolean,
@@ -124,8 +198,8 @@ function checklistSummary(
   hookupFormCompleted: boolean,
   faultReportFormCompleted: boolean
 ): string {
-  const done = TRIP_CHECKLIST_KEYS.filter((k) => value[k] === true).length;
-  const total = TRIP_CHECKLIST_KEYS.length;
+  const done = FORMS_CHECKLIST_KEYS.filter((k) => value[k] === true).length;
+  const total = FORMS_CHECKLIST_KEYS.length;
   const forms: string[] = [];
   if (ffwFormCompleted) forms.push("FFW");
   if (prestartFormCompleted) forms.push(PRESTART_FORM_TITLE);
@@ -170,7 +244,7 @@ export function DayTripChecklist({
   const collapsible = variant === "card";
   const [expanded, setExpanded] = useState(!collapsible);
 
-  const setKey = (key: TripChecklistKey, checked: boolean) => {
+  const setKey = (key: FormsChecklistKey, checked: boolean) => {
     onChange({ ...value, [key]: checked ? true : false });
   };
 
@@ -247,17 +321,34 @@ export function DayTripChecklist({
             )}
           >
             Fitness for Work is required before Start shift. Other forms are optional — use the ones
-            that match this shift. Fitness for work, Daily vehicle checklist, and Dimension & load
-            ticks show on the week PDF. Trailer, forklift, hook-up, and {FAULT_REPORT_FORM_TITLE} stay
-            in the EWD only.
+            that match this shift. Fitness for work, {PRESTART_FORM_TITLE}, and Dimension & load ticks
+            show on the week PDF. Trailer, forklift, and {HOOKUP_FORM_TITLE} ticks stay in the EWD.{" "}
+            {FAULT_REPORT_FORM_TITLE} stays in the EWD only.
           </p>
           <ul className="space-y-1">
-            {TRIP_CHECKLIST_KEYS.map((key) => {
+            {FORMS_CHECKLIST_KEYS.map((key) => {
               const id = `trip-check-${key}-${variant}`;
               const checked = value[key] === true;
-              const isFfw = key === "fitness_for_work";
-              const isPrestart = key === "daily_vehicle_checklist";
-              const isLoad = key === "dimension_load_checklist";
+              const row = formTickRow(key, {
+                ffwFormCompleted,
+                prestartFormCompleted,
+                trailerPrestartCompleted,
+                forkliftPrestartCompleted,
+                dimensionLoadFormCompleted,
+                hookupFormCompleted,
+                onViewFfw,
+                onOpenFfw,
+                onViewPrestart,
+                onOpenPrestart,
+                onViewTrailerPrestart,
+                onOpenTrailerPrestart,
+                onViewForkliftPrestart,
+                onOpenForkliftPrestart,
+                onViewDimensionLoad,
+                onOpenDimensionLoad,
+                onViewHookup,
+                onOpenHookup,
+              });
               return (
                 <li key={key}>
                   <div
@@ -288,90 +379,36 @@ export function DayTripChecklist({
                         )}
                       >
                         {TRIP_CHECKLIST_UI_LABELS[key]}
-                        {isFfw && !ffwFormCompleted && !readOnly ? (
+                        {key === "fitness_for_work" && !ffwFormCompleted && !readOnly ? (
                           <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
                             Required
                           </span>
                         ) : null}
-                        {isFfw && ffwFormCompleted ? (
-                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                            Form saved
-                          </span>
-                        ) : null}
-                        {isPrestart && prestartFormCompleted ? (
-                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
-                            Form saved
-                          </span>
-                        ) : null}
-                        {isLoad && dimensionLoadFormCompleted ? (
+                        {row.completed ? (
                           <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                             Form saved
                           </span>
                         ) : null}
                       </span>
                     </label>
-                    {isFfw && (onViewFfw || onOpenFfw) ? (
+                    {row.onView || row.onOpen ? (
                       <div className="flex shrink-0 items-center gap-1.5">
-                        {ffwFormCompleted && onViewFfw ? (
+                        {row.completed && row.onView ? (
                           <button
                             type="button"
-                            onClick={onViewFfw}
+                            onClick={row.onView}
                             className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
                           >
                             View
                           </button>
                         ) : null}
-                        {onOpenFfw && !readOnly ? (
+                        {row.onOpen && !readOnly ? (
                           <button
                             type="button"
-                            onClick={onOpenFfw}
+                            onClick={row.onOpen}
                             className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
                           >
-                            {ffwFormCompleted ? "Redo" : "Open form"}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {isPrestart && (onViewPrestart || onOpenPrestart) ? (
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        {prestartFormCompleted && onViewPrestart ? (
-                          <button
-                            type="button"
-                            onClick={onViewPrestart}
-                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                          >
-                            View
-                          </button>
-                        ) : null}
-                        {onOpenPrestart && !readOnly ? (
-                          <button
-                            type="button"
-                            onClick={onOpenPrestart}
-                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                          >
-                            {prestartFormCompleted ? "Redo" : "Open form"}
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : null}
-                    {isLoad && (onViewDimensionLoad || onOpenDimensionLoad) ? (
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        {dimensionLoadFormCompleted && onViewDimensionLoad ? (
-                          <button
-                            type="button"
-                            onClick={onViewDimensionLoad}
-                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                          >
-                            View
-                          </button>
-                        ) : null}
-                        {onOpenDimensionLoad && !readOnly ? (
-                          <button
-                            type="button"
-                            onClick={onOpenDimensionLoad}
-                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
-                          >
-                            {dimensionLoadFormCompleted ? "Add another" : "Open form"}
+                            {row.completed ? row.completedOpenLabel : "Open form"}
                           </button>
                         ) : null}
                       </div>
@@ -381,40 +418,8 @@ export function DayTripChecklist({
               );
             })}
           </ul>
-          {(onOpenTrailerPrestart ||
-            onViewTrailerPrestart ||
-            onOpenForkliftPrestart ||
-            onViewForkliftPrestart ||
-            onOpenHookup ||
-            onViewHookup ||
-            onOpenFaultReport ||
-            onViewFaultReport) && (
+          {(onOpenFaultReport || onViewFaultReport) && (
             <ul className="mt-2 space-y-1 border-t border-slate-200 pt-2 dark:border-slate-700">
-              <PlantFormRow
-                title={TRAILER_PRESTART_FORM_TITLE}
-                completed={trailerPrestartCompleted}
-                readOnly={readOnly}
-                variant={variant}
-                onView={onViewTrailerPrestart}
-                onOpen={onOpenTrailerPrestart}
-              />
-              <PlantFormRow
-                title={FORKLIFT_PRESTART_FORM_TITLE}
-                completed={forkliftPrestartCompleted}
-                readOnly={readOnly}
-                variant={variant}
-                onView={onViewForkliftPrestart}
-                onOpen={onOpenForkliftPrestart}
-              />
-              <PlantFormRow
-                title={HOOKUP_FORM_TITLE}
-                completed={hookupFormCompleted}
-                readOnly={readOnly}
-                variant={variant}
-                onView={onViewHookup}
-                onOpen={onOpenHookup}
-                completedOpenLabel="Add another"
-              />
               <PlantFormRow
                 title={FAULT_REPORT_FORM_TITLE}
                 completed={faultReportFormCompleted}

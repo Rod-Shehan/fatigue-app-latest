@@ -324,8 +324,9 @@ export function DriverGuideArticle() {
           {DRIVER_LOAD_CHECK_LABEL} — same after a reload. Load check opens Dimension
           & Load; you stay on Other work. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. If it is not a load, stay
           on Other work until you drive or rest. {DRIVER_FORMS_SECTION_LABEL}: Fitness for Work is{" "}
-          {FFW_REQUIRED_BEFORE_START_LABEL.toLowerCase()}. Other forms (Daily vehicle checklist, Dimension &
-          load, plus trailer / forklift / {HOOKUP_FORM_TITLE} / {FAULT_REPORT_FORM_TITLE}) stay optional — use
+          {FFW_REQUIRED_BEFORE_START_LABEL.toLowerCase()}. Other forms ({PRESTART_FORM_TITLE}, Dimension &
+          load, plus {TRAILER_PRESTART_FORM_TITLE}, {FORKLIFT_PRESTART_FORM_TITLE}, {HOOKUP_FORM_TITLE} /{" "}
+          {FAULT_REPORT_FORM_TITLE}) stay optional — use
           the ones that match this shift. They do not block Start shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
@@ -556,10 +557,6 @@ export function DriverGuideArticle() {
               "Dark mode, voice alerts, install the app, backup on this device",
             ],
             [
-              DRIVER_SETTINGS_SECTIONS.delivery.overviewTitle,
-              `${CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to sign-in email) and Workshop contact (vehicle faults)`,
-            ],
-            [
               DRIVER_SETTINGS_SECTIONS.record.overviewTitle,
               "Weeks to sign, This week, Your weeks, Route catalogue, Driver guide, How your record works",
             ],
@@ -596,16 +593,15 @@ export function DriverGuideArticle() {
             {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / {LOAD_FORM_TITLE} / {HOOKUP_FORM_TITLE} /{" "}
             {FAULT_REPORT_FORM_TITLE} when they match this shift (they do not block Start shift). Those three
             pre-departure forms stay separate — do not combine them. Week-PDF ticks (Fitness for work, Daily vehicle checklist,
-            Dimension & load) show on the week PDF. Trailer, forklift, hook-up, and Fault report stay in the EWD
-            only. After{" "}
+            Dimension & load) show on the week PDF. Trailer, forklift, and {HOOKUP_FORM_TITLE} ticks stay in the EWD.{" "}
+            {FAULT_REPORT_FORM_TITLE} stays in the EWD only. After{" "}
             {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
             (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. After a form is saved, use
             View to read it, or Redo / Add another for a new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day
             tools) downloads one sheet per signed log (FFW named by driver; vehicle / load by vehicle
             rego; {HOOKUP_FORM_TITLE} by driver and rego). The date on every file is week ending — not
-            signed time. Types stay separate files. {CHECKLIST_EMAIL_BUTTON_LABEL} sends those PDFs to your address in
-            Settings → {DRIVER_SETTINGS_SECTIONS.delivery.title} → {CHECKLIST_EMAIL_SETTINGS_LABEL} (defaults to
-            your sign-in email). Two-up drivers who are not responsible for the vehicle{" "}
+            signed time. Types stay separate files. {CHECKLIST_EMAIL_BUTTON_LABEL} sends those PDFs to the fleet{" "}
+            {CHECKLIST_EMAIL_SETTINGS_LABEL} set on Enterprise (Owner console). Two-up drivers who are not responsible for the vehicle{" "}
             {PRESTART_FORM_TITLE.toLowerCase()} can record that on the {PRESTART_FORM_TITLE} form instead of inventing
             answers. {PRESTART_FORM_TITLE} is filed under the vehicle registration. {LOAD_FORM_TITLE} is one form per
             load (prime + every trailer/dolly on that load); Add another for the next load. Loader CoR stays separate
@@ -655,11 +651,11 @@ export function DriverGuideArticle() {
             ],
             [
               TRAILER_PRESTART_FORM_TITLE,
-              "Trailer inspection filed under the trailer registration. Optional in trial. Not shown as a week PDF tick",
+              "Trailer inspection filed under the trailer registration. Optional in trial. EWD Forms tick. Not shown as a week PDF tick",
             ],
             [
               FORKLIFT_PRESTART_FORM_TITLE,
-              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. Not shown as a week PDF tick",
+              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. EWD Forms tick. Not shown as a week PDF tick",
             ],
             [
               LOAD_FORM_TITLE,
@@ -667,15 +663,15 @@ export function DriverGuideArticle() {
             ],
             [
               HOOKUP_FORM_TITLE,
-              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. Not a week-PDF tick. Add another for the next hook-up",
+              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. EWD Forms tick. Not a week-PDF tick. Add another for the next hook-up",
             ],
             [
               FAULT_REPORT_FORM_TITLE,
-              "Signed WAHVA fault record. Fault level: Ok to drive / Drive with restriction / Out of service. A Fault tick on pre-departure does not replace this form. Not a week-PDF tick. Add another for the next fault",
+              "Signed WAHVA fault record. Fault level: Ok to drive / Drive with restriction / Out of service. A Fault tick on pre-departure does not replace this form. Listed below the Forms ticks with no checkbox. Not a week-PDF tick. Add another for the next fault",
             ],
             [
               DRIVER_FORMS_SECTION_LABEL,
-              "Day-card list of signed forms (was Daily checks). Optional in trial. Week-PDF ticks stay Fitness for work, Daily vehicle checklist, and Dimension & load",
+              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. EWD ticks: Fitness for work, ${PRESTART_FORM_TITLE}, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick. Week-PDF ticks stay Fitness for work, Daily vehicle checklist, and Dimension & load`,
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

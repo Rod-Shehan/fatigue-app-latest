@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getManagerSession } from "@/lib/auth";
+import { getManagerSession, getOwnerSession } from "@/lib/auth";
 import { ensureSystemPolicyRow, getSystemPolicy } from "@/lib/system-policy";
 import {
   maintenanceContactFromPolicy,
@@ -9,8 +9,8 @@ import { outboundEmailConfigured } from "@/lib/email/outbound";
 import { prisma } from "@/lib/prisma";
 
 /**
- * GET/PATCH /api/manager/maintenance-contact — org workshop / maintenance destination
- * for WAHVA fault reporting (managers + owners).
+ * GET /api/manager/maintenance-contact — managers and owners may read.
+ * PATCH — Enterprise owner only.
  */
 
 export async function GET() {
@@ -25,8 +25,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const manager = await getManagerSession();
-  if (!manager) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const owner = await getOwnerSession();
+  if (!owner) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
   try {
     const body = (await req.json()) as Record<string, unknown>;
     await ensureSystemPolicyRow();
@@ -38,7 +38,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Provide maintenanceContactName, maintenanceContactCompany, maintenanceContactEmail, and/or maintenanceContactPhone",
+            "Provide workshop contact name, company, email, phone, and/or spare emails",
         },
         { status: 400 }
       );
@@ -47,7 +47,7 @@ export async function PATCH(req: Request) {
       where: { id: "default" },
       data: {
         ...contactPatch,
-        updatedById: manager.user.id,
+        updatedById: owner.user.id,
       },
     });
     const policy = await getSystemPolicy();

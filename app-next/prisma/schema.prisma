@@ -101,6 +101,13 @@ model SystemPolicy {
   maintenanceContactCompany String?
   maintenanceContactEmail   String?
   maintenanceContactPhone   String?
+  /** Extra destinations for the same immediate fault emails (Enterprise owner). */
+  maintenanceSpareEmail1    String?
+  maintenanceSpareEmail2    String?
+  /** Fleet checklist / week-pack PDF destinations (Enterprise owner). */
+  checklistPackEmail        String?
+  checklistPackSpareEmail1  String?
+  checklistPackSpareEmail2  String?
   updatedAt             DateTime @updatedAt
   updatedById           String?
   updatedBy               User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)

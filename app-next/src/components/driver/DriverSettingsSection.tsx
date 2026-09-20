@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FileText, Mail, Smartphone, UserRound } from "lucide-react";
+import { FileText, Smartphone, UserRound } from "lucide-react";
 
 const STYLES = {
   device: {
@@ -10,15 +10,6 @@ const STYLES = {
     bodyBg: "bg-sky-50/40 dark:bg-sky-950/20",
     iconWrap: "bg-sky-700 text-white dark:bg-sky-600",
     Icon: Smartphone,
-  },
-  delivery: {
-    border: "border-2 border-emerald-300/90 dark:border-emerald-600/55",
-    ring: "ring-1 ring-emerald-200/70 dark:ring-emerald-500/20",
-    headerBg:
-      "bg-gradient-to-br from-emerald-100 via-emerald-50/90 to-white dark:from-emerald-950/75 dark:via-emerald-950/35 dark:to-slate-950",
-    bodyBg: "bg-emerald-50/35 dark:bg-emerald-950/20",
-    iconWrap: "bg-emerald-700 text-white dark:bg-emerald-600",
-    Icon: Mail,
   },
   record: {
     border: "border-2 border-amber-300/90 dark:border-amber-600/55",

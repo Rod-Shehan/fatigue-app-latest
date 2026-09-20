@@ -74,13 +74,6 @@ export const DRIVER_SETTINGS_ANCHOR_LINKS: NavLinkEntry[] = [
     kind: "anchor",
   },
   {
-    id: DRIVER_SETTINGS_SECTIONS.delivery.id,
-    surface: "driver-settings",
-    title: DRIVER_SETTINGS_SECTIONS.delivery.overviewTitle,
-    href: `#${DRIVER_SETTINGS_SECTIONS.delivery.id}`,
-    kind: "anchor",
-  },
-  {
     id: DRIVER_SETTINGS_SECTIONS.record.id,
     surface: "driver-settings",
     title: DRIVER_SETTINGS_SECTIONS.record.overviewTitle,

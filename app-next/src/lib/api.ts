@@ -121,6 +121,9 @@ export type DayData = {
   fitness_for_work?: boolean;
   dimension_load_checklist?: boolean;
   daily_vehicle_checklist?: boolean;
+  trailer_prestart_checklist?: boolean;
+  forklift_prestart_checklist?: boolean;
+  hookup_checklist?: boolean;
   /**
    * Completed compliance checklist records (FFW / Prestart / Dimension & Load).
    * Embedded in day JSON — Phase 2+. Trip-sheet ticks derive from these (A1).
@@ -490,14 +493,14 @@ export const api = {
       return `${base}/api/sheets/${id}/checklists/export?${sp.toString()}`;
     },
     /**
-     * Email checklist PDFs to the signed-in user’s address (Settings, else login email).
+     * Email checklist PDFs to fleet pack addresses (Enterprise Owner console).
      * One attachment per signed log, dated week ending. Never merges types.
      */
     emailChecklistPdf: (
       id: string,
       opts?: { type?: import("@/lib/checklist").ChecklistRecordType }
     ) =>
-      fetchApi<{ ok: boolean; to: string; filenames: string[]; id?: string }>(
+      fetchApi<{ ok: boolean; to: string[]; filenames: string[]; id?: string }>(
         `/api/sheets/${id}/checklists/export/email`,
         {
           method: "POST",
@@ -515,6 +518,9 @@ export const api = {
             fitness_for_work: boolean;
             dimension_load_checklist: boolean;
             daily_vehicle_checklist: boolean;
+            trailer_prestart_checklist: boolean;
+            forklift_prestart_checklist: boolean;
+            hookup_checklist: boolean;
           };
         }>;
       }>(`/api/sheets/${id}/checklists`),
@@ -583,6 +589,8 @@ export const api = {
           company: string | null;
           email: string | null;
           phone: string | null;
+          spareEmail1: string | null;
+          spareEmail2: string | null;
         };
         outboundEmailConfigured: boolean;
       }>("/api/manager/maintenance-contact"),
@@ -591,6 +599,8 @@ export const api = {
       maintenanceContactCompany?: string | null;
       maintenanceContactEmail?: string | null;
       maintenanceContactPhone?: string | null;
+      maintenanceSpareEmail1?: string | null;
+      maintenanceSpareEmail2?: string | null;
     }) =>
       fetchApi<{
         contact: {
@@ -598,6 +608,8 @@ export const api = {
           company: string | null;
           email: string | null;
           phone: string | null;
+          spareEmail1: string | null;
+          spareEmail2: string | null;
         };
         outboundEmailConfigured: boolean;
       }>("/api/manager/maintenance-contact", { method: "PATCH", body: patch }),
@@ -844,6 +856,8 @@ export const api = {
           company: string | null;
           email: string | null;
           phone: string | null;
+          spareEmail1: string | null;
+          spareEmail2: string | null;
         };
         outboundEmailConfigured: boolean;
       }>("/api/settings/maintenance-contact"),
@@ -852,6 +866,8 @@ export const api = {
       maintenanceContactCompany?: string | null;
       maintenanceContactEmail?: string | null;
       maintenanceContactPhone?: string | null;
+      maintenanceSpareEmail1?: string | null;
+      maintenanceSpareEmail2?: string | null;
     }) =>
       fetchApi<{
         contact: {
@@ -859,22 +875,32 @@ export const api = {
           company: string | null;
           email: string | null;
           phone: string | null;
+          spareEmail1: string | null;
+          spareEmail2: string | null;
         };
         outboundEmailConfigured: boolean;
       }>("/api/settings/maintenance-contact", { method: "PATCH", body: patch }),
-    /** Where this signed-in user wants checklist week PDFs emailed. */
-    getChecklistDelivery: () =>
+    /** Fleet checklist PDF pack destinations (Enterprise Owner console). */
+    getChecklistPack: () =>
       fetchApi<{
-        email: string | null;
-        loginEmail: string | null;
-        usingLoginEmail: boolean;
+        pack: {
+          email: string | null;
+          spareEmail1: string | null;
+          spareEmail2: string | null;
+        };
         outboundEmailConfigured: boolean;
       }>("/api/settings/checklist-delivery"),
-    updateChecklistDelivery: (patch: { email: string }) =>
+    updateChecklistPack: (patch: {
+      checklistPackEmail?: string | null;
+      checklistPackSpareEmail1?: string | null;
+      checklistPackSpareEmail2?: string | null;
+    }) =>
       fetchApi<{
-        email: string | null;
-        loginEmail: string | null;
-        usingLoginEmail: boolean;
+        pack: {
+          email: string | null;
+          spareEmail1: string | null;
+          spareEmail2: string | null;
+        };
         outboundEmailConfigured: boolean;
       }>("/api/settings/checklist-delivery", { method: "PATCH", body: patch }),
     /** Send Prestart actioned fault text to workshop contact. */
@@ -889,7 +915,7 @@ export const api = {
         message?: string;
         provider?: string;
         id?: string | null;
-        to?: string;
+        to?: string | string[];
       }>("/api/settings/maintenance-fault-report", { method: "POST", body }),
   },
   /** Session feature flags / addons for driver + manager clients. */

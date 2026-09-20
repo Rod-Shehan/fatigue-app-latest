@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getOwnerSession } from "@/lib/auth";
 import { ensureSystemPolicyRow, getSystemPolicy } from "@/lib/system-policy";
 import {
   maintenanceContactFromPolicy,
@@ -10,8 +10,8 @@ import { outboundEmailConfigured } from "@/lib/email/outbound";
 import { prisma } from "@/lib/prisma";
 
 /**
- * GET/PATCH /api/settings/maintenance-contact
- * Any signed-in user (driver / manager / owner) — EWD Settings demo + WAHVA destination.
+ * GET — any signed-in user (send path still reads workshop + spares).
+ * PATCH — Enterprise owner only. Not a client-manager setting.
  */
 
 async function requireSessionUserId(): Promise<string | null> {
@@ -32,8 +32,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const userId = await requireSessionUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const owner = await getOwnerSession();
+  if (!owner) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
   try {
     const body = (await req.json()) as Record<string, unknown>;
     await ensureSystemPolicyRow();
@@ -45,7 +45,7 @@ export async function PATCH(req: Request) {
       return NextResponse.json(
         {
           error:
-            "Provide maintenanceContactName, maintenanceContactCompany, maintenanceContactEmail, and/or maintenanceContactPhone",
+            "Provide workshop contact name, company, email, phone, and/or spare emails",
         },
         { status: 400 }
       );
@@ -54,7 +54,7 @@ export async function PATCH(req: Request) {
       where: { id: "default" },
       data: {
         ...contactPatch,
-        updatedById: userId,
+        updatedById: owner.user.id,
       },
     });
     const policy = await getSystemPolicy();

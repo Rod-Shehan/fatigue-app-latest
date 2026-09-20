@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
+import { CHECKLIST_EMAIL_SETTINGS_LABEL } from "@/lib/checklist";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -23,9 +24,9 @@ export function ManagerGuideArticle() {
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
-        ├── Records (week: fatigue / FFW / vehicle / trailer / forklift pre-departure / load)
+        ├── Records (week: fatigue / FFW / prime mover / trailer / forklift / load)
         ├── Rego (vehicles)
-        └── Test desk (checklist PDF email + WAHVA maintenance contact)`}
+        └── Test desk (inject test alerts)`}
         </GuideDiagram>
         <ul className={ulClass}>
           <li>
@@ -57,15 +58,14 @@ export function ManagerGuideArticle() {
             through Driver Overview filters.
           </li>
           <li>
-            <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
-            email (where FFW / vehicle / trailer / forklift / load / hook-up / fault-report PDFs go — one sheet per signed
-            log, dated week ending; each person sets their own; defaults to sign-in email) and workshop /
-            maintenance contact for WAHVA fault reporting (also on driver Settings)
+            <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — inject test alerts
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Owner console</strong> — owners set the
             operator name printed as OPERATOR on weekly trip sheet PDFs (one name for the fleet, not on Drive
-            home)
+            home), {CHECKLIST_EMAIL_SETTINGS_LABEL} (pack plus two spares — Fitness for Work / vehicle / load / hook-up / fault
+            report week packs — one sheet per signed log, dated week ending), and workshop email plus two spare
+            addresses for immediate vehicle fault emails
           </li>
         </ul>
       </section>

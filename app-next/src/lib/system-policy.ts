@@ -17,6 +17,11 @@ export type SystemPolicySnapshot = {
   maintenanceContactCompany: string | null;
   maintenanceContactEmail: string | null;
   maintenanceContactPhone: string | null;
+  maintenanceSpareEmail1: string | null;
+  maintenanceSpareEmail2: string | null;
+  checklistPackEmail: string | null;
+  checklistPackSpareEmail1: string | null;
+  checklistPackSpareEmail2: string | null;
   updatedAt: string;
 };
 
@@ -30,6 +35,11 @@ const DEFAULT_POLICY: SystemPolicySnapshot = {
   maintenanceContactCompany: null,
   maintenanceContactEmail: null,
   maintenanceContactPhone: null,
+  maintenanceSpareEmail1: null,
+  maintenanceSpareEmail2: null,
+  checklistPackEmail: null,
+  checklistPackSpareEmail1: null,
+  checklistPackSpareEmail2: null,
   updatedAt: new Date(0).toISOString(),
 };
 
@@ -54,6 +64,11 @@ export async function getSystemPolicy(): Promise<SystemPolicySnapshot> {
     maintenanceContactCompany: row.maintenanceContactCompany ?? null,
     maintenanceContactEmail: row.maintenanceContactEmail ?? null,
     maintenanceContactPhone: row.maintenanceContactPhone ?? null,
+    maintenanceSpareEmail1: row.maintenanceSpareEmail1 ?? null,
+    maintenanceSpareEmail2: row.maintenanceSpareEmail2 ?? null,
+    checklistPackEmail: row.checklistPackEmail ?? null,
+    checklistPackSpareEmail1: row.checklistPackSpareEmail1 ?? null,
+    checklistPackSpareEmail2: row.checklistPackSpareEmail2 ?? null,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

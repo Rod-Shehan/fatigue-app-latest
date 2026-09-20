@@ -28,6 +28,7 @@ import { FaultReportForm } from "@/components/checklist/FaultReportForm";
 import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
+  formatChecklistPackToLabel,
   hasCompletedChecklistOfType,
   listCompletedChecklistsOfType,
   type ChecklistRecord,
@@ -342,7 +343,7 @@ export default function DayEntry({
     }
     const res = await api.sheets.emailChecklistPdf(dayTools.sheetId);
     const n = res.filenames?.length ?? 0;
-    const dest = res.to;
+    const dest = formatChecklistPackToLabel(res.to);
     if (!dest) throw new Error("No delivery address on the send.");
     if (!n) return `Sent to ${dest}.`;
     return `Sent ${n} PDF${n === 1 ? "" : "s"} to ${dest} (one file per signed log).`;
@@ -628,6 +629,9 @@ export default function DayEntry({
         dayData.fitness_for_work === true ||
         dayData.dimension_load_checklist === true ||
         dayData.daily_vehicle_checklist === true ||
+        dayData.trailer_prestart_checklist === true ||
+        dayData.forklift_prestart_checklist === true ||
+        dayData.hookup_checklist === true ||
         hasAnyChecklistRecord) && (
         <DayTripChecklist
           className="mb-3"
@@ -666,6 +670,9 @@ export default function DayEntry({
             fitness_for_work: dayData.fitness_for_work,
             dimension_load_checklist: dayData.dimension_load_checklist,
             daily_vehicle_checklist: dayData.daily_vehicle_checklist,
+            trailer_prestart_checklist: dayData.trailer_prestart_checklist,
+            forklift_prestart_checklist: dayData.forklift_prestart_checklist,
+            hookup_checklist: dayData.hookup_checklist,
           }}
           onChange={(next) =>
             onUpdate(dayIndex, {
@@ -673,6 +680,9 @@ export default function DayEntry({
               fitness_for_work: next.fitness_for_work,
               dimension_load_checklist: next.dimension_load_checklist,
               daily_vehicle_checklist: next.daily_vehicle_checklist,
+              trailer_prestart_checklist: next.trailer_prestart_checklist,
+              forklift_prestart_checklist: next.forklift_prestart_checklist,
+              hookup_checklist: next.hookup_checklist,
             })
           }
         />
@@ -971,8 +981,9 @@ export default function DayEntry({
                   const res = await api.sheets.emailChecklistPdf(dayTools.sheetId, {
                     type: viewChecklistType,
                   });
-                  if (!res.to) throw new Error("No delivery address on the send.");
-                  return `Checklist PDFs emailed to ${res.to}.`;
+                  const dest = formatChecklistPackToLabel(res.to);
+                  if (!dest) throw new Error("No delivery address on the send.");
+                  return `Checklist PDFs emailed to ${dest}.`;
                 }
               : undefined
           }
@@ -1003,6 +1014,9 @@ export default function DayEntry({
             fitness_for_work: dayData.fitness_for_work,
             dimension_load_checklist: dayData.dimension_load_checklist,
             daily_vehicle_checklist: dayData.daily_vehicle_checklist,
+            trailer_prestart_checklist: dayData.trailer_prestart_checklist,
+            forklift_prestart_checklist: dayData.forklift_prestart_checklist,
+            hookup_checklist: dayData.hookup_checklist,
             checklists: dayData.checklists,
             driver_type: dayData.driver_type ?? (driverType === "two_up" ? "two_up" : "solo"),
             second_driver: dayData.second_driver ?? secondDriver ?? "",

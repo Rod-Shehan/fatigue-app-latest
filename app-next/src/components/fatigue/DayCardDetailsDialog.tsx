@@ -88,6 +88,9 @@ export type DayCardFields = {
   fitness_for_work?: boolean;
   dimension_load_checklist?: boolean;
   daily_vehicle_checklist?: boolean;
+  trailer_prestart_checklist?: boolean;
+  forklift_prestart_checklist?: boolean;
+  hookup_checklist?: boolean;
   /** Completed signed checklists (FFW / Prestart / Load) — Phase 2+. */
   checklists?: import("@/lib/checklist").ChecklistRecord[];
   driver_type?: "solo" | "two_up";
@@ -703,6 +706,9 @@ export function DayCardDetailsDialog({
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
               daily_vehicle_checklist: draft.daily_vehicle_checklist,
+              trailer_prestart_checklist: draft.trailer_prestart_checklist,
+              forklift_prestart_checklist: draft.forklift_prestart_checklist,
+              hookup_checklist: draft.hookup_checklist,
             }}
             onChange={(next) =>
               setDraft((prev) => ({
@@ -710,6 +716,9 @@ export function DayCardDetailsDialog({
                 fitness_for_work: next.fitness_for_work,
                 dimension_load_checklist: next.dimension_load_checklist,
                 daily_vehicle_checklist: next.daily_vehicle_checklist,
+                trailer_prestart_checklist: next.trailer_prestart_checklist,
+                forklift_prestart_checklist: next.forklift_prestart_checklist,
+                hookup_checklist: next.hookup_checklist,
               }))
             }
           />

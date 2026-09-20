@@ -4,21 +4,31 @@
  */
 
 import type { ChecklistRecord, ChecklistRecordType } from "./record";
-import { hasCompletedChecklistOfType, hasCompletedResponsiblePrestart } from "./record";
+import {
+  hasCompletedChecklistOfType,
+  hasCompletedResponsiblePrestart,
+  hasCompletedResponsiblePrestartOfType,
+} from "./record";
 
 export type DerivedTripChecklistFields = {
   fitness_for_work?: boolean;
   dimension_load_checklist?: boolean;
   daily_vehicle_checklist?: boolean;
+  trailer_prestart_checklist?: boolean;
+  forklift_prestart_checklist?: boolean;
+  hookup_checklist?: boolean;
 };
 
-/** Trailer / forklift pre-departure, hook-up, and fault report are EWD forms only — they do not tick the week PDF. */
+/** Trailer / forklift / hook-up ticks are EWD Forms checkboxes. Week PDF still uses FFW / vehicle / load only. */
 export const CHECKLIST_TYPE_TO_TRIP_KEY: Partial<
   Record<ChecklistRecordType, keyof DerivedTripChecklistFields>
 > = {
   ffw: "fitness_for_work",
   dimension_load: "dimension_load_checklist",
   prestart: "daily_vehicle_checklist",
+  prestart_trailer: "trailer_prestart_checklist",
+  prestart_forklift: "forklift_prestart_checklist",
+  hookup: "hookup_checklist",
 };
 
 export type DayWithChecklists = DerivedTripChecklistFields & {
@@ -41,6 +51,14 @@ export function deriveTripChecklistFields(
       d.dimension_load_checklist === true,
     daily_vehicle_checklist:
       hasCompletedResponsiblePrestart(checklists) || d.daily_vehicle_checklist === true,
+    trailer_prestart_checklist:
+      hasCompletedResponsiblePrestartOfType(checklists, "prestart_trailer") ||
+      d.trailer_prestart_checklist === true,
+    forklift_prestart_checklist:
+      hasCompletedResponsiblePrestartOfType(checklists, "prestart_forklift") ||
+      d.forklift_prestart_checklist === true,
+    hookup_checklist:
+      hasCompletedChecklistOfType(checklists, "hookup") || d.hookup_checklist === true,
   };
 }
 
@@ -52,6 +70,9 @@ export function applyDerivedTripTicksToDay<T extends DayWithChecklists>(day: T):
     fitness_for_work: ticks.fitness_for_work || undefined,
     dimension_load_checklist: ticks.dimension_load_checklist || undefined,
     daily_vehicle_checklist: ticks.daily_vehicle_checklist || undefined,
+    trailer_prestart_checklist: ticks.trailer_prestart_checklist || undefined,
+    forklift_prestart_checklist: ticks.forklift_prestart_checklist || undefined,
+    hookup_checklist: ticks.hookup_checklist || undefined,
   };
 }
 

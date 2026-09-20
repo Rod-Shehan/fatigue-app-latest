@@ -345,21 +345,29 @@ export function hasCompletedChecklistOfType(
 }
 
 /**
- * Prestart that completed the vehicle inspection (not a “not responsible” skip).
- * Used for trip-sheet Daily vehicle checklist tick (A1).
+ * Prestart that completed the inspection (not a “not responsible” skip).
+ * Vehicle type feeds the week-PDF Daily vehicle checklist tick (A1).
+ * Trailer / forklift types feed EWD Forms checkboxes only.
  */
-export function hasCompletedResponsiblePrestart(
-  checklists: ChecklistRecord[] | null | undefined
+export function hasCompletedResponsiblePrestartOfType(
+  checklists: ChecklistRecord[] | null | undefined,
+  type: "prestart" | "prestart_trailer" | "prestart_forklift"
 ): boolean {
   if (!Array.isArray(checklists)) return false;
   return checklists.some(
     (c) =>
       c?.status === "completed" &&
-      c.type === "prestart" &&
+      c.type === type &&
       c.prestartResponsible !== false &&
       Array.isArray(c.items) &&
       c.items.length > 0
   );
+}
+
+export function hasCompletedResponsiblePrestart(
+  checklists: ChecklistRecord[] | null | undefined
+): boolean {
+  return hasCompletedResponsiblePrestartOfType(checklists, "prestart");
 }
 
 export function listCompletedChecklists(

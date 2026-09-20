@@ -138,6 +138,9 @@ export async function GET(
         fitness_for_work: day?.fitness_for_work === true,
         dimension_load_checklist: day?.dimension_load_checklist === true,
         daily_vehicle_checklist: day?.daily_vehicle_checklist === true,
+        trailer_prestart_checklist: day?.trailer_prestart_checklist === true,
+        forklift_prestart_checklist: day?.forklift_prestart_checklist === true,
+        hookup_checklist: day?.hookup_checklist === true,
       },
     }));
 

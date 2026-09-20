@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   CHECKLIST_EMAIL_MISSING_MESSAGE,
   checklistDeliveryEmailReady,
+  checklistPackRecipientEmails,
+  formatChecklistPackToLabel,
   normalizeChecklistDeliveryEmail,
-  resolveChecklistDeliveryTo,
+  normalizeChecklistPackPatch,
+  resolveChecklistPackTo,
 } from "./checklist-email";
 
 describe("checklist delivery email", () => {
@@ -25,28 +28,60 @@ describe("checklist delivery email", () => {
       error: "Not a valid email address",
     });
   });
+});
 
-  it("prefers the saved override over login email", () => {
+describe("fleet checklist PDF pack emails", () => {
+  it("collects pack plus unique spare emails", () => {
     expect(
-      resolveChecklistDeliveryTo({
-        checklistDeliveryEmail: "packs@fleet.com",
-        loginEmail: "driver@fleet.com",
+      checklistPackRecipientEmails({
+        email: "packs@fleet.example",
+        spareEmail1: "office@fleet.example",
+        spareEmail2: "PACKS@fleet.example",
       })
-    ).toEqual({ to: "packs@fleet.com" });
+    ).toEqual(["packs@fleet.example", "office@fleet.example"]);
   });
 
-  it("falls back to login email when override is empty", () => {
+  it("resolves To from the org pack list", () => {
     expect(
-      resolveChecklistDeliveryTo({
-        checklistDeliveryEmail: null,
-        loginEmail: "driver@fleet.com",
+      resolveChecklistPackTo({
+        email: "packs@fleet.example",
+        spareEmail1: "office@fleet.example",
+        spareEmail2: null,
       })
-    ).toEqual({ to: "driver@fleet.com" });
+    ).toEqual({ to: ["packs@fleet.example", "office@fleet.example"] });
   });
 
-  it("errors when neither is usable", () => {
-    expect(resolveChecklistDeliveryTo({ checklistDeliveryEmail: null, loginEmail: null })).toEqual({
-      error: CHECKLIST_EMAIL_MISSING_MESSAGE,
+  it("errors when no pack address is set", () => {
+    expect(
+      resolveChecklistPackTo({
+        email: null,
+        spareEmail1: null,
+        spareEmail2: null,
+      })
+    ).toEqual({ error: CHECKLIST_EMAIL_MISSING_MESSAGE });
+  });
+
+  it("formats a To label for UI copy", () => {
+    expect(formatChecklistPackToLabel(["a@fleet.example", "b@fleet.example"])).toBe(
+      "a@fleet.example, b@fleet.example"
+    );
+  });
+
+  it("normalizes pack patch fields", () => {
+    expect(
+      normalizeChecklistPackPatch({
+        checklistPackEmail: "  records@fleet.example  ",
+        checklistPackSpareEmail1: "",
+      })
+    ).toEqual({
+      checklistPackEmail: "records@fleet.example",
+      checklistPackSpareEmail1: null,
+    });
+  });
+
+  it("rejects a bad spare pack email", () => {
+    expect(normalizeChecklistPackPatch({ checklistPackSpareEmail1: "nope" })).toEqual({
+      error: "Spare email 1 is not a valid email address",
     });
   });
 });

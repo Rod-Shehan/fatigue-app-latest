@@ -7,9 +7,9 @@
 import type { ChecklistSchemaGroup, ChecklistSchemaItem } from "./item-types";
 
 /** Driver-facing name — vehicle form. Persist type stays `prestart`. */
-export const PRESTART_FORM_TITLE = "Vehicle pre-departure";
-export const TRAILER_PRESTART_FORM_TITLE = "Trailer pre-departure";
-export const FORKLIFT_PRESTART_FORM_TITLE = "Forklift pre-departure";
+export const PRESTART_FORM_TITLE = "Prime Mover / Rigid Pre-departure Checklist";
+export const TRAILER_PRESTART_FORM_TITLE = "Trailer Pre-departure Checklist";
+export const FORKLIFT_PRESTART_FORM_TITLE = "Forklift Prestart";
 
 export type PrestartPlant = "vehicle" | "trailer" | "forklift";
 

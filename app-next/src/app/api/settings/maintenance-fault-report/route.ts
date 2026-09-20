@@ -3,8 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ensureSystemPolicyRow, getSystemPolicy } from "@/lib/system-policy";
 import {
-  maintenanceContactEmailReady,
   maintenanceContactFromPolicy,
+  maintenanceContactRecipientEmails,
 } from "@/lib/maintenance-contact";
 import { sendMaintenanceFaultReportEmail } from "@/lib/email/outbound";
 
@@ -27,13 +27,14 @@ export async function POST(req: Request) {
 
     await ensureSystemPolicyRow();
     const contact = maintenanceContactFromPolicy(await getSystemPolicy());
-    if (!maintenanceContactEmailReady(contact)) {
+    const recipients = maintenanceContactRecipientEmails(contact);
+    if (!recipients.length) {
       return NextResponse.json(
         {
           ok: false,
           reason: "no_contact",
           message:
-            "No workshop email in Settings. Add a workshop contact, then report the fault again.",
+            "No workshop email in Enterprise Owner console. Add a workshop contact, then report the fault again.",
         },
         { status: 422 }
       );
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
       : `Prestart fault report — ${driverName}`;
 
     const result = await sendMaintenanceFaultReportEmail({
-      toEmail: contact.email!,
+      toEmail: recipients,
       contactName: contact.name,
       contactCompany: contact.company,
       subject,
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
       ok: true,
       provider: result.provider,
       id: result.id ?? null,
-      to: contact.email,
+      to: recipients,
     });
   } catch (e) {
     console.error("maintenance-fault-report POST error:", e);

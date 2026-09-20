@@ -1,78 +1,62 @@
 import { NextResponse } from "next/server";
-import { getSessionForSheetAccess } from "@/lib/auth";
+import { getSessionForSheetAccess, getOwnerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { outboundEmailConfigured } from "@/lib/email/outbound";
+import { ensureSystemPolicyRow, getSystemPolicy } from "@/lib/system-policy";
 import {
-  resolveChecklistDeliveryTo,
-  normalizeChecklistDeliveryEmail,
+  checklistPackFromPolicy,
+  normalizeChecklistPackPatch,
 } from "@/lib/checklist/checklist-email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * GET/PATCH /api/settings/checklist-delivery
- * Signed-in user sets their own User.checklistDeliveryEmail.
- * Empty = fall back to that user’s login email.
+ * GET — any signed-in user (EWD send button reads the fleet pack list).
+ * PATCH — Enterprise owner only.
  */
 
 export async function GET() {
   const access = await getSessionForSheetAccess();
   if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const user = await prisma.user.findUnique({
-    where: { id: access.userId },
-    select: { email: true, checklistDeliveryEmail: true },
-  });
-  const resolved = resolveChecklistDeliveryTo({
-    checklistDeliveryEmail: user?.checklistDeliveryEmail,
-    loginEmail: user?.email,
-  });
-  const override = user?.checklistDeliveryEmail?.trim() || null;
+  await ensureSystemPolicyRow();
+  const pack = checklistPackFromPolicy(await getSystemPolicy());
   return NextResponse.json({
-    email: "to" in resolved ? resolved.to : null,
-    loginEmail: user?.email?.trim() || null,
-    usingLoginEmail: !override && "to" in resolved,
+    pack,
     outboundEmailConfigured: outboundEmailConfigured(),
   });
 }
 
 export async function PATCH(req: Request) {
-  const access = await getSessionForSheetAccess();
-  if (!access) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const owner = await getOwnerSession();
+  if (!owner) return NextResponse.json({ error: "Owner access required" }, { status: 403 });
   try {
-    const body = (await req.json()) as { email?: unknown };
-    const parsed = normalizeChecklistDeliveryEmail(body.email);
-    if ("error" in parsed) {
-      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    const body = (await req.json()) as Record<string, unknown>;
+    await ensureSystemPolicyRow();
+    const packPatch = normalizeChecklistPackPatch(body);
+    if ("error" in packPatch) {
+      return NextResponse.json({ error: packPatch.error }, { status: 400 });
     }
-    const existing = await prisma.user.findUnique({
-      where: { id: access.userId },
-      select: { email: true },
+    if (Object.keys(packPatch).length === 0) {
+      return NextResponse.json(
+        { error: "Provide pack email and/or spare emails" },
+        { status: 400 }
+      );
+    }
+    await prisma.systemPolicy.update({
+      where: { id: "default" },
+      data: {
+        ...packPatch,
+        updatedById: owner.user.id,
+      },
     });
-    const login = existing?.email?.trim() || null;
-    const sameAsLogin =
-      parsed.email != null &&
-      login != null &&
-      parsed.email.toLowerCase() === login.toLowerCase();
-    const stored = sameAsLogin ? null : parsed.email;
-    const user = await prisma.user.update({
-      where: { id: access.userId },
-      data: { checklistDeliveryEmail: stored },
-      select: { email: true, checklistDeliveryEmail: true },
-    });
-    const resolved = resolveChecklistDeliveryTo({
-      checklistDeliveryEmail: user.checklistDeliveryEmail,
-      loginEmail: user.email,
-    });
-    const override = user.checklistDeliveryEmail?.trim() || null;
+    const pack = checklistPackFromPolicy(await getSystemPolicy());
     return NextResponse.json({
-      email: "to" in resolved ? resolved.to : parsed.email,
-      loginEmail: user.email?.trim() || null,
-      usingLoginEmail: !override && "to" in resolved,
+      pack,
       outboundEmailConfigured: outboundEmailConfigured(),
     });
   } catch (e) {
     console.error("[settings/checklist-delivery]", e);
-    return NextResponse.json({ error: "Failed to save checklist PDF email" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to save checklist PDF pack emails" }, { status: 500 });
   }
 }

@@ -10,7 +10,11 @@ import {
   CHECKLIST_PDF_TYPE_TITLE,
   checklistPdfWeekEndingLabel,
 } from "@/lib/checklist/checklist-pdf";
-import { resolveChecklistDeliveryTo } from "@/lib/checklist/checklist-email";
+import {
+  checklistPackFromPolicy,
+  resolveChecklistPackTo,
+} from "@/lib/checklist/checklist-email";
+import { ensureSystemPolicyRow, getSystemPolicy } from "@/lib/system-policy";
 import {
   isChecklistRecordType,
   type ChecklistRecord,
@@ -132,14 +136,8 @@ export async function POST(
       ? `${CHECKLIST_PDF_TYPE_TITLE[onlyType]} — ${row.driverName} — week ending ${weekEnding}`
       : `Checklist records — ${row.driverName} — week ending ${weekEnding}`;
 
-    const sender = await prisma.user.findUnique({
-      where: { id: access.userId },
-      select: { email: true, checklistDeliveryEmail: true },
-    });
-    const resolved = resolveChecklistDeliveryTo({
-      checklistDeliveryEmail: sender?.checklistDeliveryEmail,
-      loginEmail: sender?.email,
-    });
+    await ensureSystemPolicyRow();
+    const resolved = resolveChecklistPackTo(checklistPackFromPolicy(await getSystemPolicy()));
     if ("error" in resolved) {
       return NextResponse.json({ error: resolved.error }, { status: 400 });
     }

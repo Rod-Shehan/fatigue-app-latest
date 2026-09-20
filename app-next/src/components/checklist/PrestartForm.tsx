@@ -258,12 +258,12 @@ export function PrestartForm({
           sheetDayLabel: sheetDayLabel?.trim() || undefined,
         });
         note = sent.ok
-          ? `Fault report emailed to ${sent.to ?? "workshop contact"}.`
+          ? `Fault report emailed to ${Array.isArray(sent.to) ? sent.to.join(", ") : sent.to ?? "workshop contact"}.`
           : `Form saved. Workshop email not sent.`;
       } catch (e) {
         const err = e as Error & { body?: { message?: string } };
         const msg = err.body?.message || err.message || "Could not email workshop";
-        note = `Form saved. Workshop email not sent: ${msg}. Check workshop contact in Settings.`;
+        note = `Form saved. Workshop email not sent: ${msg}. Check workshop contact on Enterprise (Owner console).`;
       }
     }
 
@@ -453,7 +453,7 @@ export function PrestartForm({
                   </button>
                 </div>
                 <p className="text-xs text-ck-steel leading-relaxed">
-                  This text is emailed to your workshop contact (Settings). Edit if needed — it starts
+                  This text is emailed to your workshop contact (Enterprise Owner console). Edit if needed — it starts
                   from each Fault description above.
                 </p>
                 <label className="block space-y-1" htmlFor="prestart-actioned-fault">

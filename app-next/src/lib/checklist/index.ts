@@ -112,6 +112,7 @@ export {
   dataUrlWithinLimit,
   hasCompletedChecklistOfType,
   hasCompletedResponsiblePrestart,
+  hasCompletedResponsiblePrestartOfType,
   isChecklistRecordType,
   listCompletedChecklists,
   listCompletedChecklistsOfType,
@@ -140,9 +141,14 @@ export {
   CHECKLIST_EMAIL_SETTINGS_HINT,
   CHECKLIST_EMAIL_SETTINGS_LABEL,
   checklistDeliveryEmailReady,
+  checklistPackFromPolicy,
+  checklistPackRecipientEmails,
+  formatChecklistPackToLabel,
   normalizeChecklistDeliveryEmail,
   resolveChecklistDeliveryTo,
+  resolveChecklistPackTo,
 } from "./checklist-email";
+export type { ChecklistPackEmails } from "./checklist-email";
 export type { DayWithChecklists, DerivedTripChecklistFields } from "./derive-trip-ticks";
 export {
   appendChecklistToDay,

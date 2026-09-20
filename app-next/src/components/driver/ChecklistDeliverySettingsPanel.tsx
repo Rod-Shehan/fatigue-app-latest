@@ -14,97 +14,118 @@ import {
 import { cn } from "@/lib/utils";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 
-const KEY = ["settings", "checklist-delivery"] as const;
+const KEY = ["settings", "checklist-pack"] as const;
 
-/** EWD Settings — where Fitness for Work / Prestart / Load week PDFs are emailed. */
+/** Enterprise Owner console — fleet checklist PDF pack destinations. */
 export function ChecklistDeliverySettingsPanel({
   className,
   showOutboundStatus = false,
-  hideHeading = false,
 }: {
   className?: string;
-  /** Ops detail — leave off on driver Settings. */
   showOutboundStatus?: boolean;
-  /** When nested in a framed Settings section. */
-  hideHeading?: boolean;
 }) {
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: KEY,
-    queryFn: () => api.settings.getChecklistDelivery(),
+    queryFn: () => api.settings.getChecklistPack(),
   });
 
   const [email, setEmail] = useState("");
+  const [spareEmail1, setSpareEmail1] = useState("");
+  const [spareEmail2, setSpareEmail2] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
-    setEmail(query.data?.email ?? "");
-  }, [query.data?.email]);
+    const pack = query.data?.pack;
+    if (!pack) return;
+    setEmail(pack.email ?? "");
+    setSpareEmail1(pack.spareEmail1 ?? "");
+    setSpareEmail2(pack.spareEmail2 ?? "");
+  }, [query.data?.pack]);
 
   const mutation = useMutation({
-    mutationFn: () => api.settings.updateChecklistDelivery({ email }),
+    mutationFn: () =>
+      api.settings.updateChecklistPack({
+        checklistPackEmail: email,
+        checklistPackSpareEmail1: spareEmail1,
+        checklistPackSpareEmail2: spareEmail2,
+      }),
     onSuccess: () => {
       setFormError(null);
       setSavedFlash(true);
       void queryClient.invalidateQueries({ queryKey: KEY });
+      void queryClient.invalidateQueries({ queryKey: ["admin", "policy"] });
       window.setTimeout(() => setSavedFlash(false), 2500);
     },
     onError: (e: Error) => {
-      setFormError(e.message || "Could not save email");
+      setFormError(e.message || "Could not save pack emails");
     },
   });
 
   return (
     <section className={cn("space-y-3", className)}>
-      {hideHeading ? null : (
-        <>
-          <h2 className={cn(driverSectionLabel, "flex items-center gap-2")}>
-            <Mail className="w-4 h-4" aria-hidden />
-            {CHECKLIST_EMAIL_SETTINGS_LABEL}
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            {CHECKLIST_EMAIL_SETTINGS_HINT}
-          </p>
-        </>
-      )}
+      <h2 className={cn(driverSectionLabel, "flex items-center gap-2")}>
+        <Mail className="w-4 h-4" aria-hidden />
+        {CHECKLIST_EMAIL_SETTINGS_LABEL}
+      </h2>
+      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+        {CHECKLIST_EMAIL_SETTINGS_HINT}
+      </p>
       {query.isLoading ? (
         <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
       ) : (
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-3">
-          {hideHeading ? (
-            <>
-              <p className="flex items-center gap-2 text-sm font-bold text-slate-900 dark:text-slate-100">
-                <Mail className="w-4 h-4" aria-hidden />
-                {CHECKLIST_EMAIL_SETTINGS_LABEL}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                {CHECKLIST_EMAIL_SETTINGS_HINT}
-              </p>
-            </>
-          ) : null}
-          <div className="space-y-1.5">
-            <Label
-              htmlFor="checklist-delivery-email"
-              className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
-            >
-              Email
-            </Label>
-            <Input
-              id="checklist-delivery-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={query.data?.loginEmail || "you@company.com"}
-              autoComplete="email"
-              inputMode="email"
-            />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label
+                htmlFor="checklist-pack-email"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
+                Pack email *
+              </Label>
+              <Input
+                id="checklist-pack-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="records@company.com"
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="checklist-pack-spare-1"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
+                Spare email 1
+              </Label>
+              <Input
+                id="checklist-pack-spare-1"
+                type="email"
+                value={spareEmail1}
+                onChange={(e) => setSpareEmail1(e.target.value)}
+                placeholder="Optional extra inbox"
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="checklist-pack-spare-2"
+                className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold"
+              >
+                Spare email 2
+              </Label>
+              <Input
+                id="checklist-pack-spare-2"
+                type="email"
+                value={spareEmail2}
+                onChange={(e) => setSpareEmail2(e.target.value)}
+                placeholder="Optional extra inbox"
+                autoComplete="off"
+              />
+            </div>
           </div>
-          {query.data?.usingLoginEmail && query.data.loginEmail ? (
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Using your sign-in email. Change it here if packs should go somewhere else.
-            </p>
-          ) : null}
           {showOutboundStatus ? (
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
               Server email send:{" "}
@@ -129,7 +150,7 @@ export function ChecklistDeliverySettingsPanel({
                 Saving…
               </>
             ) : (
-              "Save checklist PDF email"
+              "Save pack emails"
             )}
           </Button>
         </div>

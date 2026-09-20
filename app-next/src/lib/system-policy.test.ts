@@ -17,6 +17,11 @@ const locked = {
   maintenanceContactCompany: null,
   maintenanceContactEmail: null,
   maintenanceContactPhone: null,
+  maintenanceSpareEmail1: null,
+  maintenanceSpareEmail2: null,
+  checklistPackEmail: null,
+  checklistPackSpareEmail1: null,
+  checklistPackSpareEmail2: null,
   updatedAt: new Date().toISOString(),
 };
 

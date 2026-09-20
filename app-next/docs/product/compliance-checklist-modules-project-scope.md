@@ -146,7 +146,7 @@ During the current trial term, checklists are a **capability preview**:
 - [x] Checklist PDF renderer from completed records (jsPDF; brand **I**)
 - [x] On-demand produce + email — **week pack per type** (FFW / Prestart / Load separate; never merged; not fatigue roadside)
 - [x] Honest pending / not-obtained presentation (**K2**)
-- [x] Email to the signed-in user’s **Settings → Checklist PDF email** (`User.checklistDeliveryEmail`, else login email); no Circadia Gmail fallback
+- [x] Email to fleet **Checklist PDF pack emails** on Enterprise Owner console (`SystemPolicy.checklistPackEmail` + two spares); no Circadia Gmail fallback
 - [x] Explicit UI copy: checklist PDF ≠ fatigue roadside; types not combined
 - [x] Guides updated
 - [ ] Customer packing choice (per shift / day / week / fortnight / month) — deferred
@@ -201,7 +201,7 @@ During the current trial term, checklists are a **capability preview**:
 
 ## Next action
 
-**Phase 6 remaining (narrow):** packing choice (per shift / day / week / …) and R2/photo offload stay parked. Checklist PDF → email is live: each user sets **Settings → Checklist PDF email** (defaults to sign-in email); send needs `RESEND_API_KEY` + `EMAIL_FROM`. Hide or replace with an org inbox later per client. Later: Circadia-designed packing vs client-specified forms + delivery.  
+**Phase 6 remaining (narrow):** packing choice (per shift / day / week / …) and R2/photo offload stay parked. Checklist PDF → email is live: Enterprise Owner console sets **Checklist PDF pack emails** (pack + two spares); send needs `RESEND_API_KEY` + `EMAIL_FROM`. Later: Circadia-designed packing vs client-specified forms + delivery.  
 **Manager Records** (`/manager/records`): driver → week date → four separate subjects (Fatigue sheet, Fitness for work, Prestart, Load checks).  
 **Records inbox / forced weekly fatigue PDF** (separate from checklist packs): [ewd-record-custody-and-pdf-delivery.md](./ewd-record-custody-and-pdf-delivery.md).
 

@@ -1,12 +1,28 @@
 import { describe, it, expect } from "vitest";
-import { checklistMatrixFromDays, isTripChecklistTicked, TRIP_CHECKLIST_KEYS } from "./trip-checklist";
+import {
+  checklistMatrixFromDays,
+  FORMS_CHECKLIST_KEYS,
+  isTripChecklistTicked,
+  TRIP_CHECKLIST_KEYS,
+} from "./trip-checklist";
 
 describe("trip checklist", () => {
-  it("lists day forms Fitness for work, Daily vehicle, then Dimension & load", () => {
+  it("lists week-PDF rows Fitness for work, Daily vehicle, then Dimension & load", () => {
     expect([...TRIP_CHECKLIST_KEYS]).toEqual([
       "fitness_for_work",
       "daily_vehicle_checklist",
       "dimension_load_checklist",
+    ]);
+  });
+
+  it("adds trailer, forklift, and hook-up to Forms checkboxes only", () => {
+    expect([...FORMS_CHECKLIST_KEYS]).toEqual([
+      "fitness_for_work",
+      "daily_vehicle_checklist",
+      "dimension_load_checklist",
+      "trailer_prestart_checklist",
+      "forklift_prestart_checklist",
+      "hookup_checklist",
     ]);
   });
   it("reads only explicit true as ticked", () => {
@@ -51,5 +67,20 @@ describe("trip checklist", () => {
     expect(m[0][1]).toBe(true);
     expect(m[1][1]).toBe(false);
     expect(m[2][1]).toBe(false);
+  });
+
+  it("keeps week PDF 3×7 when trailer, forklift, and hook-up Forms ticks are set", () => {
+    const days = Array.from({ length: 7 }, () => ({}));
+    days[0] = {
+      trailer_prestart_checklist: true,
+      forklift_prestart_checklist: true,
+      hookup_checklist: true,
+    };
+    const m = checklistMatrixFromDays(days);
+    expect(m).toHaveLength(3);
+    expect(m.every((row) => row.every((cell) => cell === false))).toBe(true);
+    expect(isTripChecklistTicked(days[0], "trailer_prestart_checklist")).toBe(true);
+    expect(isTripChecklistTicked(days[0], "forklift_prestart_checklist")).toBe(true);
+    expect(isTripChecklistTicked(days[0], "hookup_checklist")).toBe(true);
   });
 });

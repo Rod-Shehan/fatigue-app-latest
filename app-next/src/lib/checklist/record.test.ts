@@ -261,6 +261,7 @@ describe("deriveTripChecklistFields", () => {
       daily_vehicle_checklist: false,
       fitness_for_work: false,
       dimension_load_checklist: false,
+      hookup_checklist: true,
     });
   });
 
@@ -284,6 +285,7 @@ describe("deriveTripChecklistFields", () => {
       daily_vehicle_checklist: false,
       fitness_for_work: false,
       dimension_load_checklist: false,
+      hookup_checklist: false,
     });
   });
 
@@ -302,6 +304,27 @@ describe("deriveTripChecklistFields", () => {
       daily_vehicle_checklist: false,
       fitness_for_work: false,
       dimension_load_checklist: false,
+      trailer_prestart_checklist: true,
+      forklift_prestart_checklist: true,
+    });
+  });
+
+  it("does not tick trailer or forklift from not-responsible skips", () => {
+    const trailer = sampleFfw({
+      type: "prestart_trailer",
+      items: [],
+      prestartResponsible: false,
+      prestartSkipReason: "Two-up",
+    });
+    const forklift = sampleFfw({
+      type: "prestart_forklift",
+      items: [],
+      prestartResponsible: false,
+      prestartSkipReason: "Two-up",
+    });
+    expect(deriveTripChecklistFields({ checklists: [trailer, forklift] })).toMatchObject({
+      trailer_prestart_checklist: false,
+      forklift_prestart_checklist: false,
     });
   });
 

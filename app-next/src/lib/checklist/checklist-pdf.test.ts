@@ -142,7 +142,7 @@ describe("checklist PDF filing name", () => {
     expect(checklistPdfIdentity(vehicle).titleLine).toBe("Vehicle: 1ABC123");
     expect(
       checklistPdfFilename({ weekStarting, type: "prestart", record: vehicle })
-    ).toBe("Vehicle-pre-departure_1ABC123_week-ending-01-08-2026.pdf");
+    ).toBe("Prime-Mover-Rigid-Pre-departure-Checklist_1ABC123_week-ending-01-08-2026.pdf");
 
     const load = sample("dimension_load", "l");
     load.header = { truck_rego: "PRIME1", trailer_rego: "TRL9" };
