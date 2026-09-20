@@ -90,7 +90,7 @@ Do not show Rest and Other work as two always-visible taps on Work. Do not add a
 | Taking a nap? | *(qualifier on Rest)* | Rest-only corner. Sets `napFrom` on the open Rest for FRMS. Diary stays Rest. Compact **Nap?**. Active **On nap**. |
 | Start Other Work | `other_work` | Break from driving on the sheet. Never convert to non-work. Counts toward 20 min / 5h. Still work time for 168h. From Start shift, Start work, or Stop Driving. Then the three-tile hub: Start driving / Start Rest / Load check (not stored until they pick driving or Rest). |
 | Load check | *(nothing)* | Opens Dimension & Load. Timeline stays Other work. Always on the Other work hub — tap again for another load. |
-| Add load check | *(nothing)* | Daily checks / forms still offer another Dimension & Load. |
+| Add load check | *(nothing)* | Forms still offer another Dimension & Load. |
 | End shift | `stop` | Unchanged — starts **non-work** |
 | Stop Driving | *(nothing)* | Chooser only |
 

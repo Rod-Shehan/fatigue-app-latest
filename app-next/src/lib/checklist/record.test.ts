@@ -264,6 +264,29 @@ describe("deriveTripChecklistFields", () => {
     });
   });
 
+  it("does not tick week-PDF fields from a fault report", () => {
+    const fault = sampleFfw({
+      type: "fault_report",
+      items: [
+        {
+          code: "fault_description",
+          kind: "pass_fail",
+          value: "fail",
+          defect: {
+            description: "Air leak",
+            photoDataUrls: [],
+            mobilityStatus: "need_advice",
+          },
+        },
+      ],
+    });
+    expect(deriveTripChecklistFields({ checklists: [fault] })).toMatchObject({
+      daily_vehicle_checklist: false,
+      fitness_for_work: false,
+      dimension_load_checklist: false,
+    });
+  });
+
   it("does not tick Daily vehicle checklist from trailer or forklift forms", () => {
     const trailer = sampleFfw({
       type: "prestart_trailer",

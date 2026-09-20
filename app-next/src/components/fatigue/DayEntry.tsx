@@ -24,6 +24,7 @@ import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
 import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
 import { HookupForm } from "@/components/checklist/HookupForm";
+import { FaultReportForm } from "@/components/checklist/FaultReportForm";
 import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
@@ -182,7 +183,7 @@ export default function DayEntry({
   dayTools?: DayCardToolsConfig;
   /** Parent bump opens Set up day (e.g. Start shift blocked → Go to today's card). */
   setupOpenRequest?: number;
-  /** Parent bump opens Dimension & Load (Other work Load check tile, or Daily checks). */
+  /** Parent bump opens Dimension & Load (Other work Load check tile, or Forms). */
   dimensionLoadOpenRequest?: number;
   /** Hero Start/Resume deferred here — Confirm then opens driving / Other work chooser. */
   startWorkAfterSetup?: boolean;
@@ -225,6 +226,7 @@ export default function DayEntry({
   const [forkliftPrestartOpen, setForkliftPrestartOpen] = useState(false);
   const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
   const [hookupOpen, setHookupOpen] = useState(false);
+  const [faultReportOpen, setFaultReportOpen] = useState(false);
   const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
   const [runPlanOpen, setRunPlanOpen] = useState(false);
   const [expanded, setExpanded] = useState(isToday);
@@ -255,13 +257,15 @@ export default function DayEntry({
     "dimension_load"
   );
   const hookupFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "hookup");
+  const faultReportFormCompleted = hasCompletedChecklistOfType(dayData.checklists, "fault_report");
   const hasAnyChecklistRecord =
     ffwFormCompleted ||
     prestartFormCompleted ||
     trailerPrestartCompleted ||
     forkliftPrestartCompleted ||
     dimensionLoadFormCompleted ||
-    hookupFormCompleted;
+    hookupFormCompleted ||
+    faultReportFormCompleted;
 
   const openFfwForm = useCallback(() => {
     if (!canEditDetails) return;
@@ -299,6 +303,12 @@ export default function DayEntry({
     setHookupOpen(true);
   }, [canEditDetails]);
 
+  const openFaultReportForm = useCallback(() => {
+    if (!canEditDetails) return;
+    setToolsOpen(false);
+    setFaultReportOpen(true);
+  }, [canEditDetails]);
+
   const openViewChecklist = useCallback((type: ChecklistRecordType) => {
     setToolsOpen(false);
     setViewChecklistType(type);
@@ -315,6 +325,7 @@ export default function DayEntry({
       "prestart_forklift",
       "dimension_load",
       "hookup",
+      "fault_report",
     ] as const) {
       if (!hasCompletedChecklistOfType(dayData.checklists, type)) continue;
       window.open(api.sheets.checklistPdfUrl(dayTools.sheetId, type), "_blank");
@@ -593,7 +604,8 @@ export default function DayEntry({
       {(canEditDetails ||
         dayData.fitness_for_work === true ||
         dayData.dimension_load_checklist === true ||
-        dayData.daily_vehicle_checklist === true) && (
+        dayData.daily_vehicle_checklist === true ||
+        hasAnyChecklistRecord) && (
         <DayTripChecklist
           className="mb-3"
           variant="card"
@@ -622,6 +634,11 @@ export default function DayEntry({
           hookupFormCompleted={hookupFormCompleted}
           onOpenHookup={canEditDetails ? openHookupForm : undefined}
           onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
+          faultReportFormCompleted={faultReportFormCompleted}
+          onOpenFaultReport={canEditDetails ? openFaultReportForm : undefined}
+          onViewFaultReport={
+            faultReportFormCompleted ? () => openViewChecklist("fault_report") : undefined
+          }
           value={{
             fitness_for_work: dayData.fitness_for_work,
             dimension_load_checklist: dayData.dimension_load_checklist,
@@ -810,6 +827,11 @@ export default function DayEntry({
           onOpenHookup={canEditDetails ? openHookupForm : undefined}
           onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
           hookupFormCompleted={hookupFormCompleted}
+          onOpenFaultReport={canEditDetails ? openFaultReportForm : undefined}
+          onViewFaultReport={
+            faultReportFormCompleted ? () => openViewChecklist("fault_report") : undefined
+          }
+          faultReportFormCompleted={faultReportFormCompleted}
           onProduceChecklistPdf={
             dayTools && hasAnyChecklistRecord ? produceDayChecklistPdf : undefined
           }
@@ -876,6 +898,14 @@ export default function DayEntry({
         onCompleted={saveDimensionLoadRecord}
       />
 
+      <FaultReportForm
+        open={faultReportOpen}
+        onClose={() => setFaultReportOpen(false)}
+        driverName={dayTools?.driverName ?? driverName}
+        vehicleRego={dayData.truck_rego}
+        onCompleted={saveDimensionLoadRecord}
+      />
+
       {viewChecklistType ? (
         <ChecklistRecordViewer
           open
@@ -892,6 +922,7 @@ export default function DayEntry({
                   else if (t === "prestart_trailer") setTrailerPrestartOpen(true);
                   else if (t === "prestart_forklift") setForkliftPrestartOpen(true);
                   else if (t === "hookup") setHookupOpen(true);
+                  else if (t === "fault_report") setFaultReportOpen(true);
                   else setDimensionLoadOpen(true);
                 }
               : undefined

@@ -16,6 +16,7 @@ import {
   DRIVER_OTHER_WORK_LABEL,
   DRIVER_NAP_QUESTION_LABEL,
   DRIVER_ON_NAP_LABEL,
+  DRIVER_FORMS_SECTION_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
   OPENING_DISCLAIMER_COMPACT,
   PRODUCT_RECORD_PROMISE,
@@ -26,7 +27,7 @@ import {
 } from "@/lib/product-copy";
 import { DRIVER_HELP_RETENTION_BULLETS } from "@/lib/record-retention";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
-import { HOOKUP_FORM_TITLE, LOAD_FORM_TITLE } from "@/lib/checklist";
+import { FAULT_REPORT_FORM_TITLE, HOOKUP_FORM_TITLE, LOAD_FORM_TITLE } from "@/lib/checklist";
 import {
   SHIFT_CHANGE_MIN_GAP_HOURS,
   SHIFT_PATTERN_FIELD_HELP,
@@ -149,8 +150,9 @@ export default async function DriverHelpPage() {
                 driving, still a job (load, forklift, tyre, paperwork, fuel). After tap-again, three tiles stay on the
                 ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL} (same after a
                 reload). {DRIVER_LOAD_CHECK_LABEL} opens {LOAD_FORM_TITLE}; you stay on Other work. Tap it again for
-                another load. If it is not a load, stay on Other work until you drive or rest. Daily checks on the day
-                card stay available (including {HOOKUP_FORM_TITLE}). Shown on
+                another load. If it is not a load, stay on Other work until you drive or rest.{" "}
+                {DRIVER_FORMS_SECTION_LABEL} on the day card stay available (including {HOOKUP_FORM_TITLE} and{" "}
+                {FAULT_REPORT_FORM_TITLE}). Shown on
                 breaks from driving. Never becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still
                 work time for 168h.
               </li>

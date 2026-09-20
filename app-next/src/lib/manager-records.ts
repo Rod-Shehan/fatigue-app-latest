@@ -15,6 +15,7 @@ export const EMPTY_RECORDS_CHECKLIST_COUNTS: RecordsChecklistCounts = {
   prestart_forklift: 0,
   dimension_load: 0,
   hookup: 0,
+  fault_report: 0,
 };
 
 export function normalizeRosterName(name: string | null | undefined): string {
@@ -106,6 +107,7 @@ export function countCompletedChecklistsByType(
     prestart_forklift: listWeekChecklistsOfType(days, "prestart_forklift").length,
     dimension_load: listWeekChecklistsOfType(days, "dimension_load").length,
     hookup: listWeekChecklistsOfType(days, "hookup").length,
+    fault_report: listWeekChecklistsOfType(days, "fault_report").length,
   };
 }
 

@@ -49,8 +49,8 @@ export function ManagerGuideArticle() {
             roster driver on the left; pick a week by date. Under that week, separate subjects:{" "}
             {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FATIGUE}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FFW},{" "}
             {MANAGER_EXPERIENCE.RECORDS_SUBJECT_PRESTART}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_TRAILER},{" "}
-            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FORKLIFT}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}, and{" "}
-            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_HOOKUP}. Each
+            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FORKLIFT},             {MANAGER_EXPERIENCE.RECORDS_SUBJECT_LOAD}, {MANAGER_EXPERIENCE.RECORDS_SUBJECT_HOOKUP}, and{" "}
+            {MANAGER_EXPERIENCE.RECORDS_SUBJECT_FAULT}. Each
             subject has {MANAGER_EXPERIENCE.RECORDS_VIEW_WEEK} (in-app) and {MANAGER_EXPERIENCE.RECORDS_EXPORT_PDF}.
             Fatigue opens the week sheet; checklist subjects open that week’s signed forms of that type only
             (types are never combined). For managers and WAHVA auditors reviewing history without hunting
@@ -58,7 +58,7 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — set your checklist PDF
-            email (where FFW / vehicle / trailer / forklift / load / hook-up PDFs go — one sheet per signed
+            email (where FFW / vehicle / trailer / forklift / load / hook-up / fault-report PDFs go — one sheet per signed
             log, dated week ending; each person sets their own; defaults to sign-in email) and workshop /
             maintenance contact for WAHVA fault reporting (also on driver Settings)
           </li>

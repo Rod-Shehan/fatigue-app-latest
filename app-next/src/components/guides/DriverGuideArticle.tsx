@@ -22,6 +22,7 @@ import {
   DRIVER_PASSENGER_LABEL,
   DRIVER_SLEEPER_BERTH_LABEL,
   DRIVER_PARKED_LABEL,
+  DRIVER_FORMS_SECTION_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
   DRIVER_REST_WINDOW_HEADLINE,
@@ -32,6 +33,7 @@ import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_EMAIL_SETTINGS_LABEL,
   CHECKLIST_PDF_BUTTON_LABEL,
+  FAULT_REPORT_FORM_TITLE,
   FORKLIFT_PRESTART_FORM_TITLE,
   HOOKUP_FORM_TITLE,
   LOAD_FORM_TITLE,
@@ -319,9 +321,10 @@ export function DriverGuideArticle() {
           is logged, the ring keeps three tiles: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL},{" "}
           {DRIVER_LOAD_CHECK_LABEL} — same after a reload. Load check opens Dimension
           & Load; you stay on Other work. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. If it is not a load, stay
-          on Other work until you drive or rest. Daily checks (Fitness for work, Daily vehicle checklist, Dimension &
-          load, plus trailer / forklift / {HOOKUP_FORM_TITLE}) stay available on the day card for depot /
-          already-loaded work. Forms are optional in trial — do not block Start shift.
+          on Other work until you drive or rest. {DRIVER_FORMS_SECTION_LABEL} (Fitness for work, Daily vehicle
+          checklist, Dimension & load, plus trailer / forklift / {HOOKUP_FORM_TITLE} / {FAULT_REPORT_FORM_TITLE})
+          stay available on the day card for depot / already-loaded work. Forms are optional in trial — do not
+          block Start shift.
         </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">Set up day / Edit day</p>
         <p>Use Set up day (or Edit day) when something changes:</p>
@@ -580,17 +583,18 @@ export function DriverGuideArticle() {
       </section>
 
       <section className={sectionClass}>
-        <h2 className={h2Class}>18. Each-day checklist</h2>
+        <h2 className={h2Class}>18. Each-day forms</h2>
         <ol className="list-decimal pl-5 space-y-1">
           <li>Sign in (or stay signed in)</li>
           <li>Log more work</li>
           <li>Check rego and run setup on today&apos;s card</li>
           <li>
-            Optionally tick Daily checks, or open signed Fitness for Work / {PRESTART_FORM_TITLE} /{" "}
-            {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / {LOAD_FORM_TITLE} / {HOOKUP_FORM_TITLE}{" "}
-            forms (optional in trial — do not block Start shift). Those three pre-departure forms stay separate — do
-            not combine them. Daily checks ticks (Fitness for work, Daily vehicle checklist, Dimension & load) show
-            on the week PDF. Trailer, forklift, and hook-up forms stay in the EWD only. After{" "}
+            Optionally tick {DRIVER_FORMS_SECTION_LABEL}, or open signed Fitness for Work / {PRESTART_FORM_TITLE} /{" "}
+            {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / {LOAD_FORM_TITLE} / {HOOKUP_FORM_TITLE} /{" "}
+            {FAULT_REPORT_FORM_TITLE} (optional in trial — do not block Start shift). Those three pre-departure
+            forms stay separate — do not combine them. Week-PDF ticks (Fitness for work, Daily vehicle checklist,
+            Dimension & load) show on the week PDF. Trailer, forklift, hook-up, and Fault report stay in the EWD
+            only. After{" "}
             {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
             (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. After a form is saved, use
             View to read it, or Redo / Add another for a new signed record. {CHECKLIST_PDF_BUTTON_LABEL} (day
@@ -602,8 +606,11 @@ export function DriverGuideArticle() {
             {PRESTART_FORM_TITLE.toLowerCase()} can record that on the {PRESTART_FORM_TITLE} form instead of inventing
             answers. {PRESTART_FORM_TITLE} is filed under the vehicle registration. {LOAD_FORM_TITLE} is one form per
             load (prime + every trailer/dolly on that load); Add another for the next load. Loader CoR stays separate
-            (present sign, pending, or photo gap — no proxy).             {HOOKUP_FORM_TITLE} is one signed tick sheet per coupling
-            (14 paper steps). Training covers the procedure. Add another for the next hook-up.
+            (present sign, pending, or photo gap — no proxy). {HOOKUP_FORM_TITLE} is one signed tick sheet per
+            coupling (14 paper steps). Training covers the procedure. Add another for the next hook-up.{" "}
+            {FAULT_REPORT_FORM_TITLE} is a separate signed WAHVA record (not a week-PDF tick). A Fault tick on
+            pre-departure does not replace it — complete both when the finding is from an inspection. Add another
+            for the next fault.
           </li>
           <li>Tap {DRIVER_START_SHIFT_LABEL} when you begin (Confirm Set up day if prompted, then {DRIVER_START_DRIVING_LABEL} or {DRIVER_START_OTHER_WORK_LABEL})</li>
           <li>Tap {DRIVER_STOP_DRIVING_LABEL}, then {DRIVER_START_REST_LABEL} or {DRIVER_START_OTHER_WORK_LABEL}. From Rest, tap {DRIVER_START_WORK_LABEL} then driving or Other work. On Other work the three tiles stay on the ring: {DRIVER_START_DRIVING_LABEL}, {DRIVER_START_REST_LABEL}, {DRIVER_LOAD_CHECK_LABEL}. Tap {DRIVER_LOAD_CHECK_LABEL} again for another load</li>
@@ -637,7 +644,7 @@ export function DriverGuideArticle() {
               [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, break from driving, sleeper berth, or Parked"],
             [
               "Fitness for Work",
-              `Ten-point WAHVA declaration, signed under your name. Optional in trial. Ticks Fitness for work on the week PDF. Separate from ${PRESTART_FORM_TITLE}, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${LOAD_FORM_TITLE}, and ${HOOKUP_FORM_TITLE}`,
+              `Ten-point WAHVA declaration, signed under your name. Optional in trial. Ticks Fitness for work on the week PDF. Separate from ${PRESTART_FORM_TITLE}, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${LOAD_FORM_TITLE}, ${HOOKUP_FORM_TITLE}, and ${FAULT_REPORT_FORM_TITLE}`,
             ],
             [
               PRESTART_FORM_TITLE,
@@ -653,11 +660,19 @@ export function DriverGuideArticle() {
             ],
             [
               LOAD_FORM_TITLE,
-              "Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check on the Other work hub, or Daily checks. Add another for the next load. Loader CoR is separate (no proxy)",
+              `Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check on the Other work hub, or ${DRIVER_FORMS_SECTION_LABEL}. Add another for the next load. Loader CoR is separate (no proxy)`,
             ],
             [
               HOOKUP_FORM_TITLE,
               "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. Not a week-PDF tick. Add another for the next hook-up",
+            ],
+            [
+              FAULT_REPORT_FORM_TITLE,
+              "Signed WAHVA fault record. Fault level: Ok to drive / Drive with restriction / Out of service. A Fault tick on pre-departure does not replace this form. Not a week-PDF tick. Add another for the next fault",
+            ],
+            [
+              DRIVER_FORMS_SECTION_LABEL,
+              "Day-card list of signed forms (was Daily checks). Optional in trial. Week-PDF ticks stay Fitness for work, Daily vehicle checklist, and Dimension & load",
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

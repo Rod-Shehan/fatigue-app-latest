@@ -21,10 +21,12 @@ import { api } from "@/lib/api";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
   CHECKLIST_EMAIL_MISSING_MESSAGE,
+  FAULT_REPORT_FORM_TITLE,
   FORKLIFT_PRESTART_FORM_TITLE,
   HOOKUP_FORM_TITLE,
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
+import { DRIVER_FORMS_SECTION_LABEL } from "@/lib/product-copy";
 
 export function DayCardToolsSheet({
   open,
@@ -56,6 +58,9 @@ export function DayCardToolsSheet({
   onOpenHookup,
   onViewHookup,
   hookupFormCompleted = false,
+  onOpenFaultReport,
+  onViewFaultReport,
+  faultReportFormCompleted = false,
   onProduceChecklistPdf,
   onEmailChecklistPdf,
   last24hUnset,
@@ -94,6 +99,9 @@ export function DayCardToolsSheet({
   onOpenHookup?: () => void;
   onViewHookup?: () => void;
   hookupFormCompleted?: boolean;
+  onOpenFaultReport?: () => void;
+  onViewFaultReport?: () => void;
+  faultReportFormCompleted?: boolean;
   /** Dedicated checklist PDF for this day (not fatigue roadside). */
   onProduceChecklistPdf?: () => void;
   /** Email checklist PDFs; return a short success message for on-sheet feedback. */
@@ -264,7 +272,7 @@ export function DayCardToolsSheet({
           </section>
 
           <section>
-            <h3 className={driverSectionLabel}>Optional checks</h3>
+            <h3 className={driverSectionLabel}>{DRIVER_FORMS_SECTION_LABEL}</h3>
             {onOpenFfw ||
             onViewFfw ||
             onOpenPrestart ||
@@ -276,7 +284,9 @@ export function DayCardToolsSheet({
             onOpenDimensionLoad ||
             onViewDimensionLoad ||
             onOpenHookup ||
-            onViewHookup ? (
+            onViewHookup ||
+            onOpenFaultReport ||
+            onViewFaultReport ? (
               <div className="space-y-1">
                 {onOpenFfw || onViewFfw ? (
                   <div className="space-y-1">
@@ -556,10 +566,58 @@ export function DayCardToolsSheet({
                     ) : null}
                   </div>
                 ) : null}
+                {onOpenFaultReport || onViewFaultReport ? (
+                  <div className="space-y-1">
+                    {onViewFaultReport && faultReportFormCompleted ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onViewFaultReport();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">View {FAULT_REPORT_FORM_TITLE}</span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            Read saved fault report(s) for this day
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                    {onOpenFaultReport ? (
+                      <button
+                        type="button"
+                        className={cn(driverDrawerRow, "w-full")}
+                        onClick={() => {
+                          onOpenChange(false);
+                          onOpenFaultReport();
+                        }}
+                      >
+                        <ClipboardCheck className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+                        <span className="flex-1 text-left">
+                          <span className="block font-semibold">
+                            {faultReportFormCompleted
+                              ? `Add ${FAULT_REPORT_FORM_TITLE}`
+                              : FAULT_REPORT_FORM_TITLE}
+                          </span>
+                          <span className="block text-xs text-slate-500 dark:text-slate-400">
+                            {faultReportFormCompleted
+                              ? "Add another signed fault record"
+                              : "Signed WAHVA fault record — does not replace a Fault tick"}
+                          </span>
+                        </span>
+                        <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ) : (
               <p className="text-sm text-slate-500 dark:text-slate-400 px-1">
-                Open an editable day card to complete optional checks.
+                Open an editable day card to complete forms.
               </p>
             )}
           </section>

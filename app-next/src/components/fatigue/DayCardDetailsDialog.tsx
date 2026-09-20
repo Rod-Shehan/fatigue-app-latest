@@ -53,6 +53,7 @@ import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
 import { DimensionLoadForm } from "@/components/checklist/DimensionLoadForm";
 import { HookupForm } from "@/components/checklist/HookupForm";
+import { FaultReportForm } from "@/components/checklist/FaultReportForm";
 import { ChecklistRecordViewer } from "@/components/checklist/ChecklistRecordViewer";
 import {
   appendChecklistToDay,
@@ -194,6 +195,7 @@ export function DayCardDetailsDialog({
   const [forkliftPrestartOpen, setForkliftPrestartOpen] = useState(false);
   const [dimensionLoadOpen, setDimensionLoadOpen] = useState(false);
   const [hookupOpen, setHookupOpen] = useState(false);
+  const [faultReportOpen, setFaultReportOpen] = useState(false);
   const [viewChecklistType, setViewChecklistType] = useState<ChecklistRecordType | null>(null);
   const [serverMaxEndKms, setServerMaxEndKms] = useState<number | null>(null);
   const queryClient = useQueryClient();
@@ -212,6 +214,7 @@ export function DayCardDetailsDialog({
     "dimension_load"
   );
   const hookupFormCompleted = hasCompletedChecklistOfType(draft.checklists, "hookup");
+  const faultReportFormCompleted = hasCompletedChecklistOfType(draft.checklists, "fault_report");
 
   const activityBeforeDay = useMemo((): PriorOpenActivity => {
     if (activityBeforeDayProp != null) return activityBeforeDayProp;
@@ -620,7 +623,7 @@ export function DayCardDetailsDialog({
         <DialogHeader>
           <DialogTitle className="text-lg">{dayTitle}</DialogTitle>
           <DialogDescription className="text-base text-slate-600 dark:text-slate-300">
-            {dateLabel} — crew, daily checks, route, kilometres, and work / break / non-work times for this day
+            {dateLabel} — crew, forms, route, kilometres, and work / break / non-work times for this day
             {driverName?.trim() ? (
               <span className="mt-1.5 block text-sm font-semibold text-slate-800 dark:text-slate-100">
                 Driver · {driverName.trim()}
@@ -690,6 +693,11 @@ export function DayCardDetailsDialog({
             hookupFormCompleted={hookupFormCompleted}
             onOpenHookup={readOnly ? undefined : () => setHookupOpen(true)}
             onViewHookup={hookupFormCompleted ? () => setViewChecklistType("hookup") : undefined}
+            faultReportFormCompleted={faultReportFormCompleted}
+            onOpenFaultReport={readOnly ? undefined : () => setFaultReportOpen(true)}
+            onViewFaultReport={
+              faultReportFormCompleted ? () => setViewChecklistType("fault_report") : undefined
+            }
             value={{
               fitness_for_work: draft.fitness_for_work,
               dimension_load_checklist: draft.dimension_load_checklist,
@@ -777,6 +785,17 @@ export function DayCardDetailsDialog({
             }}
           />
 
+          <FaultReportForm
+            open={faultReportOpen}
+            onClose={() => setFaultReportOpen(false)}
+            driverName={driverName}
+            vehicleRego={draft.truck_rego}
+            onCompleted={async (record) => {
+              await Promise.resolve(onChecklistCompleted?.(record));
+              setDraft((prev) => appendChecklistToDay(prev, record));
+            }}
+          />
+
           {viewChecklistType ? (
             <ChecklistRecordViewer
               open
@@ -794,6 +813,7 @@ export function DayCardDetailsDialog({
                       else if (t === "prestart_trailer") setTrailerPrestartOpen(true);
                       else if (t === "prestart_forklift") setForkliftPrestartOpen(true);
                       else if (t === "hookup") setHookupOpen(true);
+                      else if (t === "fault_report") setFaultReportOpen(true);
                       else setDimensionLoadOpen(true);
                     }
               }

@@ -111,6 +111,22 @@ describe("checklist audit identity", () => {
     expect(id.secondaryValue).toBe("Jaydin Ireland");
   });
 
+  it("Fault report is keyed by plant registration", () => {
+    const id = checklistAuditIdentity({
+      id: "1",
+      type: "fault_report",
+      schemaVersion: 1,
+      status: "completed",
+      completedAtUtc: "x",
+      items: [],
+      signatures: [sig],
+      header: { vehicle_rego: "1ABC123", fleet_unit: "T12", driver_name: "Jaydin Ireland" },
+    });
+    expect(id.primaryLabel).toBe("Plant");
+    expect(id.primaryValue).toBe("1ABC123");
+    expect(id.secondaryValue).toBe("Jaydin Ireland");
+  });
+
   it("prefills the next hook-up from the last record that day", () => {
     const last = lastHookupFromRecords([
       {

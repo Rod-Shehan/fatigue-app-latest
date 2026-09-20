@@ -14,7 +14,7 @@ export const CHECKLIST_EMAIL_BUTTON_LABEL = "Email checklist PDFs";
 export const CHECKLIST_EMAIL_SETTINGS_LABEL = "Checklist PDF email";
 
 export const CHECKLIST_EMAIL_SETTINGS_HINT =
-  "Your address for Fitness for Work, pre-departure, Load check, and Hook up PDFs. Defaults to your sign-in email. Each person sets their own. One PDF per signed log, dated week ending. Not the 28-day fatigue roadside PDF. Not the workshop fault address.";
+  "Your address for Fitness for Work, pre-departure, Load check, Hook up, and Fault report PDFs. Defaults to your sign-in email. Each person sets their own. One PDF per signed log, dated week ending. Not the 28-day fatigue roadside PDF. Not the workshop fault address.";
 
 export const CHECKLIST_EMAIL_MISSING_MESSAGE =
   "Set the checklist PDF email in Settings, or add a sign-in email.";

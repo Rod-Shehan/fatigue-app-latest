@@ -68,7 +68,7 @@ export async function POST(
           return NextResponse.json(
             {
               error:
-                "type must be ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup",
+                "type must be ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup | fault_report",
             },
             { status: 400 }
           );

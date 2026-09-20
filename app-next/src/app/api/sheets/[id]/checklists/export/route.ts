@@ -51,7 +51,7 @@ export async function GET(
       return NextResponse.json(
         {
           error:
-            "type is required: ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup",
+            "type is required: ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup | fault_report",
         },
         { status: 400 }
       );

@@ -235,7 +235,10 @@ export const DRIVER_START_REST_LABEL = "Start Rest";
 export const DRIVER_START_OTHER_WORK_LABEL = "Start Other Work";
 /** On the Other work hub — open Dimension & Load (timeline stays Other work). */
 export const DRIVER_LOAD_CHECK_LABEL = "Load check";
-/** Kept for tests / Daily checks copy. The Other work hub uses Load check, not this label. */
+/** Day-card / tools heading for signed EWD forms (was Daily checks). */
+export const DRIVER_FORMS_SECTION_LABEL = "Forms";
+
+/** Kept for tests / Forms copy. The Other work hub uses Load check, not this label. */
 export const DRIVER_ADD_LOAD_CHECK_LABEL = "Add load check";
 
 export function formatAddLoadCheckLabel(completedToday: number): string {

@@ -10,11 +10,13 @@ import {
   type TripChecklistKey,
 } from "@/lib/worksafe-day-sheet/trip-checklist";
 import {
+  FAULT_REPORT_FORM_TITLE,
   FORKLIFT_PRESTART_FORM_TITLE,
   HOOKUP_FORM_TITLE,
   PRESTART_FORM_TITLE,
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
+import { DRIVER_FORMS_SECTION_LABEL } from "@/lib/product-copy";
 
 type Props = {
   value: DayTripChecklistFields;
@@ -48,6 +50,9 @@ type Props = {
   onOpenHookup?: () => void;
   onViewHookup?: () => void;
   hookupFormCompleted?: boolean;
+  onOpenFaultReport?: () => void;
+  onViewFaultReport?: () => void;
+  faultReportFormCompleted?: boolean;
 };
 
 function PlantFormRow({
@@ -116,7 +121,8 @@ function checklistSummary(
   trailerPrestartCompleted: boolean,
   forkliftPrestartCompleted: boolean,
   dimensionLoadFormCompleted: boolean,
-  hookupFormCompleted: boolean
+  hookupFormCompleted: boolean,
+  faultReportFormCompleted: boolean
 ): string {
   const done = TRIP_CHECKLIST_KEYS.filter((k) => value[k] === true).length;
   const total = TRIP_CHECKLIST_KEYS.length;
@@ -127,6 +133,7 @@ function checklistSummary(
   if (forkliftPrestartCompleted) forms.push(FORKLIFT_PRESTART_FORM_TITLE);
   if (dimensionLoadFormCompleted) forms.push("Load");
   if (hookupFormCompleted) forms.push(HOOKUP_FORM_TITLE);
+  if (faultReportFormCompleted) forms.push(FAULT_REPORT_FORM_TITLE);
   const tickPart = `${done}/${total} ticked`;
   if (forms.length === 0) return tickPart;
   return `${tickPart} · ${forms.join(", ")} saved`;
@@ -156,6 +163,9 @@ export function DayTripChecklist({
   onOpenHookup,
   onViewHookup,
   hookupFormCompleted = false,
+  onOpenFaultReport,
+  onViewFaultReport,
+  faultReportFormCompleted = false,
 }: Props) {
   const collapsible = variant === "card";
   const [expanded, setExpanded] = useState(!collapsible);
@@ -176,7 +186,9 @@ export function DayTripChecklist({
       onOpenDimensionLoad ||
       onViewDimensionLoad ||
       onOpenHookup ||
-      onViewHookup
+      onViewHookup ||
+      onOpenFaultReport ||
+      onViewFaultReport
   );
   const summary = checklistSummary(
     value,
@@ -185,7 +197,8 @@ export function DayTripChecklist({
     trailerPrestartCompleted,
     forkliftPrestartCompleted,
     dimensionLoadFormCompleted,
-    hookupFormCompleted
+    hookupFormCompleted,
+    faultReportFormCompleted
   );
 
   return (
@@ -204,7 +217,9 @@ export function DayTripChecklist({
           className="flex w-full min-h-[44px] items-center gap-2 py-0.5 text-left"
           aria-expanded={expanded}
         >
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Daily checks</span>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+            {DRIVER_FORMS_SECTION_LABEL}
+          </span>
           <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">
             {summary}
           </span>
@@ -218,7 +233,7 @@ export function DayTripChecklist({
         </button>
       ) : (
         <legend className="px-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
-          Daily checks
+          {DRIVER_FORMS_SECTION_LABEL}
         </legend>
       )}
 
@@ -231,9 +246,9 @@ export function DayTripChecklist({
               collapsible && "mt-1"
             )}
           >
-            Optional in trial. Tick when done, or open signed Fitness for Work / vehicle, trailer, or
-            forklift pre-departure / Dimension & Load / Hook up forms. Daily ticks show on the week
-            PDF. Trailer, forklift, and hook-up forms stay in the EWD only.
+            Optional in trial. Tick when done, or open a signed form. Fitness for work, Daily vehicle
+            checklist, and Dimension & load ticks show on the week PDF. Trailer, forklift, hook-up,
+            and {FAULT_REPORT_FORM_TITLE} stay in the EWD only.
           </p>
           <ul className="space-y-1">
             {TRIP_CHECKLIST_KEYS.map((key) => {
@@ -365,7 +380,9 @@ export function DayTripChecklist({
             onOpenForkliftPrestart ||
             onViewForkliftPrestart ||
             onOpenHookup ||
-            onViewHookup) && (
+            onViewHookup ||
+            onOpenFaultReport ||
+            onViewFaultReport) && (
             <ul className="mt-2 space-y-1 border-t border-slate-200 pt-2 dark:border-slate-700">
               <PlantFormRow
                 title={TRAILER_PRESTART_FORM_TITLE}
@@ -390,6 +407,15 @@ export function DayTripChecklist({
                 variant={variant}
                 onView={onViewHookup}
                 onOpen={onOpenHookup}
+                completedOpenLabel="Add another"
+              />
+              <PlantFormRow
+                title={FAULT_REPORT_FORM_TITLE}
+                completed={faultReportFormCompleted}
+                readOnly={readOnly}
+                variant={variant}
+                onView={onViewFaultReport}
+                onOpen={onOpenFaultReport}
                 completedOpenLabel="Add another"
               />
             </ul>

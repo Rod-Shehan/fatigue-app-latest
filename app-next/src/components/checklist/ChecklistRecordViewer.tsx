@@ -20,6 +20,7 @@ const TYPE_TITLE: Record<ChecklistRecordType, string> = {
   prestart_forklift: "Forklift pre-departure",
   dimension_load: "Load check",
   hookup: "Hook up",
+  fault_report: "Fault report",
 };
 
 const LOADER_PATH_LABEL: Record<string, string> = {
@@ -336,7 +337,9 @@ export function ChecklistRecordViewer({
                 className="flex min-h-[48px] flex-1 items-center justify-center rounded-xl border border-ck-border bg-ck-midnight text-sm font-bold text-ck-fg"
               >
                 {redoLabel ??
-                  (type === "dimension_load" || type === "hookup" ? "Add another" : "Complete again")}
+                  (type === "dimension_load" || type === "hookup" || type === "fault_report"
+                    ? "Add another"
+                    : "Complete again")}
               </button>
             ) : null}
             <button

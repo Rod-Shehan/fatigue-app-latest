@@ -163,6 +163,19 @@ describe("checklist PDF filing name", () => {
     ).toBe("Hook-up_Jaydin-Ireland_PRIME1-TRL9_week-ending-01-08-2026.pdf");
   });
 
+  it("names a fault report per plant registration", () => {
+    const fault = sample("fault_report", "f");
+    fault.header = {
+      driver_name: "Jaydin Ireland",
+      vehicle_rego: "1ABC123",
+      fleet_unit: "T12",
+    };
+    expect(checklistPdfIdentity(fault).titleLine).toBe("Plant: 1ABC123  ·  Driver: Jaydin Ireland");
+    expect(
+      checklistPdfFilename({ weekStarting, type: "fault_report", record: fault })
+    ).toBe("Fault-report_1ABC123_week-ending-01-08-2026.pdf");
+  });
+
   it("suffixes a second log with the same filing name", () => {
     const used = new Set<string>();
     const a = uniqueChecklistPdfFilename(

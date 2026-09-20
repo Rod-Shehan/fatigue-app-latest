@@ -21,7 +21,10 @@ export const CHECKLIST_RECORD_TYPES = [
   "prestart_forklift",
   "dimension_load",
   "hookup",
+  "fault_report",
 ] as const;
+
+export const CHECKLIST_RECORD_TYPE_LIST = CHECKLIST_RECORD_TYPES.join(" | ");
 
 export type ChecklistRecordType = (typeof CHECKLIST_RECORD_TYPES)[number];
 
@@ -100,14 +103,7 @@ export function newChecklistRecordId(): string {
 }
 
 export function isChecklistRecordType(v: unknown): v is ChecklistRecordType {
-  return (
-    v === "ffw" ||
-    v === "prestart" ||
-    v === "prestart_trailer" ||
-    v === "prestart_forklift" ||
-    v === "dimension_load" ||
-    v === "hookup"
-  );
+  return (CHECKLIST_RECORD_TYPES as readonly string[]).includes(String(v));
 }
 
 export function dataUrlWithinLimit(dataUrl: string, maxChars: number): boolean {
@@ -150,7 +146,7 @@ export function validateCompletedChecklistRecord(
     errors.push({
       code: "type",
       message:
-        "type must be ffw | prestart | prestart_trailer | prestart_forklift | dimension_load | hookup",
+        `type must be ${CHECKLIST_RECORD_TYPE_LIST}`,
     });
   }
   if (r.status !== "completed") {

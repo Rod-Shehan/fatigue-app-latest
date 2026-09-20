@@ -12,7 +12,7 @@ export type DerivedTripChecklistFields = {
   daily_vehicle_checklist?: boolean;
 };
 
-/** Trailer / forklift pre-departure and hook-up are EWD forms only — they do not tick the week PDF. */
+/** Trailer / forklift pre-departure, hook-up, and fault report are EWD forms only — they do not tick the week PDF. */
 export const CHECKLIST_TYPE_TO_TRIP_KEY: Partial<
   Record<ChecklistRecordType, keyof DerivedTripChecklistFields>
 > = {

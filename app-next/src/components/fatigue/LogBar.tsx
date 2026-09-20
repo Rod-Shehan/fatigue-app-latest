@@ -247,7 +247,7 @@ export default function LogBar({
   /** Older record slices before this sheet (chronological). Rules use event timestamps only. */
   priorTimelineSlices?: TimelineSlice[];
   gpsMovementTrailEnabled?: boolean;
-  /** Open Dimension & Load on today's card (same form as Daily checks). */
+  /** Open Dimension & Load on today's card (same form as Forms). */
   onOpenDimensionLoad?: () => void;
 }) {
   void weekStarting;

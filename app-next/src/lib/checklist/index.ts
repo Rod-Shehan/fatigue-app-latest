@@ -58,6 +58,28 @@ export {
   prestartPlantConfig,
 } from "./schema-stubs";
 export type { PrestartPlant } from "./schema-stubs";
+export {
+  FAULT_REPORT_DRIVER_NOTE,
+  FAULT_REPORT_FORM_TITLE,
+  FAULT_REPORT_PLANT_LABEL,
+  FAULT_REPORT_PLANTS,
+  FAULT_REPORT_READING_UNIT_LABEL,
+  FAULT_REPORT_READING_UNITS,
+  FAULT_REPORT_SEVERITY_LABEL,
+  FAULT_REPORT_SEVERITY_TO_MOBILITY,
+  FAULT_REPORT_SEVERITIES,
+  FAULT_REPORT_WORKSHOP_NOTE,
+  formatPerthDateTimeLocal,
+  isFaultReportPlant,
+  isFaultReportReadingUnit,
+  isFaultReportSeverity,
+  perthDateTimeLocalNow,
+} from "./fault-report";
+export type {
+  FaultReportPlant,
+  FaultReportReadingUnit,
+  FaultReportSeverity,
+} from "./fault-report";
 export type { LoadCombinationUnit, LoadCombinationUnitRole } from "./audit-identity";
 export {
   checklistAuditIdentity,
@@ -83,6 +105,7 @@ export {
   CHECKLIST_MAX_PHOTOS_PER_DEFECT,
   CHECKLIST_MAX_SIGNATURE_DATA_URL_CHARS,
   CHECKLIST_RECORD_TYPES,
+  CHECKLIST_RECORD_TYPE_LIST,
   CHECKLIST_SCHEMA_VERSION,
   PRESTART_RECORD_TYPES,
   isPrestartRecordType,

@@ -162,6 +162,18 @@ export function checklistAuditIdentity(record: ChecklistRecord): {
       summary: combination || driver || "Hook up",
     };
   }
+  if (record.type === "fault_report") {
+    const plant =
+      headerString(record.header, "vehicle_rego") || headerString(record.header, "fleet_unit");
+    return {
+      type: "fault_report",
+      primaryLabel: "Plant",
+      primaryValue: plant || "—",
+      secondaryLabel: "Driver",
+      secondaryValue: driver,
+      summary: plant || driver || "Fault report",
+    };
+  }
   if (record.type === "prestart" || record.type === "prestart_trailer" || record.type === "prestart_forklift") {
     const vehicle =
       headerString(record.header, "vehicle_rego") || headerString(record.header, "truck_rego");

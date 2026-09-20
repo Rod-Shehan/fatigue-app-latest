@@ -382,6 +382,13 @@ export function ManagerRecordsView() {
                           onView={() => setViewChecklistType("hookup")}
                           onExport={() => exportChecklistPdf(selectedSheet, "hookup")}
                         />
+                        <RecordsChecklistSubjectRow
+                          title={MANAGER_EXPERIENCE.RECORDS_SUBJECT_FAULT}
+                          count={checklistCounts.fault_report}
+                          loading={checklistsQuery.isLoading}
+                          onView={() => setViewChecklistType("fault_report")}
+                          onExport={() => exportChecklistPdf(selectedSheet, "fault_report")}
+                        />
                       </ul>
                     ) : null}
                   </>

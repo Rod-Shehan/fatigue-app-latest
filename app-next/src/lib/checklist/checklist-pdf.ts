@@ -31,6 +31,7 @@ export const CHECKLIST_PDF_TYPE_TITLE: Record<ChecklistRecordType, string> = {
   prestart_forklift: "Forklift pre-departure",
   dimension_load: "Load check",
   hookup: "Hook up",
+  fault_report: "Fault report",
 };
 
 const TYPE_TITLE = CHECKLIST_PDF_TYPE_TITLE;
@@ -49,6 +50,7 @@ export const CHECKLIST_PDF_TYPE_FILE_SLUG: Record<ChecklistRecordType, string> =
   prestart_forklift: "Forklift-pre-departure",
   dimension_load: "Load-check",
   hookup: "Hook-up",
+  fault_report: "Fault-report",
 };
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -132,6 +134,19 @@ export function checklistPdfIdentity(
       vehicle: rego,
       fileStem: `${safeFilePart(driver, "driver")}_${safeFilePart(rego, "vehicle")}`,
       titleLine: `Driver: ${driver}  ·  Vehicle: ${rego}`,
+    };
+  }
+
+  if (record.type === "fault_report") {
+    const plant =
+      vehicle ||
+      headerString(record.header, "fleet_unit") ||
+      "plant";
+    return {
+      driver,
+      vehicle: plant,
+      fileStem: safeFilePart(plant, "plant"),
+      titleLine: `Plant: ${plant}  ·  Driver: ${driver}`,
     };
   }
 
@@ -239,6 +254,7 @@ export const CHECKLIST_PDF_TYPES: ChecklistRecordType[] = [
   "prestart_forklift",
   "dimension_load",
   "hookup",
+  "fault_report",
 ];
 
 function dataUrlToJsPdfFormat(dataUrl: string): { format: "PNG" | "JPEG"; data: string } | null {

@@ -108,6 +108,7 @@ describe("countCompletedChecklistsByType", () => {
       prestart_forklift: 0,
       dimension_load: 2,
       hookup: 0,
+      fault_report: 0,
     });
   });
 });
