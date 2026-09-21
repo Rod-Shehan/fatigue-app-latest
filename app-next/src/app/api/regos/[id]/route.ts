@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getManagerSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseTruckRegoPatch, serializeTruckRego } from "@/lib/truck-rego";
 
 export async function PATCH(
   req: Request,
@@ -10,20 +11,20 @@ export async function PATCH(
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const { id } = await params;
-    const body = await req.json();
-    const { label, sort_order } = body;
-    const data: { label?: string; sortOrder?: number } = {};
-    if (typeof label === "string" && label.trim()) data.label = label.trim();
-    if (typeof sort_order === "number") data.sortOrder = sort_order;
+    const body = (await req.json()) as Record<string, unknown>;
+    const parsed = parseTruckRegoPatch(body);
+    if ("error" in parsed) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    const existing = await prisma.truckRego.findFirst({
+      where: { id, tenantId: manager.user.tenantId },
+    });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const rego = await prisma.truckRego.update({
       where: { id },
-      data,
+      data: parsed,
     });
-    return NextResponse.json({
-      id: rego.id,
-      label: rego.label,
-      sort_order: rego.sortOrder,
-    });
+    return NextResponse.json(serializeTruckRego(rego));
   } catch {
     return NextResponse.json({ error: "Failed to update rego" }, { status: 500 });
   }
@@ -37,6 +38,10 @@ export async function DELETE(
   if (!manager) return NextResponse.json({ error: "Forbidden: manager only" }, { status: 403 });
   try {
     const { id } = await params;
+    const existing = await prisma.truckRego.findFirst({
+      where: { id, tenantId: manager.user.tenantId },
+    });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     await prisma.truckRego.delete({ where: { id } });
     return new NextResponse(undefined, { status: 204 });
   } catch {

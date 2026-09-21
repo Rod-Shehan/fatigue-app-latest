@@ -5,6 +5,13 @@ import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
 import { CHECKLIST_EMAIL_SETTINGS_LABEL } from "@/lib/checklist";
+import {
+  TRUCK_REGO_AXLES_LABEL,
+  TRUCK_REGO_MASS_LABEL,
+  TRUCK_REGO_TYPE_LABEL,
+  TRUCK_REGO_WAHVA_HINT,
+  TRUCK_REGO_WAHVA_LABEL,
+} from "@/lib/truck-rego";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -56,6 +63,12 @@ export function ManagerGuideArticle() {
             Fatigue opens the week sheet; checklist subjects open that week’s signed forms of that type only
             (types are never combined). For managers and WAHVA auditors reviewing history without hunting
             through Driver Overview filters.
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">Rego</strong> — fleet vehicle list: plate,{" "}
+            {TRUCK_REGO_TYPE_LABEL} (Prime mover / Rigid / Van / Other), {TRUCK_REGO_MASS_LABEL},{" "}
+            {TRUCK_REGO_AXLES_LABEL} (2 / 3 / 4), and {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
+            Required on each vehicle. Drivers still pick the plate on Set up day.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — inject test alerts

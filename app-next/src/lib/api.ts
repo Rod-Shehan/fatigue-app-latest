@@ -62,7 +62,15 @@ export type ManagerAccount = {
   has_password?: boolean;
   password_set_at?: string | null;
 };
-export type Rego = { id: string; label: string; sort_order: number };
+export type Rego = {
+  id: string;
+  label: string;
+  sort_order: number;
+  vehicle_type: "prime_mover" | "rigid" | "van" | "other" | null;
+  gvm_gcm_tonnes: number | null;
+  axle_groups: 2 | 3 | 4 | null;
+  wahva_accredited: boolean;
+};
 
 export type RoutePreset = {
   id: string;
@@ -373,10 +381,25 @@ export const api = {
   },
   regos: {
     list: () => fetchApi<Rego[]>("/api/regos"),
-    create: (data: { label: string; sort_order?: number }) =>
-      fetchApi<Rego>("/api/regos", { method: "POST", body: data }),
-    update: (id: string, data: { label?: string; sort_order?: number }) =>
-      fetchApi<Rego>(`/api/regos/${id}`, { method: "PATCH", body: data }),
+    create: (data: {
+      label: string;
+      vehicle_type: "prime_mover" | "rigid" | "van" | "other";
+      gvm_gcm_tonnes: number;
+      axle_groups: 2 | 3 | 4;
+      wahva_accredited: boolean;
+      sort_order?: number;
+    }) => fetchApi<Rego>("/api/regos", { method: "POST", body: data }),
+    update: (
+      id: string,
+      data: {
+        label?: string;
+        vehicle_type?: "prime_mover" | "rigid" | "van" | "other";
+        gvm_gcm_tonnes?: number;
+        axle_groups?: 2 | 3 | 4;
+        wahva_accredited?: boolean;
+        sort_order?: number;
+      }
+    ) => fetchApi<Rego>(`/api/regos/${id}`, { method: "PATCH", body: data }),
     delete: (id: string) => fetchApi<void>(`/api/regos/${id}`, { method: "DELETE" }),
   },
   routePresets: {

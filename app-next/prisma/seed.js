@@ -83,6 +83,10 @@ async function main() {
       id: "seed-rego-1",
       label: "1ABC 234",
       sortOrder: 0,
+      vehicleType: "prime_mover",
+      gvmGcmTonnes: 68.5,
+      axleGroups: 3,
+      wahvaAccredited: true,
       tenantId: defaultTenant.id,
     },
   });
@@ -93,6 +97,10 @@ async function main() {
       id: "seed-rego-2",
       label: "2XYZ 567",
       sortOrder: 1,
+      vehicleType: "rigid",
+      gvmGcmTonnes: 24,
+      axleGroups: 2,
+      wahvaAccredited: false,
       tenantId: defaultTenant.id,
     },
   });

@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Rego } from "@/lib/api";
+import { VEHICLE_TYPE_LABELS } from "@/lib/truck-rego";
 import { hasRunPlanContent, runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
 import {
@@ -1018,11 +1019,17 @@ export function DayCardDetailsDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">— Select rego —</SelectItem>
-                {regoLabels.map((label) => (
-                  <SelectItem key={label} value={label} className="font-mono text-base">
-                    {label}
-                  </SelectItem>
-                ))}
+                {regoLabels.map((label) => {
+                  const meta = regos.find((r) => r.label === label);
+                  const typeLabel = meta?.vehicle_type
+                    ? VEHICLE_TYPE_LABELS[meta.vehicle_type]
+                    : null;
+                  return (
+                    <SelectItem key={label} value={label} className="font-mono text-base">
+                      {typeLabel ? `${label} · ${typeLabel}` : label}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

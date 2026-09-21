@@ -164,6 +164,14 @@ model TruckRego {
   id        String   @id @default(cuid())
   label     String   // e.g. "1ABC 234"
   sortOrder Int      @default(0)
+  /** prime_mover | rigid | van | other */
+  vehicleType     String?
+  /** GVM or GCM in metric tonnes. */
+  gvmGcmTonnes    Float?
+  /** 2, 3, or 4 axle groups. */
+  axleGroups      Int?
+  /** WAHVA accredited RAV permit vehicle. */
+  wahvaAccredited Boolean  @default(false)
   tenantId  String   @default("tenant_default")
   tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   createdAt DateTime @default(now())
