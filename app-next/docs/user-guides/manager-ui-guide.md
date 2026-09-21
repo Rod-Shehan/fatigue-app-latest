@@ -159,8 +159,8 @@ Roster maintenance:
 |-------|--------|
 | Name / email | Login identity |
 | Licence number | Required. Printed after the driver name on weekly trip sheet PDFs |
-| Commercial Driver Medical expiry | Required. Printed on weekly trip sheet PDFs; in-app reminders on matching sheets |
-| Driver licence expiry | Required. Same date format as medical. Printed on weekly trip sheet PDFs |
+| Commercial Driver Medical expiry | Required. Enter as **dd/mm/yyyy**. Printed on weekly trip sheet PDFs; in-app reminders on matching sheets |
+| Driver licence expiry | Required. **dd/mm/yyyy**. Printed on weekly trip sheet PDFs |
 | Password | Plain text on screen for setup; min 6 characters |
 | Active | Inactive drivers hidden from selection |
 

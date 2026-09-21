@@ -12,13 +12,32 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, UserCheck, UserX, Loader2, Users, Pencil } from "lucide-react";
 import { COMMERCIAL_DRIVERS_MEDICAL, getCvdMedicalBannerKind } from "@/lib/cvd-medical";
+import { formatInstantAsDmyTime, formatYmdAsDmy, parseDmyOrYmdToYmd } from "@/lib/au-date";
 import { ShowOncePasswordDialog } from "@/components/auth/ShowOncePasswordDialog";
 
-function formatPasswordSetAt(iso: string | null | undefined): string | null {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+const DATE_INPUT_HINT = "dd/mm/yyyy";
+
+function DateField({
+  value,
+  onChange,
+  required,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+}) {
+  return (
+    <Input
+      type="text"
+      inputMode="text"
+      autoComplete="off"
+      placeholder={DATE_INPUT_HINT}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="w-full min-w-0"
+      required={required}
+    />
+  );
 }
 
 export function DriversList() {
@@ -132,12 +151,15 @@ export function DriversList() {
     if (!newName.trim() || !newEmail.trim() || !newLicence.trim() || !newCvdMedical.trim() || !newLicenceExpiry.trim()) {
       return;
     }
+    const licenceYmd = parseDmyOrYmdToYmd(newLicenceExpiry);
+    const medicalYmd = parseDmyOrYmdToYmd(newCvdMedical);
+    if (!licenceYmd || !medicalYmd) return;
     createMutation.mutate({
       name: newName.trim(),
       email: newEmail.trim() ? newEmail.trim() : undefined,
       licence_number: newLicence.trim(),
-      licence_expiry: newLicenceExpiry.trim(),
-      cvd_medical_expiry: newCvdMedical.trim(),
+      licence_expiry: licenceYmd,
+      cvd_medical_expiry: medicalYmd,
       password: newPassword.trim() ? newPassword : undefined,
     });
   }
@@ -149,8 +171,8 @@ export function DriversList() {
     setEditName(d.name ?? "");
     setEditEmail(d.email ?? "");
     setEditLicence(d.licence_number ?? "");
-    setEditCvdMedical(d.cvd_medical_expiry ?? "");
-    setEditLicenceExpiry(d.licence_expiry ?? "");
+    setEditCvdMedical(formatYmdAsDmy(d.cvd_medical_expiry) || "");
+    setEditLicenceExpiry(formatYmdAsDmy(d.licence_expiry) || "");
     setEditActive(!!d.is_active);
     setEditPassword("");
     setEditOpen(true);
@@ -214,25 +236,15 @@ export function DriversList() {
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
               WA {COMMERCIAL_DRIVERS_MEDICAL} expiry *
             </Label>
-            <Input
-              type="date"
-              value={newCvdMedical}
-              onChange={(e) => setNewCvdMedical(e.target.value)}
-              className="w-full min-w-0"
-              required
-            />
+            <DateField value={newCvdMedical} onChange={setNewCvdMedical} required />
+            <p className="text-[11px] text-slate-400">{DATE_INPUT_HINT}</p>
           </div>
           <div className="min-w-0 space-y-1.5">
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
               Driver licence expiry *
             </Label>
-            <Input
-              type="date"
-              value={newLicenceExpiry}
-              onChange={(e) => setNewLicenceExpiry(e.target.value)}
-              className="w-full min-w-0"
-              required
-            />
+            <DateField value={newLicenceExpiry} onChange={setNewLicenceExpiry} required />
+            <p className="text-[11px] text-slate-400">{DATE_INPUT_HINT}</p>
           </div>
           <div className="col-span-2 min-w-0 space-y-1.5 max-md:col-span-1">
             <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
@@ -258,8 +270,8 @@ export function DriversList() {
                 !newName.trim() ||
                 !newEmail.trim() ||
                 !newLicence.trim() ||
-                !newCvdMedical.trim() ||
-                !newLicenceExpiry.trim()
+                !parseDmyOrYmdToYmd(newCvdMedical) ||
+                !parseDmyOrYmdToYmd(newLicenceExpiry)
               }
               className="gap-1.5 bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-600 dark:text-slate-100 dark:hover:bg-slate-500 max-md:w-full"
             >
@@ -295,12 +307,12 @@ export function DriversList() {
                 {driver.licence_number && (
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 font-mono">
                     Lic {driver.licence_number}
-                    {driver.licence_expiry ? ` · exp ${driver.licence_expiry}` : ""}
+                    {driver.licence_expiry ? ` · exp ${formatYmdAsDmy(driver.licence_expiry)}` : ""}
                   </p>
                 )}
                 {driver.cvd_medical_expiry && (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {COMMERCIAL_DRIVERS_MEDICAL}: {driver.cvd_medical_expiry}
+                    {COMMERCIAL_DRIVERS_MEDICAL}: {formatYmdAsDmy(driver.cvd_medical_expiry)}
                   </p>
                 )}
                 {getCvdMedicalBannerKind(driver.cvd_medical_expiry) === "expired" && (
@@ -370,13 +382,16 @@ export function DriversList() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!activeDriverId) return;
+                const licenceYmd = parseDmyOrYmdToYmd(editLicenceExpiry);
+                const medicalYmd = parseDmyOrYmdToYmd(editCvdMedical);
+                if (!licenceYmd || !medicalYmd) return;
                 updateMutation.mutate({
                   id: activeDriverId,
                   name: editName.trim(),
                   email: editEmail.trim(),
                   licence_number: editLicence.trim(),
-                  licence_expiry: editLicenceExpiry.trim(),
-                  cvd_medical_expiry: editCvdMedical.trim(),
+                  licence_expiry: licenceYmd,
+                  cvd_medical_expiry: medicalYmd,
                   is_active: editActive,
                   password: editPassword.trim() ? editPassword : undefined,
                 });
@@ -398,21 +413,17 @@ export function DriversList() {
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
                   WA {COMMERCIAL_DRIVERS_MEDICAL} expiry *
                 </Label>
-                <Input type="date" value={editCvdMedical} onChange={(e) => setEditCvdMedical(e.target.value)} required />
+                <DateField value={editCvdMedical} onChange={setEditCvdMedical} required />
                 <p className="text-[11px] text-slate-400">
-                  {COMMERCIAL_DRIVERS_MEDICAL} — also used for in-app reminders.
+                  {COMMERCIAL_DRIVERS_MEDICAL} — {DATE_INPUT_HINT}. Also used for in-app reminders.
                 </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
                   Driver licence expiry *
                 </Label>
-                <Input
-                  type="date"
-                  value={editLicenceExpiry}
-                  onChange={(e) => setEditLicenceExpiry(e.target.value)}
-                  required
-                />
+                <DateField value={editLicenceExpiry} onChange={setEditLicenceExpiry} required />
+                <p className="text-[11px] text-slate-400">{DATE_INPUT_HINT}</p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold block">
@@ -421,8 +432,8 @@ export function DriversList() {
                 {activeDriver?.has_password ? (
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Password is set
-                    {formatPasswordSetAt(activeDriver.password_set_at)
-                      ? ` · last updated ${formatPasswordSetAt(activeDriver.password_set_at)}`
+                    {formatInstantAsDmyTime(activeDriver.password_set_at)
+                      ? ` · last updated ${formatInstantAsDmyTime(activeDriver.password_set_at)}`
                       : ""}
                     . You cannot view the current password — enter a new one to reset.
                   </p>
@@ -468,8 +479,8 @@ export function DriversList() {
                     !editName.trim() ||
                     !editEmail.trim() ||
                     !editLicence.trim() ||
-                    !editCvdMedical.trim() ||
-                    !editLicenceExpiry.trim()
+                    !parseDmyOrYmdToYmd(editCvdMedical) ||
+                    !parseDmyOrYmdToYmd(editLicenceExpiry)
                   }
                 >
                   {updateMutation.isPending ? "Saving…" : "Save changes"}

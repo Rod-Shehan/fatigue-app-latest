@@ -49,7 +49,7 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Drivers</strong> — roster, licence number,
-            licence expiry, medical expiry, passwords
+            licence expiry, medical expiry (both **dd/mm/yyyy**), passwords
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Conversations</strong> — message
