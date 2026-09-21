@@ -294,8 +294,10 @@ export function DayTripChecklist({
   return (
     <fieldset
       className={cn(
-        "min-w-0 rounded-lg border border-slate-200 dark:border-slate-700",
-        variant === "card" ? "px-3 py-2" : "px-3 py-3",
+        "min-w-0 rounded-lg border",
+        variant === "card"
+          ? "border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800"
+          : "border-teal-200 bg-teal-50 px-3 py-3 dark:border-teal-800 dark:bg-teal-950/40",
         className
       )}
       disabled={readOnly && !hasFormOpen}

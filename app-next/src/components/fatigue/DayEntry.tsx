@@ -566,8 +566,8 @@ export default function DayEntry({
             className={cn(
               "flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold shrink-0",
               isToday
-                ? "bg-amber-600 text-white dark:bg-amber-500 dark:text-slate-900"
-                : "bg-slate-900 dark:bg-slate-600 text-white dark:text-slate-200"
+                ? "bg-teal-700 text-white dark:bg-teal-400 dark:text-slate-950"
+                : "bg-teal-800 text-white dark:bg-teal-700 dark:text-teal-50"
             )}
           >
             {DAY_NAMES[dayIndex]?.charAt(0)}
@@ -576,7 +576,7 @@ export default function DayEntry({
             <p
               className={cn(
                 "text-base font-bold",
-                isToday ? "text-amber-800 dark:text-amber-300" : "text-slate-800 dark:text-slate-100"
+                isToday ? "text-teal-900 dark:text-teal-200" : "text-teal-950 dark:text-teal-100"
               )}
             >
               {DAY_NAMES[dayIndex]}

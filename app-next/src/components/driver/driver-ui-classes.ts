@@ -39,10 +39,10 @@ export const driverCard =
   "rounded-xl border-2 shadow-sm p-3 md:p-4 transition-colors";
 
 export const driverCardToday =
-  "bg-amber-50 dark:bg-slate-800/95 border-amber-400 dark:border-amber-500 ring-2 ring-amber-200/80 dark:ring-amber-500/40";
+  "bg-teal-100 dark:bg-teal-950/70 border-teal-400 dark:border-teal-500 ring-2 ring-teal-300/80 dark:ring-teal-500/40";
 
 export const driverCardDefault =
-  "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700";
+  "bg-teal-50 dark:bg-teal-950/40 border-teal-200 dark:border-teal-800";
 
 /** Collapsed day / week summary row. */
 export const driverCollapsedRow =
