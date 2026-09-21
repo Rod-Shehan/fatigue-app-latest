@@ -35,7 +35,7 @@ import {
   type ChecklistRecordType,
 } from "@/lib/checklist";
 import { api } from "@/lib/api";
-import { hookupSuggestedForPlate } from "@/lib/truck-rego";
+import { findRegoByPlate, formatTruckRegoMassLine, hookupSuggestedForPlate, recordFromApiRego } from "@/lib/truck-rego";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
@@ -100,11 +100,13 @@ function formatKm(n: number | null | undefined): string {
 function StatBlock({
   label,
   value,
+  detail,
   mono,
   emphasis,
 }: {
   label: string;
   value: string;
+  detail?: string | null;
   mono?: boolean;
   emphasis?: boolean;
 }) {
@@ -122,6 +124,11 @@ function StatBlock({
       >
         {value || "—"}
       </p>
+      {detail ? (
+        <p className="mt-0.5 text-[11px] font-medium leading-snug text-slate-600 dark:text-slate-300">
+          {detail}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -430,6 +437,10 @@ export default function DayEntry({
     [daysForRoute, dayIndex, weekStart, todayYmd]
   );
   const suggestHookup = hookupSuggestedForPlate(regos, routeDisplayDay.truck_rego);
+  const plateMassLine = (() => {
+    const row = findRegoByPlate(regos, routeDisplayDay.truck_rego);
+    return row ? formatTruckRegoMassLine(recordFromApiRego(row)) : "";
+  })();
   const shiftContinuation = isTrueShiftContinuation(daysForRoute, dayIndex, weekStart, todayYmd);
 
   const runPlanSummary = formatRunPlanSummary(routeDisplayDay);
@@ -724,7 +735,12 @@ export default function DayEntry({
             ) : null}
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-x-4 gap-y-3">
               <StatBlock label="Crew" value={formatDayCrewLabel(dayCrew)} />
-              <StatBlock label="Rego" value={(routeDisplayDay.truck_rego || "").trim() || "—"} mono />
+              <StatBlock
+                label="Rego"
+                value={(routeDisplayDay.truck_rego || "").trim() || "—"}
+                detail={plateMassLine || null}
+                mono
+              />
               <StatBlock label="Pattern" value={formatShiftLabel(dayData.shift_label)} />
               <StatBlock label="Start km" value={formatKm(dayData.start_kms)} mono />
               <StatBlock label="End km" value={formatKm(dayData.end_kms)} mono />
@@ -817,6 +833,7 @@ export default function DayEntry({
           ...dayData,
           date: getISODate(),
           truck_rego: routeDisplayDay.truck_rego,
+          truck_rego_masses: plateMassLine || null,
           start_location: routeDisplayDay.start_location,
           destination: routeDisplayDay.destination,
         }}

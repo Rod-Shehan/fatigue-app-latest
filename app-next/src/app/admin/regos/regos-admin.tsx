@@ -16,16 +16,23 @@ import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
-  AXLE_GROUPS,
+  AXLE_COUNT_MAX,
+  AXLE_COUNT_MIN,
+  TRUCK_REGO_ATM_LABEL,
   TRUCK_REGO_AXLES_LABEL,
-  TRUCK_REGO_MASS_LABEL,
+  TRUCK_REGO_GCM_LABEL,
+  TRUCK_REGO_GVM_LABEL,
+  TRUCK_REGO_TARE_LABEL,
   TRUCK_REGO_TYPE_LABEL,
   TRUCK_REGO_WAHVA_HINT,
   TRUCK_REGO_WAHVA_LABEL,
   VEHICLE_TYPE_LABELS,
   VEHICLE_TYPES,
   formatTruckRegoSummary,
+  recordFromApiRego,
   truckRegoMetadataComplete,
+  usesAtm,
+  usesGvmGcm,
   type VehicleType,
 } from "@/lib/truck-rego";
 import { Loader2, Pencil, Plus, Trash2, Truck } from "lucide-react";
@@ -34,46 +41,101 @@ import { useState } from "react";
 type Draft = {
   label: string;
   vehicleType: VehicleType | "";
-  gvmGcmTonnes: string;
-  axleGroups: "" | "2" | "3" | "4";
+  gvmTonnes: string;
+  gcmTonnes: string;
+  atmTonnes: string;
+  tareTonnes: string;
+  axleCount: string;
   wahvaAccredited: boolean;
 };
 
 const EMPTY_DRAFT: Draft = {
   label: "",
   vehicleType: "",
-  gvmGcmTonnes: "",
-  axleGroups: "",
+  gvmTonnes: "",
+  gcmTonnes: "",
+  atmTonnes: "",
+  tareTonnes: "",
+  axleCount: "",
   wahvaAccredited: false,
 };
+
+function numOrNull(raw: string): number | null {
+  const n = Number(raw.trim());
+  return raw.trim() && Number.isFinite(n) && n > 0 ? n : null;
+}
 
 function draftFromRego(rego: Rego): Draft {
   return {
     label: rego.label,
     vehicleType: rego.vehicle_type ?? "",
-    gvmGcmTonnes: rego.gvm_gcm_tonnes != null ? String(rego.gvm_gcm_tonnes) : "",
-    axleGroups: rego.axle_groups != null ? String(rego.axle_groups) as Draft["axleGroups"] : "",
+    gvmTonnes: rego.gvm_tonnes != null ? String(rego.gvm_tonnes) : "",
+    gcmTonnes: rego.gcm_tonnes != null ? String(rego.gcm_tonnes) : "",
+    atmTonnes: rego.atm_tonnes != null ? String(rego.atm_tonnes) : "",
+    tareTonnes: rego.tare_tonnes != null ? String(rego.tare_tonnes) : "",
+    axleCount: rego.axle_count != null ? String(rego.axle_count) : "",
     wahvaAccredited: Boolean(rego.wahva_accredited),
   };
 }
 
 function payloadFromDraft(draft: Draft) {
+  const type = draft.vehicleType as VehicleType;
   return {
     label: draft.label.trim(),
-    vehicle_type: draft.vehicleType as VehicleType,
-    gvm_gcm_tonnes: Number(draft.gvmGcmTonnes),
-    axle_groups: Number(draft.axleGroups) as 2 | 3 | 4,
+    vehicle_type: type,
+    gvm_tonnes: usesGvmGcm(type) ? numOrNull(draft.gvmTonnes) : null,
+    gcm_tonnes: usesGvmGcm(type) ? numOrNull(draft.gcmTonnes) : null,
+    atm_tonnes: usesAtm(type) ? numOrNull(draft.atmTonnes) : null,
+    tare_tonnes: Number(draft.tareTonnes),
+    axle_count: Number(draft.axleCount),
     wahva_accredited: draft.wahvaAccredited,
   };
 }
 
+function positiveMass(raw: string): boolean {
+  const n = Number(raw.trim());
+  return Boolean(raw.trim()) && Number.isFinite(n) && n > 0;
+}
+
 function draftReady(draft: Draft): boolean {
-  return Boolean(
-    draft.label.trim() &&
-      draft.vehicleType &&
-      draft.gvmGcmTonnes.trim() &&
-      Number(draft.gvmGcmTonnes) > 0 &&
-      draft.axleGroups
+  if (!draft.label.trim() || !draft.vehicleType) return false;
+  if (!positiveMass(draft.tareTonnes)) return false;
+  const axles = Number(draft.axleCount);
+  if (!Number.isInteger(axles) || axles < AXLE_COUNT_MIN || axles > AXLE_COUNT_MAX) return false;
+  if (usesGvmGcm(draft.vehicleType) && (!positiveMass(draft.gvmTonnes) || !positiveMass(draft.gcmTonnes))) {
+    return false;
+  }
+  if (usesAtm(draft.vehicleType) && !positiveMass(draft.atmTonnes)) return false;
+  return true;
+}
+
+function MassField({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
+        {label} *
+      </Label>
+      <Input
+        id={id}
+        type="number"
+        min="0.1"
+        step="0.1"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Metric tonnes"
+      />
+    </div>
   );
 }
 
@@ -86,6 +148,8 @@ function RegoFields({
   onChange: (next: Draft) => void;
   idPrefix: string;
 }) {
+  const powered = usesGvmGcm(draft.vehicleType);
+  const trailer = usesAtm(draft.vehicleType);
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       <div className="space-y-1.5 sm:col-span-2">
@@ -106,7 +170,16 @@ function RegoFields({
         </Label>
         <Select
           value={draft.vehicleType || undefined}
-          onValueChange={(value) => onChange({ ...draft, vehicleType: value as VehicleType })}
+          onValueChange={(value) => {
+            const vehicleType = value as VehicleType;
+            onChange({
+              ...draft,
+              vehicleType,
+              gvmTonnes: usesGvmGcm(vehicleType) ? draft.gvmTonnes : "",
+              gcmTonnes: usesGvmGcm(vehicleType) ? draft.gcmTonnes : "",
+              atmTonnes: usesAtm(vehicleType) ? draft.atmTonnes : "",
+            });
+          }}
         >
           <SelectTrigger id={`${idPrefix}-type`} className="h-9">
             <SelectValue placeholder="Select type" />
@@ -121,41 +194,52 @@ function RegoFields({
         </Select>
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor={`${idPrefix}-mass`} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-          {TRUCK_REGO_MASS_LABEL} *
-        </Label>
-        <Input
-          id={`${idPrefix}-mass`}
-          type="number"
-          min="0.1"
-          step="0.1"
-          inputMode="decimal"
-          value={draft.gvmGcmTonnes}
-          onChange={(e) => onChange({ ...draft, gvmGcmTonnes: e.target.value })}
-          placeholder="Metric tonnes"
-        />
-      </div>
-      <div className="space-y-1.5">
         <Label htmlFor={`${idPrefix}-axles`} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
           {TRUCK_REGO_AXLES_LABEL} *
         </Label>
-        <Select
-          value={draft.axleGroups || undefined}
-          onValueChange={(value) => onChange({ ...draft, axleGroups: value as Draft["axleGroups"] })}
-        >
-          <SelectTrigger id={`${idPrefix}-axles`} className="h-9">
-            <SelectValue placeholder="Select axle groups" />
-          </SelectTrigger>
-          <SelectContent>
-            {AXLE_GROUPS.map((n) => (
-              <SelectItem key={n} value={String(n)}>
-                {n}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Input
+          id={`${idPrefix}-axles`}
+          type="number"
+          min={AXLE_COUNT_MIN}
+          max={AXLE_COUNT_MAX}
+          step="1"
+          inputMode="numeric"
+          value={draft.axleCount}
+          onChange={(e) => onChange({ ...draft, axleCount: e.target.value })}
+          placeholder={`${AXLE_COUNT_MIN}–${AXLE_COUNT_MAX}`}
+        />
       </div>
-      <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2.5">
+      {powered ? (
+        <>
+          <MassField
+            id={`${idPrefix}-gvm`}
+            label={TRUCK_REGO_GVM_LABEL}
+            value={draft.gvmTonnes}
+            onChange={(gvmTonnes) => onChange({ ...draft, gvmTonnes })}
+          />
+          <MassField
+            id={`${idPrefix}-gcm`}
+            label={TRUCK_REGO_GCM_LABEL}
+            value={draft.gcmTonnes}
+            onChange={(gcmTonnes) => onChange({ ...draft, gcmTonnes })}
+          />
+        </>
+      ) : null}
+      {trailer ? (
+        <MassField
+          id={`${idPrefix}-atm`}
+          label={TRUCK_REGO_ATM_LABEL}
+          value={draft.atmTonnes}
+          onChange={(atmTonnes) => onChange({ ...draft, atmTonnes })}
+        />
+      ) : null}
+      <MassField
+        id={`${idPrefix}-tare`}
+        label={TRUCK_REGO_TARE_LABEL}
+        value={draft.tareTonnes}
+        onChange={(tareTonnes) => onChange({ ...draft, tareTonnes })}
+      />
+      <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2.5 sm:col-span-2">
         <input
           id={`${idPrefix}-wahva`}
           type="checkbox"
@@ -221,15 +305,15 @@ export function RegosAdmin() {
           backHref="/manager"
           backLabel="Manager dashboard"
           title={PRODUCT_NAME}
-          subtitle="Vehicle regos — plate plus type, GVM/GCM, axle groups, and WAHVA accreditation"
+          subtitle="Vehicle regos — plate, type, GVM/GCM or ATM, tare, number of axles, and WAHVA accreditation"
           icon={<Truck className="w-5 h-5" />}
         />
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5 space-y-4">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Add rego</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Every vehicle needs {TRUCK_REGO_TYPE_LABEL.toLowerCase()}, {TRUCK_REGO_MASS_LABEL}, {TRUCK_REGO_AXLES_LABEL.toLowerCase()},
-            and whether it is {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
+            GVM and GCM for prime movers, rigids, and vans. ATM for trailers. Tare and {TRUCK_REGO_AXLES_LABEL.toLowerCase()} on every unit.
+            Tick {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}) when it applies.
           </p>
           <RegoFields draft={newDraft} onChange={setNewDraft} idPrefix="new-rego" />
           {formError && !editingId ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
@@ -262,11 +346,8 @@ export function RegosAdmin() {
           )}
           <ul className="divide-y divide-slate-100 dark:divide-slate-700">
             {regos.map((rego) => {
-              const complete = truckRegoMetadataComplete({
-                vehicleType: rego.vehicle_type,
-                gvmGcmTonnes: rego.gvm_gcm_tonnes,
-                axleGroups: rego.axle_groups,
-              });
+              const meta = recordFromApiRego(rego);
+              const complete = truckRegoMetadataComplete(meta);
               const editing = editingId === rego.id;
               return (
                 <li key={rego.id} className="px-4 py-3 space-y-3">
@@ -274,12 +355,7 @@ export function RegosAdmin() {
                     <div className="min-w-0">
                       <p className="font-mono text-slate-800 dark:text-slate-200">{rego.label}</p>
                       <p className={`text-xs mt-0.5 ${complete ? "text-slate-500 dark:text-slate-400" : "text-amber-700 dark:text-amber-400 font-semibold"}`}>
-                        {formatTruckRegoSummary({
-                          vehicleType: rego.vehicle_type,
-                          gvmGcmTonnes: rego.gvm_gcm_tonnes,
-                          axleGroups: rego.axle_groups,
-                          wahvaAccredited: rego.wahva_accredited,
-                        })}
+                        {formatTruckRegoSummary(meta)}
                       </p>
                     </div>
                     <div className="flex shrink-0 gap-1">

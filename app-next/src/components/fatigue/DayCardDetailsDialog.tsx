@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Rego } from "@/lib/api";
-import { hookupSuggestedForPlate, VEHICLE_TYPE_LABELS } from "@/lib/truck-rego";
+import { formatTruckRegoSelectLabel, hookupSuggestedForPlate, recordFromApiRego } from "@/lib/truck-rego";
 import { hasRunPlanContent, runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
 import {
@@ -1024,12 +1024,9 @@ export function DayCardDetailsDialog({
                 <SelectItem value="__none__">— Select rego —</SelectItem>
                 {regoLabels.map((label) => {
                   const meta = regos.find((r) => r.label === label);
-                  const typeLabel = meta?.vehicle_type
-                    ? VEHICLE_TYPE_LABELS[meta.vehicle_type]
-                    : null;
                   return (
-                    <SelectItem key={label} value={label} className="font-mono text-base">
-                      {typeLabel ? `${label} · ${typeLabel}` : label}
+                    <SelectItem key={label} value={label} className="whitespace-normal font-mono text-sm leading-snug py-2">
+                      {formatTruckRegoSelectLabel(label, meta ? recordFromApiRego(meta) : null)}
                     </SelectItem>
                   );
                 })}

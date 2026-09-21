@@ -39,6 +39,7 @@ type DayDataGrid = {
   breaks?: boolean[];
   non_work?: boolean[];
   truck_rego?: string | null;
+  truck_rego_masses?: string | null;
   start_location?: string | null;
   destination?: string | null;
   start_kms?: number | null;
@@ -117,6 +118,7 @@ export default function WorkSafeDaySheet({
   const from = (dayData.start_location ?? "").trim();
   const to = (dayData.destination ?? "").trim();
   const truckReg = (dayData.truck_rego ?? "").trim();
+  const truckMasses = (dayData.truck_rego_masses ?? "").trim();
   const dayName = dayNameUpper(dayLabel);
   const dateDisplay = formatSheetDisplayDate(dateStr);
 
@@ -130,7 +132,14 @@ export default function WorkSafeDaySheet({
           <div className="grid grid-cols-5 border-b border-black text-[10px] leading-none sm:text-[11px]">
             <div className="flex min-h-[28px] border-r border-black">
               <span className="flex shrink-0 items-center bg-stone-200 px-1.5 font-bold">Truck Reg</span>
-              <span className="flex flex-1 items-center truncate px-1.5 font-mono tabular-nums">{truckReg}</span>
+              <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-1.5 py-1">
+                <span className="truncate font-mono tabular-nums">{truckReg}</span>
+                {truckMasses ? (
+                  <span className="text-[8px] font-semibold leading-tight text-stone-800 sm:text-[9px]">
+                    {truckMasses}
+                  </span>
+                ) : null}
+              </span>
             </div>
             <div className="flex min-h-[28px] border-r border-black">
               <span className="flex shrink-0 items-center bg-stone-200 px-1.5 font-bold">Odometer Start</span>

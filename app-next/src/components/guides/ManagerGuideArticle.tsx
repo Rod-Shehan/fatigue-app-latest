@@ -6,8 +6,11 @@ import { SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
 import { CHECKLIST_EMAIL_SETTINGS_LABEL } from "@/lib/checklist";
 import {
+  TRUCK_REGO_ATM_LABEL,
   TRUCK_REGO_AXLES_LABEL,
-  TRUCK_REGO_MASS_LABEL,
+  TRUCK_REGO_GCM_LABEL,
+  TRUCK_REGO_GVM_LABEL,
+  TRUCK_REGO_TARE_LABEL,
   TRUCK_REGO_TYPE_LABEL,
   TRUCK_REGO_WAHVA_HINT,
   TRUCK_REGO_WAHVA_LABEL,
@@ -66,9 +69,11 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Rego</strong> — fleet vehicle list: plate,{" "}
-            {TRUCK_REGO_TYPE_LABEL} (Prime mover / Rigid / Van / Other), {TRUCK_REGO_MASS_LABEL},{" "}
-            {TRUCK_REGO_AXLES_LABEL} (2 / 3 / 4), and {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
-            Required on each vehicle. Drivers still pick the plate on Set up day. A Prime mover plate
+            {TRUCK_REGO_TYPE_LABEL} (Prime mover / Rigid / Van / Trailer / Other), {TRUCK_REGO_GVM_LABEL} and{" "}
+            {TRUCK_REGO_GCM_LABEL} on powered units, {TRUCK_REGO_ATM_LABEL} on trailers, {TRUCK_REGO_TARE_LABEL} on every
+            unit, {TRUCK_REGO_AXLES_LABEL}, and {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
+            Required on each vehicle. Drivers still pick the plate on Set up day; GVM / GCM / ATM / Tare that apply
+            show next to the plate on the day sheet for load check. A Prime mover plate
             highlights Hook up as a reminder, not a required form.
           </li>
           <li>

@@ -66,9 +66,12 @@ export type Rego = {
   id: string;
   label: string;
   sort_order: number;
-  vehicle_type: "prime_mover" | "rigid" | "van" | "other" | null;
-  gvm_gcm_tonnes: number | null;
-  axle_groups: 2 | 3 | 4 | null;
+  vehicle_type: "prime_mover" | "rigid" | "van" | "trailer" | "other" | null;
+  gvm_tonnes: number | null;
+  gcm_tonnes: number | null;
+  atm_tonnes: number | null;
+  tare_tonnes: number | null;
+  axle_count: number | null;
   wahva_accredited: boolean;
 };
 
@@ -383,9 +386,12 @@ export const api = {
     list: () => fetchApi<Rego[]>("/api/regos"),
     create: (data: {
       label: string;
-      vehicle_type: "prime_mover" | "rigid" | "van" | "other";
-      gvm_gcm_tonnes: number;
-      axle_groups: 2 | 3 | 4;
+      vehicle_type: "prime_mover" | "rigid" | "van" | "trailer" | "other";
+      gvm_tonnes?: number | null;
+      gcm_tonnes?: number | null;
+      atm_tonnes?: number | null;
+      tare_tonnes: number;
+      axle_count: number;
       wahva_accredited: boolean;
       sort_order?: number;
     }) => fetchApi<Rego>("/api/regos", { method: "POST", body: data }),
@@ -393,9 +399,12 @@ export const api = {
       id: string,
       data: {
         label?: string;
-        vehicle_type?: "prime_mover" | "rigid" | "van" | "other";
-        gvm_gcm_tonnes?: number;
-        axle_groups?: 2 | 3 | 4;
+        vehicle_type?: "prime_mover" | "rigid" | "van" | "trailer" | "other";
+        gvm_tonnes?: number | null;
+        gcm_tonnes?: number | null;
+        atm_tonnes?: number | null;
+        tare_tonnes?: number;
+        axle_count?: number;
         wahva_accredited?: boolean;
         sort_order?: number;
       }

@@ -5,24 +5,44 @@
 
 import { regoKey } from "@/lib/rego-kms-validation";
 
-export const VEHICLE_TYPES = ["prime_mover", "rigid", "van", "other"] as const;
+export const VEHICLE_TYPES = ["prime_mover", "rigid", "van", "trailer", "other"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
 export const VEHICLE_TYPE_LABELS: Record<VehicleType, string> = {
   prime_mover: "Prime mover",
   rigid: "Rigid",
   van: "Van",
+  trailer: "Trailer",
   other: "Other",
 };
 
-export const AXLE_GROUPS = [2, 3, 4] as const;
-export type AxleGroups = (typeof AXLE_GROUPS)[number];
+/** Powered units — GVM and GCM apply. */
+export const POWERED_VEHICLE_TYPES = ["prime_mover", "rigid", "van"] as const;
+export type PoweredVehicleType = (typeof POWERED_VEHICLE_TYPES)[number];
+
+export const AXLE_COUNT_MIN = 1;
+export const AXLE_COUNT_MAX = 20;
 
 export const TRUCK_REGO_TYPE_LABEL = "Type";
-export const TRUCK_REGO_MASS_LABEL = "GVM / GCM (t)";
-export const TRUCK_REGO_AXLES_LABEL = "Axle groups";
+export const TRUCK_REGO_GVM_LABEL = "GVM (t)";
+export const TRUCK_REGO_GCM_LABEL = "GCM (t)";
+export const TRUCK_REGO_ATM_LABEL = "ATM (t)";
+export const TRUCK_REGO_TARE_LABEL = "Tare (t)";
+export const TRUCK_REGO_AXLES_LABEL = "Number of axles";
 export const TRUCK_REGO_WAHVA_LABEL = "WAHVA Accredited";
 export const TRUCK_REGO_WAHVA_HINT = "RAV permit vehicle";
+
+export function isPoweredVehicleType(value: unknown): value is PoweredVehicleType {
+  return typeof value === "string" && (POWERED_VEHICLE_TYPES as readonly string[]).includes(value);
+}
+
+export function usesGvmGcm(type: unknown): boolean {
+  return isPoweredVehicleType(type);
+}
+
+export function usesAtm(type: unknown): boolean {
+  return type === "trailer";
+}
 
 export function findRegoByPlate<T extends { label: string }>(
   regos: T[] | undefined,
@@ -45,10 +65,20 @@ export function hookupSuggestedForPlate(
   return hookupSuggestedForRego(findRegoByPlate(regos, plate));
 }
 
+export type TruckRegoMassFields = {
+  gvmTonnes: number | null;
+  gcmTonnes: number | null;
+  atmTonnes: number | null;
+  tareTonnes: number | null;
+};
+
 export type TruckRegoMetadata = {
   vehicleType: VehicleType;
-  gvmGcmTonnes: number;
-  axleGroups: AxleGroups;
+  gvmTonnes: number | null;
+  gcmTonnes: number | null;
+  atmTonnes: number | null;
+  tareTonnes: number;
+  axleCount: number;
   wahvaAccredited: boolean;
 };
 
@@ -57,8 +87,11 @@ export type TruckRegoRecord = {
   label: string;
   sortOrder: number;
   vehicleType: VehicleType | null;
-  gvmGcmTonnes: number | null;
-  axleGroups: AxleGroups | null;
+  gvmTonnes: number | null;
+  gcmTonnes: number | null;
+  atmTonnes: number | null;
+  tareTonnes: number | null;
+  axleCount: number | null;
   wahvaAccredited: boolean;
 };
 
@@ -66,30 +99,38 @@ export function isVehicleType(value: unknown): value is VehicleType {
   return typeof value === "string" && (VEHICLE_TYPES as readonly string[]).includes(value);
 }
 
-export function isAxleGroups(value: unknown): value is AxleGroups {
-  return typeof value === "number" && Number.isInteger(value) && (AXLE_GROUPS as readonly number[]).includes(value);
+export function isAxleCount(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= AXLE_COUNT_MIN && value <= AXLE_COUNT_MAX;
 }
 
-export function parseGvmGcmTonnes(raw: unknown): number | { error: string } {
-  if (raw == null || raw === "") return { error: `${TRUCK_REGO_MASS_LABEL} is required` };
+function parseTonnes(
+  raw: unknown,
+  label: string,
+  opts: { required: boolean }
+): number | null | { error: string } {
+  if (raw == null || raw === "") {
+    return opts.required ? { error: `${label} is required` } : null;
+  }
   const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw.trim()) : NaN;
   if (!Number.isFinite(n) || n <= 0) {
-    return { error: `${TRUCK_REGO_MASS_LABEL} must be a positive number in metric tonnes` };
+    return { error: `${label} must be a positive number in metric tonnes` };
   }
   return Math.round(n * 100) / 100;
 }
 
-export function parseAxleGroups(raw: unknown): AxleGroups | { error: string } {
+export function parseAxleCount(raw: unknown): number | { error: string } {
   if (raw == null || raw === "") return { error: `${TRUCK_REGO_AXLES_LABEL} is required` };
   const n = typeof raw === "number" ? raw : typeof raw === "string" ? Number(raw.trim()) : NaN;
-  if (!isAxleGroups(n)) return { error: `${TRUCK_REGO_AXLES_LABEL} must be 2, 3, or 4` };
+  if (!isAxleCount(n)) {
+    return { error: `${TRUCK_REGO_AXLES_LABEL} must be a whole number from ${AXLE_COUNT_MIN} to ${AXLE_COUNT_MAX}` };
+  }
   return n;
 }
 
 export function parseVehicleType(raw: unknown): VehicleType | { error: string } {
   if (raw == null || raw === "") return { error: `${TRUCK_REGO_TYPE_LABEL} is required` };
   if (!isVehicleType(raw)) {
-    return { error: `${TRUCK_REGO_TYPE_LABEL} must be Prime mover, Rigid, Van, or Other` };
+    return { error: `${TRUCK_REGO_TYPE_LABEL} must be Prime mover, Rigid, Van, Trailer, or Other` };
   }
   return raw;
 }
@@ -102,19 +143,95 @@ export function parseWahvaAccredited(raw: unknown): boolean | { error: string } 
   return { error: `${TRUCK_REGO_WAHVA_LABEL} must be yes or no` };
 }
 
-export function truckRegoMetadataComplete(
-  row: Pick<TruckRegoRecord, "vehicleType" | "gvmGcmTonnes" | "axleGroups">
-): boolean {
-  return row.vehicleType != null && row.gvmGcmTonnes != null && row.axleGroups != null;
+export function massesForVehicleType(
+  type: VehicleType,
+  masses: Partial<TruckRegoMassFields>
+): TruckRegoMassFields {
+  const tareTonnes = masses.tareTonnes ?? null;
+  if (usesGvmGcm(type)) {
+    return {
+      gvmTonnes: masses.gvmTonnes ?? null,
+      gcmTonnes: masses.gcmTonnes ?? null,
+      atmTonnes: null,
+      tareTonnes,
+    };
+  }
+  if (usesAtm(type)) {
+    return {
+      gvmTonnes: null,
+      gcmTonnes: null,
+      atmTonnes: masses.atmTonnes ?? null,
+      tareTonnes,
+    };
+  }
+  return { gvmTonnes: null, gcmTonnes: null, atmTonnes: null, tareTonnes };
 }
 
-export function formatTruckRegoSummary(row: Pick<TruckRegoRecord, "vehicleType" | "gvmGcmTonnes" | "axleGroups" | "wahvaAccredited">): string {
+export function truckRegoMetadataComplete(
+  row: Pick<TruckRegoRecord, "vehicleType" | "gvmTonnes" | "gcmTonnes" | "atmTonnes" | "tareTonnes" | "axleCount">
+): boolean {
+  if (row.vehicleType == null || row.tareTonnes == null || row.axleCount == null) return false;
+  if (usesGvmGcm(row.vehicleType)) return row.gvmTonnes != null && row.gcmTonnes != null;
+  if (usesAtm(row.vehicleType)) return row.atmTonnes != null;
+  return true;
+}
+
+function formatTonnesValue(n: number): string {
+  const rounded = Math.round(n * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
+
+/** GVM / GCM / ATM / Tare that apply to this vehicle — for the day sheet and load check. */
+export function formatTruckRegoMassLine(
+  row: Pick<TruckRegoRecord, "vehicleType" | "gvmTonnes" | "gcmTonnes" | "atmTonnes" | "tareTonnes">
+): string {
+  const parts: string[] = [];
+  if (usesGvmGcm(row.vehicleType)) {
+    if (row.gvmTonnes != null) parts.push(`GVM ${formatTonnesValue(row.gvmTonnes)} t`);
+    if (row.gcmTonnes != null) parts.push(`GCM ${formatTonnesValue(row.gcmTonnes)} t`);
+  }
+  if (usesAtm(row.vehicleType) && row.atmTonnes != null) {
+    parts.push(`ATM ${formatTonnesValue(row.atmTonnes)} t`);
+  }
+  if (row.tareTonnes != null) parts.push(`Tare ${formatTonnesValue(row.tareTonnes)} t`);
+  return parts.join(" · ");
+}
+
+export function formatTruckRegoSelectLabel(
+  plate: string,
+  row: Pick<TruckRegoRecord, "vehicleType" | "gvmTonnes" | "gcmTonnes" | "atmTonnes" | "tareTonnes"> | null | undefined
+): string {
+  if (!row?.vehicleType) return plate;
+  const type = VEHICLE_TYPE_LABELS[row.vehicleType];
+  const mass = formatTruckRegoMassLine(row);
+  return mass ? `${plate} · ${type} · ${mass}` : `${plate} · ${type}`;
+}
+
+export function formatTruckRegoSummary(
+  row: Pick<
+    TruckRegoRecord,
+    "vehicleType" | "gvmTonnes" | "gcmTonnes" | "atmTonnes" | "tareTonnes" | "axleCount" | "wahvaAccredited"
+  >
+): string {
   if (!truckRegoMetadataComplete(row)) return "Needs vehicle details";
   const type = VEHICLE_TYPE_LABELS[row.vehicleType!];
-  const mass = `${row.gvmGcmTonnes} t`;
-  const axles = `${row.axleGroups} axle groups`;
+  const mass = formatTruckRegoMassLine(row);
+  const axles = `${row.axleCount} axles`;
   const wahva = row.wahvaAccredited ? TRUCK_REGO_WAHVA_LABEL : "Not WAHVA accredited";
-  return `${type} · ${mass} · ${axles} · ${wahva}`;
+  return [type, mass, axles, wahva].filter(Boolean).join(" · ");
+}
+
+function isFieldError(value: unknown): value is { error: string } {
+  return typeof value === "object" && value !== null && "error" in value;
+}
+
+function bodyHas(body: Record<string, unknown>, ...keys: string[]): boolean {
+  return keys.some((k) => k in body);
+}
+
+function readMass(body: Record<string, unknown>, snake: string, camel: string, label: string, required: boolean) {
+  if (!bodyHas(body, snake, camel) && !required) return null;
+  return parseTonnes(body[snake] ?? body[camel], label, { required });
 }
 
 export function parseTruckRegoCreate(body: Record<string, unknown>):
@@ -124,13 +241,28 @@ export function parseTruckRegoCreate(body: Record<string, unknown>):
   if (!label) return { error: "label required" };
 
   const vehicleType = parseVehicleType(body.vehicle_type ?? body.vehicleType);
-  if (typeof vehicleType === "object") return vehicleType;
-  const gvmGcmTonnes = parseGvmGcmTonnes(body.gvm_gcm_tonnes ?? body.gvmGcmTonnes);
-  if (typeof gvmGcmTonnes === "object") return gvmGcmTonnes;
-  const axleGroups = parseAxleGroups(body.axle_groups ?? body.axleGroups);
-  if (typeof axleGroups === "object") return axleGroups;
+  if (isFieldError(vehicleType)) return vehicleType;
+
+  const gvmTonnes = parseTonnes(body.gvm_tonnes ?? body.gvmTonnes, TRUCK_REGO_GVM_LABEL, {
+    required: usesGvmGcm(vehicleType),
+  });
+  if (isFieldError(gvmTonnes)) return gvmTonnes;
+  const gcmTonnes = parseTonnes(body.gcm_tonnes ?? body.gcmTonnes, TRUCK_REGO_GCM_LABEL, {
+    required: usesGvmGcm(vehicleType),
+  });
+  if (isFieldError(gcmTonnes)) return gcmTonnes;
+  const atmTonnes = parseTonnes(body.atm_tonnes ?? body.atmTonnes, TRUCK_REGO_ATM_LABEL, {
+    required: usesAtm(vehicleType),
+  });
+  if (isFieldError(atmTonnes)) return atmTonnes;
+  const tareTonnes = parseTonnes(body.tare_tonnes ?? body.tareTonnes, TRUCK_REGO_TARE_LABEL, { required: true });
+  if (isFieldError(tareTonnes)) return tareTonnes;
+  if (tareTonnes == null) return { error: `${TRUCK_REGO_TARE_LABEL} is required` };
+
+  const axleCount = parseAxleCount(body.axle_count ?? body.axleCount);
+  if (isFieldError(axleCount)) return axleCount;
   const wahvaAccredited = parseWahvaAccredited(body.wahva_accredited ?? body.wahvaAccredited);
-  if (typeof wahvaAccredited === "object") return wahvaAccredited;
+  if (isFieldError(wahvaAccredited)) return wahvaAccredited;
 
   const sortOrder =
     typeof body.sort_order === "number"
@@ -139,7 +271,8 @@ export function parseTruckRegoCreate(body: Record<string, unknown>):
         ? body.sortOrder
         : undefined;
 
-  return { label, vehicleType, gvmGcmTonnes, axleGroups, wahvaAccredited, sortOrder };
+  const masses = massesForVehicleType(vehicleType, { gvmTonnes, gcmTonnes, atmTonnes, tareTonnes });
+  return { label, vehicleType, ...masses, tareTonnes, axleCount, wahvaAccredited, sortOrder };
 }
 
 export function parseTruckRegoPatch(body: Record<string, unknown>):
@@ -158,26 +291,50 @@ export function parseTruckRegoPatch(body: Record<string, unknown>):
   }
   if ("vehicle_type" in body || "vehicleType" in body) {
     const vehicleType = parseVehicleType(body.vehicle_type ?? body.vehicleType);
-    if (typeof vehicleType === "object") return vehicleType;
+    if (isFieldError(vehicleType)) return vehicleType;
     out.vehicleType = vehicleType;
   }
-  if ("gvm_gcm_tonnes" in body || "gvmGcmTonnes" in body) {
-    const gvmGcmTonnes = parseGvmGcmTonnes(body.gvm_gcm_tonnes ?? body.gvmGcmTonnes);
-    if (typeof gvmGcmTonnes === "object") return gvmGcmTonnes;
-    out.gvmGcmTonnes = gvmGcmTonnes;
+  if (bodyHas(body, "gvm_tonnes", "gvmTonnes")) {
+    const gvmTonnes = readMass(body, "gvm_tonnes", "gvmTonnes", TRUCK_REGO_GVM_LABEL, false);
+    if (isFieldError(gvmTonnes)) return gvmTonnes;
+    out.gvmTonnes = gvmTonnes;
   }
-  if ("axle_groups" in body || "axleGroups" in body) {
-    const axleGroups = parseAxleGroups(body.axle_groups ?? body.axleGroups);
-    if (typeof axleGroups === "object") return axleGroups;
-    out.axleGroups = axleGroups;
+  if (bodyHas(body, "gcm_tonnes", "gcmTonnes")) {
+    const gcmTonnes = readMass(body, "gcm_tonnes", "gcmTonnes", TRUCK_REGO_GCM_LABEL, false);
+    if (isFieldError(gcmTonnes)) return gcmTonnes;
+    out.gcmTonnes = gcmTonnes;
+  }
+  if (bodyHas(body, "atm_tonnes", "atmTonnes")) {
+    const atmTonnes = readMass(body, "atm_tonnes", "atmTonnes", TRUCK_REGO_ATM_LABEL, false);
+    if (isFieldError(atmTonnes)) return atmTonnes;
+    out.atmTonnes = atmTonnes;
+  }
+  if (bodyHas(body, "tare_tonnes", "tareTonnes")) {
+    const tareTonnes = parseTonnes(body.tare_tonnes ?? body.tareTonnes, TRUCK_REGO_TARE_LABEL, { required: true });
+    if (isFieldError(tareTonnes)) return tareTonnes;
+    if (tareTonnes == null) return { error: `${TRUCK_REGO_TARE_LABEL} is required` };
+    out.tareTonnes = tareTonnes;
+  }
+  if (bodyHas(body, "axle_count", "axleCount")) {
+    const axleCount = parseAxleCount(body.axle_count ?? body.axleCount);
+    if (isFieldError(axleCount)) return axleCount;
+    out.axleCount = axleCount;
   }
   if ("wahva_accredited" in body || "wahvaAccredited" in body) {
     const wahvaAccredited = parseWahvaAccredited(body.wahva_accredited ?? body.wahvaAccredited);
-    if (typeof wahvaAccredited === "object") return wahvaAccredited;
+    if (isFieldError(wahvaAccredited)) return wahvaAccredited;
     out.wahvaAccredited = wahvaAccredited;
   }
 
   if (Object.keys(out).length === 0) return { error: "No fields to update" };
+
+  if (out.vehicleType) {
+    const masses = massesForVehicleType(out.vehicleType, out);
+    out.gvmTonnes = masses.gvmTonnes;
+    out.gcmTonnes = masses.gcmTonnes;
+    out.atmTonnes = masses.atmTonnes;
+    if (masses.tareTonnes != null) out.tareTonnes = masses.tareTonnes;
+  }
   return out;
 }
 
@@ -186,17 +343,54 @@ export function serializeTruckRego(row: {
   label: string;
   sortOrder: number;
   vehicleType?: string | null;
+  gvmTonnes?: number | null;
+  gcmTonnes?: number | null;
+  atmTonnes?: number | null;
+  tareTonnes?: number | null;
+  axleCount?: number | null;
+  wahvaAccredited?: boolean | null;
+  /** Legacy combined mass — used only if the split columns are still empty. */
   gvmGcmTonnes?: number | null;
   axleGroups?: number | null;
-  wahvaAccredited?: boolean | null;
 }) {
+  const vehicleType = isVehicleType(row.vehicleType) ? row.vehicleType : null;
+  const gvmTonnes = row.gvmTonnes ?? (usesGvmGcm(vehicleType) ? row.gvmGcmTonnes ?? null : null);
+  const axleCount =
+    row.axleCount != null && isAxleCount(row.axleCount)
+      ? row.axleCount
+      : row.axleGroups != null && isAxleCount(row.axleGroups)
+        ? row.axleGroups
+        : null;
   return {
     id: row.id,
     label: row.label,
     sort_order: row.sortOrder,
-    vehicle_type: isVehicleType(row.vehicleType) ? row.vehicleType : null,
-    gvm_gcm_tonnes: row.gvmGcmTonnes ?? null,
-    axle_groups: isAxleGroups(row.axleGroups) ? row.axleGroups : null,
+    vehicle_type: vehicleType,
+    gvm_tonnes: gvmTonnes,
+    gcm_tonnes: row.gcmTonnes ?? null,
+    atm_tonnes: row.atmTonnes ?? null,
+    tare_tonnes: row.tareTonnes ?? null,
+    axle_count: axleCount,
     wahva_accredited: Boolean(row.wahvaAccredited),
+  };
+}
+
+export function recordFromApiRego(rego: {
+  vehicle_type?: string | null;
+  gvm_tonnes?: number | null;
+  gcm_tonnes?: number | null;
+  atm_tonnes?: number | null;
+  tare_tonnes?: number | null;
+  axle_count?: number | null;
+  wahva_accredited?: boolean | null;
+}): Pick<TruckRegoRecord, "vehicleType" | "gvmTonnes" | "gcmTonnes" | "atmTonnes" | "tareTonnes" | "axleCount" | "wahvaAccredited"> {
+  return {
+    vehicleType: isVehicleType(rego.vehicle_type) ? rego.vehicle_type : null,
+    gvmTonnes: rego.gvm_tonnes ?? null,
+    gcmTonnes: rego.gcm_tonnes ?? null,
+    atmTonnes: rego.atm_tonnes ?? null,
+    tareTonnes: rego.tare_tonnes ?? null,
+    axleCount: rego.axle_count ?? null,
+    wahvaAccredited: Boolean(rego.wahva_accredited),
   };
 }

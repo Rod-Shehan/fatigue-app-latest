@@ -145,7 +145,7 @@ Many drivers use the **same rego and route** every day. **Set up day** is for **
 
 | Field | When you start a shift | While the shift is still open |
 |-------|------------------------|-------------------------------|
-| **Rego** (number plate) | Set in Set up day | Same on later day cards |
+| **Rego** (number plate) | Set in Set up day | Same on later day cards. **GVM / GCM** (powered), **ATM** (trailer), and **Tare** that belong to that plate show next to the rego on the day card and timesheet — for load check |
 | **From** / **To** | Set in Set up day | Same on later day cards |
 | **Run plan** (name, hours, distance) | Set in Set up day if you use one | Same on later day cards |
 | **Start km** | You type when you start the shift | Not asked again at midnight |

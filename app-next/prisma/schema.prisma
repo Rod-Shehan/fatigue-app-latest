@@ -164,12 +164,22 @@ model TruckRego {
   id        String   @id @default(cuid())
   label     String   // e.g. "1ABC 234"
   sortOrder Int      @default(0)
-  /** prime_mover | rigid | van | other */
+  /** prime_mover | rigid | van | trailer | other */
   vehicleType     String?
-  /** GVM or GCM in metric tonnes. */
+  /** Legacy combined GVM/GCM — kept so Neon is additive-only; app reads gvmTonnes. */
   gvmGcmTonnes    Float?
-  /** 2, 3, or 4 axle groups. */
+  /** Legacy axle-group count — kept additive; app reads axleCount. */
   axleGroups      Int?
+  /** Gross Vehicle Mass, powered units only (t). */
+  gvmTonnes       Float?
+  /** Gross Combination Mass, powered units only (t). */
+  gcmTonnes       Float?
+  /** Aggregate Trailer Mass, trailers only (t). */
+  atmTonnes       Float?
+  /** Tare mass, all vehicles (t). */
+  tareTonnes      Float?
+  /** Number of axles on this unit. */
+  axleCount       Int?
   /** WAHVA accredited RAV permit vehicle. */
   wahvaAccredited Boolean  @default(false)
   tenantId  String   @default("tenant_default")

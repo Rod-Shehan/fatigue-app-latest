@@ -303,7 +303,7 @@ export function DriverGuideArticle() {
         </GuideDiagram>
         <TwoColTable
           rows={[
-            ["Rego (number plate)", "Stays with the open shift until End shift"],
+            ["Rego (number plate)", "Stays with the open shift until End shift. GVM / GCM (powered), ATM (trailer), and Tare show next to the plate on the day card and timesheet for load check"],
             ["From / To", "Stays with the open shift until End shift"],
             ["Run plan (name, hours, distance)", "Stays with the open shift until End shift"],
             ["Start km", "Typed when you start the shift — not again at midnight"],
@@ -679,7 +679,7 @@ export function DriverGuideArticle() {
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],
-            ["Rego", "Number plate"],
+            ["Rego", "Number plate. GVM / GCM, ATM, and Tare that apply to that plate show next to it on the timesheet"],
             ["Start km / End km", "Odometer readings you type"],
             ["Set up day", "Change route, truck, pattern, or crew"],
             [
