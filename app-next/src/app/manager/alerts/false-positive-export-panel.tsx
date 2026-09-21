@@ -57,7 +57,7 @@ export function FalsePositiveExportPanel({ embedded }: { embedded?: boolean }) {
       <select
         value={hours}
         onChange={(e) => setHours(Number(e.target.value))}
-        className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-950 dark:text-slate-200"
+        className="h-9 w-full rounded-md border border-slate-300 bg-[#ffffff] px-2 text-sm text-[#0f172a] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
       >
         {HOURS_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>

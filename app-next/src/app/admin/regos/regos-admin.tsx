@@ -5,6 +5,13 @@ import { api, type Rego } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
@@ -97,19 +104,21 @@ function RegoFields({
         <Label htmlFor={`${idPrefix}-type`} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
           {TRUCK_REGO_TYPE_LABEL} *
         </Label>
-        <select
-          id={`${idPrefix}-type`}
-          value={draft.vehicleType}
-          onChange={(e) => onChange({ ...draft, vehicleType: e.target.value as VehicleType | "" })}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+        <Select
+          value={draft.vehicleType || undefined}
+          onValueChange={(value) => onChange({ ...draft, vehicleType: value as VehicleType })}
         >
-          <option value="">Select type</option>
-          {VEHICLE_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {VEHICLE_TYPE_LABELS[type]}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id={`${idPrefix}-type`} className="h-9">
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            {VEHICLE_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {VEHICLE_TYPE_LABELS[type]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor={`${idPrefix}-mass`} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
@@ -130,19 +139,21 @@ function RegoFields({
         <Label htmlFor={`${idPrefix}-axles`} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
           {TRUCK_REGO_AXLES_LABEL} *
         </Label>
-        <select
-          id={`${idPrefix}-axles`}
-          value={draft.axleGroups}
-          onChange={(e) => onChange({ ...draft, axleGroups: e.target.value as Draft["axleGroups"] })}
-          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm"
+        <Select
+          value={draft.axleGroups || undefined}
+          onValueChange={(value) => onChange({ ...draft, axleGroups: value as Draft["axleGroups"] })}
         >
-          <option value="">Select axle groups</option>
-          {AXLE_GROUPS.map((n) => (
-            <option key={n} value={String(n)}>
-              {n}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger id={`${idPrefix}-axles`} className="h-9">
+            <SelectValue placeholder="Select axle groups" />
+          </SelectTrigger>
+          <SelectContent>
+            {AXLE_GROUPS.map((n) => (
+              <SelectItem key={n} value={String(n)}>
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2.5">
         <input

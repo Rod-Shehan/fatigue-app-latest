@@ -68,7 +68,8 @@ export function ManagerGuideArticle() {
             <strong className="text-slate-700 dark:text-slate-200">Rego</strong> — fleet vehicle list: plate,{" "}
             {TRUCK_REGO_TYPE_LABEL} (Prime mover / Rigid / Van / Other), {TRUCK_REGO_MASS_LABEL},{" "}
             {TRUCK_REGO_AXLES_LABEL} (2 / 3 / 4), and {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
-            Required on each vehicle. Drivers still pick the plate on Set up day.
+            Required on each vehicle. Drivers still pick the plate on Set up day. A Prime mover plate
+            highlights Hook up as a reminder, not a required form.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — inject test alerts

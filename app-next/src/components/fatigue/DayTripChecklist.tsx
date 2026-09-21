@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -16,7 +16,11 @@ import {
   PRESTART_FORM_TITLE,
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
-import { DRIVER_FORMS_SECTION_LABEL } from "@/lib/product-copy";
+import {
+  DRIVER_FORMS_SECTION_LABEL,
+  HOOKUP_PRIME_MOVER_REMINDER_HINT,
+  HOOKUP_PRIME_MOVER_REMINDER_LABEL,
+} from "@/lib/product-copy";
 
 type Props = {
   value: DayTripChecklistFields;
@@ -50,6 +54,8 @@ type Props = {
   onOpenHookup?: () => void;
   onViewHookup?: () => void;
   hookupFormCompleted?: boolean;
+  /** Day plate is a prime mover — highlight Hook up as a reminder, not a gate. */
+  suggestHookup?: boolean;
   onOpenFaultReport?: () => void;
   onViewFaultReport?: () => void;
   faultReportFormCompleted?: boolean;
@@ -196,7 +202,8 @@ function checklistSummary(
   forkliftPrestartCompleted: boolean,
   dimensionLoadFormCompleted: boolean,
   hookupFormCompleted: boolean,
-  faultReportFormCompleted: boolean
+  faultReportFormCompleted: boolean,
+  suggestHookup: boolean
 ): string {
   const done = FORMS_CHECKLIST_KEYS.filter((k) => value[k] === true).length;
   const total = FORMS_CHECKLIST_KEYS.length;
@@ -209,8 +216,10 @@ function checklistSummary(
   if (hookupFormCompleted) forms.push(HOOKUP_FORM_TITLE);
   if (faultReportFormCompleted) forms.push(FAULT_REPORT_FORM_TITLE);
   const tickPart = `${done}/${total} ticked`;
-  if (forms.length === 0) return tickPart;
-  return `${tickPart} · ${forms.join(", ")} saved`;
+  const reminder =
+    suggestHookup && !hookupFormCompleted ? ` · ${HOOKUP_FORM_TITLE} suggested` : "";
+  if (forms.length === 0) return `${tickPart}${reminder}`;
+  return `${tickPart} · ${forms.join(", ")} saved${reminder}`;
 }
 
 export function DayTripChecklist({
@@ -237,12 +246,18 @@ export function DayTripChecklist({
   onOpenHookup,
   onViewHookup,
   hookupFormCompleted = false,
+  suggestHookup = false,
   onOpenFaultReport,
   onViewFaultReport,
   faultReportFormCompleted = false,
 }: Props) {
   const collapsible = variant === "card";
   const [expanded, setExpanded] = useState(!collapsible);
+  const showHookupReminder = suggestHookup && !hookupFormCompleted && !readOnly;
+
+  useEffect(() => {
+    if (collapsible && showHookupReminder) setExpanded(true);
+  }, [collapsible, showHookupReminder]);
 
   const setKey = (key: FormsChecklistKey, checked: boolean) => {
     onChange({ ...value, [key]: checked ? true : false });
@@ -272,7 +287,8 @@ export function DayTripChecklist({
     forkliftPrestartCompleted,
     dimensionLoadFormCompleted,
     hookupFormCompleted,
-    faultReportFormCompleted
+    faultReportFormCompleted,
+    suggestHookup
   );
 
   return (
@@ -324,6 +340,11 @@ export function DayTripChecklist({
             that match this shift. Fitness for work, {PRESTART_FORM_TITLE}, and Dimension & load ticks
             show on the week PDF. Trailer, forklift, and {HOOKUP_FORM_TITLE} ticks stay in the EWD.{" "}
             {FAULT_REPORT_FORM_TITLE} stays in the EWD only.
+            {showHookupReminder ? (
+              <span className="mt-1.5 block font-medium text-amber-800 dark:text-amber-300">
+                {HOOKUP_PRIME_MOVER_REMINDER_LABEL}. {HOOKUP_PRIME_MOVER_REMINDER_HINT}
+              </span>
+            ) : null}
           </p>
           <ul className="space-y-1">
             {FORMS_CHECKLIST_KEYS.map((key) => {
@@ -349,12 +370,15 @@ export function DayTripChecklist({
                 onViewHookup,
                 onOpenHookup,
               });
+              const highlightHookup = key === "hookup_checklist" && showHookupReminder;
               return (
                 <li key={key}>
                   <div
                     className={cn(
                       "flex min-h-11 items-center gap-3 rounded-md px-1 py-1.5",
-                      !readOnly && "active:bg-slate-50 dark:active:bg-slate-800/60"
+                      !readOnly && !highlightHookup && "active:bg-slate-50 dark:active:bg-slate-800/60",
+                      highlightHookup &&
+                        "bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-300 dark:ring-amber-700"
                     )}
                   >
                     <label
@@ -382,6 +406,11 @@ export function DayTripChecklist({
                         {key === "fitness_for_work" && !ffwFormCompleted && !readOnly ? (
                           <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
                             Required
+                          </span>
+                        ) : null}
+                        {highlightHookup ? (
+                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                            Suggested
                           </span>
                         ) : null}
                         {row.completed ? (

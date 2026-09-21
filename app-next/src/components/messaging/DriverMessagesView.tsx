@@ -334,7 +334,7 @@ export function DriverMessagesView() {
                   <select
                     value={newSheetId}
                     onChange={(e) => setNewSheetId(e.target.value)}
-                    className="w-full min-h-[48px] h-12 rounded-md border border-input bg-background px-3 text-base"
+                    className="w-full min-h-[48px] h-12 rounded-md border border-slate-300 bg-[#ffffff] px-3 text-base text-[#0f172a] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                   >
                     <option value="">No sheet selected</option>
                     {sheetOptions.map(({ week, list }) => (

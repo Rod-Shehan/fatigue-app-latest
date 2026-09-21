@@ -21,6 +21,10 @@ import {
   type ChecklistSignatureCapture,
 } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
+import {
+  HOOKUP_PRIME_MOVER_REMINDER_HINT,
+  HOOKUP_PRIME_MOVER_REMINDER_LABEL,
+} from "@/lib/product-copy";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
@@ -82,6 +86,7 @@ export function HookupForm({
   driverName,
   truckRego,
   trailerRego,
+  primeMoverReminder = false,
   previousHookupRecords,
   onCompleted,
 }: {
@@ -90,6 +95,7 @@ export function HookupForm({
   driverName?: string | null;
   truckRego?: string | null;
   trailerRego?: string | null;
+  primeMoverReminder?: boolean;
   previousHookupRecords?: ChecklistRecord[] | null;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
@@ -196,7 +202,11 @@ export function HookupForm({
       open={open}
       onClose={handleClose}
       title={HOOKUP_FORM_TITLE}
-      subtitle="Optional — does not tick the week PDF"
+      subtitle={
+        primeMoverReminder
+          ? `${HOOKUP_PRIME_MOVER_REMINDER_LABEL}. Optional — does not tick the week PDF`
+          : "Optional — does not tick the week PDF"
+      }
       footer={
         <div className="space-y-2">
           {error ? <p className="text-center text-xs text-ck-red">{error}</p> : null}
@@ -212,6 +222,11 @@ export function HookupForm({
       }
     >
       <div className="space-y-3 pb-2">
+        {primeMoverReminder ? (
+          <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+            {HOOKUP_PRIME_MOVER_REMINDER_HINT}
+          </p>
+        ) : null}
         <p className="text-xs text-ck-steel leading-relaxed">{HOOKUP_PROCEDURE_NOTE}</p>
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">

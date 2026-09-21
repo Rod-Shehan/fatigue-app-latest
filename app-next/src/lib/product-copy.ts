@@ -189,6 +189,10 @@ export const CONTINUED_SHIFT_ROUTE_CARD_NOTE =
 export const DRIVER_START_SHIFT_LABEL = "Start shift";
 /** Shown on Fitness for Work until a signed record exists for the day. */
 export const FFW_REQUIRED_BEFORE_START_LABEL = "Required before Start shift";
+/** Prime-mover plate selected — Hook up is highlighted, not a Start-shift gate. */
+export const HOOKUP_PRIME_MOVER_REMINDER_LABEL = "Suggested for this prime mover";
+export const HOOKUP_PRIME_MOVER_REMINDER_HINT =
+  "Not required. Complete Hook up if you couple a trailer.";
 export const FFW_START_SHIFT_BLOCK_MESSAGE =
   "Complete Fitness for Work before starting your shift.";
 /** Two-up Passenger: opens driving / break / sleeper. Does not log by itself. */

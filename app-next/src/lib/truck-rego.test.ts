@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatTruckRegoSummary,
+  hookupSuggestedForPlate,
   parseTruckRegoCreate,
   parseTruckRegoPatch,
   serializeTruckRego,
@@ -64,6 +65,16 @@ describe("truck-rego metadata", () => {
         wahvaAccredited: false,
       })
     ).toBe("Rigid · 24 t · 2 axle groups · Not WAHVA accredited");
+  });
+
+  it("suggests Hook up only for a prime-mover plate", () => {
+    const regos = [
+      { label: "1ABC 234", vehicle_type: "prime_mover" as const },
+      { label: "2XYZ 567", vehicle_type: "rigid" as const },
+    ];
+    expect(hookupSuggestedForPlate(regos, "1abc 234")).toBe(true);
+    expect(hookupSuggestedForPlate(regos, "2XYZ 567")).toBe(false);
+    expect(hookupSuggestedForPlate(regos, "")).toBe(false);
   });
 
   it("serializes API rows in snake_case", () => {

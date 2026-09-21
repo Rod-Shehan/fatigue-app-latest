@@ -3,6 +3,8 @@
  * Day cards still store the plate string; these fields describe the vehicle.
  */
 
+import { regoKey } from "@/lib/rego-kms-validation";
+
 export const VEHICLE_TYPES = ["prime_mover", "rigid", "van", "other"] as const;
 export type VehicleType = (typeof VEHICLE_TYPES)[number];
 
@@ -21,6 +23,27 @@ export const TRUCK_REGO_MASS_LABEL = "GVM / GCM (t)";
 export const TRUCK_REGO_AXLES_LABEL = "Axle groups";
 export const TRUCK_REGO_WAHVA_LABEL = "WAHVA Accredited";
 export const TRUCK_REGO_WAHVA_HINT = "RAV permit vehicle";
+
+export function findRegoByPlate<T extends { label: string }>(
+  regos: T[] | undefined,
+  plate: string | null | undefined
+): T | null {
+  const key = regoKey(plate ?? "");
+  if (!key || !regos?.length) return null;
+  return regos.find((r) => regoKey(r.label) === key) ?? null;
+}
+
+/** Prime movers often couple a trailer — remind, never require. */
+export function hookupSuggestedForRego(rego: { vehicle_type?: string | null } | null | undefined): boolean {
+  return rego?.vehicle_type === "prime_mover";
+}
+
+export function hookupSuggestedForPlate(
+  regos: Array<{ label: string; vehicle_type?: string | null }> | undefined,
+  plate: string | null | undefined
+): boolean {
+  return hookupSuggestedForRego(findRegoByPlate(regos, plate));
+}
 
 export type TruckRegoMetadata = {
   vehicleType: VehicleType;

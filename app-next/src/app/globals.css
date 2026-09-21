@@ -112,6 +112,37 @@
     min-height: 100%;
     min-height: 100dvh;
   }
+
+  /*
+   * Native <select> popups follow color-scheme + option colors.
+   * Dark-theme text on a Windows/system white list is the usual white-on-white case.
+   */
+  select {
+    color-scheme: light;
+  }
+  .dark select {
+    color-scheme: dark;
+  }
+  select option,
+  select optgroup {
+    background-color: #ffffff;
+    color: #0f172a;
+  }
+  .dark select option,
+  .dark select optgroup {
+    background-color: #1e293b;
+    color: #f8fafc;
+  }
+}
+
+/* Portaled list popovers — keep ink/paper paired (do not use remapped .bg-white). */
+.list-popover {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+.dark .list-popover {
+  background-color: #1e293b;
+  color: #f8fafc;
 }
 
 /* Installed PWA or Fullscreen API — edge-to-edge in cab */

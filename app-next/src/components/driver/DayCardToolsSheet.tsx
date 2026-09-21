@@ -29,7 +29,12 @@ import {
   PRESTART_FORM_TITLE,
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
-import { DRIVER_FORMS_SECTION_LABEL, FFW_REQUIRED_BEFORE_START_LABEL } from "@/lib/product-copy";
+import {
+  DRIVER_FORMS_SECTION_LABEL,
+  FFW_REQUIRED_BEFORE_START_LABEL,
+  HOOKUP_PRIME_MOVER_REMINDER_HINT,
+  HOOKUP_PRIME_MOVER_REMINDER_LABEL,
+} from "@/lib/product-copy";
 
 export function DayCardToolsSheet({
   open,
@@ -61,6 +66,7 @@ export function DayCardToolsSheet({
   onOpenHookup,
   onViewHookup,
   hookupFormCompleted = false,
+  suggestHookup = false,
   onOpenFaultReport,
   onViewFaultReport,
   faultReportFormCompleted = false,
@@ -102,6 +108,8 @@ export function DayCardToolsSheet({
   onOpenHookup?: () => void;
   onViewHookup?: () => void;
   hookupFormCompleted?: boolean;
+  /** Day plate is a prime mover — highlight Hook up as a reminder. */
+  suggestHookup?: boolean;
   onOpenFaultReport?: () => void;
   onViewFaultReport?: () => void;
   faultReportFormCompleted?: boolean;
@@ -547,7 +555,13 @@ export function DayCardToolsSheet({
                     {onOpenHookup ? (
                       <button
                         type="button"
-                        className={cn(driverDrawerRow, "w-full")}
+                        className={cn(
+                          driverDrawerRow,
+                          "w-full",
+                          suggestHookup &&
+                            !hookupFormCompleted &&
+                            "border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:hover:bg-amber-950/60"
+                        )}
                         onClick={() => {
                           onOpenChange(false);
                           onOpenHookup();
@@ -561,7 +575,9 @@ export function DayCardToolsSheet({
                           <span className="block text-xs text-slate-500 dark:text-slate-400">
                             {hookupFormCompleted
                               ? "Add another coupling check"
-                              : "Optional fifth-wheel coupling check — not on the week PDF"}
+                              : suggestHookup
+                                ? `${HOOKUP_PRIME_MOVER_REMINDER_LABEL}. ${HOOKUP_PRIME_MOVER_REMINDER_HINT}`
+                                : "Optional fifth-wheel coupling check — not on the week PDF"}
                           </span>
                         </span>
                         <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />

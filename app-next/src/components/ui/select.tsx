@@ -13,7 +13,7 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 [&>span]:line-clamp-1",
+      "flex h-9 w-full items-center justify-between rounded-md border border-slate-300 bg-[#ffffff] px-3 py-2 text-sm text-[#0f172a] shadow-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 [&>span]:line-clamp-1",
       className
     )}
     {...props}
@@ -34,13 +34,15 @@ const SelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-[10000] max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-md",
+        "list-popover relative z-[10000] max-h-96 min-w-[8rem] overflow-hidden rounded-md border border-slate-300 text-[#0f172a] shadow-md dark:border-slate-600 dark:text-slate-100",
         className
       )}
       position={position}
       {...props}
     >
-      <SelectPrimitive.Viewport className="p-1">{children}</SelectPrimitive.Viewport>
+      <SelectPrimitive.Viewport className="list-popover p-1 text-[#0f172a] dark:text-slate-100">
+        {children}
+      </SelectPrimitive.Viewport>
     </SelectPrimitive.Content>
   </SelectPrimitive.Portal>
 ));
@@ -53,7 +55,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none focus:bg-slate-100 dark:focus:bg-slate-700 data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm text-[#0f172a] outline-none focus:bg-slate-200 focus:text-[#0f172a] data-[highlighted]:bg-slate-200 data-[highlighted]:text-[#0f172a] data-[disabled]:pointer-events-none data-[disabled]:opacity-50 dark:text-slate-100 dark:focus:bg-slate-700 dark:focus:text-slate-100 dark:data-[highlighted]:bg-slate-700 dark:data-[highlighted]:text-slate-100",
       className
     )}
     {...props}

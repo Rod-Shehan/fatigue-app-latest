@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Rego } from "@/lib/api";
-import { VEHICLE_TYPE_LABELS } from "@/lib/truck-rego";
+import { hookupSuggestedForPlate, VEHICLE_TYPE_LABELS } from "@/lib/truck-rego";
 import { hasRunPlanContent, runPlanValidationError } from "@/lib/route-plan";
 import { api } from "@/lib/api";
 import {
@@ -219,6 +219,7 @@ export function DayCardDetailsDialog({
   );
   const hookupFormCompleted = hasCompletedChecklistOfType(draft.checklists, "hookup");
   const faultReportFormCompleted = hasCompletedChecklistOfType(draft.checklists, "fault_report");
+  const suggestHookup = hookupSuggestedForPlate(regos, draft.truck_rego);
 
   const activityBeforeDay = useMemo((): PriorOpenActivity => {
     if (activityBeforeDayProp != null) return activityBeforeDayProp;
@@ -696,6 +697,7 @@ export function DayCardDetailsDialog({
                 : undefined
             }
             hookupFormCompleted={hookupFormCompleted}
+            suggestHookup={suggestHookup}
             onOpenHookup={readOnly ? undefined : () => setHookupOpen(true)}
             onViewHookup={hookupFormCompleted ? () => setViewChecklistType("hookup") : undefined}
             faultReportFormCompleted={faultReportFormCompleted}
@@ -789,6 +791,7 @@ export function DayCardDetailsDialog({
             onClose={() => setHookupOpen(false)}
             driverName={driverName}
             truckRego={draft.truck_rego}
+            primeMoverReminder={suggestHookup}
             previousHookupRecords={listCompletedChecklistsOfType(draft.checklists, "hookup")}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));

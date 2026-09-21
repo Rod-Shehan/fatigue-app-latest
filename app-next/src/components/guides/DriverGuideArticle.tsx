@@ -7,6 +7,8 @@ import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_START_SHIFT_LABEL,
   FFW_REQUIRED_BEFORE_START_LABEL,
+  HOOKUP_PRIME_MOVER_REMINDER_HINT,
+  HOOKUP_PRIME_MOVER_REMINDER_LABEL,
   DRIVER_START_WORK_LABEL,
   DRIVER_STOP_DRIVING_LABEL,
   DRIVER_START_REST_LABEL,
@@ -606,7 +608,9 @@ export function DriverGuideArticle() {
             answers. {PRESTART_FORM_TITLE} is filed under the vehicle registration. {LOAD_FORM_TITLE} is one form per
             load (prime + every trailer/dolly on that load); Add another for the next load. Loader CoR stays separate
             (present sign, pending, or photo gap — no proxy). {HOOKUP_FORM_TITLE} is one signed tick sheet per
-            coupling (14 paper steps). Training covers the procedure. Add another for the next hook-up.{" "}
+            coupling (14 paper steps). Training covers the procedure. If today&apos;s plate is a Prime mover,{" "}
+            {HOOKUP_FORM_TITLE} is highlighted ({HOOKUP_PRIME_MOVER_REMINDER_LABEL}). {HOOKUP_PRIME_MOVER_REMINDER_HINT}{" "}
+            Add another for the next hook-up.{" "}
             {FAULT_REPORT_FORM_TITLE} is a separate signed WAHVA record (not a week-PDF tick). A Fault tick on
             pre-departure does not replace it — complete both when the finding is from an inspection. Add another
             for the next fault.
@@ -671,7 +675,7 @@ export function DriverGuideArticle() {
             ],
             [
               DRIVER_FORMS_SECTION_LABEL,
-              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. EWD ticks: Fitness for work, ${PRESTART_FORM_TITLE}, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick. Week-PDF ticks stay Fitness for work, Daily vehicle checklist, and Dimension & load`,
+              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. If the day’s plate is a Prime mover, ${HOOKUP_FORM_TITLE} is highlighted (${HOOKUP_PRIME_MOVER_REMINDER_LABEL}) — ${HOOKUP_PRIME_MOVER_REMINDER_HINT} EWD ticks: Fitness for work, ${PRESTART_FORM_TITLE}, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick. Week-PDF ticks stay Fitness for work, Daily vehicle checklist, and Dimension & load`,
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

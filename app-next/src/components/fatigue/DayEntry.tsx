@@ -35,6 +35,7 @@ import {
   type ChecklistRecordType,
 } from "@/lib/checklist";
 import { api } from "@/lib/api";
+import { hookupSuggestedForPlate } from "@/lib/truck-rego";
 import { getEffectiveOpenActivityAtDayEnd } from "@/components/fatigue/EventLogger";
 import { cn } from "@/lib/utils";
 import {
@@ -428,6 +429,7 @@ export default function DayEntry({
     () => getDayWithCarriedOverCardInfo(daysForRoute, dayIndex, weekStart, todayYmd),
     [daysForRoute, dayIndex, weekStart, todayYmd]
   );
+  const suggestHookup = hookupSuggestedForPlate(regos, routeDisplayDay.truck_rego);
   const shiftContinuation = isTrueShiftContinuation(daysForRoute, dayIndex, weekStart, todayYmd);
 
   const runPlanSummary = formatRunPlanSummary(routeDisplayDay);
@@ -659,6 +661,7 @@ export default function DayEntry({
             dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
           }
           hookupFormCompleted={hookupFormCompleted}
+          suggestHookup={suggestHookup}
           onOpenHookup={canEditDetails ? openHookupForm : undefined}
           onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
           faultReportFormCompleted={faultReportFormCompleted}
@@ -860,6 +863,7 @@ export default function DayEntry({
           onOpenHookup={canEditDetails ? openHookupForm : undefined}
           onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
           hookupFormCompleted={hookupFormCompleted}
+          suggestHookup={suggestHookup}
           onOpenFaultReport={canEditDetails ? openFaultReportForm : undefined}
           onViewFaultReport={
             faultReportFormCompleted ? () => openViewChecklist("fault_report") : undefined
@@ -932,6 +936,7 @@ export default function DayEntry({
         onClose={() => setHookupOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
         truckRego={dayData.truck_rego}
+        primeMoverReminder={suggestHookup}
         previousHookupRecords={listCompletedChecklistsOfType(dayData.checklists, "hookup")}
         onCompleted={saveDimensionLoadRecord}
       />

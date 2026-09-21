@@ -298,7 +298,7 @@ export function DimensionLoadForm({
                     const role = e.target.value === "dolly" ? "dolly" : "trailer";
                     setUnits((prev) => prev.map((u, j) => (j === i ? { ...u, role } : u)));
                   }}
-                  className="min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-2 text-xs font-semibold text-ck-fg"
+                  className="min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-2 text-xs font-semibold text-ck-fg [color-scheme:light] dark:[color-scheme:dark]"
                 >
                   <option value="trailer">Trailer</option>
                   <option value="dolly">Dolly</option>

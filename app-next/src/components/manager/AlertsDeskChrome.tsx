@@ -216,7 +216,7 @@ export function AlertsDeskChrome({
           <select
             value={hours}
             onChange={(e) => onHoursChange(Number(e.target.value))}
-            className="ml-auto h-8 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200"
+            className="ml-auto h-8 rounded-md border border-slate-300 bg-[#ffffff] px-2 text-xs text-[#0f172a] dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             aria-label="History time range"
           >
             {HOURS_OPTIONS.map((opt) => (
