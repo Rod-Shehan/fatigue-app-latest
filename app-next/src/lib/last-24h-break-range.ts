@@ -4,6 +4,7 @@
  */
 
 export const LAST_24H_BREAK_MIN_MS = 24 * 60 * 60 * 1000;
+export const LAST_7H_BREAK_MIN_MS = 7 * 60 * 60 * 1000;
 
 export type Last24hBreakRange = {
   startIso: string;
@@ -47,9 +48,11 @@ export function isoToPerthYmd(iso: string): string | null {
   return local ? local.slice(0, 10) : null;
 }
 
-export function validateLast24hBreakRange(
+export function validateContinuousRestRange(
   startIso: string,
-  endIso: string
+  endIso: string,
+  minMs: number,
+  tooShortError: string
 ): { ok: true; startMs: number; endMs: number } | { ok: false; error: string } {
   const startMs = Date.parse(startIso);
   const endMs = Date.parse(endIso);
@@ -59,10 +62,34 @@ export function validateLast24hBreakRange(
   if (endMs <= startMs) {
     return { ok: false, error: "End must be after start." };
   }
-  if (endMs - startMs < LAST_24H_BREAK_MIN_MS) {
-    return { ok: false, error: "Break must be at least 24 continuous hours." };
+  if (endMs - startMs < minMs) {
+    return { ok: false, error: tooShortError };
   }
   return { ok: true, startMs, endMs };
+}
+
+export function validateLast24hBreakRange(
+  startIso: string,
+  endIso: string
+): { ok: true; startMs: number; endMs: number } | { ok: false; error: string } {
+  return validateContinuousRestRange(
+    startIso,
+    endIso,
+    LAST_24H_BREAK_MIN_MS,
+    "Break must be at least 24 continuous hours."
+  );
+}
+
+export function validateLast7hBreakRange(
+  startIso: string,
+  endIso: string
+): { ok: true; startMs: number; endMs: number } | { ok: false; error: string } {
+  return validateContinuousRestRange(
+    startIso,
+    endIso,
+    LAST_7H_BREAK_MIN_MS,
+    "Rest must be at least 7 continuous hours."
+  );
 }
 
 export function formatLast24hBreakRangeDisplay(startIso: string, endIso: string): string {
@@ -100,6 +127,18 @@ export function rangeFromSheetFields(input: {
   const end = input.last_24h_break_end?.trim();
   if (!start || !end) return null;
   const v = validateLast24hBreakRange(start, end);
+  if (!v.ok) return null;
+  return { startIso: start, endIso: end };
+}
+
+export function rangeFrom7hSheetFields(input: {
+  last_24h_rest_1_start?: string | null;
+  last_24h_rest_1_end?: string | null;
+}): Last24hBreakRange | null {
+  const start = input.last_24h_rest_1_start?.trim();
+  const end = input.last_24h_rest_1_end?.trim();
+  if (!start || !end) return null;
+  const v = validateLast7hBreakRange(start, end);
   if (!v.ok) return null;
   return { startIso: start, endIso: end };
 }

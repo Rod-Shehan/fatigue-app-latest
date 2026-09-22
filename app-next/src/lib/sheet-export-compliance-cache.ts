@@ -47,6 +47,8 @@ export function computeComplianceForCachedSheets(
     prevWeekDays,
     historyDays,
     last24hBreak: row.last_24h_break ?? undefined,
+    last24hBreakStart: row.last_24h_break_start ?? null,
+    last24hBreakEnd: row.last_24h_break_end ?? null,
     last24hBreakEndMs: last24hBreakEndMsFromIso(row.last_24h_break_end),
     declared24hRests: declared24hRestsFromSheet(row),
     weekStarting: row.week_starting,

@@ -17,12 +17,17 @@ import {
   isoToPerthDatetimeLocal,
   LAST_24H_RANGE_EDITOR_HINT,
   perthDatetimeLocalToIso,
-  validateLast24hBreakRange,
+  validateContinuousRestRange,
   type Last24hBreakRange,
 } from "@/lib/last-24h-break-range";
 import { cn } from "@/lib/utils";
 
 export const LAST_24H_BREAK_CHIP_LABEL = "Last 24Hr Break";
+
+const DEFAULT_UNSET_HINT =
+  "Set when your last continuous 24+ hours of non-work started — not just a calendar day. End fills 24 hours later. Required once per week before compliance checks are complete.";
+const DEFAULT_SET_HINT =
+  "Start and end of your last full 24+ hours off (resets 17h / 72h). End fills 24 hours after start unless you change it. Change until you sign the week.";
 
 /** Editable until the week is signed (readOnly); then manager amend only. */
 export function Last24hBreakField({
@@ -30,12 +35,24 @@ export function Last24hBreakField({
   onChange,
   readOnly = false,
   allowAmend = false,
+  label = LAST_24H_BREAK_CHIP_LABEL,
+  minHours = 24,
+  unsetHint = DEFAULT_UNSET_HINT,
+  setHint = DEFAULT_SET_HINT,
+  lockedHint = "Locked after sign-off — ask your manager to amend.",
+  inputId = "last24h",
 }: {
   value?: Last24hBreakRange | null;
   onChange: (range: Last24hBreakRange | null) => void;
   readOnly?: boolean;
   /** Override: allow change while readOnly (manager amend path). */
   allowAmend?: boolean;
+  label?: string;
+  minHours?: number;
+  unsetHint?: string;
+  setHint?: string;
+  lockedHint?: string;
+  inputId?: string;
 }) {
   const canEdit = !readOnly || allowAmend;
   const hasValue = !!(value?.startIso && value?.endIso);
@@ -60,13 +77,13 @@ export function Last24hBreakField({
     return (
       <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 px-3 py-2.5">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
-          {LAST_24H_BREAK_CHIP_LABEL}
+          {label}
         </p>
         <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 tabular-nums mt-0.5 leading-snug">
           {formatLast24hBreakRangeDisplay(value!.startIso, value!.endIso)}
         </p>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Locked after sign-off — ask your manager to amend.
+          {lockedHint}
         </p>
       </div>
     );
@@ -84,11 +101,11 @@ export function Last24hBreakField({
       >
         {hasValue ? (
           <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-900/80 dark:text-amber-200/80">
-            {LAST_24H_BREAK_CHIP_LABEL}
+            {label}
           </p>
         ) : (
           <p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
-            {LAST_24H_BREAK_CHIP_LABEL}
+            {label}
           </p>
         )}
         {hasValue ? (
@@ -97,9 +114,7 @@ export function Last24hBreakField({
           </p>
         ) : null}
         <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-snug">
-          {hasValue
-            ? "Start and end of your last full 24+ hours off (resets 17h / 72h). End fills 24 hours after start unless you change it. Change until you sign the week."
-            : "Set when your last continuous 24+ hours of non-work started — not just a calendar day. End fills 24 hours later. Required once per week before compliance checks are complete."}
+          {hasValue ? setHint : unsetHint}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -141,31 +156,32 @@ export function Last24hBreakField({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{LAST_24H_BREAK_CHIP_LABEL}</DialogTitle>
+            <DialogTitle>{label}</DialogTitle>
             <DialogDescription>
-              {LAST_24H_RANGE_EDITOR_HINT} Must be at least 24 continuous hours.
+              {LAST_24H_RANGE_EDITOR_HINT.replace("24 hours", `${minHours} hours`)} Must be at least{" "}
+              {minHours} continuous hours.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="last24h-start">Start</Label>
+              <Label htmlFor={`${inputId}-start`}>Start</Label>
               <input
-                id="last24h-start"
+                id={`${inputId}-start`}
                 type="datetime-local"
                 value={startLocal}
                 onChange={(e) => {
                   const next = e.target.value;
                   setStartLocal(next);
-                  const filled = addHoursToPerthDatetimeLocal(next, 24);
+                  const filled = addHoursToPerthDatetimeLocal(next, minHours);
                   if (filled) setEndLocal(filled);
                 }}
                 className="flex h-11 w-full rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 text-sm"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="last24h-end">End (24 hours later)</Label>
+              <Label htmlFor={`${inputId}-end`}>End ({minHours} hours later)</Label>
               <input
-                id="last24h-end"
+                id={`${inputId}-end`}
                 type="datetime-local"
                 value={endLocal}
                 onChange={(e) => setEndLocal(e.target.value)}
@@ -198,7 +214,12 @@ export function Last24hBreakField({
                   setError("Enter both start and end times.");
                   return;
                 }
-                const v = validateLast24hBreakRange(startIso, endIso);
+                const v = validateContinuousRestRange(
+                  startIso,
+                  endIso,
+                  minHours * 60 * 60 * 1000,
+                  `Rest must be at least ${minHours} continuous hours.`
+                );
                 if (!v.ok) {
                   setError(v.error);
                   return;

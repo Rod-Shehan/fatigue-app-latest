@@ -6,6 +6,8 @@ import { formatDriverRestRequiredBeforeWork } from "@/lib/product-copy";
 
 export type UpcomingComplianceTone = "clear" | "caution" | "attention";
 
+export const COMPLIANCE_CHIP_DETAILS_LABEL = "Details";
+
 export type UpcomingComplianceChipModel = {
   tone: UpcomingComplianceTone;
   /** One or two short lines for the chip body (no title). */

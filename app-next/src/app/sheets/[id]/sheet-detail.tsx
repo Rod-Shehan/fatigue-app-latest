@@ -77,7 +77,12 @@ import {
   resolveEndShiftFinishDayOptions,
 } from "@/lib/end-shift-finish-day";
 import { hhmmOnSheetDayToIso, isoToLocalHHMM } from "@/lib/sheet-day-time";
-import { isoToPerthYmd, last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
+import {
+  isoToPerthYmd,
+  last24hBreakEndMsFromIso,
+  rangeFrom7hSheetFields,
+  rangeFromSheetFields,
+} from "@/lib/last-24h-break-range";
 import {
   formatSheetDisplayDate,
   getSheetDayDateString,
@@ -118,6 +123,7 @@ import {
   type Declared24hRestFields,
   type Declared24hRestKey,
 } from "@/lib/declared-24h-rests";
+import { collectTwoUpDeclaredStationaryRanges } from "@/lib/two-up-stationary";
 import { complianceStateAt } from "@/lib/compliance-state";
 import {
   buildDriverComplianceWeekContext,
@@ -603,27 +609,33 @@ export function SheetDetail({
       signature = undefined;
       signed_at = undefined;
     }
-    const seededRests = seedSoftResetRangeIntoDeclaredRests({
-      fields: declared24hRestsFromSheet({
-        last_24h_rest_1: sheet.last_24h_rest_1 || null,
-        last_24h_rest_2: sheet.last_24h_rest_2 || null,
-        last_24h_rest_3: sheet.last_24h_rest_3 || null,
-        last_24h_rest_4: sheet.last_24h_rest_4 || null,
-        last_24h_rest_1_start: sheet.last_24h_rest_1_start || null,
-        last_24h_rest_1_end: sheet.last_24h_rest_1_end || null,
-        last_24h_rest_2_start: sheet.last_24h_rest_2_start || null,
-        last_24h_rest_2_end: sheet.last_24h_rest_2_end || null,
-        last_24h_rest_3_start: sheet.last_24h_rest_3_start || null,
-        last_24h_rest_3_end: sheet.last_24h_rest_3_end || null,
-        last_24h_rest_4_start: sheet.last_24h_rest_4_start || null,
-        last_24h_rest_4_end: sheet.last_24h_rest_4_end || null,
-      }),
-      last24hBreak: sheet.last_24h_break,
-      last24hBreakStart: sheet.last_24h_break_start,
-      last24hBreakEnd: sheet.last_24h_break_end,
-      isoToPerthYmd,
+    const restFieldsFromSheet = declared24hRestsFromSheet({
+      last_24h_rest_1: sheet.last_24h_rest_1 || null,
+      last_24h_rest_2: sheet.last_24h_rest_2 || null,
+      last_24h_rest_3: sheet.last_24h_rest_3 || null,
+      last_24h_rest_4: sheet.last_24h_rest_4 || null,
+      last_24h_rest_1_start: sheet.last_24h_rest_1_start || null,
+      last_24h_rest_1_end: sheet.last_24h_rest_1_end || null,
+      last_24h_rest_2_start: sheet.last_24h_rest_2_start || null,
+      last_24h_rest_2_end: sheet.last_24h_rest_2_end || null,
+      last_24h_rest_3_start: sheet.last_24h_rest_3_start || null,
+      last_24h_rest_3_end: sheet.last_24h_rest_3_end || null,
+      last_24h_rest_4_start: sheet.last_24h_rest_4_start || null,
+      last_24h_rest_4_end: sheet.last_24h_rest_4_end || null,
     });
-    const softFromRests = softResetFieldsFromDeclaredRests(seededRests, isoToPerthYmd);
+    const isTwoUpSheet = (sheet.driver_type || "solo") === "two_up";
+    const seededRests = isTwoUpSheet
+      ? restFieldsFromSheet
+      : seedSoftResetRangeIntoDeclaredRests({
+          fields: restFieldsFromSheet,
+          last24hBreak: sheet.last_24h_break,
+          last24hBreakStart: sheet.last_24h_break_start,
+          last24hBreakEnd: sheet.last_24h_break_end,
+          isoToPerthYmd,
+        });
+    const softFromRests = isTwoUpSheet
+      ? { last_24h_break: "", last_24h_break_start: "", last_24h_break_end: "" }
+      : softResetFieldsFromDeclaredRests(seededRests, isoToPerthYmd);
     const seededPersisted =
       (seededRests.last_24h_rest_1_start || "") !== (sheet.last_24h_rest_1_start || "") ||
       (seededRests.last_24h_rest_1_end || "") !== (sheet.last_24h_rest_1_end || "") ||
@@ -707,6 +719,8 @@ export function SheetDetail({
         ? (complianceHistoryRemote?.history_days ?? null)
         : (complianceHistoryLocal?.historyDays ?? null),
       last24hBreak: sheetData.last_24h_break || undefined,
+      last24hBreakStart: sheetData.last_24h_break_start || null,
+      last24hBreakEnd: sheetData.last_24h_break_end || null,
       last24hBreakEndMs: last24hBreakEndMsFromIso(sheetData.last_24h_break_end),
       declared24hRests: {
         last_24h_rest_1: sheetData.last_24h_rest_1 || null,
@@ -859,8 +873,16 @@ export function SheetDetail({
       sheetId,
       weekStarting: sheetData.week_starting,
       last24hBreak: sheetData.last_24h_break,
+      isTwoUp: todayCrew.driver_type === "two_up",
       declared24hRestUnset:
-        restReq.fieldCount >= 2 &&
+        todayCrew.driver_type === "two_up"
+          ? collectTwoUpDeclaredStationaryRanges({
+              last7hRestStart: sheetData.last_24h_rest_1_start,
+              last7hRestEnd: sheetData.last_24h_rest_1_end,
+              last24hBreakStart: sheetData.last_24h_break_start,
+              last24hBreakEnd: sheetData.last_24h_break_end,
+            }).length === 0
+          : restReq.fieldCount >= 2 &&
         declared24hRestsIncomplete(restReq.fieldCount, {
           last_24h_rest_1: sheetData.last_24h_rest_1,
           last_24h_rest_2: sheetData.last_24h_rest_2,
@@ -1368,6 +1390,29 @@ export function SheetDetail({
     () => ({
       declared24hRests: declared24hRestFields,
       declared24hRestFieldCount: declared24hRestUiFieldCount,
+      isTwoUp: todayCrew.driver_type === "two_up",
+      last7hStationary: rangeFrom7hSheetFields({
+        last_24h_rest_1_start: sheetData.last_24h_rest_1_start,
+        last_24h_rest_1_end: sheetData.last_24h_rest_1_end,
+      }),
+      last24hStationary: rangeFromSheetFields({
+        last_24h_break_start: sheetData.last_24h_break_start,
+        last_24h_break_end: sheetData.last_24h_break_end,
+      }),
+      onTwoUp7hChange: (range: { startIso: string; endIso: string } | null) => {
+        handleHeaderChange({
+          last_24h_rest_1: range ? isoToPerthYmd(range.startIso) ?? "" : "",
+          last_24h_rest_1_start: range?.startIso ?? "",
+          last_24h_rest_1_end: range?.endIso ?? "",
+        });
+      },
+      onTwoUp24hChange: (range: { startIso: string; endIso: string } | null) => {
+        handleHeaderChange({
+          last_24h_break: range ? isoToPerthYmd(range.startIso) ?? "" : "",
+          last_24h_break_start: range?.startIso ?? "",
+          last_24h_break_end: range?.endIso ?? "",
+        });
+      },
       onDeclared24hRestChange: (
         key: Declared24hRestKey,
         range: { startIso: string; endIso: string } | null
@@ -1390,7 +1435,16 @@ export function SheetDetail({
         });
       },
     }),
-    [declared24hRestFields, declared24hRestUiFieldCount, handleHeaderChange]
+    [
+      declared24hRestFields,
+      declared24hRestUiFieldCount,
+      handleHeaderChange,
+      todayCrew.driver_type,
+      sheetData.last_24h_rest_1_start,
+      sheetData.last_24h_rest_1_end,
+      sheetData.last_24h_break_start,
+      sheetData.last_24h_break_end,
+    ]
   );
 
   const pruneOrphansOnFollowingWeekSheet = useCallback(

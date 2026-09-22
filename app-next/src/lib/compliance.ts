@@ -20,6 +20,7 @@ import { isBreakFromDrivingEventType, isWorkTimeEventType } from "@/lib/activity
 import { qualifyingRestMetForWorkAfterBreak } from "@/lib/five-hour-break-rule";
 import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
+  buildTwoUp184E3bScoreInput,
   scoreTwoUp184E3b,
   TWO_UP_184E3B_FAIL_MESSAGE,
   twoUp184E3bStructureWarnings,
@@ -725,6 +726,9 @@ function checkTwoUpRules(
     slotOffsetWithinToday?: number;
     historyDays?: ComplianceDayData[] | null;
     prevWeekDays?: ComplianceDayData[] | null;
+    last24hBreakStart?: string | null;
+    last24hBreakEnd?: string | null;
+    declared24hRests?: Declared24hRestFields | null;
   }
 ) {
   const nonWork = flatSlots(days, "non_work");
@@ -765,7 +769,24 @@ function checkTwoUpRules(
     options?.prevWeekDays,
     currentDays
   );
-  const scored = scoreTwoUp184E3b(geoEvents, asOf, recordStartMs);
+  const allSlices = [
+    ...(options?.historyDays ?? []),
+    ...(options?.prevWeekDays ?? []),
+    ...currentDays,
+  ];
+  const scored = scoreTwoUp184E3b(
+    geoEvents,
+    asOf,
+    buildTwoUp184E3bScoreInput({
+      events: geoEvents,
+      days: allSlices,
+      recordStartMs,
+      last7hRestStart: options?.declared24hRests?.last_24h_rest_1_start,
+      last7hRestEnd: options?.declared24hRests?.last_24h_rest_1_end,
+      last24hBreakStart: options?.last24hBreakStart,
+      last24hBreakEnd: options?.last24hBreakEnd,
+    })
+  );
   if (!scored.ok) {
     results.push({
       type: "violation",
@@ -983,6 +1004,8 @@ export function runComplianceChecks(
     /** Optional preceding history (chronological) to support 28-day checks. */
     historyDays?: ComplianceDayData[] | null;
     last24hBreak?: string;
+    last24hBreakStart?: string | null;
+    last24hBreakEnd?: string | null;
     /** Absolute end of declared ≥24h break (ms); AMI soft-reset prefers this over date-only. */
     last24hBreakEndMs?: number | null;
     declared24hRests?: Declared24hRestFields | null;
@@ -1000,6 +1023,8 @@ export function runComplianceChecks(
     prevWeekDays,
     historyDays,
     last24hBreak,
+    last24hBreakStart,
+    last24hBreakEnd,
     declared24hRests,
     weekStarting,
     prevWeekStarting,
@@ -1026,6 +1051,9 @@ export function runComplianceChecks(
       slotOffsetWithinToday,
       historyDays: (historyDays || []).map((d) => normalizeDayCoverageArrays(d)),
       prevWeekDays: prevDays.length ? prevDays : null,
+      last24hBreakStart,
+      last24hBreakEnd,
+      declared24hRests,
     });
   } else {
     checkSoloRules(extendedDays, results, prevCount, {

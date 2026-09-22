@@ -1,9 +1,14 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight } from "lucide-react";
 import type { ComplianceFixRoute } from "@/lib/compliance-fix-routes";
 import { isComplianceFixActionable, REVIEW_DETAILS_LABEL } from "@/lib/compliance-fix-routes";
-import type { UpcomingComplianceChipModel, UpcomingComplianceTone } from "@/lib/upcoming-compliance-chip";
+import {
+  COMPLIANCE_CHIP_DETAILS_LABEL,
+  type UpcomingComplianceChipModel,
+  type UpcomingComplianceTone,
+} from "@/lib/upcoming-compliance-chip";
 import { driverChipShell } from "@/components/driver/driver-ui-classes";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +61,6 @@ export function UpcomingComplianceChip({
     driverChipShell,
     toneStyles(model.tone, onDark),
     compact && "py-2 px-2.5",
-    className
   );
 
   const body = (
@@ -92,30 +96,16 @@ export function UpcomingComplianceChip({
           ))}
         </div>
         {primaryLabel ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-semibold",
-                actionable
-                  ? "bg-emerald-600 text-white"
-                  : "border border-current/30 bg-white/10"
-              )}
-            >
-              {primaryLabel}
-            </span>
-            {actionable && onOpenDetail ? (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenDetail();
-                }}
-                className="text-[11px] font-medium underline underline-offset-2 opacity-80 hover:opacity-100"
-              >
-                Details
-              </button>
-            ) : null}
-          </div>
+          <span
+            className={cn(
+              "inline-flex items-center justify-center rounded-md px-2.5 py-1.5 text-xs font-semibold",
+              actionable
+                ? "bg-emerald-600 text-white"
+                : "border border-current/30 bg-white/10"
+            )}
+          >
+            {primaryLabel}
+          </span>
         ) : null}
       </div>
       {!primaryLabel && onOpenDetail ? (
@@ -123,6 +113,28 @@ export function UpcomingComplianceChip({
       ) : null}
     </div>
   );
+
+  const wrap = (node: ReactNode) => (
+    <div className={cn("flex w-full max-w-md flex-col gap-1.5 pointer-events-auto", className)}>
+      {node}
+    </div>
+  );
+
+  const detailsControl =
+    actionable && onOpenDetail ? (
+      <button
+        type="button"
+        onClick={onOpenDetail}
+        className={cn(
+          "pointer-events-auto min-h-[44px] w-full touch-manipulation rounded-xl border px-3 text-sm font-semibold",
+          onDark
+            ? "border-white/35 bg-white/10 text-white"
+            : "border-slate-300 bg-white text-slate-800 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+        )}
+      >
+        {COMPLIANCE_CHIP_DETAILS_LABEL}
+      </button>
+    ) : null;
 
   if (actionable || reviewOnly) {
     const handlePrimary = () => {
@@ -132,30 +144,27 @@ export function UpcomingComplianceChip({
       }
       onOpenDetail?.();
     };
-    return (
-      <button
-        type="button"
-        onClick={handlePrimary}
-        className={cn(
-          shellClass,
-          "pointer-events-auto text-left hover:brightness-[1.02] active:scale-[0.99] cursor-pointer"
-        )}
-        aria-label={`${heading}: ${model.lines.join(". ")}. ${primaryLabel}.`}
-      >
-        {body}
-      </button>
+    return wrap(
+      <>
+        <button
+          type="button"
+          onClick={handlePrimary}
+          className={cn(shellClass, "text-left hover:brightness-[1.02] active:scale-[0.99] cursor-pointer")}
+          aria-label={`${heading}: ${model.lines.join(". ")}. ${primaryLabel}.`}
+        >
+          {body}
+        </button>
+        {detailsControl}
+      </>
     );
   }
 
   if (onOpenDetail) {
-    return (
+    return wrap(
       <button
         type="button"
         onClick={onOpenDetail}
-        className={cn(
-          shellClass,
-          "pointer-events-auto text-left hover:brightness-[1.02] active:scale-[0.99] cursor-pointer"
-        )}
+        className={cn(shellClass, "text-left hover:brightness-[1.02] active:scale-[0.99] cursor-pointer")}
         aria-label={`${heading}: ${model.lines.join(". ")}. Open compliance details.`}
       >
         {body}
@@ -163,7 +172,7 @@ export function UpcomingComplianceChip({
     );
   }
 
-  return (
+  return wrap(
     <div role="status" className={shellClass} aria-label={`${heading}: ${model.lines.join(". ")}`}>
       {body}
     </div>

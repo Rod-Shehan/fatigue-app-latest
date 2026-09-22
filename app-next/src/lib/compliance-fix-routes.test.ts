@@ -36,6 +36,18 @@ describe("compliance-fix-routes", () => {
     expect(route.scrollDayIndex).toBe(2);
   });
 
+  it("routes two-up 184E(3)(b) to set up week record", () => {
+    const route = resolveComplianceFixRoute({
+      message:
+        "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)",
+      type: "violation",
+    });
+    expect(route.kind).toBe("setup_week_record");
+    expect(isComplianceMessageFixableInDaySetup(
+      "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h"
+    )).toBe(true);
+  });
+
   it("prefers setup week record over edit day", () => {
     const route = resolvePrimaryComplianceFixRoute([
       { message: "20 min rest per 5h work", type: "warning", day: "Mon" },

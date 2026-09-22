@@ -35,6 +35,7 @@ import { isAmiComplianceEngineEnabled } from "./flag";
 import { tapeMinuteToMs } from "./paint";
 import type { AmiEvent } from "./types";
 import {
+  buildTwoUp184E3bScoreInput,
   scoreTwoUp184E3b,
   TWO_UP_184E3B_FAIL_MESSAGE,
   twoUp184E3bStructureWarnings,
@@ -174,7 +175,24 @@ function buildAmiOwnedResults(
       });
     }
     const geoEvents = collectStationaryGeoEvents(days, options);
-    const scored = scoreTwoUp184E3b(geoEvents, asOf, recordStartMs);
+    const allSlices = [
+      ...((options.historyDays as ComplianceDayData[] | null | undefined) ?? []),
+      ...((options.prevWeekDays as ComplianceDayData[] | null | undefined) ?? []),
+      ...days,
+    ];
+    const scored = scoreTwoUp184E3b(
+      geoEvents,
+      asOf,
+      buildTwoUp184E3bScoreInput({
+        events: geoEvents,
+        days: allSlices,
+        recordStartMs,
+        last7hRestStart: options.declared24hRests?.last_24h_rest_1_start,
+        last7hRestEnd: options.declared24hRests?.last_24h_rest_1_end,
+        last24hBreakStart: options.last24hBreakStart,
+        last24hBreakEnd: options.last24hBreakEnd,
+      })
+    );
     if (!scored.ok) {
       out.push({
         type: "violation",

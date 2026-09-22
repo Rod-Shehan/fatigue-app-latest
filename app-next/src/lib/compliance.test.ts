@@ -176,6 +176,11 @@ describe("compliance scenarios — what the logic produces", () => {
     expect(v).toBeDefined();
   });
 
+  it("two-up 184E(3)(b): empty sheet with no work is not a violation", () => {
+    const results = runComplianceChecks(emptyWeek(), { driverType: "two_up" });
+    expect(results.some((r) => r.message.includes("GPS-proven Parked or End shift"))).toBe(false);
+  });
+
   it("two-up 184E(3)(b): no GPS-proven Parked or End shift is a violation", () => {
     const days = emptyWeek();
     for (let i = 0; i < 2; i++) {

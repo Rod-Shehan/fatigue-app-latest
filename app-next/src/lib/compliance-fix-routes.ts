@@ -60,6 +60,8 @@ function isSetupWeekRecordMessage(message: string): boolean {
   if (m.includes("no previous sheet found to check full 14-day")) return true;
   if (m.includes("last 24") && m.includes("break")) return true;
   if (m.includes("24hr break") || m.includes("24h break")) return true;
+  if (m.includes("gps-proven parked") || m.includes("gps-proven parked or end shift")) return true;
+  if (m.includes("7-day option") && (m.includes("48h") || m.includes("two-up"))) return true;
   return false;
 }
 

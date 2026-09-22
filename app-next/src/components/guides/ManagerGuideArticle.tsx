@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MANAGER_EXPERIENCE } from "@/lib/manager-experience";
 import { SHEET_ATTESTATION_WORKFLOW } from "@/lib/product-copy";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
+import { TWO_UP_DECLARED_REST_COPY } from "@/lib/two-up-stationary";
 import { CHECKLIST_EMAIL_SETTINGS_LABEL } from "@/lib/checklist";
 import {
   TRUCK_REGO_ATM_LABEL,
@@ -159,10 +160,12 @@ export function ManagerGuideArticle() {
         <p className="mt-3">{SHEET_ATTESTATION_WORKFLOW.MANAGER_AMEND_UNTIL_AGREED}</p>
         <p className="mt-2 text-slate-600 dark:text-slate-300">
           On the sheet workbench you can amend{" "}
-          <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> (or four when required): set the start
+          <strong>{DECLARED_24H_REST_COPY.TITLE_2}</strong> (or four when required) on solo sheets: set the start
           for each rest and the end fills 24 hours later — the same fields drivers set in Set up day. Two dates are the
           14-day option; four dates are the 28-day alternative. Soft-reset for short-horizon
-          rules follows the most recent rest end. Those fields also appear in a driver&apos;s{" "}
+          rules follows the most recent rest end. On two-up sheets amend{" "}
+          <strong>{TWO_UP_DECLARED_REST_COPY.TITLE}</strong> ({TWO_UP_DECLARED_REST_COPY.LABEL_7H} and{" "}
+          {TWO_UP_DECLARED_REST_COPY.LABEL_24H}) when rest happened before Circadia. Those fields also appear in a driver&apos;s{" "}
           <strong>Edit day</strong> dialog (managers can change locked values there). Assurance lines
           and sheet banners include <strong>Fix on record</strong> or <strong>Fix this day</strong> so
           you land on the field instead of only reading a report.

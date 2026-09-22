@@ -22,6 +22,7 @@ import type { ShiftLaneDayCoverage } from "@/lib/manager-risk-shift-lane";
 import { buildShiftLanePlanContext } from "@/lib/manager-shift-lane-plans";
 import { deriveDaysWithRollover, resolveOpenActivityBeforeFirstDay } from "@/components/fatigue/EventLogger";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
+import { TwoUpStationaryRestFields } from "@/components/fatigue/TwoUpStationaryRestFields";
 import { sheetDayYmdFromIndex } from "@/lib/route-plan";
 import { getPreviousWeekSunday, getRegulatoryTodayYmd, isPastRegulatoryWeek } from "@/lib/weeks";
 import { getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
@@ -39,7 +40,7 @@ import {
   type Declared24hRestFields,
   type Declared24hRestKey,
 } from "@/lib/declared-24h-rests";
-import { isoToPerthYmd } from "@/lib/last-24h-break-range";
+import { isoToPerthYmd, rangeFrom7hSheetFields, rangeFromSheetFields } from "@/lib/last-24h-break-range";
 import {
   buildManagerDomainKpis,
   countUnsignedSheetsForWeek,
@@ -985,7 +986,13 @@ export function ManagerView() {
                 }
               : {}),
           }
-        : {}),
+        : form.driver_type === "two_up"
+          ? {
+              last_24h_rest_1: form.last_24h_rest_1.trim() || null,
+              last_24h_rest_1_start: form.last_24h_rest_1_start.trim() || null,
+              last_24h_rest_1_end: form.last_24h_rest_1_end.trim() || null,
+            }
+          : {}),
       ...(managerEditNeedsReason && reason ? { amendment_reason: reason } : {}),
     });
   };
@@ -1288,7 +1295,37 @@ export function ManagerView() {
                           From this sheet record. Edit “Driver name” below only to correct the stored name.
                         </p>
                       </div>
-                      {form.driver_type !== "two_up" && declared24hRestUiFieldCount >= 2 && (
+                      {form.driver_type === "two_up" ? (
+                        <div className="sm:col-span-2">
+                          <TwoUpStationaryRestFields
+                            last7h={rangeFrom7hSheetFields({
+                              last_24h_rest_1_start: form.last_24h_rest_1_start,
+                              last_24h_rest_1_end: form.last_24h_rest_1_end,
+                            })}
+                            last24h={rangeFromSheetFields({
+                              last_24h_break_start: form.last_24h_break_start,
+                              last_24h_break_end: form.last_24h_break_end,
+                            })}
+                            on7hChange={(range) =>
+                              setForm((f) => ({
+                                ...f,
+                                last_24h_rest_1: range ? isoToPerthYmd(range.startIso) ?? "" : "",
+                                last_24h_rest_1_start: range?.startIso ?? "",
+                                last_24h_rest_1_end: range?.endIso ?? "",
+                              }))
+                            }
+                            on24hChange={(range) =>
+                              setForm((f) => ({
+                                ...f,
+                                last_24h_break: range ? isoToPerthYmd(range.startIso) ?? "" : "",
+                                last_24h_break_start: range?.startIso ?? "",
+                                last_24h_break_end: range?.endIso ?? "",
+                              }))
+                            }
+                            allowAmend
+                          />
+                        </div>
+                      ) : declared24hRestUiFieldCount >= 2 ? (
                         <div className="sm:col-span-2">
                           <Declared24hRestsField
                             fieldCount={declared24hRestUiFieldCount === 4 ? 4 : 2}
@@ -1297,7 +1334,7 @@ export function ManagerView() {
                             allowAmend
                           />
                         </div>
-                      )}
+                      ) : null}
                       <div className="space-y-1.5">
                         <Label className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
                           Driver type

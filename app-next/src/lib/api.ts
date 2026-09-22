@@ -346,12 +346,22 @@ export const api = {
       prevWeekDays?: Array<{ work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] }> | null;
       historyDays?: Array<{ work_time?: boolean[]; breaks?: boolean[]; non_work?: boolean[]; events?: { time: string; type: string }[] }> | null;
       last24hBreak?: string;
+      last24hBreakStart?: string | null;
+      last24hBreakEnd?: string | null;
       last24hBreakEndMs?: number | null;
       declared24hRests?: {
         last_24h_rest_1?: string | null;
         last_24h_rest_2?: string | null;
         last_24h_rest_3?: string | null;
         last_24h_rest_4?: string | null;
+        last_24h_rest_1_start?: string | null;
+        last_24h_rest_1_end?: string | null;
+        last_24h_rest_2_start?: string | null;
+        last_24h_rest_2_end?: string | null;
+        last_24h_rest_3_start?: string | null;
+        last_24h_rest_3_end?: string | null;
+        last_24h_rest_4_start?: string | null;
+        last_24h_rest_4_end?: string | null;
       } | null;
       weekStarting?: string;
       prevWeekStarting?: string;

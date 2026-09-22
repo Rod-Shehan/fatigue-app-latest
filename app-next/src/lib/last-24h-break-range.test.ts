@@ -5,6 +5,7 @@ import {
   isoToPerthDatetimeLocal,
   perthDatetimeLocalToIso,
   validateLast24hBreakRange,
+  validateLast7hBreakRange,
 } from "./last-24h-break-range";
 
 describe("last-24h-break-range", () => {
@@ -18,6 +19,14 @@ describe("last-24h-break-range", () => {
     const iso = perthDatetimeLocalToIso("2026-07-19T14:30");
     expect(iso).toBeTruthy();
     expect(isoToPerthDatetimeLocal(iso!)).toBe("2026-07-19T14:30");
+  });
+
+  it("requires ≥7h span for two-up parked declaration", () => {
+    const start = perthDatetimeLocalToIso("2026-07-19T08:00")!;
+    const shortEnd = perthDatetimeLocalToIso("2026-07-19T14:59")!;
+    const okEnd = perthDatetimeLocalToIso("2026-07-19T15:00")!;
+    expect(validateLast7hBreakRange(start, shortEnd).ok).toBe(false);
+    expect(validateLast7hBreakRange(start, okEnd).ok).toBe(true);
   });
 
   it("requires ≥24h span", () => {

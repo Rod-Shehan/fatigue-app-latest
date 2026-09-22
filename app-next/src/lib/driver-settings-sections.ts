@@ -14,7 +14,7 @@ export const DRIVER_SETTINGS_SECTIONS = {
     title: "This phone",
     overviewTitle: "1. This phone",
     eyebrow: "Display and install",
-    subtitle: "Dark mode, voice alerts, installing the app, and backup on this device.",
+    subtitle: "Dark mode, voice alerts, iPhone and Android install steps, and backup on this device.",
   },
   record: {
     id: "your-record",

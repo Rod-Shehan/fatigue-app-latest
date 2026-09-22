@@ -4,13 +4,20 @@ import { useEffect, useState } from "react";
 import { Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DeviceSetupDialog } from "@/components/pwa/DeviceSetupDialog";
+import { EwdInstallRecipes, useEwdNativeInstall } from "@/components/pwa/EwdInstallRecipes";
 import { driverSectionLabel } from "@/components/driver/driver-ui-classes";
 import { isDeviceSetupComplete, isStandaloneDisplay } from "@/lib/device-setup";
+import {
+  EWD_INSTALL_ANDROID_NATIVE_BUTTON,
+  EWD_INSTALL_HOW_TO_BUTTON,
+  EWD_INSTALL_SETUP_BUTTON,
+} from "@/lib/ewd-install";
 
 export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: boolean }) {
   const [open, setOpen] = useState(false);
   const [setupComplete, setSetupComplete] = useState(false);
   const [standalone, setStandalone] = useState(false);
+  const { canNativeInstall, install } = useEwdNativeInstall();
 
   useEffect(() => {
     setSetupComplete(isDeviceSetupComplete());
@@ -19,6 +26,8 @@ export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: 
 
   // Hide once complete and installed; keep visible otherwise as a support affordance.
   if (setupComplete && standalone) return null;
+
+  const setupLabel = setupComplete ? EWD_INSTALL_HOW_TO_BUTTON : EWD_INSTALL_SETUP_BUTTON;
 
   return (
     <section>
@@ -31,17 +40,34 @@ export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: 
           <div className="min-w-0">
             <p className="text-sm font-bold text-slate-900 dark:text-slate-100">Offline setup</p>
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed mt-0.5">
-              Recommended for WA remote areas: install to your home screen and enable storage protection.
+              Recommended for WA remote areas: install to your home screen and enable storage protection. iPhone
+              and Android steps are both shown — this phone is marked.
             </p>
           </div>
         </div>
+        {standalone ? (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Installed fullscreen. Finish storage protection if you have not yet.
+          </p>
+        ) : (
+          <EwdInstallRecipes />
+        )}
+        {canNativeInstall ? (
+          <Button
+            type="button"
+            className="w-full min-h-[44px] touch-manipulation bg-teal-700 hover:bg-teal-800 text-white font-semibold"
+            onClick={() => void install()}
+          >
+            {EWD_INSTALL_ANDROID_NATIVE_BUTTON}
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="outline"
-          className="w-full font-semibold"
+          className="w-full min-h-[44px] touch-manipulation font-semibold"
           onClick={() => setOpen(true)}
         >
-          {setupComplete ? "How to install" : "Set up this device"}
+          {setupLabel}
         </Button>
       </div>
 
@@ -56,4 +82,3 @@ export function DriverDeviceSetupPanel({ hideHeading = false }: { hideHeading?: 
     </section>
   );
 }
-

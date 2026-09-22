@@ -54,7 +54,7 @@ export const driverPanel =
 
 /** Compliance chip / status pill (LogBar, upcoming issues). */
 export const driverChipShell =
-  "w-full max-w-md rounded-xl border px-3 py-2.5 shadow-sm transition-colors";
+  "w-full max-w-md min-h-[44px] touch-manipulation rounded-xl border px-3 py-2.5 shadow-sm transition-colors";
 
 /** Full-width compliance / info banner. */
 export const driverAlertBar =

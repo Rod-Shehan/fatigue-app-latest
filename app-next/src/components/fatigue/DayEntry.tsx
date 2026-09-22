@@ -61,6 +61,7 @@ export type DayCardToolsConfig = {
   weekStarting?: string;
   last24hBreak?: string;
   declared24hRestUnset?: boolean;
+  isTwoUp?: boolean;
   complianceLoading?: boolean;
   complianceDetail: string;
   complianceTone: "ok" | "warn" | "issue";
@@ -152,6 +153,11 @@ export default function DayEntry({
   declared24hRests,
   declared24hRestFieldCount = 0,
   onDeclared24hRestChange,
+  isTwoUp = false,
+  last7hStationary = null,
+  last24hStationary = null,
+  onTwoUp7hChange,
+  onTwoUp24hChange,
   onCrewMetaSync,
   dayTools,
   setupOpenRequest,
@@ -187,6 +193,11 @@ export default function DayEntry({
     key: import("@/lib/declared-24h-rests").Declared24hRestKey,
     range: import("@/lib/last-24h-break-range").Last24hBreakRange | null
   ) => void;
+  isTwoUp?: boolean;
+  last7hStationary?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
+  last24hStationary?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
+  onTwoUp7hChange?: (range: import("@/lib/last-24h-break-range").Last24hBreakRange | null) => void;
+  onTwoUp24hChange?: (range: import("@/lib/last-24h-break-range").Last24hBreakRange | null) => void;
   /** When today's crew is confirmed in Set up day, sync sheet header for LogBar / compliance. */
   onCrewMetaSync?: (crew: { driver_type: "solo" | "two_up"; second_driver: string }) => void;
   /** Sheet-level tools (compliance, PDF, gear) — today only. */
@@ -864,6 +875,7 @@ export default function DayEntry({
           }
           last24hUnset={!dayTools.last24hBreak?.trim()}
           declared24hRestUnset={dayTools.declared24hRestUnset}
+          isTwoUp={dayTools.isTwoUp}
           driverName={dayTools.driverName ?? driverName}
         />
       )}
@@ -1030,6 +1042,11 @@ export default function DayEntry({
           declared24hRests={declared24hRests}
           declared24hRestFieldCount={declared24hRestFieldCount}
           onDeclared24hRestChange={onDeclared24hRestChange}
+          isTwoUp={isTwoUp || driverType === "two_up"}
+          last7hStationary={last7hStationary}
+          last24hStationary={last24hStationary}
+          onTwoUp7hChange={onTwoUp7hChange}
+          onTwoUp24hChange={onTwoUp24hChange}
           allowHeaderRestAmend={allowHeaderRestAmend}
           readOnly={readOnly}
           showShiftPatternEducation={showShiftPatternEducation}

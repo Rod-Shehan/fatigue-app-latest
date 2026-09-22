@@ -36,6 +36,7 @@ After sign in you see **Drive**.
 |-----------|---------|
 | Hi, [your name] | You are signed in |
 | This week · [date] · Today · [date] | Which week and day you are in |
+| **Install Circadia24 on this iPhone** (or **this phone**) | Home-screen install card — iPhone and Android steps on the same card. iPhone never shows a browser banner: Safari → Share → Add to Home Screen. Android: Chrome menu → Install app, or tap **Install app** if the browser offers it. **Set up this device** is storage protection. The card hides after the app is installed and setup is done. |
 | Status card (Work / Break / Off) | What the app thinks you are doing now |
 | **Log more work / Open this week** (green) | Open this week to log |
 | **Produce 28 day roadside PDF** (amber) | One PDF for a regulator |
@@ -174,7 +175,8 @@ Use **Set up day** (or **Edit day**) when something changes:
 - New run — **Saved run plan**, **Enter run plan** (from / to, name, expected hours/km), or **No run plan**
 - **Shift pattern** — Day (A) or Night (B)
 - **Solo** or **Two-up**, and the **relief driver's name**
-- **Last 2 or 4 × 24 hour non-work breaks** — set the **start time** for each (Perth); **end fills 24 hours later** (change the end only if the rest ran longer) — under crew, above route setup in Set up day / Edit day. Shown when the app needs them (or after you have already saved them). The most recent end also resets short-horizon rules (17h / 72h). You can change them until you **sign** the week; after that only your manager can amend. If you are already on shift, tap **Set up week record** on the upcoming compliance banner, Work warning, or compliance snapshot — it opens Set up day on the field you need.
+- **Last 2 or 4 × 24 hour non-work breaks** (solo only) — set the **start time** for each (Perth); **end fills 24 hours later** (change the end only if the rest ran longer) — under crew, above route setup in Set up day / Edit day. Shown when the app needs them (or after you have already saved them). The most recent end also resets short-horizon rules (17h / 72h). You can change them until you **sign** the week; after that only your manager can amend. If you are already on shift, tap **Set up week record** on the upcoming compliance banner, Work warning, or compliance snapshot — it opens Set up day on the field you need.
+- **Last parked / End shift rest** (two-up) — **Last 7 hour parked or End shift** and **Last 24 hour stationary rest**. Use these when that rest happened **before this app** (or the GPS pin is missing). A 7-hour block meets the 48-hour option. A 24-hour block also helps the 7-day option. Live **Parked** and **End shift** with GPS still count when you log them.
 - Work / break / non-work / **End shift** time corrections — when the day **already has** logged events (**Edit day**), you get the full correction list. On a **new shift** (no events yet), Set up day only offers **Add work**, **Rest**, and **Other work**. One shift has one start km (entered when you start) and one end km (entered when you End shift). Rest or drive after midnight is still that shift — do not enter start km again. If End shift is on that day after work the same day, **end km is required** on the same card. Overnight finish: leave end km blank on the finish label when it is already on the shift-start card, then enter start km only when you begin the **next** shift.
 - **Sunday / week seam:** Saturday is on the **previous week** sheet. On Sunday’s card, tap **Edit previous week** beside Edit day — it opens Saturday’s Edit day on last week so you can add non-work or fix times. The timeline is continuous; week labels are only for display. If you add **End shift** on Saturday, any Work/Break left on Sunday from that same open shift is removed automatically (with a short note).
   - **Rest** only during a work bout (not after End shift or in the middle of non-work). Finish Rest with Work, Other work, Non-work, or End shift — don’t leave Rest open. **Other work** can start the next shift after End shift (loading) — you do not need Work first. Open **work** overnight is fine.
@@ -195,7 +197,7 @@ If your sheet is **Two-up**:
 - **End shift** is only when you go **home or to a motel**. After that, **Start shift** starts a new working period. End shift also stores GPS when it can — that pin is what proves the 48-hour / 7-day stationary option.
 - Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).
 - Always: at least **7 hours non-work in any 24 hours** (sleeper berth counts).
-- Then **either** a **7-hour continuous** rest **not** in a moving vehicle in any **48 hours**, **or** **48 hours non-work in 7 days** that includes one **24-hour** block and **no** rest shorter than 7 hours. You do not need both. Only **Parked** (GPS) and **End shift** (GPS) count for that “not moving” part. Sleeper berth does not.
+- Then **either** a **7-hour continuous** rest **not** in a moving vehicle in any **48 hours**, **or** **48 hours non-work in 7 days** that includes one **24-hour** block and **no** rest shorter than 7 hours. You do not need both. Only **Parked** (GPS) and **End shift** (GPS) count for that “not moving” part on the live record. Sleeper berth does not. If that rest was **before Circadia**, set it in Set up day under **Last parked / End shift rest**. The 48-hour / 7-day warning does not fire until you have started work **and** Circadia has 48 hours of two-up record, unless a 7-hour GPS or declared block already clears it.
 
 ---
 
@@ -259,7 +261,7 @@ On the week sheet:
 
 - **Day tools** (clipboard icon) — week summary, last 24-hour break, **Compliance**, checklist PDFs, **Roadside**, records to sign, and Settings. Forms stay on the day card, not in this menu.
 - **Compliance** — if a rule is not met, an amber banner on the week (and a red/amber notice on the log bar) shows the same wording as the office check, including which day and what was short. Tap it for the full snapshot.
-- **Upcoming** (above the ring on the live log bar) names **compliance issues after a breach**, plus **Rest window open** after End shift until 7 hours, or **Shift still open** if you may have forgotten End shift. The **5-hour break reminder** is the ring countdown only — it turns amber at 45 minutes left and red at 15 minutes. That reminder is not repeated as a banner.
+- **Upcoming** (above the ring on the live log bar) names **compliance issues after a breach**, plus **Rest window open** after End shift until 7 hours, or **Shift still open** if you may have forgotten End shift. Tap the chip for the labelled action (for example **Set up week record**). Tap **Details** under the chip for the full snapshot. The **5-hour break reminder** is the ring countdown only — it turns amber at 45 minutes left and red at 15 minutes. That reminder is not repeated as a banner.
 - **Shift log** — a list of every event on your record (in the app). It is **not** in Export PDF or the 28-day roadside PDF.
 - **Export PDF** — this week's Weekly Trip Sheet only (same page as each roadside week). No Circadia header, compliance summary, or shift-log appendix.
 
@@ -284,7 +286,7 @@ You can also set **Dark mode** and **Voice alerts** in **Settings → This phone
 
 Three coloured sections (same idea as the manager Overview page). Tap a card at the top to jump:
 
-- **1. This phone** — Dark mode, Voice alerts, install the app, backup / restore on this device.
+- **1. This phone** — Dark mode, Voice alerts, iPhone and Android install steps on the same card (this phone is marked), backup / restore on this device.
 - **2. Your record** — weeks that need your signature, This week, Your weeks, Route catalogue, Driver guide (pictures), How your record works.
 - **3. Account** — Messages, Manager sign-in, Change password, Log out.
 

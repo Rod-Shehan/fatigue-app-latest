@@ -1,9 +1,14 @@
 /**
  * Two-up 184E(3)(b): non-work that is not in a moving vehicle.
  * Sleeper berth counts for 184E(3)(a) only. Parked (GPS) and End shift (GPS) count here.
+ * Owner 2026-09-22: D work-enliven, E 48h mature window from first duty, F declared ranges.
  */
 
-import { STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
+import {
+  OTHER_WORK_EVENT_TYPE,
+  PASSENGER_EVENT_TYPE,
+  STATIONARY_REST_EVENT_TYPE,
+} from "@/lib/activity-kind";
 import {
   AMI_48H_MIN_CONTINUOUS_NON_WORK,
   AMI_48H_WINDOW,
@@ -13,6 +18,7 @@ import {
   AMI_7D_WINDOW,
 } from "@/lib/ami/constants";
 import { alignToMinuteMs } from "@/lib/ami/paint";
+import { LAST_24H_BREAK_MIN_MS, LAST_7H_BREAK_MIN_MS } from "@/lib/last-24h-break-range";
 
 export type StationaryGeoEvent = {
   time: string;
@@ -20,6 +26,134 @@ export type StationaryGeoEvent = {
   lat?: number;
   lng?: number;
 };
+
+/** Attested Parked / End shift range (paper or pre-Circadia). Counts as proven stationary. */
+export type TwoUpDeclaredStationaryRange = {
+  startIso: string;
+  endIso: string;
+};
+
+export type ScoreTwoUp184E3bInput = {
+  recordStartMs?: number;
+  /** D: work/break exists. When omitted, inferred from duty events. */
+  hasDuty?: boolean;
+  /** E: first work/break instant. Unknown start + known duty → score live. */
+  firstDutyMs?: number;
+  /** F: declared 7h and/or 24h stationary ranges. */
+  declaredRanges?: TwoUpDeclaredStationaryRange[];
+};
+
+export type TwoUp184E3bSkipReason = "not_enlivened" | "window_immature" | null;
+
+/** Work / break-from-driving that enlivens 184E(3)(b). */
+export function isTwoUpDutyEventType(type: string): boolean {
+  return (
+    type === "work" ||
+    type === "break" ||
+    type === OTHER_WORK_EVENT_TYPE ||
+    type === PASSENGER_EVENT_TYPE
+  );
+}
+
+export function twoUpHasDutyOnDays(
+  days: Array<{ work_time?: boolean[]; breaks?: boolean[] } | null | undefined>
+): boolean {
+  return days.some((d) => d?.work_time?.some(Boolean) || d?.breaks?.some(Boolean));
+}
+
+export function twoUpFirstDutyMsFromDays(
+  days: Array<{ work_time?: boolean[]; breaks?: boolean[] } | null | undefined>,
+  timelineStartMs: number
+): number | undefined {
+  if (!Number.isFinite(timelineStartMs)) return undefined;
+  let offset = 0;
+  for (const d of days) {
+    const work = d?.work_time ?? [];
+    const br = d?.breaks ?? [];
+    const n = Math.max(work.length, br.length);
+    for (let i = 0; i < n; i++) {
+      if (work[i] || br[i]) return timelineStartMs + (offset + i) * 60_000;
+    }
+    offset += 1440;
+  }
+  return undefined;
+}
+
+export const TWO_UP_DECLARED_REST_COPY = {
+  TITLE: "Last parked / End shift rest",
+  WHY: "Two-up 48-hour / 7-day rest is proven by Parked or End shift with GPS. If that rest happened before this app, enter it here. A 7-hour block meets the 48-hour option. A 24-hour block also helps the 7-day option.",
+  LABEL_7H: "Last 7 hour parked or End shift",
+  LABEL_24H: "Last 24 hour stationary rest",
+  HINT_7H: "Set when the vehicle was parked or you ended shift (Perth). End fills 7 hours later — change it only if the rest ran longer.",
+  HINT_24H: "Set when a full 24 hours off started (motel / home). End fills 24 hours later — change it only if the rest ran longer.",
+  LOCKED_HINT: "Locked after sign-off — ask your manager to amend.",
+} as const;
+
+export function buildTwoUp184E3bScoreInput(input: {
+  events: StationaryGeoEvent[];
+  days: Array<{ work_time?: boolean[]; breaks?: boolean[] } | null | undefined>;
+  recordStartMs?: number;
+  last7hRestStart?: string | null;
+  last7hRestEnd?: string | null;
+  last24hBreakStart?: string | null;
+  last24hBreakEnd?: string | null;
+}): ScoreTwoUp184E3bInput {
+  const eventFirstDuty = input.events.reduce<number | undefined>((min, ev) => {
+    if (!isTwoUpDutyEventType(ev.type)) return min;
+    const t = Date.parse(ev.time);
+    if (!Number.isFinite(t)) return min;
+    return min == null || t < min ? t : min;
+  }, undefined);
+  const gridFirstDuty =
+    input.recordStartMs != null
+      ? twoUpFirstDutyMsFromDays(input.days, input.recordStartMs)
+      : undefined;
+  const firstDutyMs =
+    eventFirstDuty != null && gridFirstDuty != null
+      ? Math.min(eventFirstDuty, gridFirstDuty)
+      : (eventFirstDuty ?? gridFirstDuty);
+  return {
+    recordStartMs: input.recordStartMs,
+    hasDuty:
+      input.events.some((e) => isTwoUpDutyEventType(e.type)) || twoUpHasDutyOnDays(input.days),
+    firstDutyMs,
+    declaredRanges: collectTwoUpDeclaredStationaryRanges({
+      last7hRestStart: input.last7hRestStart,
+      last7hRestEnd: input.last7hRestEnd,
+      last24hBreakStart: input.last24hBreakStart,
+      last24hBreakEnd: input.last24hBreakEnd,
+    }),
+  };
+}
+
+export function collectTwoUpDeclaredStationaryRanges(input: {
+  last7hRestStart?: string | null;
+  last7hRestEnd?: string | null;
+  last24hBreakStart?: string | null;
+  last24hBreakEnd?: string | null;
+}): TwoUpDeclaredStationaryRange[] {
+  const out: TwoUpDeclaredStationaryRange[] = [];
+  const add = (start?: string | null, end?: string | null, minMs: number) => {
+    const a = start?.trim() ?? "";
+    const b = end?.trim() ?? "";
+    if (!a || !b) return;
+    const startMs = Date.parse(a);
+    const endMs = Date.parse(b);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs - startMs < minMs) return;
+    out.push({ startIso: a, endIso: b });
+  };
+  add(input.last7hRestStart, input.last7hRestEnd, LAST_7H_BREAK_MIN_MS);
+  add(input.last24hBreakStart, input.last24hBreakEnd, LAST_24H_BREAK_MIN_MS);
+  return out;
+}
+
+function resolveScoreInput(
+  third?: number | ScoreTwoUp184E3bInput
+): ScoreTwoUp184E3bInput {
+  if (third == null) return {};
+  if (typeof third === "number") return { recordStartMs: third };
+  return third;
+}
 
 export function eventHasGps(ev: StationaryGeoEvent): boolean {
   return (
@@ -70,7 +204,8 @@ function stationaryOpenAfter(ev: StationaryGeoEvent | null): boolean {
 export function paintProvenStationaryNonWork(
   events: StationaryGeoEvent[],
   originMs: number,
-  asOfMs: number
+  asOfMs: number,
+  declaredRanges?: TwoUpDeclaredStationaryRange[]
 ): boolean[] {
   const origin = alignToMinuteMs(originMs);
   const end = alignToMinuteMs(asOfMs);
@@ -101,6 +236,13 @@ export function paintProvenStationaryNonWork(
     cursorMs = t;
   }
   fill(cursorMs, end, open);
+
+  for (const range of declaredRanges ?? []) {
+    const startMs = Date.parse(range.startIso);
+    const endMs = Date.parse(range.endIso);
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs <= startMs) continue;
+    fill(Math.max(startMs, origin), Math.min(endMs, end), true);
+  }
   return flags;
 }
 
@@ -130,13 +272,14 @@ function sliceWindow(flags: boolean[], windowMin: number): { flags: boolean[]; f
 export function evaluateTwoUp48hStationaryOption(
   events: StationaryGeoEvent[],
   asOfMs: number,
-  recordStartMs?: number
+  recordStartMs?: number,
+  declaredRanges?: TwoUpDeclaredStationaryRange[]
 ): { hasQualBlock: boolean } {
   const originMs =
     recordStartMs != null && Number.isFinite(recordStartMs)
       ? Math.max(recordStartMs, asOfMs - AMI_48H_WINDOW * 60_000)
       : asOfMs - AMI_48H_WINDOW * 60_000;
-  const flags = paintProvenStationaryNonWork(events, originMs, asOfMs);
+  const flags = paintProvenStationaryNonWork(events, originMs, asOfMs, declaredRanges);
   const { flags: window } = sliceWindow(flags, AMI_48H_WINDOW);
   const hasQualBlock = continuousTrueRuns(window).some(
     (r) => r.length >= AMI_48H_MIN_CONTINUOUS_NON_WORK
@@ -151,7 +294,8 @@ export const TWO_UP_184E3B_FAIL_MESSAGE =
 export function evaluateTwoUp7dStationaryOption(
   events: StationaryGeoEvent[],
   asOfMs: number,
-  recordStartMs?: number
+  recordStartMs?: number,
+  declaredRanges?: TwoUpDeclaredStationaryRange[]
 ): {
   totalNonWork: number;
   has24hBlock: boolean;
@@ -162,7 +306,7 @@ export function evaluateTwoUp7dStationaryOption(
     recordStartMs != null && Number.isFinite(recordStartMs)
       ? Math.max(recordStartMs, asOfMs - AMI_7D_WINDOW * 60_000)
       : asOfMs - AMI_7D_WINDOW * 60_000;
-  const flags = paintProvenStationaryNonWork(events, originMs, asOfMs);
+  const flags = paintProvenStationaryNonWork(events, originMs, asOfMs, declaredRanges);
   const { flags: window } = sliceWindow(flags, AMI_7D_WINDOW);
   const runs = continuousTrueRuns(window);
   const totalNonWork = window.filter(Boolean).length;
@@ -176,15 +320,36 @@ export function evaluateTwoUp7dStationaryOption(
 export function scoreTwoUp184E3b(
   events: StationaryGeoEvent[],
   asOfMs: number,
-  recordStartMs?: number
+  recordStartMsOrInput?: number | ScoreTwoUp184E3bInput
 ): {
   t7: ReturnType<typeof evaluateTwoUp7dStationaryOption>;
   t48: ReturnType<typeof evaluateTwoUp48hStationaryOption>;
   ok: boolean;
+  skipReason: TwoUp184E3bSkipReason;
 } {
-  const t7 = evaluateTwoUp7dStationaryOption(events, asOfMs, recordStartMs);
-  const t48 = evaluateTwoUp48hStationaryOption(events, asOfMs, recordStartMs);
-  return { t7, t48, ok: t7.structureOk || t48.hasQualBlock };
+  const input = resolveScoreInput(recordStartMsOrInput);
+  const declared = input.declaredRanges ?? [];
+  const t7 = evaluateTwoUp7dStationaryOption(events, asOfMs, input.recordStartMs, declared);
+  const t48 = evaluateTwoUp48hStationaryOption(events, asOfMs, input.recordStartMs, declared);
+  if (t7.structureOk || t48.hasQualBlock) {
+    return { t7, t48, ok: true, skipReason: null };
+  }
+
+  const hasDuty = input.hasDuty ?? events.some((e) => isTwoUpDutyEventType(e.type));
+  if (!hasDuty) {
+    return { t7, t48, ok: true, skipReason: "not_enlivened" };
+  }
+
+  const firstDutyMs = input.firstDutyMs;
+  const windowMature =
+    firstDutyMs != null && Number.isFinite(firstDutyMs)
+      ? asOfMs - firstDutyMs >= AMI_48H_WINDOW * 60_000
+      : true;
+  if (!windowMature) {
+    return { t7, t48, ok: true, skipReason: "window_immature" };
+  }
+
+  return { t7, t48, ok: false, skipReason: null };
 }
 
 /** Extra 7-day structure warnings — only when the combined (3)(b) OR has already failed. */

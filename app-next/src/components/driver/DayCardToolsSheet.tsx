@@ -16,6 +16,7 @@ import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
+import { TWO_UP_DECLARED_REST_COPY } from "@/lib/two-up-stationary";
 import { api } from "@/lib/api";
 import {
   CHECKLIST_EMAIL_BUTTON_LABEL,
@@ -40,6 +41,7 @@ export function DayCardToolsSheet({
   onEmailChecklistPdf,
   last24hUnset,
   declared24hRestUnset,
+  isTwoUp = false,
   driverName,
 }: {
   open: boolean;
@@ -60,6 +62,7 @@ export function DayCardToolsSheet({
   last24hUnset?: boolean;
   /** True when 2×24h (or 4×24h) rest dates are required but not all set yet. */
   declared24hRestUnset?: boolean;
+  isTwoUp?: boolean;
   driverName?: string | null;
 }) {
   const [emailBusy, setEmailBusy] = useState(false);
@@ -157,7 +160,7 @@ export function DayCardToolsSheet({
               {declared24hRestUnset && onOpenDaySetup ? (
                 <p className="text-slate-700 dark:text-slate-300">
                   <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
-                    {DECLARED_24H_REST_COPY.TITLE_2}
+                    {isTwoUp ? TWO_UP_DECLARED_REST_COPY.TITLE : DECLARED_24H_REST_COPY.TITLE_2}
                   </span>
                   <br />
                   <button
@@ -174,7 +177,7 @@ export function DayCardToolsSheet({
               ) : last24hUnset && onOpenDaySetup ? (
                 <p className="text-slate-700 dark:text-slate-300">
                   <span className="font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px] tracking-wide">
-                    {DECLARED_24H_REST_COPY.TITLE_2}
+                    {isTwoUp ? TWO_UP_DECLARED_REST_COPY.TITLE : DECLARED_24H_REST_COPY.TITLE_2}
                   </span>
                   <br />
                   <button

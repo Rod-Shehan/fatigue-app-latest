@@ -49,6 +49,7 @@ import {
   type DayEventsEditorVariant,
 } from "@/components/fatigue/DayEventsEditor";
 import { Declared24hRestsField } from "@/components/fatigue/Declared24hRestsField";
+import { TwoUpStationaryRestFields } from "@/components/fatigue/TwoUpStationaryRestFields";
 import { DayTripChecklist } from "@/components/fatigue/DayTripChecklist";
 import { FitnessForWorkForm } from "@/components/checklist/FitnessForWorkForm";
 import { PrestartForm } from "@/components/checklist/PrestartForm";
@@ -121,6 +122,11 @@ export function DayCardDetailsDialog({
   declared24hRests,
   declared24hRestFieldCount = 0,
   onDeclared24hRestChange,
+  isTwoUp = false,
+  last7hStationary = null,
+  last24hStationary = null,
+  onTwoUp7hChange,
+  onTwoUp24hChange,
   allowHeaderRestAmend = false,
   readOnly = false,
   onConfirm,
@@ -157,6 +163,11 @@ export function DayCardDetailsDialog({
     key: import("@/lib/declared-24h-rests").Declared24hRestKey,
     range: import("@/lib/last-24h-break-range").Last24hBreakRange | null
   ) => void;
+  isTwoUp?: boolean;
+  last7hStationary?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
+  last24hStationary?: import("@/lib/last-24h-break-range").Last24hBreakRange | null;
+  onTwoUp7hChange?: (range: import("@/lib/last-24h-break-range").Last24hBreakRange | null) => void;
+  onTwoUp24hChange?: (range: import("@/lib/last-24h-break-range").Last24hBreakRange | null) => void;
   /** Manager: change locked week-header rest dates from Edit day. */
   allowHeaderRestAmend?: boolean;
   readOnly?: boolean;
@@ -840,7 +851,16 @@ export function DayCardDetailsDialog({
             />
           ) : null}
 
-          {declared24hRestFieldCount >= 2 && onDeclared24hRestChange && (
+          {isTwoUp && onTwoUp7hChange && onTwoUp24hChange ? (
+            <TwoUpStationaryRestFields
+              last7h={last7hStationary}
+              last24h={last24hStationary}
+              on7hChange={onTwoUp7hChange}
+              on24hChange={onTwoUp24hChange}
+              readOnly={readOnly}
+              allowAmend={allowHeaderRestAmend}
+            />
+          ) : declared24hRestFieldCount >= 2 && onDeclared24hRestChange ? (
             <Declared24hRestsField
               fieldCount={declared24hRestFieldCount === 4 ? 4 : 2}
               values={declared24hRests ?? {}}
@@ -848,7 +868,7 @@ export function DayCardDetailsDialog({
               readOnly={readOnly}
               allowAmend={allowHeaderRestAmend}
             />
-          )}
+          ) : null}
 
           <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/40 p-3 space-y-3">
             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Route setup</p>

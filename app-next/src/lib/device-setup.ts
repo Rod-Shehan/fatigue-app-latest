@@ -51,6 +51,13 @@ export async function requestPersistentStorage(): Promise<PersistStorageResult> 
 export function isiOS(): boolean {
   if (typeof navigator === "undefined") return false;
   const ua = navigator.userAgent || "";
-  return /iPad|iPhone|iPod/i.test(ua);
+  if (/iPad|iPhone|iPod/i.test(ua)) return true;
+  // iPadOS 13+ can report as Macintosh.
+  return /Macintosh/i.test(ua) && (navigator.maxTouchPoints ?? 0) > 1;
+}
+
+export function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent || "");
 }
 

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "./activity-kind";
 import {
+  collectTwoUpDeclaredStationaryRanges,
   evaluateTwoUp48hStationaryOption,
   evaluateTwoUp7dStationaryOption,
   eventHasGps,
   paintProvenStationaryNonWork,
+  scoreTwoUp184E3b,
 } from "./two-up-stationary";
 
 const BASE = Date.UTC(2026, 7, 1, 0, 0, 0);
@@ -69,5 +71,53 @@ describe("two-up stationary 184E(3)(b)", () => {
     const flags = paintProvenStationaryNonWork(events, BASE, BASE + 4 * H);
     const parked = flags.filter(Boolean).length;
     expect(parked).toBe(2 * 60);
+  });
+
+  it("D: no duty does not fail 184E(3)(b)", () => {
+    const scored = scoreTwoUp184E3b([], BASE + 10 * H, { hasDuty: false, firstDutyMs: undefined });
+    expect(scored.ok).toBe(true);
+    expect(scored.skipReason).toBe("not_enlivened");
+  });
+
+  it("E: duty younger than 48h does not fail without GPS rest", () => {
+    const events = [{ time: new Date(BASE + 40 * H).toISOString(), type: "work" }];
+    const scored = scoreTwoUp184E3b(events, BASE + 50 * H, {
+      recordStartMs: BASE,
+      hasDuty: true,
+      firstDutyMs: BASE + 40 * H,
+    });
+    expect(scored.ok).toBe(true);
+    expect(scored.skipReason).toBe("window_immature");
+  });
+
+  it("E: after 48h of duty, missing GPS rest fails", () => {
+    const events = [{ time: new Date(BASE).toISOString(), type: "work" }];
+    const scored = scoreTwoUp184E3b(events, BASE + 49 * H, {
+      recordStartMs: BASE,
+      hasDuty: true,
+      firstDutyMs: BASE,
+    });
+    expect(scored.ok).toBe(false);
+    expect(scored.skipReason).toBeNull();
+  });
+
+  it("F: declared 7h range in the last 48h meets the 48h option", () => {
+    const start = new Date(BASE + 50 * H).toISOString();
+    const end = new Date(BASE + 57 * H).toISOString();
+    const ranges = collectTwoUpDeclaredStationaryRanges({
+      last7hRestStart: start,
+      last7hRestEnd: end,
+    });
+    expect(ranges).toHaveLength(1);
+    const events = [{ time: new Date(BASE).toISOString(), type: "work" }];
+    const scored = scoreTwoUp184E3b(events, BASE + 60 * H, {
+      recordStartMs: BASE,
+      hasDuty: true,
+      firstDutyMs: BASE,
+      declaredRanges: ranges,
+    });
+    expect(scored.t48.hasQualBlock).toBe(true);
+    expect(scored.ok).toBe(true);
+    expect(scored.skipReason).toBeNull();
   });
 });

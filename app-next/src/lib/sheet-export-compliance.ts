@@ -17,6 +17,7 @@ export async function computeComplianceForSheetExport(
     | "weekStarting"
     | "driverType"
     | "last24hBreak"
+    | "last24hBreakStart"
     | "last24hBreakEnd"
     | "last24hRest1"
     | "last24hRest2"
@@ -66,6 +67,8 @@ export async function computeComplianceForSheetExport(
     prevWeekDays,
     historyDays,
     last24hBreak: row.last24hBreak ?? undefined,
+    last24hBreakStart: row.last24hBreakStart?.toISOString() ?? null,
+    last24hBreakEnd: row.last24hBreakEnd?.toISOString() ?? null,
     last24hBreakEndMs: last24hBreakEndMsFromIso(row.last24hBreakEnd?.toISOString()),
     declared24hRests: declared24hRestsFromDbRow(row),
     weekStarting: row.weekStarting,

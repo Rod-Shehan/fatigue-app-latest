@@ -3,6 +3,7 @@ import { GuideDiagram } from "@/components/guides/GuideDiagram";
 import { Button } from "@/components/ui/button";
 import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
+import { TWO_UP_DECLARED_REST_COPY } from "@/lib/two-up-stationary";
 import {
   DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_START_SHIFT_LABEL,
@@ -44,6 +45,16 @@ import {
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist";
 import { DRIVER_SETTINGS_SECTIONS } from "@/lib/driver-settings-sections";
+import {
+  EWD_INSTALL_ANDROID_NATIVE_BUTTON,
+  EWD_INSTALL_ANDROID_TITLE,
+  EWD_INSTALL_GUIDE_BLURB,
+  EWD_INSTALL_IPHONE_TITLE,
+  EWD_INSTALL_PROMPT_TITLE,
+  EWD_INSTALL_PROMPT_TITLE_IOS,
+  EWD_INSTALL_SETUP_BUTTON,
+} from "@/lib/ewd-install";
+import { COMPLIANCE_CHIP_DETAILS_LABEL } from "@/lib/upcoming-compliance-chip";
 
 const sectionClass =
   "rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/80 p-5";
@@ -142,6 +153,10 @@ export function DriverGuideArticle() {
           rows={[
             ["Hi, [your name]", "You are signed in"],
             ["This week / Today", "Which week and day you are in"],
+            [
+              `${EWD_INSTALL_PROMPT_TITLE_IOS} / ${EWD_INSTALL_PROMPT_TITLE}`,
+              EWD_INSTALL_GUIDE_BLURB,
+            ],
             ["Status card (Work / Rest / Other work / Off)", "What the app thinks you are doing now"],
             ["Log more work / Open this week", "Open this week to log"],
             [ROADSIDE_PRODUCE_BUTTON_LABEL, "One PDF for a regulator"],
@@ -149,6 +164,11 @@ export function DriverGuideArticle() {
             ["Gear (top right)", "Settings and tools"],
           ]}
         />
+        <p className="mt-3 text-slate-500 dark:text-slate-400">
+          {EWD_INSTALL_IPHONE_TITLE} and {EWD_INSTALL_ANDROID_TITLE} steps sit on the same card.{" "}
+          {EWD_INSTALL_SETUP_BUTTON} is storage protection. Android may also show{" "}
+          {EWD_INSTALL_ANDROID_NATIVE_BUTTON}.
+        </p>
         <p className="mt-3 font-medium text-slate-700 dark:text-slate-200">
           Tip: Tap Log more work each day when you start.
         </p>
@@ -342,13 +362,18 @@ export function DriverGuideArticle() {
           <li>Shift pattern — Day (A) or Night (B)</li>
           <li>Solo or Two-up, and the relief driver&apos;s name</li>
           <li>
-            Last 2 or 4 × 24 hour non-work breaks — set the start time for each (week record —
+            Last 2 or 4 × 24 hour non-work breaks (solo only) — set the start time for each (week record —
             under crew, above route setup). End fills 24 hours later; change it only if the rest ran
             longer. Shown when the app needs them. The most recent end also
             resets short-horizon rules. Change them until you sign; after sign-off only your manager
             can amend. If you are already on shift, tap{" "}
             <strong>{SETUP_WEEK_RECORD_BUTTON_LABEL}</strong> on the upcoming compliance banner, Work
             warning, or compliance snapshot.
+          </li>
+          <li>
+            <strong>{TWO_UP_DECLARED_REST_COPY.TITLE}</strong> (two-up) — {TWO_UP_DECLARED_REST_COPY.LABEL_7H}{" "}
+            and {TWO_UP_DECLARED_REST_COPY.LABEL_24H}. Use these when that rest happened before this app.
+            Live {DRIVER_PARKED_LABEL} and {DRIVER_END_SHIFT_LABEL} with GPS still count when you log them.
           </li>
           <li>
             Work / break / non-work / End shift time corrections — when the day already has events (Edit
@@ -406,7 +431,11 @@ export function DriverGuideArticle() {
           <li>
             Then either a 7-hour continuous rest not in a moving vehicle in any 48 hours, or 48 hours non-work in 7 days
             that includes one 24-hour block and no rest shorter than 7 hours. You do not need both. Only {DRIVER_PARKED_LABEL}{" "}
-            (GPS) and {DRIVER_END_SHIFT_LABEL} (GPS) count for that “not moving” part. {DRIVER_SLEEPER_BERTH_LABEL} does not.
+            (GPS) and {DRIVER_END_SHIFT_LABEL} (GPS) count for that “not moving” part on the live record.{" "}
+            {DRIVER_SLEEPER_BERTH_LABEL} does not. If that rest was before Circadia, set it in Set up day under{" "}
+            <strong>{TWO_UP_DECLARED_REST_COPY.TITLE}</strong>. The 48-hour / 7-day warning does not fire until you have
+            started work and Circadia has 48 hours of two-up record, unless a 7-hour GPS or declared block already
+            clears it.
           </li>
         </ul>
       </section>
@@ -516,7 +545,9 @@ export function DriverGuideArticle() {
             <strong className="text-slate-700 dark:text-slate-200">Upcoming</strong> (above the ring on the live log bar)
             names compliance issues after a breach, plus{" "}
             <strong className="text-slate-700 dark:text-slate-200">{DRIVER_REST_WINDOW_HEADLINE}</strong> after End
-            shift until 7 hours (also on Drive home), or {formatDriverShiftStillOpen()}. The 5-hour break reminder is
+            shift until 7 hours (also on Drive home), or {formatDriverShiftStillOpen()}. Tap the chip for the labelled
+            action. Tap <strong className="text-slate-700 dark:text-slate-200">{COMPLIANCE_CHIP_DETAILS_LABEL}</strong>{" "}
+            under the chip for the full snapshot. The 5-hour break reminder is
             the ring countdown only — amber at 45 minutes left, red at 15 minutes. It is not repeated as a banner.
           </li>
           <li>
@@ -557,7 +588,7 @@ export function DriverGuideArticle() {
           rows={[
             [
               DRIVER_SETTINGS_SECTIONS.device.overviewTitle,
-              "Dark mode, voice alerts, install the app, backup on this device",
+              `Dark mode, voice alerts, ${EWD_INSTALL_IPHONE_TITLE} and ${EWD_INSTALL_ANDROID_TITLE} install steps, backup on this device`,
             ],
             [
               DRIVER_SETTINGS_SECTIONS.record.overviewTitle,

@@ -99,6 +99,8 @@ export async function GET(request: NextRequest) {
         prevWeekDays,
         historyDays,
         last24hBreak: sheet.last24hBreak ?? undefined,
+        last24hBreakStart: sheet.last24hBreakStart?.toISOString() ?? null,
+        last24hBreakEnd: sheet.last24hBreakEnd?.toISOString() ?? null,
         last24hBreakEndMs: last24hBreakEndMsFromIso(sheet.last24hBreakEnd?.toISOString()),
         declared24hRests: declared24hRestsFromDbRow(sheet),
         weekStarting: sheet.weekStarting,
