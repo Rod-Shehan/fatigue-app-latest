@@ -86,7 +86,7 @@ function PlantFormRow({
           className={cn(
             "min-w-0 flex-1 font-medium",
             variant === "card"
-              ? "text-sm text-slate-800 dark:text-teal-950"
+              ? "text-sm text-slate-800 dark:text-teal-50"
               : "text-base text-slate-800 dark:text-slate-100"
           )}
         >
@@ -95,7 +95,9 @@ function PlantFormRow({
             <span
               className={cn(
                 "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
-                variant === "card" ? "text-emerald-800" : "text-emerald-700 dark:text-emerald-400"
+                variant === "card"
+                  ? "text-emerald-800 dark:text-emerald-300"
+                  : "text-emerald-700 dark:text-emerald-400"
               )}
             >
               Form saved
@@ -110,7 +112,7 @@ function PlantFormRow({
               className={cn(
                 "rounded-md border px-2.5 py-1.5 text-xs font-bold",
                 variant === "card"
-                  ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                  ? "border-slate-300 text-slate-800 dark:border-teal-400 dark:text-teal-50"
                   : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
               )}
             >
@@ -124,7 +126,7 @@ function PlantFormRow({
               className={cn(
                 "rounded-md border px-2.5 py-1.5 text-xs font-bold",
                 variant === "card"
-                  ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                  ? "border-slate-300 text-slate-800 dark:border-teal-400 dark:text-teal-50"
                   : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
               )}
             >
@@ -313,7 +315,7 @@ export function DayTripChecklist({
       className={cn(
         "min-w-0 rounded-lg border",
         variant === "card"
-          ? "border-slate-300 bg-white px-3 py-2 dark:border-teal-200 dark:bg-teal-100"
+          ? "border-slate-300 bg-white px-3 py-2 dark:border-teal-500 dark:bg-teal-800"
           : "border-teal-200 bg-teal-50 px-3 py-3 dark:border-teal-800 dark:bg-teal-950/40",
         className
       )}
@@ -326,15 +328,15 @@ export function DayTripChecklist({
           className="flex w-full min-h-[44px] items-center gap-2 py-0.5 text-left"
           aria-expanded={expanded}
         >
-          <span className="text-xs font-semibold text-slate-700 dark:text-teal-950">
+          <span className="text-xs font-semibold text-slate-700 dark:text-teal-50">
             {DRIVER_FORMS_SECTION_LABEL}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-500 dark:text-teal-800">
+          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-500 dark:text-teal-200">
             {summary}
           </span>
           <ChevronDown
             className={cn(
-              "h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-teal-700",
+              "h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-teal-300",
               expanded && "rotate-180"
             )}
             aria-hidden
@@ -352,7 +354,7 @@ export function DayTripChecklist({
             className={cn(
               "mb-2",
               variant === "card"
-                ? "text-[11px] leading-snug text-slate-500 dark:text-teal-800"
+                ? "text-[11px] leading-snug text-slate-500 dark:text-teal-200"
                 : "text-xs leading-snug text-slate-500 dark:text-slate-400",
               collapsible && "mt-1"
             )}
@@ -400,11 +402,11 @@ export function DayTripChecklist({
                       !readOnly &&
                         !highlightHookup &&
                         (variant === "card"
-                          ? "active:bg-slate-50 dark:active:bg-teal-200/80"
+                          ? "active:bg-slate-50 dark:active:bg-teal-700"
                           : "active:bg-slate-50 dark:active:bg-slate-800/60"),
                       highlightHookup &&
                         (variant === "card"
-                          ? "bg-amber-50 ring-1 ring-amber-300 dark:bg-amber-100 dark:ring-amber-400"
+                          ? "bg-amber-50 ring-1 ring-amber-300 dark:bg-amber-900/70 dark:ring-amber-500"
                           : "bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-300 dark:ring-amber-700")
                     )}
                   >
@@ -427,7 +429,7 @@ export function DayTripChecklist({
                         className={cn(
                           "font-medium",
                           variant === "card"
-                            ? "text-sm text-slate-800 dark:text-teal-950"
+                            ? "text-sm text-slate-800 dark:text-teal-50"
                             : "text-base text-slate-800 dark:text-slate-100"
                         )}
                       >
@@ -437,7 +439,7 @@ export function DayTripChecklist({
                             className={cn(
                               "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
                               variant === "card"
-                                ? "text-amber-800"
+                                ? "text-amber-800 dark:text-amber-200"
                                 : "text-amber-800 dark:text-amber-300"
                             )}
                           >
@@ -449,7 +451,7 @@ export function DayTripChecklist({
                             className={cn(
                               "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
                               variant === "card"
-                                ? "text-amber-800"
+                                ? "text-amber-800 dark:text-amber-200"
                                 : "text-amber-800 dark:text-amber-300"
                             )}
                           >
@@ -461,7 +463,7 @@ export function DayTripChecklist({
                             className={cn(
                               "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
                               variant === "card"
-                                ? "text-emerald-800"
+                                ? "text-emerald-800 dark:text-emerald-300"
                                 : "text-emerald-700 dark:text-emerald-400"
                             )}
                           >
@@ -479,7 +481,7 @@ export function DayTripChecklist({
                             className={cn(
                               "rounded-md border px-2.5 py-1.5 text-xs font-bold",
                               variant === "card"
-                                ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                                ? "border-slate-300 text-slate-800 dark:border-teal-400 dark:text-teal-50"
                                 : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
                             )}
                           >
@@ -493,7 +495,7 @@ export function DayTripChecklist({
                             className={cn(
                               "rounded-md border px-2.5 py-1.5 text-xs font-bold",
                               variant === "card"
-                                ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                                ? "border-slate-300 text-slate-800 dark:border-teal-400 dark:text-teal-50"
                                 : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
                             )}
                           >
@@ -512,7 +514,7 @@ export function DayTripChecklist({
               className={cn(
                 "mt-2 space-y-1 border-t pt-2",
                 variant === "card"
-                  ? "border-slate-200 dark:border-teal-300"
+                  ? "border-slate-200 dark:border-teal-600"
                   : "border-slate-200 dark:border-slate-700"
               )}
             >
