@@ -172,9 +172,7 @@ Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 
 ## 7. Event Tracker
 
-Geographic view of logged work, breaks, and shift ends that have a location. Filter by **week**, **day**, and **driver**. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
-
-When present, a solid sky line into a marker is the driver’s **GPS movement trail since the previous log** (stationary waits are omitted). It is not live fleet tracking. This trail is an **optional enterprise addon** — enable or disable it on **Test desk** or **Security**. Trails only appear for logs made while the addon is on.
+Geographic view of logged work, breaks, and shift ends that have a location. Filter by **week**, **day**, and **driver**. Markers only — no lines joining events. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
 
 ---
 
