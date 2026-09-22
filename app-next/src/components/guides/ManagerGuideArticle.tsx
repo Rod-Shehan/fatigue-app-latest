@@ -30,7 +30,7 @@ export function ManagerGuideArticle() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Navigation</h2>
         <GuideDiagram title="Manager menu">
-          {`  Overview ── ${MANAGER_EXPERIENCE.NAV_MAP} ── Conversations
+          {`  Overview ── ${MANAGER_EXPERIENCE.NAV_MAP} ── Conversations ── ${MANAGER_EXPERIENCE.NAV_ALERTS}
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
@@ -47,6 +47,11 @@ export function ManagerGuideArticle() {
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_MAP}</strong> —{" "}
             {MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE} The GPS movement trail addon does not draw lines
             here; it is for Work / Break lock while moving.
+          </li>
+          <li>
+            <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_ALERTS}</strong> —{" "}
+            {MANAGER_EXPERIENCE.ALERTS_PAGE_SUBTITLE} Desktop desk: clip on the left, decision on the
+            right. Same wide layout as Overview.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Drivers</strong> — roster, licence number,

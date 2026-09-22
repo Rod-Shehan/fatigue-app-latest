@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageHeader } from "@/components/PageHeader";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import {
@@ -308,6 +309,7 @@ export function RegosAdmin() {
           subtitle="Vehicle regos — plate, type, GVM/GCM or ATM, tare, number of axles, and WAHVA accreditation"
           icon={<Truck className="w-5 h-5" />}
         />
+        <ManagerSubnav />
 
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5 space-y-4">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Add rego</h2>

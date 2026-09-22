@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/PageHeader";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -194,6 +195,7 @@ export function DriversList() {
           subtitle={`Approved drivers — manage the roster, licence, and WA ${COMMERCIAL_DRIVERS_MEDICAL} expiry dates`}
           icon={<Users className="w-5 h-5" />}
         />
+        <ManagerSubnav />
         <form
           onSubmit={handleAdd}
           className="mb-4 grid grid-cols-3 gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 max-md:grid-cols-1"

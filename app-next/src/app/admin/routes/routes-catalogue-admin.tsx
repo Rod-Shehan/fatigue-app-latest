@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/PageHeader";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { formatRoutePresetOption } from "@/lib/route-preset";
@@ -91,6 +92,7 @@ export function RoutesCatalogue({
           }
           icon={<MapPin className="w-5 h-5" />}
         />
+        {isDriver ? null : <ManagerSubnav />}
 
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
           {isDriver ? (

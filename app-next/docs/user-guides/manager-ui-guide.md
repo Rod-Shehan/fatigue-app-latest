@@ -25,6 +25,7 @@ flowchart TB
     RB[Risk brief /manager]
     MAP[Event Tracker]
     MSG[Conversations]
+    ALT[Live alerts]
   end
   subgraph team [Team and fleet]
     DRV[Approved Drivers /drivers]
@@ -34,6 +35,7 @@ flowchart TB
   end
   RB --> MAP
   RB --> MSG
+  RB --> ALT
   RB --> DRV
   RB --> REC
 ```
@@ -43,6 +45,7 @@ flowchart TB
 | **Risk brief** (`/manager`) | Weekly fleet view, tiers, register, workbench |
 | **Event Tracker** | Logged events with location — markers only, no lines joining events |
 | **Conversations** | Manager–driver messaging |
+| **Live alerts** | Camera fatigue signals — desktop desk: clip on the left, decision on the right |
 | **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required; dates **dd/mm/yyyy**), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
 | **Records** (`/manager/records`) | Roster drivers on the left; pick a **week by date** (previous weeks first). Under that week, separate subjects: **Fatigue sheet**, **Fitness for work record**, **Prime Mover / Rigid Pre-departure Checklist**, **Trailer Pre-departure Checklist**, **Forklift Prestart**, **Load checks**, **Hook ups**, **Fault reports**. Each has **View week record** and **Export PDF**. Fatigue view opens the sheet; checklist view opens that week’s signed forms of that type only (read only). Export PDF is the Weekly Trip Sheet for fatigue, or that type’s checklist PDFs for the others (disabled when that week has none). Checklist PDFs are **one sheet per signed log**, dated **week ending** (not signed time). Fitness for Work is named per driver; vehicle and load checks per vehicle rego; hook-up per driver and rego. Types are never combined. For managers and WAHVA auditors. |

@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ManagerAlertSoundToggle } from "@/components/manager/ManagerAlertSoundToggle";
 import { AlertsDeskChrome } from "@/components/manager/AlertsDeskChrome";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
+import { PageHeader } from "@/components/PageHeader";
 import { useManagerDeskAlertControls } from "@/hooks/use-manager-desk-alert-controls";
 import { useManagerPendingAlerts } from "@/hooks/use-manager-pending-alerts";
-import { MANAGER_EXPERIENCE, MANAGER_ALERTS_SHELL } from "@/lib/manager-experience";
+import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { api, type CameraAlertItem, type CameraAlertTriageStatus } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Bell, CheckCircle2, ChevronDown, ExternalLink, Loader2, Trash2, Video, XCircle } from "lucide-react";
+import { Bell, CheckCircle2, ChevronDown, ExternalLink, FlaskConical, Loader2, Trash2, Video, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ResolutionForm } from "@/components/triage/ResolutionForm";
 import { FalsePositiveDismissPanel } from "@/components/triage/FalsePositiveReasonCapture";
@@ -271,48 +273,8 @@ function AlertEventCard({
 
       {expanded && !selectionMode && (
         <div className={cn("px-4 pb-4", collapsible && "border-t border-slate-100 pt-4 dark:border-slate-800")}>
-          {!alert.accepted && alert.rejectReason && (
-            <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
-              {alert.eventWebhookPending
-                ? "Autonomise sent video metadata but not the event webhook — check Event URL in Autonomise API settings."
-                : `Excluded from pilot inbox: ${alert.rejectReason.replace(/_/g, " ")}`}
-            </p>
-          )}
-
-          {decided && (
-            <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
-              <p className="font-medium text-slate-800 dark:text-slate-200">
-                {alert.triageStatus === "authorized"
-                  ? (alert.triageVerifiedDistractionReasons?.length ?? 0) > 0
-                    ? "Verified distraction — action recorded"
-                    : "Verified fatigue — action recorded"
-                  : "Dismissed as false positive"}
-              </p>
-              {alert.triageDecidedBy && (
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {alert.triageDecidedBy}
-                  {alert.triageDecidedAt ? ` · ${formatWhen(alert.triageDecidedAt)}` : ""}
-                </p>
-              )}
-              {alert.triageNote && (
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{alert.triageNote}</p>
-              )}
-              {alert.triageStatus === "dismissed" && alert.triageFalsePositiveReasons?.length ? (
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                  Trigger: {falsePositiveReasonLabels(alert.triageFalsePositiveReasons as FalsePositiveReasonId[]).join(", ")}
-                </p>
-              ) : null}
-              {alert.triageStatus === "authorized" && alert.triageVerifiedDistractionReasons?.length ? (
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                  Trigger:{" "}
-                  {verifiedDistractionReasonLabels(
-                    alert.triageVerifiedDistractionReasons as VerifiedDistractionReasonId[]
-                  ).join(", ")}
-                </p>
-              ) : null}
-            </div>
-          )}
-
+          <div className="grid grid-cols-2 items-start gap-4 max-md:grid-cols-1">
+          <div>
           <div className="mb-3 aspect-video w-full overflow-hidden rounded-lg bg-black/90 flex items-center justify-center">
             {alert.mediaUrl && !videoError ? (
               <video
@@ -359,6 +321,62 @@ function AlertEventCard({
             )}
           </div>
 
+          {alert.mediaUrl && (
+            <a
+              href={alert.mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-teal-700 hover:underline dark:text-teal-400"
+            >
+              Open clip in new tab
+              <ExternalLink className="h-3 w-3" aria-hidden />
+            </a>
+          )}
+          </div>
+
+          <div>
+          {!alert.accepted && alert.rejectReason && (
+            <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+              {alert.eventWebhookPending
+                ? "Autonomise sent video metadata but not the event webhook — check Event URL in Autonomise API settings."
+                : `Excluded from pilot inbox: ${alert.rejectReason.replace(/_/g, " ")}`}
+            </p>
+          )}
+
+          {decided && (
+            <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+              <p className="font-medium text-slate-800 dark:text-slate-200">
+                {alert.triageStatus === "authorized"
+                  ? (alert.triageVerifiedDistractionReasons?.length ?? 0) > 0
+                    ? "Verified distraction — action recorded"
+                    : "Verified fatigue — action recorded"
+                  : "Dismissed as false positive"}
+              </p>
+              {alert.triageDecidedBy && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {alert.triageDecidedBy}
+                  {alert.triageDecidedAt ? ` · ${formatWhen(alert.triageDecidedAt)}` : ""}
+                </p>
+              )}
+              {alert.triageNote && (
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{alert.triageNote}</p>
+              )}
+              {alert.triageStatus === "dismissed" && alert.triageFalsePositiveReasons?.length ? (
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  Trigger: {falsePositiveReasonLabels(alert.triageFalsePositiveReasons as FalsePositiveReasonId[]).join(", ")}
+                </p>
+              ) : null}
+              {alert.triageStatus === "authorized" && alert.triageVerifiedDistractionReasons?.length ? (
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                  Trigger:{" "}
+                  {verifiedDistractionReasonLabels(
+                    alert.triageVerifiedDistractionReasons as VerifiedDistractionReasonId[]
+                  ).join(", ")}
+                </p>
+              ) : null}
+            </div>
+          )}
+
           {canTriage && claimedByOther ? (
             <p className="mb-3 text-sm text-amber-800 dark:text-amber-300">
               Claimed by {alert.claimedByLabel ?? "another desk"} — view only until released.
@@ -389,11 +407,11 @@ function AlertEventCard({
               {beginResolutionError ? (
                 <p className="mb-2 text-sm text-rose-700 dark:text-rose-400">{beginResolutionError}</p>
               ) : null}
-              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="flex flex-row flex-wrap gap-2 max-md:flex-col">
                 {showFatigueAction ? (
                   <Button
                     type="button"
-                    className="flex-1 sm:min-w-[10rem]"
+                    className="flex-1 min-w-[10rem] max-md:min-w-0"
                     disabled={
                       triagePending ||
                       resolvePending ||
@@ -411,7 +429,7 @@ function AlertEventCard({
                 {showDistractionAction ? (
                   <Button
                     type="button"
-                    className="flex-1 sm:min-w-[10rem]"
+                    className="flex-1 min-w-[10rem] max-md:min-w-0"
                     disabled={triagePending || resolvePending || verifyDistractionPending}
                     onClick={onBeginDistractionCapture}
                   >
@@ -421,7 +439,7 @@ function AlertEventCard({
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1 sm:min-w-[10rem]"
+                  className="flex-1 min-w-[10rem] max-md:min-w-0"
                   disabled={triagePending || resolvePending || verifyDistractionPending}
                   onClick={onBeginDismissCapture}
                 >
@@ -484,18 +502,6 @@ function AlertEventCard({
             />
           )}
 
-          {alert.mediaUrl && (
-            <a
-              href={alert.mediaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-3 inline-flex items-center gap-1 text-xs text-teal-700 hover:underline dark:text-teal-400"
-            >
-              Open clip in new tab
-              <ExternalLink className="h-3 w-3" aria-hidden />
-            </a>
-          )}
-
           {allowDelete && (
             <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-700">
               <Button
@@ -524,6 +530,8 @@ function AlertEventCard({
               </Button>
             </div>
           )}
+          </div>
+          </div>
         </div>
       )}
     </article>
@@ -839,7 +847,25 @@ export function ManagerAlertsView() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
-      <div className={MANAGER_ALERTS_SHELL}>
+      <div className={MANAGER_PAGE_SHELL}>
+        <PageHeader
+          backHref="/manager"
+          backLabel={MANAGER_EXPERIENCE.NAV_RISK_BRIEF}
+          backText={MANAGER_EXPERIENCE.NAV_OVERVIEW}
+          title={MANAGER_EXPERIENCE.NAV_ALERTS}
+          subtitle={MANAGER_EXPERIENCE.ALERTS_PAGE_SUBTITLE}
+          actions={
+            <Link
+              href="/manager/test-desk"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-800"
+              title="Live alert test desk"
+            >
+              <FlaskConical className="h-3.5 w-3.5" aria-hidden />
+              Test
+            </Link>
+          }
+        />
+        <ManagerSubnav />
         <AlertsDeskChrome
           triageFilter={triageFilter}
           onTriageFilterChange={setTriageFilter}
@@ -865,9 +891,9 @@ export function ManagerAlertsView() {
         />
 
         {!audioUnlocked && triageFilter === "pending" ? (
-          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/40 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-4 flex flex-row items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 max-md:flex-col dark:border-amber-800 dark:bg-amber-950/40">
             <p className="text-sm text-amber-950 dark:text-amber-100">
-              Tap <strong>Enable sounds</strong> so this phone plays a desk alarm when new alerts arrive.
+              Click <strong>Enable sounds</strong> so this desk plays an alarm when new alerts arrive.
             </p>
             <ManagerAlertSoundToggle
               muted={alertMuted}

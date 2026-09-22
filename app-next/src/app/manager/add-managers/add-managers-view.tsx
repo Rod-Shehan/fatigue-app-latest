@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader } from "@/components/PageHeader";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { ShowOncePasswordDialog } from "@/components/auth/ShowOncePasswordDialog";
@@ -120,6 +121,7 @@ export function AddManagersView() {
           subtitle="Manager accounts — owner-only identity admin"
           icon={<UserPlus className="w-5 h-5" />}
         />
+        <ManagerSubnav />
         <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
           Only the organisation owner can create manager accounts and reset their login passwords.
           Passwords are shown once when you set them — existing passwords cannot be viewed.

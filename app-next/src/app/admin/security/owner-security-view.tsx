@@ -7,6 +7,7 @@ import { Shield, Loader2, Download, UserPlus, LogOut, Trash2 } from "lucide-reac
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/PageHeader";
+import { ManagerSubnav } from "@/components/manager/ManagerSubnav";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
@@ -206,6 +207,7 @@ export function OwnerSecurityView({
           subtitle={`${PRODUCT_NAME} — lockdown, users, audit`}
           icon={<Shield className="w-5 h-5" />}
         />
+        <ManagerSubnav />
 
         <OrganisationNamePanel />
 
