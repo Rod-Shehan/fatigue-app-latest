@@ -65,6 +65,51 @@ export function hookupSuggestedForPlate(
   return hookupSuggestedForRego(findRegoByPlate(regos, plate));
 }
 
+/** Which catalogue plates a form should offer (same list as Set up day, filtered). */
+export type FormRegoListRole = "powered" | "trailer" | "plant" | "any";
+
+export function formRegoMatchesRole(
+  type: string | null | undefined,
+  role: FormRegoListRole
+): boolean {
+  if (role === "any") return true;
+  if (type == null || type === "") return true;
+  if (role === "powered") return isPoweredVehicleType(type);
+  if (role === "trailer") return type === "trailer";
+  if (role === "plant") return type === "other";
+  return true;
+}
+
+export function formRegoRoleForPlant(
+  plant: "vehicle" | "trailer" | "forklift" | null | undefined
+): FormRegoListRole {
+  if (plant === "trailer") return "trailer";
+  if (plant === "forklift") return "plant";
+  if (plant === "vehicle") return "powered";
+  return "any";
+}
+
+export function platesForFormRegoRole(
+  regos: Array<{ label: string; vehicle_type?: string | null }> | undefined,
+  role: FormRegoListRole,
+  extraPlates: Array<string | null | undefined> = []
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (raw: string | null | undefined) => {
+    const label = (raw ?? "").trim();
+    const key = regoKey(label);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    out.push(label);
+  };
+  for (const extra of extraPlates) push(extra);
+  for (const row of regos ?? []) {
+    if (formRegoMatchesRole(row.vehicle_type, role)) push(row.label);
+  }
+  return out;
+}
+
 export type TruckRegoMassFields = {
   gvmTonnes: number | null;
   gcmTonnes: number | null;

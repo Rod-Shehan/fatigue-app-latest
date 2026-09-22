@@ -24,7 +24,10 @@ import {
   type FaultReportSeverity,
 } from "@/lib/checklist";
 import { cn } from "@/lib/utils";
+import type { Rego } from "@/lib/api";
+import { formRegoRoleForPlant } from "@/lib/truck-rego";
 import { ChecklistModalShell } from "./ChecklistModalShell";
+import { ChecklistRegoSelect } from "./ChecklistRegoSelect";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
 const inputClass =
@@ -39,12 +42,15 @@ export function FaultReportForm({
   onClose,
   driverName,
   vehicleRego,
+  regos = [],
   onCompleted,
 }: {
   open: boolean;
   onClose: () => void;
   driverName?: string | null;
   vehicleRego?: string | null;
+  /** Fleet catalogue — filtered by plant type. */
+  regos?: Rego[];
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
 }) {
   const [plant, setPlant] = useState<FaultReportPlant>("vehicle");
@@ -222,16 +228,15 @@ export function FaultReportForm({
               className={`${inputClass} font-semibold uppercase`}
             />
           </label>
-          <label className="block space-y-1">
-            <span className="text-xs text-ck-steel">Registration / plate</span>
-            <input
-              value={rego}
-              onChange={(e) => setRego(e.target.value)}
-              autoCapitalize="characters"
-              placeholder={(vehicleRego || "").trim() || undefined}
-              className={`${inputClass} font-semibold uppercase`}
-            />
-          </label>
+          <ChecklistRegoSelect
+            label="Registration / plate"
+            placeholder={(vehicleRego || "").trim() || undefined}
+            value={rego}
+            onChange={setRego}
+            regos={regos}
+            role={formRegoRoleForPlant(plant)}
+            extraPlates={[vehicleRego]}
+          />
           <label className="block space-y-1">
             <span className="text-xs text-ck-steel">Make / model</span>
             <input

@@ -18,7 +18,9 @@ import {
   type ChecklistSignatureCapture,
   type LoadCombinationUnit,
 } from "@/lib/checklist";
+import type { Rego } from "@/lib/api";
 import { ChecklistItemControl } from "./ChecklistItemControl";
+import { ChecklistRegoSelect } from "./ChecklistRegoSelect";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
@@ -54,6 +56,7 @@ export function DimensionLoadForm({
   truckRego,
   trailerRego,
   previousLoadRecords,
+  regos = [],
   onCompleted,
 }: {
   open: boolean;
@@ -61,6 +64,8 @@ export function DimensionLoadForm({
   driverName?: string | null;
   truckRego?: string | null;
   trailerRego?: string | null;
+  /** Fleet catalogue — powered units for the prime, trailers/dollies from trailer plates. */
+  regos?: Rego[];
   /** Earlier load checks today — prefills combination for Add another. */
   previousLoadRecords?: ChecklistRecord[] | null;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
@@ -277,15 +282,14 @@ export function DimensionLoadForm({
             />
           </label>
           <div className="space-y-2">
-            <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Prime mover / rigid</span>
-              <input
-                value={truck}
-                onChange={(e) => setTruck(e.target.value)}
-                autoCapitalize="characters"
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
-              />
-            </label>
+            <ChecklistRegoSelect
+              label="Prime mover / rigid"
+              value={truck}
+              onChange={setTruck}
+              regos={regos}
+              role="powered"
+              extraPlates={[truckRego]}
+            />
             <p className="text-xs text-ck-steel leading-relaxed">
               Add every trailer or dolly on <strong className="text-ck-fg">this</strong> load. Leave
               empty only if the load sits on this rigid / prime.
@@ -303,16 +307,17 @@ export function DimensionLoadForm({
                   <option value="trailer">Trailer</option>
                   <option value="dolly">Dolly</option>
                 </select>
-                <input
-                  value={unit.rego}
-                  onChange={(e) =>
-                    setUnits((prev) =>
-                      prev.map((u, j) => (j === i ? { ...u, rego: e.target.value } : u))
-                    )
-                  }
-                  autoCapitalize="characters"
-                  className="min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
+                <ChecklistRegoSelect
+                  label="Rego"
+                  showLabel={false}
                   placeholder="Rego"
+                  value={unit.rego}
+                  onChange={(next) =>
+                    setUnits((prev) => prev.map((u, j) => (j === i ? { ...u, rego: next } : u)))
+                  }
+                  regos={regos}
+                  role="trailer"
+                  extraPlates={[trailerRego, unit.rego]}
                 />
                 <button
                   type="button"

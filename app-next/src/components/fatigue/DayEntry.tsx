@@ -888,6 +888,7 @@ export default function DayEntry({
         driverName={dayTools?.driverName ?? driverName}
         vehicleRego={dayData.truck_rego}
         sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
+        regos={regos}
         onCompleted={savePrestartRecord}
       />
 
@@ -897,6 +898,7 @@ export default function DayEntry({
         plant="trailer"
         driverName={dayTools?.driverName ?? driverName}
         sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
+        regos={regos}
         onCompleted={savePrestartRecord}
       />
 
@@ -906,6 +908,7 @@ export default function DayEntry({
         plant="forklift"
         driverName={dayTools?.driverName ?? driverName}
         sheetDayLabel={`${DAY_NAMES[dayIndex] ?? "Day"} ${getDateStr()}`}
+        regos={regos}
         onCompleted={savePrestartRecord}
       />
 
@@ -915,6 +918,7 @@ export default function DayEntry({
         driverName={dayTools?.driverName ?? driverName}
         truckRego={dayData.truck_rego}
         previousLoadRecords={listCompletedChecklistsOfType(dayData.checklists, "dimension_load")}
+        regos={regos}
         onCompleted={saveDimensionLoadRecord}
       />
 
@@ -925,6 +929,7 @@ export default function DayEntry({
         truckRego={dayData.truck_rego}
         primeMoverReminder={suggestHookup}
         previousHookupRecords={listCompletedChecklistsOfType(dayData.checklists, "hookup")}
+        regos={regos}
         onCompleted={saveDimensionLoadRecord}
       />
 
@@ -933,6 +938,7 @@ export default function DayEntry({
         onClose={() => setFaultReportOpen(false)}
         driverName={dayTools?.driverName ?? driverName}
         vehicleRego={dayData.truck_rego}
+        regos={regos}
         onCompleted={saveDimensionLoadRecord}
       />
 

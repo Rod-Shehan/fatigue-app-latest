@@ -3,7 +3,9 @@ import {
   formatTruckRegoMassLine,
   formatTruckRegoSelectLabel,
   formatTruckRegoSummary,
+  formRegoRoleForPlant,
   hookupSuggestedForPlate,
+  platesForFormRegoRole,
   parseTruckRegoCreate,
   parseTruckRegoPatch,
   serializeTruckRego,
@@ -158,6 +160,21 @@ describe("truck-rego metadata", () => {
         tareTonnes: 2.1,
       })
     ).toBe("1ABC 234 · Van · GVM 4.5 t · GCM 4.5 t · Tare 2.1 t");
+  });
+
+  it("lists form plates from the fleet catalogue, filtered by type", () => {
+    const regos = [
+      { label: "1ABC 234", vehicle_type: "prime_mover" as const },
+      { label: "TRL9", vehicle_type: "trailer" as const },
+      { label: "FL1", vehicle_type: "other" as const },
+      { label: "OLD", vehicle_type: null },
+    ];
+    expect(platesForFormRegoRole(regos, "powered")).toEqual(["1ABC 234", "OLD"]);
+    expect(platesForFormRegoRole(regos, "trailer", ["LAST"])).toEqual(["LAST", "TRL9", "OLD"]);
+    expect(platesForFormRegoRole(regos, "plant")).toEqual(["FL1", "OLD"]);
+    expect(formRegoRoleForPlant("vehicle")).toBe("powered");
+    expect(formRegoRoleForPlant("trailer")).toBe("trailer");
+    expect(formRegoRoleForPlant("forklift")).toBe("plant");
   });
 
   it("suggests Hook up only for a prime-mover plate", () => {

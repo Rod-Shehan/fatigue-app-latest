@@ -744,6 +744,7 @@ export function DayCardDetailsDialog({
             driverName={driverName}
             vehicleRego={draft.truck_rego}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
+            regos={regos}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -756,6 +757,7 @@ export function DayCardDetailsDialog({
             plant="trailer"
             driverName={driverName}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
+            regos={regos}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -768,6 +770,7 @@ export function DayCardDetailsDialog({
             plant="forklift"
             driverName={driverName}
             sheetDayLabel={`${dayTitle} ${dateLabel}`}
+            regos={regos}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -780,6 +783,7 @@ export function DayCardDetailsDialog({
             driverName={driverName}
             truckRego={draft.truck_rego}
             previousLoadRecords={listCompletedChecklistsOfType(draft.checklists, "dimension_load")}
+            regos={regos}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -793,6 +797,7 @@ export function DayCardDetailsDialog({
             truckRego={draft.truck_rego}
             primeMoverReminder={suggestHookup}
             previousHookupRecords={listCompletedChecklistsOfType(draft.checklists, "hookup")}
+            regos={regos}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));
@@ -804,6 +809,7 @@ export function DayCardDetailsDialog({
             onClose={() => setFaultReportOpen(false)}
             driverName={driverName}
             vehicleRego={draft.truck_rego}
+            regos={regos}
             onCompleted={async (record) => {
               await Promise.resolve(onChecklistCompleted?.(record));
               setDraft((prev) => appendChecklistToDay(prev, record));

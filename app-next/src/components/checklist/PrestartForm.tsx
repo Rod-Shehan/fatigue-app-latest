@@ -15,8 +15,10 @@ import {
   type ChecklistRecord,
   type ChecklistSignatureCapture,
 } from "@/lib/checklist";
-import { api } from "@/lib/api";
+import { api, type Rego } from "@/lib/api";
+import { formRegoRoleForPlant } from "@/lib/truck-rego";
 import { ChecklistItemControl } from "./ChecklistItemControl";
+import { ChecklistRegoSelect } from "./ChecklistRegoSelect";
 import { ChecklistModalShell } from "./ChecklistModalShell";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
@@ -41,6 +43,7 @@ export function PrestartForm({
   vehicleRego,
   sheetDayLabel,
   plant = "vehicle",
+  regos = [],
   onCompleted,
 }: {
   open: boolean;
@@ -48,6 +51,8 @@ export function PrestartForm({
   driverName?: string | null;
   /** Day-card / catalogue truck — primary WAHVA audit key. Editable. */
   vehicleRego?: string | null;
+  /** Fleet catalogue — same plates as Set up day, filtered by plant. */
+  regos?: Rego[];
   /** Optional day label for the workshop email subject. */
   sheetDayLabel?: string | null;
   /** Separate WAHVA form: vehicle, trailer, or forklift — never combined. */
@@ -341,16 +346,15 @@ export function PrestartForm({
           {plantCfg.noun} (for example fittings that are not on this unit).
         </p>
 
-        <label className="block space-y-1">
-          <span className="text-xs font-semibold text-ck-steel">{plantCfg.regoLabel}</span>
-          <input
-            value={vehicle}
-            onChange={(e) => setVehicle(e.target.value)}
-            autoCapitalize="characters"
-            className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
-            placeholder={plantCfg.regoPlaceholder}
-          />
-        </label>
+        <ChecklistRegoSelect
+          label={plantCfg.regoLabel}
+          placeholder={plantCfg.regoPlaceholder}
+          value={vehicle}
+          onChange={setVehicle}
+          regos={regos}
+          role={formRegoRoleForPlant(plant)}
+          extraPlates={[vehicleRego]}
+        />
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
           <h3 className="text-sm font-bold text-ck-steel">

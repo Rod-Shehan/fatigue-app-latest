@@ -653,23 +653,23 @@ export function DriverGuideArticle() {
             ],
             [
               PRESTART_FORM_TITLE,
-              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial. Separate from trailer and forklift forms",
+              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial. Pick the plate from the fleet list (same as Set up day). Type a plate if it is not listed. Separate from trailer and forklift forms",
             ],
             [
               TRAILER_PRESTART_FORM_TITLE,
-              "Trailer inspection filed under the trailer registration. Optional in trial. Ticks the week PDF and goes in the weekly checklist pack",
+              "Trailer inspection filed under the trailer registration. Optional in trial. Pick a trailer plate from the fleet list, or type one. Ticks the week PDF and goes in the weekly checklist pack",
             ],
             [
               FORKLIFT_PRESTART_FORM_TITLE,
-              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. Ticks the week PDF and goes in the weekly checklist pack",
+              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. Pick an Other plate from the fleet list, or type one. Ticks the week PDF and goes in the weekly checklist pack",
             ],
             [
               LOAD_FORM_TITLE,
-              `Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Enter prime mover and every trailer/dolly on that load. Open from Load check on the Other work hub, or ${DRIVER_FORMS_SECTION_LABEL}. Add another for the next load. Loader CoR is separate (no proxy)`,
+              `Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Pick the prime mover and every trailer/dolly from the fleet list (or type a plate). Open from Load check on the Other work hub, or ${DRIVER_FORMS_SECTION_LABEL}. Add another for the next load. Loader CoR is separate (no proxy)`,
             ],
             [
               HOOKUP_FORM_TITLE,
-              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. Ticks the week PDF and goes in the weekly checklist pack. Add another for the next hook-up",
+              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. Pick truck and trailer plates from the fleet list (or type). Ticks the week PDF and goes in the weekly checklist pack. Add another for the next hook-up",
             ],
             [
               FAULT_REPORT_FORM_TITLE,

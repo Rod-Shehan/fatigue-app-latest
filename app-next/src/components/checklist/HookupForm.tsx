@@ -25,7 +25,9 @@ import {
   HOOKUP_PRIME_MOVER_REMINDER_HINT,
   HOOKUP_PRIME_MOVER_REMINDER_LABEL,
 } from "@/lib/product-copy";
+import type { Rego } from "@/lib/api";
 import { ChecklistModalShell } from "./ChecklistModalShell";
+import { ChecklistRegoSelect } from "./ChecklistRegoSelect";
 import { ChecklistSignaturePanel } from "./ChecklistSignaturePanel";
 
 function initPassFailMap(): Record<string, ChecklistPassFailItemState> {
@@ -88,6 +90,7 @@ export function HookupForm({
   trailerRego,
   primeMoverReminder = false,
   previousHookupRecords,
+  regos = [],
   onCompleted,
 }: {
   open: boolean;
@@ -95,6 +98,8 @@ export function HookupForm({
   driverName?: string | null;
   truckRego?: string | null;
   trailerRego?: string | null;
+  /** Fleet catalogue — powered units for the truck, trailers for the trailer. */
+  regos?: Rego[];
   primeMoverReminder?: boolean;
   previousHookupRecords?: ChecklistRecord[] | null;
   onCompleted: (record: ChecklistRecord) => void | Promise<void>;
@@ -231,25 +236,23 @@ export function HookupForm({
 
         <section className="space-y-2 rounded-xl border border-ck-border bg-ck-slate p-3">
           <h3 className="text-sm font-bold text-ck-steel">Vehicle details</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Vehicle rego</span>
-              <input
-                value={truck}
-                onChange={(e) => setTruck(e.target.value)}
-                autoCapitalize="characters"
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs text-ck-steel">Trailer rego</span>
-              <input
-                value={trailer}
-                onChange={(e) => setTrailer(e.target.value)}
-                autoCapitalize="characters"
-                className="w-full min-h-[44px] rounded-lg border border-ck-border bg-ck-midnight px-3 text-sm font-semibold uppercase text-ck-fg"
-              />
-            </label>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <ChecklistRegoSelect
+              label="Vehicle rego"
+              value={truck}
+              onChange={setTruck}
+              regos={regos}
+              role="powered"
+              extraPlates={[truckRego, lastHookupFromRecords(previousHookupRecords)?.truckRego]}
+            />
+            <ChecklistRegoSelect
+              label="Trailer rego"
+              value={trailer}
+              onChange={setTrailer}
+              regos={regos}
+              role="trailer"
+              extraPlates={[trailerRego, lastHookupFromRecords(previousHookupRecords)?.trailerRego]}
+            />
           </div>
           {(driverName || "").trim() ? (
             <p className="text-xs text-ck-steel">
