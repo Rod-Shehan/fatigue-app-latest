@@ -45,6 +45,7 @@ export default function TriagePage() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
+  const [playbackFailedIds, setPlaybackFailedIds] = useState<Set<string>>(() => new Set());
 
   const {
     muted: alertMuted,
@@ -102,7 +103,9 @@ export default function TriagePage() {
   }, [router]);
 
   const incidents = data?.incidents ?? [];
-  const noVideoIncidents = incidents.filter((inc) => !hasViewableVideoClip(inc.video_snippet_url));
+  const noVideoIncidents = incidents.filter(
+    (inc) => !hasViewableVideoClip(inc.video_snippet_url) || playbackFailedIds.has(inc.lifecycle_id)
+  );
 
   useEffect(() => {
     const live = new Set(incidents.map((inc) => inc.lifecycle_id));
@@ -110,7 +113,20 @@ export default function TriagePage() {
       const next = new Set([...current].filter((id) => live.has(id)));
       return next.size === current.size ? current : next;
     });
+    setPlaybackFailedIds((current) => {
+      const next = new Set([...current].filter((id) => live.has(id)));
+      return next.size === current.size ? current : next;
+    });
   }, [incidents]);
+
+  const markPlaybackFailed = useCallback((id: string) => {
+    setPlaybackFailedIds((current) => {
+      if (current.has(id)) return current;
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  }, []);
 
   const toggleChecked = useCallback((id: string, checked: boolean) => {
     setCheckedIds((current) => {
@@ -462,7 +478,10 @@ export default function TriagePage() {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lifecycle_ids: ids }),
+        body: JSON.stringify({
+          lifecycle_ids: ids,
+          playback_failed_ids: ids.filter((id) => playbackFailedIds.has(id)),
+        }),
       });
       const body = (await res.json().catch(() => ({}))) as {
         message?: string;
@@ -584,6 +603,7 @@ export default function TriagePage() {
             onSelect={setSelectedId}
             checkedIds={checkedIds}
             onCheckedChange={toggleChecked}
+            playbackFailedIds={playbackFailedIds}
           />
         </section>
         <section className="order-1 flex min-h-0 flex-col lg:order-none lg:col-span-6">
@@ -594,6 +614,8 @@ export default function TriagePage() {
             onCheckedChange={
               selected ? (next) => toggleChecked(selected.lifecycle_id, next) : undefined
             }
+            playbackFailed={selected ? playbackFailedIds.has(selected.lifecycle_id) : false}
+            onPlaybackFailed={markPlaybackFailed}
           />
         </section>
         <section className="order-2 flex min-h-0 flex-col lg:order-none lg:col-span-3">
@@ -639,6 +661,7 @@ export default function TriagePage() {
             hideSelected
             checkedIds={checkedIds}
             onCheckedChange={toggleChecked}
+            playbackFailedIds={playbackFailedIds}
           />
         </section>
       </div>

@@ -12,9 +12,15 @@ const UUID_RE =
 export async function POST(request: Request) {
   try {
     await requireOperatorId();
-    const body = (await request.json().catch(() => ({}))) as { lifecycle_ids?: unknown };
+    const body = (await request.json().catch(() => ({}))) as {
+      lifecycle_ids?: unknown;
+      playback_failed_ids?: unknown;
+    };
     const rawIds = Array.isArray(body.lifecycle_ids) ? body.lifecycle_ids : [];
     const lifecycleIds = rawIds.filter((id): id is string => typeof id === "string" && UUID_RE.test(id.trim()));
+    const playbackFailedIds = (
+      Array.isArray(body.playback_failed_ids) ? body.playback_failed_ids : []
+    ).filter((id): id is string => typeof id === "string" && UUID_RE.test(id.trim()));
 
     if (lifecycleIds.length === 0) {
       throw new CommandApiError("ERR_MALFORMED_PAYLOAD", "Select events with no video to remove.", 400);
@@ -27,7 +33,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await withServiceContext((tx) => deleteNoVideoIncidents(tx, lifecycleIds));
+    const result = await withServiceContext((tx) =>
+      deleteNoVideoIncidents(tx, lifecycleIds, playbackFailedIds)
+    );
 
     if (result.deleted.length === 0 && result.skippedHasVideo.length > 0) {
       throw new CommandApiError(

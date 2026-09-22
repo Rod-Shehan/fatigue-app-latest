@@ -18,6 +18,7 @@ type Props = {
   hideSelected?: boolean;
   checkedIds: Set<string>;
   onCheckedChange: (id: string, checked: boolean) => void;
+  playbackFailedIds?: Set<string>;
 };
 
 export function QueuePanel({
@@ -28,6 +29,7 @@ export function QueuePanel({
   hideSelected,
   checkedIds,
   onCheckedChange,
+  playbackFailedIds,
 }: Props) {
   const visibleIncidents =
     hideSelected && selectedId
@@ -58,7 +60,8 @@ export function QueuePanel({
   return (
     <ul className="flex h-full flex-col gap-2 overflow-y-auto lg:max-h-none">
       {visibleIncidents.map((inc) => {
-        const canRemove = !hasViewableVideoClip(inc.video_snippet_url);
+        const canRemove =
+          !hasViewableVideoClip(inc.video_snippet_url) || Boolean(playbackFailedIds?.has(inc.lifecycle_id));
         const rowLocked = Boolean(lockedId && lockedId !== inc.lifecycle_id);
         return (
           <li key={inc.lifecycle_id} className="flex items-start gap-2">
@@ -73,7 +76,13 @@ export function QueuePanel({
                   ? `Select ${inc.vehicle_registration} to remove — no video`
                   : `${inc.vehicle_registration} has a video clip`
               }
-              title={canRemove ? "No video — can remove" : "Has a video clip"}
+              title={
+                canRemove
+                  ? playbackFailedIds?.has(inc.lifecycle_id)
+                    ? "Clip failed to load — can remove"
+                    : "No video — can remove"
+                  : "Has a video clip"
+              }
             />
             <button
               type="button"

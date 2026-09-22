@@ -1,20 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
 import { commandCard, commandTextMuted, commandTextPrimary } from "@/components/command/command-styles";
 import { cn } from "@/lib/utils";
-import { hasViewableVideoClip } from "@/lib/video-clip";
+import { canAttemptVideoPlayback, hasViewableVideoClip } from "@/lib/video-clip";
 
 type Props = {
   incident: QueueIncident | null;
   locked?: boolean;
   checked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
+  playbackFailed?: boolean;
+  onPlaybackFailed?: (lifecycleId: string) => void;
 };
 
-export function MediaViewport({ incident, locked, checked, onCheckedChange }: Props) {
+export function MediaViewport({
+  incident,
+  locked,
+  checked,
+  onCheckedChange,
+  playbackFailed,
+  onPlaybackFailed,
+}: Props) {
   const activityQuery = useQuery({
     queryKey: ["triage", "activity", incident?.lifecycle_id],
     queryFn: async () => {
@@ -30,6 +40,13 @@ export function MediaViewport({ incident, locked, checked, onCheckedChange }: Pr
     staleTime: 15_000,
   });
 
+  const [localPlaybackFailed, setLocalPlaybackFailed] = useState(false);
+  useEffect(() => {
+    setLocalPlaybackFailed(false);
+  }, [incident?.lifecycle_id, incident?.video_snippet_url]);
+
+  const clipFailed = Boolean(playbackFailed || localPlaybackFailed);
+
   if (!incident) {
     return (
       <div className={`flex h-full items-center justify-center p-6 ${commandCard} ${commandTextMuted}`}>
@@ -37,6 +54,8 @@ export function MediaViewport({ incident, locked, checked, onCheckedChange }: Pr
       </div>
     );
   }
+
+  const canRemove = !hasViewableVideoClip(incident.video_snippet_url) || clipFailed;
 
   return (
     <div
@@ -62,18 +81,14 @@ export function MediaViewport({ incident, locked, checked, onCheckedChange }: Pr
               type="checkbox"
               className="h-4 w-4 shrink-0 rounded border-slate-400 text-teal-700 accent-teal-700 disabled:opacity-40 dark:border-slate-500"
               checked={checked === true}
-              disabled={locked || hasViewableVideoClip(incident.video_snippet_url)}
+              disabled={locked || !canRemove}
               onChange={(e) => onCheckedChange(e.target.checked)}
               aria-label={
-                hasViewableVideoClip(incident.video_snippet_url)
-                  ? `${incident.vehicle_registration} has a video clip`
-                  : `Select ${incident.vehicle_registration} to remove — no video`
+                canRemove
+                  ? `Select ${incident.vehicle_registration} to remove — no video`
+                  : `${incident.vehicle_registration} has a video clip`
               }
-              title={
-                hasViewableVideoClip(incident.video_snippet_url)
-                  ? "Has a video clip"
-                  : "No video — can remove"
-              }
+              title={canRemove ? "No video — can remove" : "Has a video clip"}
             />
           ) : null}
           <h2 className={cn("font-mono text-lg", commandTextPrimary)}>{incident.vehicle_registration}</h2>
@@ -84,20 +99,27 @@ export function MediaViewport({ incident, locked, checked, onCheckedChange }: Pr
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100 p-4 dark:border-slate-700/80 dark:bg-black/40">
-          {hasViewableVideoClip(incident.video_snippet_url) ? (
+          {canAttemptVideoPlayback(incident.video_snippet_url) && !clipFailed ? (
             <video
-              key={incident.lifecycle_id}
+              key={`${incident.lifecycle_id}:${incident.video_snippet_url}`}
               src={incident.video_snippet_url}
-              className="max-h-[min(40vh,24rem)] w-full rounded object-contain"
+              className="max-h-[min(40vh,24rem)] min-h-32 w-full rounded object-contain"
               autoPlay
               loop
               muted
               playsInline
+              controls
+              onError={() => {
+                setLocalPlaybackFailed(true);
+                onPlaybackFailed?.(incident.lifecycle_id);
+              }}
             />
           ) : incident.video_snippet_url?.startsWith("pending://") ? (
             <p className="text-sm text-amber-700 dark:text-amber-300/90">Clip syncing from Autonomise…</p>
           ) : (
-            <p className={cn("text-sm", commandTextMuted)}>No video snippet</p>
+            <p className={cn("text-sm", commandTextMuted)}>
+              {clipFailed ? "Clip failed to load — no video to view" : "No video snippet"}
+            </p>
           )}
           <p className={cn("mt-3 text-xs", commandTextMuted)}>
             3s loop · confidence {(incident.confidence_score * 100).toFixed(0)}%
