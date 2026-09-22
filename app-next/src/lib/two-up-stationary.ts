@@ -133,7 +133,7 @@ export function collectTwoUpDeclaredStationaryRanges(input: {
   last24hBreakEnd?: string | null;
 }): TwoUpDeclaredStationaryRange[] {
   const out: TwoUpDeclaredStationaryRange[] = [];
-  const add = (start?: string | null, end?: string | null, minMs: number) => {
+  const add = (minMs: number, start?: string | null, end?: string | null) => {
     const a = start?.trim() ?? "";
     const b = end?.trim() ?? "";
     if (!a || !b) return;
@@ -142,8 +142,8 @@ export function collectTwoUpDeclaredStationaryRanges(input: {
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || endMs - startMs < minMs) return;
     out.push({ startIso: a, endIso: b });
   };
-  add(input.last7hRestStart, input.last7hRestEnd, LAST_7H_BREAK_MIN_MS);
-  add(input.last24hBreakStart, input.last24hBreakEnd, LAST_24H_BREAK_MIN_MS);
+  add(LAST_7H_BREAK_MIN_MS, input.last7hRestStart, input.last7hRestEnd);
+  add(LAST_24H_BREAK_MIN_MS, input.last24hBreakStart, input.last24hBreakEnd);
   return out;
 }
 
