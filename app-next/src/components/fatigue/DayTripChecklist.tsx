@@ -84,13 +84,20 @@ function PlantFormRow({
       <div className="flex min-h-11 items-center gap-3 rounded-md px-1 py-1.5">
         <span
           className={cn(
-            "min-w-0 flex-1 font-medium text-slate-800 dark:text-slate-100",
-            variant === "card" ? "text-sm" : "text-base"
+            "min-w-0 flex-1 font-medium",
+            variant === "card"
+              ? "text-sm text-slate-800 dark:text-teal-950"
+              : "text-base text-slate-800 dark:text-slate-100"
           )}
         >
           {title}
           {completed ? (
-            <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+            <span
+              className={cn(
+                "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
+                variant === "card" ? "text-emerald-800" : "text-emerald-700 dark:text-emerald-400"
+              )}
+            >
               Form saved
             </span>
           ) : null}
@@ -100,7 +107,12 @@ function PlantFormRow({
             <button
               type="button"
               onClick={onView}
-              className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:border-slate-600 dark:text-slate-100"
+              className={cn(
+                "rounded-md border px-2.5 py-1.5 text-xs font-bold",
+                variant === "card"
+                  ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                  : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
+              )}
             >
               View
             </button>
@@ -109,7 +121,12 @@ function PlantFormRow({
             <button
               type="button"
               onClick={onOpen}
-              className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:border-slate-600 dark:text-slate-100"
+              className={cn(
+                "rounded-md border px-2.5 py-1.5 text-xs font-bold",
+                variant === "card"
+                  ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                  : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
+              )}
             >
               {completed ? completedOpenLabel : "Open form"}
             </button>
@@ -296,7 +313,7 @@ export function DayTripChecklist({
       className={cn(
         "min-w-0 rounded-lg border",
         variant === "card"
-          ? "border-slate-300 bg-white px-3 py-2 dark:border-slate-600 dark:bg-slate-800"
+          ? "border-slate-300 bg-white px-3 py-2 dark:border-teal-200 dark:bg-teal-100"
           : "border-teal-200 bg-teal-50 px-3 py-3 dark:border-teal-800 dark:bg-teal-950/40",
         className
       )}
@@ -309,15 +326,15 @@ export function DayTripChecklist({
           className="flex w-full min-h-[44px] items-center gap-2 py-0.5 text-left"
           aria-expanded={expanded}
         >
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+          <span className="text-xs font-semibold text-slate-700 dark:text-teal-950">
             {DRIVER_FORMS_SECTION_LABEL}
           </span>
-          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-500 dark:text-slate-400">
+          <span className="min-w-0 flex-1 truncate text-[11px] font-medium text-slate-500 dark:text-teal-800">
             {summary}
           </span>
           <ChevronDown
             className={cn(
-              "h-4 w-4 shrink-0 text-slate-400 transition-transform",
+              "h-4 w-4 shrink-0 text-slate-400 transition-transform dark:text-teal-700",
               expanded && "rotate-180"
             )}
             aria-hidden
@@ -333,8 +350,10 @@ export function DayTripChecklist({
         <>
           <p
             className={cn(
-              "mb-2 text-slate-500 dark:text-slate-400",
-              variant === "card" ? "text-[11px] leading-snug" : "text-xs leading-snug",
+              "mb-2",
+              variant === "card"
+                ? "text-[11px] leading-snug text-slate-500 dark:text-teal-800"
+                : "text-xs leading-snug text-slate-500 dark:text-slate-400",
               collapsible && "mt-1"
             )}
           >
@@ -378,9 +397,15 @@ export function DayTripChecklist({
                   <div
                     className={cn(
                       "flex min-h-11 items-center gap-3 rounded-md px-1 py-1.5",
-                      !readOnly && !highlightHookup && "active:bg-slate-50 dark:active:bg-slate-800/60",
+                      !readOnly &&
+                        !highlightHookup &&
+                        (variant === "card"
+                          ? "active:bg-slate-50 dark:active:bg-teal-200/80"
+                          : "active:bg-slate-50 dark:active:bg-slate-800/60"),
                       highlightHookup &&
-                        "bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-300 dark:ring-amber-700"
+                        (variant === "card"
+                          ? "bg-amber-50 ring-1 ring-amber-300 dark:bg-amber-100 dark:ring-amber-400"
+                          : "bg-amber-50 dark:bg-amber-950/40 ring-1 ring-amber-300 dark:ring-amber-700")
                     )}
                   >
                     <label
@@ -400,23 +425,46 @@ export function DayTripChecklist({
                       />
                       <span
                         className={cn(
-                          "font-medium text-slate-800 dark:text-slate-100",
-                          variant === "card" ? "text-sm" : "text-base"
+                          "font-medium",
+                          variant === "card"
+                            ? "text-sm text-slate-800 dark:text-teal-950"
+                            : "text-base text-slate-800 dark:text-slate-100"
                         )}
                       >
                         {TRIP_CHECKLIST_UI_LABELS[key]}
                         {key === "fitness_for_work" && !ffwFormCompleted && !readOnly ? (
-                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                          <span
+                            className={cn(
+                              "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
+                              variant === "card"
+                                ? "text-amber-800"
+                                : "text-amber-800 dark:text-amber-300"
+                            )}
+                          >
                             Required
                           </span>
                         ) : null}
                         {highlightHookup ? (
-                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                          <span
+                            className={cn(
+                              "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
+                              variant === "card"
+                                ? "text-amber-800"
+                                : "text-amber-800 dark:text-amber-300"
+                            )}
+                          >
                             Suggested
                           </span>
                         ) : null}
                         {row.completed ? (
-                          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                          <span
+                            className={cn(
+                              "ml-1.5 text-[10px] font-semibold uppercase tracking-wide",
+                              variant === "card"
+                                ? "text-emerald-800"
+                                : "text-emerald-700 dark:text-emerald-400"
+                            )}
+                          >
                             Form saved
                           </span>
                         ) : null}
@@ -428,7 +476,12 @@ export function DayTripChecklist({
                           <button
                             type="button"
                             onClick={row.onView}
-                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                            className={cn(
+                              "rounded-md border px-2.5 py-1.5 text-xs font-bold",
+                              variant === "card"
+                                ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                                : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                            )}
                           >
                             View
                           </button>
@@ -437,7 +490,12 @@ export function DayTripChecklist({
                           <button
                             type="button"
                             onClick={row.onOpen}
-                            className="rounded-md border border-slate-300 dark:border-slate-600 px-2.5 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-100"
+                            className={cn(
+                              "rounded-md border px-2.5 py-1.5 text-xs font-bold",
+                              variant === "card"
+                                ? "border-slate-300 text-slate-800 dark:border-teal-700 dark:text-teal-950"
+                                : "border-slate-300 text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                            )}
                           >
                             {row.completed ? row.completedOpenLabel : "Open form"}
                           </button>
@@ -450,7 +508,14 @@ export function DayTripChecklist({
             })}
           </ul>
           {(onOpenFaultReport || onViewFaultReport) && (
-            <ul className="mt-2 space-y-1 border-t border-slate-200 pt-2 dark:border-slate-700">
+            <ul
+              className={cn(
+                "mt-2 space-y-1 border-t pt-2",
+                variant === "card"
+                  ? "border-slate-200 dark:border-teal-300"
+                  : "border-slate-200 dark:border-slate-700"
+              )}
+            >
               <PlantFormRow
                 title={FAULT_REPORT_FORM_TITLE}
                 completed={faultReportFormCompleted}
