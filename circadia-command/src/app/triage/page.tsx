@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
+import { NoVideoBulkBar } from "@/components/triage/NoVideoBulkBar";
 import { QueuePanel } from "@/components/triage/QueuePanel";
 import { TriageQueueBanner } from "@/components/triage/TriageQueueBanner";
+import { hasViewableVideoClip } from "@/lib/video-clip";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import { CommandDeskTopBar } from "@/components/command/CommandDeskTopBar";
 import { CommandShell } from "@/components/command/CommandShell";
@@ -40,6 +42,9 @@ export default function TriagePage() {
   const [authReady, setAuthReady] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
 
   const {
     muted: alertMuted,
@@ -97,6 +102,33 @@ export default function TriagePage() {
   }, [router]);
 
   const incidents = data?.incidents ?? [];
+  const noVideoIncidents = incidents.filter((inc) => !hasViewableVideoClip(inc.video_snippet_url));
+
+  useEffect(() => {
+    const live = new Set(incidents.map((inc) => inc.lifecycle_id));
+    setCheckedIds((current) => {
+      const next = new Set([...current].filter((id) => live.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [incidents]);
+
+  const toggleChecked = useCallback((id: string, checked: boolean) => {
+    setCheckedIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllNoVideo = useCallback(() => {
+    setCheckedIds(new Set(noVideoIncidents.map((inc) => inc.lifecycle_id)));
+  }, [noVideoIncidents]);
+
+  const clearChecked = useCallback(() => {
+    setCheckedIds(new Set());
+    setBulkError(null);
+  }, []);
 
   useEffect(() => {
     const readSelect = () => {
@@ -413,6 +445,45 @@ export default function TriagePage() {
     router.replace("/login");
   };
 
+  const removeCheckedNoVideo = async () => {
+    const ids = [...checkedIds];
+    if (ids.length === 0) return;
+    if (
+      !window.confirm(
+        `Remove ${ids.length} event${ids.length === 1 ? "" : "s"} with no video clip?\n\nThey leave the Command queue and Live alerts. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setBulkBusy(true);
+    setBulkError(null);
+    try {
+      const res = await fetch("/api/v1/triage/bulk-delete", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lifecycle_ids: ids }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        message?: string;
+        deleted?: number;
+        skipped_has_video?: string[];
+      };
+      if (!res.ok) {
+        setBulkError(body.message ?? "Could not remove selected events");
+        return;
+      }
+      if (selectedId && ids.includes(selectedId)) {
+        const remaining = incidents.filter((inc) => !ids.includes(inc.lifecycle_id));
+        setSelectedId(remaining[0]?.lifecycle_id ?? null);
+      }
+      setCheckedIds(new Set());
+      await invalidate();
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   if (!authReady || isLoading) {
     return (
       <CommandShell wide>
@@ -469,6 +540,16 @@ export default function TriagePage() {
         />
       </div>
 
+      <NoVideoBulkBar
+        noVideoCount={noVideoIncidents.length}
+        selectedCount={checkedIds.size}
+        busy={bulkBusy || busy}
+        error={bulkError}
+        onSelectAllNoVideo={selectAllNoVideo}
+        onClear={clearChecked}
+        onRemove={() => void removeCheckedNoVideo()}
+      />
+
       {!armed ? (
         <div className="mb-3 flex flex-col gap-3 rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-600/50 dark:bg-amber-950/30 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-amber-950 dark:text-amber-100">
@@ -501,10 +582,19 @@ export default function TriagePage() {
             selectedId={selectedId}
             lockedId={resolutionMode ? resolutionLifecycleId : null}
             onSelect={setSelectedId}
+            checkedIds={checkedIds}
+            onCheckedChange={toggleChecked}
           />
         </section>
         <section className="order-1 flex min-h-0 flex-col lg:order-none lg:col-span-6">
-          <MediaViewport incident={selected} locked={resolutionMode} />
+          <MediaViewport
+            incident={selected}
+            locked={resolutionMode}
+            checked={selected ? checkedIds.has(selected.lifecycle_id) : false}
+            onCheckedChange={
+              selected ? (next) => toggleChecked(selected.lifecycle_id, next) : undefined
+            }
+          />
         </section>
         <section className="order-2 flex min-h-0 flex-col lg:order-none lg:col-span-3">
           <ActionPanel
@@ -547,6 +637,8 @@ export default function TriagePage() {
             lockedId={resolutionMode ? resolutionLifecycleId : null}
             onSelect={setSelectedId}
             hideSelected
+            checkedIds={checkedIds}
+            onCheckedChange={toggleChecked}
           />
         </section>
       </div>

@@ -5,13 +5,16 @@ import type { QueueIncident } from "@/hooks/use-triage-queue";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
 import { commandCard, commandTextMuted, commandTextPrimary } from "@/components/command/command-styles";
 import { cn } from "@/lib/utils";
+import { hasViewableVideoClip } from "@/lib/video-clip";
 
 type Props = {
   incident: QueueIncident | null;
   locked?: boolean;
+  checked?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
 };
 
-export function MediaViewport({ incident, locked }: Props) {
+export function MediaViewport({ incident, locked, checked, onCheckedChange }: Props) {
   const activityQuery = useQuery({
     queryKey: ["triage", "activity", incident?.lifecycle_id],
     queryFn: async () => {
@@ -52,15 +55,36 @@ export function MediaViewport({ incident, locked }: Props) {
             : ""}
         </p>
       ) : null}
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className={cn("font-mono text-lg", commandTextPrimary)}>{incident.vehicle_registration}</h2>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          {onCheckedChange ? (
+            <input
+              type="checkbox"
+              className="h-4 w-4 shrink-0 rounded border-slate-400 text-teal-700 accent-teal-700 disabled:opacity-40 dark:border-slate-500"
+              checked={checked === true}
+              disabled={locked || hasViewableVideoClip(incident.video_snippet_url)}
+              onChange={(e) => onCheckedChange(e.target.checked)}
+              aria-label={
+                hasViewableVideoClip(incident.video_snippet_url)
+                  ? `${incident.vehicle_registration} has a video clip`
+                  : `Select ${incident.vehicle_registration} to remove — no video`
+              }
+              title={
+                hasViewableVideoClip(incident.video_snippet_url)
+                  ? "Has a video clip"
+                  : "No video — can remove"
+              }
+            />
+          ) : null}
+          <h2 className={cn("font-mono text-lg", commandTextPrimary)}>{incident.vehicle_registration}</h2>
+        </div>
         <span className="rounded-md bg-teal-100 px-2 py-1 text-xs font-medium uppercase text-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
           {incident.fatigue_metric_type}
         </span>
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100 p-4 dark:border-slate-700/80 dark:bg-black/40">
-          {incident.video_snippet_url && !incident.video_snippet_url.startsWith("pending://") ? (
+          {hasViewableVideoClip(incident.video_snippet_url) ? (
             <video
               key={incident.lifecycle_id}
               src={incident.video_snippet_url}

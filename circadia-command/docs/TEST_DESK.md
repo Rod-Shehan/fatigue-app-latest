@@ -34,7 +34,8 @@ Apply SQL migration `011_operator_push_subscriptions.sql` on shared Neon (`npm r
 4. **Foreground:** desk alarm plays; status in ⋮ menu shows Sounds: On, Last alarm: time
 5. **Background:** lock phone → inject again → notification appears (iOS: install PWA to home screen first)
 6. Wake phone → tap notification → opens triage with incident selected
-7. **Purge test incidents** when done
+7. On Command triage, events with **no video** show a checkbox — select them and **Remove selected** to clear the desk (and Live alerts) in bulk
+8. **Purge test incidents** when done
 
 ## What inject does
 
