@@ -9,8 +9,6 @@ import {
 } from "@/lib/fatigue-alert-audio";
 
 type AlertOptions = {
-  onShift: boolean;
-  hasActiveShift: boolean;
   muted: boolean;
 };
 

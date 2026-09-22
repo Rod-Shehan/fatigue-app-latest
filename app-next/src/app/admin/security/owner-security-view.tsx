@@ -12,7 +12,6 @@ import { PRODUCT_NAME } from "@/lib/branding";
 import { MANAGER_EXPERIENCE, MANAGER_PAGE_SHELL } from "@/lib/manager-experience";
 import { api } from "@/lib/api";
 import type { SystemPolicySnapshot } from "@/lib/system-policy";
-import { TriageShiftAdminPanel } from "./triage-shift-admin-panel";
 import { ChecklistDeliverySettingsPanel } from "@/components/driver/ChecklistDeliverySettingsPanel";
 import { MaintenanceContactSettingsPanel } from "@/components/manager/MaintenanceContactSettingsPanel";
 import { OrganisationNamePanel } from "./organisation-name-panel";
@@ -263,8 +262,6 @@ export function OwnerSecurityView({
 
         <ChecklistDeliverySettingsPanel showOutboundStatus />
         <MaintenanceContactSettingsPanel title="WAHVA maintenance contact" showOutboundStatus />
-
-        <TriageShiftAdminPanel />
 
         {owners.length > 0 ? (
           <section className="space-y-3">

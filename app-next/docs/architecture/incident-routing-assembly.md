@@ -1,6 +1,6 @@
 # Incident routing — building blocks assembly
 
-**Status:** Architecture locked for planning · **Autonomise ingest + Live alerts pilot live** · **Triage shift / claim / confirm→action** specified in §3.5 (implementation next).
+**Status:** Architecture locked for planning · **Autonomise ingest + Live alerts pilot live** · **Claim / confirm→action** live (§3.5). Rostered triage shifts removed — signed-in managers and operators may act.
 
 **Related:**
 
@@ -182,7 +182,7 @@ flowchart TD
 
 **Locked 2026-06-29** for fatigue/distraction pipeline **C**. Supersedes the **manager approval gate** (`MANAGER_VALIDATION_PENDING` / “authorize before intervention”) for the **real-time fatigue path**. Triage is measured in **seconds**, not hours — events should reach a human surface within ~1 minute when connectivity allows.
 
-**Principle:** One **shared incident queue** and one **audit ledger**; two UIs (`/manager/alerts` and Command `/triage`). **Who is on shift** is configured per tenant (names and/or roles), shown on **both** UIs. **Outcome and recorded actions** matter for WHS evidence; any eligible on-shift person may **claim** and complete the flow.
+**Principle:** One **shared incident queue** and one **audit ledger**; two UIs (`/manager/alerts` and Command `/triage`). **Outcome and recorded actions** matter for WHS evidence; any signed-in manager or Command operator may **claim** and complete the flow.
 
 #### 3.5.1 Workflow (end-to-end)
 
@@ -190,7 +190,7 @@ flowchart TD
 Vendor event → Circadia ingest (Autonomise webhook / edge)
   → Shared queue (tenant-scoped)
   → Viewed (audit)
-  → Claimed (on-shift actor only)
+  → Claimed (signed-in manager or operator)
   → Confirmed | Not confirmed
   → Action taken | No action required (dropdown)
   → Closed
@@ -221,48 +221,25 @@ flowchart LR
 
 **No approval step** — do not block action behind a second supervisor “authorize.” Legacy `enforce_manager_gate` / M1 approval remains in schema for older contracts only; new fatigue real-time builds use §3.5.
 
-#### 3.5.2 Triage shift (who is on shift)
+#### 3.5.2 Triage shift (removed)
 
-**One record per tenant** (current + scheduled next). Owner admin (or Circadia ops) sets:
+Rostered desk shifts are **not** used. A signed-in Enterprise manager or Command operator may claim and act. There is no shift banner, no view-only lock for being off roster, and no Owner console shift admin.
 
-| Field | Purpose |
-|-------|---------|
-| `startsAt` / `endsAt` | Window in **Australia/Perth** (wall clock) |
-| `assignees` | **Names** (user ids / operator ids) and/or **roles** (`manager`, `command_operator`, `owner`) |
-| `handoffNote` | Optional text for incoming shift |
-| `setBy` | Owner user or ops audit |
-
-**Rules**
-
-- **Not** prescriptive (e.g. overnight = Command, daytime = manager). Tenant chooses names/roles per window.
-- **Any** active user matching an on-shift **role** may claim (pool). Example: role `manager` → all active managers on Approved Drivers / `User.role = manager`.
-- **Outcome > identity** — audit still records who claimed/confirmed/acted; product copy emphasises **what was decided and done**.
-- Shift end does **not** auto-close open incidents; items stay in queue for the next shift.
-
-**Display (both UIs)** — persistent banner on `/manager/alerts` and Command `/triage`:
-
-```text
-On shift until Tue 06:00 AWST
-  Managers (role, 3 active) · Command: Jane K, Alex M
-```
-
-Tap/expand for full window, assignee list, handoff note. Off-shift signed-in users see the same banner plus **“You are not on shift — view only.”**
-
-**API shape (planned):** `GET /api/triage-shift/current` (app-next, tenant-scoped) — Command reads the same row from shared Neon.
+The Neon `TriageShift` table remains in the shared database (unused). Do not drop it without an additive-SQL plan.
 
 #### 3.5.3 Claim
 
 **Term:** **Claim** = short-lived lock so only one person confirms/acts (avoids duplicate calls to the driver).
 
-| Queue state | On-shift user | Off-shift user |
-|-------------|---------------|----------------|
-| **Unclaimed** | **Claim** button | View only |
-| **Claimed by you** | Confirm / action / close | — |
-| **Claimed by other** | Read-only; shows **“Claimed by Pat M. · 08:07”** | Same |
+| Queue state | Signed-in manager or operator |
+|-------------|-------------------------------|
+| **Unclaimed** | **Claim** button |
+| **Claimed by you** | Confirm / action / close |
+| **Claimed by other** | Read-only; shows **“Claimed by Pat M. · 08:07”** |
 
-- Claim requires **on shift** (name or role match).
-- Command today: `POST /api/v1/triage/claim` sets `operator_id` on `fatigue_incident_lifecycle`. Extend to **manager** `user_id` + `claimed_by_actor_type`.
-- **Release claim** (v1.1): claimer or owner can release; **auto-release** on claim timeout (§3.5.6).
+- Claim requires a signed-in manager or Command operator (not a roster window).
+- Command: `POST /api/v1/triage/claim` sets `operator_id` on `fatigue_incident_lifecycle`. Managers claim with `user_id` + `claimed_by_actor_type`.
+- **Release claim**: claimer or owner can release; **auto-release** on claim timeout (§3.5.6).
 
 #### 3.5.4 Confirmation and actions
 
@@ -357,11 +334,11 @@ Deprecate **`MANAGER_VALIDATION_PENDING`** for new real-time builds (§3.5.1).
 | Ingest | `AutonomiseWebhookIngest` + bridge → `edge_fatigue_events` | Unchanged |
 | Manager triage | `CameraAlertTriage` authorize/dismiss | Confirm/not + proxy to lifecycle |
 | Claim | Command `operator_id` only | + manager claim; both UIs |
-| Shift banner | — | `TriageShift` + owner UI |
+| Shift banner | Removed — signed-in users may act | Unused `TriageShift` table |
 | Actions | — | `incident_action_log` + dropdown |
 | History | Live alerts 7d filter | Active vs Recent tabs |
 
-**Build order:** (1) shift display both UIs → (2) claim for managers + shared queue → (3) confirm/action timeline → (4) timeouts.
+**Build order:** (1) claim for managers + shared queue → (2) confirm/action timeline → (3) timeouts.
 
 ---
 
@@ -804,12 +781,12 @@ Do **not** branch business logic in Command or Manager by vendor — only ingest
 
 Use this as a sales/ops worksheet before enabling camera integration:
 
-1. **Routing mode** — M1 / M2 / M3 / M4? (Legacy; real-time fatigue uses §3.5 shift + claim, not M1 approval.)
-2. **Triage shift** — who is on shift (names and/or roles); window; shown on both UIs (§3.5.2)
+1. **Routing mode** — M1 / M2 / M3 / M4? (Legacy; real-time fatigue uses §3.5 claim, not M1 approval.)
+2. **Desk access** — signed-in managers and Command operators may claim; no rostered triage shift (§3.5.2)
 3. **Claim timeout** — default 3–5 min; unclaimed warning 2 min (§3.5.6)
 4. **Action catalogue** — which dropdown actions enabled for tenant (§3.5.4)
 5. **Manager dismiss** — `allow_manager_override_dismissal`? (legacy gate only)
-6. **Who is on call** — push/SMS roster (future); separate from triage shift
+6. **Who is on call** — push/SMS roster (future); not a desk lock
 7. **Operator desk** — Circadia contracted operators vs customer-only managers
 8. **External handoff** — M4 webhook URL and payload format?
 9. **Assurance-only** — fleet pulse without lifecycle (pipeline B only)?
@@ -864,14 +841,14 @@ Use this as a sales/ops worksheet before enabling camera integration:
 ## 10. Summary
 
 - **Three pipelines** — compliance, assurance blocks, incident lifecycle — stay separate.
-- **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — **one queue**, §3.5 shift + claim + confirm→action→close.
-- **Triage shift** — names and/or roles; banner on both UIs; not fixed overnight/daytime routing.
+- **Two human UIs** — Command (operator), Manager Alerts (fleet manager) — **one queue**, §3.5 claim + confirm→action→close.
+- **Desk access** — signed-in managers and operators may claim; rostered triage shifts removed.
 - **Four routing modes** — M1–M4 — legacy assembly; real-time fatigue uses §3.5.
 - **Canonical vendor event** — Streamax-class feeds via thin adapters; Circadia edge separate (§5e).
 - **Dual ingest** — Circadia edge (primary IP) + Streamax-class adapters (Autonomise live, Zenduit/FTCloud planned); §5c.
 - **Tenant setup** — four blocks only for Autonomise path; fatigue event catalogue with tier presets (§5d).
 - **Autonomise pilot** — fatigue + distraction ingest live; bridge to Command optional (`COMMAND_LIFECYCLE_BRIDGE_ENABLED`).
-- **Next concrete step:** implement §3.5.9 build order (shift → claim → confirm/action → timeouts).
+- **Next concrete step:** claim timeouts and confirm/action polish (§3.5.9).
 
 ---
 
@@ -879,6 +856,7 @@ Use this as a sales/ops worksheet before enabling camera integration:
 
 | Date | Note |
 |------|------|
+| 2026-09-22 | Rostered triage shifts removed — signed-in managers and operators may claim; unused `TriageShift` table left in place |
 | 2026-07 | **§5e** Canonical vendor event model — Streamax-class feeds, one desk many adapters |
 | 2026-06-29 | **§3.5** Real-time triage — shift (names/roles), claim, confirm→action→close, handover timeline, timeouts, review windows; supersedes manager approval gate for fatigue path |
 | 2026-06-21 | [incident-evidence-retention.md](./incident-evidence-retention.md) — legal evidence pack, re-host video, §6 item 13 |

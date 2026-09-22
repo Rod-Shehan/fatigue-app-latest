@@ -35,7 +35,6 @@ export async function POST(
     const claim = await claimIncidentForManager(prisma, {
       lifecycleId: target.lifecycleId,
       userId: manager.user.id,
-      userRole: manager.user.role,
       userLabel: manager.user.name ?? manager.user.email ?? "Manager",
     });
 
@@ -43,13 +42,11 @@ export async function POST(
   } catch (e) {
     if (e instanceof IncidentClaimError) {
       const status =
-        e.code === "NOT_ON_SHIFT"
-          ? 403
-          : e.code === "ALREADY_CLAIMED" || e.code === "NOT_CLAIMED_BY_YOU"
-            ? 409
-            : e.code === "NOT_FOUND"
-              ? 404
-              : 400;
+        e.code === "ALREADY_CLAIMED" || e.code === "NOT_CLAIMED_BY_YOU"
+          ? 409
+          : e.code === "NOT_FOUND"
+            ? 404
+            : 400;
       return NextResponse.json({ error: e.message, code: e.code }, { status });
     }
     const msg = e instanceof Error ? e.message : "Failed to claim incident";

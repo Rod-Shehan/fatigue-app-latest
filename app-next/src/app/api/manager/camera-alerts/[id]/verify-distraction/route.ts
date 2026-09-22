@@ -3,7 +3,6 @@ import { getManagerSession } from "@/lib/auth";
 import { completeManagerVerifiedDistraction } from "@/lib/integrations/incident-resolution";
 import {
   assertManagerHoldsClaim,
-  assertManagerOnShift,
   IncidentClaimError,
 } from "@/lib/integrations/incident-claim";
 import { resolveManagerAlertTarget } from "@/lib/integrations/manager-alert-target";
@@ -39,7 +38,6 @@ export async function POST(
   }
 
   try {
-    await assertManagerOnShift(prisma, manager.user.id, manager.user.role);
     const target = await resolveManagerAlertTarget(prisma, id);
     if (!target?.ingestEventId) {
       return NextResponse.json({ error: "Event not found or not eligible for triage" }, { status: 404 });
@@ -75,11 +73,7 @@ export async function POST(
   } catch (e) {
     if (e instanceof IncidentClaimError) {
       const status =
-        e.code === "NOT_ON_SHIFT"
-          ? 403
-          : e.code === "NOT_CLAIMED_BY_YOU" || e.code === "ALREADY_CLAIMED"
-            ? 409
-            : 400;
+        e.code === "NOT_CLAIMED_BY_YOU" || e.code === "ALREADY_CLAIMED" ? 409 : 400;
       return NextResponse.json({ error: e.message, code: e.code }, { status });
     }
     const msg = e instanceof Error ? e.message : "Failed to record verified distraction";

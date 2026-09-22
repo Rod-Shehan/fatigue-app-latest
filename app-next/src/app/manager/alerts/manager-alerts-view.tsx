@@ -117,7 +117,6 @@ function AlertEventCard({
   resolvePending,
   resolveError,
   allowDelete,
-  triageDeskOnShift,
   onDelete,
   deletePending,
   selectionMode,
@@ -167,7 +166,6 @@ function AlertEventCard({
   resolvePending: boolean;
   resolveError: string | null;
   allowDelete: boolean;
-  triageDeskOnShift: boolean;
   onDelete: () => void;
   deletePending: boolean;
   selectionMode: boolean;
@@ -189,7 +187,6 @@ function AlertEventCard({
   const showDistractionAction = showVerifiedDistractionAction(eventKind);
   const TriageIcon = triage.icon;
   const canTriage =
-    triageDeskOnShift &&
     alert.accepted &&
     !alert.eventWebhookPending &&
     alert.triageStatus === "pending";
@@ -653,22 +650,11 @@ export function ManagerAlertsView() {
     refetchInterval: 30_000,
   });
 
-  const shiftQuery = useQuery({
-    queryKey: ["triage-shift", "current"],
-    queryFn: () => api.triageShiftCurrent(),
-    staleTime: 30_000,
-    refetchInterval: 60_000,
-  });
-
-  const triageDeskOnShift = shiftQuery.data?.viewer.onShift ?? false;
-  const hasActiveShift = Boolean(shiftQuery.data?.snapshot?.current);
   const { muted: alertMuted, audioUnlocked, toggleMuted, enableAudio } = useManagerDeskAlertControls();
 
   const alerts = data?.alerts ?? [];
 
   useManagerPendingAlerts(alerts, triageFilter === "pending" && !isLoading, {
-    onShift: triageDeskOnShift,
-    hasActiveShift,
     muted: alertMuted,
   });
 
@@ -877,8 +863,6 @@ export function ManagerAlertsView() {
           activePending={activePending}
           visibleCount={alerts.length}
           browseHours={browseHours}
-          shiftSnapshot={shiftQuery.data?.snapshot ?? null}
-          onShift={shiftQuery.data?.viewer.onShift ?? false}
           diagnostics={data?.diagnostics}
           alertSoundToggle={
             <ManagerAlertSoundToggle
@@ -1116,7 +1100,6 @@ export function ManagerAlertsView() {
                     : null
                 }
                 allowDelete={allowDelete}
-                triageDeskOnShift={triageDeskOnShift}
                 deletePending={deleteMutation.isPending && deleteMutation.variables === managerAlertIngestId(alert)}
                 onDelete={() => deleteMutation.mutate(managerAlertIngestId(alert))}
                 selectionMode={selectionMode}

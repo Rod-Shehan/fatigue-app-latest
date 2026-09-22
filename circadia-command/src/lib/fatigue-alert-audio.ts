@@ -60,15 +60,12 @@ export function hasPlayedFatigueAlert(lifecycleId: string): boolean {
 export function shouldPlayFatigueAlert(
   incident: QueueIncident,
   options: {
-    onShift: boolean;
-    hasActiveShift: boolean;
     muted: boolean;
     source: FatigueAlertRingSource;
     alreadyPlayed?: (lifecycleId: string) => boolean;
   }
 ): boolean {
-  const deskActive = options.onShift || !options.hasActiveShift;
-  if (!deskActive || options.muted) return false;
+  if (options.muted) return false;
   if (!isTriageAlertMetricType(incident.fatigue_metric_type)) return false;
   if (options.alreadyPlayed?.(incident.lifecycle_id)) return false;
   if (playedLifecycleIds.has(incident.lifecycle_id)) return false;
@@ -377,8 +374,6 @@ export async function resumeFatigueAlertAudio(): Promise<boolean> {
 export async function maybePlayFatigueAlert(
   incident: QueueIncident,
   options: {
-    onShift: boolean;
-    hasActiveShift: boolean;
     muted: boolean;
     source: FatigueAlertRingSource;
   }

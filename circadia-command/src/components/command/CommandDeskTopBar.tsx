@@ -26,8 +26,6 @@ type Props = {
   needsRearm: boolean;
   audioUnlocked: boolean;
   lastAlarmAt: number | null;
-  triageDeskOnShift: boolean;
-  hasActiveShift: boolean;
   wakeLockSupported: boolean;
   wakeLockActive: boolean;
   onToggleWakeLock: () => void;
@@ -198,8 +196,6 @@ function MobileOverflowMenu(props: Props) {
     needsRearm: props.needsRearm,
     muted: props.alertMuted,
     sseConnected: props.sseConnected,
-    triageDeskOnShift: props.triageDeskOnShift,
-    hasActiveShift: props.hasActiveShift,
     lastAlarmAt: props.lastAlarmAt,
     pushPermission: props.pushPermission,
     pushSubscribed: props.pushSubscribed,

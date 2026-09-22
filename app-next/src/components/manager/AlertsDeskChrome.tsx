@@ -5,12 +5,10 @@ import { Radio, SlidersHorizontal, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { TriageShiftBanner } from "@/components/manager/TriageShiftBanner";
 import {
   CameraAlertEventTypesPanel,
   type CameraAlertOptionsDiagnostics,
 } from "@/app/manager/alerts/camera-alert-event-types-panel";
-import type { TriageShiftSnapshot } from "@/lib/triage-shift";
 
 const HOURS_OPTIONS = [
   { label: "1 hour", value: 1 },
@@ -35,8 +33,6 @@ type Props = {
   activePending: number;
   visibleCount: number;
   browseHours: number | null;
-  shiftSnapshot: TriageShiftSnapshot | null;
-  onShift: boolean;
   diagnostics?: CameraAlertOptionsDiagnostics;
   alertSoundToggle?: ReactNode;
 };
@@ -52,8 +48,6 @@ export function AlertsDeskChrome({
   activePending,
   visibleCount,
   browseHours,
-  shiftSnapshot,
-  onShift,
   diagnostics,
   alertSoundToggle,
 }: Props) {
@@ -66,10 +60,6 @@ export function AlertsDeskChrome({
 
   return (
     <div className="mb-6 space-y-4">
-      {shiftSnapshot ? (
-        <TriageShiftBanner snapshot={shiftSnapshot} onShift={onShift} />
-      ) : null}
-
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/90 bg-white/80 px-4 py-3 shadow-sm dark:border-slate-700/80 dark:bg-slate-900/60">
         <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
           <Radio

@@ -10,7 +10,6 @@ import type { VerifiedDistractionReasonId } from "@/lib/verified-distraction-rea
 type Props = {
   selectedId: string | null;
   busy: boolean;
-  triageDeskOnShift: boolean;
   resolutionMode: boolean;
   dismissCaptureMode: boolean;
   distractionCaptureMode: boolean;
@@ -41,7 +40,6 @@ type Props = {
 export function ActionPanel({
   selectedId,
   busy,
-  triageDeskOnShift,
   resolutionMode,
   dismissCaptureMode,
   distractionCaptureMode,
@@ -68,7 +66,7 @@ export function ActionPanel({
   onSimulate,
   simulateError,
 }: Props) {
-  const actionsDisabled = !triageDeskOnShift || !selectedId || busy;
+  const actionsDisabled = !selectedId || busy;
 
   if (resolutionMode) {
     return (
@@ -124,9 +122,7 @@ export function ActionPanel({
       <div>
         <h3 className={cn("text-sm font-semibold uppercase tracking-wide", commandTextMuted)}>Actions</h3>
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
-          {triageDeskOnShift
-            ? "F1 false positive · F2 verified fatigue · F3 verified distraction"
-            : "View only — not on triage shift"}
+          F1 false positive · F2 verified fatigue · F3 verified distraction
         </p>
       </div>
 

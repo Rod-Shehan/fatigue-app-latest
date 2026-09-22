@@ -5,8 +5,6 @@ import { TRIAGE_ACTIONS, type TriageAction } from "@/lib/lifecycle-status";
 import { applyOperatorTriageAction } from "@/lib/manager-gate";
 import { requireOperatorId } from "@/lib/operator-context";
 import { withOperatorContext } from "@/lib/privileged-db";
-import { assertOperatorOnShift } from "@/lib/triage-shift";
-import { prisma } from "@/lib/prisma";
 
 export async function POST(request: Request) {
   try {
@@ -29,8 +27,6 @@ export async function POST(request: Request) {
     if (!TRIAGE_ACTIONS.includes(body.action as TriageAction)) {
       throw new CommandApiError("ERR_MALFORMED_PAYLOAD", "Invalid triage action.", 400);
     }
-
-    await assertOperatorOnShift(prisma, operatorId);
 
     let falsePositiveReasons;
     try {

@@ -8,8 +8,6 @@ import {
 } from "@/lib/manager-desk-alarm-audio";
 
 type AlertOptions = {
-  onShift: boolean;
-  hasActiveShift: boolean;
   muted: boolean;
 };
 

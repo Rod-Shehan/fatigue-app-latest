@@ -6,7 +6,6 @@ import { ActionPanel } from "@/components/triage/ActionPanel";
 import { MediaViewport } from "@/components/triage/MediaViewport";
 import { QueuePanel } from "@/components/triage/QueuePanel";
 import { TriageQueueBanner } from "@/components/triage/TriageQueueBanner";
-import { TriageShiftBanner } from "@/components/triage/TriageShiftBanner";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import { CommandDeskTopBar } from "@/components/command/CommandDeskTopBar";
 import { CommandShell } from "@/components/command/CommandShell";
@@ -19,7 +18,6 @@ import { useFatigueAlertControls } from "@/hooks/use-fatigue-alert-controls";
 import { useCommandSse } from "@/hooks/use-command-sse";
 import { useTriageIncidentAlerts } from "@/hooks/use-triage-incident-alerts";
 import { useInvalidateTriageQueue, useTriageQueue } from "@/hooks/use-triage-queue";
-import type { TriageShiftSnapshot } from "@/lib/triage-shift";
 import type { IncidentResolutionActionType } from "@/lib/triage-resolution";
 import type { FalsePositiveReasonId } from "@/lib/false-positive-reasons";
 import type { VerifiedDistractionReasonId } from "@/lib/verified-distraction-reasons";
@@ -42,8 +40,6 @@ export default function TriagePage() {
   const [authReady, setAuthReady] = useState(false);
   const [operatorName, setOperatorName] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState(false);
-  const [shiftSnapshot, setShiftSnapshot] = useState<TriageShiftSnapshot | null>(null);
-  const [triageDeskOnShift, setTriageDeskOnShift] = useState(false);
 
   const {
     muted: alertMuted,
@@ -63,11 +59,8 @@ export default function TriagePage() {
     subscribe: subscribePush,
     unsubscribe: unsubscribePush,
   } = useCommandPushSubscribe();
-  const hasActiveShift = Boolean(shiftSnapshot?.current);
-  const wakeLock = useScreenWakeLock(authReady && triageDeskOnShift && armed);
+  const wakeLock = useScreenWakeLock(authReady && armed);
   const { connected: sseConnected } = useCommandSse(authReady, {
-    onShift: triageDeskOnShift,
-    hasActiveShift,
     muted: alertMuted,
   });
   const { data, isLoading, isError, error } = useTriageQueue(authReady, sseConnected);
@@ -103,33 +96,6 @@ export default function TriagePage() {
     };
   }, [router]);
 
-  useEffect(() => {
-    if (!authReady) return;
-    let cancelled = false;
-    (async () => {
-      const res = await fetch("/api/v1/triage/shift/current", { credentials: "same-origin" });
-      if (!res.ok || cancelled) return;
-      const body = await res.json();
-      if (!cancelled) {
-        setShiftSnapshot(body.snapshot ?? null);
-        setTriageDeskOnShift(body.viewer?.onShift === true);
-      }
-    })();
-    const interval = window.setInterval(() => {
-      void fetch("/api/v1/triage/shift/current", { credentials: "same-origin" })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((body) => {
-          if (!body || cancelled) return;
-          setShiftSnapshot(body.snapshot ?? null);
-          setTriageDeskOnShift(body.viewer?.onShift === true);
-        });
-    }, 60_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, [authReady]);
-
   const incidents = data?.incidents ?? [];
 
   useEffect(() => {
@@ -159,8 +125,6 @@ export default function TriagePage() {
   }, [resumeAudio, pushPermission, subscribePush]);
 
   useTriageIncidentAlerts(incidents, authReady, {
-    onShift: triageDeskOnShift,
-    hasActiveShift,
     muted: alertMuted,
   });
 
@@ -211,7 +175,7 @@ export default function TriagePage() {
   );
 
   const beginDismissCapture = useCallback(() => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode || distractionCaptureMode)
+    if (!selectedId || resolutionMode || dismissCaptureMode || distractionCaptureMode)
       return;
     setDismissError(null);
     setDismissNote("");
@@ -219,10 +183,10 @@ export default function TriagePage() {
     setDismissCaptureLifecycleId(selectedId);
     setResolutionLifecycleId(null);
     setDistractionCaptureLifecycleId(null);
-  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
+  }, [selectedId, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
 
   const beginDistractionCapture = useCallback(() => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode || distractionCaptureMode)
+    if (!selectedId || resolutionMode || dismissCaptureMode || distractionCaptureMode)
       return;
     setDistractionError(null);
     setDistractionNote("");
@@ -230,7 +194,7 @@ export default function TriagePage() {
     setDistractionCaptureLifecycleId(selectedId);
     setResolutionLifecycleId(null);
     setDismissCaptureLifecycleId(null);
-  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
+  }, [selectedId, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
 
   const cancelDistractionCapture = useCallback(() => {
     setDistractionCaptureLifecycleId(null);
@@ -247,7 +211,7 @@ export default function TriagePage() {
   }, []);
 
   const runDismiss = useCallback(async () => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissReasons.length === 0) return;
+    if (!selectedId || resolutionMode || dismissReasons.length === 0) return;
     setBusy(true);
     setDismissError(null);
     try {
@@ -285,7 +249,6 @@ export default function TriagePage() {
   }, [
     selectedId,
     invalidate,
-    triageDeskOnShift,
     resolutionMode,
     dismissReasons,
     dismissNote,
@@ -293,7 +256,7 @@ export default function TriagePage() {
   ]);
 
   const runVerifyDistraction = useCallback(async () => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || distractionReasons.length === 0) return;
+    if (!selectedId || resolutionMode || distractionReasons.length === 0) return;
     setBusy(true);
     setDistractionError(null);
     try {
@@ -330,7 +293,6 @@ export default function TriagePage() {
   }, [
     selectedId,
     invalidate,
-    triageDeskOnShift,
     resolutionMode,
     distractionReasons,
     distractionNote,
@@ -338,7 +300,7 @@ export default function TriagePage() {
   ]);
 
   const beginResolution = useCallback(async () => {
-    if (!selectedId || !triageDeskOnShift || resolutionMode || dismissCaptureMode || distractionCaptureMode)
+    if (!selectedId || resolutionMode || dismissCaptureMode || distractionCaptureMode)
       return;
     setBusy(true);
     setResolutionError(null);
@@ -363,7 +325,7 @@ export default function TriagePage() {
     } finally {
       setBusy(false);
     }
-  }, [selectedId, triageDeskOnShift, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
+  }, [selectedId, resolutionMode, dismissCaptureMode, distractionCaptureMode]);
 
   const cancelResolution = useCallback(async () => {
     if (!resolutionLifecycleId) return;
@@ -415,7 +377,7 @@ export default function TriagePage() {
   );
 
   useKeyboardTriage(
-    triageDeskOnShift && !resolutionMode && !dismissCaptureMode && !distractionCaptureMode
+    !resolutionMode && !dismissCaptureMode && !distractionCaptureMode
       ? selectedId
       : null,
     () => beginDismissCapture(),
@@ -484,8 +446,6 @@ export default function TriagePage() {
         needsRearm={needsRearm}
         audioUnlocked={audioUnlocked}
         lastAlarmAt={lastAlarmAt}
-        triageDeskOnShift={triageDeskOnShift}
-        hasActiveShift={hasActiveShift}
         wakeLockSupported={wakeLock.supported}
         wakeLockActive={wakeLock.active}
         onToggleWakeLock={wakeLock.toggle}
@@ -501,12 +461,6 @@ export default function TriagePage() {
         isOwner={isOwner}
         onSignOut={() => void signOut()}
       />
-
-      {shiftSnapshot ? (
-        <div className="mb-3 md:mb-4">
-          <TriageShiftBanner snapshot={shiftSnapshot} onShift={triageDeskOnShift} />
-        </div>
-      ) : null}
 
       <div className="hidden md:block">
         <TriageQueueBanner
@@ -556,7 +510,6 @@ export default function TriagePage() {
           <ActionPanel
             selectedId={selectedId}
             busy={busy}
-            triageDeskOnShift={triageDeskOnShift}
             resolutionMode={resolutionMode}
             dismissCaptureMode={dismissCaptureMode}
             distractionCaptureMode={distractionCaptureMode}

@@ -249,23 +249,6 @@ export type CameraAlertEventSettingsSnapshot = {
   updatedAt: string | null;
 };
 
-export type {
-  TriageShiftAssignees,
-  TriageShiftPublic,
-  TriageShiftSnapshot,
-} from "@/lib/triage-shift";
-
-export type TriageShiftAdminSnapshot = {
-  shifts: import("@/lib/triage-shift").TriageShiftPublic[];
-  managerUsers: { id: string; name: string | null; email: string | null; role: string }[];
-  commandOperators: import("@/lib/triage-shift").TriageShiftAssigneeOperator[];
-};
-
-export type TriageShiftCurrentResponse = {
-  snapshot: import("@/lib/triage-shift").TriageShiftSnapshot;
-  viewer: { onShift: boolean; userId: string };
-};
-
 export type CameraAlertItem = {
   id: string;
   /** Autonomise ingest row when bridged; required for delete when id is lifecycle. */
@@ -807,8 +790,6 @@ export const api = {
         { method: "PATCH", body: { enabledAlarmIds } }
       ),
   },
-  triageShiftCurrent: () =>
-    fetchApi<TriageShiftCurrentResponse>("/api/triage-shift/current"),
   messages: {
     threads: () => fetchApi<{ threads: MessageThreadSummary[] }>("/api/messages/threads"),
     createThread: (data: { subject: string; body: string; sheetId?: string | null }) =>
@@ -852,32 +833,6 @@ export const api = {
       const q = sp.toString();
       return `${base}/api/admin/audit-export${q ? `?${q}` : ""}`;
     },
-    listTriageShifts: () => fetchApi<TriageShiftAdminSnapshot>("/api/admin/triage-shift"),
-    createTriageShift: (body: {
-      startsAtLocal: string;
-      endsAtLocal: string;
-      assignees: import("@/lib/triage-shift").TriageShiftAssignees;
-      handoffNote?: string | null;
-    }) =>
-      fetchApi<{ shift: import("@/lib/triage-shift").TriageShiftPublic }>("/api/admin/triage-shift", {
-        method: "POST",
-        body,
-      }),
-    updateTriageShift: (
-      id: string,
-      body: {
-        startsAtLocal: string;
-        endsAtLocal: string;
-        assignees: import("@/lib/triage-shift").TriageShiftAssignees;
-        handoffNote?: string | null;
-      }
-    ) =>
-      fetchApi<{ shift: import("@/lib/triage-shift").TriageShiftPublic }>(
-        `/api/admin/triage-shift/${id}`,
-        { method: "PATCH", body }
-      ),
-    deleteTriageShift: (id: string) =>
-      fetchApi<{ ok: boolean }>(`/api/admin/triage-shift/${id}`, { method: "DELETE" }),
   },
   /** Org settings available to any signed-in role (driver / manager / owner). */
   settings: {

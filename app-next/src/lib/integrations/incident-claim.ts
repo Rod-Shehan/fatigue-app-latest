@@ -4,7 +4,6 @@
 
 import { randomUUID } from "crypto";
 import type { PrismaClient } from "@prisma/client";
-import { buildViewerOnShift, getTriageShiftSnapshot } from "@/lib/triage-shift";
 
 export type ClaimActorType = "manager" | "command_operator";
 
@@ -22,7 +21,6 @@ export class IncidentClaimError extends Error {
     message: string,
     readonly code:
       | "NOT_FOUND"
-      | "NOT_ON_SHIFT"
       | "ALREADY_CLAIMED"
       | "NOT_CLAIMED_BY_YOU"
       | "NOT_PENDING"
@@ -91,23 +89,6 @@ export function isClaimedByOther(
 ): boolean {
   if (!claim.claimedByActorType) return false;
   return !isClaimHeldBy(claim, actor);
-}
-
-export async function assertManagerOnShift(
-  prisma: PrismaClient,
-  userId: string,
-  userRole?: string | null
-): Promise<void> {
-  const snapshot = await getTriageShiftSnapshot(prisma);
-  const viewer = buildViewerOnShift(snapshot, {
-    viewer: "manager",
-    userId,
-    userRole: userRole ?? undefined,
-    onShift: false,
-  });
-  if (!viewer.onShift) {
-    throw new IncidentClaimError("You are not on triage shift.", "NOT_ON_SHIFT");
-  }
 }
 
 async function fetchClaimRow(prisma: PrismaClient, lifecycleId: string): Promise<ClaimRow | null> {
@@ -191,12 +172,9 @@ export async function claimIncidentForManager(
   args: {
     lifecycleId: string;
     userId: string;
-    userRole?: string | null;
     userLabel: string;
   }
 ): Promise<IncidentClaimView> {
-  await assertManagerOnShift(prisma, args.userId, args.userRole);
-
   const updated = await prisma.$executeRaw`
     UPDATE fatigue_incident_lifecycle
     SET

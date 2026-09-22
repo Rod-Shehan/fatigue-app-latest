@@ -22,13 +22,10 @@ export function isManagerDeskAlertCatchUp(alert: Pick<CameraAlertItem, "received
 export function shouldPlayManagerDeskAlert(
   alert: CameraAlertItem,
   options: {
-    onShift: boolean;
-    hasActiveShift: boolean;
     muted: boolean;
   }
 ): boolean {
-  const deskActive = options.onShift || !options.hasActiveShift;
-  if (!deskActive || options.muted) return false;
+  if (options.muted) return false;
   if (!alert.accepted || alert.triageStatus !== "pending") return false;
   if (!isManagerDeskAlertCatchUp(alert)) return false;
   if (playedAlertIds.has(alert.id)) return false;
@@ -166,8 +163,6 @@ export async function resumeManagerDeskAlertAudio(): Promise<boolean> {
 export async function maybePlayManagerDeskAlert(
   alert: CameraAlertItem,
   options: {
-    onShift: boolean;
-    hasActiveShift: boolean;
     muted: boolean;
   }
 ): Promise<boolean> {

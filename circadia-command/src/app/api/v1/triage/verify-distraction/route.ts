@@ -6,7 +6,6 @@ import {
 import { requireOperatorId } from "@/lib/operator-context";
 import { withOperatorContext } from "@/lib/privileged-db";
 import { getSession } from "@/lib/auth/session";
-import { assertOperatorOnShift } from "@/lib/triage-shift";
 import { requireVerifiedDistractionReasons } from "@/lib/verified-distraction-reasons";
 import { assertTriageTriggerFreeNoteWhenRequired } from "@/lib/triage-trigger-reasons";
 import { prisma } from "@/lib/prisma";
@@ -56,8 +55,6 @@ export async function POST(request: Request) {
       }
       throw e;
     }
-
-    await assertOperatorOnShift(prisma, operatorId);
 
     const result = await withOperatorContext(operatorId, async (tx) =>
       completeOperatorVerifiedDistraction(tx, {

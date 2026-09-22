@@ -72,7 +72,6 @@ Command owners can call the same routes on `command.circadia24.com` (server prox
 | Browser suspended audio after hours | Amber “resume sounds” banner; tap speaker icon |
 | Screen off / app backgrounded | Web Push notification (if subscribed + VAPID configured) |
 | Screen on, tab open overnight | Push also pings open tab to play desk alarm (after deploy) |
-| View only shift | Queue updates but no sound (by design) |
 
 ### Android overnight sound
 
@@ -88,7 +87,7 @@ Background alerts use **system notifications**, not the in-page desk alarm WAV. 
 **Screen on overnight (recommended for audible desk alarm)**
 
 1. In Command ⋮ menu, enable **Keep screen on** (wake lock).
-2. Leave triage open; enable sounds via the speaker icon before your shift.
+2. Leave triage open; enable sounds via the speaker icon when you start the desk.
 3. If the amber “resume sounds” banner appears, tap the speaker icon again.
 4. Push + open tab will attempt the desk alarm WAV when incidents arrive.
 

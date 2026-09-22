@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 type Props = {
   soundsLabel: string;
   connectionLabel: string;
-  shiftLabel: string;
   lastAlarmLabel: string;
   backgroundLabel: string;
   children?: ReactNode;
@@ -14,7 +13,6 @@ type Props = {
 export function CommandDeskStatusPanel({
   soundsLabel,
   connectionLabel,
-  shiftLabel,
   lastAlarmLabel,
   backgroundLabel,
   children,
@@ -31,9 +29,6 @@ export function CommandDeskStatusPanel({
       <p>
         <span className="font-medium text-slate-700 dark:text-slate-300">Connection:</span>{" "}
         {connectionLabel}
-      </p>
-      <p>
-        <span className="font-medium text-slate-700 dark:text-slate-300">Shift:</span> {shiftLabel}
       </p>
       <p>
         <span className="font-medium text-slate-700 dark:text-slate-300">Last alarm:</span>{" "}
@@ -54,15 +49,12 @@ export function buildDeskStatusLabels(options: {
   needsRearm: boolean;
   muted: boolean;
   sseConnected: boolean;
-  triageDeskOnShift: boolean;
-  hasActiveShift: boolean;
   lastAlarmAt: number | null;
   pushPermission: NotificationPermission | "unsupported";
   pushSubscribed: boolean;
 }): {
   soundsLabel: string;
   connectionLabel: string;
-  shiftLabel: string;
   lastAlarmLabel: string;
   backgroundLabel: string;
 } {
@@ -73,11 +65,6 @@ export function buildDeskStatusLabels(options: {
   else soundsLabel = "On";
 
   const connectionLabel = options.sseConnected ? "SSE live" : "Polling";
-  const shiftLabel = !options.hasActiveShift
-    ? "No shift scheduled"
-    : options.triageDeskOnShift
-      ? "On shift"
-      : "View only";
 
   let backgroundLabel = "Off";
   if (options.pushPermission === "unsupported") backgroundLabel = "Not supported";
@@ -88,7 +75,6 @@ export function buildDeskStatusLabels(options: {
   return {
     soundsLabel,
     connectionLabel,
-    shiftLabel,
     lastAlarmLabel: formatLastAlarm(options.lastAlarmAt),
     backgroundLabel,
   };

@@ -26,8 +26,6 @@ function incident(overrides: Partial<QueueIncident> = {}): QueueIncident {
 }
 
 const alertOpts = {
-  onShift: true,
-  hasActiveShift: true,
   muted: false,
   source: "sse-live" as const,
 };
@@ -91,23 +89,12 @@ describe("fatigue-alert-audio", () => {
     ).toBe(false);
   });
 
-  it("plays on shift for fatigue and distraction events", () => {
+  it("plays for signed-in operators; mute is the only gate", () => {
     const fatigue = incident();
     const distraction = incident({ fatigue_metric_type: "DISTRACTION", lifecycle_id: "lc-2" });
 
     expect(shouldPlayFatigueAlert(fatigue, alertOpts)).toBe(true);
     expect(shouldPlayFatigueAlert(distraction, alertOpts)).toBe(true);
-
-    expect(shouldPlayFatigueAlert(fatigue, { ...alertOpts, onShift: false })).toBe(false);
-
-    expect(
-      shouldPlayFatigueAlert(fatigue, {
-        ...alertOpts,
-        onShift: false,
-        hasActiveShift: false,
-      })
-    ).toBe(true);
-
     expect(shouldPlayFatigueAlert(fatigue, { ...alertOpts, muted: true })).toBe(false);
   });
 });
