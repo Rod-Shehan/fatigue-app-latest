@@ -5,19 +5,17 @@ import {
   MapContainer,
   TileLayer,
   CircleMarker,
-  Polyline,
   Popup,
   useMap,
 } from "react-leaflet";
 import type { MapEvent } from "@/lib/map-event-types";
-import { history1mTrailPositions } from "@/lib/geo-history-1m";
 import { appNextBaseUrl } from "@/lib/test-incident-client";
 import "leaflet/dist/leaflet.css";
 
 /**
  * Each marker is where the driver was when they LOGGED the event — a status
- * change, not continuous tracking. Optional history_1m crumbs draw a solid
- * movement trail into each marker.
+ * change, not continuous tracking. A break dot next to a work dot means the
+ * driver pulled over, started a break, then resumed work from the same spot.
  */
 const EVENT_META: Record<
   string,
@@ -74,16 +72,8 @@ function FitBounds({ events }: { events: MapEvent[] }) {
   const map = useMap();
   useEffect(() => {
     if (events.length === 0) return;
-    const lats: number[] = [];
-    const lngs: number[] = [];
-    for (const e of events) {
-      lats.push(e.lat);
-      lngs.push(e.lng);
-      for (const p of e.history_1m ?? []) {
-        lats.push(p.lat);
-        lngs.push(p.lng);
-      }
-    }
+    const lats = events.map((e) => e.lat);
+    const lngs = events.map((e) => e.lng);
     const pad = 0.01;
     map.fitBounds(
       [
@@ -176,43 +166,11 @@ export function CommandEventMap({
         />
         <FitBounds events={filtered} />
 
-        {journeys.map((journey) =>
-          journey.events.length >= 2 ? (
-            <Polyline
-              key={journey.key}
-              positions={journey.events.map((ev) => [ev.lat, ev.lng])}
-              pathOptions={{
-                color: "#0f766e",
-                weight: 2.5,
-                opacity: 0.55,
-                dashArray: "6 6",
-              }}
-            />
-          ) : null
-        )}
-
-        {filtered.map((ev, i) => {
-          const trail = history1mTrailPositions(ev.history_1m, ev);
-          if (trail.length < 2) return null;
-          return (
-            <Polyline
-              key={`history-1m-${ev.sheetId}-${ev.time}-${i}`}
-              positions={trail}
-              pathOptions={{
-                color: "#0284c7",
-                weight: 3,
-                opacity: 0.85,
-              }}
-            />
-          );
-        })}
-
         {journeys.flatMap((journey) =>
           journey.events.map((ev, i) => {
             if (eventTypesFilter && !eventTypesFilter.has(ev.type)) return null;
             const meta = eventMeta(ev.type);
             const context = eventContext(ev, journey.events[i - 1]);
-            const crumbCount = ev.history_1m?.length ?? 0;
             return (
               <CircleMarker
                 key={`${journey.key}-${ev.time}-${i}`}
@@ -243,12 +201,6 @@ export function CommandEventMap({
                       {ev.day_label ? `on ${ev.day_label}` : "that day"} · Week of{" "}
                       {ev.week_starting}
                     </p>
-                    {crumbCount > 0 ? (
-                      <p className="mt-0.5 text-xs text-sky-700">
-                        Movement trail · {crumbCount} point
-                        {crumbCount === 1 ? "" : "s"}
-                      </p>
-                    ) : null}
                     <a
                       href={`${sheetBase}/sheets/${ev.sheetId}`}
                       target="_blank"

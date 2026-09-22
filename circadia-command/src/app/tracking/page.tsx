@@ -48,7 +48,7 @@ export default function TrackingPage() {
     <CommandShell wide>
       <CommandPageHeader
         title="Event Tracker"
-        subtitle="Logbook GPS locations — work, break, and end-shift markers"
+        subtitle="Logbook GPS locations — markers only, no lines joining events"
         backHref="/triage"
         backText="Triage"
         actions={
