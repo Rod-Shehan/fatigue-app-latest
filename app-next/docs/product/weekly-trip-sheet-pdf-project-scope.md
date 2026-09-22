@@ -1,6 +1,7 @@
 # Project scope: Weekly Trip Sheet PDF
 
 **Status:** Phases 0–3 code complete (2026-07-30). Owner production spot-check pending after deploy.  
+**Owner addendum 2026-09-22:** Week PDF tick rows now include **Trailer Pre-departure**, **Forklift Prestart**, and **Hook up** (6 × 7). The original paper three stay first. Fault report stays off this strip.
 **Paper reference:** Helper / carrier “WEEKLY TRIP SHEET” blank (week header, FFW/load/vehicle tick rows, ×7 day grids, footer).  
 **Day tile authority:** Existing WorkSafe day sheet (`worksafe-wa-day-sheet-concept.md`) — **15‑minute** grid + step line. Do **not** switch to paper’s 20‑minute divisions without a separate owner decision.
 
@@ -70,7 +71,7 @@ Every filled cell must have a real data source (or an explicit blank). No decora
 Compare Export PDF to the paper Weekly Trip Sheet blank:
 
 1. Week header: title, week ending (Sat), operator, driver name, truck reg(s)
-2. Three checklist rows × SUN–SAT — ticks only where day cards were ticked
+2. Six checklist rows × SUN–SAT — ticks only where day cards were ticked (FFW, vehicle, load, trailer, forklift, Hook up)
 3. Seven WorkSafe day rows (15‑min grid, blank first hour, step line) — not split mid-tile; empty days paint full non-work (0 / 0 / 24)
 4. Footer: OFFICE USE blank, week work-hours total, week signature on the same page as the last day tile(s) when signed
 5. Trip sheet only — no Circadia header, compliance summary, or shift log appendix

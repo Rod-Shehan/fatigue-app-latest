@@ -77,7 +77,7 @@ function HookupStepRow({
 }
 
 /**
- * Voluntary hook-up check. Multi-complete allowed. Not a week-PDF tick.
+ * Voluntary hook-up check. Multi-complete allowed. Ticks the week PDF when signed.
  * Paper driver sign is the signature.
  */
 export function HookupForm({
@@ -204,8 +204,8 @@ export function HookupForm({
       title={HOOKUP_FORM_TITLE}
       subtitle={
         primeMoverReminder
-          ? `${HOOKUP_PRIME_MOVER_REMINDER_LABEL}. Optional — does not tick the week PDF`
-          : "Optional — does not tick the week PDF"
+          ? `${HOOKUP_PRIME_MOVER_REMINDER_LABEL}. Optional — ticks the week PDF when signed`
+          : "Optional — ticks the week PDF when signed"
       }
       footer={
         <div className="space-y-2">

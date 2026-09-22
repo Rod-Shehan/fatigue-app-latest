@@ -1,7 +1,6 @@
 /**
- * Pre-trip daily ticks for the Weekly Trip Sheet (FFW / load / vehicle)
- * and extra EWD Forms checkboxes (trailer / forklift / hook-up).
- * Week PDF header still shows the original three Sun–Sat columns.
+ * Pre-trip daily ticks for the Weekly Trip Sheet (FFW / vehicle / load /
+ * trailer / forklift / hook-up). Fault report stays off this strip.
  * When `checklists[]` has completed records, ticks are derived (scope A1).
  * @see docs/product/weekly-trip-sheet-pdf-project-scope.md
  * @see docs/product/compliance-checklist-modules-project-scope.md
@@ -15,15 +14,8 @@ import {
   TRAILER_PRESTART_FORM_TITLE,
 } from "@/lib/checklist/schema-stubs";
 
-/** Week PDF tick rows — WorkSafe Weekly Trip Sheet (3 × 7). */
+/** Week PDF tick rows — Weekly Trip Sheet (6 × 7). */
 export const TRIP_CHECKLIST_KEYS = [
-  "fitness_for_work",
-  "daily_vehicle_checklist",
-  "dimension_load_checklist",
-] as const;
-
-/** Forms page checkboxes — week-PDF three plus trailer, forklift, and hook-up. */
-export const FORMS_CHECKLIST_KEYS = [
   "fitness_for_work",
   "daily_vehicle_checklist",
   "dimension_load_checklist",
@@ -31,6 +23,9 @@ export const FORMS_CHECKLIST_KEYS = [
   "forklift_prestart_checklist",
   "hookup_checklist",
 ] as const;
+
+/** Forms page checkboxes — same set as the week PDF tick strip. */
+export const FORMS_CHECKLIST_KEYS = TRIP_CHECKLIST_KEYS;
 
 export type TripChecklistKey = (typeof TRIP_CHECKLIST_KEYS)[number];
 export type FormsChecklistKey = (typeof FORMS_CHECKLIST_KEYS)[number];
@@ -63,7 +58,7 @@ export function isTripChecklistTicked(
   return derived[key] === true;
 }
 
-/** 3 rows × 7 days — week PDF only (never trailer / forklift / hook-up). */
+/** 6 rows × 7 days — week PDF tick strip. */
 export function checklistMatrixFromDays(
   days: Array<DayTripChecklistFields | Record<string, unknown>>
 ): boolean[][] {

@@ -346,8 +346,7 @@ export function hasCompletedChecklistOfType(
 
 /**
  * Prestart that completed the inspection (not a “not responsible” skip).
- * Vehicle type feeds the week-PDF Daily vehicle checklist tick (A1).
- * Trailer / forklift types feed EWD Forms checkboxes only.
+ * Vehicle / trailer / forklift types feed the matching week-PDF tick (A1).
  */
 export function hasCompletedResponsiblePrestartOfType(
   checklists: ChecklistRecord[] | null | undefined,

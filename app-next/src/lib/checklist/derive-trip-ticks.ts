@@ -19,7 +19,7 @@ export type DerivedTripChecklistFields = {
   hookup_checklist?: boolean;
 };
 
-/** Trailer / forklift / hook-up ticks are EWD Forms checkboxes. Week PDF still uses FFW / vehicle / load only. */
+/** Completed records of these types tick the matching week-PDF row. */
 export const CHECKLIST_TYPE_TO_TRIP_KEY: Partial<
   Record<ChecklistRecordType, keyof DerivedTripChecklistFields>
 > = {

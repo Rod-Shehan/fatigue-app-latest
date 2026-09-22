@@ -856,36 +856,6 @@ export default function DayEntry({
           unsignedPastWeeksCount={dayTools.unsignedPastWeeksCount}
           onOpenGear={dayTools.onOpenGear}
           onOpenDaySetup={() => setDetailsOpen(true)}
-          onOpenFfw={canEditDetails ? openFfwForm : undefined}
-          onViewFfw={ffwFormCompleted ? () => openViewChecklist("ffw") : undefined}
-          ffwFormCompleted={ffwFormCompleted}
-          onOpenPrestart={canEditDetails ? openPrestartForm : undefined}
-          onViewPrestart={prestartFormCompleted ? () => openViewChecklist("prestart") : undefined}
-          prestartFormCompleted={prestartFormCompleted}
-          onOpenTrailerPrestart={canEditDetails ? openTrailerPrestartForm : undefined}
-          onViewTrailerPrestart={
-            trailerPrestartCompleted ? () => openViewChecklist("prestart_trailer") : undefined
-          }
-          trailerPrestartCompleted={trailerPrestartCompleted}
-          onOpenForkliftPrestart={canEditDetails ? openForkliftPrestartForm : undefined}
-          onViewForkliftPrestart={
-            forkliftPrestartCompleted ? () => openViewChecklist("prestart_forklift") : undefined
-          }
-          forkliftPrestartCompleted={forkliftPrestartCompleted}
-          onOpenDimensionLoad={canEditDetails ? openDimensionLoadForm : undefined}
-          onViewDimensionLoad={
-            dimensionLoadFormCompleted ? () => openViewChecklist("dimension_load") : undefined
-          }
-          dimensionLoadFormCompleted={dimensionLoadFormCompleted}
-          onOpenHookup={canEditDetails ? openHookupForm : undefined}
-          onViewHookup={hookupFormCompleted ? () => openViewChecklist("hookup") : undefined}
-          hookupFormCompleted={hookupFormCompleted}
-          suggestHookup={suggestHookup}
-          onOpenFaultReport={canEditDetails ? openFaultReportForm : undefined}
-          onViewFaultReport={
-            faultReportFormCompleted ? () => openViewChecklist("fault_report") : undefined
-          }
-          faultReportFormCompleted={faultReportFormCompleted}
           onProduceChecklistPdf={
             dayTools && hasAnyChecklistRecord ? produceDayChecklistPdf : undefined
           }

@@ -64,6 +64,9 @@ describe("weekly trip sheet chrome", () => {
     for (const d of WTS_DAY_ABBREVS) expect(html).toContain(d);
     expect(html).toContain("wtsTickBox");
     expect(html).not.toContain("wtsTickBox on");
+    expect(html).toContain("Trailer Pre-departure Check List Completed");
+    expect(html).toContain("Forklift Prestart Completed");
+    expect(html).toContain("Hook up Completed");
   });
 
   it("renders ticks only for days that are set", () => {

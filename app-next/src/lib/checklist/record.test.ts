@@ -252,7 +252,7 @@ describe("deriveTripChecklistFields", () => {
     expect(deriveTripChecklistFields({ checklists: [skipped] }).daily_vehicle_checklist).toBe(false);
   });
 
-  it("does not tick week-PDF fields from a hook-up form", () => {
+  it("ticks hook-up on the week PDF without touching FFW / vehicle / load", () => {
     const hookup = sampleFfw({
       type: "hookup",
       items: [{ code: "hook_01", kind: "pass_fail", value: "pass" }],

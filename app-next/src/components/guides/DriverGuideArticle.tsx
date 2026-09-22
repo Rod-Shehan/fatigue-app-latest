@@ -504,7 +504,8 @@ export function DriverGuideArticle() {
         <ul className={ulClass}>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Day tools</strong> (clipboard icon) — week summary,
-            last 24-hour break, Compliance, Roadside, records to sign, and Settings.
+            last 24-hour break, Compliance, checklist PDFs, Roadside, records to sign, and Settings. Forms stay on
+            the day card, not in this menu.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Compliance</strong> — if a rule is not met, an amber
@@ -594,8 +595,9 @@ export function DriverGuideArticle() {
             ). Other {DRIVER_FORMS_SECTION_LABEL} are optional — open {PRESTART_FORM_TITLE} /{" "}
             {TRAILER_PRESTART_FORM_TITLE} / {FORKLIFT_PRESTART_FORM_TITLE} / {LOAD_FORM_TITLE} / {HOOKUP_FORM_TITLE} /{" "}
             {FAULT_REPORT_FORM_TITLE} when they match this shift (they do not block Start shift). Those three
-            pre-departure forms stay separate — do not combine them. Week-PDF ticks (Fitness for work, Daily vehicle checklist,
-            Dimension & load) show on the week PDF. Trailer, forklift, and {HOOKUP_FORM_TITLE} ticks stay in the EWD.{" "}
+            pre-departure forms stay separate — do not combine them. Completed Fitness for work, Daily vehicle
+            checklist, Dimension & load, {TRAILER_PRESTART_FORM_TITLE}, {FORKLIFT_PRESTART_FORM_TITLE}, and{" "}
+            {HOOKUP_FORM_TITLE} ticks show on the week PDF and go in the weekly checklist pack.{" "}
             {FAULT_REPORT_FORM_TITLE} stays in the EWD only. After{" "}
             {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
             (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. After a form is saved, use
@@ -639,7 +641,7 @@ export function DriverGuideArticle() {
             ],
             [
               "Weekly Trip Sheet (PDF)",
-              "Export PDF and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks from day cards, seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
+              "Export PDF and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks from day cards (Fitness for work, vehicle, load, trailer, forklift, Hook up), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
             ],
             [DRIVER_START_SHIFT_LABEL + " / End shift", `Begin / finish a shift. Start shift needs Fitness for Work signed for this day, then opens driving or Other work`],
             [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],
@@ -655,11 +657,11 @@ export function DriverGuideArticle() {
             ],
             [
               TRAILER_PRESTART_FORM_TITLE,
-              "Trailer inspection filed under the trailer registration. Optional in trial. EWD Forms tick. Not shown as a week PDF tick",
+              "Trailer inspection filed under the trailer registration. Optional in trial. Ticks the week PDF and goes in the weekly checklist pack",
             ],
             [
               FORKLIFT_PRESTART_FORM_TITLE,
-              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. EWD Forms tick. Not shown as a week PDF tick",
+              "Forklift inspection filed under the forklift registration or plant ID. Optional in trial. Ticks the week PDF and goes in the weekly checklist pack",
             ],
             [
               LOAD_FORM_TITLE,
@@ -667,7 +669,7 @@ export function DriverGuideArticle() {
             ],
             [
               HOOKUP_FORM_TITLE,
-              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. EWD Forms tick. Not a week-PDF tick. Add another for the next hook-up",
+              "Fourteen paper ticks — a subset of hook-up training, not the full procedure. Completed / Fault. Optional faults and observations. Driver sign, then return to your supervisor before leaving the hookup location. One signed form per coupling. Ticks the week PDF and goes in the weekly checklist pack. Add another for the next hook-up",
             ],
             [
               FAULT_REPORT_FORM_TITLE,
@@ -675,7 +677,7 @@ export function DriverGuideArticle() {
             ],
             [
               DRIVER_FORMS_SECTION_LABEL,
-              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. If the day’s plate is a Prime mover, ${HOOKUP_FORM_TITLE} is highlighted (${HOOKUP_PRIME_MOVER_REMINDER_LABEL}) — ${HOOKUP_PRIME_MOVER_REMINDER_HINT} EWD ticks: Fitness for work, ${PRESTART_FORM_TITLE}, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick. Week-PDF ticks stay Fitness for work, Daily vehicle checklist, and Dimension & load`,
+              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. If the day’s plate is a Prime mover, ${HOOKUP_FORM_TITLE} is highlighted (${HOOKUP_PRIME_MOVER_REMINDER_LABEL}) — ${HOOKUP_PRIME_MOVER_REMINDER_HINT} Week-PDF ticks: Fitness for work, Daily vehicle checklist, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick`,
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

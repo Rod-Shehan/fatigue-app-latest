@@ -11,6 +11,9 @@ export const WTS_CHECKLIST_ROWS = [
   "Confirm Fitness for Work",
   "Daily Vehicle Check List Completed",
   "Dimension & Load Check List Completed",
+  "Trailer Pre-departure Check List Completed",
+  "Forklift Prestart Completed",
+  "Hook up Completed",
 ] as const;
 
 export const WTS_DAY_ABBREVS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
@@ -70,7 +73,7 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-/** 3 checklist rows × 7 days; true = print tick. */
+/** 6 checklist rows × 7 days; true = print tick. */
 export type ChecklistTickMatrix = boolean[][];
 
 export type WeeklyTripSheetChromeInput = {
@@ -85,7 +88,7 @@ export type WeeklyTripSheetChromeInput = {
   licenceNumber?: string | null;
   medicalExpiryYmd?: string | null;
   licenceExpiryYmd?: string | null;
-  /** Optional 3×7 matrix; missing/false → empty box. */
+  /** Optional 6×7 matrix; missing/false → empty box. */
   checklistTicks?: ChecklistTickMatrix;
 };
 
@@ -220,7 +223,8 @@ export function drawWeeklyTripSheetHeaderJsPdf(
   let y = opts.y;
   const ink: [number, number, number] = [0, 0, 0];
   const headH = 32;
-  const checkH = 22;
+  const checkRowH = 6.5;
+  const checkH = 3 + WTS_CHECKLIST_ROWS.length * checkRowH;
   const totalH = headH + checkH;
 
   doc.setDrawColor(...ink);
@@ -279,7 +283,7 @@ export function drawWeeklyTripSheetHeaderJsPdf(
   const tickW = tickAreaW / 7;
 
   WTS_CHECKLIST_ROWS.forEach((label, rowIdx) => {
-    const ry = checkTop + 2 + rowIdx * 6.5;
+    const ry = checkTop + 2 + rowIdx * checkRowH;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(6);
     doc.setTextColor(...ink);

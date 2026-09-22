@@ -618,7 +618,7 @@ export const LOAD_SCHEMA_STUB: ChecklistSchemaItem[] = [
   },
 ];
 
-/** Driver-facing name. Persist type is `hookup`. Not a week-PDF tick. */
+/** Driver-facing name. Persist type is `hookup`. */
 export const HOOKUP_FORM_TITLE = "Hook up";
 
 export const HOOKUP_PROCEDURE_NOTE =
