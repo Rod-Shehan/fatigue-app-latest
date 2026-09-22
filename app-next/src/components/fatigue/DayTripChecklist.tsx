@@ -362,7 +362,8 @@ export function DayTripChecklist({
             Fitness for Work is required before Start shift. Other forms are optional — use the ones
             that match this shift. Completed Fitness for work, {PRESTART_FORM_TITLE}, Dimension & load,{" "}
             {TRAILER_PRESTART_FORM_TITLE}, {FORKLIFT_PRESTART_FORM_TITLE}, and {HOOKUP_FORM_TITLE} ticks
-            show on the week PDF and go in the weekly checklist pack. {FAULT_REPORT_FORM_TITLE} stays
+            show on the week PDF and go in the weekly checklist pack. Pick plates from the fleet list
+            (same as Set up day), or type a plate if it is not listed. {FAULT_REPORT_FORM_TITLE} stays
             in the EWD only.
             {showHookupReminder ? (
               <span className="mt-1.5 block font-medium text-amber-800 dark:text-amber-300">

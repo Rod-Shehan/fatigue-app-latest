@@ -280,7 +280,7 @@ export const MANAGER_EXPERIENCE = {
   ACTION_OPEN_INBOX: "Start conversation",
 
   MAP_PAGE_SUBTITLE:
-    "Logged work, breaks, and shift ends with a location — placed on the map for assurance review.",
+    "Logged work, breaks, and shift ends with a location — markers only, for assurance review.",
   MESSAGES_PAGE_SUBTITLE: "Check in with drivers when exposure rises — coaching tone, not compliance orders.",
 
   ALERTS_PAGE_SUBTITLE:

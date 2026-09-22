@@ -154,7 +154,8 @@ export default async function DriverHelpPage() {
                 reload). {DRIVER_LOAD_CHECK_LABEL} opens {LOAD_FORM_TITLE}; you stay on Other work. Tap it again for
                 another load. If it is not a load, stay on Other work until you drive or rest.{" "}
                 {DRIVER_FORMS_SECTION_LABEL} on the day card: Fitness for Work is required; other forms
-                (including {HOOKUP_FORM_TITLE} and {FAULT_REPORT_FORM_TITLE}) stay optional. Shown on
+                (including {HOOKUP_FORM_TITLE} and {FAULT_REPORT_FORM_TITLE}) stay optional. Pick each
+                plate from the fleet list (same as Set up day), or type a plate if it is not listed. Shown on
                 breaks from driving. Never becomes non-work, even if it is long. Counts toward 20 min per 5 hours. Still
                 work time for 168h.
               </li>
@@ -168,7 +169,7 @@ export default async function DriverHelpPage() {
                 in PDF exports) you see truck reg, odometer/locations, then three rows ({WORKSAFE_TRACK_LABELS.work},{" "}
                 {WORKSAFE_TRACK_LABELS.break}, {WORKSAFE_TRACK_LABELS.non_work}) as a 15-minute tick grid. Filled cells
                 paint what you logged; the app does not invent Break after End shift. Week PDFs also use a Weekly Trip
-                Sheet frame (week ending, operator, driver name with licence number, medical and license expiry, daily checklist ticks from each day card, week work-hours total, office use,
+                Sheet frame (week ending, operator, driver name with licence number, medical and license expiry, daily checklist ticks from each day card — Fitness for work, vehicle, load, trailer, forklift, Hook up — week work-hours total, office use,
                 week signature) — no Circadia header, compliance summary, or shift-log appendix. OPERATOR is the
                 organisation name set by the owner, not a field on Drive home.
               </li>

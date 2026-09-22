@@ -487,7 +487,7 @@ export function DriverGuideArticle() {
           </li>
           <li>
             It builds one PDF of your last 28 calendar days — one Weekly Trip Sheet page per week (week
-            ending, operator, driver name with licence number, medical and license expiry, truck reg, fitness/load/vehicle ticks from your day cards, seven WorkSafe day
+            ending, operator, driver name with licence number, medical and license expiry, truck reg, Fitness for work / vehicle / load / trailer / forklift / Hook up ticks from your day cards, seven WorkSafe day
             sheets with empty days drawn as full non-work, week work-hours total, office-use box, and your
             week signature when signed). OPERATOR is your organisation name, set by the owner — not a field
             on Drive home. No Circadia header, compliance summary, or shift-log appendix.
@@ -598,6 +598,7 @@ export function DriverGuideArticle() {
             pre-departure forms stay separate — do not combine them. Completed Fitness for work, Daily vehicle
             checklist, Dimension & load, {TRAILER_PRESTART_FORM_TITLE}, {FORKLIFT_PRESTART_FORM_TITLE}, and{" "}
             {HOOKUP_FORM_TITLE} ticks show on the week PDF and go in the weekly checklist pack.{" "}
+            Pick each plate from the fleet list (same as Set up day), or type a plate if it is not listed.{" "}
             {FAULT_REPORT_FORM_TITLE} stays in the EWD only. After{" "}
             {DRIVER_START_OTHER_WORK_LABEL} is logged, the ring keeps three tiles including {DRIVER_LOAD_CHECK_LABEL}{" "}
             (same after a reload). Tap {DRIVER_LOAD_CHECK_LABEL} again for another load. After a form is saved, use
@@ -653,7 +654,7 @@ export function DriverGuideArticle() {
             ],
             [
               PRESTART_FORM_TITLE,
-              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial. Pick the plate from the fleet list (same as Set up day). Type a plate if it is not listed. Separate from trailer and forklift forms",
+              "Vehicle inspection filed under the truck registration; your name is who inspected. Optional in trial. Pick the plate from the fleet list (same as Set up day). Type a plate if it is not listed. Ticks Daily vehicle checklist on the week PDF. Separate from trailer and forklift forms",
             ],
             [
               TRAILER_PRESTART_FORM_TITLE,
@@ -665,7 +666,7 @@ export function DriverGuideArticle() {
             ],
             [
               LOAD_FORM_TITLE,
-              `Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Pick the prime mover and every trailer/dolly from the fleet list (or type a plate). Open from Load check on the Other work hub, or ${DRIVER_FORMS_SECTION_LABEL}. Add another for the next load. Loader CoR is separate (no proxy)`,
+              `Six-column WAHVA day row: Permits, Dimensions, Load security, Stability / rollover risk, Vehicle suitability, Dunnage / friction. One signed form per load. Pick the prime mover and every trailer/dolly from the fleet list (or type a plate). Ticks Dimension & load on the week PDF. Open from Load check on the Other work hub, or ${DRIVER_FORMS_SECTION_LABEL}. Add another for the next load. Loader CoR is separate (no proxy)`,
             ],
             [
               HOOKUP_FORM_TITLE,
@@ -673,11 +674,11 @@ export function DriverGuideArticle() {
             ],
             [
               FAULT_REPORT_FORM_TITLE,
-              "Signed WAHVA fault record. Fault level: Ok to drive / Drive with restriction / Out of service. A Fault tick on pre-departure does not replace this form. Listed below the Forms ticks with no checkbox. Not a week-PDF tick. Add another for the next fault",
+              "Signed WAHVA fault record. Fault level: Ok to drive / Drive with restriction / Out of service. Pick the plant plate from the fleet list (or type a plate). A Fault tick on pre-departure does not replace this form. Listed below the Forms ticks with no checkbox. Not a week-PDF tick. Add another for the next fault",
             ],
             [
               DRIVER_FORMS_SECTION_LABEL,
-              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. If the day’s plate is a Prime mover, ${HOOKUP_FORM_TITLE} is highlighted (${HOOKUP_PRIME_MOVER_REMINDER_LABEL}) — ${HOOKUP_PRIME_MOVER_REMINDER_HINT} Week-PDF ticks: Fitness for work, Daily vehicle checklist, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick`,
+              `Day-card list of signed forms (was Daily checks). Fitness for Work is required before Start shift. Other forms stay optional. Pick plates from the fleet list (same as Set up day), or type a plate if it is not listed. If the day’s plate is a Prime mover, ${HOOKUP_FORM_TITLE} is highlighted (${HOOKUP_PRIME_MOVER_REMINDER_LABEL}) — ${HOOKUP_PRIME_MOVER_REMINDER_HINT} Week-PDF ticks: Fitness for work, Daily vehicle checklist, Dimension & load, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${HOOKUP_FORM_TITLE}. ${FAULT_REPORT_FORM_TITLE} sits below the line with no tick`,
             ],
             ["Week", "Sunday–Saturday slice of your record"],
             ["Sign", "You attest the week is correct"],

@@ -238,8 +238,9 @@ export function TestDeskPanel({
               GPS movement trail (addon)
             </h2>
             <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-              Optional. When on, drivers sample movement between logs (stationary waits skipped) and Event Tracker
-              can draw sky trails. When off, no trail sampling and no movement lock on Work / Break.
+              Optional. When on, drivers sample movement between logs (stationary waits skipped) and Work / Break
+              lock while moving. Event Tracker shows event markers only — no trail lines. When off, no trail sampling
+              and no movement lock on Work / Break.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/50">
@@ -258,7 +259,7 @@ export function TestDeskPanel({
                     {gpsTrailOn == null
                       ? "Loading…"
                       : gpsTrailOn
-                        ? "On — drivers may sample trails; map shows them when stored."
+                        ? "On — drivers may sample movement; Work / Break lock while moving. Event Tracker stays markers only."
                         : "Off — default for organisations that do not use this addon."}
                   </span>
                 </span>

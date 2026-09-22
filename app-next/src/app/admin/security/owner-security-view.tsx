@@ -251,7 +251,7 @@ export function OwnerSecurityView({
           ) : policy ? (
             <PolicyToggle
               label="GPS movement trail"
-              description="Optional. Drivers sample movement between logs for Event Tracker trails, and Work / Break lock while moving. Same control as Test desk — leave off if your organisation does not use this addon."
+              description="Optional. Drivers sample movement between logs, and Work / Break lock while moving. Event Tracker shows event markers only — no trail lines. Same control as Test desk — leave off if your organisation does not use this addon."
               checked={policy.gpsMovementTrailEnabled}
               disabled={policyMutation.isPending}
               onChange={(gpsMovementTrailEnabled) => policyMutation.mutate({ gpsMovementTrailEnabled })}

@@ -13,7 +13,7 @@ export const CHECKLIST_EMAIL_BUTTON_LABEL = "Email checklist PDFs";
 export const CHECKLIST_EMAIL_SETTINGS_LABEL = "Checklist PDF pack emails";
 
 export const CHECKLIST_EMAIL_SETTINGS_HINT =
-  "Fleet addresses for Fitness for Work, pre-departure, Load check, Hook up, and Fault report PDF packs. Set on Enterprise (Owner console). One PDF per signed log, dated week ending. Not the 28-day fatigue roadside PDF. Not the workshop fault addresses.";
+  "Fleet addresses for Fitness for Work, Prime Mover / Rigid, Trailer, and Forklift pre-departure, Load check, Hook up, and Fault report PDF packs. Set on Enterprise (Owner console). One PDF per signed log, dated week ending. Not the 28-day fatigue roadside PDF. Not the workshop fault addresses.";
 
 export const CHECKLIST_EMAIL_MISSING_MESSAGE =
   "Set the checklist PDF pack email on Enterprise (Owner console).";

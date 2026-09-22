@@ -34,7 +34,7 @@ export function ManagerGuideArticle() {
         │
         ├── Drivers (roster)
         ├── Managers (accounts)
-        ├── Records (week: fatigue / FFW / prime mover / trailer / forklift / load)
+        ├── Records (week: fatigue / FFW / prime mover / trailer / forklift / load / hook-up / fault)
         ├── Rego (vehicles)
         └── Test desk (inject test alerts)`}
         </GuideDiagram>
@@ -45,7 +45,8 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{MANAGER_EXPERIENCE.NAV_MAP}</strong> —{" "}
-            {MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE}
+            {MANAGER_EXPERIENCE.MAP_PAGE_SUBTITLE} The GPS movement trail addon does not draw lines
+            here; it is for Work / Break lock while moving.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Drivers</strong> — roster, licence number,
@@ -82,7 +83,7 @@ export function ManagerGuideArticle() {
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Owner console</strong> — owners set the
             operator name printed as OPERATOR on weekly trip sheet PDFs (one name for the fleet, not on Drive
-            home), {CHECKLIST_EMAIL_SETTINGS_LABEL} (pack plus two spares — Fitness for Work / vehicle / load / hook-up / fault
+            home), {CHECKLIST_EMAIL_SETTINGS_LABEL} (pack plus two spares — Fitness for Work / vehicle / trailer / forklift / load / hook-up / fault
             report week packs — one sheet per signed log, dated week ending), and workshop email plus two spare
             addresses for immediate vehicle fault emails
           </li>

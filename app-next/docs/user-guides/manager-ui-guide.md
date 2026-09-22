@@ -41,9 +41,9 @@ flowchart TB
 | Route | Function |
 |-------|----------|
 | **Risk brief** (`/manager`) | Weekly fleet view, tiers, register, workbench |
-| **Event Tracker** | Logged events with location on a map for assurance |
+| **Event Tracker** | Logged events with location — markers only, no lines joining events |
 | **Conversations** | Manager–driver messaging |
-| **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
+| **Drivers** | Roster, login email, licence number, licence expiry, Commercial Driver Medical expiry (all required; dates **dd/mm/yyyy**), passwords (managers can set temporary passwords; drivers can also use **Forgot password?** on sign-in) |
 | **Managers** | Create other manager accounts |
 | **Records** (`/manager/records`) | Roster drivers on the left; pick a **week by date** (previous weeks first). Under that week, separate subjects: **Fatigue sheet**, **Fitness for work record**, **Prime Mover / Rigid Pre-departure Checklist**, **Trailer Pre-departure Checklist**, **Forklift Prestart**, **Load checks**, **Hook ups**, **Fault reports**. Each has **View week record** and **Export PDF**. Fatigue view opens the sheet; checklist view opens that week’s signed forms of that type only (read only). Export PDF is the Weekly Trip Sheet for fatigue, or that type’s checklist PDFs for the others (disabled when that week has none). Checklist PDFs are **one sheet per signed log**, dated **week ending** (not signed time). Fitness for Work is named per driver; vehicle and load checks per vehicle rego; hook-up per driver and rego. Types are never combined. For managers and WAHVA auditors. |
 | **Rego** | Vehicle catalogue: plate, **Type** (Prime mover / Rigid / Van / Trailer / Other), **GVM (t)** and **GCM (t)** on powered units, **ATM (t)** on trailers, **Tare (t)** on every unit, **Number of axles**, and **WAHVA Accredited** (RAV permit vehicle). Required when adding or editing a rego. Drivers pick the plate on Set up day and on each form (filtered by type — Type a plate if it is not listed); the masses that apply show next to the plate on the day sheet for load check. A **Prime mover** plate highlights **Hook up** as a reminder (not required). |
@@ -172,7 +172,7 @@ Add-driver form uses a **three-column desktop grid**; stacks on narrow screens.
 
 ## 7. Event Tracker
 
-Geographic view of logged work, breaks, and shift ends that have a location. Filter by **week**, **day**, and **driver**. Markers only — no lines joining events. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
+Geographic view of logged work, breaks, and shift ends that have a location. Filter by **week**, **day**, and **driver**. Markers only — no lines joining events. The GPS movement trail addon does not draw lines here; it is for Work / Break lock while moving. Use for **corroboration** conversations — absence of a location is a record-quality signal, not proof of misconduct by itself.
 
 ---
 
