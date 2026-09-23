@@ -5,12 +5,7 @@ import { proxyTestIncidentRequest } from "@/lib/test-incident-client";
 export async function POST(request: Request) {
   try {
     await requireOwnerId();
-    const res = await proxyTestIncidentRequest(request, "/purge");
-    const body = await res.text();
-    return new Response(body, {
-      status: res.status,
-      headers: { "Content-Type": "application/json" },
-    });
+    return await proxyTestIncidentRequest(request, "/purge");
   } catch (error) {
     return apiErrorResponse(error);
   }

@@ -10,7 +10,7 @@ End-to-end drills for **Manager Live alerts** and **Command triage** (events, so
 | **app-next** | `TEST_INCIDENT_INTERNAL_SECRET` | Shared secret (`openssl rand -base64 32`) |
 | **app-next** | `COMMAND_APP_URL` | `https://command.circadia24.com` (for background push dispatch) |
 | **circadia-command** | `TEST_INCIDENT_INTERNAL_SECRET` | Same secret |
-| **circadia-command** | `APP_NEXT_URL` | `https://www.circadia24.com` |
+| **circadia-command** | `APP_NEXT_URL` | `https://enterprise.circadia24.com` — Circadia host only (never `*.vercel.app`). Must serve `/api/*`. |
 | **circadia-command** | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | `npx web-push generate-vapid-keys` |
 | **circadia-command** | `VAPID_SUBJECT` | `mailto:command@circadia24.com` |
 
@@ -50,17 +50,17 @@ Apply SQL migration `011_operator_push_subscriptions.sql` on shared Neon (`npm r
 ```bash
 # Status
 curl -sS -H "x-test-incident-secret: $SECRET" \
-  https://www.circadia24.com/api/internal/test-incident
+  https://enterprise.circadia24.com/api/internal/test-incident
 
 # Inject fatigue
 curl -sS -X POST -H "Content-Type: application/json" \
   -H "x-test-incident-secret: $SECRET" \
   -d '{"kind":"fatigue"}' \
-  https://www.circadia24.com/api/internal/test-incident
+  https://enterprise.circadia24.com/api/internal/test-incident
 
 # Purge
 curl -sS -X POST -H "x-test-incident-secret: $SECRET" \
-  https://www.circadia24.com/api/internal/test-incident/purge
+  https://enterprise.circadia24.com/api/internal/test-incident/purge
 ```
 
 Command owners can call the same routes on `command.circadia24.com` (server proxies to app-next).

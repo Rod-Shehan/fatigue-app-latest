@@ -9,6 +9,7 @@ import {
   commandOutlineButton,
   commandPrimaryButton,
 } from "@/components/command/command-styles";
+import { ENTERPRISE_APP_URL } from "@/lib/test-incident-client";
 import { cn } from "@/lib/utils";
 
 type DeskStatus = {
@@ -31,9 +32,9 @@ export function CommandTestDeskPanel() {
     setError(null);
     try {
       const res = await fetch(apiBase, { credentials: "same-origin" });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message ?? "Could not load test desk status");
-      setStatus(body);
+      const body = await readJsonBody(res);
+      if (!res.ok) throw new Error(String(body.message ?? "Could not load test desk status"));
+      setStatus(body as DeskStatus);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not load status");
       setStatus(null);
@@ -56,9 +57,9 @@ export function CommandTestDeskPanel() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kind }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message ?? "Inject failed");
-      setLastMessage(body.message ?? "Injected");
+      const body = await readJsonBody(res);
+      if (!res.ok) throw new Error(String(body.message ?? "Inject failed"));
+      setLastMessage(String(body.message ?? "Injected"));
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Inject failed");
@@ -73,9 +74,9 @@ export function CommandTestDeskPanel() {
     setError(null);
     try {
       const res = await fetch(`${apiBase}/purge`, { method: "POST", credentials: "same-origin" });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message ?? "Purge failed");
-      setLastMessage(body.message ?? "Purged");
+      const body = await readJsonBody(res);
+      if (!res.ok) throw new Error(String(body.message ?? "Purge failed"));
+      setLastMessage(String(body.message ?? "Purged"));
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Purge failed");
@@ -167,7 +168,7 @@ export function CommandTestDeskPanel() {
           </li>
           <li>
             <a
-              href="https://www.circadia24.com/manager/alerts"
+              href={`${ENTERPRISE_APP_URL}/manager/alerts`}
               className={commandLinkAction}
               target="_blank"
               rel="noreferrer"
@@ -181,6 +182,16 @@ export function CommandTestDeskPanel() {
       </div>
     </div>
   );
+}
+
+async function readJsonBody(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    const snippet = text.trim().slice(0, 160).replace(/\s+/g, " ");
+    throw new Error(snippet || `Unexpected response (${res.status})`);
+  }
 }
 
 function Stat({ label, value, ok }: { label: string; value: string; ok?: boolean }) {

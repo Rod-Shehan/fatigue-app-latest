@@ -20,7 +20,7 @@ Production URL: **https://command.circadia24.com** (Vercel alias: https://circad
 | `COMMAND_OPERATOR_IP_WHITELIST` | Office IPs (comma-separated), optional |
 | `COMMAND_ALLOW_SIMULATE` | `false` in production |
 | `TEST_INCIDENT_INTERNAL_SECRET` | Shared with app-next — enables owner **Test desk** |
-| `APP_NEXT_URL` | `https://www.circadia24.com` |
+| `APP_NEXT_URL` | `https://enterprise.circadia24.com` (Circadia host only — never `*.vercel.app`) |
 
 See [TEST_DESK.md](./TEST_DESK.md) for live drill setup (also set `TEST_INCIDENTS_ENABLED=true` on **app-next**).
 
