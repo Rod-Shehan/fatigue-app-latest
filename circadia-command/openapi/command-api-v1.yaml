@@ -132,7 +132,7 @@ paths:
 
   /admin/operators/{operatorId}:
     patch:
-      summary: Update operator password, role, or active flag
+      summary: Update operator username, email, display name, password, role, or active flag
       parameters:
         - name: operatorId
           in: path

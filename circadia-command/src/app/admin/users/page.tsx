@@ -41,6 +41,12 @@ export default function AdminUsersPage() {
   const [resetId, setResetId] = useState<string | null>(null);
   const [resetPassword, setResetPassword] = useState("");
 
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editUsername, setEditUsername] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editFullName, setEditFullName] = useState("");
+  const [editRole, setEditRole] = useState<"command_operator" | "command_owner">("command_operator");
+
   const load = useCallback(async () => {
     setError(null);
     const meRes = await fetch("/api/auth/me", { credentials: "same-origin" });
@@ -85,6 +91,42 @@ export default function AdminUsersPage() {
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Create failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openEdit = (operator: OperatorRow) => {
+    setResetId(null);
+    setResetPassword("");
+    setEditId(operator.operator_id);
+    setEditUsername(operator.username ?? "");
+    setEditEmail(operator.email ?? "");
+    setEditFullName(operator.full_name);
+    setEditRole(operator.role === "command_owner" ? "command_owner" : "command_operator");
+  };
+
+  const saveEdit = async (operatorId: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/admin/operators/${operatorId}`, {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: editUsername,
+          email: editEmail,
+          full_name: editFullName,
+          role: editRole,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.message ?? "Could not update user");
+      setEditId(null);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Update failed");
     } finally {
       setBusy(false);
     }
@@ -152,7 +194,7 @@ export default function AdminUsersPage() {
         backLabel="Live triage"
         backText="Triage"
         title="Command users"
-        subtitle="Owner console · create usernames and passwords"
+        subtitle="Owner console · create, edit, and reset users"
         icon={<UserCog className="h-5 w-5" strokeWidth={2} aria-hidden />}
         actions={
           <CommandHeaderActions
@@ -236,7 +278,16 @@ export default function AdminUsersPage() {
                     <button
                       type="button"
                       disabled={busy}
+                      onClick={() => openEdit(op)}
+                      className={`${commandLinkAction} disabled:opacity-50`}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
                       onClick={() => {
+                        setEditId(null);
                         setResetId(op.operator_id);
                         setResetPassword("");
                       }}
@@ -254,6 +305,71 @@ export default function AdminUsersPage() {
                     </button>
                   </div>
                 </div>
+                {editId === op.operator_id && (
+                  <form
+                    className="mt-3 space-y-3 border-t border-slate-700/80 pt-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      void saveEdit(op.operator_id);
+                    }}
+                  >
+                    <label className={commandLabel}>
+                      Username
+                      <input
+                        required
+                        value={editUsername}
+                        onChange={(e) => setEditUsername(e.target.value)}
+                        className={commandInput}
+                        autoComplete="off"
+                      />
+                    </label>
+                    <label className={commandLabel}>
+                      Email
+                      <input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        className={commandInput}
+                        placeholder="optional"
+                        autoComplete="off"
+                      />
+                    </label>
+                    <label className={commandLabel}>
+                      Display name
+                      <input
+                        required
+                        value={editFullName}
+                        onChange={(e) => setEditFullName(e.target.value)}
+                        className={commandInput}
+                      />
+                    </label>
+                    <label className={commandLabel}>
+                      Role
+                      <select
+                        value={editRole}
+                        onChange={(e) =>
+                          setEditRole(e.target.value as "command_operator" | "command_owner")
+                        }
+                        className={commandInput}
+                      >
+                        <option value="command_operator">Operator (triage only)</option>
+                        <option value="command_owner">Owner (triage + manage users)</option>
+                      </select>
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="submit" disabled={busy} className={`${commandPrimaryButton} px-3 py-1.5 text-xs`}>
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditId(null)}
+                        className="text-xs text-slate-500 hover:text-slate-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
                 {resetId === op.operator_id && (
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-700/80 pt-3">
                     <input

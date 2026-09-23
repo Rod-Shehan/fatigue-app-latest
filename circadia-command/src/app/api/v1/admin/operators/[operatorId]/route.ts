@@ -1,5 +1,6 @@
 import { CommandApiError, apiErrorResponse } from "@/lib/errors";
 import { isCommandRole, roleLabel } from "@/lib/auth/roles";
+import { parseEmailInput } from "@/lib/auth/email";
 import { hashOperatorPassword, parsePasswordInput } from "@/lib/auth/password";
 import { parseUsernameInput } from "@/lib/auth/username";
 import { requireOwnerId } from "@/lib/operator-context";
@@ -12,6 +13,8 @@ export async function PATCH(request: Request, { params }: Params) {
     const ownerId = await requireOwnerId();
     const { operatorId } = await params;
     const body = (await request.json()) as {
+      username?: string;
+      email?: string | null;
       full_name?: string;
       password?: string;
       role?: string;
@@ -26,12 +29,48 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     const data: {
+      username?: string;
+      email?: string | null;
       fullName?: string;
       role?: string;
       isActive?: boolean;
       passwordHash?: string;
       passwordSetAt?: Date;
     } = {};
+
+    if (body.username !== undefined) {
+      const usernameParsed = parseUsernameInput(body.username);
+      if (!usernameParsed.ok) {
+        throw new CommandApiError("ERR_MALFORMED_PAYLOAD", usernameParsed.error, 400);
+      }
+      if (usernameParsed.value !== target.username) {
+        const taken = await prisma.commandOperator.findUnique({
+          where: { username: usernameParsed.value },
+        });
+        if (taken && taken.operatorId !== operatorId) {
+          throw new CommandApiError("ERR_CONFLICT", "Username is already taken.", 409);
+        }
+        data.username = usernameParsed.value;
+      }
+    }
+
+    if (body.email !== undefined) {
+      const emailParsed = parseEmailInput(body.email);
+      if (!emailParsed.ok) {
+        throw new CommandApiError("ERR_MALFORMED_PAYLOAD", emailParsed.error, 400);
+      }
+      if (emailParsed.value !== (target.email?.trim().toLowerCase() ?? null)) {
+        if (emailParsed.value) {
+          const taken = await prisma.commandOperator.findUnique({
+            where: { email: emailParsed.value },
+          });
+          if (taken && taken.operatorId !== operatorId) {
+            throw new CommandApiError("ERR_CONFLICT", "Email is already taken.", 409);
+          }
+        }
+        data.email = emailParsed.value;
+      }
+    }
 
     if (body.full_name !== undefined) {
       const fullName = body.full_name.trim();

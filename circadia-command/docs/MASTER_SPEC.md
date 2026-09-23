@@ -90,7 +90,7 @@
 
 1. `POST /api/auth/login` — username + password → `command_session` cookie (4h, httpOnly)
 2. `GET /api/auth/me` — session check
-3. Owners bootstrap via `npm run bootstrap:owner`; further users created at `/admin/users`
+3. Owners bootstrap via `npm run bootstrap:owner`; further users created and edited at `/admin/users`
 
 ### JWT claims
 
