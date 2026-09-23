@@ -1,20 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { FlaskConical, LogOut, Map, Moon, MoreVertical, Sun, Users } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { FlaskConical, LogOut, Map, Moon, MoreVertical, Radio, Sun, Users } from "lucide-react";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import {
   buildDeskStatusLabels,
   CommandDeskStatusPanel,
 } from "@/components/command/CommandDeskStatusPanel";
-import {
-  commandNavLinkGhost,
-  commandOutlineButton,
-  commandTextMuted,
-} from "@/components/command/command-styles";
+import { CommandMenuNavLink, CommandNavLink } from "@/components/command/CommandNavLink";
+import { commandOutlineButton, commandTextMuted } from "@/components/command/command-styles";
 import { CommandThemeToggle } from "@/components/theme/command-theme-toggle";
+import { commandNavIdFromPath } from "@/lib/command-nav";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -87,22 +85,27 @@ function SseStatus({ connected, compact = false }: { connected: boolean; compact
 }
 
 function DesktopNav({ isOwner, onSignOut }: Pick<Props, "isOwner" | "onSignOut">) {
+  const current = commandNavIdFromPath(usePathname());
   return (
     <>
-      <Link href="/tracking" className={commandNavLinkGhost}>
+      <CommandNavLink href="/triage" active={current === "triage"}>
+        <Radio className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        Triage
+      </CommandNavLink>
+      <CommandNavLink href="/tracking" active={current === "tracking"}>
         <Map className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
         Event Tracker
-      </Link>
+      </CommandNavLink>
       {isOwner ? (
         <>
-          <Link href="/admin/users" className={commandNavLinkGhost}>
+          <CommandNavLink href="/admin/users" active={current === "users"}>
             <Users className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
             Users
-          </Link>
-          <Link href="/admin/test-desk" className={commandNavLinkGhost}>
+          </CommandNavLink>
+          <CommandNavLink href="/admin/test-desk" active={current === "test-desk"}>
             <FlaskConical className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
             Test desk
-          </Link>
+          </CommandNavLink>
         </>
       ) : null}
       <button type="button" onClick={onSignOut} className={commandOutlineButton}>
@@ -189,6 +192,7 @@ function BellIcon() {
 
 function MobileOverflowMenu(props: Props) {
   const { isOwner, onSignOut } = props;
+  const current = commandNavIdFromPath(usePathname());
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const status = buildDeskStatusLabels({
@@ -230,35 +234,28 @@ function MobileOverflowMenu(props: Props) {
           className="absolute right-0 top-full z-50 mt-1 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900"
         >
           <CommandDeskStatusPanel {...status} />
-          <Link
-            href="/tracking"
-            role="menuitem"
-            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-            onClick={() => setOpen(false)}
-          >
+          <CommandMenuNavLink href="/triage" active={current === "triage"} onClick={() => setOpen(false)}>
+            <Radio className="h-4 w-4 opacity-90" aria-hidden />
+            Triage
+          </CommandMenuNavLink>
+          <CommandMenuNavLink href="/tracking" active={current === "tracking"} onClick={() => setOpen(false)}>
             <Map className="h-4 w-4 opacity-90" aria-hidden />
             Event Tracker
-          </Link>
+          </CommandMenuNavLink>
           {isOwner ? (
             <>
-              <Link
-                href="/admin/users"
-                role="menuitem"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                onClick={() => setOpen(false)}
-              >
+              <CommandMenuNavLink href="/admin/users" active={current === "users"} onClick={() => setOpen(false)}>
                 <Users className="h-4 w-4 opacity-90" aria-hidden />
                 Users
-              </Link>
-              <Link
+              </CommandMenuNavLink>
+              <CommandMenuNavLink
                 href="/admin/test-desk"
-                role="menuitem"
-                className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                active={current === "test-desk"}
                 onClick={() => setOpen(false)}
               >
                 <FlaskConical className="h-4 w-4 opacity-90" aria-hidden />
                 Test desk
-              </Link>
+              </CommandMenuNavLink>
             </>
           ) : null}
           <OverflowExtras {...props} />

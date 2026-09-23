@@ -56,7 +56,6 @@ export default function TrackingPage() {
             onSignOut={() => void signOut()}
             showUsersLink={isOwner}
             showTestDeskLink={isOwner}
-            trackingActive
           />
         }
       />

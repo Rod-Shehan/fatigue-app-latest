@@ -56,7 +56,6 @@ export default function AdminTestDeskPage() {
             onSignOut={() => void signOut()}
             showUsersLink
             showTestDeskLink
-            testDeskActive
           />
         }
       />
