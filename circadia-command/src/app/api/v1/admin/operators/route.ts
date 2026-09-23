@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 function serializeOperator(row: {
   operatorId: string;
   username: string | null;
+  email: string | null;
   fullName: string;
   role: string;
   isActive: boolean;
@@ -17,6 +18,7 @@ function serializeOperator(row: {
   return {
     operator_id: row.operatorId,
     username: row.username,
+    email: row.email,
     full_name: row.fullName,
     role: row.role,
     role_label: isCommandRole(row.role) ? roleLabel(row.role) : row.role,
@@ -34,6 +36,7 @@ export async function GET() {
       select: {
         operatorId: true,
         username: true,
+        email: true,
         fullName: true,
         role: true,
         isActive: true,
@@ -96,6 +99,7 @@ export async function POST(request: Request) {
       select: {
         operatorId: true,
         username: true,
+        email: true,
         fullName: true,
         role: true,
         isActive: true,

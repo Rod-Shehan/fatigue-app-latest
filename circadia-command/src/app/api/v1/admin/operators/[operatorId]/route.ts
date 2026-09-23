@@ -85,6 +85,7 @@ export async function PATCH(request: Request, { params }: Params) {
       select: {
         operatorId: true,
         username: true,
+        email: true,
         fullName: true,
         role: true,
         isActive: true,
@@ -97,6 +98,7 @@ export async function PATCH(request: Request, { params }: Params) {
       operator: {
         operator_id: operator.operatorId,
         username: operator.username,
+        email: operator.email,
         full_name: operator.fullName,
         role: operator.role,
         role_label: isCommandRole(operator.role) ? roleLabel(operator.role) : operator.role,

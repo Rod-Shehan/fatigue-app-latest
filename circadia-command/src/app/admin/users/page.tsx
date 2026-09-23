@@ -19,6 +19,7 @@ import {
 type OperatorRow = {
   operator_id: string;
   username: string | null;
+  email: string | null;
   full_name: string;
   role: string;
   role_label: string;
@@ -225,6 +226,7 @@ export default function AdminUsersPage() {
                       {op.username ?? "—"}{" "}
                       <span className="text-xs font-normal text-slate-500">· {op.full_name}</span>
                     </p>
+                    <p className="text-xs text-slate-300">{op.email?.trim() || "No email"}</p>
                     <p className="text-xs text-slate-400">
                       {op.role_label}
                       {!op.is_active ? " · inactive" : ""}
