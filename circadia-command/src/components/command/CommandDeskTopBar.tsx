@@ -10,7 +10,7 @@ import {
   CommandDeskStatusPanel,
 } from "@/components/command/CommandDeskStatusPanel";
 import { CommandMenuNavLink, CommandNavLink } from "@/components/command/CommandNavLink";
-import { commandOutlineButton, commandTextMuted } from "@/components/command/command-styles";
+import { commandOutlineButton, commandTextMuted, commandTextPrimary } from "@/components/command/command-styles";
 import { CommandThemeToggle } from "@/components/theme/command-theme-toggle";
 import { commandNavIdFromPath } from "@/lib/command-nav";
 import { cn } from "@/lib/utils";
@@ -325,9 +325,14 @@ export function CommandDeskTopBar(props: Props) {
 
       <header className="mb-6 hidden md:block">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <CircadiaLogo variant="full" href={null} priority />
-            <p className={cn("mt-1 truncate text-sm", commandTextMuted)}>{subtitle}</p>
+          <div className="flex min-w-0 items-start gap-3">
+            <CircadiaLogo variant="icon" size={36} className="shrink-0" href={null} priority />
+            <div className="min-w-0">
+              <h1 className={cn("truncate text-lg font-bold tracking-tight md:text-xl", commandTextPrimary)}>
+                Triage
+              </h1>
+              <p className={cn("mt-0.5 truncate text-sm", commandTextMuted)}>{subtitle}</p>
+            </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
             <SseStatus connected={sseConnected} />
