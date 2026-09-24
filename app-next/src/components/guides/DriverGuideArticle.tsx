@@ -29,6 +29,7 @@ import {
   DRIVER_FORMS_SECTION_LABEL,
   DRIVER_LOAD_CHECK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
+  SHIFT_LOG_BUTTON_LABEL,
   DRIVER_REST_WINDOW_HEADLINE,
   formatDriverShiftStillOpen,
 } from "@/lib/product-copy";
@@ -533,8 +534,8 @@ export function DriverGuideArticle() {
         <ul className={ulClass}>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Day tools</strong> (clipboard icon) — week summary,
-            last 24-hour break, Compliance, checklist PDFs, Roadside, records to sign, and Settings. Forms stay on
-            the day card, not in this menu.
+            last 24-hour break, {SHIFT_LOG_BUTTON_LABEL}, Compliance, checklist PDFs, Roadside, records to sign, and
+            Settings. Forms stay on the day card, not in this menu.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Compliance</strong> — if a rule is not met, an amber
@@ -551,8 +552,9 @@ export function DriverGuideArticle() {
             the ring countdown only — amber at 45 minutes left, red at 15 minutes. It is not repeated as a banner.
           </li>
           <li>
-            <strong className="text-slate-700 dark:text-slate-200">Shift log</strong> — a list of every event on your
-            record (in the app). It is not in Export PDF or the 28-day roadside PDF.
+            <strong className="text-slate-700 dark:text-slate-200">{SHIFT_LOG_BUTTON_LABEL}</strong> — on Day tools,
+            above Compliance. A list of every event on your record (in the app). It is not in Export PDF or the
+            28-day roadside PDF. It is not in Settings.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Export PDF</strong> — this week&apos;s Weekly Trip

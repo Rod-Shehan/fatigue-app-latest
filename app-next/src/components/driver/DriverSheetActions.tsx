@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { driverActionBtn, driverToolbarBtn } from "@/components/driver/driver-ui-classes";
+import { SHIFT_LOG_BUTTON_LABEL } from "@/lib/product-copy";
 
 const stackedBtn = driverActionBtn;
 
@@ -95,24 +96,13 @@ export function DriverSheetActions({
           Export PDF
         </Button>
       )}
-      {stacked ? (
-        <Link
-          href={`/sheets/${sheetId}/shift-log`}
-          className={cn(
-            "inline-flex items-center border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800 active:bg-slate-100 dark:active:bg-slate-700",
-            stackedBtn
-          )}
-        >
-          <ScrollText className={cn(iconSize, "shrink-0")} />
-          Shift log
-        </Link>
-      ) : (
+      {!stacked && (
         <Link
           href={`/sheets/${sheetId}/shift-log`}
           className={cn(driverToolbarBtn, "gap-1.5 text-xs")}
         >
           <ScrollText className="w-3.5 h-3.5 shrink-0" />
-          Shift log
+          {SHIFT_LOG_BUTTON_LABEL}
         </Link>
       )}
     </div>

@@ -133,6 +133,8 @@ export const CURRENT_WEEK_SIGN_UNAVAILABLE_HINT =
   "Sign unlocks after this week ends — from the following Sunday. Use Start shift and Set up day while the week is open.";
 
 /** Sunday current-week card — open prior week Saturday Edit day across the week seam (pre-sign fix). */
+export const SHIFT_LOG_BUTTON_LABEL = "Shift log";
+
 export const EDIT_PREVIOUS_WEEK_BUTTON_LABEL = "Edit previous week";
 export const EDIT_PREVIOUS_WEEK_BUTTON_TITLE =
   "Fix last week's final shift before you sign — opens Saturday Edit day";

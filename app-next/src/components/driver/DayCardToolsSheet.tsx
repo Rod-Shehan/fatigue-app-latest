@@ -8,11 +8,13 @@ import {
   FileSignature,
   Loader2,
   Mail,
+  ScrollText,
   Settings,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { driverDrawerRow, driverSectionLabel, driverIconBtn } from "@/components/driver/driver-ui-classes";
+import { SHIFT_LOG_BUTTON_LABEL } from "@/lib/product-copy";
 import { DriverRoadsideProduceButton } from "@/components/driver/DriverRoadsideProduceButton";
 import { formatSheetDisplayDate } from "@/lib/weeks";
 import { DECLARED_24H_REST_COPY } from "@/lib/declared-24h-rests";
@@ -193,6 +195,24 @@ export function DayCardToolsSheet({
                 </p>
               ) : null}
             </div>
+          </section>
+
+          <section>
+            <h3 className={driverSectionLabel}>{SHIFT_LOG_BUTTON_LABEL}</h3>
+            <Link
+              href={`/sheets/${sheetId}/shift-log`}
+              onClick={() => onOpenChange(false)}
+              className={driverDrawerRow}
+            >
+              <ScrollText className="w-5 h-5 shrink-0 text-slate-500" aria-hidden />
+              <span className="flex-1 text-left">
+                <span className="block font-semibold">{SHIFT_LOG_BUTTON_LABEL}</span>
+                <span className="block text-xs text-slate-500 dark:text-slate-400">
+                  Every event on this week&apos;s record
+                </span>
+              </span>
+              <ChevronRight className="w-5 h-5 shrink-0 text-slate-400" aria-hidden />
+            </Link>
           </section>
 
           <section>
