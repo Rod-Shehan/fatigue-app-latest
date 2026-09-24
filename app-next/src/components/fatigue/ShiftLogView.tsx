@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { Briefcase, Coffee, Moon, Square, MapPin, Wrench, BedDouble, User, ParkingCircle, Loader2 } from "lucide-react";
-import { ACTIVITY_THEME, type ActivityKey } from "@/lib/theme";
+import { ACTIVITY_THEME, shiftLogTypeHeroChrome, type ActivityKey } from "@/lib/theme";
 import { getSheetDayDateString, getTodayLocalDateString } from "@/lib/weeks";
 import { PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
 import {
@@ -268,17 +268,34 @@ export default function ShiftLogView({
                             }}
                           >
                             <SelectTrigger
-                              className="h-11 min-w-[8.5rem] text-xs font-semibold"
+                              className={cn(
+                                "h-11 min-w-[8.5rem] border-0 bg-transparent dark:bg-transparent text-xs font-semibold shadow-sm [&_svg]:opacity-90",
+                                shiftLogTypeHeroChrome(r.type).trigger
+                              )}
                               aria-label={`Type for event at ${isoToHHMM(r.eventTime)}`}
                             >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {typeOptionsForEvent(r.type, isTwoUp).map((t) => (
-                                <SelectItem key={t} value={t} className="text-sm font-medium">
-                                  {eventTypeLabel(t)}
-                                </SelectItem>
-                              ))}
+                              {typeOptionsForEvent(r.type, isTwoUp).map((t) => {
+                                const optionCfg = EVENT_CONFIG[t];
+                                const OptionIcon = optionCfg?.icon ?? Square;
+                                return (
+                                  <SelectItem
+                                    key={t}
+                                    value={t}
+                                    className={cn(
+                                      "my-0.5 text-sm font-semibold data-[highlighted]:brightness-95",
+                                      shiftLogTypeHeroChrome(t).item
+                                    )}
+                                  >
+                                    <span className="inline-flex items-center gap-1.5">
+                                      <OptionIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                                      {eventTypeLabel(t)}
+                                    </span>
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                         ) : (

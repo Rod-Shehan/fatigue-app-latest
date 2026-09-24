@@ -125,3 +125,40 @@ export const HERO_SPLIT_CHROME = {
     pip: "bg-blue-200",
   },
 } as const;
+
+const SHIFT_LOG_STOP_CHROME = {
+  half: "driver-puck-face driver-puck-red",
+  text: "text-white",
+} as const;
+
+/** Shift-log type dropdown — same puck hues as the hero buttons. */
+export function shiftLogTypeHeroChrome(type: string): { trigger: string; item: string } {
+  const hero =
+    type === "stop"
+      ? SHIFT_LOG_STOP_CHROME
+      : type === "stationary_rest"
+        ? HERO_SPLIT_CHROME.parked
+        : type === "non_work"
+          ? HERO_SPLIT_CHROME.sleeper_berth
+          : type in HERO_SPLIT_CHROME
+            ? HERO_SPLIT_CHROME[type as keyof typeof HERO_SPLIT_CHROME]
+            : HERO_SPLIT_CHROME.work;
+  const itemKey: ActivityKey =
+    type === "passenger"
+      ? "other_work"
+      : type === "sleeper_berth" || type === "stationary_rest"
+        ? "non_work"
+        : type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop"
+          ? type
+          : "stop";
+  const slateItem =
+    "bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-100";
+  const item =
+    type === "other_work" || type === "passenger" || type === "stationary_rest"
+      ? slateItem
+      : ACTIVITY_THEME[itemKey].badge;
+  return {
+    trigger: `${hero.half} ${hero.text}`,
+    item,
+  };
+}
