@@ -71,7 +71,7 @@ export const SHEETS_LIST_TAGLINE =
 /** Driver help: records, archives, and signing (plain language). */
 export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
   "The app opens on this week — use Start shift, Stop Driving, and End shift on today while the week is unsigned.",
-  "Past weeks that are still unsigned: open the week, expand a day, and fix route or times before you sign.",
+  "Past weeks that are still unsigned: open the week, expand a day, or use Shift log to change time and type, then sign.",
   "Your signature means you attest that week is your record. It is not the manager's signature.",
   "Sign a week only after it has ended (from the following Sunday) — not while you are still logging that week.",
   "After you sign, that week is locked. If something is wrong, your manager amends (with a reason on file); you review and sign again.",
@@ -81,7 +81,7 @@ export const DRIVER_HELP_RECORDS_SIGNING_BULLETS = [
 /** Bullets: how weeks appear to the driver in the UI. */
 export const USER_VISIBLE_SHEET_STATE_BULLETS = [
   "Current regulatory week — log Start shift / Stop Driving / End shift on today; edit any day until the week ends; sign from the following Sunday.",
-  "Unsigned past weeks — expand a day to fix route or times, then sign when correct.",
+  "Unsigned past weeks — expand a day to fix route or times, or use Shift log to change time and type, then sign when correct.",
   "Signed weeks — locked for you; manager edits need your signature again.",
 ] as const;
 
@@ -134,6 +134,11 @@ export const CURRENT_WEEK_SIGN_UNAVAILABLE_HINT =
 
 /** Sunday current-week card — open prior week Saturday Edit day across the week seam (pre-sign fix). */
 export const SHIFT_LOG_BUTTON_LABEL = "Shift log";
+export const SHIFT_LOG_SAVE_LABEL = "Save changes";
+export const SHIFT_LOG_EDIT_HINT =
+  "Change time or type on any event, then Save. Locked after you sign this week.";
+export const SHIFT_LOG_LOCKED_HINT =
+  "This week is signed and locked. Time and type cannot be changed.";
 
 export const EDIT_PREVIOUS_WEEK_BUTTON_LABEL = "Edit previous week";
 export const EDIT_PREVIOUS_WEEK_BUTTON_TITLE =

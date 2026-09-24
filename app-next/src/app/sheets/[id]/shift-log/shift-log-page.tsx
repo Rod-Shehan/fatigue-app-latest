@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getSheetOfflineFirst } from "@/lib/offline-api";
+import React, { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getSheetOfflineFirst, updateSheetOfflineFirst } from "@/lib/offline-api";
 import { PageHeader } from "@/components/PageHeader";
 import { PRODUCT_NAME } from "@/lib/branding";
 import { useSession } from "next-auth/react";
@@ -11,13 +11,22 @@ import { isFleetManagerRole } from "@/lib/roles";
 import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
 import { FileText, Loader2 } from "lucide-react";
 import ShiftLogView from "@/components/fatigue/ShiftLogView";
+import { applyLast24hBreakNonWorkRule } from "@/components/fatigue/EventLogger";
+import { deriveDaysWithRollover } from "@/lib/event-rollover";
+import { canEditShiftLog, sortShiftLogDayEvents } from "@/lib/shift-log-edit";
+import { sheetIsUnsignedForDriver } from "@/lib/sheet-record";
+import { getRegulatoryTodayYmd } from "@/lib/weeks";
+import type { DayData } from "@/lib/api";
 
 const LAST_SHEET_KEY = "fatigue-last-sheet-id";
 
 export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
+  const queryClient = useQueryClient();
   const { data: session, status: sessionStatus } = useSession();
   const sessionRole = (session?.user as { role?: string | null } | undefined)?.role ?? null;
   const isManager = isFleetManagerRole(sessionRole);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   useEffect(() => {
     if (sheetId) {
       try {
@@ -94,7 +103,44 @@ export default function ShiftLogPage({ sheetId }: { sheetId: string }) {
           driverIdentity={driverIdentity}
           icon={<FileText className="w-5 h-5" />}
         />
-        <ShiftLogView days={days} weekStarting={weekStarting} />
+        <ShiftLogView
+          days={days}
+          weekStarting={weekStarting}
+          canEdit={canEditShiftLog({
+            isManager,
+            status: sheet.status,
+            signature: sheet.signature,
+            weekStarting,
+          })}
+          locked={!sheetIsUnsignedForDriver(sheet.status, sheet.signature)}
+          isTwoUp={
+            sheet.driver_type === "two_up" ||
+            days.some((d) => d.driver_type === "two_up")
+          }
+          saving={saving}
+          saveError={saveError}
+          onSave={async (nextDays: DayData[]) => {
+            setSaveError(null);
+            setSaving(true);
+            try {
+              const sorted = sortShiftLogDayEvents(nextDays);
+              const derived = applyLast24hBreakNonWorkRule(
+                deriveDaysWithRollover(sorted, weekStarting, {
+                  todayStr: getRegulatoryTodayYmd(sheet.jurisdiction_code),
+                }),
+                weekStarting,
+                sheet.last_24h_break || undefined
+              );
+              const saved = await updateSheetOfflineFirst(sheetId, { days: derived });
+              queryClient.setQueryData(["sheet", sheetId], saved);
+              await queryClient.invalidateQueries({ queryKey: ["sheet", sheetId] });
+            } catch (e) {
+              setSaveError(e instanceof Error ? e.message : "Could not save the shift log.");
+            } finally {
+              setSaving(false);
+            }
+          }}
+        />
       </div>
     </div>
   );

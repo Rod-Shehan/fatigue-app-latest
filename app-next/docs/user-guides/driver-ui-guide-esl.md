@@ -262,7 +262,7 @@ On the week sheet:
 - **Day tools** (clipboard icon) — week summary, last 24-hour break, **Shift log**, **Compliance**, checklist PDFs, **Roadside**, records to sign, and Settings. Forms stay on the day card, not in this menu.
 - **Compliance** — if a rule is not met, an amber banner on the week (and a red/amber notice on the log bar) shows the same wording as the office check, including which day and what was short. Tap it for the full snapshot.
 - **Upcoming** (above the ring on the live log bar) names **compliance issues after a breach**, plus **Rest window open** after End shift until 7 hours, or **Shift still open** if you may have forgotten End shift. Tap the chip for the labelled action (for example **Set up week record**). Tap **Details** under the chip for the full snapshot. The **5-hour break reminder** is the ring countdown only — it turns amber at 45 minutes left and red at 15 minutes. That reminder is not repeated as a banner.
-- **Shift log** — on Day tools, above Compliance. A list of every event on your record (in the app). It is **not** in Export PDF or the 28-day roadside PDF. It is not in Settings.
+- **Shift log** — on Day tools, above Compliance. A list of every event on your record (in the app). While the week is **unsigned**, you can change each event’s **time** and **type**, then **Save changes**. After you **sign**, it is locked. It is **not** in Export PDF or the 28-day roadside PDF. It is not in Settings.
 - **Export PDF** — this week's Weekly Trip Sheet only (same page as each roadside week). No Circadia header, compliance summary, or shift-log appendix.
 
 ---

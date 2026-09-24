@@ -56,14 +56,14 @@ const TYPE_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string }
   stop: Square,
 };
 
-function isoToHHMM(iso: string): string {
+export function isoToHHMM(iso: string): string {
   const d = new Date(iso);
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
 }
 
-function hhmmToIsoOnDate(dayYmd: string, hhmm: string): string {
+export function hhmmToIsoOnDate(dayYmd: string, hhmm: string): string {
   return new Date(`${dayYmd}T${hhmm}:00`).toISOString();
 }
 
@@ -90,7 +90,7 @@ const TWO_UP_LOGGED_TYPES = [
   STATIONARY_REST_EVENT_TYPE,
 ] as const;
 
-function eventTypeLabel(type: string): string {
+export function eventTypeLabel(type: string): string {
   if (type === PASSENGER_EVENT_TYPE) return DRIVER_PASSENGER_LABEL;
   if (type === SLEEPER_BERTH_EVENT_TYPE) return DRIVER_SLEEPER_BERTH_LABEL;
   if (type === STATIONARY_REST_EVENT_TYPE) return DRIVER_PARKED_LABEL;

@@ -30,6 +30,7 @@ import {
   DRIVER_LOAD_CHECK_LABEL,
   EDIT_PREVIOUS_WEEK_BUTTON_LABEL,
   SHIFT_LOG_BUTTON_LABEL,
+  SHIFT_LOG_SAVE_LABEL,
   DRIVER_REST_WINDOW_HEADLINE,
   formatDriverShiftStillOpen,
 } from "@/lib/product-copy";
@@ -553,8 +554,9 @@ export function DriverGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">{SHIFT_LOG_BUTTON_LABEL}</strong> — on Day tools,
-            above Compliance. A list of every event on your record (in the app). It is not in Export PDF or the
-            28-day roadside PDF. It is not in Settings.
+            above Compliance. A list of every event on your record (in the app). While the week is unsigned, change
+            time or type on an event, then {SHIFT_LOG_SAVE_LABEL}. After you sign, it is locked. It is not in Export
+            PDF or the 28-day roadside PDF. It is not in Settings.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Export PDF</strong> — this week&apos;s Weekly Trip
