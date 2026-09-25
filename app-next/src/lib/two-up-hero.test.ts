@@ -26,31 +26,31 @@ import {
 } from "./two-up-hero";
 
 describe("two-up-hero tiles", () => {
-  it("Stop Driving offers break from driving, Other work, Passenger, and Sleeper berth", () => {
+  it("Stop Driving leads with Passenger and Sleeper berth, then break and Other work", () => {
     const tiles = twoUpStopDrivingTiles();
     expect(tiles.map((t) => t.logType)).toEqual([
-      "break",
-      OTHER_WORK_EVENT_TYPE,
       PASSENGER_EVENT_TYPE,
       SLEEPER_BERTH_EVENT_TYPE,
+      "break",
+      OTHER_WORK_EVENT_TYPE,
     ]);
     expect(tiles.map((t) => t.label)).toEqual([
-      DRIVER_BREAK_FROM_DRIVING_LABEL,
-      DRIVER_START_OTHER_WORK_LABEL,
       DRIVER_PASSENGER_LABEL,
       DRIVER_SLEEPER_BERTH_LABEL,
+      DRIVER_BREAK_FROM_DRIVING_LABEL,
+      DRIVER_START_OTHER_WORK_LABEL,
     ]);
     expect(tiles.find((t) => t.logType === PASSENGER_EVENT_TYPE)?.unlockWhileMoving).toBe(true);
     expect(tiles.find((t) => t.logType === SLEEPER_BERTH_EVENT_TYPE)?.unlockWhileMoving).toBe(true);
     expect(tiles.some((t) => t.logType === STATIONARY_REST_EVENT_TYPE)).toBe(false);
   });
 
-  it("on sleeper berth: Start work → driving / Other work / Passenger / Parked — not End shift", () => {
+  it("on sleeper berth: Start work → driving / Passenger / Other work / Parked — not End shift", () => {
     const tiles = twoUpSleeperBerthTiles();
     expect(tiles.map((t) => t.logType)).toEqual([
       "work",
-      OTHER_WORK_EVENT_TYPE,
       PASSENGER_EVENT_TYPE,
+      OTHER_WORK_EVENT_TYPE,
       STATIONARY_REST_EVENT_TYPE,
     ]);
     expect(tiles.some((t) => t.logType === "stop")).toBe(false);
@@ -58,24 +58,24 @@ describe("two-up-hero tiles", () => {
     expect(tiles.find((t) => t.logType === STATIONARY_REST_EVENT_TYPE)?.unlockWhileMoving).toBe(false);
   });
 
-  it("on passenger: Continue shift → driving / break from driving / sleeper berth / Parked", () => {
+  it("on passenger: Continue shift → driving / sleeper berth / break from driving / Parked", () => {
     const tiles = twoUpPassengerTiles();
     expect(tiles.map((t) => t.logType)).toEqual([
       "work",
-      "break",
       SLEEPER_BERTH_EVENT_TYPE,
+      "break",
       STATIONARY_REST_EVENT_TYPE,
     ]);
     expect(tiles.find((t) => t.logType === "break")?.label).toBe(DRIVER_BREAK_FROM_DRIVING_LABEL);
   });
 
-  it("on Parked: Start work → driving / Other work / Passenger / Sleeper berth", () => {
+  it("on Parked: Start work → driving / Sleeper berth / Passenger / Other work", () => {
     const tiles = twoUpParkedTiles();
     expect(tiles.map((t) => t.logType)).toEqual([
       "work",
-      OTHER_WORK_EVENT_TYPE,
-      PASSENGER_EVENT_TYPE,
       SLEEPER_BERTH_EVENT_TYPE,
+      PASSENGER_EVENT_TYPE,
+      OTHER_WORK_EVENT_TYPE,
     ]);
     expect(tiles.some((t) => t.logType === STATIONARY_REST_EVENT_TYPE)).toBe(false);
   });

@@ -46,13 +46,6 @@ function parkedTile(): TwoUpHeroTile {
 /** After Stop Driving — four destinations, all still on shift. Parked is the dock puck. */
 export function twoUpStopDrivingTiles(): TwoUpHeroTile[] {
   return [
-    { id: "break", kind: "break", label: DRIVER_BREAK_FROM_DRIVING_LABEL, logType: "break" },
-    {
-      id: "other_work",
-      kind: "other_work",
-      label: DRIVER_START_OTHER_WORK_LABEL,
-      logType: OTHER_WORK_EVENT_TYPE,
-    },
     {
       id: "passenger",
       kind: "passenger",
@@ -66,6 +59,13 @@ export function twoUpStopDrivingTiles(): TwoUpHeroTile[] {
       label: DRIVER_SLEEPER_BERTH_LABEL,
       logType: SLEEPER_BERTH_EVENT_TYPE,
       unlockWhileMoving: true,
+    },
+    { id: "break", kind: "break", label: DRIVER_BREAK_FROM_DRIVING_LABEL, logType: "break" },
+    {
+      id: "other_work",
+      kind: "other_work",
+      label: DRIVER_START_OTHER_WORK_LABEL,
+      logType: OTHER_WORK_EVENT_TYPE,
     },
   ];
 }
@@ -75,17 +75,17 @@ export function twoUpSleeperBerthTiles(): TwoUpHeroTile[] {
   return [
     { id: "work", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
     {
-      id: "other_work",
-      kind: "other_work",
-      label: DRIVER_START_OTHER_WORK_LABEL,
-      logType: OTHER_WORK_EVENT_TYPE,
-    },
-    {
       id: "passenger",
       kind: "passenger",
       label: DRIVER_PASSENGER_LABEL,
       logType: PASSENGER_EVENT_TYPE,
       unlockWhileMoving: true,
+    },
+    {
+      id: "other_work",
+      kind: "other_work",
+      label: DRIVER_START_OTHER_WORK_LABEL,
+      logType: OTHER_WORK_EVENT_TYPE,
     },
     parkedTile(),
   ];
@@ -95,7 +95,6 @@ export function twoUpSleeperBerthTiles(): TwoUpHeroTile[] {
 export function twoUpPassengerTiles(): TwoUpHeroTile[] {
   return [
     { id: "work", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
-    { id: "break", kind: "break", label: DRIVER_BREAK_FROM_DRIVING_LABEL, logType: "break" },
     {
       id: "sleeper_berth",
       kind: "sleeper_berth",
@@ -103,6 +102,7 @@ export function twoUpPassengerTiles(): TwoUpHeroTile[] {
       logType: SLEEPER_BERTH_EVENT_TYPE,
       unlockWhileMoving: true,
     },
+    { id: "break", kind: "break", label: DRIVER_BREAK_FROM_DRIVING_LABEL, logType: "break" },
     parkedTile(),
   ];
 }
@@ -112,10 +112,11 @@ export function twoUpParkedTiles(): TwoUpHeroTile[] {
   return [
     { id: "work", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
     {
-      id: "other_work",
-      kind: "other_work",
-      label: DRIVER_START_OTHER_WORK_LABEL,
-      logType: OTHER_WORK_EVENT_TYPE,
+      id: "sleeper_berth",
+      kind: "sleeper_berth",
+      label: DRIVER_SLEEPER_BERTH_LABEL,
+      logType: SLEEPER_BERTH_EVENT_TYPE,
+      unlockWhileMoving: true,
     },
     {
       id: "passenger",
@@ -125,11 +126,10 @@ export function twoUpParkedTiles(): TwoUpHeroTile[] {
       unlockWhileMoving: true,
     },
     {
-      id: "sleeper_berth",
-      kind: "sleeper_berth",
-      label: DRIVER_SLEEPER_BERTH_LABEL,
-      logType: SLEEPER_BERTH_EVENT_TYPE,
-      unlockWhileMoving: true,
+      id: "other_work",
+      kind: "other_work",
+      label: DRIVER_START_OTHER_WORK_LABEL,
+      logType: OTHER_WORK_EVENT_TYPE,
     },
   ];
 }
@@ -151,16 +151,16 @@ export function resolveTwoUpActivityNowLabel(currentType: string | null): string
 
 export function twoUpChooserAria(currentType: string | null): string {
   if (currentType === "work") {
-    return "Stop Driving — choose break from driving, Other work, Passenger, or Sleeper berth";
+    return "Stop Driving — choose Passenger, Sleeper berth, break from driving, or Other work";
   }
   if (currentType === SLEEPER_BERTH_EVENT_TYPE) {
-    return `On ${DRIVER_SLEEPER_BERTH_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_OTHER_WORK_LABEL}, ${DRIVER_PASSENGER_LABEL}, or ${DRIVER_PARKED_LABEL}`;
+    return `On ${DRIVER_SLEEPER_BERTH_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_PASSENGER_LABEL}, ${DRIVER_OTHER_WORK_LABEL}, or ${DRIVER_PARKED_LABEL}`;
   }
   if (currentType === PASSENGER_EVENT_TYPE) {
-    return `On ${DRIVER_PASSENGER_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_BREAK_FROM_DRIVING_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, or ${DRIVER_PARKED_LABEL}`;
+    return `On ${DRIVER_PASSENGER_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, ${DRIVER_BREAK_FROM_DRIVING_LABEL}, or ${DRIVER_PARKED_LABEL}`;
   }
   if (currentType === STATIONARY_REST_EVENT_TYPE) {
-    return `On ${DRIVER_PARKED_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_OTHER_WORK_LABEL}, ${DRIVER_PASSENGER_LABEL}, or ${DRIVER_SLEEPER_BERTH_LABEL}`;
+    return `On ${DRIVER_PARKED_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, ${DRIVER_PASSENGER_LABEL}, or ${DRIVER_OTHER_WORK_LABEL}`;
   }
   return "Choose next activity";
 }

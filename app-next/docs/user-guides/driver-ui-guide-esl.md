@@ -190,9 +190,9 @@ If your sheet is **Two-up**:
 - Enter the **relief driver's name** in Set up day (for context).
 - Log **only your own** times on **your** sheet. The relief driver keeps **their own** sheet.
 - Two-up does **not** use **Start Rest** or **Taking a nap?**. Sleep on the trip is **Sleeper berth**.
-- On driving, **Stop Driving** opens four choices: **Break from driving**, **Start Other Work**, **Passenger**, or **Sleeper berth**.
-- **Passenger** is still work time — it never becomes non-work. Then tap **Continue shift** to choose **Start driving**, **Break from driving**, **Sleeper berth**, or **Parked**.
-- **Sleeper berth** is non-work time **during the shift** (in the vehicle). It is **not** End shift. Then tap **Start work** to choose **Start driving**, **Start Other Work**, **Passenger**, or **Parked**.
+- On driving, **Stop Driving** opens four choices: **Passenger**, **Sleeper berth**, **Break from driving**, or **Start Other Work**. The top row is the two passenger states (seat or berth).
+- **Passenger** is still work time — it never becomes non-work. Then tap **Continue shift** to choose **Start driving**, **Sleeper berth**, **Break from driving**, or **Parked**.
+- **Sleeper berth** is non-work time **during the shift** (in the vehicle). It is **not** End shift. Then tap **Start work** to choose **Start driving**, **Passenger**, **Start Other Work**, or **Parked**.
 - **Parked** is the bottom-left button while the shift is open (also on Passenger / Sleeper berth). The vehicle must be **still**, and the app needs a **GPS fix**. That is how the record proves you were not in a moving vehicle. Sleeping in the berth while travelling is **Sleeper berth**, not Parked.
 - **End shift** is only when you go **home or to a motel**. After that, **Start shift** starts a new working period. End shift also stores GPS when it can — that pin is what proves the 48-hour / 7-day stationary option.
 - Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).
@@ -337,7 +337,7 @@ If your manager saved a **medical expiry date**, you may see a **yellow** or **r
 | Weekly Trip Sheet (PDF) | **Export PDF** and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks from each day card (Fitness for work, vehicle, load, trailer, forklift, Hook up), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix |
 | Start shift / End shift | Begin / finish a shift. Start shift needs **Fitness for Work** signed for this day, then opens driving or Other work |
 | Start work | On Rest — choose driving or Other work |
-| Continue shift | Two-up Passenger — choose driving, break from driving, or sleeper berth |
+| Continue shift | Two-up Passenger — choose driving, sleeper berth, break from driving, or Parked |
 | Week | Sunday–Saturday slice of your record |
 | Sign | You attest the week is correct |
 | Rego | Number plate |
