@@ -5,8 +5,10 @@ import {
   evaluateTwoUp48hStationaryOption,
   evaluateTwoUp7dStationaryOption,
   eventHasGps,
+  isTwoUpStationaryEvidenceMessage,
   paintProvenStationaryNonWork,
   scoreTwoUp184E3b,
+  TWO_UP_184E3B_FAIL_MESSAGE,
 } from "./two-up-stationary";
 
 const BASE = Date.UTC(2026, 7, 1, 0, 0, 0);
@@ -119,5 +121,12 @@ describe("two-up stationary 184E(3)(b)", () => {
     expect(scored.t48.hasQualBlock).toBe(true);
     expect(scored.ok).toBe(true);
     expect(scored.skipReason).toBeNull();
+  });
+
+  it("flags GPS 48h copy as compliance-page evidence, not the 24h rest message", () => {
+    expect(isTwoUpStationaryEvidenceMessage(TWO_UP_184E3B_FAIL_MESSAGE)).toBe(true);
+    expect(
+      isTwoUpStationaryEvidenceMessage("Need ≥7h non-work in any rolling 24h period (Two-Up)")
+    ).toBe(false);
   });
 });

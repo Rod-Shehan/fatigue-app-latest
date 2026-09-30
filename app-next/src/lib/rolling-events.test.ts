@@ -291,5 +291,39 @@ describe("rolling-events", () => {
       expect(status!.nonWorkMinutes).toBe(6 * 60);
       expect(status!.nonWorkMinutesShortfall).toBe(60);
     });
+
+    it("counts End shift → Start shift gap the same as sleeper (sheet non-work)", () => {
+      const events = [
+        { time: "2026-06-10T06:00:00", type: "work" },
+        { time: "2026-06-10T18:00:00", type: "stop" },
+      ];
+      expect(getTwoUpRolling24hRestStatus(events, ts("2026-06-11T06:00:00"))).toBeNull();
+    });
+
+    it("counts a 31+ min logged Break as non-work (same as the day sheet)", () => {
+      const longBreak = [
+        { time: "2026-06-09T18:00:00", type: "work" },
+        { time: "2026-06-10T06:00:00", type: "break" },
+      ];
+      expect(getTwoUpRolling24hRestStatus(longBreak, ts("2026-06-10T18:00:00"))).toBeNull();
+
+      const shortBreak = [
+        { time: "2026-06-09T18:00:00", type: "work" },
+        { time: "2026-06-10T17:40:00", type: "break" },
+      ];
+      const status = getTwoUpRolling24hRestStatus(shortBreak, ts("2026-06-10T18:00:00"));
+      expect(status).not.toBeNull();
+      expect(status!.nonWorkMinutes).toBe(0);
+    });
+
+    it("does not convert other work to non-work even when longer than 31 min", () => {
+      const events = [
+        { time: "2026-06-09T18:00:00", type: "work" },
+        { time: "2026-06-10T06:00:00", type: "other_work" },
+      ];
+      const status = getTwoUpRolling24hRestStatus(events, ts("2026-06-10T18:00:00"));
+      expect(status).not.toBeNull();
+      expect(status!.nonWorkMinutes).toBe(0);
+    });
   });
 });

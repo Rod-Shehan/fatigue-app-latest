@@ -291,6 +291,21 @@ export function evaluateTwoUp48hStationaryOption(
 export const TWO_UP_184E3B_FAIL_MESSAGE =
   "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)";
 
+/**
+ * GPS / 48h / 7-day stationary evidence — compliance page only.
+ * Not the Start-shift “7h non-work” warning (sheet non-work bucket).
+ */
+export function isTwoUpStationaryEvidenceMessage(message: string): boolean {
+  if (message === TWO_UP_184E3B_FAIL_MESSAGE) return true;
+  if (message.includes("GPS-proven Parked or End shift")) return true;
+  if (!message.includes("Two-Up")) return false;
+  return (
+    message.includes("48 hrs") ||
+    message.includes("48hrs") ||
+    message.includes("less than 7 consecutive hours")
+  );
+}
+
 export function evaluateTwoUp7dStationaryOption(
   events: StationaryGeoEvent[],
   asOfMs: number,

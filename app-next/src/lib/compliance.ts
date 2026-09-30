@@ -22,6 +22,7 @@ import { getEventsInTimeOrder } from "@/lib/rolling-events";
 import {
   buildTwoUp184E3bScoreInput,
   scoreTwoUp184E3b,
+  isTwoUpStationaryEvidenceMessage,
   TWO_UP_184E3B_FAIL_MESSAGE,
   twoUp184E3bStructureWarnings,
   type StationaryGeoEvent,
@@ -1186,6 +1187,8 @@ export function getProspectiveWorkWarnings(
     currentDayIndex,
     slotOffsetWithinToday,
   });
-  const relevant = filterWorkRelevantResults(results);
+  const relevant = filterWorkRelevantResults(results).filter(
+    (r) => !isTwoUpStationaryEvidenceMessage(r.message)
+  );
   return relevant.map((r) => r.message);
 }

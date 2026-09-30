@@ -22,8 +22,13 @@ import { perthDayEndUtcMs, perthDayStartUtcMs } from "@/lib/perth-now";
 export const MINUTES_PER_DAY = 1440;
 
 /** Actioned break runs longer than this are recorded as non-work (not invented gaps). */
-const MAX_BREAK_AS_BREAK_MINUTES = 30;
+export const MAX_BREAK_AS_BREAK_MINUTES = 30;
 const MIN_BREAK_BLOCK_MINUTES = 10;
+
+/** Sheet rule: a logged Break of 31+ minutes is the same non-work as sleeper / End-shift gap. */
+export function isLoggedBreakNonWork(durationMinutes: number): boolean {
+  return durationMinutes >= MAX_BREAK_AS_BREAK_MINUTES + 1;
+}
 
 function overlayOtherWorkAsBreakFromDriving(
   work_time: boolean[],
@@ -46,7 +51,6 @@ function reclassifyLongBreaksAsNonWork(
   non_work: boolean[],
   maxMinuteExclusive: number
 ): { work_time: boolean[]; breaks: boolean[]; non_work: boolean[] } {
-  const minMinutesAsNonWork = MAX_BREAK_AS_BREAK_MINUTES + 1;
   for (let s = 0; s < maxMinuteExclusive; ) {
     if (!breaks[s]) {
       s++;
@@ -55,7 +59,7 @@ function reclassifyLongBreaksAsNonWork(
     let runEnd = s;
     while (runEnd < maxMinuteExclusive && breaks[runEnd]) runEnd++;
     const runMinutes = runEnd - s;
-    if (runMinutes >= minMinutesAsNonWork) {
+    if (isLoggedBreakNonWork(runMinutes)) {
       for (let k = s; k < runEnd; k++) {
         non_work[k] = true;
         breaks[k] = false;

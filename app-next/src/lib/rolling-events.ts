@@ -7,6 +7,7 @@
  */
 
 import { isOpenShiftEventType, PASSENGER_EVENT_TYPE } from "@/lib/activity-kind";
+import { isLoggedBreakNonWork } from "@/lib/coverage/derive-minute-coverage";
 import { getSeventeenHourEpisodeStatus } from "@/lib/seventeen-hour-episode";
 
 export type RollingEvent = {
@@ -222,13 +223,25 @@ export function getInsufficientNonWorkMessage(
 const MS_24H = 24 * 60 * 60 * 1000;
 const MIN_NON_WORK_MINUTES_TWO_UP_24H = 7 * 60;
 
-type RollingSegmentKind = "work" | "break" | "non_work";
+type RollingSegmentKind = "work" | "break" | "other_duty" | "non_work";
 
 function openSegmentKindAfterEvent(type: string): RollingSegmentKind {
   if (type === "work") return "work";
-  // Passenger is work time (break from driving) — never non-work. Sleeper berth falls through to non-work.
-  if (type === "break" || type === "other_work" || type === PASSENGER_EVENT_TYPE) return "break";
+  if (type === "break") return "break";
+  // Passenger / other work stay on-duty. Sleeper, Parked, End shift → non-work.
+  if (type === "other_work" || type === PASSENGER_EVENT_TYPE) return "other_duty";
   return "non_work";
+}
+
+/** Same as the day sheet: a 31+ min logged Break is non-work. Passenger / other work never convert. */
+function sheetKindForSegment(
+  raw: RollingSegmentKind,
+  originMs: number,
+  endMs: number
+): RollingSegmentKind {
+  if (raw !== "break") return raw;
+  const fullMins = Math.max(0, Math.floor((endMs - originMs) / 60000));
+  return isLoggedBreakNonWork(fullMins) ? "non_work" : "break";
 }
 
 export type TwoUpRolling24hRestStatus = {
@@ -239,7 +252,9 @@ export type TwoUpRolling24hRestStatus = {
 };
 
 /**
- * Two-Up Reg 184E(3)(a): ≥7h non-work in any rolling 24h when work/break exists in that window.
+ * Two-Up 7h-in-24h start gate — same non-work bucket as the day sheet:
+ * End shift → next event, sleeper, Parked, and logged Break of 31+ minutes.
+ * Passenger / other work never convert. GPS 48h evidence is not this gate.
  * Returns null when the gate does not apply (no work/break in window, or non-work already ≥7h).
  */
 export function getTwoUpRolling24hRestStatus(
@@ -252,8 +267,9 @@ export function getTwoUpRolling24hRestStatus(
     .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
 
   const lastBefore = getLastRollingEventAt(sorted, windowStart);
-  let segKind: RollingSegmentKind = lastBefore ? openSegmentKindAfterEvent(lastBefore.type) : "non_work";
-  let segStart = windowStart;
+  let rawKind: RollingSegmentKind = lastBefore ? openSegmentKindAfterEvent(lastBefore.type) : "non_work";
+  let originMs = lastBefore ? new Date(lastBefore.time).getTime() : windowStart;
+  let clipStart = windowStart;
 
   let nonWorkMinutes = 0;
   let workOrBreakMinutes = 0;
@@ -268,11 +284,12 @@ export function getTwoUpRolling24hRestStatus(
     const t = new Date(ev.time).getTime();
     if (t <= windowStart) continue;
     if (t > asOfMs) break;
-    addMinutes(segKind, segStart, t);
-    segStart = t;
-    segKind = openSegmentKindAfterEvent(ev.type);
+    addMinutes(sheetKindForSegment(rawKind, originMs, t), clipStart, t);
+    rawKind = openSegmentKindAfterEvent(ev.type);
+    originMs = t;
+    clipStart = t;
   }
-  addMinutes(segKind, segStart, asOfMs);
+  addMinutes(sheetKindForSegment(rawKind, originMs, asOfMs), clipStart, asOfMs);
 
   if (workOrBreakMinutes === 0) return null;
 

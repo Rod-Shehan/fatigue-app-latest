@@ -3,6 +3,7 @@ import type { Rolling168hMetrics } from "@/lib/rolling-168h-metrics";
 import { MAX_WORK_HOURS_14D } from "@/lib/rolling-168h-metrics";
 import { formatHoursMinutes, type DriverNearTermChipLine } from "@/lib/near-term-exposure";
 import { formatDriverRestRequiredBeforeWork } from "@/lib/product-copy";
+import { isTwoUpStationaryEvidenceMessage } from "@/lib/two-up-stationary";
 
 export type UpcomingComplianceTone = "clear" | "caution" | "attention";
 
@@ -118,8 +119,12 @@ export function resolveUpcomingComplianceChip(input: {
   const lines: string[] = [];
   let tone: UpcomingComplianceTone = "clear";
 
-  const violations = input.complianceResults.filter((r) => r.type === "violation");
-  const warnings = input.complianceResults.filter((r) => r.type === "warning");
+  const violations = input.complianceResults.filter(
+    (r) => r.type === "violation" && !isTwoUpStationaryEvidenceMessage(r.message)
+  );
+  const warnings = input.complianceResults.filter(
+    (r) => r.type === "warning" && !isTwoUpStationaryEvidenceMessage(r.message)
+  );
   const workRelevantWarnings = warnings.filter((r) =>
     /non-work|7h|17h|72|48|168|14-day|5h work|20 min/i.test(r.message)
   );
@@ -146,7 +151,11 @@ export function resolveUpcomingComplianceChip(input: {
     tone = "attention";
   }
 
-  lines.push(...labelsFromMessages(input.prospectiveWorkWarnings));
+  lines.push(
+    ...labelsFromMessages(
+      input.prospectiveWorkWarnings.filter((m) => !isTwoUpStationaryEvidenceMessage(m))
+    )
+  );
 
   if (!violations.length) {
     lines.push(...labelsFromMessages(workRelevantWarnings.map((w) => w.message)));

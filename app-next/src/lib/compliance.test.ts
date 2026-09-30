@@ -243,6 +243,10 @@ describe("compliance scenarios — what the logic produces", () => {
     );
     const fail = runComplianceChecks(makeWeek(false), asOf);
     expect(fail.some((r) => r.message.includes("GPS-proven Parked or End shift"))).toBe(true);
+
+    const prospective = getProspectiveWorkWarnings(makeWeek(false), 6, weekStarting, asOf);
+    expect(prospective.some((m) => m.includes("GPS-proven Parked or End shift"))).toBe(false);
+    expect(prospective.some((m) => m.includes("7h non-work") && m.includes("24h"))).toBe(false);
   });
 
   it("shift change (A↔B) after 120h+ same pattern: requires 24h between stop and next work", () => {

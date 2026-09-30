@@ -139,6 +139,25 @@ describe("upcoming-compliance-chip", () => {
     expect(chip.tone).toBe("clear");
   });
 
+  it("keeps two-up GPS 48h evidence off the Start-shift 7h chip", () => {
+    const chip = resolveUpcomingComplianceChip({
+      prospectiveWorkWarnings: [
+        "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)",
+      ],
+      complianceResults: [
+        {
+          type: "violation",
+          iconKey: "Moon",
+          day: "Two-Up",
+          message:
+            "Need ≥7h continuous GPS-proven Parked or End shift in any rolling 48h (Two-Up 48h option) or 7-day option (≥48h GPS-proven non-work including ≥24h, no period under 7h)",
+        },
+      ],
+    });
+    expect(chip.lines.some((l) => /GPS-proven|48h/i.test(l))).toBe(false);
+    expect(chip.lines[0]).toMatch(/all clear/i);
+  });
+
   it("still names shift-still-open on the chip", () => {
     const chip = resolveUpcomingComplianceChip({
       prospectiveWorkWarnings: [],

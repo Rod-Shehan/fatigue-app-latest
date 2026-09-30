@@ -430,15 +430,19 @@ export function DriverGuideArticle() {
             working period. End shift also stores GPS when it can — that pin is what proves the 48-hour / 7-day stationary option.
           </li>
           <li>Two-up uses different non-work rules than solo (including rest that may be in a moving vehicle).</li>
-          <li>Always: at least 7 hours non-work in any 24 hours (sleeper berth counts).</li>
+          <li>
+            Always: at least 7 hours non-work in any 24 hours. {DRIVER_START_SHIFT_LABEL} uses the same non-work as the
+            day sheet: time after {DRIVER_END_SHIFT_LABEL}, {DRIVER_SLEEPER_BERTH_LABEL}, {DRIVER_PARKED_LABEL}, and a{" "}
+            {DRIVER_BREAK_FROM_DRIVING_LABEL} of 31 minutes or more. {DRIVER_PASSENGER_LABEL} never counts.
+          </li>
           <li>
             Then either a 7-hour continuous rest not in a moving vehicle in any 48 hours, or 48 hours non-work in 7 days
             that includes one 24-hour block and no rest shorter than 7 hours. You do not need both. Only {DRIVER_PARKED_LABEL}{" "}
-            (GPS) and {DRIVER_END_SHIFT_LABEL} (GPS) count for that “not moving” part on the live record.{" "}
-            {DRIVER_SLEEPER_BERTH_LABEL} does not. If that rest was before Circadia, set it in Set up day under{" "}
-            <strong>{TWO_UP_DECLARED_REST_COPY.TITLE}</strong>. The 48-hour / 7-day warning does not fire until you have
-            started work and Circadia has 48 hours of two-up record, unless a 7-hour GPS or declared block already
-            clears it.
+            (GPS) and {DRIVER_END_SHIFT_LABEL} (GPS) count for that “not moving” part. {DRIVER_SLEEPER_BERTH_LABEL} does
+            not. That GPS check lives on Compliance — it is not the Start shift 7-hour rest warning. If that rest was
+            before Circadia, set it in Set up day under <strong>{TWO_UP_DECLARED_REST_COPY.TITLE}</strong>. The 48-hour /
+            7-day warning does not fire until you have started work and Circadia has 48 hours of two-up record, unless a
+            7-hour GPS or declared block already clears it.
           </li>
         </ul>
       </section>
