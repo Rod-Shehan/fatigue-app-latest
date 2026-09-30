@@ -383,7 +383,7 @@ export const api = {
       gvm_tonnes?: number | null;
       gcm_tonnes?: number | null;
       atm_tonnes?: number | null;
-      tare_tonnes: number;
+      tare_tonnes?: number | null;
       axle_count: number;
       wahva_accredited: boolean;
       sort_order?: number;
@@ -396,7 +396,7 @@ export const api = {
         gvm_tonnes?: number | null;
         gcm_tonnes?: number | null;
         atm_tonnes?: number | null;
-        tare_tonnes?: number;
+        tare_tonnes?: number | null;
         axle_count?: number;
         wahva_accredited?: boolean;
         sort_order?: number;

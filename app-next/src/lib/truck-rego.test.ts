@@ -13,9 +13,32 @@ import {
 } from "./truck-rego";
 
 describe("truck-rego metadata", () => {
-  it("requires GVM, GCM, tare, and axles on a powered vehicle", () => {
+  it("requires only plate, type, and axles — masses and WAHVA are optional", () => {
     expect(parseTruckRegoCreate({ label: "1ABC 234" })).toEqual({
       error: "Type is required",
+    });
+    expect(
+      parseTruckRegoCreate({
+        label: "1ABC 234",
+        vehicle_type: "prime_mover",
+      })
+    ).toEqual({ error: "Number of axles is required" });
+    expect(
+      parseTruckRegoCreate({
+        label: "1ABC 234",
+        vehicle_type: "prime_mover",
+        axle_count: 3,
+      })
+    ).toEqual({
+      label: "1ABC 234",
+      vehicleType: "prime_mover",
+      gvmTonnes: null,
+      gcmTonnes: null,
+      atmTonnes: null,
+      tareTonnes: null,
+      axleCount: 3,
+      wahvaAccredited: false,
+      sortOrder: undefined,
     });
     expect(
       parseTruckRegoCreate({
@@ -40,16 +63,24 @@ describe("truck-rego metadata", () => {
     });
   });
 
-  it("requires ATM and tare on a trailer, not GVM or GCM", () => {
+  it("accepts a trailer without ATM or tare", () => {
     expect(
       parseTruckRegoCreate({
         label: "1TRL 001",
         vehicle_type: "trailer",
-        tare_tonnes: 7.5,
         axle_count: 3,
-        wahva_accredited: false,
       })
-    ).toEqual({ error: "ATM (t) is required" });
+    ).toEqual({
+      label: "1TRL 001",
+      vehicleType: "trailer",
+      gvmTonnes: null,
+      gcmTonnes: null,
+      atmTonnes: null,
+      tareTonnes: null,
+      axleCount: 3,
+      wahvaAccredited: false,
+      sortOrder: undefined,
+    });
     expect(
       parseTruckRegoCreate({
         label: "1TRL 001",
@@ -108,7 +139,7 @@ describe("truck-rego metadata", () => {
     });
   });
 
-  it("marks incomplete catalogue rows until type-relevant masses are filled", () => {
+  it("marks catalogue rows complete once type and axles are set", () => {
     expect(
       truckRegoMetadataComplete({
         vehicleType: "rigid",
@@ -117,6 +148,16 @@ describe("truck-rego metadata", () => {
         atmTonnes: null,
         tareTonnes: 8,
         axleCount: 2,
+      })
+    ).toBe(true);
+    expect(
+      truckRegoMetadataComplete({
+        vehicleType: "rigid",
+        gvmTonnes: null,
+        gcmTonnes: null,
+        atmTonnes: null,
+        tareTonnes: null,
+        axleCount: null,
       })
     ).toBe(false);
     expect(

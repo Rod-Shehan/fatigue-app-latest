@@ -122,7 +122,7 @@ export type TruckRegoMetadata = {
   gvmTonnes: number | null;
   gcmTonnes: number | null;
   atmTonnes: number | null;
-  tareTonnes: number;
+  tareTonnes: number | null;
   axleCount: number;
   wahvaAccredited: boolean;
 };
@@ -181,7 +181,7 @@ export function parseVehicleType(raw: unknown): VehicleType | { error: string } 
 }
 
 export function parseWahvaAccredited(raw: unknown): boolean | { error: string } {
-  if (raw == null || raw === "") return { error: `${TRUCK_REGO_WAHVA_LABEL} is required` };
+  if (raw == null || raw === "") return false;
   if (typeof raw === "boolean") return raw;
   if (raw === "true" || raw === "yes" || raw === 1 || raw === "1") return true;
   if (raw === "false" || raw === "no" || raw === 0 || raw === "0") return false;
@@ -215,10 +215,7 @@ export function massesForVehicleType(
 export function truckRegoMetadataComplete(
   row: Pick<TruckRegoRecord, "vehicleType" | "gvmTonnes" | "gcmTonnes" | "atmTonnes" | "tareTonnes" | "axleCount">
 ): boolean {
-  if (row.vehicleType == null || row.tareTonnes == null || row.axleCount == null) return false;
-  if (usesGvmGcm(row.vehicleType)) return row.gvmTonnes != null && row.gcmTonnes != null;
-  if (usesAtm(row.vehicleType)) return row.atmTonnes != null;
-  return true;
+  return row.vehicleType != null && row.axleCount != null;
 }
 
 function formatTonnesValue(n: number): string {
@@ -289,20 +286,21 @@ export function parseTruckRegoCreate(body: Record<string, unknown>):
   if (isFieldError(vehicleType)) return vehicleType;
 
   const gvmTonnes = parseTonnes(body.gvm_tonnes ?? body.gvmTonnes, TRUCK_REGO_GVM_LABEL, {
-    required: usesGvmGcm(vehicleType),
+    required: false,
   });
   if (isFieldError(gvmTonnes)) return gvmTonnes;
   const gcmTonnes = parseTonnes(body.gcm_tonnes ?? body.gcmTonnes, TRUCK_REGO_GCM_LABEL, {
-    required: usesGvmGcm(vehicleType),
+    required: false,
   });
   if (isFieldError(gcmTonnes)) return gcmTonnes;
   const atmTonnes = parseTonnes(body.atm_tonnes ?? body.atmTonnes, TRUCK_REGO_ATM_LABEL, {
-    required: usesAtm(vehicleType),
+    required: false,
   });
   if (isFieldError(atmTonnes)) return atmTonnes;
-  const tareTonnes = parseTonnes(body.tare_tonnes ?? body.tareTonnes, TRUCK_REGO_TARE_LABEL, { required: true });
+  const tareTonnes = parseTonnes(body.tare_tonnes ?? body.tareTonnes, TRUCK_REGO_TARE_LABEL, {
+    required: false,
+  });
   if (isFieldError(tareTonnes)) return tareTonnes;
-  if (tareTonnes == null) return { error: `${TRUCK_REGO_TARE_LABEL} is required` };
 
   const axleCount = parseAxleCount(body.axle_count ?? body.axleCount);
   if (isFieldError(axleCount)) return axleCount;
@@ -355,9 +353,10 @@ export function parseTruckRegoPatch(body: Record<string, unknown>):
     out.atmTonnes = atmTonnes;
   }
   if (bodyHas(body, "tare_tonnes", "tareTonnes")) {
-    const tareTonnes = parseTonnes(body.tare_tonnes ?? body.tareTonnes, TRUCK_REGO_TARE_LABEL, { required: true });
+    const tareTonnes = parseTonnes(body.tare_tonnes ?? body.tareTonnes, TRUCK_REGO_TARE_LABEL, {
+      required: false,
+    });
     if (isFieldError(tareTonnes)) return tareTonnes;
-    if (tareTonnes == null) return { error: `${TRUCK_REGO_TARE_LABEL} is required` };
     out.tareTonnes = tareTonnes;
   }
   if (bodyHas(body, "axle_count", "axleCount")) {

@@ -76,12 +76,12 @@ export function ManagerGuideArticle() {
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Rego</strong> — fleet vehicle list: plate,{" "}
-            {TRUCK_REGO_TYPE_LABEL} (Prime mover / Rigid / Van / Trailer / Other), {TRUCK_REGO_GVM_LABEL} and{" "}
-            {TRUCK_REGO_GCM_LABEL} on powered units, {TRUCK_REGO_ATM_LABEL} on trailers, {TRUCK_REGO_TARE_LABEL} on every
-            unit, {TRUCK_REGO_AXLES_LABEL}, and {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
-            Required on each vehicle. Drivers pick the plate on Set up day and on each form (filtered by type —
-            Type a plate if it is not listed). GVM / GCM / ATM / Tare that apply show next to the plate on the
-            day sheet for load check. A Prime mover plate highlights Hook up as a reminder, not a required form.
+            {TRUCK_REGO_TYPE_LABEL} (Prime mover / Rigid / Van / Trailer / Other), and {TRUCK_REGO_AXLES_LABEL} are
+            required. Optional: {TRUCK_REGO_GVM_LABEL} and {TRUCK_REGO_GCM_LABEL} on powered units, {TRUCK_REGO_ATM_LABEL}{" "}
+            on trailers, {TRUCK_REGO_TARE_LABEL}, and {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}). Drivers pick the
+            plate on Set up day and on each form (filtered by type — Type a plate if it is not listed). GVM / GCM / ATM /
+            Tare that apply show next to the plate on the day sheet for load check. A Prime mover plate highlights Hook
+            up as a reminder, not a required form.
           </li>
           <li>
             <strong className="text-slate-700 dark:text-slate-200">Test desk</strong> — inject test alerts

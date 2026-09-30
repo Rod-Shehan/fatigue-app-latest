@@ -87,26 +87,27 @@ function payloadFromDraft(draft: Draft) {
     gvm_tonnes: usesGvmGcm(type) ? numOrNull(draft.gvmTonnes) : null,
     gcm_tonnes: usesGvmGcm(type) ? numOrNull(draft.gcmTonnes) : null,
     atm_tonnes: usesAtm(type) ? numOrNull(draft.atmTonnes) : null,
-    tare_tonnes: Number(draft.tareTonnes),
+    tare_tonnes: numOrNull(draft.tareTonnes),
     axle_count: Number(draft.axleCount),
     wahva_accredited: draft.wahvaAccredited,
   };
 }
 
-function positiveMass(raw: string): boolean {
+function optionalMassOk(raw: string): boolean {
+  if (!raw.trim()) return true;
   const n = Number(raw.trim());
-  return Boolean(raw.trim()) && Number.isFinite(n) && n > 0;
+  return Number.isFinite(n) && n > 0;
 }
 
 function draftReady(draft: Draft): boolean {
   if (!draft.label.trim() || !draft.vehicleType) return false;
-  if (!positiveMass(draft.tareTonnes)) return false;
   const axles = Number(draft.axleCount);
   if (!Number.isInteger(axles) || axles < AXLE_COUNT_MIN || axles > AXLE_COUNT_MAX) return false;
-  if (usesGvmGcm(draft.vehicleType) && (!positiveMass(draft.gvmTonnes) || !positiveMass(draft.gcmTonnes))) {
+  if (!optionalMassOk(draft.tareTonnes)) return false;
+  if (usesGvmGcm(draft.vehicleType) && (!optionalMassOk(draft.gvmTonnes) || !optionalMassOk(draft.gcmTonnes))) {
     return false;
   }
-  if (usesAtm(draft.vehicleType) && !positiveMass(draft.atmTonnes)) return false;
+  if (usesAtm(draft.vehicleType) && !optionalMassOk(draft.atmTonnes)) return false;
   return true;
 }
 
@@ -124,7 +125,7 @@ function MassField({
   return (
     <div className="space-y-1.5">
       <Label htmlFor={id} className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">
-        {label} *
+        {label}
       </Label>
       <Input
         id={id}
@@ -306,7 +307,7 @@ export function RegosAdmin() {
           backHref="/manager"
           backLabel="Manager dashboard"
           title={PRODUCT_NAME}
-          subtitle="Vehicle regos — plate, type, GVM/GCM or ATM, tare, number of axles, and WAHVA accreditation"
+          subtitle="Vehicle regos — plate, type, and number of axles required; masses and WAHVA optional"
           icon={<Truck className="w-5 h-5" />}
         />
         <ManagerSubnav />
@@ -314,8 +315,8 @@ export function RegosAdmin() {
         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 md:p-5 space-y-4">
           <h2 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Add rego</h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            GVM and GCM for prime movers, rigids, and vans. ATM for trailers. Tare and {TRUCK_REGO_AXLES_LABEL.toLowerCase()} on every unit.
-            Tick {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}) when it applies.
+            Required: plate, type, and {TRUCK_REGO_AXLES_LABEL.toLowerCase()}. Optional: GVM and GCM for prime movers,
+            rigids, and vans; ATM for trailers; tare on any unit; {TRUCK_REGO_WAHVA_LABEL} ({TRUCK_REGO_WAHVA_HINT}).
           </p>
           <RegoFields draft={newDraft} onChange={setNewDraft} idPrefix="new-rego" />
           {formError && !editingId ? <p className="text-sm text-red-600 dark:text-red-400">{formError}</p> : null}
