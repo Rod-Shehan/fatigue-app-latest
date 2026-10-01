@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const PROTECTED_PREFIXES = ["/triage", "/tracking", "/admin", "/api/v1"];
+const PROTECTED_PREFIXES = ["/triage", "/tracking", "/records", "/admin", "/api/v1"];
 
 export function middleware(request: NextRequest) {
   if (process.env.NODE_ENV !== "production") {
@@ -37,6 +37,8 @@ export const config = {
     "/triage/:path*",
     "/tracking",
     "/tracking/:path*",
+    "/records",
+    "/records/:path*",
     "/admin/:path*",
     "/api/v1/:path*",
   ],

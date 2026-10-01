@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { FlaskConical, LogOut, Map, Moon, MoreVertical, Radio, Sun, Users } from "lucide-react";
+import { FileDown, FlaskConical, LogOut, Map, Moon, MoreVertical, Radio, Sun, Users } from "lucide-react";
 import { CircadiaLogo } from "@/components/branding/CircadiaLogo";
 import { AlertSoundToggle } from "@/components/command/AlertSoundToggle";
 import {
@@ -12,6 +12,7 @@ import {
 import { CommandMenuNavLink, CommandNavLink } from "@/components/command/CommandNavLink";
 import { commandOutlineButton, commandTextMuted, commandTextPrimary } from "@/components/command/command-styles";
 import { CommandThemeToggle } from "@/components/theme/command-theme-toggle";
+import { ACTION_RECORD_NAV_LABEL } from "@/lib/action-records-publish";
 import { commandNavIdFromPath } from "@/lib/command-nav";
 import { cn } from "@/lib/utils";
 
@@ -95,6 +96,10 @@ function DesktopNav({ isOwner, onSignOut }: Pick<Props, "isOwner" | "onSignOut">
       <CommandNavLink href="/tracking" active={current === "tracking"}>
         <Map className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
         Event Tracker
+      </CommandNavLink>
+      <CommandNavLink href="/records" active={current === "records"}>
+        <FileDown className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        {ACTION_RECORD_NAV_LABEL}
       </CommandNavLink>
       {isOwner ? (
         <>
@@ -241,6 +246,10 @@ function MobileOverflowMenu(props: Props) {
           <CommandMenuNavLink href="/tracking" active={current === "tracking"} onClick={() => setOpen(false)}>
             <Map className="h-4 w-4 opacity-90" aria-hidden />
             Event Tracker
+          </CommandMenuNavLink>
+          <CommandMenuNavLink href="/records" active={current === "records"} onClick={() => setOpen(false)}>
+            <FileDown className="h-4 w-4 opacity-90" aria-hidden />
+            {ACTION_RECORD_NAV_LABEL}
           </CommandMenuNavLink>
           {isOwner ? (
             <>

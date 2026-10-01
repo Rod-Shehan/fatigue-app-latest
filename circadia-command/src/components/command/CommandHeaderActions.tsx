@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { FlaskConical, LogOut, Map, Radio, Users } from "lucide-react";
+import { FileDown, FlaskConical, LogOut, Map, Radio, Users } from "lucide-react";
 import { CommandNavLink } from "@/components/command/CommandNavLink";
 import { commandOutlineButton } from "@/components/command/command-styles";
+import { ACTION_RECORD_NAV_LABEL } from "@/lib/action-records-publish";
 import { commandNavIdFromPath } from "@/lib/command-nav";
 
 type Props = {
@@ -30,6 +31,10 @@ export function CommandHeaderActions({
       <CommandNavLink href="/tracking" active={current === "tracking"}>
         <Map className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
         Event Tracker
+      </CommandNavLink>
+      <CommandNavLink href="/records" active={current === "records"}>
+        <FileDown className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        {ACTION_RECORD_NAV_LABEL}
       </CommandNavLink>
       {showUsersLink ? (
         <CommandNavLink href="/admin/users" active={current === "users"}>
