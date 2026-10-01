@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { Briefcase, ChevronDown, Coffee, Moon, Square, Trash2, Wrench } from "lucide-react";
+import { BedDouble, Briefcase, ChevronDown, Coffee, Moon, ParkingCircle, Square, Trash2, User, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +22,12 @@ import {
   type PriorOpenActivity,
 } from "@/lib/day-event-edit-rules";
 import { PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE } from "@/lib/activity-kind";
-import { DRIVER_PARKED_LABEL, DRIVER_PASSENGER_LABEL, DRIVER_SLEEPER_BERTH_LABEL } from "@/lib/product-copy";
+import {
+  DRIVER_BREAK_FROM_DRIVING_LABEL,
+  DRIVER_PARKED_LABEL,
+  DRIVER_PASSENGER_LABEL,
+  DRIVER_SLEEPER_BERTH_LABEL,
+} from "@/lib/product-copy";
 
 export type DayEventDraft = {
   time: string;
@@ -38,23 +43,60 @@ export const EDITABLE_DAY_EVENT_TYPES: ActivityKey[] = ["work", "break", "other_
 /** First setup of a shift — work, rest, and other work (LogBar handles End shift live). */
 export const NEW_SHIFT_EVENT_TYPES: ActivityKey[] = ["work", "break", "other_work"];
 
+/** Two-up on-shift types — same as the hero (Passenger, Sleeper berth, Parked). */
+export const TWO_UP_DAY_EVENT_TYPES = [
+  PASSENGER_EVENT_TYPE,
+  SLEEPER_BERTH_EVENT_TYPE,
+  STATIONARY_REST_EVENT_TYPE,
+] as const;
+
 export type DayEventsEditorVariant = "new_shift" | "edit";
 
-const TYPE_LABELS: Record<ActivityKey, string> = {
+export function dayEventTypesForEditor(opts: {
+  variant: DayEventsEditorVariant;
+  twoUp: boolean;
+}): string[] {
+  const base = opts.variant === "new_shift" ? [...NEW_SHIFT_EVENT_TYPES] : [...EDITABLE_DAY_EVENT_TYPES];
+  if (!opts.twoUp) return base;
+  const extras = TWO_UP_DAY_EVENT_TYPES.filter((t) => !base.includes(t as ActivityKey));
+  const insertAt = base.indexOf("non_work");
+  if (insertAt >= 0) {
+    base.splice(insertAt, 0, ...extras);
+    return base;
+  }
+  return [...base, ...extras];
+}
+
+const TYPE_LABELS: Record<string, string> = {
   work: "Work",
   break: "Rest",
   other_work: "Other work",
   non_work: "Non-work",
   stop: "End shift",
+  [PASSENGER_EVENT_TYPE]: DRIVER_PASSENGER_LABEL,
+  [SLEEPER_BERTH_EVENT_TYPE]: DRIVER_SLEEPER_BERTH_LABEL,
+  [STATIONARY_REST_EVENT_TYPE]: DRIVER_PARKED_LABEL,
 };
 
-const TYPE_ICONS: Record<ActivityKey, React.ComponentType<{ className?: string }>> = {
+const TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   work: Briefcase,
   break: Coffee,
   other_work: Wrench,
   non_work: Moon,
   stop: Square,
+  [PASSENGER_EVENT_TYPE]: User,
+  [SLEEPER_BERTH_EVENT_TYPE]: BedDouble,
+  [STATIONARY_REST_EVENT_TYPE]: ParkingCircle,
 };
+
+function themeKeyForAddButton(type: string): ActivityKey {
+  if (type === PASSENGER_EVENT_TYPE) return "other_work";
+  if (type === SLEEPER_BERTH_EVENT_TYPE || type === STATIONARY_REST_EVENT_TYPE) return "non_work";
+  if (type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop") {
+    return type;
+  }
+  return "stop";
+}
 
 export function isoToHHMM(iso: string): string {
   const d = new Date(iso);
@@ -80,22 +122,18 @@ function defaultTimeForNewEvent(dayYmd: string, existing: DayEventDraft[]): stri
   return new Date(`${y}-${m}-${d}T${hh}:${mm}:00`).toISOString();
 }
 
-function isActivityKey(type: string): type is ActivityKey {
-  return (EDITABLE_DAY_EVENT_TYPES as string[]).includes(type);
+function isKnownEditType(type: string): boolean {
+  return type in TYPE_LABELS;
 }
 
-const TWO_UP_LOGGED_TYPES = [
-  PASSENGER_EVENT_TYPE,
-  SLEEPER_BERTH_EVENT_TYPE,
-  STATIONARY_REST_EVENT_TYPE,
-] as const;
-
-export function eventTypeLabel(type: string): string {
-  if (type === PASSENGER_EVENT_TYPE) return DRIVER_PASSENGER_LABEL;
-  if (type === SLEEPER_BERTH_EVENT_TYPE) return DRIVER_SLEEPER_BERTH_LABEL;
-  if (type === STATIONARY_REST_EVENT_TYPE) return DRIVER_PARKED_LABEL;
-  if (isActivityKey(type)) return TYPE_LABELS[type];
+export function eventTypeLabel(type: string, twoUp = false): string {
+  if (type === "break" && twoUp) return DRIVER_BREAK_FROM_DRIVING_LABEL;
+  if (isKnownEditType(type)) return TYPE_LABELS[type]!;
   return type;
+}
+
+function addButtonCaption(type: string, twoUp: boolean): string {
+  return `Add ${eventTypeLabel(type, twoUp).toLowerCase()}`;
 }
 
 export function normalizeDayEvents(events: DayEventDraft[]): DayEventDraft[] {
@@ -138,10 +176,11 @@ export function DayEventsEditor({
   const bannerMessages = dayEventEditMessages(issues);
   const issueIndexes = new Set(issues.map((i) => i.eventIndex).filter((i) => i >= 0));
   const isNewShift = variant === "new_shift";
-  const addableTypes = isNewShift ? NEW_SHIFT_EVENT_TYPES : EDITABLE_DAY_EVENT_TYPES;
+  const isTwoUp = driverType === "two_up";
+  const addableTypes = dayEventTypesForEditor({ variant, twoUp: isTwoUp });
   const selectableTypes = addableTypes;
 
-  const addEvent = (type: ActivityKey) => {
+  const addEvent = (type: string) => {
     onChange([...events, { type, time: defaultTimeForNewEvent(sheetDayYmd, events) }]);
   };
 
@@ -185,7 +224,7 @@ export function DayEventsEditor({
                 className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300"
               >
                 <span className="font-mono tabular-nums w-14 shrink-0">{isoToHHMM(ev.time)}</span>
-                <span className="font-medium">{eventTypeLabel(ev.type)}</span>
+                <span className="font-medium">{eventTypeLabel(ev.type, isTwoUp)}</span>
                 {ev.driver ? <span className="text-xs text-slate-500">({ev.driver})</span> : null}
               </li>
             ))}
@@ -208,7 +247,7 @@ export function DayEventsEditor({
           {sorted.length === 0 ? (
             isNewShift ? null : (
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                No events yet — add work, break, non-work, or end shift below.
+                No events yet — add the type that matches what you were doing, below.
               </p>
             )
           ) : (
@@ -217,11 +256,9 @@ export function DayEventsEditor({
                 .map((ev, i) => ({ ev, i }))
                 .sort((a, b) => new Date(a.ev.time).getTime() - new Date(b.ev.time).getTime())
                 .map(({ ev, i: eventIndex }) => {
-                  const rowTypes = TWO_UP_LOGGED_TYPES.includes(
-                    ev.type as (typeof TWO_UP_LOGGED_TYPES)[number]
-                  )
-                    ? [ev.type, ...selectableTypes]
-                    : selectableTypes;
+                  const rowTypes = selectableTypes.includes(ev.type)
+                    ? selectableTypes
+                    : [ev.type, ...selectableTypes];
                   const typeKey = ev.type;
                   const bad = issueIndexes.has(eventIndex);
                   return (
@@ -244,13 +281,13 @@ export function DayEventsEditor({
                           updateAt(eventIndex, patch);
                         }}
                       >
-                        <SelectTrigger className="h-11 w-[7.5rem] shrink-0 text-xs font-semibold">
+                        <SelectTrigger className="h-11 w-[10.5rem] shrink-0 text-xs font-semibold">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {rowTypes.map((t) => (
                             <SelectItem key={t} value={t} className="text-sm font-medium">
-                              {eventTypeLabel(t)}
+                              {eventTypeLabel(t, isTwoUp)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -263,14 +300,14 @@ export function DayEventsEditor({
                           updateAt(eventIndex, { time: hhmmToIsoOnDate(sheetDayYmd, hhmm) });
                         }}
                         className="h-11 w-28 text-base font-mono flex-1 min-w-[6.5rem]"
-                        aria-label={`Time for ${eventTypeLabel(typeKey)}`}
+                        aria-label={`Time for ${eventTypeLabel(typeKey, isTwoUp)}`}
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         className="h-11 px-2 shrink-0 text-red-600 dark:text-red-400"
-                        aria-label={`Remove ${eventTypeLabel(typeKey)}`}
+                        aria-label={`Remove ${eventTypeLabel(typeKey, isTwoUp)}`}
                         onClick={() => onChange(events.filter((_, j) => j !== eventIndex))}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -282,7 +319,8 @@ export function DayEventsEditor({
           )}
           <div className="flex flex-wrap gap-2 pt-1">
             {addableTypes.map((t) => {
-              const Icon = TYPE_ICONS[t];
+              const Icon = TYPE_ICONS[t] ?? Square;
+              const themeKey = themeKeyForAddButton(t);
               return (
                 <Button
                   key={t}
@@ -291,12 +329,12 @@ export function DayEventsEditor({
                   size="sm"
                   className={cn(
                     "min-h-10 gap-1.5 text-sm font-semibold border-2",
-                    ACTIVITY_THEME[t].outlineButton
+                    ACTIVITY_THEME[themeKey].outlineButton
                   )}
                   onClick={() => addEvent(t)}
                 >
                   <Icon className="w-4 h-4 opacity-90" aria-hidden />
-                  Add {TYPE_LABELS[t].toLowerCase()}
+                  {addButtonCaption(t, isTwoUp)}
                 </Button>
               );
             })}
@@ -312,10 +350,10 @@ export function DayEventsEditor({
               </summary>
               <ul className="space-y-1.5 border-t border-slate-200 dark:border-slate-700 px-3 py-2.5 text-xs leading-snug text-slate-600 dark:text-slate-400 list-disc pl-7">
                 <li>
-                  Correct <span className="font-medium text-slate-700 dark:text-slate-300">work</span>,{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">break</span>,{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">non-work</span>, or{" "}
-                  <span className="font-medium text-slate-700 dark:text-slate-300">end shift</span> times for this day.
+                  Correct times for this day using the same types as the live log
+                  {isTwoUp
+                    ? ` — including ${DRIVER_PASSENGER_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, and ${DRIVER_PARKED_LABEL}.`
+                    : " — work, rest, other work, non-work, or end shift."}
                 </li>
                 <li>
                   Use <span className="font-medium text-slate-700 dark:text-slate-300">break</span> only during a work

@@ -379,8 +379,10 @@ export function DriverGuideArticle() {
           </li>
           <li>
             Work / break / non-work / End shift time corrections — when the day already has events (Edit
-            day), you get the full list. On a new shift with no events yet, Set up day only offers Add
-            work, Rest, and Other work. If End shift is on that day after work the same day, end km is required
+            day), you get the full list. On a two-up sheet that list also includes {DRIVER_PASSENGER_LABEL},{" "}
+            {DRIVER_SLEEPER_BERTH_LABEL}, and {DRIVER_PARKED_LABEL}. On a new shift with no events yet, Set up
+            day offers Add work, Rest, and Other work, plus those two-up types when the sheet is two-up. If End
+            shift is on that day after work the same day, end km is required
             on the same card. One shift has one start km (when you start) and one end km (when you End
             shift). Rest or drive after midnight is still that shift — do not enter start km again.
             Overnight finish: leave end km blank on the finish label when it is already on the

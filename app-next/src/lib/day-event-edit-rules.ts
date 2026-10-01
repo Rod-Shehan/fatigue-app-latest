@@ -8,7 +8,11 @@
  * threshold changes.
  */
 
-import type { ActivityKey } from "@/lib/theme";
+import {
+  PASSENGER_EVENT_TYPE,
+  SLEEPER_BERTH_EVENT_TYPE,
+  STATIONARY_REST_EVENT_TYPE,
+} from "@/lib/activity-kind";
 
 export type DayEventLike = {
   time: string;
@@ -37,10 +41,22 @@ const LABELS: Record<string, string> = {
   other_work: "Other work",
   non_work: "Non-work",
   stop: "End shift",
+  [PASSENGER_EVENT_TYPE]: "Passenger",
+  [SLEEPER_BERTH_EVENT_TYPE]: "Sleeper berth",
+  [STATIONARY_REST_EVENT_TYPE]: "Parked",
 };
 
-function isEditableType(type: string): type is ActivityKey {
-  return type === "work" || type === "break" || type === "other_work" || type === "non_work" || type === "stop";
+function isDiaryEditType(type: string): boolean {
+  return (
+    type === "work" ||
+    type === "break" ||
+    type === "other_work" ||
+    type === "non_work" ||
+    type === "stop" ||
+    type === PASSENGER_EVENT_TYPE ||
+    type === SLEEPER_BERTH_EVENT_TYPE ||
+    type === STATIONARY_REST_EVENT_TYPE
+  );
 }
 
 function sortEvents(events: DayEventLike[]): DayEventLike[] {
@@ -55,25 +71,25 @@ export function activityBeforeEvent(
   sorted: DayEventLike[],
   index: number,
   activityBeforeDay: PriorOpenActivity
-): PriorOpenActivity | "stop" {
+): string | null {
   if (index <= 0) {
     return activityBeforeDay;
   }
   const prev = sorted[index - 1]!;
   if (prev.type === "stop") return "stop";
-  if (
-    prev.type === "work" ||
-    prev.type === "break" ||
-    prev.type === "other_work" ||
-    prev.type === "non_work"
-  ) {
-    return prev.type;
-  }
+  if (isDiaryEditType(prev.type)) return prev.type;
   return activityBeforeDay;
 }
 
-function inWorkBout(prior: PriorOpenActivity | "stop"): boolean {
-  return prior === "work" || prior === "break" || prior === "other_work";
+function inOpenShift(prior: string | null): boolean {
+  return (
+    prior === "work" ||
+    prior === "break" ||
+    prior === "other_work" ||
+    prior === PASSENGER_EVENT_TYPE ||
+    prior === SLEEPER_BERTH_EVENT_TYPE ||
+    prior === STATIONARY_REST_EVENT_TYPE
+  );
 }
 
 /**
@@ -118,7 +134,7 @@ export function validateDayEventEdits(
 
   for (let i = 0; i < sorted.length; i++) {
     const ev = sorted[i]!;
-    if (!isEditableType(ev.type)) continue;
+    if (!isDiaryEditType(ev.type)) continue;
     const prior = activityBeforeEvent(sorted, i, activityBeforeDay);
     const oi = originalIndex(ev);
 
@@ -132,7 +148,7 @@ export function validateDayEventEdits(
     }
 
     if (ev.type === "break") {
-      if (!inWorkBout(prior)) {
+      if (!inOpenShift(prior)) {
         const from =
           prior === "non_work"
             ? "non-work"
@@ -148,12 +164,12 @@ export function validateDayEventEdits(
     }
 
     if (ev.type === "stop") {
-      if (!inWorkBout(prior)) {
+      if (!inOpenShift(prior)) {
         issues.push({
           eventIndex: oi,
           code: "end_shift_without_work",
           message:
-            "End shift needs open Work, Rest, or Other work first — it can’t follow non-work or sit alone with no shift.",
+            "End shift needs an open shift first — Work, Rest, Other work, Passenger, Sleeper berth, or Parked.",
         });
       }
     }

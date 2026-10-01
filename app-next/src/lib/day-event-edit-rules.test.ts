@@ -158,4 +158,27 @@ describe("day-event-edit-rules", () => {
     expect(activityBeforeEvent([{ time: t("01:00"), type: "break" }], 0, "work")).toBe("work");
     expect(activityBeforeEvent([{ time: t("01:00"), type: "break" }], 0, null)).toBe(null);
   });
+
+  it("allows End shift after sleeper berth or passenger", () => {
+    expect(
+      validateDayEventEdits(
+        [
+          { time: t("08:00"), type: "work" },
+          { time: t("12:00"), type: "sleeper_berth" },
+          { time: t("18:00"), type: "stop" },
+        ],
+        { activityBeforeDay: null }
+      )
+    ).toEqual([]);
+    expect(
+      validateDayEventEdits(
+        [
+          { time: t("08:00"), type: "work" },
+          { time: t("12:00"), type: "passenger" },
+          { time: t("18:00"), type: "stop" },
+        ],
+        { activityBeforeDay: null }
+      )
+    ).toEqual([]);
+  });
 });

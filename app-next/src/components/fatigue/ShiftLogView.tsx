@@ -17,6 +17,7 @@ import type { DayData } from "@/lib/api";
 import { applyShiftLogEventPatch, shiftLogEditMessages } from "@/lib/shift-log-edit";
 import {
   EDITABLE_DAY_EVENT_TYPES,
+  TWO_UP_DAY_EVENT_TYPES,
   eventTypeLabel,
   hhmmToIsoOnDate,
   isoToHHMM,
@@ -43,8 +44,6 @@ const EVENT_CONFIG: Record<string, { label: string; icon: React.ComponentType<{ 
   stop: { label: "End shift", icon: Square },
 };
 
-const TWO_UP_TYPES = [PASSENGER_EVENT_TYPE, SLEEPER_BERTH_EVENT_TYPE, STATIONARY_REST_EVENT_TYPE] as const;
-
 function themeKeyForEvent(type: string): ActivityKey {
   if (type === PASSENGER_EVENT_TYPE) return "other_work";
   if (type === SLEEPER_BERTH_EVENT_TYPE || type === STATIONARY_REST_EVENT_TYPE) return "non_work";
@@ -56,8 +55,8 @@ function themeKeyForEvent(type: string): ActivityKey {
 
 function typeOptionsForEvent(type: string, isTwoUp: boolean): string[] {
   const options: string[] = [...EDITABLE_DAY_EVENT_TYPES];
-  if (isTwoUp || (TWO_UP_TYPES as readonly string[]).includes(type)) {
-    for (const extra of TWO_UP_TYPES) {
+  if (isTwoUp || (TWO_UP_DAY_EVENT_TYPES as readonly string[]).includes(type)) {
+    for (const extra of TWO_UP_DAY_EVENT_TYPES) {
       if (!options.includes(extra)) options.push(extra);
     }
   }
@@ -249,7 +248,7 @@ export default function ShiftLogView({
                               );
                             }}
                             className="h-11 w-[6.75rem] text-base font-mono"
-                            aria-label={`Time for ${eventTypeLabel(r.type)} on ${r.dateLabel}`}
+                            aria-label={`Time for ${eventTypeLabel(r.type, isTwoUp)} on ${r.dateLabel}`}
                           />
                         ) : r.isOngoing ? (
                           "now"
@@ -291,7 +290,7 @@ export default function ShiftLogView({
                                   >
                                     <span className="inline-flex items-center gap-1.5">
                                       <OptionIcon className="w-3.5 h-3.5 shrink-0" aria-hidden />
-                                      {eventTypeLabel(t)}
+                                      {eventTypeLabel(t, isTwoUp)}
                                     </span>
                                   </SelectItem>
                                 );
