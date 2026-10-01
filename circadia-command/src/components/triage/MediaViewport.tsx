@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { QueueIncident } from "@/hooks/use-triage-queue";
+import { EventDriverField } from "@/components/triage/EventDriverField";
 import { IncidentActivityTimeline } from "@/components/triage/IncidentActivityTimeline";
 import { commandCard, commandTextMuted, commandTextPrimary } from "@/components/command/command-styles";
 import { cn } from "@/lib/utils";
@@ -96,6 +97,13 @@ export function MediaViewport({
         <span className="rounded-md bg-teal-100 px-2 py-1 text-xs font-medium uppercase text-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
           {incident.fatigue_metric_type}
         </span>
+      </div>
+      <div className="mb-3">
+        <EventDriverField
+          lifecycleId={incident.lifecycle_id}
+          driverName={incident.driver_name}
+          locked={locked}
+        />
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-3">
         <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-100 p-4 dark:border-slate-700/80 dark:bg-black/40">

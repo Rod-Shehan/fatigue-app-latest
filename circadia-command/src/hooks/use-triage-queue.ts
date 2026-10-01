@@ -6,6 +6,7 @@ export type QueueIncident = {
   lifecycle_id: string;
   event_id: string;
   vehicle_registration: string;
+  driver_name: string | null;
   fatigue_metric_type: string;
   confidence_score: number;
   detected_at: string;

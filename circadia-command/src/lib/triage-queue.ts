@@ -1,3 +1,4 @@
+import { resolveDriverNamesByEventId } from "@/lib/event-driver-name";
 import type { TxClient } from "@/lib/privileged-db";
 import { hydratePendingEdgeMediaFromIngest } from "@/lib/hydrate-edge-media";
 import { listManagerTriagedPendingLifecycleIds } from "@/lib/reconcile-manager-triage";
@@ -8,6 +9,7 @@ export type QueueIncident = {
   lifecycle_id: string;
   event_id: string;
   vehicle_registration: string;
+  driver_name: string | null;
   fatigue_metric_type: string;
   confidence_score: number;
   detected_at: string;
@@ -68,6 +70,16 @@ export async function fetchTriageQueue(
     page.map((row) => row.eventId)
   );
 
+  const driverNames = await resolveDriverNamesByEventId(
+    tx,
+    page.map((row) => ({
+      eventId: row.eventId,
+      lifecycleId: row.lifecycleId,
+      driverIdUuid: row.event.driverIdUuid,
+      sourceIngestId: row.event.sourceIngestId,
+    }))
+  );
+
   const userIds = page
     .map((row) => row.claimedByUserId)
     .filter((id): id is string => Boolean(id));
@@ -102,6 +114,7 @@ export async function fetchTriageQueue(
         lifecycle_id: row.lifecycleId,
         event_id: row.eventId,
         vehicle_registration: row.event.vehicleRegistration,
+        driver_name: driverNames.get(row.eventId) ?? null,
         fatigue_metric_type: row.event.fatigueMetricType,
         confidence_score: Number(row.event.confidenceScore),
         detected_at: row.detectedAt.toISOString(),

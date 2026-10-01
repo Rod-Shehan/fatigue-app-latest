@@ -4,6 +4,7 @@
 
 import { Prisma } from "@prisma/client";
 import { resolveReviewMediaUrl } from "@/lib/autonomise-media-extract";
+import { DRIVER_NAMED_ACTION, resolveDriverNamesByEventId } from "@/lib/event-driver-name";
 import { hydratePendingEdgeMediaFromIngest } from "@/lib/hydrate-edge-media";
 import type { TxClient } from "@/lib/privileged-db";
 import { TRIAGE_SHIFT_TIMEZONE } from "@/lib/triage-shift";
@@ -321,28 +322,10 @@ function latestActionByLifecycle(logs: ActionLogRow[]): Map<string, ActionLogRow
   const latest = new Map<string, ActionLogRow>();
   for (const log of logs) {
     if (!log.lifecycleId || latest.has(log.lifecycleId)) continue;
+    if (log.actionType === DRIVER_NAMED_ACTION) continue;
     latest.set(log.lifecycleId, log);
   }
   return latest;
-}
-
-async function lookupDriverNames(
-  tx: TxClient,
-  driverIds: string[]
-): Promise<Map<string, string>> {
-  const names = new Map<string, string>();
-  if (driverIds.length === 0) return names;
-  const rows = await tx.$queryRaw<Array<{ driver_id_uuid: string; name: string | null }>>`
-    SELECT m.driver_id_uuid::text AS driver_id_uuid, u.name
-    FROM identity_uuid_map m
-    JOIN "User" u ON u.id = m.driver_cuid
-    WHERE m.driver_id_uuid::text IN (${Prisma.join(driverIds)})
-  `;
-  for (const row of rows) {
-    const name = row.name?.trim();
-    if (name) names.set(row.driver_id_uuid, name);
-  }
-  return names;
 }
 
 async function lookupIngest(
@@ -406,7 +389,6 @@ export async function fetchActionRecords(
   const page = rows.slice(0, ACTION_RECORD_MAX_ROWS);
   const lifecycleIds = page.map((row) => row.lifecycle_id);
   const eventIds = page.map((row) => row.event_id);
-  const driverIds = [...new Set(page.map((row) => row.driver_id_uuid))];
   const ingestIds = [
     ...new Set(page.map((row) => row.source_ingest_id).filter((id): id is string => Boolean(id))),
   ];
@@ -426,7 +408,15 @@ export async function fetchActionRecords(
             createdAt: true,
           },
         }),
-    lookupDriverNames(tx, driverIds),
+    resolveDriverNamesByEventId(
+      tx,
+      page.map((row) => ({
+        eventId: row.event_id,
+        lifecycleId: row.lifecycle_id,
+        driverIdUuid: row.driver_id_uuid,
+        sourceIngestId: row.source_ingest_id,
+      }))
+    ),
     lookupIngest(tx, ingestIds),
   ]);
 
@@ -455,8 +445,7 @@ export async function fetchActionRecords(
       eventAtLabel: formatPerthPublishDateTime(row.hardware_timestamp),
       actionedAtIso: actionedAt.toISOString(),
       actionedAtLabel: formatPerthPublishDateTime(actionedAt),
-      driverName:
-        ingestRow?.driverName?.trim() || driverNames.get(row.driver_id_uuid) || "",
+      driverName: driverNames.get(row.event_id) ?? "",
       vehicleRego:
         ingestRow?.vehicleRego?.trim() || row.vehicle_registration?.trim() || "",
       eventType: row.fatigue_metric_type,

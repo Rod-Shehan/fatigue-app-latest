@@ -1,4 +1,5 @@
 import type { QueueIncident } from "@/hooks/use-triage-queue";
+import { resolveDriverNamesByEventId } from "@/lib/event-driver-name";
 import type { TxClient } from "@/lib/privileged-db";
 import { isEdgeManagerTriaged } from "@/lib/reconcile-manager-triage";
 
@@ -33,10 +34,20 @@ export async function fetchIncidentForSse(
     claimedLabel = managerUser?.name?.trim() || managerUser?.email || "Manager";
   }
 
+  const driverNames = await resolveDriverNamesByEventId(tx, [
+    {
+      eventId: row.eventId,
+      lifecycleId: row.lifecycleId,
+      driverIdUuid: row.event.driverIdUuid,
+      sourceIngestId: row.event.sourceIngestId,
+    },
+  ]);
+
   return {
     lifecycle_id: row.lifecycleId,
     event_id: row.eventId,
     vehicle_registration: row.event.vehicleRegistration,
+    driver_name: driverNames.get(row.eventId) ?? null,
     fatigue_metric_type: row.event.fatigueMetricType,
     confidence_score: Number(row.event.confidenceScore),
     detected_at: row.detectedAt.toISOString(),

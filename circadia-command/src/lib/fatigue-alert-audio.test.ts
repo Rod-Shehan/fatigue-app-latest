@@ -13,6 +13,7 @@ function incident(overrides: Partial<QueueIncident> = {}): QueueIncident {
     lifecycle_id: "lc-1",
     event_id: "ev-1",
     vehicle_registration: "1ABC123",
+    driver_name: null,
     fatigue_metric_type: "FATIGUE",
     confidence_score: 0.9,
     detected_at: new Date().toISOString(),

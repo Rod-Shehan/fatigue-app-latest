@@ -3,6 +3,7 @@
  */
 
 import type { PrismaClient } from "@prisma/client";
+import { DRIVER_NAMED_ACTION } from "@/lib/event-driver-name";
 import { isIncidentResolutionActionType, resolutionActionLabel } from "@/lib/triage-resolution";
 
 export type IncidentActivityEntry = {
@@ -25,6 +26,7 @@ type ActionRow = {
   actionType: string;
   actorLabel: string | null;
   actorType: string;
+  resolutionNotes: string | null;
 };
 
 function payloadAction(snapshot: unknown): string | null {
@@ -70,7 +72,7 @@ export async function fetchIncidentActivityTimeline(
       ORDER BY transition_timestamp ASC
     `,
     prisma.$queryRaw<ActionRow[]>`
-      SELECT "createdAt", "actionType", "actorLabel", "actorType"
+      SELECT "createdAt", "actionType", "actorLabel", "actorType", "resolutionNotes"
       FROM "IncidentActionLog"
       WHERE "lifecycleId" = ${lifecycleId}::uuid
       ORDER BY "createdAt" ASC
@@ -92,6 +94,17 @@ export async function fetchIncidentActivityTimeline(
     });
   }
   for (const row of actions) {
+    if (row.actionType === DRIVER_NAMED_ACTION) {
+      entries.push({
+        at: row.createdAt.toISOString(),
+        label: row.resolutionNotes?.trim()
+          ? `Driver named: ${row.resolutionNotes.trim()}`
+          : "Driver named",
+        detail: row.actorLabel ?? formatActorType(row.actorType),
+        kind: "action",
+      });
+      continue;
+    }
     const actionLabel = isIncidentResolutionActionType(row.actionType)
       ? resolutionActionLabel(row.actionType)
       : row.actionType.replace(/_/g, " ");

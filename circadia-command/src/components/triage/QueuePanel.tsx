@@ -102,6 +102,9 @@ export function QueuePanel({
                   {inc.fatigue_metric_type}
                 </span>
               </div>
+              <p className={cn("mt-1 text-xs", inc.driver_name ? commandTextPrimary : "text-amber-700 dark:text-amber-300/90")}>
+                {inc.driver_name || "No driver name"}
+              </p>
               <p className={cn("mt-1 text-xs", commandTextMuted)}>
                 {(inc.confidence_score * 100).toFixed(0)}% · {new Date(inc.detected_at).toLocaleTimeString()}
                 {canRemove ? " · No video" : ""}
