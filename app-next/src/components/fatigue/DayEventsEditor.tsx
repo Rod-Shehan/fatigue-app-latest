@@ -56,9 +56,10 @@ export function dayEventTypesForEditor(opts: {
   variant: DayEventsEditorVariant;
   twoUp: boolean;
 }): string[] {
-  const base = opts.variant === "new_shift" ? [...NEW_SHIFT_EVENT_TYPES] : [...EDITABLE_DAY_EVENT_TYPES];
+  const base: string[] =
+    opts.variant === "new_shift" ? [...NEW_SHIFT_EVENT_TYPES] : [...EDITABLE_DAY_EVENT_TYPES];
   if (!opts.twoUp) return base;
-  const extras = TWO_UP_DAY_EVENT_TYPES.filter((t) => !base.includes(t as ActivityKey));
+  const extras = TWO_UP_DAY_EVENT_TYPES.filter((t) => !base.includes(t));
   const insertAt = base.indexOf("non_work");
   if (insertAt >= 0) {
     base.splice(insertAt, 0, ...extras);
