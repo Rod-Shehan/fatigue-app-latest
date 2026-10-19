@@ -280,8 +280,9 @@ export function SheetsList() {
 
               sheet.week_starting && normalizeWeekDateString(sheet.week_starting) === thisSunday;
 
-            const isPastWeek =
-              sheet.week_starting && isPastRegulatoryWeek(sheet.week_starting, thisSunday);
+            const isPastWeek = Boolean(
+              sheet.week_starting && isPastRegulatoryWeek(sheet.week_starting, thisSunday)
+            );
 
             const statusLabel = sheet.week_starting
               ? driverWeekListStatusLabel({
