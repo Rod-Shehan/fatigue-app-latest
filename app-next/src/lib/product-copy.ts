@@ -165,7 +165,12 @@ export function formatPastWeekArchiveBannerTitle(weekOfLabel: string): string {
   return `Past record · week of ${weekOfLabel}`;
 }
 
-export function formatPastWeekArchiveBannerBody(): string {
+export function formatPastWeekArchiveBannerBody(opts?: { hasWeekSignature?: boolean }): string {
+  if (opts?.hasWeekSignature === false) {
+    return (
+      "This week is locked. Review or export below. Ask your manager only if something needs correcting."
+    );
+  }
   return (
     "Signed and locked — this is your legal record for that week. Review or export below. " +
     "Ask your manager only if something needs correcting."

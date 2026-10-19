@@ -510,8 +510,8 @@ export function DriverGuideArticle() {
         <TwoColTable
           rows={[
             ["Current week", `Log ${DRIVER_START_SHIFT_LABEL} / ${DRIVER_STOP_DRIVING_LABEL} / ${DRIVER_END_SHIFT_LABEL} here`],
-            ["Needs signature", "Finished week — open, check, sign"],
-            ["Signed", "Locked — read only for you"],
+            ["Needs signature", "Finished week with no week signature yet — open, check, sign"],
+            ["Signed", "Week signature on file — locked for you"],
           ]}
         />
       </section>

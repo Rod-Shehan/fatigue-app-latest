@@ -4,6 +4,7 @@ import {
   type ChecklistRecordType,
 } from "@/lib/checklist";
 import { weekEndingDateLabel } from "@/lib/worksafe-day-sheet/weekly-trip-sheet";
+import { sheetHasDriverAttestation } from "@/lib/sheet-record";
 import { isPastRegulatoryWeek, normalizeWeekDateString } from "@/lib/weeks";
 
 export type RecordsChecklistCounts = Record<ChecklistRecordType, number>;
@@ -33,7 +34,7 @@ export function sheetsForRosterDriver<T extends { driver_name?: string | null }>
 }
 
 export function isWeekRecordSigned(status: string | null | undefined, signature?: string | null): boolean {
-  return status === "completed" || Boolean(signature?.trim());
+  return sheetHasDriverAttestation(status ?? "", signature);
 }
 
 export function formatRecordsWeekOption(opts: {

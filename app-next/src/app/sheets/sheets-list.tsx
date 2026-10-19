@@ -16,6 +16,7 @@ import { formatHoursStatistic } from "@/lib/hours";
 
 import { listSheetsOfflineFirst } from "@/lib/offline-api";
 
+import { driverWeekListStatusLabel } from "@/lib/sheet-record";
 import { getThisWeekSunday, isPastRegulatoryWeek, normalizeWeekDateString, parseLocalDate } from "@/lib/weeks";
 
 import { Button } from "@/components/ui/button";
@@ -282,13 +283,15 @@ export function SheetsList() {
             const isPastWeek =
               sheet.week_starting && isPastRegulatoryWeek(sheet.week_starting, thisSunday);
 
-            const statusLabel = isPastWeek
-              ? sheet.signature
-                ? "Signed"
-                : "Needs signature"
-              : sheet.status === "completed"
-                ? "Signed"
-                : "Open";
+            const statusLabel = sheet.week_starting
+              ? driverWeekListStatusLabel({
+                  weekStarting: sheet.week_starting,
+                  status: sheet.status,
+                  signature: sheet.signature,
+                  thisWeekSunday: thisSunday,
+                  isPastWeek,
+                })
+              : "Open";
 
             return (
 

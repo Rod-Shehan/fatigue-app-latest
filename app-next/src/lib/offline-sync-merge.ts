@@ -6,6 +6,8 @@
 import type { FatigueSheet } from "./api";
 import type { SheetUpdatePayload } from "./api";
 import type { PendingWrite } from "./offline";
+import { sheetHasDriverAttestation, sheetIsUnsignedForDriver } from "./sheet-record";
+import { normalizeWeekDateString } from "./weeks";
 
 export function pendingUpdatesForSheet(
   pending: PendingWrite[],
@@ -52,6 +54,81 @@ export function shouldPreferLocalSheet(
 ): boolean {
   if (countSheetEvents(local) > countSheetEvents(server)) return true;
   return countSheetChecklists(local) > countSheetChecklists(server);
+}
+
+export function weekDriverKey(sheet: Pick<FatigueSheet, "driver_name" | "week_starting">): string {
+  return `${(sheet.driver_name ?? "").trim().toLowerCase()}|${normalizeWeekDateString(sheet.week_starting ?? "")}`;
+}
+
+/** Overlay a richer on-device copy onto a network list/detail row without dropping local work. */
+export function overlayLocalSheetOnNetwork(local: FatigueSheet, network: FatigueSheet): FatigueSheet {
+  const networkEmpty = countSheetEvents(network) === 0 && countSheetChecklists(network) === 0;
+  const useLocalDays =
+    shouldPreferLocalSheet(local, network) ||
+    (networkEmpty && ((local.days?.length ?? 0) > 0 || countSheetEvents(local) > 0));
+  const localAttested = sheetHasDriverAttestation(local.status, local.signature);
+  const netAttested = sheetHasDriverAttestation(network.status, network.signature);
+  const useLocalAttestation = localAttested && !netAttested;
+  return {
+    ...network,
+    days: useLocalDays ? (local.days ?? network.days) : network.days?.length ? network.days : local.days,
+    status: useLocalAttestation ? local.status : network.status,
+    signature: useLocalAttestation ? local.signature : network.signature ?? local.signature,
+    signed_at: useLocalAttestation ? local.signed_at : network.signed_at ?? local.signed_at,
+  };
+}
+
+/**
+ * Keep on-device weeks that the network list omitted (unsynced current week / local-* id)
+ * and overlay richer local days/signature onto matching server rows.
+ */
+export function mergeNetworkSheetListWithLocal(
+  network: FatigueSheet[],
+  localSheets: FatigueSheet[]
+): FatigueSheet[] {
+  const localById = new Map(localSheets.map((s) => [s.id, s]));
+  const merged = network.map((net) => {
+    const local = localById.get(net.id);
+    return local ? overlayLocalSheetOnNetwork(local, net) : net;
+  });
+  const seenIds = new Set(merged.map((s) => s.id));
+  const seenWeeks = new Set(merged.map((s) => weekDriverKey(s)).filter((k) => !k.endsWith("|")));
+
+  for (const local of localSheets) {
+    if (seenIds.has(local.id)) continue;
+    const key = weekDriverKey(local);
+    if (key && !key.endsWith("|") && seenWeeks.has(key)) {
+      const idx = merged.findIndex((s) => weekDriverKey(s) === key);
+      if (idx >= 0) merged[idx] = overlayLocalSheetOnNetwork(local, merged[idx]!);
+      continue;
+    }
+    merged.push(local);
+    seenIds.add(local.id);
+    if (key && !key.endsWith("|")) seenWeeks.add(key);
+  }
+  return merged;
+}
+
+/** Same driver + week on device, richer than the sheet we just fetched. */
+export function findRicherLocalSheet(
+  target: FatigueSheet,
+  localSheets: FatigueSheet[]
+): FatigueSheet | null {
+  const key = weekDriverKey(target);
+  let best: FatigueSheet | null = null;
+  for (const local of localSheets) {
+    if (local.id !== target.id && weekDriverKey(local) !== key) continue;
+    if (!best || shouldPreferLocalSheet(local, best)) best = local;
+  }
+  if (!best) return null;
+  if (shouldPreferLocalSheet(best, target)) return best;
+  if (
+    sheetIsUnsignedForDriver(target.status, target.signature) &&
+    sheetHasDriverAttestation(best.status, best.signature)
+  ) {
+    return best;
+  }
+  return null;
 }
 
 /**

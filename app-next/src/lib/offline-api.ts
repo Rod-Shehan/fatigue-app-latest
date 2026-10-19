@@ -13,6 +13,7 @@
 import { api, type FatigueSheet, type Rego, type SheetUpdatePayload } from "./api";
 import {
   isOnline,
+  offlineGetAllSheets,
   offlineGetSheet,
   offlineSetSheet,
   offlineGetSheetsList,
@@ -28,9 +29,12 @@ import {
 } from "./offline";
 import { scheduleDeviceBackupAfterWrite, writeDeviceSnapshot } from "./device-backup";
 import {
+  findRicherLocalSheet,
   hasPendingUpdateForSheet,
   isNotFoundError,
   mergeLocalSheetWithPendingUpdates,
+  mergeNetworkSheetListWithLocal,
+  overlayLocalSheetOnNetwork,
   pendingUpdatesForSheet,
   shouldPreferLocalSheet,
   toSheetUpdatePayload,
@@ -246,16 +250,21 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
       }
       // Device backup restore / wiped pending can leave richer local data than Neon.
       // Never replace that with a emptier server copy — push local instead.
-      const local = await offlineGetSheet(id);
-      if (local && shouldPreferLocalSheet(local, sheet)) {
-        await offlineEnqueueSheetUpdate(id, toSheetUpdatePayload(local));
+      const localSheets = await offlineGetAllSheets().catch(() => []);
+      const richer = findRicherLocalSheet(sheet, localSheets);
+      if (richer) {
+        const kept = overlayLocalSheetOnNetwork(richer, { ...sheet, id });
+        await confirmDeviceSheetWrite(kept);
+        await offlineEnqueueSheetUpdate(id, toSheetUpdatePayload(kept));
         void runSync().catch(() => {});
-        return local;
+        return kept;
       }
       await confirmDeviceSheetWrite(sheet);
       return sheet;
     } catch {
-      const cached = await offlineGetSheet(id);
+      const localSheets = await offlineGetAllSheets().catch(() => []);
+      const cached =
+        localSheets.find((s) => s.id === id) ?? (await offlineGetSheet(id).catch(() => null));
       if (cached) return cached;
       throw new Error("Sheet not found and not available offline.");
     }
@@ -267,16 +276,20 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
 
 /** List sheets: network first, fallback to IndexedDB. */
 export async function listSheetsOfflineFirst(): Promise<FatigueSheet[]> {
+  const localSheets = await offlineGetAllSheets().catch(() => []);
   if (isOnline()) {
     try {
       const sheets = await api.sheets.list();
-      await offlineSetSheetsList(sheets);
-      return sheets;
+      const merged = mergeNetworkSheetListWithLocal(sheets, localSheets);
+      await offlineSetSheetsList(merged);
+      return merged;
     } catch {
-      return offlineGetSheetsList();
+      const cached = await offlineGetSheetsList();
+      return mergeNetworkSheetListWithLocal(cached, localSheets);
     }
   }
-  return offlineGetSheetsList();
+  const cached = await offlineGetSheetsList();
+  return mergeNetworkSheetListWithLocal(cached, localSheets);
 }
 
 /**

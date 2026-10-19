@@ -100,6 +100,7 @@ import {
   canDriverLogOnSheet,
   isPrematureCurrentWeekAttestation,
   PREMATURE_ATTESTATION_REOPEN,
+  sheetHasDriverAttestation,
   sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
 import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, sheetEditDayHref } from "@/lib/product-copy";
@@ -2329,7 +2330,14 @@ export function SheetDetail({
               <SheetRecordBanner
                 weekOfLabel={weekOfLabel}
                 isPastWeek
-                variant={canDriverSign ? "sign" : "archive"}
+                variant={
+                  canDriverSign
+                    ? "sign"
+                    : sheetHasDriverAttestation(sheetData.status, sheetData.signature)
+                      ? "archive"
+                      : "sign"
+                }
+                hasWeekSignature={Boolean(sheetData.signature?.trim())}
                 onSign={canDriverSign ? handleMarkCompleteClick : undefined}
               />
             )}

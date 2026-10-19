@@ -7,11 +7,41 @@ import { isPastRegulatoryWeek } from "@/lib/weeks";
 
 export { isPastRegulatoryWeek };
 
+/** True when the driver has attested this week (signature on file, or status completed). */
+export function sheetHasDriverAttestation(status: string, signature?: string | null): boolean {
+  return status === "completed" || Boolean(signature?.trim());
+}
+
 /** True while the driver has not attested this sheet (no signature, not completed). */
 export function sheetIsUnsignedForDriver(status: string, signature?: string | null): boolean {
-  if (signature) return false;
-  if (status === "completed") return false;
-  return true;
+  return !sheetHasDriverAttestation(status, signature);
+}
+
+/** Past week that still needs the driver to sign — same rule as the open sheet. */
+export function isUnsignedPastWeekSheet(
+  weekStarting: string | null | undefined,
+  status: string,
+  signature: string | null | undefined,
+  thisWeekSunday: string
+): boolean {
+  if (!weekStarting) return false;
+  if (!isPastRegulatoryWeek(weekStarting, thisWeekSunday)) return false;
+  return sheetIsUnsignedForDriver(status, signature);
+}
+
+export function driverWeekListStatusLabel(opts: {
+  weekStarting: string;
+  status: string;
+  signature?: string | null;
+  thisWeekSunday: string;
+  isPastWeek?: boolean;
+}): "Signed" | "Needs signature" | "Open" {
+  const past =
+    opts.isPastWeek ?? isPastRegulatoryWeek(opts.weekStarting, opts.thisWeekSunday);
+  if (past) {
+    return sheetIsUnsignedForDriver(opts.status, opts.signature) ? "Needs signature" : "Signed";
+  }
+  return sheetHasDriverAttestation(opts.status, opts.signature) ? "Signed" : "Open";
 }
 
 /** Driver may log work/break via the live LogBar on the current regulatory week only. */

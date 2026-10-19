@@ -238,8 +238,8 @@ Menu: **Your weeks** (`/sheets`)
 | Label | Meaning |
 |-------|---------|
 | Current week | Log Work / Break / End shift here |
-| Needs signature | Finished week — open, check, sign |
-| Signed | Locked — read only for you |
+| Needs signature | Finished week with no week signature yet — open, check, sign |
+| Signed | Week signature on file — locked for you |
 
 ---
 

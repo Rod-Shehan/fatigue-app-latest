@@ -23,12 +23,15 @@ export function SheetRecordBanner({
   weekOfLabel,
   isPastWeek,
   variant,
+  hasWeekSignature,
   onSign,
 }: {
   /** Display date for the sheet's week (e.g. "22 Mar 2026"). */
   weekOfLabel: string;
   isPastWeek: boolean;
   variant: "archive" | "sign" | "resign";
+  /** Week record signature — archive copy says "Signed and locked" only when this is true. */
+  hasWeekSignature?: boolean;
   onSign?: () => void;
 }) {
   const isArchive = variant === "archive";
@@ -57,7 +60,7 @@ export function SheetRecordBanner({
         : isPastWeek
           ? {
               title: formatPastWeekArchiveBannerTitle(weekOfLabel),
-              body: formatPastWeekArchiveBannerBody(),
+              body: formatPastWeekArchiveBannerBody({ hasWeekSignature }),
             }
           : {
               title: SIGNED_CURRENT_WEEK_ARCHIVE_TITLE,

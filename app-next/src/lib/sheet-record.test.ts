@@ -8,6 +8,9 @@ import {
   managerRequiresAmendmentReason,
   patchIsAttestationOnly,
   patchTouchesContent,
+  driverWeekListStatusLabel,
+  isUnsignedPastWeekSheet,
+  sheetHasDriverAttestation,
   sheetIsUnsignedForDriver,
 } from "./sheet-record";
 
@@ -27,6 +30,10 @@ describe("driver capabilities", () => {
   it("unsigned past week is editable", () => {
     expect(sheetIsUnsignedForDriver("draft", null)).toBe(true);
     expect(canDriverEditSheetContent(pastWeek, "draft", null)).toBe(true);
+  });
+  it("draft with a week signature is attested", () => {
+    expect(sheetIsUnsignedForDriver("draft", "data:image/png;base64,x")).toBe(false);
+    expect(sheetIsUnsignedForDriver("draft", "   ")).toBe(true);
   });
   it("cannot log live on past week even when unsigned", () => {
     expect(canDriverLogOnSheet(pastWeek, "draft", null)).toBe(false);
@@ -54,6 +61,31 @@ describe("driver capabilities", () => {
   });
   it("cannot edit completed without signature field but status completed", () => {
     expect(canDriverEditSheetContent("2026-05-24", "completed", null)).toBe(false);
+  });
+  it("lists a past week as needing a signature only when it is not attested", () => {
+    expect(isUnsignedPastWeekSheet("2026-10-11", "draft", null, "2026-10-18")).toBe(true);
+    expect(isUnsignedPastWeekSheet("2026-10-11", "draft", "data:image/png;base64,x", "2026-10-18")).toBe(
+      false
+    );
+    expect(isUnsignedPastWeekSheet("2026-10-11", "completed", null, "2026-10-18")).toBe(false);
+    expect(isUnsignedPastWeekSheet("2026-10-18", "draft", null, "2026-10-18")).toBe(false);
+    expect(
+      driverWeekListStatusLabel({
+        weekStarting: "2026-10-11",
+        status: "draft",
+        signature: null,
+        thisWeekSunday: "2026-10-18",
+      })
+    ).toBe("Needs signature");
+    expect(
+      driverWeekListStatusLabel({
+        weekStarting: "2026-10-11",
+        status: "draft",
+        signature: "data:image/png;base64,x",
+        thisWeekSunday: "2026-10-18",
+      })
+    ).toBe("Signed");
+    expect(sheetHasDriverAttestation("draft", "data:image/png;base64,x")).toBe(true);
   });
 });
 

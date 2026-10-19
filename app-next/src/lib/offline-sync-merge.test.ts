@@ -7,6 +7,9 @@ import {
   hasPendingUpdateForSheet,
   isNotFoundError,
   mergeLocalSheetWithPendingUpdates,
+  findRicherLocalSheet,
+  mergeNetworkSheetListWithLocal,
+  overlayLocalSheetOnNetwork,
   shouldPreferLocalSheet,
   toSheetUpdatePayload,
 } from "./offline-sync-merge";
@@ -138,5 +141,66 @@ describe("offline-sync-merge", () => {
     expect(countSheetChecklists(server)).toBe(0);
     expect(shouldPreferLocalSheet(local, server)).toBe(true);
     expect(shouldPreferLocalSheet(server, local)).toBe(false);
+  });
+
+  it("keeps an on-device current week that the network list omitted", () => {
+    const localOnly = sheet({
+      id: "local-week",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-18",
+      days: [{ events: [{ time: "2026-10-19T00:10:00.000Z", type: "work" }] }],
+    });
+    const network = [
+      sheet({
+        id: "past",
+        driver_name: "Jaydin Ireland",
+        week_starting: "2026-10-11",
+        days: [],
+        status: "draft",
+      }),
+    ];
+    const merged = mergeNetworkSheetListWithLocal(network, [localOnly]);
+    expect(merged.some((s) => s.id === "local-week")).toBe(true);
+    expect(countSheetEvents(merged.find((s) => s.id === "local-week"))).toBe(1);
+  });
+
+  it("overlays richer local days onto a server row with empty list meta", () => {
+    const network = sheet({
+      id: "s1",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-18",
+      days: [],
+    });
+    const local = sheet({
+      id: "s1",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-18",
+      days: [{ events: [{ time: "2026-10-19T00:10:00.000Z", type: "work" }] }],
+    });
+    const overlaid = overlayLocalSheetOnNetwork(local, network);
+    expect(countSheetEvents(overlaid)).toBe(1);
+    expect(findRicherLocalSheet(network, [local])?.id).toBe("s1");
+  });
+
+  it("does not list a draft week as needing a signature when the device has the week signature", () => {
+    const network = sheet({
+      id: "s1",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-11",
+      status: "draft",
+      signature: null,
+      days: [],
+    });
+    const local = sheet({
+      id: "s1",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-11",
+      status: "completed",
+      signature: "data:image/png;base64,x",
+      days: [],
+    });
+    const overlaid = overlayLocalSheetOnNetwork(local, network);
+    expect(overlaid.status).toBe("completed");
+    expect(overlaid.signature).toBe("data:image/png;base64,x");
   });
 });
