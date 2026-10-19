@@ -241,6 +241,8 @@ Menu: **Your weeks** (`/sheets`)
 | Current week | Log Work / Break / End shift here |
 | Needs signature | Finished week with no week signature yet — open, check, sign |
 | Signed | Week signature on file — locked for you |
+| On this phone only — not in the office yet. | This week is saved on your phone and has not reached the office copy yet. Stay online until it clears. |
+| Office copy saved | Time this phone last matched the office copy |
 
 ---
 

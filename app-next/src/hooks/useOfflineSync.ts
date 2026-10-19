@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { runSync, getPendingCount } from "@/lib/offline-api";
+import { runSync, getPendingCount, reconcileSheetsWithOffice } from "@/lib/offline-api";
 
 const ACTIVE_SYNC_MS = 10_000;
 const IDLE_PROBE_MS = 60_000;
+const RECONCILE_MS = 180_000;
 
 /** Runs sync when online and writes are pending; exposes online status and pending count for UI. */
 export function useOfflineSync() {
@@ -115,9 +116,21 @@ export function useOfflineSync() {
           return;
         }
         setSyncError(null);
+        const navOnline = typeof navigator !== "undefined" ? navigator.onLine : true;
+        if (navOnline) {
+          setOnline(true);
+          await reconcileSheetsWithOffice().catch(() => {});
+          schedule(RECONCILE_MS);
+          return;
+        }
         if (typeof navigator !== "undefined" && !navigator.onLine) {
           const ok = await probeOnline();
           setOnline(ok);
+          if (ok) {
+            await reconcileSheetsWithOffice().catch(() => {});
+            schedule(RECONCILE_MS);
+            return;
+          }
         }
         schedule(IDLE_PROBE_MS);
       } catch {

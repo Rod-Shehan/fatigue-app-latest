@@ -27,7 +27,13 @@ import { DriverSettingsLink } from "@/components/driver/DriverSettingsLink";
 
 import { PRODUCT_NAME, TAGLINE_DRIVER } from "@/lib/branding";
 
-import { SHEETS_LIST_TAGLINE } from "@/lib/product-copy";
+import {
+  LAST_OFFICE_SAVE_PREFIX,
+  PHONE_ONLY_WEEK_NOTE,
+  SHEETS_LIST_TAGLINE,
+} from "@/lib/product-copy";
+import { isLocalSheetTempId } from "@/lib/offline-sync-merge";
+import { formatLastOfficeSyncLabel, getLastOfficeSyncAt } from "@/lib/office-sync-status";
 
 import { format } from "date-fns";
 
@@ -197,6 +203,11 @@ export function SheetsList() {
           </Link>
 
         </p>
+        {formatLastOfficeSyncLabel(getLastOfficeSyncAt(), LAST_OFFICE_SAVE_PREFIX) ? (
+          <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">
+            {formatLastOfficeSyncLabel(getLastOfficeSyncAt(), LAST_OFFICE_SAVE_PREFIX)}
+          </p>
+        ) : null}
 
 
 
@@ -344,6 +355,11 @@ export function SheetsList() {
 
                           </span>
 
+                        )}
+                        {isLocalSheetTempId(sheet.id) && (
+                          <span className="text-[10px] font-medium text-amber-800 dark:text-amber-200">
+                            {PHONE_ONLY_WEEK_NOTE}
+                          </span>
                         )}
 
                         <span className="text-xs text-slate-400 dark:text-slate-500 font-mono md:hidden">

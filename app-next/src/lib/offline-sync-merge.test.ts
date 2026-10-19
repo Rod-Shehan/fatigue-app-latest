@@ -12,9 +12,12 @@ import {
   mergeLocalSheetWithPendingUpdates,
   findRicherLocalSheet,
   mergeNetworkSheetListWithLocal,
+  hydrateSheetListRow,
+  LIST_HAS_SIGNATURE_MARK,
   overlayLocalSheetOnNetwork,
   pendingTouchesAttestation,
   shouldPreferLocalSheet,
+  toSheetListIndex,
   toSheetUpdatePayload,
   withoutUnqueuedAttestation,
 } from "./offline-sync-merge";
@@ -274,6 +277,41 @@ describe("offline-sync-merge", () => {
     expect(stripped.status).toBeUndefined();
     expect(stripped.signature).toBeUndefined();
     expect(stripped.signed_at).toBeUndefined();
+  });
+
+  it("stores the week list as an index without day tape or a signature image", () => {
+    const full = sheet({
+      id: "s1",
+      status: "completed",
+      signature: "data:image/png;base64,x",
+      signed_at: "2026-10-17T08:00:00.000Z",
+      days: [{ events: [{ time: "2026-10-12T18:24:00.000Z", type: "stop" }] }],
+    });
+    const index = toSheetListIndex(full);
+    expect(index.days).toEqual([]);
+    expect(index.signature).toBe(LIST_HAS_SIGNATURE_MARK);
+    const hydrated = hydrateSheetListRow(index, full);
+    expect(countSheetEvents(hydrated)).toBe(1);
+    expect(hydrated.signature).toBe(LIST_HAS_SIGNATURE_MARK);
+  });
+
+  it("treats a named attest op as a queued signature", () => {
+    const pending: PendingWrite[] = [
+      {
+        id: 1,
+        type: "attest",
+        sheetId: "s1",
+        data: { status: "completed", signature: "data:image/png;base64,x" },
+        at: 1,
+      },
+    ];
+    expect(pendingTouchesAttestation(pending, "s1")).toBe(true);
+    expect(
+      pendingTouchesAttestation(
+        [{ id: 2, type: "patch_days", sheetId: "s1", data: { days: [] }, at: 2 }],
+        "s1"
+      )
+    ).toBe(false);
   });
 
   it("coalesces store + list copies and keeps the richer days", () => {

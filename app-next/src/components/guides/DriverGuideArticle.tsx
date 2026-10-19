@@ -32,6 +32,8 @@ import {
   SHIFT_LOG_SAVE_LABEL,
   DRIVER_REST_WINDOW_HEADLINE,
   formatDriverShiftStillOpen,
+  LAST_OFFICE_SAVE_PREFIX,
+  PHONE_ONLY_WEEK_NOTE,
 } from "@/lib/product-copy";
 import { WORKSAFE_TRACK_LABELS } from "@/lib/worksafe-day-sheet";
 import {
@@ -515,6 +517,8 @@ export function DriverGuideArticle() {
             ["Current week", `Log ${DRIVER_START_SHIFT_LABEL} / ${DRIVER_STOP_DRIVING_LABEL} / ${DRIVER_END_SHIFT_LABEL} here`],
             ["Needs signature", "Finished week with no week signature yet — open, check, sign"],
             ["Signed", "Week signature on file — locked for you"],
+            [PHONE_ONLY_WEEK_NOTE, "This week is saved on your phone and has not reached the office copy yet. Stay online until it clears."],
+            [LAST_OFFICE_SAVE_PREFIX, "Time this phone last matched the office copy"],
           ]}
         />
       </section>

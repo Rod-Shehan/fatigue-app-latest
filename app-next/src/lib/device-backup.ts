@@ -9,6 +9,9 @@ import {
   OFFLINE_DB_VERSION,
   STORE_SNAPSHOTS,
   type PendingWriteEnqueue,
+  isAttestPending,
+  isCreatePending,
+  isPatchDaysPending,
   offlineGetAllSheets,
   offlineGetPending,
   offlineGetRegos,
@@ -130,9 +133,11 @@ export async function collectDeviceBackupPayload(driverEmail?: string | null): P
   if (sheetsForDriver.length === 0 && pendingRaw.length === 0) return null;
 
   const pending: PendingWriteEnqueue[] = pendingRaw.map((p) =>
-    p.type === "update"
-      ? { type: "update", sheetId: p.sheetId, data: p.data }
-      : { type: "create", tempId: p.tempId, data: p.data }
+    isCreatePending(p)
+      ? { type: "create_week", tempId: p.tempId, data: p.data }
+      : isAttestPending(p)
+        ? { type: "attest", sheetId: p.sheetId, data: p.data }
+        : { type: "patch_days", sheetId: p.sheetId, data: p.data }
   );
 
   return {
@@ -228,12 +233,18 @@ export async function restoreDeviceBackup(
   const knownIds = new Set(snapshot.sheets.map((s) => s.id).filter(Boolean));
   const coalesced = new Map<string, PendingWriteEnqueue>();
   for (const item of snapshot.pending) {
-    if (item.type === "create") {
+    if (isCreatePending(item)) {
       coalesced.set(`create:${item.tempId}`, item);
       continue;
     }
     if (!knownIds.has(item.sheetId)) continue;
-    coalesced.set(`update:${item.sheetId}`, item);
+    if (isAttestPending(item)) {
+      coalesced.set(`attest:${item.sheetId}`, item);
+      continue;
+    }
+    if (isPatchDaysPending(item) || item.type === "update") {
+      coalesced.set(`patch:${item.sheetId}`, item);
+    }
   }
   await offlineReplacePending([...coalesced.values()]);
   if (snapshot.offlineAuth) {

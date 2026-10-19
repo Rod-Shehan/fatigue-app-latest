@@ -25,8 +25,13 @@ import {
   offlineEnqueueSheetUpdate,
   offlineRemovePending,
   offlineDeleteSheet,
+  isAttestPending,
+  isCreatePending,
+  isPatchDaysPending,
   type PendingWrite,
 } from "./offline";
+import { recordOfficeSyncAt } from "./office-sync-status";
+import { sheetIsUnsignedForDriver, sheetHasDriverAttestation } from "./sheet-record";
 import { scheduleDeviceBackupAfterWrite, writeDeviceSnapshot } from "./device-backup";
 import {
   coalesceLocalSheets,
@@ -40,11 +45,14 @@ import {
   mergeNetworkSheetListWithLocal,
   overlayLocalSheetOnNetwork,
   pendingTouchesAttestation,
+  pendingContentUpdatesForSheet,
   pendingUpdatesForSheet,
   shouldPreferLocalSheet,
+  toSheetListIndex,
   toSheetUpdatePayload,
   weekDriverKey,
   withoutUnqueuedAttestation,
+  hydrateSheetListRow,
 } from "./offline-sync-merge";
 
 export { isOnline };
@@ -65,17 +73,22 @@ async function loadCoalescedLocalSheets(): Promise<FatigueSheet[]> {
   return coalesceLocalSheets([stored, listed]);
 }
 
-/** Write merged list, and keep non-empty days in STORE_SHEETS so a later list meta row cannot wipe them. */
+/** Write the week list as an index only. Full days live in STORE_SHEETS. */
 async function persistMergedSheetList(merged: FatigueSheet[]): Promise<void> {
-  await offlineSetSheetsList(merged);
+  await offlineSetSheetsList(merged.map(toSheetListIndex));
   for (const sheet of merged) {
-    if (countSheetEvents(sheet) === 0 && !(sheet.days?.length)) continue;
     if (countSheetEvents(sheet) === 0) continue;
     const existing = await offlineGetSheet(sheet.id).catch(() => null);
     if (!existing || shouldPreferLocalSheet(sheet, existing) || countSheetEvents(existing) === 0) {
       await offlineSetSheet(sheet);
     }
   }
+}
+
+async function hydrateMergedList(merged: FatigueSheet[]): Promise<FatigueSheet[]> {
+  const stored = await offlineGetAllSheets().catch(() => []);
+  const byId = new Map(stored.map((s) => [s.id, s]));
+  return merged.map((row) => hydrateSheetListRow(row, byId.get(row.id)));
 }
 
 function sheetWithoutId(sheet: FatigueSheet): Omit<FatigueSheet, "id"> {
@@ -90,7 +103,7 @@ function sheetWithoutId(sheet: FatigueSheet): Omit<FatigueSheet, "id"> {
 async function dropPendingCreatesForTempId(tempId: string): Promise<void> {
   const pending = await offlineGetPending().catch(() => []);
   for (const item of pending) {
-    if (item.type === "create" && item.tempId === tempId) {
+    if (isCreatePending(item) && item.tempId === tempId) {
       await offlineRemovePending(item.id);
     }
   }
@@ -102,7 +115,7 @@ async function ensureLocalWeeksQueuedForSync(merged: FatigueSheet[]): Promise<Fa
   const createTempIds = new Set<string>();
   const createWeeks = new Set<string>();
   for (const item of pending) {
-    if (item.type !== "create") continue;
+    if (!isCreatePending(item)) continue;
     createTempIds.add(item.tempId);
     const key = weekDriverKey({
       driver_name: item.data.driver_name ?? "",
@@ -132,7 +145,7 @@ async function ensureLocalWeeksQueuedForSync(merged: FatigueSheet[]): Promise<Fa
       continue;
     }
     if (!createTempIds.has(local.id) && (key.endsWith("|") || !createWeeks.has(key))) {
-      await offlineEnqueue({ type: "create", tempId: local.id, data: sheetWithoutId(local) });
+      await offlineEnqueue({ type: "create_week", tempId: local.id, data: sheetWithoutId(local) });
       createTempIds.add(local.id);
       if (!key.endsWith("|")) createWeeks.add(key);
     }
@@ -145,7 +158,7 @@ async function pendingAttestationIdSet(sheets: FatigueSheet[]): Promise<Set<stri
   const ids = new Set<string>();
   for (const sheet of sheets) {
     if (pendingTouchesAttestation(pending, sheet.id)) ids.add(sheet.id);
-    const queuedCreate = pending.find((p) => p.type === "create" && p.tempId === sheet.id);
+    const queuedCreate = pending.find((p) => isCreatePending(p) && p.tempId === sheet.id);
     if (queuedCreate && Boolean(queuedCreate.data.signature?.trim())) {
       ids.add(sheet.id);
     }
@@ -159,7 +172,50 @@ async function mergeAndPersistNetworkSheetList(network: FatigueSheet[]): Promise
   let merged = mergeNetworkSheetListWithLocal(network, local, pendingAttestationIds);
   merged = await ensureLocalWeeksQueuedForSync(merged);
   await persistMergedSheetList(merged);
+  await pullOfficeAttestation(network);
+  recordOfficeSyncAt();
   return merged;
+}
+
+/** Drop a leftover on-device sign when the office week is still unsigned. */
+async function pullOfficeAttestation(network: FatigueSheet[]): Promise<number> {
+  const pending = await offlineGetPending().catch(() => []);
+  let pulled = 0;
+  for (const net of network) {
+    if (pendingTouchesAttestation(pending, net.id)) continue;
+    const stored = await offlineGetSheet(net.id).catch(() => null);
+    if (!stored) continue;
+    if (
+      sheetHasDriverAttestation(stored.status, stored.signature) &&
+      sheetIsUnsignedForDriver(net.status, net.signature)
+    ) {
+      await confirmDeviceSheetWrite({
+        ...stored,
+        status: net.status || "draft",
+        signature: net.signature,
+        signed_at: net.signed_at,
+      });
+      pulled += 1;
+    }
+  }
+  return pulled;
+}
+
+/** Compare phone weeks to Neon: queue missing creates, pull unsigned office attestation. */
+export async function reconcileSheetsWithOffice(): Promise<{
+  queuedCreates: number;
+  pulledAttestation: number;
+}> {
+  if (!isOnline()) return { queuedCreates: 0, pulledAttestation: 0 };
+  try {
+    const network = await api.sheets.list();
+    const merged = await mergeAndPersistNetworkSheetList(network);
+    const queuedCreates = merged.filter((s) => isLocalSheetTempId(s.id)).length;
+    await runSync().catch(() => {});
+    return { queuedCreates, pulledAttestation: 0 };
+  } catch {
+    return { queuedCreates: 0, pulledAttestation: 0 };
+  }
 }
 
 /**
@@ -192,8 +248,23 @@ export async function runSync(): Promise<SyncResult> {
   for (const item of pending) {
     if (removedIds.has(item.id)) continue;
     try {
-      if (item.type === "update") {
-        const siblings = pendingUpdatesForSheet(pending, item.sheetId).filter(
+      if (isAttestPending(item)) {
+        const payload = {
+          status: item.data.status,
+          signature: item.data.signature,
+          signed_at: item.data.signed_at,
+        };
+        const existing = await offlineGetSheet(item.sheetId).catch(() => null);
+        if (existing) {
+          await confirmDeviceSheetWrite({ ...existing, ...payload, id: item.sheetId });
+        }
+        await api.sheets.update(item.sheetId, payload);
+        await confirmDeviceSheetWrite(await api.sheets.get(item.sheetId));
+        await offlineRemovePending(item.id);
+        removedIds.add(item.id);
+        synced++;
+      } else if (isPatchDaysPending(item)) {
+        const siblings = pendingContentUpdatesForSheet(pending, item.sheetId).filter(
           (p) => !removedIds.has(p.id)
         );
         const local = await offlineGetSheet(item.sheetId);
@@ -232,7 +303,7 @@ export async function runSync(): Promise<SyncResult> {
           removedIds.add(s.id);
         }
         synced += siblings.length;
-      } else if (item.type === "create") {
+      } else if (isCreatePending(item)) {
         const latest = await offlineGetSheet(item.tempId);
         const deviceSheet: FatigueSheet = latest
           ? latest
@@ -310,7 +381,7 @@ export async function runSync(): Promise<SyncResult> {
     } catch (e) {
       // Orphaned writes after a server purge / deleted sheet: remap to the live sheet
       // for the same driver + week when we can, then drop the dead id.
-      if (item.type === "update" && isNotFoundError(e)) {
+      if ((isPatchDaysPending(item) || isAttestPending(item)) && isNotFoundError(e)) {
         const siblings = pendingUpdatesForSheet(pending, item.sheetId).filter(
           (p) => !removedIds.has(p.id)
         );
@@ -345,6 +416,7 @@ export async function runSync(): Promise<SyncResult> {
     }
   }
   if (synced > 0) {
+    recordOfficeSyncAt();
     void writeDeviceSnapshot({ force: false }).catch(() => {});
   }
   return { synced, replacedTempId };
@@ -424,21 +496,25 @@ export async function listSheetsOfflineFirst(): Promise<FatigueSheet[]> {
       if (merged.some((s) => isLocalSheetTempId(s.id))) {
         void runSync().catch(() => {});
       }
-      return merged;
+      return hydrateMergedList(merged);
     } catch {
       const cached = await offlineGetSheetsList();
-      return mergeNetworkSheetListWithLocal(
-        cached,
-        localSheets,
-        await pendingAttestationIdSet(localSheets)
+      return hydrateMergedList(
+        mergeNetworkSheetListWithLocal(
+          cached,
+          localSheets,
+          await pendingAttestationIdSet(localSheets)
+        )
       );
     }
   }
   const cached = await offlineGetSheetsList();
-  return mergeNetworkSheetListWithLocal(
-    cached,
-    localSheets,
-    await pendingAttestationIdSet(localSheets)
+  return hydrateMergedList(
+    mergeNetworkSheetListWithLocal(
+      cached,
+      localSheets,
+      await pendingAttestationIdSet(localSheets)
+    )
   );
 }
 
@@ -510,8 +586,8 @@ export async function createSheetOfflineFirst(
 
   await confirmDeviceSheetWrite(local);
   const list = await offlineGetSheetsList();
-  await offlineSetSheetsList([...list.filter((s) => s.id !== tempId), local]);
-  await offlineEnqueue({ type: "create", tempId, data });
+  await offlineSetSheetsList([...list.filter((s) => s.id !== tempId), toSheetListIndex(local)]);
+  await offlineEnqueue({ type: "create_week", tempId, data });
   scheduleDeviceBackupAfterWrite();
 
   let sync = await runSync().catch(() => ({ synced: 0 } as SyncResult));

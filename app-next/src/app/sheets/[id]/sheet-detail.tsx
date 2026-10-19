@@ -103,7 +103,11 @@ import {
   sheetHasDriverAttestation,
   sheetIsUnsignedForDriver,
 } from "@/lib/sheet-record";
-import { DRIVER_SIGN_WEEK_NOT_ENDED_ERROR, sheetEditDayHref } from "@/lib/product-copy";
+import {
+  DRIVER_SIGN_WEEK_NOT_ENDED_ERROR,
+  PHONE_ONLY_WEEK_NOTE,
+  sheetEditDayHref,
+} from "@/lib/product-copy";
 import { SheetRecordBanner } from "@/components/fatigue/SheetRecordBanner";
 import { DayEntryWeekGroup } from "@/components/fatigue/DayEntryWeekGroup";
 import { dayIndexRangeLabels, summarizeDayIndices } from "@/lib/day-entry-week-summary";
@@ -2315,6 +2319,14 @@ export function SheetDetail({
           )}
 
         <div ref={dayCardsRef} className="space-y-2 max-w-4xl">
+            {!isManager && isLocalSheetTempId(sheetId) && (
+              <p
+                className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/40 px-3 py-2 text-sm text-amber-900 dark:text-amber-100"
+                role="status"
+              >
+                {PHONE_ONLY_WEEK_NOTE}
+              </p>
+            )}
             {sheetData.days?.length > 0 &&
               (complianceLoading || hasComplianceViolations || hasComplianceWarnings) && (
                 <ComplianceAlertBar

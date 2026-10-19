@@ -6,6 +6,7 @@
 
 import type { FatigueSheet, SheetUpdatePayload } from "./api";
 import type { Rego } from "./api";
+import { patchIsAttestationOnly, type SheetPatchBody } from "./sheet-record";
 
 export const OFFLINE_DB_NAME = "fatigue-offline";
 export const OFFLINE_DB_VERSION = 2;
@@ -18,13 +19,31 @@ const STORE_PENDING = "pending";
 export const STORE_SNAPSHOTS = "snapshots";
 
 export type PendingWrite =
-  | { id: number; type: "update"; sheetId: string; data: SheetUpdatePayload; at: number }
-  | { id: number; type: "create"; tempId: string; data: Omit<FatigueSheet, "id">; at: number };
+  | { id: number; type: "update" | "patch_days" | "attest"; sheetId: string; data: SheetUpdatePayload; at: number }
+  | { id: number; type: "create" | "create_week"; tempId: string; data: Omit<FatigueSheet, "id">; at: number };
 
 /** Argument for offlineEnqueue (same shape as PendingWrite but without `at`). */
 export type PendingWriteEnqueue =
-  | { type: "update"; sheetId: string; data: SheetUpdatePayload }
-  | { type: "create"; tempId: string; data: Omit<FatigueSheet, "id"> };
+  | { type: "update" | "patch_days" | "attest"; sheetId: string; data: SheetUpdatePayload }
+  | { type: "create" | "create_week"; tempId: string; data: Omit<FatigueSheet, "id"> };
+
+export function isCreatePending(
+  p: PendingWrite | PendingWriteEnqueue
+): p is Extract<PendingWrite | PendingWriteEnqueue, { tempId: string }> {
+  return p.type === "create" || p.type === "create_week";
+}
+
+export function isPatchDaysPending(
+  p: PendingWrite | PendingWriteEnqueue
+): p is Extract<PendingWrite | PendingWriteEnqueue, { sheetId: string }> {
+  return p.type === "update" || p.type === "patch_days";
+}
+
+export function isAttestPending(
+  p: PendingWrite | PendingWriteEnqueue
+): p is Extract<PendingWrite | PendingWriteEnqueue, { type: "attest" }> {
+  return p.type === "attest";
+}
 
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -188,18 +207,39 @@ export async function offlineEnqueue(write: PendingWriteEnqueue): Promise<void> 
   });
 }
 
-/** Drop prior pending updates for the same sheet so the queue stays one write deep. */
+/** Queue a content patch or a week signature as separate named operations. */
 export async function offlineEnqueueSheetUpdate(
   sheetId: string,
   data: SheetUpdatePayload
 ): Promise<void> {
   const pending = await offlineGetPending();
+  if (patchIsAttestationOnly(data as SheetPatchBody)) {
+    for (const item of pending) {
+      if (isAttestPending(item) && item.sheetId === sheetId) {
+        await offlineRemovePending(item.id);
+      }
+    }
+    await offlineEnqueue({
+      type: "attest",
+      sheetId,
+      data: {
+        status: data.status,
+        signature: data.signature,
+        signed_at: data.signed_at,
+      },
+    });
+    return;
+  }
   for (const item of pending) {
-    if (item.type === "update" && item.sheetId === sheetId) {
+    if (isPatchDaysPending(item) && item.sheetId === sheetId) {
       await offlineRemovePending(item.id);
     }
   }
-  await offlineEnqueue({ type: "update", sheetId, data });
+  const content: SheetUpdatePayload = { ...data };
+  delete content.signature;
+  delete content.signed_at;
+  if (content.status === "completed") delete content.status;
+  await offlineEnqueue({ type: "patch_days", sheetId, data: content });
 }
 
 /** Remove a single pending write by id (IDB key). */

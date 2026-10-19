@@ -64,7 +64,12 @@ export const PRODUCT_RECORD_PROMISE =
   "if you do not log work, rest, or other work, the rest of that period is non-work—like blank days on a paper work diary. " +
   "Each week is a slice of that timeline for you to review and sign when required.";
 
-/** Short line under major headings (e.g. Your Sheets). */
+/** This week exists only in IndexedDB — Neon does not have the row yet. */
+export const PHONE_ONLY_WEEK_NOTE = "On this phone only — not in the office yet.";
+
+/** Prefix for last successful office (Neon) save / reconcile. */
+export const LAST_OFFICE_SAVE_PREFIX = "Office copy saved";
+
 export const SHEETS_LIST_TAGLINE =
   "Your weekly record exists for compliance whether or not you logged a shift—non-work still counts.";
 
@@ -83,6 +88,7 @@ export const USER_VISIBLE_SHEET_STATE_BULLETS = [
   "Current regulatory week — log Start shift / Stop Driving / End shift on today; edit any day until the week ends; sign from the following Sunday.",
   "Unsigned past weeks — expand a day to fix route or times, or use Shift log to change time and type, then sign when correct.",
   "Signed weeks — locked for you; manager edits need your signature again.",
+  `${PHONE_ONLY_WEEK_NOTE} The phone still has your log; it will send this week when you are online.`,
 ] as const;
 
 /** Manager UI: why past-week edit exists (amendment flow). */

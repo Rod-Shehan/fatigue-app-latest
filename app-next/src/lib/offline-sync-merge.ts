@@ -6,17 +6,36 @@
 import type { FatigueSheet } from "./api";
 import type { SheetUpdatePayload } from "./api";
 import type { PendingWrite } from "./offline";
+import { isAttestPending, isCreatePending, isPatchDaysPending } from "./offline";
 import { sheetHasDriverAttestation } from "./sheet-record";
 import { normalizeWeekDateString } from "./weeks";
+
+/** List cache mark — not a signature image. */
+export const LIST_HAS_SIGNATURE_MARK = "has";
+
+export type SheetWritePending = Extract<PendingWrite, { sheetId: string }>;
 
 export function pendingUpdatesForSheet(
   pending: PendingWrite[],
   sheetId: string
-): Extract<PendingWrite, { type: "update" }>[] {
+): SheetWritePending[] {
   return pending.filter(
-    (p): p is Extract<PendingWrite, { type: "update" }> =>
-      p.type === "update" && p.sheetId === sheetId
+    (p): p is SheetWritePending =>
+      (isPatchDaysPending(p) || isAttestPending(p)) && p.sheetId === sheetId
   );
+}
+
+export function pendingContentUpdatesForSheet(
+  pending: PendingWrite[],
+  sheetId: string
+): SheetWritePending[] {
+  return pending.filter(
+    (p): p is SheetWritePending => isPatchDaysPending(p) && p.sheetId === sheetId
+  );
+}
+
+export function pendingCreateTempIds(pending: PendingWrite[]): Set<string> {
+  return new Set(pending.filter(isCreatePending).map((p) => p.tempId));
 }
 
 export function hasPendingUpdateForSheet(pending: PendingWrite[], sheetId: string): boolean {
@@ -121,9 +140,39 @@ export function overlayLocalSheetOnNetwork(
  * a stale on-device mark kept showing “signed” after the server stayed draft.
  */
 export function pendingTouchesAttestation(pending: PendingWrite[], sheetId: string): boolean {
-  return pendingUpdatesForSheet(pending, sheetId).some(
-    (p) => typeof p.data.signature === "string" && p.data.signature.trim().length > 0
-  );
+  return pending.some((p) => {
+    if (isAttestPending(p) && p.sheetId === sheetId) {
+      return typeof p.data.signature === "string" && p.data.signature.trim().length > 0;
+    }
+    if (isPatchDaysPending(p) && p.sheetId === sheetId) {
+      return typeof p.data.signature === "string" && p.data.signature.trim().length > 0;
+    }
+    return false;
+  });
+}
+
+/** Persist the week list without day tape or a signature image. */
+export function toSheetListIndex(sheet: FatigueSheet): FatigueSheet {
+  const hasSig = Boolean(sheet.signature?.trim());
+  return {
+    ...sheet,
+    days: [],
+    signature: hasSig ? LIST_HAS_SIGNATURE_MARK : undefined,
+    status: hasSig ? sheet.status || "draft" : "draft",
+    signed_at: hasSig ? sheet.signed_at : undefined,
+  };
+}
+
+/** Put STORE_SHEETS days back onto a list-index row. */
+export function hydrateSheetListRow(
+  index: FatigueSheet,
+  stored: FatigueSheet | null | undefined
+): FatigueSheet {
+  if (!stored) return { ...index, days: index.days ?? [] };
+  return {
+    ...index,
+    days: stored.days?.length ? stored.days : index.days ?? [],
+  };
 }
 
 /** Drop leftover status/signature from a PATCH so sync cannot write a fake sign to Neon. */
