@@ -19,30 +19,42 @@ const STORE_PENDING = "pending";
 export const STORE_SNAPSHOTS = "snapshots";
 
 export type PendingWrite =
-  | { id: number; type: "update" | "patch_days" | "attest"; sheetId: string; data: SheetUpdatePayload; at: number }
+  | { id: number; type: "update" | "patch_days"; sheetId: string; data: SheetUpdatePayload; at: number }
+  | { id: number; type: "attest"; sheetId: string; data: SheetUpdatePayload; at: number }
   | { id: number; type: "create" | "create_week"; tempId: string; data: Omit<FatigueSheet, "id">; at: number };
 
 /** Argument for offlineEnqueue (same shape as PendingWrite but without `at`). */
 export type PendingWriteEnqueue =
-  | { type: "update" | "patch_days" | "attest"; sheetId: string; data: SheetUpdatePayload }
+  | { type: "update" | "patch_days"; sheetId: string; data: SheetUpdatePayload }
+  | { type: "attest"; sheetId: string; data: SheetUpdatePayload }
   | { type: "create" | "create_week"; tempId: string; data: Omit<FatigueSheet, "id"> };
 
-export function isCreatePending(
-  p: PendingWrite | PendingWriteEnqueue
-): p is Extract<PendingWrite | PendingWriteEnqueue, { tempId: string }> {
+export function isCreatePending<T extends PendingWrite | PendingWriteEnqueue>(
+  p: T
+): p is Extract<T, { type: "create" | "create_week" }> {
   return p.type === "create" || p.type === "create_week";
 }
 
-export function isPatchDaysPending(
-  p: PendingWrite | PendingWriteEnqueue
-): p is Extract<PendingWrite | PendingWriteEnqueue, { sheetId: string }> {
+export function isPatchDaysPending<T extends PendingWrite | PendingWriteEnqueue>(
+  p: T
+): p is Extract<T, { type: "update" | "patch_days" }> {
   return p.type === "update" || p.type === "patch_days";
 }
 
-export function isAttestPending(
-  p: PendingWrite | PendingWriteEnqueue
-): p is Extract<PendingWrite | PendingWriteEnqueue, { type: "attest" }> {
+export function isAttestPending<T extends PendingWrite | PendingWriteEnqueue>(
+  p: T
+): p is Extract<T, { type: "attest" }> {
   return p.type === "attest";
+}
+
+export function toPendingWriteEnqueue(p: PendingWrite): PendingWriteEnqueue {
+  if (isCreatePending(p)) {
+    return { type: "create_week", tempId: p.tempId, data: p.data };
+  }
+  if (isAttestPending(p)) {
+    return { type: "attest", sheetId: p.sheetId, data: p.data };
+  }
+  return { type: "patch_days", sheetId: p.sheetId, data: p.data };
 }
 
 function openDB(): Promise<IDBDatabase> {

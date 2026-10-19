@@ -36,7 +36,19 @@ describe("offline-sync-merge", () => {
   it("detects pending updates for a sheet", () => {
     const pending: PendingWrite[] = [
       { id: 1, type: "update", sheetId: "a", data: { driver_name: "A" }, at: 1 },
-      { id: 2, type: "create", tempId: "local-1", data: {}, at: 2 },
+      {
+        id: 2,
+        type: "create",
+        tempId: "local-1",
+        data: {
+          driver_name: "Jaydin",
+          driver_type: "solo",
+          week_starting: "2026-07-12",
+          days: [],
+          status: "draft",
+        },
+        at: 2,
+      },
     ];
     expect(hasPendingUpdateForSheet(pending, "a")).toBe(true);
     expect(hasPendingUpdateForSheet(pending, "b")).toBe(false);
@@ -196,7 +208,7 @@ describe("offline-sync-merge", () => {
       driver_name: "Jaydin Ireland",
       week_starting: "2026-10-11",
       status: "draft",
-      signature: null,
+      signature: undefined,
       signed_at: undefined,
       days: [],
     });
@@ -211,7 +223,7 @@ describe("offline-sync-merge", () => {
     });
     const overlaid = overlayLocalSheetOnNetwork(local, network);
     expect(overlaid.status).toBe("draft");
-    expect(overlaid.signature).toBeNull();
+    expect(overlaid.signature).toBeUndefined();
     expect(overlaid.signed_at).toBeUndefined();
     expect(findRicherLocalSheet(network, [local])).toBeNull();
   });
@@ -222,7 +234,7 @@ describe("offline-sync-merge", () => {
       driver_name: "Jaydin Ireland",
       week_starting: "2026-10-11",
       status: "draft",
-      signature: null,
+      signature: undefined,
       days: [],
     });
     const local = sheet({

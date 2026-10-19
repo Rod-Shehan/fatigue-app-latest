@@ -11,7 +11,7 @@ import {
   type PendingWriteEnqueue,
   isAttestPending,
   isCreatePending,
-  isPatchDaysPending,
+  toPendingWriteEnqueue,
   offlineGetAllSheets,
   offlineGetPending,
   offlineGetRegos,
@@ -132,13 +132,7 @@ export async function collectDeviceBackupPayload(driverEmail?: string | null): P
   const sheetsForDriver = uniqueSheets(sheetsList, sheets);
   if (sheetsForDriver.length === 0 && pendingRaw.length === 0) return null;
 
-  const pending: PendingWriteEnqueue[] = pendingRaw.map((p) =>
-    isCreatePending(p)
-      ? { type: "create_week", tempId: p.tempId, data: p.data }
-      : isAttestPending(p)
-        ? { type: "attest", sheetId: p.sheetId, data: p.data }
-        : { type: "patch_days", sheetId: p.sheetId, data: p.data }
-  );
+  const pending: PendingWriteEnqueue[] = pendingRaw.map(toPendingWriteEnqueue);
 
   return {
     schemaVersion: DEVICE_BACKUP_SCHEMA_VERSION,
@@ -242,9 +236,7 @@ export async function restoreDeviceBackup(
       coalesced.set(`attest:${item.sheetId}`, item);
       continue;
     }
-    if (isPatchDaysPending(item) || item.type === "update") {
-      coalesced.set(`patch:${item.sheetId}`, item);
-    }
+    coalesced.set(`patch:${item.sheetId}`, item);
   }
   await offlineReplacePending([...coalesced.values()]);
   if (snapshot.offlineAuth) {

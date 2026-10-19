@@ -256,7 +256,13 @@ export async function runSync(): Promise<SyncResult> {
         };
         const existing = await offlineGetSheet(item.sheetId).catch(() => null);
         if (existing) {
-          await confirmDeviceSheetWrite({ ...existing, ...payload, id: item.sheetId });
+          await confirmDeviceSheetWrite({
+            ...existing,
+            id: item.sheetId,
+            status: payload.status ?? existing.status,
+            signature: payload.signature ?? existing.signature,
+            signed_at: payload.signed_at ?? existing.signed_at,
+          });
         }
         await api.sheets.update(item.sheetId, payload);
         await confirmDeviceSheetWrite(await api.sheets.get(item.sheetId));
