@@ -42,12 +42,12 @@ describe("resolveDriverHeroPrimaryLabel", () => {
     expect(resolveDriverHeroPrimaryLabel("stop")).toBe(DRIVER_START_SHIFT_LABEL);
   });
 
-  it("two-up: Start work on sleeper berth, Continue shift on passenger", () => {
+  it("two-up: Start work on sleeper berth, passenger, and Parked", () => {
     expect(resolveDriverHeroPrimaryLabel(SLEEPER_BERTH_EVENT_TYPE, { twoUp: true })).toBe(
       DRIVER_START_WORK_LABEL
     );
     expect(resolveDriverHeroPrimaryLabel(PASSENGER_EVENT_TYPE, { twoUp: true })).toBe(
-      DRIVER_CONTINUE_SHIFT_LABEL
+      DRIVER_START_WORK_LABEL
     );
     expect(resolveDriverHeroPrimaryLabel(STATIONARY_REST_EVENT_TYPE, { twoUp: true })).toBe(
       DRIVER_START_WORK_LABEL

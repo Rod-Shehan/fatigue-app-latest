@@ -207,7 +207,7 @@ export const HOOKUP_PRIME_MOVER_REMINDER_HINT =
   "Not required. Complete Hook up if you couple a trailer.";
 export const FFW_START_SHIFT_BLOCK_MESSAGE =
   "Complete Fitness for Work before starting your shift.";
-/** Two-up Passenger: opens driving / break / sleeper. Does not log by itself. */
+/** Other work unused primary (hub stays on the ring). Voice still accepts this phrase. */
 export const DRIVER_CONTINUE_SHIFT_LABEL = "Continue shift";
 /** From Rest: opens Driving / Other work chooser. Does not log by itself. */
 export const DRIVER_START_WORK_LABEL = "Start work";

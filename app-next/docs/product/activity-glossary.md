@@ -30,9 +30,9 @@ These are taps, not extra states. **Stop Driving**, **Start shift**, and **Start
 
 | Phrase | Role |
 |--------|------|
-| **Start shift** | Idle: one hero tap. Opens Set up day if needed, else the Driving / Other work chooser. Does not log by itself. |
-| **Start work** | On Rest: one hero tap. Opens the Driving / Other work chooser. Does not log by itself. |
-| **Continue shift** | Two-up Passenger only: one hero tap. Opens driving / break / sleeper. Does not log by itself. |
+| **Start shift** | Idle: one hero tap. Opens Set up day / Fitness for Work if needed, else the chooser (driving / Other work; two-up also **Passenger**). Does not log by itself. |
+| **Start work** | On Rest, or two-up Passenger / Sleeper berth / Parked: one hero tap. Opens the next-activity chooser. Does not log by itself. |
+| **Continue shift** | Unused on the two-up Passenger hero (that button is **Start work**). Voice still accepts the phrase. |
 | **Start driving** | Top half of the Start shift / Start work split, or on the Other work hub. Logs Work (driving). |
 | **Stop Driving** | On Work: one hero tap. Opens the Rest / Other work chooser. Not End shift. |
 | **Start Rest** | Top half of the Stop Driving split, or on the Other work hub. Logs Rest. |
@@ -48,13 +48,13 @@ Two-up keeps the same Work / Other work / End shift words. It does **not** use *
 
 | What the driver is doing | Driver word | How they get there |
 |--------------------------|-------------|--------------------|
-| Passenger seat | **Passenger** | Stop Driving → Passenger (unlocked while moving) |
+| Passenger seat | **Passenger** | Stop Driving → Passenger, or Start shift → Passenger (unlocked while moving). Work time; never non-work. |
 | Sleep in an appropriate sleeper berth | **Sleeper berth** | Stop Driving → Sleeper berth (unlocked while moving). Non-work; shift stays open. Counts for 7h in 24h. Does **not** prove 48h / 7-day stationary rest. |
-| Vehicle not moving | **Parked** | Bottom-left dock (or from Passenger / Sleeper berth). GPS required. Non-work; shift stays open. This is the on-shift proof for 184E(3)(b). |
+| Vehicle not moving | **Parked** | Bottom-left dock only while the shift is open. GPS required. Non-work; shift stays open. This is the on-shift proof for 184E(3)(b). |
 
 | Phrase | Role |
 |--------|------|
-| **Parked** | Two-up dock (and Passenger / Sleeper choosers). Logs `stationary_rest` only after a GPS fix while still. Locked while moving — use Sleeper berth then. |
+| **Parked** | Two-up dock only. Logs `stationary_rest` only after a GPS fix while still. Locked while moving — use Sleeper berth then. |
 
 **End shift** with a GPS pin also proves 184E(3)(b) (vehicle stopped at finish). Sleeper berth does not.
 
@@ -65,7 +65,7 @@ Idle Start shift and Rest Start work both open the same Driving / Other work spl
 | Driver is on | Hero | Dock |
 |--------------|------|------|
 | Idle / after End shift | **Start shift** | — |
-| Idle, Start shift chooser open | Split: **Start driving** / **Start Other Work** | — |
+| Idle, Start shift chooser open | Split: **Start driving** / **Start Other Work** (two-up also **Passenger**) | — |
 | **Work** | **Stop Driving** | **End shift** |
 | **Work**, chooser open | Split: **Start Rest** / **Start Other Work** | **End shift** |
 | **Rest** | **Start work** | **End shift** + **Taking a nap?** (bottom-left; not a fifth activity) |
@@ -85,7 +85,7 @@ Do not show Rest and Other work as two always-visible taps on Work. Do not add a
 | Start shift | *(nothing)* | Chooser only (or Set up day first) |
 | Start work | *(nothing)* | Chooser only — from Rest, including when Rest has painted as non-work after 31 min |
 | Start driving | `work` | Driving. Same 7h rest gate as Start shift when idle. From Start shift, Start work, or the Other work hub. |
-| Continue shift | *(nothing)* | Two-up Passenger opener only. Solo Other work shows the three-tile hub instead. |
+| Continue shift | *(nothing)* | Voice phrase only. Two-up Passenger opener is **Start work**. Solo Other work shows the three-tile hub. |
 | Start Rest | `break` | Existing 30 min floor: 30 min stays Rest; 31+ becomes **non-work**. From Stop Driving or the Other work hub. |
 | Taking a nap? | *(qualifier on Rest)* | Rest-only corner. Sets `napFrom` on the open Rest for FRMS. Diary stays Rest. Compact **Nap?**. Active **On nap**. |
 | Start Other Work | `other_work` | Break from driving on the sheet. Never convert to non-work. Counts toward 20 min / 5h. Still work time for 168h. From Start shift, Start work, or Stop Driving. Then the three-tile hub: Start driving / Start Rest / Load check (not stored until they pick driving or Rest). |

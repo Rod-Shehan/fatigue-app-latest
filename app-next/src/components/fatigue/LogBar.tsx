@@ -61,6 +61,7 @@ import {
   twoUpParkedTiles,
   twoUpPassengerTiles,
   twoUpSleeperBerthTiles,
+  twoUpStartShiftTiles,
   twoUpStopDrivingTiles,
 } from "@/lib/two-up-hero";
 import { resolveDriverHeroPrimaryLabel, resolveHeroActivityNowLabel, resolveWorkConfirmLabel, otherWorkHeroTiles } from "@/lib/driver-hero-primary";
@@ -771,7 +772,9 @@ export default function LogBar({
 
   const showShiftStartSetupBlock = useCallback(
     (type: string, options?: { episodeResume?: boolean; deferToSetup?: boolean }): boolean => {
-      if (type !== "work" && type !== OTHER_WORK_EVENT_TYPE) return false;
+      if (type !== "work" && type !== OTHER_WORK_EVENT_TYPE && type !== PASSENGER_EVENT_TYPE) {
+        return false;
+      }
       if (!workLogRequiresShiftStartSetup(eventsForDriver)) return false;
 
       const missing = getShiftStartSetupMissing(dayForCardFields ?? {});
@@ -791,7 +794,9 @@ export default function LogBar({
         setWorkWarning({
         message: `Please complete shift setup before starting work: ${missing.join(", ")}.`,
           confirmLabel: "Go to today's card",
-        subtext: "Confirm Set up day, then choose Start driving or Start Other Work.",
+        subtext: isTwoUp
+          ? "Confirm Set up day, then choose Start driving, Passenger, or Start Other Work."
+          : "Confirm Set up day, then choose Start driving or Start Other Work.",
           onConfirm: () => {
             setWorkWarning(null);
           onStartShiftBlocked?.({
@@ -805,12 +810,14 @@ export default function LogBar({
         });
       return true;
     },
-    [dayForCardFields, eventsForDriver, onStartShiftBlocked, currentDayIndex]
+    [dayForCardFields, eventsForDriver, onStartShiftBlocked, currentDayIndex, isTwoUp]
   );
 
   const showFfwStartShiftBlock = useCallback(
     (type: string, options?: { episodeResume?: boolean }): boolean => {
-      if (type !== "work" && type !== OTHER_WORK_EVENT_TYPE) return false;
+      if (type !== "work" && type !== OTHER_WORK_EVENT_TYPE && type !== PASSENGER_EVENT_TYPE) {
+        return false;
+      }
       const reason = getFfwStartShiftBlockReason(
         eventsForDriver,
         dayForCardFields?.checklists
@@ -835,7 +842,9 @@ export default function LogBar({
           setWorkWarning({
           message: nonWorkMsg,
           confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
-          subtext: "Your day setup is saved. Confirm, then choose Start driving or Start Other Work.",
+          subtext: isTwoUp
+            ? "Your day setup is saved. Confirm, then choose Start driving, Passenger, or Start Other Work."
+            : "Your day setup is saved. Confirm, then choose Start driving or Start Other Work.",
             onConfirm: () => {
               setWorkWarning(null);
               clearPending();
@@ -1024,23 +1033,29 @@ export default function LogBar({
         return;
       }
     }
-    if (type === OTHER_WORK_EVENT_TYPE && currentType === null && !startShiftChooserOpen) {
+    if (
+      (type === OTHER_WORK_EVENT_TYPE || type === PASSENGER_EVENT_TYPE) &&
+      currentType === null &&
+      !startShiftChooserOpen
+    ) {
       const nonWorkMsg = getInsufficientNonWorkWarning(Boolean(showResumeShiftPrimary));
       if (nonWorkMsg) {
-          setWorkWarning({
+        const confirmKindLabel =
+          type === PASSENGER_EVENT_TYPE ? DRIVER_PASSENGER_LABEL : DRIVER_START_OTHER_WORK_LABEL;
+        setWorkWarning({
           message: nonWorkMsg,
           confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
-          subtext: `Tap ${DRIVER_START_OTHER_WORK_LABEL} again within a few seconds to confirm.`,
-            onConfirm: () => {
-              setWorkWarning(null);
-            armPending(OTHER_WORK_EVENT_TYPE, false);
+          subtext: `Tap ${confirmKindLabel} again within a few seconds to confirm.`,
+          onConfirm: () => {
+            setWorkWarning(null);
+            armPending(type, false);
             if (voiceAlertsEnabled) {
-              speakVoiceAlert(`Tap ${DRIVER_START_OTHER_WORK_LABEL} again to confirm.`);
+              speakVoiceAlert(`Tap ${confirmKindLabel} again to confirm.`);
             }
           },
-          });
-          return;
-        }
+        });
+        return;
+      }
       }
     if (voiceFinalizeNextLogRef.current) {
       clearPending();
@@ -1100,7 +1115,9 @@ export default function LogBar({
       setWorkWarning({
         message: nonWorkMsg,
         confirmLabel: `${DRIVER_START_SHIFT_LABEL} anyway`,
-        subtext: "Confirm, then choose Start driving or Start Other Work.",
+        subtext: isTwoUp
+          ? "Confirm, then choose Start driving, Passenger, or Start Other Work."
+          : "Confirm, then choose Start driving or Start Other Work.",
         onConfirm: () => {
           setWorkWarning(null);
           setWorkLogEpisodeResume(episodeResume);
@@ -1175,6 +1192,14 @@ export default function LogBar({
         }
         if (currentType === SLEEPER_BERTH_EVENT_TYPE) {
           openHeroChooser(() => setSleeperChooserOpen(true));
+          return;
+        }
+        if (currentType === PASSENGER_EVENT_TYPE) {
+          openHeroChooser(() => setPassengerChooserOpen(true));
+          return;
+        }
+        if (currentType === STATIONARY_REST_EVENT_TYPE) {
+          openHeroChooser(() => setParkedChooserOpen(true));
           return;
         }
         if (currentType === null) {
@@ -1308,11 +1333,23 @@ export default function LogBar({
     (currentType === "work" ||
       currentType === PASSENGER_EVENT_TYPE ||
       currentType === SLEEPER_BERTH_EVENT_TYPE);
-  const mapTwoUpChooserTiles = (tiles: ReturnType<typeof twoUpStopDrivingTiles>) =>
+  const mapTwoUpChooserTiles = (
+    tiles: ReturnType<typeof twoUpStopDrivingTiles>,
+    opts?: { episodeResume?: boolean }
+  ) =>
     tiles.map((tile) => ({
       kind: tile.kind,
       label: tile.label,
-      onClick: () => runChooserOption(() => handleLog(tile.logType)),
+      onClick: () =>
+        runChooserOption(() =>
+          handleLog(
+            tile.logType,
+            opts?.episodeResume != null &&
+              (tile.logType === "work" || tile.logType === OTHER_WORK_EVENT_TYPE)
+              ? { episodeResume: opts.episodeResume }
+              : undefined
+          )
+        ),
       pending: pendingType === tile.logType || (tile.logType === STATIONARY_REST_EVENT_TYPE && parkedGpsPending),
       disabled:
         (isMoving && !tile.unlockWhileMoving) ||
@@ -1703,6 +1740,14 @@ export default function LogBar({
                       },
                       restPending: pendingType === "work",
                       otherWorkPending: pendingType === OTHER_WORK_EVENT_TYPE,
+                      ...(isTwoUp
+                        ? {
+                            tiles: mapTwoUpChooserTiles(twoUpStartShiftTiles(), {
+                              episodeResume: workLogEpisodeResume,
+                            }),
+                            ariaLabel: twoUpChooserAria(null),
+                          }
+                        : {}),
                     }
                   : restWorkChooserOpen && currentType === "break"
                     ? {

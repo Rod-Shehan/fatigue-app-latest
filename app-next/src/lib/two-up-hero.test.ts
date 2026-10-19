@@ -7,7 +7,6 @@ import {
 } from "./activity-kind";
 import {
   DRIVER_BREAK_FROM_DRIVING_LABEL,
-  DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_PARKED_LABEL,
   DRIVER_PASSENGER_LABEL,
   DRIVER_SLEEPER_BERTH_LABEL,
@@ -22,6 +21,7 @@ import {
   twoUpParkedTiles,
   twoUpPassengerTiles,
   twoUpSleeperBerthTiles,
+  twoUpStartShiftTiles,
   twoUpStopDrivingTiles,
 } from "./two-up-hero";
 
@@ -45,28 +45,38 @@ describe("two-up-hero tiles", () => {
     expect(tiles.some((t) => t.logType === STATIONARY_REST_EVENT_TYPE)).toBe(false);
   });
 
-  it("on sleeper berth: Start work → driving / Passenger / Other work / Parked — not End shift", () => {
+  it("Start shift offers driving, Passenger, and Other work — not Sleeper or Parked", () => {
+    const tiles = twoUpStartShiftTiles();
+    expect(tiles.map((t) => t.logType)).toEqual([
+      "work",
+      PASSENGER_EVENT_TYPE,
+      OTHER_WORK_EVENT_TYPE,
+    ]);
+    expect(tiles.some((t) => t.logType === SLEEPER_BERTH_EVENT_TYPE)).toBe(false);
+    expect(tiles.some((t) => t.logType === STATIONARY_REST_EVENT_TYPE)).toBe(false);
+  });
+
+  it("on sleeper berth: Start work → driving / Passenger / Other work — Parked is the dock", () => {
     const tiles = twoUpSleeperBerthTiles();
     expect(tiles.map((t) => t.logType)).toEqual([
       "work",
       PASSENGER_EVENT_TYPE,
       OTHER_WORK_EVENT_TYPE,
-      STATIONARY_REST_EVENT_TYPE,
     ]);
     expect(tiles.some((t) => t.logType === "stop")).toBe(false);
+    expect(tiles.some((t) => t.logType === STATIONARY_REST_EVENT_TYPE)).toBe(false);
     expect(tiles.find((t) => t.logType === "work")?.label).toBe(DRIVER_START_DRIVING_LABEL);
-    expect(tiles.find((t) => t.logType === STATIONARY_REST_EVENT_TYPE)?.unlockWhileMoving).toBe(false);
   });
 
-  it("on passenger: Continue shift → driving / sleeper berth / break from driving / Parked", () => {
+  it("on passenger: Start work → driving / sleeper berth / break from driving — Parked is the dock", () => {
     const tiles = twoUpPassengerTiles();
     expect(tiles.map((t) => t.logType)).toEqual([
       "work",
       SLEEPER_BERTH_EVENT_TYPE,
       "break",
-      STATIONARY_REST_EVENT_TYPE,
     ]);
     expect(tiles.find((t) => t.logType === "break")?.label).toBe(DRIVER_BREAK_FROM_DRIVING_LABEL);
+    expect(tiles.some((t) => t.logType === STATIONARY_REST_EVENT_TYPE)).toBe(false);
   });
 
   it("on Parked: Start work → driving / Sleeper berth / Passenger / Other work", () => {
@@ -83,6 +93,7 @@ describe("two-up-hero tiles", () => {
   it("does not use Rest or Nap words on two-up labels", () => {
     const labels = [
       ...twoUpStopDrivingTiles().map((t) => t.label),
+      ...twoUpStartShiftTiles().map((t) => t.label),
       ...twoUpSleeperBerthTiles().map((t) => t.label),
       ...twoUpPassengerTiles().map((t) => t.label),
       ...twoUpParkedTiles().map((t) => t.label),
@@ -91,6 +102,7 @@ describe("two-up-hero tiles", () => {
       resolveTwoUpHeroPrimaryLabel(PASSENGER_EVENT_TYPE),
       resolveTwoUpActivityNowLabel("break"),
       resolveTwoUpActivityNowLabel(STATIONARY_REST_EVENT_TYPE),
+      twoUpChooserAria(null),
       twoUpChooserAria("work"),
       DRIVER_PARKED_LABEL,
     ];
@@ -100,7 +112,7 @@ describe("two-up-hero tiles", () => {
     }
     expect(resolveTwoUpHeroPrimaryLabel(SLEEPER_BERTH_EVENT_TYPE)).toBe(DRIVER_START_WORK_LABEL);
     expect(resolveTwoUpHeroPrimaryLabel(STATIONARY_REST_EVENT_TYPE)).toBe(DRIVER_START_WORK_LABEL);
-    expect(resolveTwoUpHeroPrimaryLabel(PASSENGER_EVENT_TYPE)).toBe(DRIVER_CONTINUE_SHIFT_LABEL);
+    expect(resolveTwoUpHeroPrimaryLabel(PASSENGER_EVENT_TYPE)).toBe(DRIVER_START_WORK_LABEL);
     expect(resolveTwoUpActivityNowLabel(STATIONARY_REST_EVENT_TYPE)).toBe(DRIVER_PARKED_LABEL);
   });
 });

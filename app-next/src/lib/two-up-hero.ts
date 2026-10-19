@@ -6,13 +6,13 @@ import {
 } from "@/lib/activity-kind";
 import {
   DRIVER_BREAK_FROM_DRIVING_LABEL,
-  DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_OTHER_WORK_LABEL,
   DRIVER_PARKED_LABEL,
   DRIVER_PASSENGER_LABEL,
   DRIVER_SLEEPER_BERTH_LABEL,
   DRIVER_START_DRIVING_LABEL,
   DRIVER_START_OTHER_WORK_LABEL,
+  DRIVER_START_SHIFT_LABEL,
   DRIVER_START_WORK_LABEL,
 } from "@/lib/product-copy";
 
@@ -33,26 +33,29 @@ export type TwoUpHeroTile = {
   unlockWhileMoving?: boolean;
 };
 
-function parkedTile(): TwoUpHeroTile {
+function otherWorkTile(): TwoUpHeroTile {
   return {
-    id: "parked",
-    kind: "parked",
-    label: DRIVER_PARKED_LABEL,
-    logType: STATIONARY_REST_EVENT_TYPE,
-    unlockWhileMoving: false,
+    id: "other_work",
+    kind: "other_work",
+    label: DRIVER_START_OTHER_WORK_LABEL,
+    logType: OTHER_WORK_EVENT_TYPE,
+  };
+}
+
+function passengerTile(unlockWhileMoving = true): TwoUpHeroTile {
+  return {
+    id: "passenger",
+    kind: "passenger",
+    label: DRIVER_PASSENGER_LABEL,
+    logType: PASSENGER_EVENT_TYPE,
+    unlockWhileMoving,
   };
 }
 
 /** After Stop Driving — four destinations, all still on shift. Parked is the dock puck. */
 export function twoUpStopDrivingTiles(): TwoUpHeroTile[] {
   return [
-    {
-      id: "passenger",
-      kind: "passenger",
-      label: DRIVER_PASSENGER_LABEL,
-      logType: PASSENGER_EVENT_TYPE,
-      unlockWhileMoving: true,
-    },
+    passengerTile(),
     {
       id: "sleeper_berth",
       kind: "sleeper_berth",
@@ -61,37 +64,29 @@ export function twoUpStopDrivingTiles(): TwoUpHeroTile[] {
       unlockWhileMoving: true,
     },
     { id: "break", kind: "break", label: DRIVER_BREAK_FROM_DRIVING_LABEL, logType: "break" },
-    {
-      id: "other_work",
-      kind: "other_work",
-      label: DRIVER_START_OTHER_WORK_LABEL,
-      logType: OTHER_WORK_EVENT_TYPE,
-    },
+    otherWorkTile(),
   ];
 }
 
-/** On sleeper berth — shift still open. Parked needs GPS and a still vehicle. */
+/** Idle Start shift — FFW / Set up day already ran. No Sleeper (that is on-trip only). */
+export function twoUpStartShiftTiles(): TwoUpHeroTile[] {
+  return [
+    { id: "work", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
+    passengerTile(),
+    otherWorkTile(),
+  ];
+}
+
+/** On sleeper berth — shift still open. Parked is the dock, not this split. */
 export function twoUpSleeperBerthTiles(): TwoUpHeroTile[] {
   return [
     { id: "work", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
-    {
-      id: "passenger",
-      kind: "passenger",
-      label: DRIVER_PASSENGER_LABEL,
-      logType: PASSENGER_EVENT_TYPE,
-      unlockWhileMoving: true,
-    },
-    {
-      id: "other_work",
-      kind: "other_work",
-      label: DRIVER_START_OTHER_WORK_LABEL,
-      logType: OTHER_WORK_EVENT_TYPE,
-    },
-    parkedTile(),
+    passengerTile(),
+    otherWorkTile(),
   ];
 }
 
-/** On passenger — shift still open. */
+/** On passenger — shift still open. Parked is the dock, not this split. */
 export function twoUpPassengerTiles(): TwoUpHeroTile[] {
   return [
     { id: "work", kind: "work", label: DRIVER_START_DRIVING_LABEL, logType: "work" },
@@ -103,7 +98,6 @@ export function twoUpPassengerTiles(): TwoUpHeroTile[] {
       unlockWhileMoving: true,
     },
     { id: "break", kind: "break", label: DRIVER_BREAK_FROM_DRIVING_LABEL, logType: "break" },
-    parkedTile(),
   ];
 }
 
@@ -118,26 +112,15 @@ export function twoUpParkedTiles(): TwoUpHeroTile[] {
       logType: SLEEPER_BERTH_EVENT_TYPE,
       unlockWhileMoving: true,
     },
-    {
-      id: "passenger",
-      kind: "passenger",
-      label: DRIVER_PASSENGER_LABEL,
-      logType: PASSENGER_EVENT_TYPE,
-      unlockWhileMoving: true,
-    },
-    {
-      id: "other_work",
-      kind: "other_work",
-      label: DRIVER_START_OTHER_WORK_LABEL,
-      logType: OTHER_WORK_EVENT_TYPE,
-    },
+    passengerTile(),
+    otherWorkTile(),
   ];
 }
 
 export function resolveTwoUpHeroPrimaryLabel(currentType: string | null): string | null {
   if (currentType === SLEEPER_BERTH_EVENT_TYPE) return DRIVER_START_WORK_LABEL;
   if (currentType === STATIONARY_REST_EVENT_TYPE) return DRIVER_START_WORK_LABEL;
-  if (currentType === PASSENGER_EVENT_TYPE) return DRIVER_CONTINUE_SHIFT_LABEL;
+  if (currentType === PASSENGER_EVENT_TYPE) return DRIVER_START_WORK_LABEL;
   return null;
 }
 
@@ -150,14 +133,17 @@ export function resolveTwoUpActivityNowLabel(currentType: string | null): string
 }
 
 export function twoUpChooserAria(currentType: string | null): string {
+  if (currentType === null) {
+    return `${DRIVER_START_SHIFT_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_PASSENGER_LABEL}, or ${DRIVER_START_OTHER_WORK_LABEL}`;
+  }
   if (currentType === "work") {
     return "Stop Driving — choose Passenger, Sleeper berth, break from driving, or Other work";
   }
   if (currentType === SLEEPER_BERTH_EVENT_TYPE) {
-    return `On ${DRIVER_SLEEPER_BERTH_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_PASSENGER_LABEL}, ${DRIVER_OTHER_WORK_LABEL}, or ${DRIVER_PARKED_LABEL}`;
+    return `On ${DRIVER_SLEEPER_BERTH_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_PASSENGER_LABEL}, or ${DRIVER_OTHER_WORK_LABEL}`;
   }
   if (currentType === PASSENGER_EVENT_TYPE) {
-    return `On ${DRIVER_PASSENGER_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, ${DRIVER_BREAK_FROM_DRIVING_LABEL}, or ${DRIVER_PARKED_LABEL}`;
+    return `On ${DRIVER_PASSENGER_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, or ${DRIVER_BREAK_FROM_DRIVING_LABEL}`;
   }
   if (currentType === STATIONARY_REST_EVENT_TYPE) {
     return `On ${DRIVER_PARKED_LABEL} — choose ${DRIVER_START_DRIVING_LABEL}, ${DRIVER_SLEEPER_BERTH_LABEL}, ${DRIVER_PASSENGER_LABEL}, or ${DRIVER_OTHER_WORK_LABEL}`;

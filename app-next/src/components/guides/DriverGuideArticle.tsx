@@ -5,7 +5,6 @@ import { ROADSIDE_PRODUCE_BUTTON_LABEL } from "@/lib/roadside-pdf";
 import { SETUP_WEEK_RECORD_BUTTON_LABEL } from "@/lib/declared-24h-rests";
 import { TWO_UP_DECLARED_REST_COPY } from "@/lib/two-up-stationary";
 import {
-  DRIVER_CONTINUE_SHIFT_LABEL,
   DRIVER_START_SHIFT_LABEL,
   FFW_REQUIRED_BEFORE_START_LABEL,
   HOOKUP_PRIME_MOVER_REMINDER_HINT,
@@ -408,23 +407,27 @@ export function DriverGuideArticle() {
           <li>Log only your own times on your sheet. The relief driver keeps their own sheet.</li>
           <li>Two-up does not use {DRIVER_START_REST_LABEL} or {DRIVER_NAP_QUESTION_LABEL}. Sleep on the trip is {DRIVER_SLEEPER_BERTH_LABEL}.</li>
           <li>
+            {DRIVER_START_SHIFT_LABEL} (after Fitness for Work / Set up day) opens {DRIVER_START_DRIVING_LABEL},{" "}
+            {DRIVER_PASSENGER_LABEL}, or {DRIVER_START_OTHER_WORK_LABEL}. Sleep on the trip is {DRIVER_SLEEPER_BERTH_LABEL}{" "}
+            after the shift is open — not from Start shift.
+          </li>
+          <li>
             On driving, {DRIVER_STOP_DRIVING_LABEL} opens four choices: {DRIVER_PASSENGER_LABEL},{" "}
             {DRIVER_SLEEPER_BERTH_LABEL}, {DRIVER_BREAK_FROM_DRIVING_LABEL}, or {DRIVER_START_OTHER_WORK_LABEL}. The top
             row is the two passenger states (seat or berth).
           </li>
           <li>
-            {DRIVER_PASSENGER_LABEL} is still work time — it never becomes non-work. Then tap {DRIVER_CONTINUE_SHIFT_LABEL}{" "}
-            to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_SLEEPER_BERTH_LABEL}, {DRIVER_BREAK_FROM_DRIVING_LABEL}, or{" "}
-            {DRIVER_PARKED_LABEL}.
+            {DRIVER_PASSENGER_LABEL} is still work time — it never becomes non-work. Then tap {DRIVER_START_WORK_LABEL}{" "}
+            to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_SLEEPER_BERTH_LABEL}, or {DRIVER_BREAK_FROM_DRIVING_LABEL}.
           </li>
           <li>
             {DRIVER_SLEEPER_BERTH_LABEL} is non-work time during the shift (in the vehicle). It is not {DRIVER_END_SHIFT_LABEL}.
-            Then tap {DRIVER_START_WORK_LABEL} to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_PASSENGER_LABEL},{" "}
-            {DRIVER_START_OTHER_WORK_LABEL}, or {DRIVER_PARKED_LABEL}.
+            Then tap {DRIVER_START_WORK_LABEL} to choose {DRIVER_START_DRIVING_LABEL}, {DRIVER_PASSENGER_LABEL}, or{" "}
+            {DRIVER_START_OTHER_WORK_LABEL}.
           </li>
           <li>
-            {DRIVER_PARKED_LABEL} is the bottom-left button while the shift is open. The vehicle must be still, and the app
-            needs a GPS fix. That is how the record proves you were not in a moving vehicle. Sleeping in the berth while
+            {DRIVER_PARKED_LABEL} is only the bottom-left button while the shift is open. The vehicle must be still, and the
+            app needs a GPS fix. That is how the record proves you were not in a moving vehicle. Sleeping in the berth while
             travelling is {DRIVER_SLEEPER_BERTH_LABEL}, not {DRIVER_PARKED_LABEL}.
           </li>
           <li>
@@ -686,10 +689,9 @@ export function DriverGuideArticle() {
               "Weekly Trip Sheet (PDF)",
               "Export PDF and each roadside page: week ending, operator (organisation name set by the owner — not on Drive home), driver name with licence number, driver medical expiry, driver license expiry, truck regs, daily checklist ticks from day cards (Fitness for work, vehicle, load, trailer, forklift, Hook up), seven day sheets, week work-hours total, office use, week signature. No Circadia header, compliance summary, or shift-log appendix",
             ],
-            [DRIVER_START_SHIFT_LABEL + " / End shift", `Begin / finish a shift. Start shift needs Fitness for Work signed for this day, then opens driving or Other work`],
-            [DRIVER_START_WORK_LABEL, "On Rest — choose driving or Other work"],
+            [DRIVER_START_SHIFT_LABEL + " / End shift", `Begin / finish a shift. Start shift needs Fitness for Work signed for this day, then opens driving or Other work (two-up also ${DRIVER_PASSENGER_LABEL})`],
+            [DRIVER_START_WORK_LABEL, "On Rest, or two-up Passenger / Sleeper berth / Parked — choose the next activity"],
             [DRIVER_START_DRIVING_LABEL, "After Start shift, Start work, or on the Other work hub — log driving"],
-              [DRIVER_CONTINUE_SHIFT_LABEL, "Two-up Passenger — choose driving, sleeper berth, break from driving, or Parked"],
             [
               "Fitness for Work",
               `Ten-point WAHVA declaration, signed under your name. ${FFW_REQUIRED_BEFORE_START_LABEL}. Ticks Fitness for work on the week PDF. Separate from ${PRESTART_FORM_TITLE}, ${TRAILER_PRESTART_FORM_TITLE}, ${FORKLIFT_PRESTART_FORM_TITLE}, ${LOAD_FORM_TITLE}, ${HOOKUP_FORM_TITLE}, and ${FAULT_REPORT_FORM_TITLE}`,
