@@ -115,14 +115,29 @@ export function overlayLocalSheetOnNetwork(
   };
 }
 
-/** True when a queued update still carries a week signature / completed status. */
+/**
+ * True only when a queued write still has a week-signature image.
+ * Status `completed` or a leftover `signed_at` alone is not a sign — those are how
+ * a stale on-device mark kept showing “signed” after the server stayed draft.
+ */
 export function pendingTouchesAttestation(pending: PendingWrite[], sheetId: string): boolean {
-  return pendingUpdatesForSheet(pending, sheetId).some((p) => {
-    if (p.data.status === "completed") return true;
-    if (typeof p.data.signature === "string" && p.data.signature.trim()) return true;
-    if (typeof p.data.signed_at === "string" && p.data.signed_at.trim()) return true;
-    return false;
-  });
+  return pendingUpdatesForSheet(pending, sheetId).some(
+    (p) => typeof p.data.signature === "string" && p.data.signature.trim().length > 0
+  );
+}
+
+/** Drop leftover status/signature from a PATCH so sync cannot write a fake sign to Neon. */
+export function withoutUnqueuedAttestation(
+  payload: SheetUpdatePayload,
+  pending: PendingWrite[],
+  sheetId: string
+): SheetUpdatePayload {
+  if (pendingTouchesAttestation(pending, sheetId)) return payload;
+  const next: SheetUpdatePayload = { ...payload };
+  delete next.signature;
+  delete next.signed_at;
+  if (next.status === "completed") delete next.status;
+  return next;
 }
 
 /**

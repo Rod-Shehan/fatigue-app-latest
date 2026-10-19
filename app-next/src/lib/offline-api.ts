@@ -44,6 +44,7 @@ import {
   shouldPreferLocalSheet,
   toSheetUpdatePayload,
   weekDriverKey,
+  withoutUnqueuedAttestation,
 } from "./offline-sync-merge";
 
 export { isOnline };
@@ -145,10 +146,7 @@ async function pendingAttestationIdSet(sheets: FatigueSheet[]): Promise<Set<stri
   for (const sheet of sheets) {
     if (pendingTouchesAttestation(pending, sheet.id)) ids.add(sheet.id);
     const queuedCreate = pending.find((p) => p.type === "create" && p.tempId === sheet.id);
-    if (
-      queuedCreate &&
-      (queuedCreate.data.status === "completed" || Boolean(queuedCreate.data.signature?.trim()))
-    ) {
+    if (queuedCreate && Boolean(queuedCreate.data.signature?.trim())) {
       ids.add(sheet.id);
     }
   }
@@ -200,7 +198,11 @@ export async function runSync(): Promise<SyncResult> {
         );
         const local = await offlineGetSheet(item.sheetId);
         const merged = mergeLocalSheetWithPendingUpdates(local, siblings, item.sheetId);
-        const payload = toSheetUpdatePayload(merged ?? item.data);
+        const payload = withoutUnqueuedAttestation(
+          toSheetUpdatePayload(merged ?? item.data),
+          siblings,
+          item.sheetId
+        );
 
         // Device confirm of what we intend to push — never PATCH without this.
         if (merged) {
@@ -218,7 +220,10 @@ export async function runSync(): Promise<SyncResult> {
         // Never let the older server copy wipe richer local events/checklists.
         const localNow = await offlineGetSheet(item.sheetId);
         if (localNow && shouldPreferLocalSheet(localNow, serverSheet)) {
-          await offlineEnqueueSheetUpdate(item.sheetId, toSheetUpdatePayload(localNow));
+          await offlineEnqueueSheetUpdate(
+            item.sheetId,
+            withoutUnqueuedAttestation(toSheetUpdatePayload(localNow), siblings, item.sheetId)
+          );
         } else {
           await confirmDeviceSheetWrite(serverSheet);
         }
@@ -346,8 +351,9 @@ export async function runSync(): Promise<SyncResult> {
 }
 
 /**
- * Get sheet: network first when nothing is pending locally; otherwise prefer (and restore)
- * the local/pending merge so a stale GET cannot wipe driver work still waiting to sync.
+ * Get sheet: network first when online so leftover device attestation cannot hide
+ * an unsigned server week. Pending/local days still overlay; a queued signature
+ * image is the only local sign that wins.
  */
 export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
   const isLocalTemp = id.startsWith("local-");
@@ -364,55 +370,49 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
   }
 
   const pending = await offlineGetPending();
-  if (hasPendingUpdateForSheet(pending, id)) {
-    const local = await offlineGetSheet(id);
-    const merged = mergeLocalSheetWithPendingUpdates(local, pending, id);
-    if (merged) {
-      await confirmDeviceSheetWrite(merged);
-      if (isOnline()) void runSync().catch(() => {});
-      return merged;
-    }
-  }
+  const local = await offlineGetSheet(id).catch(() => null);
+  const pendingMerged = mergeLocalSheetWithPendingUpdates(local, pending, id);
 
   if (isOnline()) {
     try {
       const sheet = await api.sheets.get(id);
-      // Re-check: a write may have enqueued while we were fetching.
       const pendingAfter = await offlineGetPending();
-      if (hasPendingUpdateForSheet(pendingAfter, id)) {
-        const local = await offlineGetSheet(id);
-        const merged = mergeLocalSheetWithPendingUpdates(local, pendingAfter, id);
-        if (merged) {
-          await confirmDeviceSheetWrite(merged);
-          return merged;
-        }
-      }
-      // Device backup restore / wiped pending can leave richer local data than Neon.
-      // Never replace that with a emptier server copy — push local instead.
+      const localAfter = await offlineGetSheet(id).catch(() => null);
+      const mergedAfter = mergeLocalSheetWithPendingUpdates(localAfter, pendingAfter, id);
       const localSheets = await offlineGetAllSheets().catch(() => []);
-      const richer = findRicherLocalSheet(sheet, localSheets);
-      if (richer) {
-        const kept = overlayLocalSheetOnNetwork(richer, { ...sheet, id }, {
-          keepLocalAttestation: pendingTouchesAttestation(pendingAfter, id),
-        });
-        await confirmDeviceSheetWrite(kept);
-        await offlineEnqueueSheetUpdate(id, toSheetUpdatePayload(kept));
+      const candidates = [mergedAfter, localAfter, ...localSheets].filter(
+        (s): s is FatigueSheet => Boolean(s)
+      );
+      const richer = findRicherLocalSheet(sheet, candidates);
+      const base = richer ?? mergedAfter ?? localAfter ?? sheet;
+      const kept = overlayLocalSheetOnNetwork(base, { ...sheet, id }, {
+        keepLocalAttestation: pendingTouchesAttestation(pendingAfter, id),
+      });
+      await confirmDeviceSheetWrite(kept);
+      if (hasPendingUpdateForSheet(pendingAfter, id) || shouldPreferLocalSheet(kept, sheet)) {
+        await offlineEnqueueSheetUpdate(
+          id,
+          withoutUnqueuedAttestation(toSheetUpdatePayload(kept), pendingAfter, id)
+        );
         void runSync().catch(() => {});
-        return kept;
       }
-      await confirmDeviceSheetWrite(sheet);
-      return sheet;
+      return kept;
     } catch {
-      const localSheets = await offlineGetAllSheets().catch(() => []);
+      if (pendingMerged) return pendingMerged;
       const cached =
-        localSheets.find((s) => s.id === id) ?? (await offlineGetSheet(id).catch(() => null));
+        localSheetsFallback(await offlineGetAllSheets().catch(() => []), id) ?? local;
       if (cached) return cached;
       throw new Error("Sheet not found and not available offline.");
     }
   }
-  const cached = await offlineGetSheet(id);
-  if (cached) return cached;
+
+  if (pendingMerged) return pendingMerged;
+  if (local) return local;
   throw new Error("You're offline and this sheet isn't cached. Connect to load it.");
+}
+
+function localSheetsFallback(localSheets: FatigueSheet[], id: string): FatigueSheet | null {
+  return localSheets.find((s) => s.id === id) ?? null;
 }
 
 /** List sheets: network first, fallback to IndexedDB. */

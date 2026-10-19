@@ -1218,7 +1218,6 @@ export function SheetDetail({
       last_24h_rest_4_end: d.last_24h_rest_4_end?.trim() || null,
       week_starting: d.week_starting,
       days: d.days,
-      status: d.status,
     };
   }, []);
 
@@ -1989,12 +1988,7 @@ export function SheetDetail({
   );
 
   const persistSheetFromRef = useCallback(() => {
-    const data = sheetDataRef.current;
-    saveMutation.mutate({
-      ...buildSavePayload(),
-      signature: data.signature || undefined,
-      signed_at: data.signed_at || undefined,
-    });
+    saveMutation.mutate(buildSavePayload());
   }, [saveMutation, buildSavePayload]);
 
   const handleAutoFixKmForSign = useCallback(async () => {

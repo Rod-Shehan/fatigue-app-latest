@@ -16,6 +16,7 @@ import {
   pendingTouchesAttestation,
   shouldPreferLocalSheet,
   toSheetUpdatePayload,
+  withoutUnqueuedAttestation,
 } from "./offline-sync-merge";
 
 function sheet(partial: Partial<FatigueSheet> & { id: string }): FatigueSheet {
@@ -247,6 +248,32 @@ describe("offline-sync-merge", () => {
     const overlaid = overlayLocalSheetOnNetwork(local, network, { keepLocalAttestation: true });
     expect(overlaid.status).toBe("completed");
     expect(overlaid.signature).toBe("data:image/png;base64,x");
+  });
+
+  it("does not treat a queued status-completed save as a real signature", () => {
+    const pending: PendingWrite[] = [
+      {
+        id: 1,
+        type: "update",
+        sheetId: "s1",
+        data: { status: "completed", days: [{ events: [] }] },
+        at: 1,
+      },
+    ];
+    expect(pendingTouchesAttestation(pending, "s1")).toBe(false);
+    const stripped = withoutUnqueuedAttestation(
+      {
+        status: "completed",
+        signature: "data:image/png;base64,x",
+        signed_at: "2026-10-17T08:00:00.000Z",
+        days: [{ events: [] }],
+      },
+      pending,
+      "s1"
+    );
+    expect(stripped.status).toBeUndefined();
+    expect(stripped.signature).toBeUndefined();
+    expect(stripped.signed_at).toBeUndefined();
   });
 
   it("coalesces store + list copies and keeps the richer days", () => {
