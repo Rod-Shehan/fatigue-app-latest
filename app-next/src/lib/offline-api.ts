@@ -29,15 +29,21 @@ import {
 } from "./offline";
 import { scheduleDeviceBackupAfterWrite, writeDeviceSnapshot } from "./device-backup";
 import {
+  coalesceLocalSheets,
+  countSheetEvents,
   findRicherLocalSheet,
+  findServerTwinForLocal,
   hasPendingUpdateForSheet,
+  isLocalSheetTempId,
   isNotFoundError,
   mergeLocalSheetWithPendingUpdates,
   mergeNetworkSheetListWithLocal,
   overlayLocalSheetOnNetwork,
+  pendingTouchesAttestation,
   pendingUpdatesForSheet,
   shouldPreferLocalSheet,
   toSheetUpdatePayload,
+  weekDriverKey,
 } from "./offline-sync-merge";
 
 export { isOnline };
@@ -50,6 +56,112 @@ export type SyncResult = {
 
 function newLocalSheetTempId(): string {
   return `local-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+async function loadCoalescedLocalSheets(): Promise<FatigueSheet[]> {
+  const stored = await offlineGetAllSheets().catch(() => []);
+  const listed = await offlineGetSheetsList().catch(() => []);
+  return coalesceLocalSheets([stored, listed]);
+}
+
+/** Write merged list, and keep non-empty days in STORE_SHEETS so a later list meta row cannot wipe them. */
+async function persistMergedSheetList(merged: FatigueSheet[]): Promise<void> {
+  await offlineSetSheetsList(merged);
+  for (const sheet of merged) {
+    if (countSheetEvents(sheet) === 0 && !(sheet.days?.length)) continue;
+    if (countSheetEvents(sheet) === 0) continue;
+    const existing = await offlineGetSheet(sheet.id).catch(() => null);
+    if (!existing || shouldPreferLocalSheet(sheet, existing) || countSheetEvents(existing) === 0) {
+      await offlineSetSheet(sheet);
+    }
+  }
+}
+
+function sheetWithoutId(sheet: FatigueSheet): Omit<FatigueSheet, "id"> {
+  const { id: _id, ...rest } = sheet;
+  return rest;
+}
+
+/**
+ * Local-only weeks must POST, or remap onto a server row for the same driver+week.
+ * Pending create items are left in the queue when POST fails so the next sync retries.
+ */
+async function dropPendingCreatesForTempId(tempId: string): Promise<void> {
+  const pending = await offlineGetPending().catch(() => []);
+  for (const item of pending) {
+    if (item.type === "create" && item.tempId === tempId) {
+      await offlineRemovePending(item.id);
+    }
+  }
+}
+
+async function ensureLocalWeeksQueuedForSync(merged: FatigueSheet[]): Promise<FatigueSheet[]> {
+  const known = coalesceLocalSheets([merged, await loadCoalescedLocalSheets()]);
+  const pending = await offlineGetPending().catch(() => []);
+  const createTempIds = new Set<string>();
+  const createWeeks = new Set<string>();
+  for (const item of pending) {
+    if (item.type !== "create") continue;
+    createTempIds.add(item.tempId);
+    const key = weekDriverKey({
+      driver_name: item.data.driver_name ?? "",
+      week_starting: item.data.week_starting ?? "",
+    });
+    if (!key.endsWith("|")) createWeeks.add(key);
+  }
+
+  const next = [...merged];
+  for (let i = 0; i < next.length; i++) {
+    const local = next[i]!;
+    if (!isLocalSheetTempId(local.id)) continue;
+    const key = weekDriverKey(local);
+    const serverTwin = findServerTwinForLocal(local, known);
+    if (serverTwin) {
+      const kept = overlayLocalSheetOnNetwork(local, serverTwin);
+      await confirmDeviceSheetWrite(kept);
+      // Keep the open `local-*` row so the current page still loads until create remaps.
+      await confirmDeviceSheetWrite({ ...kept, id: local.id });
+      const twinIdx = next.findIndex((s) => s.id === serverTwin.id);
+      if (twinIdx >= 0) next[twinIdx] = kept;
+      else next.push(kept);
+      await dropPendingCreatesForTempId(local.id);
+      if (shouldPreferLocalSheet(kept, serverTwin) || countSheetEvents(kept) > countSheetEvents(serverTwin)) {
+        await offlineEnqueueSheetUpdate(serverTwin.id, toSheetUpdatePayload(kept));
+      }
+      continue;
+    }
+    if (!createTempIds.has(local.id) && (key.endsWith("|") || !createWeeks.has(key))) {
+      await offlineEnqueue({ type: "create", tempId: local.id, data: sheetWithoutId(local) });
+      createTempIds.add(local.id);
+      if (!key.endsWith("|")) createWeeks.add(key);
+    }
+  }
+  return next.filter((s, idx, arr) => arr.findIndex((x) => x.id === s.id) === idx);
+}
+
+async function pendingAttestationIdSet(sheets: FatigueSheet[]): Promise<Set<string>> {
+  const pending = await offlineGetPending().catch(() => []);
+  const ids = new Set<string>();
+  for (const sheet of sheets) {
+    if (pendingTouchesAttestation(pending, sheet.id)) ids.add(sheet.id);
+    const queuedCreate = pending.find((p) => p.type === "create" && p.tempId === sheet.id);
+    if (
+      queuedCreate &&
+      (queuedCreate.data.status === "completed" || Boolean(queuedCreate.data.signature?.trim()))
+    ) {
+      ids.add(sheet.id);
+    }
+  }
+  return ids;
+}
+
+async function mergeAndPersistNetworkSheetList(network: FatigueSheet[]): Promise<FatigueSheet[]> {
+  const local = await loadCoalescedLocalSheets();
+  const pendingAttestationIds = await pendingAttestationIdSet(local);
+  let merged = mergeNetworkSheetListWithLocal(network, local, pendingAttestationIds);
+  merged = await ensureLocalWeeksQueuedForSync(merged);
+  await persistMergedSheetList(merged);
+  return merged;
 }
 
 /**
@@ -65,10 +177,10 @@ export async function confirmDeviceSheetWrite(sheet: FatigueSheet): Promise<Fati
 /** Try to run sync (process pending queue). Call when online. Returns list of synced ids and any error. */
 export async function runSync(): Promise<SyncResult> {
   // Refresh list so remapping after deleted sheet ids can find the live week sheet.
+  // Never replace the on-device list with meta-only `days: []` rows or drop a local-only week.
   if (isOnline()) {
     try {
-      const sheets = await api.sheets.list();
-      await offlineSetSheetsList(sheets);
+      await mergeAndPersistNetworkSheetList(await api.sheets.list());
     } catch {
       /* keep cached list */
     }
@@ -149,17 +261,46 @@ export async function runSync(): Promise<SyncResult> {
           signature: deviceSheet.signature,
           signed_at: deviceSheet.signed_at,
         };
+        const listBeforeCreate = await offlineGetSheetsList();
+        const serverTwin = findServerTwinForLocal(
+          deviceSheet,
+          coalesceLocalSheets([listBeforeCreate, [deviceSheet]])
+        );
+        if (serverTwin) {
+          const keptTwin = overlayLocalSheetOnNetwork(deviceSheet, serverTwin);
+          await confirmDeviceSheetWrite(keptTwin);
+          await offlineDeleteSheet(item.tempId);
+          const remappedList = listBeforeCreate.filter((s) => s.id !== item.tempId && s.id !== serverTwin.id);
+          remappedList.push(keptTwin);
+          await persistMergedSheetList(remappedList);
+          await offlineRemovePending(item.id);
+          removedIds.add(item.id);
+          replacedTempId = { tempId: item.tempId, realId: serverTwin.id };
+          synced++;
+          if (
+            shouldPreferLocalSheet(keptTwin, serverTwin) ||
+            countSheetEvents(keptTwin) > countSheetEvents(serverTwin)
+          ) {
+            await offlineEnqueueSheetUpdate(serverTwin.id, toSheetUpdatePayload(keptTwin));
+          }
+          continue;
+        }
+
         const created = await api.sheets.create(payload as Omit<FatigueSheet, "id" | "created_date">);
-        await confirmDeviceSheetWrite(created);
+        const kept = overlayLocalSheetOnNetwork(deviceSheet, { ...created, id: created.id });
+        await confirmDeviceSheetWrite(kept);
         await offlineDeleteSheet(item.tempId);
         const list = await offlineGetSheetsList();
-        const newList = list.filter((s) => s.id !== item.tempId);
-        newList.push(created);
-        await offlineSetSheetsList(newList);
+        const newList = list.filter((s) => s.id !== item.tempId && s.id !== created.id);
+        newList.push(kept);
+        await persistMergedSheetList(newList);
         await offlineRemovePending(item.id);
         removedIds.add(item.id);
         replacedTempId = { tempId: item.tempId, realId: created.id };
         synced++;
+        if (shouldPreferLocalSheet(kept, created) || countSheetEvents(kept) > countSheetEvents(created)) {
+          await offlineEnqueueSheetUpdate(created.id, toSheetUpdatePayload(kept));
+        }
       }
     } catch (e) {
       // Orphaned writes after a server purge / deleted sheet: remap to the live sheet
@@ -171,17 +312,9 @@ export async function runSync(): Promise<SyncResult> {
         const local = await offlineGetSheet(item.sheetId);
         const merged = mergeLocalSheetWithPendingUpdates(local, siblings, item.sheetId);
         const list = await offlineGetSheetsList();
-        const driver = (merged?.driver_name || "").trim().toLowerCase();
-        const week = merged?.week_starting || "";
-        const replacement =
-          driver && week
-            ? list.find(
-                (s) =>
-                  s.id !== item.sheetId &&
-                  (s.driver_name || "").trim().toLowerCase() === driver &&
-                  s.week_starting === week
-              )
-            : undefined;
+        const replacement = merged
+          ? list.find((s) => s.id !== item.sheetId && weekDriverKey(s) === weekDriverKey(merged))
+          : undefined;
         for (const s of siblings) {
           await offlineRemovePending(s.id);
           removedIds.add(s.id);
@@ -220,7 +353,13 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
   const isLocalTemp = id.startsWith("local-");
   if (isLocalTemp) {
     const cached = await offlineGetSheet(id);
-    if (cached) return cached;
+    if (cached) {
+      if (isOnline()) {
+        await ensureLocalWeeksQueuedForSync([cached]).catch(() => {});
+        void runSync().catch(() => {});
+      }
+      return cached;
+    }
     throw new Error("Local sheet not found.");
   }
 
@@ -253,7 +392,9 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
       const localSheets = await offlineGetAllSheets().catch(() => []);
       const richer = findRicherLocalSheet(sheet, localSheets);
       if (richer) {
-        const kept = overlayLocalSheetOnNetwork(richer, { ...sheet, id });
+        const kept = overlayLocalSheetOnNetwork(richer, { ...sheet, id }, {
+          keepLocalAttestation: pendingTouchesAttestation(pendingAfter, id),
+        });
         await confirmDeviceSheetWrite(kept);
         await offlineEnqueueSheetUpdate(id, toSheetUpdatePayload(kept));
         void runSync().catch(() => {});
@@ -276,20 +417,29 @@ export async function getSheetOfflineFirst(id: string): Promise<FatigueSheet> {
 
 /** List sheets: network first, fallback to IndexedDB. */
 export async function listSheetsOfflineFirst(): Promise<FatigueSheet[]> {
-  const localSheets = await offlineGetAllSheets().catch(() => []);
+  const localSheets = await loadCoalescedLocalSheets();
   if (isOnline()) {
     try {
-      const sheets = await api.sheets.list();
-      const merged = mergeNetworkSheetListWithLocal(sheets, localSheets);
-      await offlineSetSheetsList(merged);
+      const merged = await mergeAndPersistNetworkSheetList(await api.sheets.list());
+      if (merged.some((s) => isLocalSheetTempId(s.id))) {
+        void runSync().catch(() => {});
+      }
       return merged;
     } catch {
       const cached = await offlineGetSheetsList();
-      return mergeNetworkSheetListWithLocal(cached, localSheets);
+      return mergeNetworkSheetListWithLocal(
+        cached,
+        localSheets,
+        await pendingAttestationIdSet(localSheets)
+      );
     }
   }
   const cached = await offlineGetSheetsList();
-  return mergeNetworkSheetListWithLocal(cached, localSheets);
+  return mergeNetworkSheetListWithLocal(
+    cached,
+    localSheets,
+    await pendingAttestationIdSet(localSheets)
+  );
 }
 
 /**
@@ -307,12 +457,14 @@ export async function updateSheetOfflineFirst(
 
   await confirmDeviceSheetWrite(merged);
 
-  const isLocalTemp = sheetId.startsWith("local-");
-  if (!isLocalTemp) {
+  const isLocalTemp = isLocalSheetTempId(sheetId);
+  if (isLocalTemp) {
+    await ensureLocalWeeksQueuedForSync([merged]).catch(() => {});
+  } else {
     await offlineEnqueueSheetUpdate(sheetId, data);
-    // Push only after device + queue confirm.
-    await runSync().catch(() => {});
   }
+  // Push only after device + queue confirm. Local-* weeks POST via the create queue.
+  await runSync().catch(() => {});
 
   scheduleDeviceBackupAfterWrite();
   return merged;
@@ -334,7 +486,9 @@ export async function persistSheetLocalCritical(
 
   await confirmDeviceSheetWrite(merged);
 
-  if (!sheetId.startsWith("local-")) {
+  if (isLocalSheetTempId(sheetId)) {
+    await ensureLocalWeeksQueuedForSync([merged]).catch(() => {});
+  } else {
     await offlineEnqueueSheetUpdate(sheetId, data);
   }
   scheduleDeviceBackupAfterWrite();
@@ -360,13 +514,16 @@ export async function createSheetOfflineFirst(
   await offlineEnqueue({ type: "create", tempId, data });
   scheduleDeviceBackupAfterWrite();
 
-  const sync = await runSync().catch(() => ({ synced: 0 } as SyncResult));
+  let sync = await runSync().catch(() => ({ synced: 0 } as SyncResult));
+  if (sync.replacedTempId?.tempId !== tempId && isOnline()) {
+    sync = await runSync().catch(() => sync);
+  }
   if (sync.replacedTempId?.tempId === tempId) {
     const real = await offlineGetSheet(sync.replacedTempId.realId).catch(() => null);
     if (real) return real;
     return { ...local, id: sync.replacedTempId.realId };
   }
-  // Device has the week sheet; Neon create may still be pending.
+  // Device has the week sheet; Neon create stays queued for the next online sync.
   return local;
 }
 

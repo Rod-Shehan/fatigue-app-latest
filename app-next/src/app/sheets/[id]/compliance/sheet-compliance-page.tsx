@@ -13,12 +13,19 @@ import { getSlotOffsetWithinTodayLocal } from "@/lib/compliance";
 import { DEFAULT_JURISDICTION_CODE } from "@/lib/jurisdiction";
 import {
   buildDriverComplianceWeekContext,
+  pickRicherComplianceDays,
   runLocalSheetComplianceCheck,
 } from "@/lib/sheet-compliance-local";
+import { isLocalSheetTempId } from "@/lib/offline-sync-merge";
 import { getDisplayNameFromSession } from "@/lib/session-display-name";
 import { isFleetManagerRole } from "@/lib/roles";
 import { resolveSheetDriverDisplayName } from "@/lib/sheet-driver-display-name";
-import { formatSheetDisplayDate, getPreviousWeekSunday, getRegulatoryTodayYmd } from "@/lib/weeks";
+import {
+  formatSheetDisplayDate,
+  getPreviousWeekSunday,
+  getRegulatoryTodayYmd,
+  normalizeWeekDateString,
+} from "@/lib/weeks";
 import { last24hBreakEndMsFromIso } from "@/lib/last-24h-break-range";
 import { useSession } from "next-auth/react";
 
@@ -63,25 +70,28 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
   });
 
   const { data: complianceHistoryRemote } = useQuery({
-    queryKey: ["sheet", sheetId, "compliance-history"],
-    queryFn: () => api.sheets.complianceHistory(sheetId),
-    enabled: isManager && !!sheetId,
+    queryKey: ["sheet", sheetId, "compliance-history", sheet?.week_starting],
+    queryFn: () =>
+      isLocalSheetTempId(sheetId) && sheet?.week_starting
+        ? api.sheets.complianceHistoryForWeek(sheet.week_starting)
+        : api.sheets.complianceHistory(sheetId),
+    enabled: Boolean(sheetId) && (isLocalSheetTempId(sheetId) ? Boolean(sheet?.week_starting) : true),
   });
 
   const complianceHistoryLocal = useMemo(() => {
-    if (isManager || !sheet?.driver_name || !sheet.week_starting) return null;
+    if (!sheet?.driver_name || !sheet.week_starting) return null;
     return buildDriverComplianceWeekContext(sheet.driver_name, sheet.week_starting, allSheets);
-  }, [isManager, sheet?.driver_name, sheet?.week_starting, allSheets]);
+  }, [sheet?.driver_name, sheet?.week_starting, allSheets]);
 
   const prevWeekSheet = useMemo(() => {
     if (!sheet?.week_starting || !sheet.driver_name) return null;
-    const prevDateStr = getPreviousWeekSunday(sheet.week_starting);
+    const prevDateStr = getPreviousWeekSunday(normalizeWeekDateString(sheet.week_starting));
     return (
       allSheets.find(
         (s) =>
           s.id !== sheetId &&
           s.driver_name?.toLowerCase() === sheet.driver_name?.toLowerCase() &&
-          s.week_starting === prevDateStr
+          normalizeWeekDateString(s.week_starting ?? "") === prevDateStr
       ) ?? null
     );
   }, [allSheets, sheet, sheetId]);
@@ -91,12 +101,15 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
     ? getCurrentDayIndex(sheet.week_starting, todayYmd)
     : 0;
 
-  const prevWeekDays = isManager
-    ? (complianceHistoryRemote?.prev_week_days ?? prevWeekSheet?.days ?? null)
-    : (complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null);
-  const prevWeekStarting = isManager
-    ? (complianceHistoryRemote?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined)
-    : (complianceHistoryLocal?.prevWeekStarting ?? prevWeekSheet?.week_starting ?? undefined);
+  const prevWeekDays = pickRicherComplianceDays(
+    complianceHistoryRemote?.prev_week_days ?? null,
+    complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null
+  );
+  const prevWeekStarting =
+    complianceHistoryRemote?.prev_week_starting ??
+    complianceHistoryLocal?.prevWeekStarting ??
+    prevWeekSheet?.week_starting ??
+    undefined;
 
   const compliancePayload = useMemo(() => {
     if (!sheet?.days?.length) return null;
@@ -104,9 +117,10 @@ export default function SheetCompliancePage({ sheetId }: { sheetId: string }) {
       days: sheet.days,
       driverType: sheet.driver_type,
       prevWeekDays,
-      historyDays: isManager
-        ? (complianceHistoryRemote?.history_days ?? null)
-        : (complianceHistoryLocal?.historyDays ?? null),
+      historyDays: pickRicherComplianceDays(
+        complianceHistoryRemote?.history_days ?? null,
+        complianceHistoryLocal?.historyDays ?? null
+      ),
       last24hBreak: sheet.last_24h_break || undefined,
       last24hBreakStart: sheet.last_24h_break_start || null,
       last24hBreakEnd: sheet.last_24h_break_end || null,

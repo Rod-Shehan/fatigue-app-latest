@@ -128,8 +128,10 @@ import { collectTwoUpDeclaredStationaryRanges } from "@/lib/two-up-stationary";
 import { complianceStateAt } from "@/lib/compliance-state";
 import {
   buildDriverComplianceWeekContext,
+  pickRicherComplianceDays,
   runLocalSheetComplianceCheck,
 } from "@/lib/sheet-compliance-local";
+import { isLocalSheetTempId } from "@/lib/offline-sync-merge";
 import type { TimelineSlice } from "@/lib/rolling-events";
 import { concatenateTimelineSlices, getSheetOwnerEventsInOrder } from "@/lib/rolling-events";
 import { getWorkLogBlockReason } from "@/lib/shift-start-gate";
@@ -682,13 +684,13 @@ export function SheetDetail({
 
   const prevWeekSheet = useMemo(() => {
     if (!sheetData.driver_name || !sheetData.week_starting) return null;
-    const prevDateStr = getPreviousWeekSunday(sheetData.week_starting);
+    const prevDateStr = getPreviousWeekSunday(normalizeWeekDateString(sheetData.week_starting));
     return (
       allSheets.find(
         (s) =>
           s.id !== sheetId &&
           s.driver_name?.toLowerCase() === sheetData.driver_name?.toLowerCase() &&
-          s.week_starting === prevDateStr
+          normalizeWeekDateString(s.week_starting ?? "") === prevDateStr
       ) || null
     );
   }, [allSheets, sheetData.driver_name, sheetData.week_starting, sheetId]);
@@ -698,27 +700,32 @@ export function SheetDetail({
   );
 
   const { data: complianceHistoryRemote } = useQuery({
-    queryKey: ["sheet", sheetId, "compliance-history"],
-    queryFn: () => api.sheets.complianceHistory(sheetId),
-    enabled: isManager && !!sheetId,
+    queryKey: ["sheet", sheetId, "compliance-history", sheetData.week_starting],
+    queryFn: () =>
+      isLocalSheetTempId(sheetId) && sheetData.week_starting
+        ? api.sheets.complianceHistoryForWeek(sheetData.week_starting)
+        : api.sheets.complianceHistory(sheetId),
+    enabled: Boolean(sheetId) && (isLocalSheetTempId(sheetId) ? Boolean(sheetData.week_starting) : true),
   });
 
   const complianceHistoryLocal = useMemo(() => {
-    if (isManager || !sheetData.driver_name || !sheetData.week_starting) return null;
+    if (!sheetData.driver_name || !sheetData.week_starting) return null;
     return buildDriverComplianceWeekContext(sheetData.driver_name, sheetData.week_starting, allSheets);
-  }, [isManager, sheetData.driver_name, sheetData.week_starting, allSheets]);
+  }, [sheetData.driver_name, sheetData.week_starting, allSheets]);
 
   const compliancePayload = useMemo(() => {
-    const prevWeekDays = isManager
-      ? (complianceHistoryRemote?.prev_week_days ?? prevWeekSheet?.days ?? null)
-      : (complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null);
+    const prevWeekDays = pickRicherComplianceDays(
+      complianceHistoryRemote?.prev_week_days ?? null,
+      complianceHistoryLocal?.prevWeekDays ?? prevWeekSheet?.days ?? null
+    );
     return {
       days: sheetData.days,
       driverType: todayCrew.driver_type,
       prevWeekDays,
-      historyDays: isManager
-        ? (complianceHistoryRemote?.history_days ?? null)
-        : (complianceHistoryLocal?.historyDays ?? null),
+      historyDays: pickRicherComplianceDays(
+        complianceHistoryRemote?.history_days ?? null,
+        complianceHistoryLocal?.historyDays ?? null
+      ),
       last24hBreak: sheetData.last_24h_break || undefined,
       last24hBreakStart: sheetData.last_24h_break_start || null,
       last24hBreakEnd: sheetData.last_24h_break_end || null,
@@ -738,9 +745,11 @@ export function SheetDetail({
         last_24h_rest_4_end: sheetData.last_24h_rest_4_end || null,
       },
       weekStarting: sheetData.week_starting || undefined,
-      prevWeekStarting: isManager
-        ? (complianceHistoryRemote?.prev_week_starting ?? prevWeekSheet?.week_starting ?? undefined)
-        : (complianceHistoryLocal?.prevWeekStarting ?? prevWeekSheet?.week_starting ?? undefined),
+      prevWeekStarting:
+        complianceHistoryRemote?.prev_week_starting ??
+        complianceHistoryLocal?.prevWeekStarting ??
+        prevWeekSheet?.week_starting ??
+        undefined,
       currentDayIndex,
       slotOffsetWithinToday: slotMinute,
       jurisdiction_code: sheetData.jurisdiction_code || DEFAULT_JURISDICTION_CODE,
@@ -769,7 +778,6 @@ export function SheetDetail({
     complianceHistoryLocal,
     currentDayIndex,
     slotMinute,
-    isManager,
   ]);
 
   const localComplianceResults = useMemo(() => {

@@ -491,6 +491,14 @@ export const api = {
         lookback_weeks: number;
         policy: RecordRetentionPolicy;
       }>(`/api/sheets/${id}/compliance-history`),
+    complianceHistoryForWeek: (weekStarting: string) =>
+      fetchApi<{
+        prev_week_starting: string | null;
+        prev_week_days: FatigueSheet["days"] | null;
+        history_days: FatigueSheet["days"];
+        lookback_weeks: number;
+        policy: RecordRetentionPolicy;
+      }>(`/api/sheets/compliance-history?weekStarting=${encodeURIComponent(weekStarting)}`),
     regoMaxEndKms: (
       rego: string,
       options?: { excludeSheetId?: string; beforeWeekStarting?: string }

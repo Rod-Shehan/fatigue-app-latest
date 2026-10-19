@@ -2,14 +2,18 @@ import { describe, expect, it } from "vitest";
 import type { FatigueSheet } from "./api";
 import type { PendingWrite } from "./offline";
 import {
+  coalesceLocalSheets,
   countSheetChecklists,
   countSheetEvents,
+  findServerTwinForLocal,
   hasPendingUpdateForSheet,
+  isLocalSheetTempId,
   isNotFoundError,
   mergeLocalSheetWithPendingUpdates,
   findRicherLocalSheet,
   mergeNetworkSheetListWithLocal,
   overlayLocalSheetOnNetwork,
+  pendingTouchesAttestation,
   shouldPreferLocalSheet,
   toSheetUpdatePayload,
 } from "./offline-sync-merge";
@@ -182,7 +186,33 @@ describe("offline-sync-merge", () => {
     expect(findRicherLocalSheet(network, [local])?.id).toBe("s1");
   });
 
-  it("does not list a draft week as needing a signature when the device has the week signature", () => {
+  it("does not treat a leftover device signature as signed when the server week is unsigned", () => {
+    const network = sheet({
+      id: "s1",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-11",
+      status: "draft",
+      signature: null,
+      signed_at: undefined,
+      days: [],
+    });
+    const local = sheet({
+      id: "s1",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-11",
+      status: "completed",
+      signature: "data:image/png;base64,x",
+      signed_at: "2026-10-17T08:00:00.000Z",
+      days: [],
+    });
+    const overlaid = overlayLocalSheetOnNetwork(local, network);
+    expect(overlaid.status).toBe("draft");
+    expect(overlaid.signature).toBeNull();
+    expect(overlaid.signed_at).toBeUndefined();
+    expect(findRicherLocalSheet(network, [local])).toBeNull();
+  });
+
+  it("keeps an unsynced device signature only when a pending sign is still queued", () => {
     const network = sheet({
       id: "s1",
       driver_name: "Jaydin Ireland",
@@ -197,10 +227,60 @@ describe("offline-sync-merge", () => {
       week_starting: "2026-10-11",
       status: "completed",
       signature: "data:image/png;base64,x",
+      signed_at: "2026-10-19T06:00:00.000Z",
       days: [],
     });
-    const overlaid = overlayLocalSheetOnNetwork(local, network);
+    const pending: PendingWrite[] = [
+      {
+        id: 1,
+        type: "update",
+        sheetId: "s1",
+        data: {
+          status: "completed",
+          signature: "data:image/png;base64,x",
+          signed_at: "2026-10-19T06:00:00.000Z",
+        },
+        at: 1,
+      },
+    ];
+    expect(pendingTouchesAttestation(pending, "s1")).toBe(true);
+    const overlaid = overlayLocalSheetOnNetwork(local, network, { keepLocalAttestation: true });
     expect(overlaid.status).toBe("completed");
     expect(overlaid.signature).toBe("data:image/png;base64,x");
+  });
+
+  it("coalesces store + list copies and keeps the richer days", () => {
+    const emptyListRow = sheet({
+      id: "s1",
+      week_starting: "2026-10-11",
+      days: [],
+    });
+    const stored = sheet({
+      id: "s1",
+      week_starting: "2026-10-11",
+      days: [{ events: [{ time: "2026-10-12T18:24:00.000Z", type: "stop" }] }],
+    });
+    const coalesced = coalesceLocalSheets([[emptyListRow], [stored]]);
+    expect(coalesced).toHaveLength(1);
+    expect(countSheetEvents(coalesced[0])).toBe(1);
+  });
+
+  it("finds a server twin for a local-* week and treats local-* ids as temp", () => {
+    expect(isLocalSheetTempId("local-abc")).toBe(true);
+    expect(isLocalSheetTempId("cmv3lghq40001jq0484rrd94w")).toBe(false);
+    const localOnly = sheet({
+      id: "local-week",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-18T00:00:00.000Z",
+      days: [{ events: [{ time: "2026-10-19T00:10:00.000Z", type: "work" }] }],
+    });
+    const twin = sheet({
+      id: "server-week",
+      driver_name: "Jaydin Ireland",
+      week_starting: "2026-10-18",
+      days: [],
+    });
+    expect(findServerTwinForLocal(localOnly, [localOnly, twin])?.id).toBe("server-week");
+    expect(findServerTwinForLocal(localOnly, [localOnly])).toBeUndefined();
   });
 });
